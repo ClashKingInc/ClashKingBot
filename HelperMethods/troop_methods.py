@@ -1,0 +1,275 @@
+import coc
+
+from Dictionaries.emojiDictionary import emojiDictionary
+from Dictionaries.levelEmojis import levelEmojis, maxLevelEmojis
+
+
+
+
+async def superTroops(player, asArray=False):
+    troops = player.troop_cls
+    troops = player.troops
+
+    boostedTroops = []
+
+    for x in range(len(troops)):
+        troop = troops[x]
+        if (troop.is_active):
+            # print (troop.name)
+            boostedTroops.append(troop.name)
+
+    if asArray:
+        return boostedTroops
+
+    return str(boostedTroops)
+
+
+def heros(player):
+    heros = player.hero_cls
+    heros = player.heroes
+    if (heros == []):
+        return None
+    heroList = ""
+
+    for x in range(len(heros)):
+        hero = heros[x]
+        if (hero.is_home_base):
+            heroList += emojiDictionary(hero.name) + " " + str(hero.level)
+
+    # print(heroList)
+    return heroList
+
+
+def spells(player):
+    spells = player.spell_cls
+    spells = player.spells
+    if (spells == []):
+        return None
+    spellList = ""
+    levelList = ""
+
+    for x in range(len(spells)):
+        theSpells = coc.SPELL_ORDER
+        # print(str(regTroop))
+        spell = spells[x]
+        if spell.name in theSpells:
+            if (spell.name == "Poison Spell"):
+                spellList += "\n" + levelList + "\n"
+                levelList = ""
+            spellList += f"{emojiDictionary(spell.name)} "
+            if spell.level == spell.max_level:
+                levelList += maxLevelEmojis(spell.level)
+            else:
+                levelList += levelEmojis(spell.level)
+            if spell.level <= 10:
+                levelList += " "
+
+    spellList += "\n" + levelList + "\n"
+
+    # print(heroList)
+    # print(troopList)
+    return spellList
+
+
+def troops(player):
+    troops = player.troop_cls
+    troops = player.troops
+    if (troops == []):
+        return None
+    troopList = ""
+    levelList = ""
+
+    z = 0
+    for x in range(len(troops)):
+        regTroop = coc.HOME_TROOP_ORDER
+        # print(str(regTroop))
+        troop = troops[x]
+        if troop.name == "Minion":
+            troopList += "\n" + levelList + "\n"
+            #print(troopList)
+            return troopList
+        if (troop.name in regTroop) and (troop.is_home_base) and (troop.name not in coc.SIEGE_MACHINE_ORDER):
+            z += 1
+            troopList += emojiDictionary(troop.name) + " "
+            if troop.level == troop.max_level:
+                levelList += maxLevelEmojis(troop.level)
+            else:
+                levelList += levelEmojis(troop.level)
+            if troop.level <= 11:
+                levelList += " "
+
+            if (z != 0 and z % 5 == 0):
+                troopList += "\n" + levelList + "\n"
+                levelList = ""
+
+
+
+
+def deTroops(player):
+    troops = player.troop_cls
+    troops = player.troops
+    if (troops == []):
+        return None
+    troopList = ""
+    levelList = ""
+
+    z = 0
+    notDe = True
+    for x in range(len(troops)):
+        regTroop = coc.HOME_TROOP_ORDER
+        # print(str(regTroop))
+        troop = troops[x]
+        if troop.name == "Minion":
+            notDe = False
+
+        if (notDe == False) and (troop.name in regTroop) and (troop.is_home_base) and (troop.name not in coc.SIEGE_MACHINE_ORDER):
+            z += 1
+            troopList += emojiDictionary(troop.name) + " "
+            if troop.level == troop.max_level:
+                levelList += maxLevelEmojis(troop.level)
+            else:
+                levelList += levelEmojis(troop.level)
+
+            if troop.level <= 11:
+                levelList += " "
+            # print(str(z))
+            if (z >= 0 and z % 5 == 0):
+                troopList += "\n" + levelList + "\n"
+                levelList = ""
+
+    troopList += "\n" + levelList + "\n"
+
+
+    #print(troopList)
+    return troopList
+
+
+def siegeMachines(player):
+    sieges = player.troop_cls
+    sieges = player.siege_machines
+    if (sieges == []):
+        return None
+    siegeList = ""
+    levelList = ""
+
+    z = 0
+    for x in range(len(sieges)):
+        siegeL = coc.SIEGE_MACHINE_ORDER
+        # print(str(regTroop))
+        siege = sieges[x]
+        if siege.name in siegeL:
+            z += 1
+            siegeList += emojiDictionary(siege.name) + " "
+            if siege.level == siege.max_level:
+                levelList += maxLevelEmojis(siege.level)
+            else:
+                levelList += levelEmojis(siege.level)
+
+            if siege.level <= 10:
+                levelList += " "
+
+    siegeList += "\n" + levelList
+
+    # print(heroList)
+    # print(troopList)
+    return siegeList
+
+
+def heroPets(player):
+    pets = player.hero_pets
+    # heros = player.heroes
+    if (pets == []):
+        return None
+    petList = ""
+
+    for x in range(len(pets)):
+        pet = pets[x]
+        if pet.level == pet.max_level:
+            petList += emojiDictionary(pet.name) + maxLevelEmojis(pet.level)
+        else:
+            petList += emojiDictionary(pet.name) + levelEmojis(pet.level)
+            # print(heroList)
+    return petList
+
+
+def profileSuperTroops(player):
+    troops = player.troop_cls
+    troops = player.troops
+
+    boostedTroops = ""
+    emoji = ""
+
+    for x in range(len(troops)):
+        troop = troops[x]
+        if (troop.is_active):
+            # print (troop.name)
+            emoji = emojiDictionary(troop.name)
+
+            boostedTroops += emoji + " " + troop.name + "\n"
+
+    return boostedTroops
+
+
+def leagueAndTrophies(player):
+    emoji = ""
+    league = str(player.league)
+    # print(league)
+
+    if (league == "Bronze League III"):
+        emoji = "<:BronzeLeagueIII:601611929311510528>"
+    elif (league == "Bronze League II"):
+        emoji = "<:BronzeLeagueII:601611942850986014>"
+    elif (league == "Bronze League I"):
+        emoji = "<:BronzeLeagueI:601611950228635648>"
+    elif (league == "Silver League III"):
+        emoji = "<:SilverLeagueIII:601611958067920906>"
+    elif (league == "Silver League II"):
+        emoji = "<:SilverLeagueII:601611965550428160>"
+    elif (league == "Silver League I"):
+        emoji = "<:SilverLeagueI:601611974849331222>"
+    elif (league == "Gold League III"):
+        emoji = "<:GoldLeagueIII:601611988992262144>"
+    elif (league == "Gold League II"):
+        emoji = "<:GoldLeagueII:601611996290613249>"
+    elif (league == "Gold League I"):
+        emoji = "<:GoldLeagueI:601612010492526592>"
+    elif (league == "Crystal League III"):
+        emoji = "<:CrystalLeagueIII:601612021472952330>"
+    elif (league == "Crystal League II"):
+        emoji = "<:CrystalLeagueII:601612033976434698>"
+    elif (league == "Crystal League I"):
+        emoji = "<:CrystalLeagueI:601612045359775746>"
+    elif (league == "Master League III"):
+        emoji = "<:MasterLeagueIII:601612064913621002>"
+    elif (league == "Master League II"):
+        emoji = "<:MasterLeagueII:601612075474616399>"
+    elif (league == "Master League I"):
+        emoji = "<:MasterLeagueI:601612085327036436>"
+    elif (league == "Champion League III"):
+        emoji = "<:ChampionLeagueIII:601612099226959892>"
+    elif (league == "Champion League II"):
+        emoji = "<:ChampionLeagueII:601612113345249290>"
+    elif (league == "Champion League I"):
+        emoji = "<:ChampionLeagueI:601612124447440912>"
+    elif (league == "Titan League III"):
+        emoji = "<:TitanLeagueIII:601612137491726374>"
+    elif (league == "Titan League II"):
+        emoji = "<:TitanLeagueII:601612148325744640>"
+    elif (league == "Titan League I"):
+        emoji = "<:TitanLeagueI:601612159327141888>"
+    elif (league == "Legend League"):
+        emoji = "<:LegendLeague:601612163169255436>"
+    else:
+        emoji = "<:Unranked:601618883853680653>"
+
+    return emoji + " " + str(player.trophies)
+
+
+
+
+
+
+
+
+
+
