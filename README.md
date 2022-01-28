@@ -63,14 +63,12 @@ Clash of Clans family management bot for roles, player info, rankings, leaderboa
 
 ### Built With
 
-* [Next.js](https://nextjs.org/)
-* [React.js](https://reactjs.org/)
-* [Vue.js](https://vuejs.org/)
-* [Angular](https://angular.io/)
-* [Svelte](https://svelte.dev/)
-* [Laravel](https://laravel.com)
-* [Bootstrap](https://getbootstrap.com)
-* [JQuery](https://jquery.com)
+* [Python](https://www.python.org/)
+* [coc.py](https://cocpy.readthedocs.io/en/latest/)
+* [Motor](https://motor.readthedocs.io/en/stable/tutorial-asyncio.html)
+* [Pycord](https://pycord.dev/)
+* [interactions.py](https://discord-interactions.readthedocs.io/en/latest/)
+
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -128,16 +126,16 @@ Project Link: [https://github.com/matthewvanderson/MagicBot](https://github.com/
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/github_username/repo_name.svg?style=for-the-badge
-[contributors-url]: https://github.com/github_username/repo_name/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/github_username/repo_name.svg?style=for-the-badge
-[forks-url]: https://github.com/github_username/repo_name/network/members
-[stars-shield]: https://img.shields.io/github/stars/github_username/repo_name.svg?style=for-the-badge
-[stars-url]: https://github.com/github_username/repo_name/stargazers
-[issues-shield]: https://img.shields.io/github/issues/github_username/repo_name.svg?style=for-the-badge
-[issues-url]: https://github.com/github_username/repo_name/issues
-[license-shield]: https://img.shields.io/github/license/github_username/repo_name.svg?style=for-the-badge
-[license-url]: https://github.com/github_username/repo_name/blob/master/LICENSE.txt
+[contributors-shield]: https://img.shields.io/github/contributors/matthewvanderson/MagicBot.svg?style=for-the-badge
+[contributors-url]: https://github.com/matthewvanderson/MagicBot/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/matthewvanderson/MagicBot.svg?style=for-the-badge
+[forks-url]: https://github.com/matthewvanderson/MagicBot/network/members
+[stars-shield]: https://img.shields.io/github/stars/matthewvanderson/MagicBot.svg?style=for-the-badge
+[stars-url]: https://github.com/matthewvanderson/MagicBot/stargazers
+[issues-shield]: https://img.shields.io/github/issues/matthewvanderson/MagicBot.svg?style=for-the-badge
+[issues-url]: https://github.com/matthewvanderson/MagicBot/issues
+[license-shield]: https://img.shields.io/github/license/matthewvanderson/MagicBot.svg?style=for-the-badge
+[license-url]: https://github.com/matthewvanderson/MagicBot/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/linkedin_username
 [product-screenshot]: images/screenshot.png
