@@ -57,8 +57,6 @@
 
 Clash of Clans family management bot for roles, player info, rankings, leaderboards, and more!
 
-<p align="right">(<a href="#top">back to top</a>)</p>
-
 
 
 ### Built With
@@ -69,8 +67,6 @@ Clash of Clans family management bot for roles, player info, rankings, leaderboa
 * [Pycord](https://pycord.dev/)
 * [interactions.py](https://discord-interactions.readthedocs.io/en/latest/)
 
-
-<p align="right">(<a href="#top">back to top</a>)</p>
 
 
 
@@ -91,8 +87,6 @@ Don't forget to give the project a star! Thanks again!
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-<p align="right">(<a href="#top">back to top</a>)</p>
-
 
 
 <!-- LICENSE -->
@@ -100,27 +94,17 @@ Don't forget to give the project a star! Thanks again!
 
 Distributed under the MIT License. See `LICENSE.txt` for more information.
 
-<p align="right">(<a href="#top">back to top</a>)</p>
-
-
 
 <!-- CONTACT -->
 ## Contact
 
-Project Link: [https://github.com/matthewvanderson/MagicBot](https://github.com/matthewvanderson/MagicBot)
-
-<p align="right">(<a href="#top">back to top</a>)</p>
+Discord: [Demo & Support Server](https://discord.gg/Z96S8Gg2Uv)
 
 
 
-<!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
 
-* []()
-* []()
-* []()
 
-<p align="right">(<a href="#top">back to top</a>)</p>
+
 
 
 
