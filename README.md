@@ -119,6 +119,6 @@ Discord: [Demo & Support Server](https://discord.gg/Z96S8Gg2Uv)
 [issues-shield]: https://img.shields.io/github/issues/matthewvanderson/MagicBot.svg?style=for-the-badge
 [issues-url]: https://github.com/matthewvanderson/MagicBot/issues
 [license-shield]: https://img.shields.io/github/license/matthewvanderson/MagicBot.svg?style=for-the-badge
-[license-url]: https://github.com/matthewvanderson/MagicBot/blob/master/LICENSE.md
+[license-url]: https://github.com/matthewvanderson/MagicBot/blob/master/LICENSE
 
 [product-screenshot]: images/screenshot.png
