@@ -6,7 +6,6 @@ from discord import Client
 from discord.ext import commands
 from discord_slash import SlashCommand
 import traceback
-
 from HelperMethods.clashClient import client, pingToRole, coc_client
 
 #db collections
@@ -16,11 +15,9 @@ clans = usafam.clans
 whitelist = usafam.whitelist
 banlist = usafam.banlist
 
-intents = discord.Intents().all()
-
-
-TOKEN = "ODI0NjUzOTMzMzQ3MjA5MjI3.YFyg0w.ifLavjvPY0PhtSkTpLWVRqckWu4"
+TOKEN = os.getenv("TOKEN")
 discClient = Client()
+intents = discord.Intents().all()
 
 async def get_prefix(bot, message):
     results = await server.find_one({"server": message.guild.id})
