@@ -23,7 +23,7 @@
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
+
 
 
 
@@ -34,15 +34,15 @@
     <img src="https://cdn.discordapp.com/attachments/843624785560993833/936730769487978506/2715c2864c10dc64a848f7d12d1640d0.png" alt="Logo" width="80" height="80">
   </a>
 
-<h3 align="center">project_title</h3>
+<h3 align="center">MagicBot</h3>
 
   <p align="center">
-    project_description
+    Clash of Clans family management bot for roles, player info, rankings, leaderboards, and more!
     <br />
     <a href="https://github.com/matthewvanderson/MagicBot"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://github.commatthewvanderson/MagicBot">View Demo</a>
+    <a href="https://discord.gg/Z96S8Gg2Uv">View Demo</a>
     ·
     <a href="https://github.com/matthewvanderson/MagicBot/issues">Report Bug</a>
     ·
