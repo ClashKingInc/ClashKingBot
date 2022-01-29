@@ -245,14 +245,16 @@ class Linking(commands.Cog):
             player = await getPlayer(playerTag)
             if player is None:
                 embed = discord.Embed(description="Invalid Player Tag", color=discord.Color.red())
-                return await ctx.reply(embed=embed, mention_author=False)
+                await ctx.reply(embed=embed, mention_author=False)
+                continue
 
             linked = await link_client.get_link(player.tag)
             if linked is not None:
                 embed = discord.Embed(
                     title=player.name + " is already linked to a discord user.",
                     color=discord.Color.red())
-                return await ctx.reply(embed=embed, mention_author=False)
+                await ctx.reply(embed=embed, mention_author=False)
+                continue
 
             await link_client.add_link(player.tag, user.id)
 
