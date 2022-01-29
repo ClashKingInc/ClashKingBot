@@ -143,10 +143,14 @@ class family(commands.Cog):
 
 
         thcount = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        total = 0
+        sumth = 0
 
         for clan in clan_list:
             async for player in clan.get_detailed_members():
                 th = player.town_hall
+                sumth += th
+                total += 1
                 count = thcount[th - 1]
                 thcount[th - 1] = count + 1
 
@@ -160,13 +164,17 @@ class family(commands.Cog):
                 else:
                     th_emoji = emojiDictionary(x + 1)
                     stats += f"{th_emoji} `TH{x + 1}` : {count}\n"
+
+        average = round((sumth/total),2)
         if is_all:
             embed = discord.Embed(title=f"{ctx.guild.name} Townhall Composition", description=stats, color=discord.Color.green())
             embed.set_thumbnail(url=ctx.guild.icon_url_as())
+            embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
             await msg.edit(embed=embed)
         else:
             embed = discord.Embed(title=f"{clan.name} Townhall Composition", description=stats, color=discord.Color.green())
             embed.set_thumbnail(url=clan.badge.large)
+            embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
             await ctx.send(embed=embed)
 
 
