@@ -87,6 +87,8 @@ class help(commands.Cog):
                               f"Display basic player info and a link to their in-game profile\n"
                               f"**{prefix}lookup [#PLAYERTAG, @DiscordName, nothing]**\n"
                               f"Display detailed player info\n"
+                              f"**{prefix}list [@DiscordName, nothing]**\n"
+                              "List of accounts & average th/count\n"
                               f"**{prefix}link**\n"
                               "Start link wizard to link a player tag to a Discord account\n"
                               f"**{prefix}refresh**\n"
