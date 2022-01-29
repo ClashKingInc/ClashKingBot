@@ -57,7 +57,40 @@ class joinstuff(commands.Cog):
             stat_buttons = create_actionrow(*stat_buttons)
             embed.set_thumbnail(url=member.guild.icon_url_as())
             await channel.send(content=member.mention, embed=embed, components=[stat_buttons])
+        elif member.guild.id == 923764211845312533:
+            memId = member.mention
+            channel = self.bot.get_channel(923862077498609665)
 
+            emoji = "<a:redflame:932469862633181194>"
+            arrowleft = "<a:6270_Arrow_1_Gif:932470483205644300>"
+            arrowright = "<a:rightarrow:932470092883722271>"
+            clash = "<:clash:855491735488036904>"
+
+            results = await server.find_one({"server": member.guild.id})
+            prefix = results.get("prefix")
+
+            embed = discord.Embed(title="Enjoy your stay!",
+                                  description=f"{emoji}**Welcome to {member.guild.name}!**{emoji}\n"
+                                              f"This is the support server for 2 bots - MagicBot & LegendsTracker\n"
+                                              f"> MagicBot is a Clash of Clans Family management bot for roles, rankings, & more.\n"
+                                              f"> LegendsTracker is the premier & **free** legends hit tracking bot for Clash of Clans.\n"
+                                              f"Take a look around the demo channels, and leave any feedback or questions in <#923786531876003850>.\n\n"
+                                              f"{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
+                                  color=discord.Color.green())
+            # embed.set_thumbnail(
+            # url="https://media.discordapp.net/attachments/815832030084333628/854623578532216862/ezgif.com-gif-maker_1.gif")
+            embed.set_thumbnail(url=member.avatar_url)
+            # embed.set_footer(text="Feel free to message in #new-people if you need help.")
+
+            stat_buttons = [
+                create_button(label="LegendsTracker", emoji="🔍", style=ButtonStyle.URL,
+                              url="https://discord.com/channels/923764211845312533/923764469849534474"),
+                create_button(label="MagicBot", emoji="🔗", style=ButtonStyle.URL,
+                              url="https://discord.com/channels/923764211845312533/936024045068120154"),
+                create_button(label="Changes", emoji="📚", style=ButtonStyle.URL,
+                              url="https://discord.com/channels/923764211845312533/923786181760651375")]
+            buttons = create_actionrow(*stat_buttons)
+            await channel.send(content=member.mention, embed=embed, components=[buttons])
     @commands.Cog.listener()
     async def on_component(self, ctx):
         if ctx.custom_id == "Start Link":
