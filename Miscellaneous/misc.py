@@ -221,7 +221,7 @@ class misc(commands.Cog):
         for guild in self.bot.guilds:
             members += guild.member_count - 1
 
-        embed = discord.Embed(title='LegendsTracker Stats',
+        embed = discord.Embed(title='MagicBot Stats',
                               description=f"<:bot:862911608140333086> Bot: {me}\n" +
                                           f"<:discord:840749695466864650> Discord Api Ping: {round(self.bot.latency * 1000, 2)} ms\n" +
                                           f"<a:ping:862916971711168562> Bot Ping: {round(meping, 2)} ms\n" +
