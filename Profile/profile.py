@@ -33,7 +33,7 @@ class profiles(commands.Cog):
 
 
     @commands.command(name="list")
-    async def profile(self, ctx, *, search_query=None):
+    async def list(self, ctx, *, search_query=None):
         if search_query == None:
             search_query = str(ctx.author.id)
         embed = discord.Embed(
