@@ -60,7 +60,6 @@ class joinstuff(commands.Cog):
         elif member.guild.id == 923764211845312533:
             memId = member.mention
             channel = self.bot.get_channel(923862077498609665)
-
             emoji = "<a:redflame:932469862633181194>"
             arrowleft = "<a:6270_Arrow_1_Gif:932470483205644300>"
             arrowright = "<a:rightarrow:932470092883722271>"
