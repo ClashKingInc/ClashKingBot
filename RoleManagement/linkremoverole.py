@@ -17,7 +17,7 @@ class linkroles(commands.Cog):
         embed = discord.Embed(
             description=f"**{ctx.prefix}linkroles add @RoleName**\n"
                         "Adds a role to remove when a player is linked to a family clan.\n"
-                        f"**{ctx.prefix}linkroles delete @RoleName**\n"
+                        f"**{ctx.prefix}linkroles remove @RoleName**\n"
                         "Deletes a role from the list of roles to remove when a player is linked to a family clan.\n"
                         f"**{ctx.prefix}linkroles list**\n"
                         "Displays the list of roles to remove when a player is linked to a family clan.",

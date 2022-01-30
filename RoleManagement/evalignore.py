@@ -18,7 +18,7 @@ class evalignores(commands.Cog):
         embed = discord.Embed(
             description=f"**{prefix}evalignore add @RoleName**\n"
                         "Adds a role to ignore when a user or role is evaluated.\n"
-                        f"**{prefix}evalignore delete @RoleName**\n"
+                        f"**{prefix}evalignore remove @RoleName**\n"
                         "Deletes a role to ignore when a user or role is evaluated.\n"
                         f"**{prefix}evalignore list**\n"
                         "Displays the list of roles to ignore when a user or role is evaluated.",

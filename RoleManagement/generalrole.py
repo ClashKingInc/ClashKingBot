@@ -19,7 +19,7 @@ class generalroles(commands.Cog):
         embed = discord.Embed(
             description=f"**{prefix}generalrole add @RoleName**\n"
                         "Adds a role to add when a player is linked to a family clan.\n"
-                        f"**{prefix}generalrole delete @RoleName**\n"
+                        f"**{prefix}generalrole remove @RoleName**\n"
                         "Deletes a role from the list of roles to add when a player is linked to a family clan.\n"
                         f"**{prefix}generalrole list**\n"
                         "Displays the list of roles to add when a player is linked to a family clan.",

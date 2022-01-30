@@ -17,7 +17,7 @@ class whiteList(commands.Cog):
         embed = discord.Embed(
             description=f"**{ctx.prefix}whitelist add @RoleName command**\n"
                         "Adds a role that can run a specific command.\n"
-                        f"**{ctx.prefix}whitelist delete @RoleName command**\n"
+                        f"**{ctx.prefix}whitelist remove @RoleName command**\n"
                         "Deletes a role that can run a specific command.\n"
                         f"**{ctx.prefix}whitelist list**\n"
                         "Displays the list of commands/roles that have whitelist overrides.",
