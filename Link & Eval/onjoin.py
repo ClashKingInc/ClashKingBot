@@ -20,6 +20,8 @@ class joinstuff(commands.Cog):
     @commands.Cog.listener()
     async def on_member_join(self, member):
         if member.guild.id == 328997757048324101:
+            if "Moderator" in member.name:
+                return await member.ban()
             memId = member.mention
             channel = self.bot.get_channel(739597294474625034)
 
