@@ -23,11 +23,6 @@ class profileHistory(commands.Cog):
             pass
 
 
-        embed = discord.Embed(title="You are looking at " + player.name,
-                               description="Player History.",
-                               color=discord.Color.green())
-
-
         import requests
         result = result.strip("#")
         url = f'https://www.clashofstats.com/players/{result}/history/'
@@ -35,11 +30,13 @@ class profileHistory(commands.Cog):
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(response.text, 'html.parser')
         clans = soup.find_all("a", class_="v-list-item v-list-item--link theme--dark")
+        test = soup.find_all("div", class_="subsection-title")
+        num_clans = test[1].text.strip()
         text = ""
         x = 0
         for clan in clans:
             try:
-                title_element = clan.find("div", class_="v-list-item__title")
+                #title_element = clan.find("div", class_="subsection-title")
                 company_element = clan.find("span", class_="text--secondary caption")
                 location_element = clan.find("div", class_="v-list-item__subtitle")
                 #print(title_element.text.strip())
@@ -61,6 +58,9 @@ class profileHistory(commands.Cog):
             except:
                 pass
 
+        embed = discord.Embed(title=f"{player.name} History",
+                              description=f"{num_clans}",
+                              color=discord.Color.green())
         embed.add_field(name="**Top 5 Clans Player has stayed the most:**",
                         value=text, inline=False)
 
@@ -80,7 +80,8 @@ class profileHistory(commands.Cog):
                 location_element = clan.find("div", class_="v-list-item__subtitle text--secondary")
                 t = title_element.text.strip()
                 t = " ".join(t.split())
-                clan = await getClan(t[-12:])
+                ttt = t.split("#",1)
+                clan = await getClan(ttt[1])
                 type = "No Role"
                 for ty in types:
                     if ty in t:
