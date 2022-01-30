@@ -18,7 +18,7 @@ class removerole(commands.Cog):
         embed = discord.Embed(
             description=f"**{ctx.prefix}removeroles add @RoleName**\n"
                         "Adds a role to remove when a player is no longer in a family clan.\n"
-                        f"**{ctx.prefix}removeroles delete @RoleName**\n"
+                        f"**{ctx.prefix}removeroles remove @RoleName**\n"
                         "Deletes a role from the list of roles to remove when a player is no longer in a family clan.\n"
                         f"**{ctx.prefix}removeroles list**\n"
                         "Displays the list of roles to remove when a player is no longer in a family clan.",
