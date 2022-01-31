@@ -19,7 +19,7 @@ class help(commands.Cog):
                 create_select_option("Clan Settings", value="3"),
                 create_select_option("Moderator Commands", value="4"),
                 create_select_option("Role Management", value="5"),
-
+                create_select_option("Misc Commands", value="6"),
             ],
             placeholder="Choose Command Type",  # the placeholder text to show when no options have been chosen
             min_values=1,  # the minimum number of options a user must select
@@ -121,6 +121,19 @@ class help(commands.Cog):
                                f"List & details about current autoboards.",
                          inline=False)
 
+        embed3.add_field(name=f"__**CWL Roster Creation**__",
+                         value=f"**{prefix}roster create**\n"
+                               "Roster wizard to initialize roster w/ players.\n"
+                               f"**{prefix}roster list**\n"
+                               f"List of Rosters on server.\n"
+                               f"**{prefix}roster [alias]**\n"
+                               f"Display selected roster.\n"
+                               f"**{prefix}roster edit [alias]**\n"
+                               f"Edit wizard for selected roster.\n"
+                               f"**{prefix}roster delete [alias]**\n"
+                               f"Delete selected roster.",
+                         inline=False)
+
         embed3.set_thumbnail(url=ctx.guild.icon_url_as())
         embeds.append(embed3)
 
@@ -219,6 +232,15 @@ class help(commands.Cog):
         embed5.set_thumbnail(url=ctx.guild.icon_url_as())
         embeds.append(embed5)
 
+        embed6 = discord.Embed(title="Misc Commands",
+                              description=f"**{prefix}supportserver**\n"
+                                          f"Link to support server\n"
+                                          f"**{prefix}invitebot**\n"
+                                          f"Link to invite bot to your server.",
+                              color=discord.Color.blue())
+
+        embeds.append(embed6)
+
 
         dropdown = create_actionrow(select)
 
@@ -238,6 +260,22 @@ class help(commands.Cog):
             await res.edit_origin()
             #print(res.selected_options)
             await msg.edit(embed=embeds[int(res.selected_options[0])-1])
+
+    @commands.command(name="supportserver")
+    async def support(self,ctx):
+        embed = discord.Embed(title="Support Server & Github",
+                              description="Support Server: [here](https://discord.gg/Z96S8Gg2Uv)"
+                                          "Github: [here](https://github.com/MagicTheDev/MagicBot)",
+                              color=discord.Color.blue())
+        await ctx.send(embed=embed)
+
+    @commands.command(name="invitebot")
+    async def invitebot(self, ctx):
+        embed = discord.Embed(title="Bot Invite",
+                              description="Invite Link: [here](https://discord.com/api/oauth2/authorize?client_id=824653933347209227&permissions=8&scope=bot)",
+                              color=discord.Color.blue())
+        await ctx.send(embed=embed)
+
 
 
 def setup(bot: commands.Bot):

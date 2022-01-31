@@ -87,6 +87,8 @@ async def on_guild_join(guild):
             "lbboardChannel": None,
             "lbhour": None
         })
+    channel = bot.get_channel(937519135607373874)
+    await channel.send(f"Just joined {guild.name}")
 
 @bot.event
 async def on_command(ctx):
@@ -188,7 +190,9 @@ initial_extensions = (
     "RoleManagement.removeroles",
     "RoleManagement.linkremoverole",
     "RoleManagement.generalrole",
-    "RoleManagement.whitelist"
+    "RoleManagement.whitelist",
+    "rosters",
+    "roster_class"
 )
 
 for extension in initial_extensions:
