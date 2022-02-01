@@ -126,12 +126,15 @@ class help(commands.Cog):
                                "Roster wizard to initialize roster w/ players.\n"
                                f"**{prefix}roster list**\n"
                                f"List of Rosters on server.\n"
-                               f"**{prefix}roster [alias]**\n"
+                               f"**{prefix}roster [listalias]**\n"
                                f"Display selected roster.\n"
-                               f"**{prefix}roster edit [alias]**\n"
+                               f"**{prefix}roster edit [listalias]**\n"
                                f"Edit wizard for selected roster.\n"
-                               f"**{prefix}roster delete [alias]**\n"
-                               f"Delete selected roster.",
+                               f"**{prefix}roster delete [listalias]**\n"
+                               f"Delete selected roster."
+                               f"**{prefix}roster compare [clan] [listalias]\n"
+                               f"Compare roster to members currently in clan & see who is missing. Supports"
+                               f" clan tag or alias of a clan linked to server.",
                          inline=False)
 
         embed3.set_thumbnail(url=ctx.guild.icon_url_as())
