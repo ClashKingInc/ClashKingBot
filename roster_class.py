@@ -46,12 +46,11 @@ class Roster(commands.Cog):
                 embed.set_footer(text="Type `cancel` at any point to stop.")
                 continue
 
-            clan = clan.tag
 
         members = []
         for player in clan.members:
             members.append(player.tag)
-        return [members, clan]
+        return [members, clan.tag]
 
     async def get_alias(self, ctx):
         executor = ctx.message.author
@@ -152,9 +151,9 @@ class Roster(commands.Cog):
             th = player[0]
             count = thcount[th - 1]
             thcount[th - 1] = count + 1
-            text += f"`\u200e{rank}` `TH{player[0]}`| \u200e[{player[1]}]({player[2]}) \n"
+            text += f"`\u200e{rank}` `TH{player[0]}`| \u200e{player[1]} \n"
             num+=1
-            if num % 25 == 0:
+            if num % 50 == 0:
                 if embeds == []:
                     embed = discord.Embed(title=f"**{clan.name} Roster**",
                                           description=text,
@@ -187,14 +186,28 @@ class Roster(commands.Cog):
             {"server": guild_id}
         ]})
 
-        text = ""
-        num = 1
+        player_list = []
         members = results.get("members")
         async for player in coc_client.get_players(members):
+            p = []
+            p.append(player.town_hall)
+            p.append(player.name)
+            p.append(player.share_link)
+            player_list.append(p)
+
+        results = sorted(player_list, key=lambda l: l[0], reverse=True)
+
+        text = ""
+        num=1
+        thcount = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        for player in results:
             rank = str(num) + "."
             rank = rank.rjust(3)
-            text += f"`\u200e{rank}` \u200e{player.name} | \u200e{player.tag}\n"
-            num+=1
+            th = player[0]
+            count = thcount[th - 1]
+            thcount[th - 1] = count + 1
+            text += f"`\u200e{rank}` `TH{player[0]}`| \u200e{player[1]} \n"
+            num += 1
 
         return text
 

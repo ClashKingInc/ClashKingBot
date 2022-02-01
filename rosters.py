@@ -1,9 +1,11 @@
 import discord
 from discord.ext import commands
-from HelperMethods.clashClient import client, getPlayer, getClan
+from HelperMethods.clashClient import client, getPlayer, getClan, getTags, coc_client
 import asyncio
 
-from discord_slash.utils.manage_components import create_button, create_actionrow, wait_for_component
+from Dictionaries.emojiDictionary import emojiDictionary
+
+from discord_slash.utils.manage_components import create_button, create_actionrow, wait_for_component, create_select_option, create_select
 from discord_slash.model import ButtonStyle
 
 usafam = client.usafam
@@ -74,7 +76,7 @@ class Roster_Commands(commands.Cog):
             return await ctx.send(embed=embed)
 
         text = await roster.create_member_list(alias, ctx.guild.id)
-        clan = roster.linked_clan(alias, ctx.guild.id)
+        clan = await roster.linked_clan(alias, ctx.guild.id)
 
         embed = discord.Embed(title=f"{clan.name} Roster",
             description=text,
@@ -87,9 +89,10 @@ class Roster_Commands(commands.Cog):
         buttons = create_actionrow(*stat_buttons)
         embed.set_footer(text=f"Currently in {mode} mode.")
         msg = await ctx.send(content="Use the buttons to switch between add or remove modes.\n"
-                                     "**ADD** - Send PlayerTag in chat to add to roster\n"
-                                     "**REMOVE** - Send PlayerTag **or** number on roster (i.e 15)\n"
-                                     "**SAVE** - Save roster & get log of changes.",embed=embed, components=[buttons])
+                                     "**ADD** - Send PlayerTag or Mention player in chat to add to roster\n"
+                                     "**REMOVE** - Send number on roster (i.e 15)\n"
+                                     "**SAVE** - Save roster & get log of changes.\n"
+                                     "**NOTE:** If its an invalid option for add or remove, the list will stay unchanged.",embed=embed, components=[buttons])
 
 
 
@@ -135,15 +138,53 @@ class Roster_Commands(commands.Cog):
                     except:
                         pass
 
-
-                elif mode == "Remove":
                     try:
-                        num = int(text_res.content)
-                        member_list = await roster.fetch_members(alias, ctx.guild.id)
-                        tag = member_list[num-1]
-                        await roster.remove_member(alias,ctx.guild.id, tag)
-                        player = await getPlayer(tag)
-                        removed+= f"[{player.name}]({player.share_link}) | {player.tag}\n"
+                        ping = text_res.content
+                        tags = await getTags(ctx, ping)
+                        if tags == []:
+                            continue
+                        options = []
+                        async for player in coc_client.get_players(tags):
+                            emoji = emojiDictionary(player.town_hall)
+                            emoji = emoji.split(":", 2)
+                            emoji = emoji[2]
+                            emoji = emoji[0:len(emoji) - 1]
+                            emoji = self.bot.get_emoji(int(emoji))
+                            emoji = discord.PartialEmoji(name=emoji.name, id=emoji.id)
+                            options.append(create_select_option(f"{player.name}", value=f"{player.tag}", emoji=emoji))
+
+                        select1 = create_select(
+                            options=options,
+                            placeholder="Choose player to add to roster.",
+                            min_values=1,  # the minimum number of options a user must select
+                            max_values=1  # the maximum number of options a user can select
+                        )
+                        action_row = create_actionrow(select1)
+
+                        msg2 = await ctx.reply(content="Choose player to add to roster.", components=[action_row],
+                                              mention_author=False)
+
+                        value = None
+                        while value == None:
+                            try:
+                                res = await wait_for_component(self.bot, components=action_row,
+                                                               messages=msg2, timeout=600)
+                            except:
+                                await msg.edit(components=[])
+                                break
+
+                            if res.author_id != ctx.author.id:
+                                await res.send(content="You must run the command to interact with components.",
+                                               hidden=True)
+                                continue
+
+                            await res.edit_origin()
+                            value = res.values[0]
+
+                        await msg2.delete()
+                        await roster.add_member(alias, ctx.guild.id, value)
+                        player = await getPlayer(value)
+                        added += f"[{player.name}]({player.share_link}) | {player.tag}\n"
                         text = await roster.create_member_list(alias, ctx.guild.id)
                         embed = discord.Embed(title=f"{clan.name} Roster",
                                               description=text,
@@ -155,12 +196,15 @@ class Roster_Commands(commands.Cog):
                     except:
                         pass
 
+
+                elif mode == "Remove":
                     try:
-                        tag = text_res.content
+                        num = int(text_res.content)
+                        member_list = await roster.fetch_members(alias, ctx.guild.id)
+                        tag = member_list[num-1]
+                        await roster.remove_member(alias,ctx.guild.id, tag)
                         player = await getPlayer(tag)
-                        tag = player.tag
-                        await roster.remove_member(alias, ctx.guild.id, tag)
-                        removed+=f"[{player.name}]({player.share_link}) | {player.tag}\n"
+                        removed+= f"[{player.name}]({player.share_link}) | {player.tag}\n"
                         text = await roster.create_member_list(alias, ctx.guild.id)
                         embed = discord.Embed(title=f"{clan.name} Roster",
                                               description=text,
@@ -258,11 +302,16 @@ class Roster_Commands(commands.Cog):
                 color=discord.Color.red())
             return await ctx.send(embed=embed)
 
-        members = roster.fetch_members(alias, ctx.guild.id)
+        members = await roster.fetch_members(alias, ctx.guild.id)
+
+        clan_members = []
+        for m in clan.members:
+            clan_members.append(m.tag)
 
         not_present = ""
-        for member in clan.members:
-            if member.tag not in members:
+        for member in members:
+            if member not in clan_members:
+                member = await getPlayer(member)
                 not_present += f"{member.name}\n"
         if not_present == "":
             not_present = "None"
