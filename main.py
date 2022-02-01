@@ -192,7 +192,8 @@ initial_extensions = (
     "RoleManagement.generalrole",
     "RoleManagement.whitelist",
     "rosters",
-    "roster_class"
+    "roster_class",
+    "War.warevents"
 )
 
 for extension in initial_extensions:
