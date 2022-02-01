@@ -318,9 +318,10 @@ class autoB(commands.Cog):
         now = dt.datetime.utcnow()
         hour = now.hour
         minute = now.minute
-        if minute == 0:
-            results = server.find({"tophour": hour})
-            limit = await server.count_documents(filter={"tophour": hour})
+        if minute == 55:
+            print("here")
+            results = server.find({"tophour": hour+1})
+            limit = await server.count_documents(filter={"tophour": hour+1})
             for r in await results.to_list(length=limit):
                 channel = r.get("topboardchannel")
                 channel =  self.bot.get_channel(channel)
@@ -376,8 +377,8 @@ class autoB(commands.Cog):
                 await channel.send(embed=embeds[0])
 
 
-            results = server.find({"lbhour": hour})
-            limit = await server.count_documents(filter={"lbhour": hour})
+            results = server.find({"lbhour": hour+1})
+            limit = await server.count_documents(filter={"lbhour": hour+1})
             for r in await results.to_list(length=limit):
                 channel = r.get("lbboardChannel")
                 channel =  self.bot.get_channel(channel)
