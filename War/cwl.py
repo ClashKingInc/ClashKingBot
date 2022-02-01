@@ -7,6 +7,13 @@ from discord_slash.utils.manage_components import wait_for_component, create_sel
 usafam = client.usafam
 clans = usafam.clans
 
+leagues = ["Champion League I", "Champion League II", "Champion League III",
+                   "Master League I", "Master League II", "Master League III",
+                   "Crystal League I","Crystal League II", "Crystal League III",
+                   "Gold League I","Gold League II", "Gold League III",
+                   "Silver League I","Silver League II","Silver League III",
+                   "Bronze League I", "Bronze League II", "Bronze League III", "Unranked"]
+
 
 class cwl(commands.Cog):
 
@@ -19,12 +26,6 @@ class cwl(commands.Cog):
         limit = await clans.count_documents(filter={"server": ctx.guild.id})
         if limit == 0:
             return await ctx.send("No clans linked to this server.")
-        leagues = ["Champion League I", "Champion League II", "Champion League III",
-                   "Master League I", "Master League II", "Master League III",
-                   "Crystal League I","Crystal League II", "Crystal League III",
-                   "Gold League I","Gold League II", "Gold League III",
-                   "Silver League I","Silver League II","Silver League III",
-                   "Bronze League I", "Bronze League II", "Bronze League III", "Unranked"]
 
         same = "<:dash:933150462818021437>"
         up = "<:warwon:932212939899949176>"

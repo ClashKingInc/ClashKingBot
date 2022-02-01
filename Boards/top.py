@@ -96,6 +96,12 @@ class top(commands.Cog):
                 await msg.edit(embed=embeds[current_page],
                                components=self.create_components(current_page, limit))
 
+            elif res.custom_id == "Print":
+                await msg.delete()
+                for embed in embeds:
+                    await ctx.send(embed=embed)
+                return
+
 
     @commands.command(name="rank")
     async def rank(self, ctx, *, search_query=None):
@@ -522,7 +528,10 @@ class top(commands.Cog):
                         create_button(label=f"Page {current_page + 1}/{length}", style=ButtonStyle.grey,
                                       disabled=True),
                         create_button(label="", emoji="▶️", style=ButtonStyle.blue,
-                                      disabled=(current_page == length - 1), custom_id="Next")]
+                                      disabled=(current_page == length - 1), custom_id="Next"),
+                        create_button(label="", emoji="🖨️", style=ButtonStyle.grey,
+                                      custom_id="Print")
+                        ]
         page_buttons = create_actionrow(*page_buttons)
 
         return [page_buttons]

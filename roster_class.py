@@ -18,15 +18,14 @@ class Roster(commands.Cog):
         executor = ctx.message.author
 
         embed = discord.Embed(title="Hello " + executor.display_name + "!",
-                              description="First: What is the tag(s) of the clan or clans (up to 2), whose members you are adding to this roster?",
+                              description="First: What is the tag of the clan to link to this roster?",
                               color=discord.Color.green())
         embed.set_footer(text="Type `cancel` at any point to stop.")
         msg = await ctx.send(embed=embed)
         self.msg = msg
 
-        clan_list = []
-        clan_name_list =[]
-        while clan_list == []:
+        clan = None
+        while clan ==None:
             def check(message):
                 ctx.message.content = message.content
                 return message.content != "" and message.author == executor and message.channel == ctx.message.channel
@@ -38,29 +37,21 @@ class Roster(commands.Cog):
                 embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
                 await msg.edit(embed=embed)
                 return None
-            response = response.split(" ")
-            if len(response) >= 3:
-                embed = discord.Embed(description="**Too many clans, 2 max.**", color=discord.Color.red())
-                await msg.edit(embed=embed)
-                return None
-            #print(rescacponse)
-            for r in response:
-                clan = await getClan(r)
-                if clan is None:
-                    embed = discord.Embed(title=f"Sorry {r} is an invalid clan tag. Please try again.",
-                                          description="What is/are the clan tag(s)?", color=discord.Color.red())
-                    await msg.edit(embed=embed)
-                    embed.set_footer(text="Type `cancel` at any point to stop.")
-                    continue
-                clan_list.append(clan)
-                clan_name_list.append(clan.name)
 
-        self.clans = clan_name_list
+            clan = await getClan(response)
+            if clan is None:
+                embed = discord.Embed(title=f"Sorry {response} is an invalid clan tag. Please try again.",
+                                      description=" What is the tag of the clan to link to this roster?", color=discord.Color.red())
+                await msg.edit(embed=embed)
+                embed.set_footer(text="Type `cancel` at any point to stop.")
+                continue
+
+            clan = clan.tag
+
         members = []
-        for clan in clan_list:
-            for player in clan.members:
-                members.append(player.tag)
-        return members
+        for player in clan.members:
+            members.append(player.tag)
+        return [members, clan]
 
     async def get_alias(self, ctx):
         executor = ctx.message.author
@@ -141,6 +132,8 @@ class Roster(commands.Cog):
         text = ""
         num = 1
         members = results.get("members")
+        clan = results.get("clan")
+        clan = await getClan(clan)
         player_list = []
         async for player in coc_client.get_players(members):
             p = []
@@ -163,7 +156,7 @@ class Roster(commands.Cog):
             num+=1
             if num % 25 == 0:
                 if embeds == []:
-                    embed = discord.Embed(title=f"**{alias} Roster**",
+                    embed = discord.Embed(title=f"**{clan.name} Roster**",
                                           description=text,
                                           color=discord.Color.green())
                 else:
@@ -213,7 +206,9 @@ class Roster(commands.Cog):
         for document in await tracked.to_list(length=limit):
             alias = document.get("alias")
             members = document.get("members")
-            text += f"{num}. `{alias}` | {len(members)} players\n"
+            clan = document.get("clan")
+            clan = await getClan(clan)
+            text += f"{num}. `{alias}` | {clan.name} | {len(members)} players\n"
             num+=1
 
         return text
@@ -224,6 +219,15 @@ class Roster(commands.Cog):
             {"server": guild_id}
         ]})
         return (results != None)
+
+    async def linked_clan(self, alias, guild_id):
+        results = await rosters.find_one({"$and": [
+            {"alias": alias},
+            {"server": guild_id}
+        ]})
+        clan = results.get("clan")
+        clan = await getClan(clan)
+        return clan
 
 
 

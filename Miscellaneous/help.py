@@ -264,7 +264,7 @@ class help(commands.Cog):
     @commands.command(name="supportserver")
     async def support(self,ctx):
         embed = discord.Embed(title="Support Server & Github",
-                              description="Support Server: [here](https://discord.gg/Z96S8Gg2Uv)"
+                              description="Support Server: [here](https://discord.gg/Z96S8Gg2Uv)\n"
                                           "Github: [here](https://github.com/MagicTheDev/MagicBot)",
                               color=discord.Color.blue())
         await ctx.send(embed=embed)

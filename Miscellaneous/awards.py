@@ -60,11 +60,14 @@ class awards(commands.Cog):
         members_added = []
         text = ""
         embeds = []
-        async for player in clan.get_detailed_members():
+        for player in clan.members:
             link = await link_client.get_link(player.tag)
+            print(link)
             if link != None:
                 if link not in members_added:
                     member = await pingToMember(ctx, link)
+                    if member == None:
+                        continue
                     try:
                         await member.edit(nick=f"{emoji_given}{member.display_name}")
                         await member.add_roles(role)

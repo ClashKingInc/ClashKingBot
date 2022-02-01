@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from HelperMethods.clashClient import client, getPlayer
+from HelperMethods.clashClient import client, getPlayer, getClan
 import asyncio
 
 from discord_slash.utils.manage_components import create_button, create_actionrow, wait_for_component
@@ -17,7 +17,9 @@ class Roster_Commands(commands.Cog):
         self.bot = bot
 
     @commands.group(name="roster", pass_context=True, invoke_without_command=True)
-    async def roster_co(self, ctx, *, alias):
+    async def roster_co(self, ctx, *, alias=None):
+        if alias==None:
+            await ctx.send(f"Alias is a required argument. `{ctx.prefix}roster [alias]")
         roster = self.bot.get_cog("Roster")
         valid_alias = await roster.is_valid_alias(alias, ctx.guild.id)
         if not valid_alias:
@@ -43,23 +45,23 @@ class Roster_Commands(commands.Cog):
 
         await rosters.insert_one({
             "server": ctx.guild.id,
-            "members": member_list,
+            "members": member_list[0],
+            "clan" : member_list[1],
             "alias": alias
         })
 
-        clans = roster.clans
-        clans = ", ".join(clans)
         embed = discord.Embed(title=f"Roster ({alias}) successfully added.",
                               description=f"Alias: {alias}\n"
-                                          f"Clans: {clans}",
+                                          f"Linked Clan: {member_list[1]}",
                               color=discord.Color.green())
         embed.set_thumbnail(url=ctx.guild.icon_url_as())
         await roster.msg.edit(embed=embed)
 
 
     @roster_co.group(name="edit", pass_context=True, invoke_without_command=True)
-    async def roster_edit(self, ctx, *, alias):
-
+    async def roster_edit(self, ctx, *, alias=None):
+        if alias==None:
+            await ctx.send(f"Alias is a required argument. `{ctx.prefix}roster edit [alias]")
         added = ""
         removed = ""
         mode = "Add"
@@ -72,8 +74,9 @@ class Roster_Commands(commands.Cog):
             return await ctx.send(embed=embed)
 
         text = await roster.create_member_list(alias, ctx.guild.id)
+        clan = roster.linked_clan(alias, ctx.guild.id)
 
-        embed = discord.Embed(title=f"{alias} Roster",
+        embed = discord.Embed(title=f"{clan.name} Roster",
             description=text,
             color=discord.Color.green())
 
@@ -122,7 +125,7 @@ class Roster_Commands(commands.Cog):
                         await roster.add_member(alias, ctx.guild.id, tag)
                         added += f"[{player.name}]({player.share_link}) | {player.tag}\n"
                         text = await roster.create_member_list(alias, ctx.guild.id)
-                        embed = discord.Embed(title=f"{alias} Roster",
+                        embed = discord.Embed(title=f"{clan.name} Roster",
                                               description=text,
                                               color=discord.Color.green())
 
@@ -142,7 +145,7 @@ class Roster_Commands(commands.Cog):
                         player = await getPlayer(tag)
                         removed+= f"[{player.name}]({player.share_link}) | {player.tag}\n"
                         text = await roster.create_member_list(alias, ctx.guild.id)
-                        embed = discord.Embed(title=f"{alias} Roster",
+                        embed = discord.Embed(title=f"{clan.name} Roster",
                                               description=text,
                                               color=discord.Color.green())
 
@@ -159,7 +162,7 @@ class Roster_Commands(commands.Cog):
                         await roster.remove_member(alias, ctx.guild.id, tag)
                         removed+=f"[{player.name}]({player.share_link}) | {player.tag}\n"
                         text = await roster.create_member_list(alias, ctx.guild.id)
-                        embed = discord.Embed(title=f"{alias} Roster",
+                        embed = discord.Embed(title=f"{clan.name} Roster",
                                               description=text,
                                               color=discord.Color.green())
 
@@ -175,7 +178,7 @@ class Roster_Commands(commands.Cog):
                 await button.edit_origin()
                 mode = button.custom_id
                 text = await roster.create_member_list(alias, ctx.guild.id)
-                embed = discord.Embed(title=f"{alias} Roster",
+                embed = discord.Embed(title=f"{clan.name} Roster",
                                       description=text,
                                       color=discord.Color.green())
 
@@ -198,14 +201,16 @@ class Roster_Commands(commands.Cog):
     async def roster_list(self, ctx):
         roster = self.bot.get_cog("Roster")
         text = await roster.create_alias_list(ctx.guild.id)
-        embed = discord.Embed(title=f"**{ctx.guild} Roster List:**",
+        embed = discord.Embed(title=f"**{ctx.guild} CWL Rosters List:**",
                               description=text,
                               color=discord.Color.green())
         embed.set_thumbnail(url=ctx.guild.icon_url_as())
         await ctx.send(embed=embed)
 
     @roster_co.group(name="remove", pass_context=True, invoke_without_command=True)
-    async def roster_remove(self, ctx, *, alias):
+    async def roster_remove(self, ctx, *, alias=None):
+        if alias==None:
+            await ctx.send(f"Alias is a required argument. `{ctx.prefix}roster remove [alias]")
         roster = self.bot.get_cog("Roster")
         valid_alias = await roster.is_valid_alias(alias, ctx.guild.id)
         if not valid_alias:
@@ -223,6 +228,49 @@ class Roster_Commands(commands.Cog):
                               color=discord.Color.green())
         embed.set_thumbnail(url=ctx.guild.icon_url_as())
         await ctx.send(embed=embed)
+
+    @roster_co.group(name="compare", pass_context=True, invoke_without_command=True)
+    async def roster_remove(self, ctx, clan=None, *, alias=None):
+        if clan==None or alias==None:
+            await ctx.send(f"Alias and Clan are required arguments. `{ctx.prefix}roster compare [clan] [alias]")
+
+        clan = clan.lower()
+        results = await clans.find_one({"$and": [
+            {"alias": clan},
+            {"server": ctx.guild.id}
+        ]})
+
+        if results is not None:
+            tag = results.get("tag")
+            clan = await getClan(tag)
+        else:
+            clan = await getClan(clan)
+
+        if clan is None:
+            return await ctx.reply("Not a valid clan tag.",
+                                   mention_author=False)
+
+        roster = self.bot.get_cog("Roster")
+        valid_alias = await roster.is_valid_alias(alias, ctx.guild.id)
+        if not valid_alias:
+            embed = discord.Embed(
+                description=f"A roster with that alias/name does not exist.\nUse `{ctx.prefix}roster list` to see server rosters & aliases.",
+                color=discord.Color.red())
+            return await ctx.send(embed=embed)
+
+        members = roster.fetch_members(alias, ctx.guild.id)
+
+        not_present = ""
+        for member in clan.members:
+            if member.tag not in members:
+                not_present += f"{member.name}\n"
+        if not_present == "":
+            not_present = "None"
+        embed = discord.Embed(title=f"{clan.name} Roster/Clan Comparison",
+            description=f"Missing Members:\n{not_present}",
+            color=discord.Color.green())
+        return await ctx.send(embed=embed)
+
 
 
 def setup(bot: commands.Bot):
