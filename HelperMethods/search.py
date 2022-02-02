@@ -29,6 +29,8 @@ class search(commands.Cog):
             for tag in tags:
                 p = []
                 player = await getPlayer(tag)
+                if player is None:
+                    continue
                 p.append(player.trophies)
                 p.append(player.tag)
                 results.append(p)
