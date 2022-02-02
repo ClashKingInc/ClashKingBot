@@ -11,7 +11,7 @@ LINK_API_USER = os.getenv("LINK_API_USER")
 LINK_API_PW = os.getenv("LINK_API_PW")
 
 
-coc_client = coc.login(COC_EMAIL, COC_PASSWORD, client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 25)
+coc_client = coc.login(COC_EMAIL, COC_PASSWORD, client=coc.EventsClient, key_count=9, key_names="DiscordBot", throttle_limit = 25)
 import certifi
 ca = certifi.where()
 
