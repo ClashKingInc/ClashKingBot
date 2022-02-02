@@ -19,7 +19,9 @@ class WarEvents(commands.Cog):
 
     @coc.WarEvents.state()
     async def war_spin(self, old_war, new_war):
+        
         tag = new_war.clan.tag
+        length = new_war.end_time.seconds_until
 
         one_hour_ping = False
         two_hour_ping = False
@@ -42,9 +44,22 @@ class WarEvents(commands.Cog):
             if eight_hour == True:
                 eight_hour_ping = True
 
-
         end_time = new_war.end_time.time
 
+        if length < 4000:
+            one_hour_ping = False
+            two_hour_ping = False
+            four_hour_ping = False
+            eight_hour_ping = False
+        elif length <= 7200:
+            two_hour_ping = False
+            four_hour_ping = False
+            eight_hour_ping = False
+        elif length <= 14400:
+            four_hour_ping = False
+            eight_hour_ping = False
+        elif length <= 14400:
+            eight_hour_ping = False
 
         if one_hour_ping == True:
             end_time = end_time - timedelta(hours=1)
@@ -57,6 +72,7 @@ class WarEvents(commands.Cog):
                 "hour": hour,
                 "minute": minute
             })
+
         if two_hour_ping == True:
             end_time = end_time - timedelta(hours=2)
             day = end_time.day
