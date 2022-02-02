@@ -1,5 +1,4 @@
 import os
-os.system('pip install -U git+https://github.com/mathsman5133/coc.py@master')
 
 import discord
 from discord import Client
@@ -168,7 +167,7 @@ initial_extensions = (
     "Boards.leaderboards",
     "Boards.top",
     "Family & Clans.addclans",
-    "War.cwl",
+    "cwl",
     "Family & Clans.family",
     "Family & Clans.getclan",
     "HelperMethods.search",
