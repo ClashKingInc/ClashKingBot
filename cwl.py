@@ -1,8 +1,13 @@
+import coc
 import discord
 from discord.ext import commands
-from HelperMethods.clashClient import client, getClan
+from HelperMethods.clashClient import client, getClan, coc_client
+from datetime import datetime
 
 from discord_slash.utils.manage_components import wait_for_component, create_select, create_select_option, create_actionrow
+
+import aiohttp
+
 
 usafam = client.usafam
 clans = usafam.clans
@@ -15,7 +20,7 @@ leagues = ["Champion League I", "Champion League II", "Champion League III",
                    "Bronze League I", "Bronze League II", "Bronze League III", "Unranked"]
 
 
-class cwl(commands.Cog):
+class Cwl(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -109,6 +114,119 @@ class cwl(commands.Cog):
             await msg.edit(embed=embeds[current_page],
                            components=[action_row])
 
+    @cwl_co.group(name="status", pass_context=True, invoke_without_command=True)
+    async def cwl_status(self, ctx):
+        now = datetime.utcnow()
+        year = now.year
+        month = now.month
+        if month <= 9:
+            month = f"0{month}"
+        dt = f"{year}-{month}"
+        #print(dt)
+        tracked = clans.find({"server": ctx.guild.id})
+        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        if limit == 0:
+            return await ctx.send("No clans linked to this server.")
+
+        embed = discord.Embed(
+            description="<a:loading:884400064313819146> Loading Family CWL Status...",
+            color=discord.Color.green())
+        msg = await ctx.reply(embed=embed, mention_author=False)
+
+        spin_list = []
+        for tClan in await tracked.to_list(length=limit):
+            c = []
+            tag = tClan.get("tag")
+            name = tClan.get("name")
+            c.append(name)
+            clan = await getClan(tag)
+            c.append(clan.war_league.name)
+            try:
+                league = await coc_client.get_league_group(tag)
+                state = league.state
+                if str(state) == "preparation":
+                    c.append("- Matched, Prep")
+                elif str(state) == "ended":
+                    c.append("")
+                elif str(state) == "inWar":
+                    c.append("- Matched, In War")
+            except coc.errors.NotFound:
+                c.append("")
+            except:
+                c.append("- Spinning")
+            spin_list.append(c)
+
+        #print(spin_list)
+        clans_list = sorted(spin_list, key=lambda l: l[1], reverse=False)
+
+        main_embed = discord.Embed(title=f"__**{ctx.guild.name} CWL Status**__",
+                                   color=discord.Color.green())
+        main_embed.set_thumbnail(url=ctx.guild.icon_url_as())
+        main_embed.set_footer(text="Blank = Not Spun Yet")
+
+        embeds = []
+        leagues_present = ["All"]
+        for league in leagues:
+            text = ""
+            for clan in clans_list:
+                if clan[1] == league:
+                    text += f"{clan[0]} {clan[2]}\n"
+                if (clan[0] == clans_list[len(clans_list) - 1][0]) and (text != ""):
+                    leagues_present.append(league)
+                    main_embed.add_field(name=f"**{league}**", value=text, inline=False)
+                    embed = discord.Embed(title=f"__**{ctx.guild.name} {league} Clans**__", description=text,
+                                          color=discord.Color.green())
+                    embed.set_thumbnail(url=ctx.guild.icon_url_as())
+                    embeds.append(embed)
+
+        embeds.append(main_embed)
+
+        options = []
+        for league in leagues_present:
+            if league == "All":
+                league_emoji = "<:LeagueMedal:858424820857307176>"
+            else:
+                league_emoji = self.leagueAndTrophies(league)
+            emoji = league_emoji.split(":", 2)
+            emoji = emoji[2]
+            emoji = emoji[0:len(emoji) - 1]
+            emoji = self.bot.get_emoji(int(emoji))
+            emoji = discord.PartialEmoji(name=emoji.name, id=emoji.id)
+            options.append(create_select_option(f"{league}", value=f"{league}", emoji=emoji))
+
+        select1 = create_select(
+            options=options,
+            placeholder="Choose cwl league",
+            min_values=1,  # the minimum number of options a user must select
+            max_values=1  # the maximum number of options a user can select
+        )
+        action_row = create_actionrow(select1)
+
+
+
+        await msg.edit(embed=main_embed, components=[action_row],
+                              mention_author=False)
+
+        while True:
+            try:
+                res = await wait_for_component(self.bot, components=action_row,
+                                               messages=msg, timeout=600)
+            except:
+                await msg.edit(components=[])
+                break
+
+            if res.author_id != ctx.author.id:
+                await res.send(content="You must run the command to interact with components.", hidden=True)
+                continue
+
+            await res.edit_origin()
+            value = res.values[0]
+
+            current_page = leagues_present.index(value) - 1
+
+            await msg.edit(embed=embeds[current_page],
+                           components=[action_row])
+
 
     def leagueAndTrophies(self, league):
 
@@ -163,4 +281,4 @@ class cwl(commands.Cog):
 
 
 def setup(bot: commands.Bot):
-    bot.add_cog(cwl(bot))
+    bot.add_cog(Cwl(bot))
