@@ -50,6 +50,8 @@ class Cwl(commands.Cog):
                                      color=discord.Color.green())
         main_embed.set_thumbnail(url=ctx.guild.icon_url_as())
 
+        print(clans_list)
+
         embeds = []
         leagues_present = ["All"]
         for league in leagues:
@@ -141,6 +143,7 @@ class Cwl(commands.Cog):
             c.append(name)
             clan = await getClan(tag)
             c.append(clan.war_league.name)
+            c.append(clan.tag)
             try:
                 league = await coc_client.get_league_group(tag)
                 state = league.state
@@ -170,8 +173,8 @@ class Cwl(commands.Cog):
             text = ""
             for clan in clans_list:
                 if clan[1] == league:
-                    text += f"{clan[0]} {clan[2]}\n"
-                if (clan[0] == clans_list[len(clans_list) - 1][0]) and (text != ""):
+                    text += f"{clan[0]} {clan[3]}\n"
+                if (clan[2] == clans_list[len(clans_list) - 1][2]) and (text != ""):
                     leagues_present.append(league)
                     main_embed.add_field(name=f"**{league}**", value=text, inline=False)
                     embed = discord.Embed(title=f"__**{ctx.guild.name} {league} Clans**__", description=text,
