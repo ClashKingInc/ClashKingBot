@@ -240,7 +240,7 @@ class eval(commands.Cog):
             leng+=1
             changes = await self.eval_member(ctx, member, test)
             #print(changes)
-            if changes != ["None","None"]:
+            if (changes[0] != "None") or (changes[1] != "None"):
                 text+=f"**{member.display_name}** | {member.mention}\nAdded: {changes[0]}\nRemoved: {changes[1]}\n<:blanke:838574915095101470>\n"
                 num+=1
             if num == 10:
