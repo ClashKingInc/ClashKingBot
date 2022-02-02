@@ -8,6 +8,8 @@ from Dictionaries.emojiDictionary import emojiDictionary
 from discord_slash.utils.manage_components import create_button, create_actionrow, wait_for_component, create_select_option, create_select
 from discord_slash.model import ButtonStyle
 
+from main import check_commands
+
 usafam = client.usafam
 clans = usafam.clans
 rosters = usafam.rosters
@@ -35,6 +37,7 @@ class Roster_Commands(commands.Cog):
 
 
     @roster_co.group(name="create", pass_context=True, invoke_without_command=True)
+    @commands.check_any(commands.has_permissions(manage_roles=True), check_commands())
     async def roster_create(self, ctx):
 
         roster = self.bot.get_cog("Roster")
@@ -61,6 +64,7 @@ class Roster_Commands(commands.Cog):
 
 
     @roster_co.group(name="edit", pass_context=True, invoke_without_command=True)
+    @commands.check_any(commands.has_permissions(manage_roles=True), check_commands())
     async def roster_edit(self, ctx, *, alias=None):
         if alias==None:
             await ctx.send(f"Alias is a required argument. `{ctx.prefix}roster edit [alias]")
@@ -252,6 +256,7 @@ class Roster_Commands(commands.Cog):
         await ctx.send(embed=embed)
 
     @roster_co.group(name="remove", pass_context=True, invoke_without_command=True)
+    @commands.check_any(commands.has_permissions(manage_roles=True), check_commands())
     async def roster_remove(self, ctx, *, alias=None):
         if alias==None:
             await ctx.send(f"Alias is a required argument. `{ctx.prefix}roster remove [alias]")
