@@ -12,7 +12,7 @@ REG_VERSION = ["Barbarian", "Archer", "Giant", "Goblin", "Wall Breaker", "Balloo
                 "Minion", "Valkyrie", "Witch", "Lava Hound", "Bowler", "Dragon"]
 
 options = [["barb", "barbs"], ["arch", "archers", "archer"], ["giant", "giants"], ["gob", "goblin", "gobs", "goblins"],
-           ["wb", "wallbreaker", "wbs", "wallbreaker"],["loons", "loon", "balloon", "balloons"],
+           ["wb", "wallbreaker", "wbs", "wallbreakers"],["loons", "loon", "balloon", "balloons"],
            ["wiz", "wizard", "wizards"], ["inferno", "babydrag", "bdrag"],
            ["minion", "minions"],["valk", "valks"],
            [ "witch", "witches"], ["icehound", "hound", "hounds"], ["bowler","bowlers"], ["drag", "dragon", "dragons", "drags"]]
@@ -82,6 +82,7 @@ class boost(commands.Cog):
         for text in master_text:
             y += 1
             if text == []:
+                continue
                 embed = discord.Embed(title=f"Players with {SUPER_TROOPS[y]}",
                                       description="None boosted",
                                       color=discord.Color.green())
