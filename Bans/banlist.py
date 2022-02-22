@@ -117,8 +117,12 @@ class banlists(commands.Cog):
         channel = await pingToChannel(ctx,banChannel)
 
         if channel is not None:
+            x = 0
             async for message in channel.history(limit=None):
                 await message.delete()
+                x += 1
+                if x == 100:
+                    break
             embeds = await self.create_embeds(ctx)
             for embed in embeds:
                 await channel.send(embed=embed)
@@ -144,7 +148,10 @@ class banlists(commands.Cog):
                                   color=discord.Color.red())
             return await ctx.send(embed=embed)
 
-        await banlist.find_one_and_delete({"VillageTag" : player.tag})
+        await banlist.find_one_and_delete({"$and": [
+            {"VillageTag": player.tag},
+            {"server": ctx.guild.id}
+        ]})
 
         embed2 = discord.Embed(description=f"[{player.name}]({player.share_link}) removed from the banlist by {ctx.message.author.mention}.",
                               color=discord.Color.green())
