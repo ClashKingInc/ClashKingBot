@@ -373,8 +373,10 @@ class autoB(commands.Cog):
                                           description=rText)
                     embed.set_thumbnail(url=g.icon_url_as())
                     embeds.append(embed)
-
-                await channel.send(embed=embeds[0])
+                try:
+                    await channel.send(embed=embeds[0])
+                except:
+                    continue
 
 
             results = server.find({"lbhour": hour+1})
@@ -419,8 +421,10 @@ class autoB(commands.Cog):
                                       description=text,
                                       color=discord.Color.green())
                 embed.set_thumbnail(url=g.icon_url_as())
-
-                await channel.send(embed=embed)
+                try:
+                    await channel.send(embed=embed)
+                except:
+                    continue
 
     @board_check.before_loop
     async def before_printer(self):
