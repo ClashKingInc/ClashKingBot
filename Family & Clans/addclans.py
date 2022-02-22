@@ -301,7 +301,8 @@ class addClan(commands.Cog):
                 return await msg.edit(embed=embed,
                                       components=[])
 
-        await clans.find_one_and_delete({"tag": clan.tag})
+        await clans.find_one_and_delete({"tag": clan.tag},
+            {"server": ctx.guild.id})
 
         embed = discord.Embed(
             description=f"{clan.name} removed as a family clan.",
