@@ -3,8 +3,9 @@ import coc
 from Dictionaries.emojiDictionary import emojiDictionary
 from Dictionaries.levelEmojis import levelEmojis, maxLevelEmojis
 
-
-
+DARK_ELIXIR = ["Minion", "Hog Rider", "Valkyrie", "Golem", "Witch", "Lava Hound", "Bowler", "Ice Golem", "Headhunter"]
+SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker", "Rocket Balloon", "Super Wizard", "Inferno Dragon",
+                "Super Minion", "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", "Super Dragon"]
 
 async def superTroops(player, asArray=False):
     troops = player.troop_cls
@@ -81,14 +82,8 @@ def troops(player):
 
     z = 0
     for x in range(len(troops)):
-        regTroop = coc.HOME_TROOP_ORDER
-        # print(str(regTroop))
         troop = troops[x]
-        if troop.name == "Minion":
-            troopList += "\n" + levelList + "\n"
-            #print(troopList)
-            return troopList
-        if (troop.name in regTroop) and (troop.is_home_base) and (troop.name not in coc.SIEGE_MACHINE_ORDER):
+        if (troop.name not in DARK_ELIXIR) and (troop.is_home_base) and (troop.name not in coc.SIEGE_MACHINE_ORDER) and (troop.name not in SUPER_TROOPS):
             z += 1
             troopList += emojiDictionary(troop.name) + " "
             if troop.level == troop.max_level:
@@ -102,6 +97,10 @@ def troops(player):
                 troopList += "\n" + levelList + "\n"
                 levelList = ""
 
+    troopList += "\n" + levelList + "\n"
+
+    return troopList
+
 
 
 
@@ -114,15 +113,11 @@ def deTroops(player):
     levelList = ""
 
     z = 0
-    notDe = True
+    notDe = False
     for x in range(len(troops)):
         regTroop = coc.HOME_TROOP_ORDER
-        # print(str(regTroop))
         troop = troops[x]
-        if troop.name == "Minion":
-            notDe = False
-
-        if (notDe == False) and (troop.name in regTroop) and (troop.is_home_base) and (troop.name not in coc.SIEGE_MACHINE_ORDER):
+        if (notDe == False) and (troop.name in DARK_ELIXIR) and (troop.is_home_base) and (troop.name not in coc.SIEGE_MACHINE_ORDER):
             z += 1
             troopList += emojiDictionary(troop.name) + " "
             if troop.level == troop.max_level:
@@ -139,8 +134,6 @@ def deTroops(player):
 
     troopList += "\n" + levelList + "\n"
 
-
-    #print(troopList)
     return troopList
 
 

@@ -12,7 +12,7 @@ class pfp(commands.Cog):
 
     @commands.command(name="pfp")
     async def createPFP(self,ctx, *, name):
-        if ctx.guild.id != 328997757048324101:
+        if (ctx.guild.id != 328997757048324101) and (ctx.message.author != 706149153431879760):
             return
         size = 95
         if len(name) >= 20:

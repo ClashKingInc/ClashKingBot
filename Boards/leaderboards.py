@@ -106,7 +106,18 @@ class leaderboards(commands.Cog):
         rankingsC = rr
         print("lb rank done")
 
+    @commands.command(name="lowest")
+    async def lowest(self, ctx):
+        lowest = 200
+        country_ = None
+        for location in locations:
+            country = await coc_client.get_location_clans(location_id=location)
+            if len(country) < lowest:
+                lowest = len(country)
+                country_code = await coc_client.get_location(location_id=location)
+                country_ = country_code.name
 
+        await ctx.send(country_)
 
 
 

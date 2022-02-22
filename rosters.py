@@ -255,11 +255,11 @@ class Roster_Commands(commands.Cog):
         embed.set_thumbnail(url=ctx.guild.icon_url_as())
         await ctx.send(embed=embed)
 
-    @roster_co.group(name="remove", pass_context=True, invoke_without_command=True)
+    @roster_co.group(name="delete", pass_context=True, invoke_without_command=True)
     @commands.check_any(commands.has_permissions(manage_roles=True), check_commands())
     async def roster_remove(self, ctx, *, alias=None):
         if alias==None:
-            await ctx.send(f"Alias is a required argument. `{ctx.prefix}roster remove [alias]")
+            return await ctx.send(f"Alias is a required argument. `{ctx.prefix}roster remove [alias]")
         roster = self.bot.get_cog("Roster")
         valid_alias = await roster.is_valid_alias(alias, ctx.guild.id)
         if not valid_alias:
@@ -279,7 +279,7 @@ class Roster_Commands(commands.Cog):
         await ctx.send(embed=embed)
 
     @roster_co.group(name="compare", pass_context=True, invoke_without_command=True)
-    async def roster_remove(self, ctx, clan=None, *, alias=None):
+    async def roster_compare(self, ctx, clan=None, *, alias=None):
         if clan==None or alias==None:
             await ctx.send(f"Alias and Clan are required arguments. `{ctx.prefix}roster compare [clan] [alias]")
 

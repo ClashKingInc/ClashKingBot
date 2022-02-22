@@ -185,6 +185,8 @@ class eval(commands.Cog):
         removed = ""
         for role in roles_should_have:
             r = ctx.guild.get_role(role)
+            if r is None:
+                continue
             if r.id in clan_roles:
                 greet = True
             if not test:
@@ -192,6 +194,8 @@ class eval(commands.Cog):
             added += r.mention +", "
         for role in true_roles_to_remove:
             r = ctx.guild.get_role(role)
+            if r is None:
+                continue
             if not test:
                 await member.remove_roles(r)
             removed += r.mention + ", "

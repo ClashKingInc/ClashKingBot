@@ -21,6 +21,8 @@ intents = discord.Intents().all()
 async def get_prefix(bot, message):
     results = await server.find_one({"server": message.guild.id})
     prefix = results.get("prefix")
+    if message.guild.id == 810466565744230410:
+        return [prefix, "."]
     return prefix
 
 bot = commands.Bot(command_prefix=get_prefix, case_insensitive=True, help_command=None, intents=intents)
@@ -123,8 +125,7 @@ def check_commands():
             role = await pingToRole(ctx,role)
             if member in role.members:
                 return True
-            else:
-                return False
+        return False
     return commands.check(predicate)
 
 @bot.event
@@ -143,7 +144,7 @@ async def on_message(message):
 
     con = message.content
     con = con.lower()
-    con = con.replace(f"{curr_prefix}", "")
+    con = con.replace(f"{curr_prefix}", "",1)
     results = await clans.find_one({"$and": [
             {"alias": con},
             {"server": message.guild.id}
@@ -192,7 +193,12 @@ initial_extensions = (
     "RoleManagement.whitelist",
     "rosters",
     "roster_class",
-    "War.warevents"
+    "War.warevents",
+    "voice_countdowns",
+    "War.war",
+    "War.war_ping",
+    "clansettings",
+    "donations"
 )
 
 for extension in initial_extensions:

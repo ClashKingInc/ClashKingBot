@@ -9,6 +9,9 @@ server = usafam.server
 clans = usafam.clans
 war = usafam.war
 
+import pytz
+tiz = pytz.utc
+
 from discord.ext import commands
 
 class WarEvents(commands.Cog):
@@ -18,7 +21,7 @@ class WarEvents(commands.Cog):
         coc_client.add_events(self.war_spin)
 
     @coc.WarEvents.state()
-    async def war_spin(self, old_war, new_war):
+    async def war_spin(self, old_war, new_war : coc.ClanWar):
         
         tag = new_war.clan.tag
         length = new_war.end_time.seconds_until
@@ -44,7 +47,7 @@ class WarEvents(commands.Cog):
             if eight_hour == True:
                 eight_hour_ping = True
 
-        end_time = new_war.end_time.time
+        end_time = new_war.end_time.time.replace(tzinfo=tiz).timestamp()
 
         if length < 4000:
             one_hour_ping = False
@@ -62,49 +65,29 @@ class WarEvents(commands.Cog):
             eight_hour_ping = False
 
         if one_hour_ping == True:
-            end_time = end_time - timedelta(hours=1)
-            day = end_time.day
-            hour = end_time.hour
-            minute = end_time.minute
+            end_time = end_time - 3600
             await war.insert_one({
                 "tag": new_war.clan.tag,
-                "day": day,
-                "hour": hour,
-                "minute": minute
+                "time" : end_time
             })
 
         if two_hour_ping == True:
-            end_time = end_time - timedelta(hours=2)
-            day = end_time.day
-            hour = end_time.hour
-            minute = end_time.minute
+            end_time = end_time - 7200
             await war.insert_one({
                 "tag": new_war.clan.tag,
-                "day": day,
-                "hour": hour,
-                "minute": minute
+                "time": end_time
             })
         if four_hour_ping == True:
-            end_time = end_time - timedelta(hours=4)
-            day = end_time.day
-            hour = end_time.hour
-            minute = end_time.minute
+            end_time = end_time - 14400
             await war.insert_one({
                 "tag": new_war.clan.tag,
-                "day": day,
-                "hour": hour,
-                "minute": minute
+                "time": end_time
             })
         if eight_hour_ping == True:
-            end_time = end_time - timedelta(hours=8)
-            day = end_time.day
-            hour = end_time.hour
-            minute = end_time.minute
+            end_time = end_time - 28800
             await war.insert_one({
                 "tag": new_war.clan.tag,
-                "day": day,
-                "hour": hour,
-                "minute": minute
+                "time": end_time
             })
 
 

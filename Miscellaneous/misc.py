@@ -13,6 +13,8 @@ usafam = client.usafam
 clans = usafam.clans
 server = usafam.server
 
+from HelperMethods.troop_methods import heros, heroPets
+
 from Dictionaries.thPicDictionary import thDictionary
 
 class misc(commands.Cog):
@@ -24,7 +26,7 @@ class misc(commands.Cog):
     @commands.command(name="invite")
     async def invite(self, ctx, tag=None):
         if tag == None:
-            return await ctx.reply("#playerTag argument is missing. `do invite #playerTag`")
+            return await ctx.reply(f"#playerTag argument is missing. `{ctx.prefix}invite #playerTag`")
 
         player = await getPlayer(tag)
         if player is None:
@@ -36,6 +38,17 @@ class misc(commands.Cog):
             clan = f"{clan}"
         except:
             clan = "None"
+        hero = heros(player)
+        pets = heroPets(player)
+        if hero == None:
+            hero = ""
+        else:
+            hero = f"**Heroes:**\n{hero}\n"
+
+        if pets == None:
+            pets = ""
+        else:
+            pets = f"**Pets:**\n{pets}\n"
 
         embed = discord.Embed(title=f"Invite {player.name} to your clan:",
                               description=f"{player.name} - TH{player.town_hall}\n" +
@@ -43,6 +56,7 @@ class misc(commands.Cog):
                                           f"Clan: {clan}\n" +
                                           f"Trophies: {player.trophies}\n"
                                           f"War Stars: {player.war_stars}\n"
+                                          f"{hero}{pets}"
                                           f'[View Stats](https://www.clashofstats.com/players/{player.tag}) | [Open in Game]({player.share_link})',
                               color=discord.Color.green())
         embed.set_thumbnail(url=thDictionary(player.town_hall))
@@ -248,6 +262,32 @@ class misc(commands.Cog):
 
         await ctx.send(embed=embed)
 
+    @commands.command(name='serverm')
+    @commands.is_owner()
+    async def serversmm(self, ctx, *, sname):
+        text = ""
+        guilds = self.bot.guilds
+        for guild in guilds:
+            name = guild.name
+            if name == sname:
+                for member in guild.members:
+                    text += member.name + "\n"
+
+        embed = discord.Embed(description=text,
+                              color=discord.Color.green())
+
+        await ctx.send(embed=embed)
+
+    @commands.command(name='leave')
+    @commands.is_owner()
+    async def leaveg(self, ctx, *, guild_name):
+        guild = discord.utils.get(self.bot.guilds, name=guild_name)  # Get the guild by name
+        if guild is None:
+            await ctx.send("No guild with that name found.")  # No guild found
+            return
+        await guild.leave()  # Guild found
+        await ctx.send(f"I left: {guild.name}!")
+
     @commands.command(name="addrole")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def addroleperms(self, ctx, role:discord.Role):
@@ -276,8 +316,6 @@ class misc(commands.Cog):
         page_buttons = create_actionrow(*page_buttons)
 
         return [page_buttons]
-
-
 
 
 

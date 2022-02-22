@@ -71,7 +71,11 @@ class Linking(commands.Cog):
             while (correctTag == False):
                 x += 1
                 if x == 4:
-                    return
+                    link_open.remove(member)
+                    embed = discord.Embed(
+                        description=f"Canceling command. Player Tag Failed 4 Times.",
+                        color=discord.Color.red())
+                    return await msg.edit(embed=embed)
 
                 def check(message):
                     ctx.message.content = message.content

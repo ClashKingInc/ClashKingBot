@@ -131,8 +131,8 @@ class help(commands.Cog):
                                f"**{prefix}roster edit [listalias]**\n"
                                f"Edit wizard for selected roster.\n"
                                f"**{prefix}roster delete [listalias]**\n"
-                               f"Delete selected roster."
-                               f"**{prefix}roster compare [clan] [listalias]\n"
+                               f"Delete selected roster.\n"
+                               f"**{prefix}roster compare [clan] [listalias]**\n"
                                f"Compare roster to members currently in clan & see who is missing. Supports"
                                f" clan tag or alias of a clan linked to server.",
                          inline=False)
@@ -267,7 +267,7 @@ class help(commands.Cog):
     @commands.command(name="supportserver")
     async def support(self,ctx):
         embed = discord.Embed(title="Support Server & Github",
-                              description="Support Server: [here](https://discord.gg/Z96S8Gg2Uv)\n"
+                              description="Support Server: [here](https://discord.gg/gChZm3XCrS)\n"
                                           "Github: [here](https://github.com/MagicTheDev/MagicBot)",
                               color=discord.Color.blue())
         await ctx.send(embed=embed)

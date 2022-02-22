@@ -1,8 +1,10 @@
 import discord
 from discord.ext import commands
 from HelperMethods.clashClient import client, getClan, link_client
-from discord_slash.utils.manage_components import create_button, create_actionrow, wait_for_component
-from discord_slash.model import ButtonStyle
+from discord_slash.utils.manage_components import create_select, create_select_option, create_actionrow, wait_for_component
+from Dictionaries.emojiDictionary import emojiDictionary
+SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker", "Rocket Balloon", "Super Wizard", "Inferno Dragon",
+                "Super Minion", "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", "Super Dragon"]
 
 usafam = client.usafam
 clans = usafam.clans
@@ -42,6 +44,11 @@ class getClans(commands.Cog):
             return await ctx.reply("Not a valid clan tag.",
                             mention_author=False)
 
+        embed = discord.Embed(
+            description=f"<a:loading:884400064313819146> Fetching clan...",
+            color=discord.Color.green())
+        msg = await ctx.reply(embed=embed, mention_author=False)
+
         leader = utils.get(clan.members, role=coc.Role.leader)
 
         if clan.public_war_log:
@@ -57,8 +64,15 @@ class getClans(commands.Cog):
             winstreak = clan.war_win_streak
             winrate = "Hidden Log"
 
-        embed = discord.Embed(title=f"**{clan.name}**",description="**Clan Overview**\n"
-                              f"Tag: [{clan.tag}]({clan.share_link})\n"
+        flag = ""
+        if str(clan.location) == "International":
+            flag = "<a:earth:861321402909327370>"
+        else:
+            flag = f":flag_{clan.location.country_code.lower()}:"
+        embed = discord.Embed(title=f"**{clan.name}**",description=f"Tag: [{clan.tag}]({clan.share_link})\n"
+                              f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.versus_points}\n"
+                              f"Required Trophies: <:trophy:825563829705637889> {clan.required_trophies}\n"
+                              f"Location: {flag} {clan.location}\n\n"                              
                               f"Leader: {leader.name}\n"
                               f"Level: {clan.level} \n"
                               f"Members: <:people:932212939891552256>{clan.member_count}/50\n\n"
@@ -68,71 +82,251 @@ class getClans(commands.Cog):
                               f"Description: {clan.description}",
                               color=discord.Color.green())
 
+        compo = await self.war_th_comps(clan)
+        embed.add_field(name="**Townhall Composition:**", value=compo[0], inline=False)
+        embed.add_field(name="**Boosted Super Troops:**", value=compo[1], inline=False)
+
         embed.set_thumbnail(url=clan.badge.large)
 
         disc = "<:discord:840749695466864650>"
         emoji = ''.join(filter(str.isdigit, disc))
         emoji = self.bot.get_emoji(int(emoji))
         emoji = discord.PartialEmoji(name=emoji.name, id=emoji.id)
-        stat_buttons = [create_button(label="Linked", emoji =emoji, style=ButtonStyle.blue, custom_id="Discord", disabled=False)]
-        stat_buttons = create_actionrow(*stat_buttons)
-        msg = await ctx.reply(embed=embed, components=[stat_buttons],
-                        mention_author=False)
+
+        rx = "<:redtick:601900691312607242>"
+        rx = ''.join(filter(str.isdigit, rx))
+        rx = self.bot.get_emoji(int(rx))
+        rx = discord.PartialEmoji(name=rx.name, id=rx.id)
+
+        trophy = "<:trophy:825563829705637889>"
+        trophy = ''.join(filter(str.isdigit, trophy))
+        trophy = self.bot.get_emoji(int(trophy))
+        trophy = discord.PartialEmoji(name=trophy.name, id=trophy.id)
+
+        clan_e = "<:clan_castle:855688168816377857>"
+        clan_e = ''.join(filter(str.isdigit, clan_e))
+        clan_e = self.bot.get_emoji(int(clan_e))
+        clan_e = discord.PartialEmoji(name=clan_e.name, id=clan_e.id)
+
+        opt = "<:opt_in:944905885367537685>"
+        opt = ''.join(filter(str.isdigit, opt))
+        opt = self.bot.get_emoji(int(opt))
+        opt = discord.PartialEmoji(name=opt.name, id=opt.id)
+
+        main = embed
+        select = create_select(
+            options=[  # the options in your dropdown
+                create_select_option("Clan Overview", emoji=clan_e, value="clan"),
+                create_select_option("Linked Players", emoji=emoji, value="link"),
+                create_select_option("Unlinked Players", emoji=rx, value="unlink"),
+                create_select_option("Players, Sorted: Trophies", emoji=trophy, value="trophies"),
+                create_select_option("War Opt Statuses", emoji=opt, value="opt")
+            ],
+            placeholder="Choose a page",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=1,  # the maximum number of options a user can select
+        )
+        dropdown = [create_actionrow(select)]
+
+        await msg.edit(embed=embed, components=dropdown)
 
         while True:
 
-            res = None
             try:
-                res = await wait_for_component(self.bot, components=stat_buttons,
+                res = await wait_for_component(self.bot, components=dropdown,
                                                messages=msg, timeout=600)
             except:
                 return await msg.edit(components=[])
 
-            if res.author_id != ctx.author.id:
-                await res.send(content="You must run the command to interact with components.", hidden=True)
-
-
             await res.edit_origin()
 
-            # print(res.custom_id)
-            if res.custom_id == "Discord":
+            if res.selected_options[0] == "link":
+                embed = await self.linked_players(ctx, clan)
+                await msg.edit(embed=embed)
+            elif res.selected_options[0] == "unlink":
+                embed = await self.unlinked_players(ctx, clan)
+                await msg.edit(embed=embed)
+            elif res.selected_options[0] == "trophies":
+                embed = await self.player_trophy_sort(clan)
+                await msg.edit(embed=embed)
+            elif res.selected_options[0] == "clan":
+                await msg.edit(embed=main)
+            elif res.selected_options[0] == "opt":
+                embed = await self.opt_status(clan)
+                await msg.edit(embed=embed)
 
-                gch = "<:greentick:601900670823694357>"
-                rx = "<:redtick:601900691312607242>"
 
-                stats = disc + "`Name           ` **Discord (if one)**\n"
-                y = 0
-                for player in clan.members:
-                    link = await link_client.get_link(player.tag)
-                    notLinked = (link == None)
-                    name = player.name
-                    linkE = gch
-                    if (notLinked):
-                        linkE = rx
 
-                    ol_name = name
-                    name = re.split("[^A-Za-z0-9!@#$%^&*()+=~:;<>åæ.]", name)
-                    name = "".join(name)
-                    name = name[0:15]
-                    if len(name) <= 2:
-                        name = ol_name
-                    for x in range(15 - len(name)):
-                        name += " "
+    async def war_th_comps(self, clan: coc.Clan):
+        thcount = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
+        stroops = {"Super Barbarian" : 0, "Super Archer": 0, "Super Giant": 0, "Sneaky Goblin": 0, "Super Wall Breaker": 0, "Rocket Balloon": 0, "Super Wizard": 0, "Inferno Dragon": 0,
+                "Super Minion": 0, "Super Valkyrie": 0, "Super Witch": 0, "Ice Hound": 0, "Super Bowler": 0, "Super Dragon": 0}
+
+        async for player in clan.get_detailed_members():
+            th = player.town_hall
+            count = thcount[th - 1]
+            thcount[th - 1] = count + 1
+
+            troops = player.troop_cls
+            troops = player.troops
+
+            for x in range(len(troops)):
+                troop = troops[x]
+                if (troop.is_active):
+                    try:
+                        stroops[troop.name] = stroops[troop.name] + 1
+                    except:
+                        pass
+
+        stats = ""
+        for x in reversed(range(len(thcount))):
+            count = thcount[x]
+            if count != 0:
+                if (x + 1) <= 9:
+                    th_emoji = emojiDictionary(x + 1)
+                    stats += f"{th_emoji}`{count} `"
+                else:
+                    th_emoji = emojiDictionary(x + 1)
+                    stats += f"{th_emoji}`{count} `"
+
+        stext = ""
+
+        for troop in SUPER_TROOPS:
+            nu = stroops[troop]
+            if nu != 0:
+                stext += f"{emojiDictionary(troop)}`x{nu} `"
+
+        return [stats, stext]
+
+    async def linked_players(self, ctx, clan):
+        gch = "<:greentick:601900670823694357>"
+        disc = "<:discord:840749695466864650>"
+        stats = disc + "`Name           ` **Discord**\n"
+        y = 0
+        tags = []
+        links = []
+        for player in clan.members:
+            tags.append(player.tag)
+
+        links = await link_client.get_links(*tags)
+        links = dict(links)
+        for player in clan.members:
+            link = links[f"{player.tag}"]
+            notLinked = (link == None)
+            name = player.name
+            linkE = gch
+            if (notLinked):
+                continue
+
+            ol_name = name
+            name = re.split("[^A-Za-z0-9!@#$%^&*()+=~:;<>åæ.]", name)
+            name = "".join(name)
+            name = name[0:15]
+            if len(name) <= 2:
+                name = ol_name
+            for x in range(15 - len(name)):
+                name += " "
+
+            member = ""
+            if not notLinked:
+                y += 1
+                member = discord.utils.get(ctx.guild.members, id=link)
+                member = str(member)
+                if member == "None":
                     member = ""
-                    if not notLinked:
-                        y += 1
-                        member = discord.utils.get(members, id=link)
-                        member = str(member)
-                        if member == "None":
-                            member = ""
-                    else:
-                        member = player.tag
+            else:
+                member = player.tag
 
-                    stats += f'{linkE}`{name}` {member}' + "\n"
-                embed = discord.Embed(title=f"{clan.name} : {str(y)}/{str(clan.member_count)} linked", description=stats,
-                                      color=discord.Color.green())
-                await msg.edit(embed=embed, components=[])
+            stats += f'\u200e{linkE}`\u200e{name}` \u200e{member}' + "\n"
+
+        if stats == disc + "`Name           ` **Discord**\n":
+            stats = "No players linked."
+        embed = discord.Embed(title=f"{clan.name} : {str(y)}/{str(clan.member_count)} linked", description=stats,
+                              color=discord.Color.green())
+        embed.set_thumbnail(url=clan.badge.large)
+        return embed
+
+
+    async def unlinked_players(self, ctx, clan):
+        rx = "<:redtick:601900691312607242>"
+        disc = "<:discord:840749695466864650>"
+        stats = disc + "`Name           ` **Player Tag**\n"
+        y = 0
+        tags = []
+        links = []
+        for player in clan.members:
+            tags.append(player.tag)
+
+        links = await link_client.get_links(*tags)
+        links = dict(links)
+        for player in clan.members:
+            link = links[f"{player.tag}"]
+            notLinked = (link == None)
+            name = player.name
+            linkE = rx
+            if not notLinked:
+                continue
+
+            ol_name = name
+            name = re.split("[^A-Za-z0-9!@#$%^&*()+=~:;<>åæ.]", name)
+            name = "".join(name)
+            name = name[0:15]
+            if len(name) <= 2:
+                name = ol_name
+            for x in range(15 - len(name)):
+                name += " "
+
+            member = ""
+            if notLinked:
+                y+=1
+                member = player.tag
+
+            stats += f'\u200e{linkE}`\u200e{name}` \u200e{member}' + "\n"
+
+        if stats == disc + "`Name           ` **Discord**\n":
+            stats = "No players unlinked."
+
+        embed = discord.Embed(title=f"{clan.name} : {str(y)} unlinked", description=stats,
+                              color=discord.Color.green())
+        embed.set_thumbnail(url=clan.badge.large)
+        return embed
+
+
+    async def player_trophy_sort(self, clan):
+        text = ""
+        x = 0
+        for player in clan.members:
+            place = str(x + 1) + "."
+            place = place.ljust(3)
+            text += f"\u200e`{place}` \u200e<:a_cups:667119203744088094> \u200e{player.trophies} - \u200e{player.name}\n"
+            x +=1
+
+        embed = discord.Embed(title=f"{clan.name} Players - Sorted: Trophies", description=text,
+                              color=discord.Color.green())
+        embed.set_thumbnail(url=clan.badge.large)
+        return embed
+
+
+    async def opt_status(self, clan : coc.Clan):
+        opted_in = ""
+        opted_out = ""
+        async for player in clan.get_detailed_members():
+            if player.war_opted_in :
+                opted_in += f"<:opt_in:944905885367537685>\u200e{player.name}\n"
+            else:
+                opted_out += f"<:opt_out:944905931265810432>\u200e{player.name}\n"
+
+        if opted_in == "":
+            opted_in = "None"
+        if opted_out == "":
+            opted_out = "None"
+
+        embed = discord.Embed(title=f"**{clan.name} War Opt Statuses**", description=f"**Players Opted In:**\n{opted_in}\n**Players Opted Out:**\n{opted_out}\n",
+                              color=discord.Color.green())
+        embed.set_thumbnail(url=clan.badge.large)
+        return embed
+
 
     def leagueAndTrophies(self, league):
 

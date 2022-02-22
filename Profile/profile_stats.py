@@ -105,7 +105,11 @@ class profileStats(commands.Cog):
         embed.set_footer(text=f"Requested by {ctx.author.display_name}",
                          icon_url=ctx.author.avatar_url)
 
-        ban = await banlist.find_one({"VillageTag": f"{player.tag}"})
+        ban = await banlist.find_one({"$and": [
+            {"VillageTag": f"{player.tag}"},
+            {"server": ctx.guild.id}
+        ]})
+
         if ban != None:
             date = ban.get("DateCreated")
             date = date[0:10]

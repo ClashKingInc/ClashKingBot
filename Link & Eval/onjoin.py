@@ -1,105 +1,701 @@
+import discord_slash
 from discord.ext import commands
 from discord_slash.utils.manage_components import create_button, create_actionrow
 from discord_slash.model import ButtonStyle
 import discord
 
-from HelperMethods.clashClient import getClan, getPlayer, verifyPlayer, link_client
+from HelperMethods.clashClient import getClan, getPlayer, verifyPlayer, link_client, client, pingToChannel
 
-from HelperMethods.clashClient import client
 usafam = client.usafam
 clans = usafam.clans
 server = usafam.server
+welcome = usafam.welcome
 
 link_open=[]
+import emoji as em
 
 class joinstuff(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    @commands.group(name="welcome", pass_context=True, invoke_without_command=True)
+    async def welcome(self,ctx):
+        pass
+
+    @welcome.group(name="setup", pass_context=True, invoke_without_command=True)
+    async def welcome_set(self, ctx):
+
+        embed = discord.Embed(title="**Welcome Channel**",
+                              description=f"What is the channel to post the welcome message in?\n Please make sure I have perms to send messages there.",
+                              color=discord.Color.green())
+        embed.set_footer(text="Type `cancel` at any point to quit.")
+        msg = await ctx.send(embed=embed)
+
+        welcomeChannel = None
+        while welcomeChannel == None:
+            def check(message):
+                return message.content != "" and message.author == ctx.message.author and ctx.message.channel == message.channel
+
+            r = await self.bot.wait_for("message", check=check, timeout=300)
+            response = r.content
+            await r.delete()
+            welcomeChannel = await pingToChannel(ctx, response)
+
+            if response.lower() == "cancel":
+                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                return await msg.edit(embed=embed)
+
+            if welcomeChannel is None:
+                embed = discord.Embed(title="Sorry that channel is invalid. Please try again.",
+                                      description=f"What is welcome channel?",
+                                      color=discord.Color.red())
+                embed.set_footer(text="Type `cancel` at any point to quit.")
+                await msg.edit(embed=embed)
+                continue
+
+            c = welcomeChannel
+            g = ctx.guild
+            r = await g.fetch_member(824653933347209227)
+            perms = c.permissions_for(r)
+            send_msg = perms.send_messages
+            if send_msg == False:
+                embed = discord.Embed(
+                    description=f"Missing Permissions.\nMust have `Send Messages` in the welcome channel.\nTry Again. What is the channel?",
+                    color=discord.Color.red())
+                embed.set_footer(text="Type `cancel` at any point to quit.")
+                await msg.edit(embed=embed)
+                welcomeChannel = None
+                continue
+
+
+        emoji = "<a:redflame:932469862633181194>"
+        arrowleft = "<a:6270_Arrow_1_Gif:932470483205644300>"
+        arrowright = "<a:rightarrow:932470092883722271>"
+
+        embed = discord.Embed(title="Enjoy your stay!",
+                              description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
+                                          f"DESCRIPTION TEXT - YOU CAN CHOOSE"
+                                          f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
+                              color=discord.Color.green())
+
+        embed.set_thumbnail(url=ctx.author.avatar_url)
+
+        stat_buttons = [
+            create_button(label="SAMPLE", emoji="1️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+            create_button(label="SAMPLE", emoji="2️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+            create_button(label="SAMPLE", emoji="3️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
+        buttons = create_actionrow(*stat_buttons)
+        await msg.edit(content=f"{ctx.author.mention}**EXAMPLE OF LIVE EMBED**", embed=embed, components=[buttons])
+
+        msg2 = await ctx.reply(content="What description text would you like?\nType `cancel` at any point to quit.", mention_author=False)
+
+        description = None
+
+        while description == None:
+            def check(message):
+                return message.content != "" and message.author == ctx.message.author and ctx.message.channel == message.channel
+
+            r = await self.bot.wait_for("message", check=check, timeout=300)
+            response = r.content
+            await r.delete()
+            if response.lower() == "cancel":
+                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                return await msg2.edit(content="", embed=embed)
+            if len(response) >= 1900:
+                await msg2.edit(content="Description must be less than 1900 characters.\nPls try again, What description text would you like?\nType `cancel` at any point to quit.")
+                continue
+            description = response
+
+
+
+
+
+        embed = discord.Embed(title="Enjoy your stay!",
+                              description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
+                                          f"{description}"
+                                          f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
+                              color=discord.Color.green())
+
+        embed.set_thumbnail(url=ctx.author.avatar_url)
+
+        stat_buttons = [
+            create_button(label="SAMPLE", emoji="1️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+            create_button(label="SAMPLE", emoji="2️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+            create_button(label="SAMPLE", emoji="3️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
+        buttons = create_actionrow(*stat_buttons)
+        await msg.edit(embed=embed, components=[buttons])
+
+
+
+        await msg2.edit(content="What text would you like on button 1 (far left button)?\nType `cancel` at any point to quit.")
+        button1text = None
+        while button1text == None:
+            def check(message):
+                return message.content != "" and message.author == ctx.message.author and ctx.message.channel == message.channel
+
+            r = await self.bot.wait_for("message", check=check, timeout=300)
+            response = r.content
+            await r.delete()
+            if response.lower() == "cancel":
+                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                return await msg2.edit(content="", embed=embed)
+            if len(response) >= 80:
+                await msg2.edit(
+                    content="Button text must be less than 80 characters.\nPls try again, What button text would you like?\nType `cancel` at any point to quit.")
+                continue
+            button1text = response
+
+
+        embed = discord.Embed(title="Enjoy your stay!",
+                              description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
+                                          f"{description}"
+                                          f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
+                              color=discord.Color.green())
+
+        embed.set_thumbnail(url=ctx.author.avatar_url)
+
+        stat_buttons = [
+            create_button(label=f"{button1text}", emoji="1️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+            create_button(label=f"SAMPLE", emoji="2️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+            create_button(label=f"SAMPLE", emoji="3️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
+        buttons = create_actionrow(*stat_buttons)
+        await msg.edit(embed=embed, components=[buttons])
+
+
+        await msg2.edit(
+            content="What text would you like on button 2 (middle button)?\nType `cancel` at any point to quit.")
+        button2text = None
+        while button2text == None:
+            def check(message):
+                return message.content != "" and message.author == ctx.message.author and ctx.message.channel == message.channel
+
+            r = await self.bot.wait_for("message", check=check, timeout=300)
+            response = r.content
+            await r.delete()
+            if response.lower() == "cancel":
+                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                return await msg2.edit(content="", embed=embed)
+
+            if len(response) >= 80:
+                await msg2.edit(
+                    content="Button text must be less than 80 characters.\nPls try again, What button text would you like?\nType `cancel` at any point to quit.")
+                continue
+            button2text = response
+
+
+        embed = discord.Embed(title="Enjoy your stay!",
+                              description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
+                                          f"{description}"
+                                          f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
+                              color=discord.Color.green())
+
+        embed.set_thumbnail(url=ctx.author.avatar_url)
+
+        stat_buttons = [
+            create_button(label=f"{button1text}", emoji="1️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+            create_button(label=f"{button2text}", emoji="2️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+            create_button(label=f"SAMPLE", emoji="3️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
+        buttons = create_actionrow(*stat_buttons)
+        await msg.edit(embed=embed, components=[buttons])
+
+        await msg2.edit(
+            content="What text would you like on button 3 (far right button)?\nType `cancel` at any point to quit.")
+        button3text = None
+        while button3text == None:
+            def check(message):
+                return message.content != "" and message.author == ctx.message.author and ctx.message.channel == message.channel
+
+            r = await self.bot.wait_for("message", check=check, timeout=300)
+            response = r.content
+            await r.delete()
+            if response.lower() == "cancel":
+                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                return await msg2.edit(content="", embed=embed)
+
+            if len(response) >= 80:
+                await msg2.edit(
+                    content="Button text must be less than 80 characters.\nPls try again, What button text would you like?\nType `cancel` at any point to quit.")
+                continue
+            button3text = response
+
+
+
+        embed = discord.Embed(title="Enjoy your stay!",
+                              description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
+                                          f"{description}"
+                                          f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
+                              color=discord.Color.green())
+
+        embed.set_thumbnail(url=ctx.author.avatar_url)
+
+        stat_buttons = [
+            create_button(label=f"{button1text}", emoji="1️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+            create_button(label=f"{button2text}", emoji="2️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+            create_button(label=f"{button3text}", emoji="3️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
+        buttons = create_actionrow(*stat_buttons)
+        await msg.edit(embed=embed, components=[buttons])
+
+
+        await msg2.edit(
+            content="What emoji would you like on button 1 (far left button)?\nType `cancel` at any point to quit.")
+        button1emoji = None
+        while button1emoji == None:
+            def check(message):
+                return message.content != "" and message.author == ctx.message.author and ctx.message.channel == message.channel
+
+            r = await self.bot.wait_for("message", check=check, timeout=300)
+            response = r.content
+            await r.delete()
+
+            if response.lower() == "cancel":
+                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                return await msg2.edit(content="", embed=embed)
+
+            if not em.is_emoji(response):
+                await msg2.edit(content=f"{response} is not a valid emoji (must be a default emoji, not discord/server emoji).")
+                continue
+            button1emoji = response
+
+
+        embed = discord.Embed(title="Enjoy your stay!",
+                              description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
+                                          f"{description}"
+                                          f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
+                              color=discord.Color.green())
+
+        embed.set_thumbnail(url=ctx.author.avatar_url)
+
+        stat_buttons = [
+            create_button(label=f"{button1text}", emoji=f"{button1emoji}", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+            create_button(label=f"{button2text}", emoji="2️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+            create_button(label=f"{button3text}", emoji="3️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
+        buttons = create_actionrow(*stat_buttons)
+        await msg.edit(embed=embed, components=[buttons])
+
+
+        await msg2.edit(
+            content="What emoji would you like on button 2 (middle button)?\nType `cancel` at any point to quit.")
+        button2emoji = None
+        while button2emoji == None:
+            def check(message):
+                return message.content != "" and message.author == ctx.message.author and ctx.message.channel == message.channel
+
+            r = await self.bot.wait_for("message", check=check, timeout=300)
+            response = r.content
+            await r.delete()
+            if response.lower() == "cancel":
+                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                return await msg2.edit(content="", embed=embed)
+
+            if not em.is_emoji(response):
+                await msg2.edit(content=f"{response} is not a valid emoji (must be a default emoji, not discord/server emoji).")
+                continue
+            button2emoji = response
+
+
+        embed = discord.Embed(title="Enjoy your stay!",
+                              description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
+                                          f"{description}"
+                                          f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
+                              color=discord.Color.green())
+
+        embed.set_thumbnail(url=ctx.author.avatar_url)
+
+        stat_buttons = [
+            create_button(label=f"{button1text}", emoji=f"{button1emoji}", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+            create_button(label=f"{button2text}", emoji=f"{button2emoji}", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+            create_button(label=f"{button3text}", emoji="3️⃣", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
+        buttons = create_actionrow(*stat_buttons)
+        await msg.edit(embed=embed, components=[buttons])
+
+        await msg2.edit(
+            content="What emoji would you like on button 3 (far right button)?\nType `cancel` at any point to quit.")
+        button3emoji = None
+        while button3emoji == None:
+            def check(message):
+                return message.content != "" and message.author == ctx.message.author and ctx.message.channel == message.channel
+
+            r = await self.bot.wait_for("message", check=check, timeout=300)
+            response = r.content
+            await r.delete()
+            if response.lower() == "cancel":
+                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                return await msg2.edit(content="", embed=embed)
+
+            if not em.is_emoji(response):
+                await msg2.edit(content=f"{response} is not a valid emoji (must be a default emoji, not discord/server emoji).")
+                continue
+            button3emoji = response
+
+
+        embed = discord.Embed(title="Enjoy your stay!",
+                              description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
+                                          f"{description}"
+                                          f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
+                              color=discord.Color.green())
+
+        embed.set_thumbnail(url=ctx.author.avatar_url)
+
+        stat_buttons = [
+            create_button(label=f"{button1text}", emoji=f"{button1emoji}", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+            create_button(label=f"{button2text}", emoji=f"{button2emoji}", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+            create_button(label=f"{button3text}", emoji=f"{button3emoji}", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
+        buttons = create_actionrow(*stat_buttons)
+        await msg.edit(embed=embed, components=[buttons])
+
+
+
+        await msg2.edit(
+            content="What channel would you like button 1 to link to (far left button)?\nType `cancel` at any point to quit.")
+        button1channel = None
+        while button1channel == None:
+            def check(message):
+                return message.content != "" and message.author == ctx.message.author and ctx.message.channel == message.channel
+
+            r = await self.bot.wait_for("message", check=check, timeout=300)
+            response = r.content
+            await r.delete()
+            button1channel = await pingToChannel(ctx, response)
+
+            if response.lower() == "cancel":
+                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                return await msg2.edit(content="",embed=embed)
+
+            if button1channel is None:
+                content = "Sorry that channel is invalid. Please try again.\nWhat channel would you like button 1 to link to (far left button)?\nType `cancel` at any point to quit."
+                await msg2.edit(content=content)
+                continue
+
+
+        await msg2.edit(
+            content="What channel would you like button 2 to link to (middle button)?\nType `cancel` at any point to quit.")
+        button2channel = None
+        while button2channel == None:
+            def check(message):
+                return message.content != "" and message.author == ctx.message.author and ctx.message.channel == message.channel
+
+            r = await self.bot.wait_for("message", check=check, timeout=300)
+            response = r.content
+            await r.delete()
+            button2channel = await pingToChannel(ctx, response)
+
+            if response.lower() == "cancel":
+                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                return await msg2.edit(content="", embed=embed)
+
+            if button2channel is None:
+                content = "Sorry that channel is invalid. Please try again.\nWhat channel would you like button 2 to link to (middle button)?\nType `cancel` at any point to quit."
+                await msg2.edit(content=content)
+                continue
+
+        await msg2.edit(
+            content="What channel would you like button 3 to link to (right button)?\nType `cancel` at any point to quit.")
+        button3channel = None
+        while button3channel == None:
+            def check(message):
+                return message.content != "" and message.author == ctx.message.author and ctx.message.channel == message.channel
+
+            r = await self.bot.wait_for("message", check=check, timeout=300)
+            response = r.content
+            await r.delete()
+            button3channel = await pingToChannel(ctx, response)
+
+            if response.lower() == "cancel":
+                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                return await msg2.edit(content="", embed=embed)
+
+            if button3channel is None:
+                content = "Sorry that channel is invalid. Please try again.\nWhat channel would you like button 3 to link to (right button)?\nType `cancel` at any point to quit."
+                await msg2.edit(content=content)
+                continue
+
+
+        embed = discord.Embed(title="Enjoy your stay!",
+                              description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
+                                          f"{description}"
+                                          f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
+                              color=discord.Color.green())
+
+        embed.set_thumbnail(url=ctx.author.avatar_url)
+
+        stat_buttons = [
+            create_button(label=f"{button1text}", emoji=f"{button1emoji}", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{button1channel.id}"),
+            create_button(label=f"{button2text}", emoji=f"{button2emoji}", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{button2channel.id}"),
+            create_button(label=f"{button3text}", emoji=f"{button3emoji}", style=ButtonStyle.URL,
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{button3channel.id}")]
+        buttons = create_actionrow(*stat_buttons)
+        await msg.edit(embed=embed, components=[buttons])
+
+        await msg2.edit(
+            content="Setup Complete! The embed above is a live version of how it will look.")
+
+        results = await welcome.find_one({"server": ctx.guild.id})
+        if results is None:
+            await welcome.insert_one({
+                "server": ctx.guild.id,
+                "welcome_channel": welcomeChannel.id,
+                "description" : description,
+                "button1text" : button1text,
+                "button2text": button2text,
+                "button3text": button3text,
+                "button1emoji": button1emoji,
+                "button2emoji": button2emoji,
+                "button3emoji": button3emoji,
+                "button1channel": button1channel.id,
+                "button2channel": button2channel.id,
+                "button3channel": button3channel.id,
+                "link_channel" : None
+            })
+        else:
+            await welcome.update_one({"server": ctx.guild.id}, {'$set': {
+                "welcome_channel": welcomeChannel.id,
+                "description" : description,
+                "button1text" : button1text,
+                "button2text": button2text,
+                "button3text": button3text,
+                "button1emoji": button1emoji,
+                "button2emoji": button2emoji,
+                "button3emoji": button3emoji,
+                "button1channel": button1channel.id,
+                "button2channel": button2channel.id,
+                "button3channel": button3channel.id
+            }})
+
+    @commands.group(name="linkbutton", pass_context=True, invoke_without_command=True)
+    async def linkmessage(self, ctx):
+        pass
+
+    @linkmessage.group(name="setup", pass_context=True, invoke_without_command=True)
+    async def linkmessage_set(self, ctx):
+
+        embed = discord.Embed(title="**Link Button Channel**",
+                              description=f"What is the channel to post the Link Button message in?\n Please make sure I have perms to send messages there.",
+                              color=discord.Color.green())
+        embed.set_footer(text="Type `cancel` at any point to quit.")
+        msg = await ctx.send(embed=embed)
+
+        welcomeChannel = None
+        while welcomeChannel == None:
+            def check(message):
+                return message.content != "" and message.author == ctx.message.author and ctx.message.channel == message.channel
+
+            r = await self.bot.wait_for("message", check=check, timeout=300)
+            response = r.content
+            await r.delete()
+            welcomeChannel = await pingToChannel(ctx, response)
+
+            if response.lower() == "cancel":
+                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                return await msg.edit(embed=embed)
+
+            if welcomeChannel is None:
+                embed = discord.Embed(title="Sorry that channel is invalid. Please try again.",
+                                      description=f"What is the link button channel?",
+                                      color=discord.Color.red())
+                embed.set_footer(text="Type `cancel` at any point to quit.")
+                await msg.edit(embed=embed)
+                continue
+
+            c = welcomeChannel
+            g = ctx.guild
+            r = await g.fetch_member(824653933347209227)
+            perms = c.permissions_for(r)
+            send_msg = perms.send_messages
+            if send_msg == False:
+                embed = discord.Embed(
+                    description=f"Missing Permissions.\nMust have `Send Messages` in the link button channel.\nTry Again. What is the channel?",
+                    color=discord.Color.red())
+                embed.set_footer(text="Type `cancel` at any point to quit.")
+                await msg.edit(embed=embed)
+                welcomeChannel = None
+                continue
+
+        results = await welcome.find_one({"server": ctx.guild.id})
+        if results is None:
+            await welcome.insert_one({
+                "server": ctx.guild.id,
+                "welcome_channel": None,
+                "description": None,
+                "button1text": None,
+                "button2text": None,
+                "button3text": None,
+                "button1emoji": None,
+                "button2emoji": None,
+                "button3emoji": None,
+                "button1channel": None,
+                "button2channel": None,
+                "button3channel": None,
+                "link_channel": welcomeChannel.id
+            })
+        else:
+            await welcome.update_one({"server": ctx.guild.id}, {'$set': {
+                "link_channel": welcomeChannel.id
+            }})
+
+        embed = discord.Embed(description=f"Link Button Channel Successfully Setup!",
+                              color=discord.Color.green())
+        await msg.edit(embed=embed)
+
+    @linkmessage.group(name="remove", pass_context=True, invoke_without_command=True)
+    async def linkmessage_remove(self, ctx):
+
+        results = await welcome.find_one({"server": ctx.guild.id})
+        if results is None:
+            await welcome.insert_one({
+                "server": ctx.guild.id,
+                "welcome_channel": None,
+                "description": None,
+                "button1text": None,
+                "button2text": None,
+                "button3text": None,
+                "button1emoji": None,
+                "button2emoji": None,
+                "button3emoji": None,
+                "button1channel": None,
+                "button2channel": None,
+                "button3channel": None,
+                "link_channel": None
+            })
+        else:
+            await welcome.update_one({"server": ctx.guild.id}, {'$set': {
+                "link_channel": None
+            }})
+
+        embed = discord.Embed(description=f"Link Button Channel Successfully Removed!",
+                              color=discord.Color.green())
+        await ctx.send(embed=embed)
+
+    @welcome.group(name="remove", pass_context=True, invoke_without_command=True)
+    async def welcome_remove(self, ctx):
+        results = await welcome.find_one({"server": ctx.guild.id})
+        if results is None:
+            await welcome.insert_one({
+                "server": None,
+                "welcome_channel":None,
+                "description": None,
+                "button1text": None,
+                "button2text": None,
+                "button3text": None,
+                "button1emoji": None,
+                "button2emoji": None,
+                "button3emoji": None,
+                "button1channel": None,
+                "button2channel": None,
+                "button3channel": None,
+                "link_channel": None
+            })
+        else:
+            await welcome.update_one({"server": ctx.guild.id}, {'$set': {
+                "welcome_channel": None,
+                "description": None,
+                "button1text": None,
+                "button2text": None,
+                "button3text": None,
+                "button1emoji": None,
+                "button2emoji": None,
+                "button3emoji": None,
+                "button1channel": None,
+                "button2channel": None,
+                "button3channel": None
+            }})
+
+        embed = discord.Embed(description=f"Welcome Embed Successfully Removed!",
+                              color=discord.Color.green())
+        await ctx.send(embed=embed)
+
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        if member.guild.id == 328997757048324101:
-            if "Moderator" in member.name:
-                return await member.ban()
-            memId = member.mention
-            channel = self.bot.get_channel(739597294474625034)
+        results = await welcome.find_one({"server": member.guild.id})
+        if results is not None:
+            welcome_channel = results.get("welcome_channel")
 
-            emoji = "<a:redflame:932469862633181194>"
-            arrowleft = "<a:6270_Arrow_1_Gif:932470483205644300>"
-            arrowright =  "<a:rightarrow:932470092883722271>"
-            clash = "<:clash:855491735488036904>"
+            if welcome_channel != None:
+                description = results.get("description")
+                button1text = results.get("button1text")
+                button2text = results.get("button2text")
+                button3text = results.get("button3text")
+                button1emoji = results.get("button1emoji")
+                button2emoji = results.get("button2emoji")
+                button3emoji = results.get("button3emoji")
+                button1channel = results.get("button1channel")
+                button2channel = results.get("button2channel")
+                button3channel = results.get("button3channel")
 
-            results = await server.find_one({"server": member.guild.id})
-            prefix = results.get("prefix")
+                channel = self.bot.get_channel(welcome_channel)
 
-            embed = discord.Embed(title="Enjoy your stay!",description=f"{emoji}**Welcome to {member.guild.name}!**{emoji}\n"
-                                                                       f"Thank you for joining the mighty U.S.A Family! If you are **looking for a clan**, please open a ticket in <#936477949803233320>."
-                                                                       f" If you are **already** in a U.S.A Family clan, head over to <#803774459659681822> and follow the instructions to link your account.\n\n"
-                                                                       f"{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
-                                  color=discord.Color.green())
-            #embed.set_thumbnail(
-                #url="https://media.discordapp.net/attachments/815832030084333628/854623578532216862/ezgif.com-gif-maker_1.gif")
-            embed.set_thumbnail(url=member.avatar_url)
-            #embed.set_footer(text="Feel free to message in #new-people if you need help.")
+                emoji = "<a:redflame:932469862633181194>"
+                arrowleft = "<a:6270_Arrow_1_Gif:932470483205644300>"
+                arrowright =  "<a:rightarrow:932470092883722271>"
 
-            stat_buttons = [
-                create_button(label="Looking for a Clan", emoji="🔍", style=ButtonStyle.URL,  url="https://discord.com/channels/328997757048324101/936477949803233320"),
-                create_button(label="Link Yourself", emoji="🔗", style=ButtonStyle.URL, url="https://discord.com/channels/328997757048324101/803774459659681822"),
-                create_button(label="Rules & Info", emoji="📚", style=ButtonStyle.URL, url="https://discord.com/channels/328997757048324101/596905919581913101")]
-            buttons = create_actionrow(*stat_buttons)
-            await channel.send(content=member.mention,embed=embed, components= [buttons])
+                embed = discord.Embed(title="Enjoy your stay!",
+                                      description=f"{emoji}**Welcome to {member.guild.name}!**{emoji}\n"
+                                                  f"{description}"
+                                                  f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
+                                      color=discord.Color.green())
 
-            channel = self.bot.get_channel(803774459659681822)
-            embed = discord.Embed(title=f"**Welcome to {member.guild.name}!**",
-                                  description=f"To link your account, press the button below & follow the step by step instructions.",
-                                  color=discord.Color.green())
-            stat_buttons = [
-                create_button(label="Link Account", emoji="🔗", style=ButtonStyle.blue, custom_id="Start Link", disabled=False)]
-            stat_buttons = create_actionrow(*stat_buttons)
-            embed.set_thumbnail(url=member.guild.icon_url_as())
-            await channel.send(content=member.mention, embed=embed, components=[stat_buttons])
-        elif member.guild.id == 923764211845312533:
-            memId = member.mention
-            channel = self.bot.get_channel(923862077498609665)
-            emoji = "<a:redflame:932469862633181194>"
-            arrowleft = "<a:6270_Arrow_1_Gif:932470483205644300>"
-            arrowright = "<a:rightarrow:932470092883722271>"
-            clash = "<:clash:855491735488036904>"
+                embed.set_thumbnail(url=member.avatar_url)
 
-            results = await server.find_one({"server": member.guild.id})
-            prefix = results.get("prefix")
+                stat_buttons = [
+                    create_button(label=f"{button1text}", emoji=f"{button1emoji}", style=ButtonStyle.URL,
+                                  url=f"https://discord.com/channels/{member.guild.id}/{button1channel}"),
+                    create_button(label=f"{button2text}", emoji=f"{button2emoji}", style=ButtonStyle.URL,
+                                  url=f"https://discord.com/channels/{member.guild.id}/{button2channel}"),
+                    create_button(label=f"{button3text}", emoji=f"{button3emoji}", style=ButtonStyle.URL,
+                                  url=f"https://discord.com/channels/{member.guild.id}/{button3channel}")]
+                buttons = create_actionrow(*stat_buttons)
+                await channel.send(content=f"{member.mention}",embed=embed, components=[buttons])
 
-            embed = discord.Embed(title="Enjoy your stay!",
-                                  description=f"{emoji}**Welcome to {member.guild.name}!**{emoji}\n"
-                                              f"This is the support server for 2 bots - MagicBot & LegendsTracker\n"
-                                              f"> MagicBot is a Clash of Clans Family management bot for roles, rankings, & more.\n"
-                                              f"> LegendsTracker is the premier & **free** legends hit tracking bot for Clash of Clans.\n"
-                                              f"Take a look around the demo channels, and leave any feedback or questions in <#923786531876003850>.\n\n"
-                                              f"{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
-                                  color=discord.Color.green())
-            # embed.set_thumbnail(
-            # url="https://media.discordapp.net/attachments/815832030084333628/854623578532216862/ezgif.com-gif-maker_1.gif")
-            embed.set_thumbnail(url=member.avatar_url)
-            # embed.set_footer(text="Feel free to message in #new-people if you need help.")
 
-            stat_buttons = [
-                create_button(label="LegendsTracker", emoji="🔍", style=ButtonStyle.URL,
-                              url="https://discord.com/channels/923764211845312533/923764469849534474"),
-                create_button(label="MagicBot", emoji="🔗", style=ButtonStyle.URL,
-                              url="https://discord.com/channels/923764211845312533/936024045068120154"),
-                create_button(label="Changes", emoji="📚", style=ButtonStyle.URL,
-                              url="https://discord.com/channels/923764211845312533/923786181760651375")]
-            buttons = create_actionrow(*stat_buttons)
-            await channel.send(content=member.mention, embed=embed, components=[buttons])
+            link_channel = results.get("link_channel")
+            if link_channel != None:
+                channel = self.bot.get_channel(link_channel)
+                embed = discord.Embed(title=f"**Welcome to {member.guild.name}!**",
+                                      description=f"To link your account, press the button below & follow the step by step instructions.",
+                                      color=discord.Color.green())
+                stat_buttons = [
+                    create_button(label="Link Account", emoji="🔗", style=ButtonStyle.blue, custom_id="Start Link", disabled=False)]
+                stat_buttons = create_actionrow(*stat_buttons)
+                embed.set_thumbnail(url=member.guild.icon_url_as())
+                await channel.send(content=member.mention, embed=embed, components=[stat_buttons])
+
+
     @commands.Cog.listener()
-    async def on_component(self, ctx):
+    async def on_component(self, ctx : discord_slash.ComponentContext):
+        if ctx.channel.id == 945228791792431154:
+            return
         if ctx.custom_id == "Start Link":
             playerTag = None
             member = ctx.author
 
             if member in link_open:
-                return await ctx.send(content="You already have a link command open, please finish linking there or type `cancel`  to cancel the command.", hidden=True)
+                return await ctx.send(content="You already have a link command open, please finish linking there or type `cancel` to cancel the command.", hidden=True)
 
             executor = ctx.author
             link_open.append(member)
@@ -120,7 +716,7 @@ class joinstuff(commands.Cog):
             embed = discord.Embed(
                 title="Hello, " + ctx.author.display_name + "!",
                 description="Let's get started:" +
-                            "\nPlease respond with the player tag of __**your**__ account\n(Example: #PC2UJVVU)\nYou have 10 minutes to reply.\See image below for help finding & copying your player tag.",
+                            "\nPlease respond with the player tag of __**your**__ account\n(Example: #PC2UJVVU)\nYou have 10 minutes to reply.\nSee image below for help finding & copying your player tag.",
                 color=discord.Color.green())
 
             embed.set_footer(text="Type `cancel` at any point to quit")
@@ -131,7 +727,11 @@ class joinstuff(commands.Cog):
             while (correctTag == False):
                 x += 1
                 if x == 4:
-                    return
+                    link_open.remove(member)
+                    embed = discord.Embed(
+                        description=f"Canceling command. Player Tag Failed 4 Times.",
+                        color=discord.Color.red())
+                    return await msg.edit(embed=embed)
 
                 def check(message):
                     ctx.message.content = message.content
@@ -166,7 +766,7 @@ class joinstuff(commands.Cog):
                             title=f"Sorry, `{playerTag}` is invalid and it also appears to be the **clan** tag for " + clan.name,
                             description="Player tags only, What is the correct player tag? (Image below for reference)", color=0xf30000)
                         embed.set_image(
-                            url="https://media.discordapp.net/attachments/815832030084333628/845542691411853312/image0.jpg")
+                            url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
                         embed.set_footer(text="Type `cancel` at any point to quit")
                         await msg.edit(embed=embed)
                     else:
@@ -174,7 +774,7 @@ class joinstuff(commands.Cog):
                             title=f"Sorry, `{playerTag}` is an invalid player tag. Please try again.",
                             description="What is the correct player tag? (Image below for reference)", color=0xf30000)
                         embed.set_image(
-                            url="https://media.discordapp.net/attachments/815832030084333628/845542691411853312/image0.jpg")
+                            url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
                         embed.set_footer(text="Type `cancel` at any point to quit")
                         await msg.edit(embed=embed)
                     continue

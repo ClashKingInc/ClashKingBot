@@ -2,6 +2,7 @@ from discord.ext import commands
 import discord
 
 import coc
+import math
 
 from discord_slash.utils.manage_components import create_button, wait_for_component, create_select, create_select_option, create_actionrow
 from discord_slash.model import ButtonStyle
@@ -12,7 +13,7 @@ clans = usafam.clans
 
 import math
 from Dictionaries.thPicDictionary import thDictionary
-
+SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹" ]
 
 class top(commands.Cog):
 
@@ -45,7 +46,27 @@ class top(commands.Cog):
 
         if limit > len(rankings) :
             limit = len(rankings)
+
         ranking = sorted(rankings, key=lambda l: l[1], reverse=True)
+        cum_score = 0
+        if limit == 50:
+            z = 1
+            for r in rankings:
+                if z >= 1 and z <=10:
+                    cum_score += (ranking[z-1][1])*0.50
+                elif z>= 11 and z<=20:
+                    cum_score += (ranking[z-1][1])*0.25
+                elif z>= 21 and z<=30:
+                    cum_score += (ranking[z-1][1])*0.12
+                elif z>= 31 and z<=40:
+                    cum_score += (ranking[z-1][1])*0.10
+                elif z>= 41 and z<=50:
+                    cum_score += (ranking[z-1][1])*0.03
+                z+=1
+
+        cum_score = int(cum_score)
+
+        cum_score = "{:,}".format(cum_score)
 
         embeds = []
         length = math.ceil(limit / 25)
@@ -67,6 +88,8 @@ class top(commands.Cog):
             embed = discord.Embed(title=f"**Top {limit} {ctx.guild} players**",
                                   description=rText)
             embed.set_thumbnail(url=ctx.guild.icon_url_as())
+            if limit == 50:
+                embed.set_footer(text=f"Cumulative Trophies would be 🏆{cum_score}")
             embeds.append(embed)
 
         msg = await ctx.send(embed=embeds[0], components=self.create_components(current_page, limit), mention_author=False)
@@ -102,6 +125,62 @@ class top(commands.Cog):
                     await ctx.send(embed=embed)
                 return
 
+    @commands.command(name="best")
+    async def best(self, ctx):
+        rankings = []
+        tracked = clans.find({"server": ctx.guild.id})
+        l = await clans.count_documents(filter={"server": ctx.guild.id})
+        for clan in await tracked.to_list(length=l):
+            tag = clan.get("tag")
+            clan = await getClan(tag)
+            for player in clan.members:
+                try:
+                    playerStats = []
+                    playerStats.append(player.name)
+                    playerStats.append(player.trophies)
+                    playerStats.append(player.clan.name)
+                    playerStats.append(player.tag)
+                    rankings.append(playerStats)
+                except:
+                    continue
+
+        if l == 0:
+            return await ctx.send(content=f"No clans linked to server.", embed=None)
+
+
+        ranking = sorted(rankings, key=lambda l: l[1], reverse=True)
+
+
+        max_clans = math.floor(len(ranking)/50)
+        text = ""
+        clan_num = 0
+        for y in range(clan_num, max_clans):
+            cum_score = 0
+            z = 1
+            tt = ranking[(50*y):((50*y)+50)]
+            for r in tt:
+                if z >= 1 and z <= 10:
+                    cum_score += (r[1]) * 0.50
+                elif z >= 11 and z <= 20:
+                    cum_score += (r[1]) * 0.25
+                elif z >= 21 and z <= 30:
+                    cum_score += (r[1]) * 0.12
+                elif z >= 31 and z <= 40:
+                    cum_score += (r[1]) * 0.10
+                elif z >= 41 and z <= 50:
+                    cum_score += (r[1]) * 0.03
+                z += 1
+
+            cum_score = int(cum_score)
+            cum_score = "{:,}".format(cum_score)
+            text+=f"Clan #{y+1}: 🏆{cum_score}\n"
+
+        embed = discord.Embed(title=f"Best Possible EOS for {ctx.guild.name}",
+            description=text,
+            color=discord.Color.green())
+        embed.set_thumbnail(url=ctx.guild.icon_url_as())
+        embed.set_footer(text="All Clans have 50 Members")
+        await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="rank")
     async def rank(self, ctx, *, search_query=None):
@@ -307,7 +386,7 @@ class top(commands.Cog):
                     flag = "<a:earth:861321402909327370>"
                 text += f"`🏆{trophies}`{flag}`{rank}` **{name}** [{clanname}]\n"
 
-        if num > master_num:
+        if num >= master_num:
             embed = discord.Embed(title=f"**{ctx.guild.name} Rankings | {country}**",
                                   description=text,
                                   color=discord.Color.green())
@@ -321,7 +400,6 @@ class top(commands.Cog):
                                   color=discord.Color.green())
             embed.set_thumbnail(url=ctx.guild.icon_url_as())
             embeds.append(embed)
-
 
         num_countries = len(countries)
         if num_countries > 25:
@@ -414,7 +492,7 @@ class top(commands.Cog):
         for clan in clan_list:
             x+=1
             if clan.tag in rr:
-                us_rank += f"{clan.name}: {x}\n"
+                us_rank += f"{clan.name} ⁽{clan.member_count}/50⁾: {x}\n"
 
         full_rank = ""
         if global_rank != "":

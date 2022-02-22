@@ -30,10 +30,6 @@ class pagination(commands.Cog):
                 await msg.edit(components=[])
                 break
 
-            if res.author_id != ctx.author.id:
-                await res.send(content="You must run the command to interact with components.", hidden=True)
-                continue
-
             await res.edit_origin()
 
 
