@@ -197,6 +197,9 @@ class getClans(commands.Cog):
             if nu != 0:
                 stext += f"{emojiDictionary(troop)}`x{nu} `"
 
+        if stext == "":
+            stext = "None"
+
         return [stats, stext]
 
     async def linked_players(self, ctx, clan):

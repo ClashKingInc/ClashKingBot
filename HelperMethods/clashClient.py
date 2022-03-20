@@ -10,6 +10,7 @@ DB_LOGIN = os.getenv("DB_LOGIN")
 LINK_API_USER = os.getenv("LINK_API_USER")
 LINK_API_PW = os.getenv("LINK_API_PW")
 
+from discord import utils
 
 coc_client = coc.login(COC_EMAIL, COC_PASSWORD, client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 25)
 import certifi
@@ -88,7 +89,8 @@ async def pingToRole(ctx, ping):
         ping = ping[1:len(ping)]
 
     try:
-      role = ctx.guild.get_role(int(ping))
+      roles = await ctx.guild.fetch_roles()
+      role = utils.get(roles, id=int(ping))
       return role
     except:
         return None

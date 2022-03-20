@@ -23,6 +23,54 @@ class misc(commands.Cog):
         self.bot = bot
         self.up = time.time()
 
+    @commands.Cog.listener()
+    async def on_message(self, message : discord.Message):
+        if "https://link.clashofclans.com/en?action=OpenPlayerProfile&tag=" in message.content:
+            m = message.content.replace("\n", " ")
+            spots = m.split(" ")
+            s = ""
+            for spot in spots:
+                if "https://link.clashofclans.com/en?action=OpenPlayerProfile&tag=" in spot:
+                    s = spot
+                    break
+            tag = s.replace("https://link.clashofclans.com/en?action=OpenPlayerProfile&tag=", "")
+            if "%23" in tag:
+                tag = tag.replace("%23", "")
+            player = await getPlayer(tag)
+
+            clan = ""
+            try:
+                clan = player.clan.name
+                clan = f"{clan}"
+            except:
+                clan = "None"
+            hero = heros(player)
+            pets = heroPets(player)
+            if hero == None:
+                hero = ""
+            else:
+                hero = f"**Heroes:**\n{hero}\n"
+
+            if pets == None:
+                pets = ""
+            else:
+                pets = f"**Pets:**\n{pets}\n"
+
+            embed = discord.Embed(title=f"Invite {player.name} to your clan:",
+                                  description=f"{player.name} - TH{player.town_hall}\n" +
+                                              f"Tag: {player.tag}\n" +
+                                              f"Clan: {clan}\n" +
+                                              f"Trophies: {player.trophies}\n"
+                                              f"War Stars: {player.war_stars}\n"
+                                              f"{hero}{pets}"
+                                              f'[View Stats](https://www.clashofstats.com/players/{player.tag}) | [Open in Game]({player.share_link})',
+                                  color=discord.Color.green())
+            embed.set_thumbnail(url=thDictionary(player.town_hall))
+
+            channel = message.channel
+            await channel.send(embed=embed)
+
+
     @commands.command(name="invite")
     async def invite(self, ctx, tag=None):
         if tag == None:

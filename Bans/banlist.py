@@ -10,6 +10,8 @@ from discord_slash.model import ButtonStyle
 
 from main import check_commands
 
+from Dictionaries.emojiDictionary import emojiDictionary
+
 usafam = client.usafam
 banlist = usafam.banlist
 server = usafam.server
@@ -195,7 +197,7 @@ class banlists(commands.Cog):
                 clan = f"{clan}, {str(player.role)}"
             except:
                 clan = "No Clan"
-            hold += f"[{name}]({player.share_link}) | {player.tag}\n" \
+            hold += f"{emojiDictionary(player.town_hall)}[{name}]({player.share_link}) | {player.tag}\n" \
                     f"{clan}\n" \
                     f"Added on: {date}\n" \
                     f"*{notes}*\n\n"

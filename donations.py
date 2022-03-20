@@ -48,24 +48,36 @@ class WarEvents(commands.Cog):
                 tags.append(tag)
 
         rankings = []
+        members = []
+        ptags = []
         async for clan in coc_client.get_clans(tags):
             for member in clan.members:
-                don = 0
-                results = await donations.find_one({"tag": member.tag})
-                if results is not None:
-                    don = results.get("donations")
-                else:
-                    don = member.donations
-                    await donations.insert_one({
-                        "tag": member.tag,
-                        "donations": don
-                    })
+                members.append(member)
+                ptags.append(member.tag)
 
-                r = []
-                r.append(member.name)
-                r.append(don)
-                r.append(clan.name)
-                rankings.append(r)
+
+        don = 0
+        results = donations.find({"tag": {"$in" : ptags}})
+        limit = await clans.count_documents(filter={"tag": {"$in" : ptags}})
+        for document in await results.to_list(length=limit):
+            don = document.get("donations")
+            tag = document.get("tag")
+            ind = ptags.index(tag)
+            r = []
+            r.append(members[ind].name)
+            r.append(don)
+            r.append(members[ind].clan.name)
+            rankings.append(r)
+            members.pop(ind)
+            ptags.pop(ind)
+
+        for member in members:
+            r = []
+            r.append(member.name)
+            r.append(member.donations)
+            r.append(member.clan.name)
+            rankings.append(r)
+
 
         ranking = sorted(rankings, key=lambda l: l[1], reverse=True)
         ranking = ranking[0:50]
@@ -84,15 +96,6 @@ class WarEvents(commands.Cog):
         embed.set_thumbnail(url=ctx.guild.icon_url_as())
         await ctx.send(embed=embed)
 
-
-    @coc.ClientEvents.new_season_start()
-    async def new_season(self):
-        tracked = donations.find()
-        limit = await donations.count_documents(filter={})
-        for document in await tracked.to_list(length=limit):
-            tag = document.get("tag")
-            await donations.update_one({'tag': f"{tag}"},
-                                           {'$set': {"donations": 0}})
 
     @coc.ClanEvents.member_donations()
     async def dona(self, old_member : coc.ClanMember, new_member : coc.ClanMember):

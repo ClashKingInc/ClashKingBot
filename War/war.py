@@ -11,6 +11,7 @@ import pytz
 tiz = pytz.utc
 
 from coc import utils
+SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 
 class War(commands.Cog):
 
@@ -118,6 +119,11 @@ class War(commands.Cog):
         magnify = self.bot.get_emoji(int(magnify))
         magnify = discord.PartialEmoji(name=magnify.name, id=magnify.id)
 
+        surr = "<:surrender:947978096034869249>"
+        surr = ''.join(filter(str.isdigit, surr))
+        surr = self.bot.get_emoji(int(surr))
+        surr = discord.PartialEmoji(name=surr.name, id=surr.id)
+
         main = embed
 
         select = create_select(
@@ -127,6 +133,7 @@ class War(commands.Cog):
                 create_select_option("Opponent Roster", emoji=troop, value="oroster"),
                 create_select_option("Attacks", emoji=swords, value="attacks"),
                 create_select_option("Defenses", emoji=shield, value="defenses"),
+                create_select_option("Opponent Defenses", emoji=surr, value="odefenses"),
                 create_select_option("Opponent Clan Overview", emoji=magnify, value="opp_over")
             ],
             placeholder="Choose a page",  # the placeholder text to show when no options have been chosen
@@ -164,6 +171,9 @@ class War(commands.Cog):
                 await msg.edit(embed=embed)
             elif res.selected_options[0] == "opp_over":
                 embed = await self.opp_overview(war)
+                await msg.edit(embed=embed)
+            elif res.selected_options[0] == "odefenses":
+                embed = await self.opp_defenses_embed(war)
                 await msg.edit(embed=embed)
 
     async def roster_embed(self, war):
@@ -217,17 +227,22 @@ class War(commands.Cog):
         for player in war.members:
             if player not in war.opponent.members:
                 name = player.name
-                attack = f"**{name}**"
+                rank = player.map_position
+                rank = str(rank) + "."
+                rank = rank.ljust(3)
+                attack = f"**`{rank}` {name}**"
                 if player.attacks == []:
-                    missing_attacks += f"➼ {player.name}\n"
+                    missing_attacks += f"➼ {rank} {player.name}\n"
                     continue
                 for a in player.attacks:
                     if a == player.attacks[0]:
                         attack += "\n➼ "
                     if a != player.attacks[-1]:
-                        attack += f"{a.stars}★ {a.destruction}%, "
+                        base = await self.create_superscript(a.defender.map_position)
+                        attack += f"{a.stars}★ {a.destruction}%{base}, "
                     else:
-                        attack += f"{a.stars}★ {a.destruction}%"
+                        base = await self.create_superscript(a.defender.map_position)
+                        attack += f"{a.stars}★ {a.destruction}%{base}"
 
                 attacks += f"{attack}\n"
 
@@ -258,6 +273,33 @@ class War(commands.Cog):
                         defense += f"{d.stars}★ {d.destruction}%"
 
                 defenses += f"{defense}\n"
+
+
+        embed = discord.Embed(title=f"{war.clan.name} Defenses Taken", description=defenses,
+                              color=discord.Color.green())
+        if missing_defenses != "":
+            embed.add_field(name="**No defenses taken:**", value=missing_defenses)
+        embed.set_thumbnail(url=war.clan.badge.large)
+        return embed
+
+    async def opp_defenses_embed(self, war: coc.ClanWar):
+        defenses = ""
+        missing_defenses = ""
+        for player in war.opponent.members:
+            name = player.name
+            defense = f"**{name}**"
+            if player.defenses == []:
+                missing_defenses += f"➼ {player.name}\n"
+                continue
+            for d in player.defenses:
+                if d == player.defenses[0]:
+                    defense += "\n➼ "
+                if d != player.defenses[-1]:
+                    defense += f"{d.stars}★ {d.destruction}%, "
+                else:
+                    defense += f"{d.stars}★ {d.destruction}%"
+
+            defenses += f"{defense}\n"
 
 
         embed = discord.Embed(title=f"{war.clan.name} Defenses Taken", description=defenses,
@@ -306,6 +348,13 @@ class War(commands.Cog):
         embed.set_thumbnail(url=clan.badge.large)
         return embed
 
+    async def create_superscript(self, num):
+        digits = [int(num) for num in str(num)]
+        new_num = ""
+        for d in digits:
+            new_num += SUPER_SCRIPTS[d]
+
+        return new_num
 
     async def calculate_stars_percent(self, war: coc.ClanWar):
         stars = 0

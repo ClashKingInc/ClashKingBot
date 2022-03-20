@@ -152,6 +152,8 @@ class top(commands.Cog):
 
 
         max_clans = math.floor(len(ranking)/50)
+        if max_clans > 5:
+            max_clans = 5
         text = ""
         clan_num = 0
         for y in range(clan_num, max_clans):

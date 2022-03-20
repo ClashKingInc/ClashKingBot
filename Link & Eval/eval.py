@@ -117,9 +117,6 @@ class eval(commands.Cog):
 
             is_family_member = await self.is_in_family(ctx, tag)
 
-            if not is_family_member and has_family_account:
-                continue
-
             if is_family_member:
                 for role in roles_add_to_family:
                     if role not in roles_should_have:
@@ -150,6 +147,9 @@ class eval(commands.Cog):
                     if role not in roles_to_remove:
                         roles_to_remove.append(role)
 
+            if not is_family_member and has_family_account:
+                continue
+
 
 
             # done fetching all the roles they should have
@@ -157,13 +157,15 @@ class eval(commands.Cog):
             # print(member.name)
             # print(roles_should_have)
 
+        print(roles_does_have)
         for role in roles_does_have:
+            print(roles_add_to_family)
             isClashRole = (role.id in clan_roles) or (role.id in roles_add_to_family)
             shouldHave = (role.id in roles_should_have)
-
             if isClashRole and shouldHave:
                 roles_should_have.remove(role.id)
             elif isClashRole and not shouldHave:
+                print(role.id)
                 roles_to_remove.append(role.id)
 
         true_roles_to_remove = []
@@ -179,7 +181,7 @@ class eval(commands.Cog):
         # finish - add & remove what is expected
         #print(roles_does_have)
         #print(roles_should_have)
-        # print(roles_to_remove)
+        #print(roles_to_remove)
         greet = False
         added = ""
         removed = ""

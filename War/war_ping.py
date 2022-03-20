@@ -5,7 +5,7 @@ import coc
 from discord_slash.utils.manage_components import wait_for_component, create_select, create_select_option, create_actionrow
 import discord
 import datetime as dt
-
+from main import check_commands
 from datetime import timezone
 
 usafam = client.usafam
@@ -26,10 +26,12 @@ class war_pings(commands.Cog):
 
 
     @commands.group(name="warping", pass_context=True, invoke_without_command=True)
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def warping(self, ctx):
         pass
 
-    @warping.group(name="set", pass_context=True, invoke_without_command=True)
+    @warping.group(name="status", pass_context=True, invoke_without_command=True)
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def warping_set(self, ctx, on_off, *, aliases=None):
         on_off = on_off.lower()
         if on_off != "on" and on_off != "off":
@@ -218,6 +220,7 @@ class war_pings(commands.Cog):
             return await msg.edit(embed=embed, components=[])
 
     @warping.group(name="list", pass_context=True, invoke_without_command=True)
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def warping_list(self, ctx):
         text = ""
         tracked = clans.find({"server": ctx.guild.id})

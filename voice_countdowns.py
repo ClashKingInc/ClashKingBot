@@ -2,7 +2,7 @@ from discord.ext import commands, tasks
 import discord
 from discord_slash.utils.manage_components import wait_for_component, create_select, create_select_option, create_actionrow
 from HelperMethods.clashClient import client
-
+from main import check_commands
 
 from datetime import datetime
 from datetime import timedelta
@@ -49,12 +49,12 @@ class VoiceCountdowns(commands.Cog):
                     await server.update_one({"server": servers}, {'$set': {"gamesCountdown": None}})
 
     @commands.group(name="countdown",pass_context=True, invoke_without_command=True)
-    @commands.has_permissions(manage_guild=True)
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def voice(self, ctx):
         pass
 
     @voice.group(name="setup", pass_context=True, invoke_without_command=True)
-    @commands.has_permissions(manage_guild=True)
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def voice_setup(self, ctx):
         embed = discord.Embed(title=f"Voice Channel Countdown Setup",
                               description="Choose a countdown to setup.",
@@ -129,10 +129,13 @@ class VoiceCountdowns(commands.Cog):
         hour = now.hour
         if type == "CWL":
             is_cwl = True
-            first = datetime(year, month + 1, 1, hour=8, tzinfo=utc)
+            if day == 1:
+                first = datetime(year, month, 1, hour=8, tzinfo=utc)
+            else:
+                first = datetime(year, month + 1, 1, hour=8, tzinfo=utc)
             end = datetime(year, month, 10, hour=8, tzinfo=utc)
             if (day >= 1 and day<=10):
-                if (day == 1 and hour < 8) or (day == 10 and hour > 8):
+                if (day == 1 and hour < 8) or (day == 10 and hour >= 8):
                     is_cwl = False
                 else:
                     is_cwl = True
@@ -169,7 +172,7 @@ class VoiceCountdowns(commands.Cog):
             first = datetime(year, month, 22, hour=8, tzinfo=utc)
             end = datetime(year, month, 28, hour=8, tzinfo=utc)
             if (day >= 22 and day <= 28):
-                if (day == 22 and hour < 8) or (day == 28 and hour > 8):
+                if (day == 22 and hour < 8) or (day == 28 and hour >= 8):
                     is_games = False
                 else:
                     is_games = True

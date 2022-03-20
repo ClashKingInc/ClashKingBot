@@ -3,7 +3,7 @@ from discord_slash.utils.manage_components import create_button, create_actionro
 from discord_slash.model import ButtonStyle
 import discord
 from HelperMethods.clashClient import pingToChannel, client, pingToRole
-
+from main import check_commands
 usafam = client.usafam
 clans = usafam.clans
 
@@ -18,6 +18,7 @@ class ClanSettings(commands.Cog):
         pass
 
     @set.group(name="channel")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def channel(self, ctx, channel=None, *, alias=None):
         if channel is None:
             return await ctx.reply("Channel argument required.",
@@ -50,6 +51,7 @@ class ClanSettings(commands.Cog):
                         mention_author=False)
 
     @set.group(name="warchannel")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def warchannel(self, ctx, channel=None, *, alias=None):
         if channel is None:
             return await ctx.reply("Channel argument required.",
@@ -82,6 +84,7 @@ class ClanSettings(commands.Cog):
                         mention_author=False)
 
     @set.group(name="role")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def role(self, ctx, role=None, *, alias=None):
         if role is None:
             return await ctx.reply("Role argument required.",
@@ -116,6 +119,7 @@ class ClanSettings(commands.Cog):
         await ctx.reply(embed=embed, mention_author=False)
 
     @set.group(name="leaderrole")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def leaderrole(self, ctx, role=None, *, alias=None):
         if role is None:
             return await ctx.reply("Role argument required.",
@@ -150,6 +154,7 @@ class ClanSettings(commands.Cog):
         await ctx.reply(embed=embed, mention_author=False)
 
     @set.group(name="clanalias")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def clanalias(self, ctx, alias=None, *, newalias=None):
         if alias is None:
             return await ctx.reply("Alias argument required.",
@@ -177,6 +182,81 @@ class ClanSettings(commands.Cog):
             description=f"Clan alias switched to {newalias.lower()}",
             color=discord.Color.green())
         await ctx.reply(embed=embed, mention_author=False)
+
+    @set.group(name="category")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def leaderrole(self, ctx, alias=None):
+        if alias is None:
+            return await ctx.reply("Provide an alias for a clan to switch category on.",
+                                   mention_author=False)
+
+        alias = alias.lower()
+        results = await clans.find_one({"$and": [
+            {"alias": alias},
+            {"server": ctx.guild.id}
+        ]})
+
+        if results is None:
+            return await ctx.reply("Invalid alias.",
+                                   mention_author=False)
+
+        tracked = clans.find({"server": ctx.guild.id})
+        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        categoryTypes = ""
+        categoryTypesList = []
+        num = 1
+        for tClan in await tracked.to_list(length=limit):
+            category = tClan.get("category")
+            if category not in categoryTypesList:
+                categoryTypesList.append(category)
+                categoryTypes += f"{num}. {category}\n"
+                num += 1
+
+        if categoryTypes == "":
+            categoryTypes = "**No previous existing categories.**"
+
+        name = results.get("name")
+        embed = discord.Embed(title="**Clan Category**",
+                              description=f"What category should {name} be listed under?\n"
+                                          f"(type a new one or choose an existing from numbers)\n"
+                                          f"{categoryTypes}", color=discord.Color.green())
+        msg = await ctx.send(embed=embed)
+
+        category = None
+
+        while category == None:
+            def check(message):
+                ctx.message.content = message.content
+                return message.content != "" and message.author == ctx.message.author
+
+            r = await self.bot.wait_for("message", check=check, timeout=300)
+            response = r.content
+            await r.delete()
+            if response == "cancel":
+                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                return await msg.edit(embed=embed)
+
+            try:
+                category = categoryTypesList[int(response) - 1]
+            except:
+                category = response
+
+        await clans.update_one({"$and": [
+            {"alias": alias},
+            {"server": ctx.guild.id}
+        ]}, {'$set': {"category": category}})
+
+        embed = discord.Embed(description=f"Category for {name} changed to {category}.", color=discord.Color.green())
+        await msg.edit(embed=embed)
+
+
+
+
+
+
+
+
+
 
 def setup(bot: commands.Bot):
     bot.add_cog(ClanSettings(bot))

@@ -51,7 +51,6 @@ locations = [32000007, 32000008, 32000009, 32000010, 32000011, 32000012, 3200001
 
 rankingsC = []
 
-
 class leaderboards(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
@@ -106,18 +105,6 @@ class leaderboards(commands.Cog):
         rankingsC = rr
         print("lb rank done")
 
-    @commands.command(name="lowest")
-    async def lowest(self, ctx):
-        lowest = 200
-        country_ = None
-        for location in locations:
-            country = await coc_client.get_location_clans(location_id=location)
-            if len(country) < lowest:
-                lowest = len(country)
-                country_code = await coc_client.get_location(location_id=location)
-                country_ = country_code.name
-
-        await ctx.send(country_)
 
 
 

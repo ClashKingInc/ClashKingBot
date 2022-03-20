@@ -73,23 +73,7 @@ async def _reload(ctx, *, module : str):
         await ctx.send("You aren't magic. <:PS_Noob:783126177970782228>")
 
 
-@bot.event
-async def on_guild_join(guild):
-    results = await server.find_one({"server": guild.id})
-    if results is  None:
-        await server.insert_one({
-            "server": guild.id,
-            "prefix" : ".",
-            "banlist" : None,
-            "greeting" : None,
-            "cwlcount" : None,
-            "topboardchannel" : None,
-            "tophour": None,
-            "lbboardChannel": None,
-            "lbhour": None
-        })
-    channel = bot.get_channel(937519135607373874)
-    await channel.send(f"Just joined {guild.name}")
+
 
 @bot.event
 async def on_command(ctx):
@@ -105,6 +89,8 @@ async def on_command(ctx):
 def check_commands():
     async def predicate(ctx):
         member = ctx.author
+        if member.id == 821610755718774814:
+            return True
         commandd = ctx.command.qualified_name
         print(commandd)
         guild = ctx.guild.id
@@ -130,6 +116,7 @@ def check_commands():
 
 @bot.event
 async def on_message(message):
+
     prefixes = await get_prefix(bot, message)
     has_prefix = False
     curr_prefix = ""
@@ -198,7 +185,8 @@ initial_extensions = (
     "War.war",
     "War.war_ping",
     "clansettings",
-    "donations"
+    "donations",
+    "loc"
 )
 
 for extension in initial_extensions:

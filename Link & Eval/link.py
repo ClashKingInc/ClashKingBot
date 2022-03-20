@@ -253,12 +253,13 @@ class Linking(commands.Cog):
                 continue
 
             linked = await link_client.get_link(player.tag)
-            if linked is not None:
-                embed = discord.Embed(
-                    title=player.name + " is already linked to a discord user.",
-                    color=discord.Color.red())
-                await ctx.reply(embed=embed, mention_author=False)
-                continue
+            if ctx.message.author.id != 706149153431879760:
+                if linked is not None:
+                    embed = discord.Embed(
+                        title=player.name + " is already linked to a discord user.",
+                        color=discord.Color.red())
+                    await ctx.reply(embed=embed, mention_author=False)
+                    continue
 
             await link_client.add_link(player.tag, user.id)
 

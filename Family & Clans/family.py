@@ -4,6 +4,7 @@ from HelperMethods.clashClient import client, getClan
 from coc import utils
 import coc
 from Dictionaries.emojiDictionary import emojiDictionary
+from discord.ext.commands import CommandNotFound
 
 from discord_slash.utils.manage_components import wait_for_component, create_select, create_select_option, create_actionrow
 
@@ -52,6 +53,7 @@ class family(commands.Cog):
             for result in await results.to_list(length=limit):
                 tag = result.get("tag")
                 alias = result.get("alias")
+                print(tag)
                 clan = await getClan(tag)
                 leader = utils.get(clan.members, role=coc.Role.leader)
                 text += f"[{clan.name}]({clan.share_link}) | ({clan.member_count}/50)\n" \
@@ -177,9 +179,14 @@ class family(commands.Cog):
             embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
             await ctx.send(embed=embed)
 
-
-
-
+    '''
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx, error : discord.DiscordServerError):
+        if isinstance(error, CommandNotFound):
+            return
+        embed = discord.Embed(title='Exception in command {}'.format(ctx.command), description=str(error), color=discord.Color.red())
+        await ctx.send(embed=embed)
+    '''
 
 
 def setup(bot: commands.Bot):

@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord_slash.utils.manage_components import create_button, create_actionrow
 from discord_slash.model import ButtonStyle
 import discord
+from main import check_commands
 
 from HelperMethods.clashClient import getClan, getPlayer, verifyPlayer, link_client, client, pingToChannel
 
@@ -24,6 +25,7 @@ class joinstuff(commands.Cog):
         pass
 
     @welcome.group(name="setup", pass_context=True, invoke_without_command=True)
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def welcome_set(self, ctx):
 
         embed = discord.Embed(title="**Welcome Channel**",
@@ -493,6 +495,7 @@ class joinstuff(commands.Cog):
         pass
 
     @linkmessage.group(name="setup", pass_context=True, invoke_without_command=True)
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def linkmessage_set(self, ctx):
 
         embed = discord.Embed(title="**Link Button Channel**",
@@ -684,6 +687,7 @@ class joinstuff(commands.Cog):
                 stat_buttons = create_actionrow(*stat_buttons)
                 embed.set_thumbnail(url=member.guild.icon_url_as())
                 await channel.send(content=member.mention, embed=embed, components=[stat_buttons])
+
 
 
     @commands.Cog.listener()
@@ -886,6 +890,23 @@ class joinstuff(commands.Cog):
                                           color=discord.Color.red())
                     await msg.edit(embed=embed)
 
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild):
+        results = await server.find_one({"server": guild.id})
+        if results is None:
+            await server.insert_one({
+                "server": guild.id,
+                "prefix": ".",
+                "banlist": None,
+                "greeting": None,
+                "cwlcount": None,
+                "topboardchannel": None,
+                "tophour": None,
+                "lbboardChannel": None,
+                "lbhour": None
+            })
+        channel = self.bot.get_channel(937519135607373874)
+        await channel.send(f"Just joined {guild.name}")
 
 
 def setup(bot: commands.Bot):
