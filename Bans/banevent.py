@@ -1,6 +1,6 @@
 import coc
 import disnake
-from utils.clashClient import client, coc_client, getPlayer
+from utils.clash import client, coc_client, getPlayer
 usafam = client.usafam
 server = usafam.server
 clans = usafam.clans

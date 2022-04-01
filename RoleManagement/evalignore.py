@@ -92,7 +92,7 @@ class evalignores(commands.Cog):
     async def evalignore_list(self, ctx):
         text = ""
         all = evalignore.find({"server" : ctx.guild.id})
-        limit = await evalignore.count_documents(filter={"server" : ctx.guild.id})
+        limit = await evalignore.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("role")
             text += f"<@&{r}>\n"

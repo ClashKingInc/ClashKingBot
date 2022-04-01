@@ -94,10 +94,11 @@ class generalroles(commands.Cog):
     @commands.check_any(commands.has_permissions(manage_roles=True), check_commands())
     async def linkaddroles_list(self, ctx):
         text = ""
-        all = generalrole.find()
+        all = generalrole.find({"server" : ctx.guild.id})
         limit = await generalrole.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("role")
+            print(r)
             text += f"<@&{r}>\n"
 
         if text == "":
