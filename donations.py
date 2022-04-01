@@ -1,17 +1,16 @@
 import coc
-import discord
-import discord_slash
-from HelperMethods.clashClient import client, coc_client, getPlayer
+import disnake
+import disnake_slash
+from utils.clashClient import client, coc_client
 
-from discord_slash.utils.manage_components import create_button, create_actionrow
-from discord_slash.model import ButtonStyle
+from disnake_slash.model import ButtonStyle
 
 usafam = client.usafam
 server = usafam.server
 clans = usafam.clans
 donations = usafam.donations
 
-from discord.ext import commands
+from disnake.ext import commands
 
 class WarEvents(commands.Cog):
 
@@ -91,7 +90,7 @@ class WarEvents(commands.Cog):
             text += f"\u200e`{place}` \u200e<:troop:861797310224400434> \u200e{do} - \u200e{rr[0]} | \u200e{rr[2]}\n"
             x += 1
 
-        embed = discord.Embed(title=f"**Top 50 Donators**",
+        embed = disnake.Embed(title=f"**Top 50 Donators**",
                               description=text)
         embed.set_thumbnail(url=ctx.guild.icon_url_as())
         await ctx.send(embed=embed)

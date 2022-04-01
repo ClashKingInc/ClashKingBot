@@ -1,10 +1,10 @@
 
-import discord
-from discord.ext import commands
-from HelperMethods.clashClient import client, getClan
+import disnake
+from disnake.ext import commands
+from utils.clashClient import client, getClan
 
-from discord_slash.utils.manage_components import create_button, wait_for_component, create_actionrow
-from discord_slash.model import ButtonStyle
+from disnake_slash.utils.manage_components import create_button, wait_for_component, create_actionrow
+from disnake_slash.model import ButtonStyle
 
 SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker", "Rocket Balloon", "Super Wizard", "Inferno Dragon",
                 "Super Minion", "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", "Super Dragon"]
@@ -53,9 +53,9 @@ class boost(commands.Cog):
                 return await ctx.reply("Not a valid clan tag.",
                                        mention_author=False)
 
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description="<a:loading:884400064313819146> Loading...",
-            color=discord.Color.green())
+            color=disnake.Color.green())
         msg = await ctx.reply(embed=embed, mention_author=False)
 
         master_text = [[], [], [], [], [], [], [], [],
@@ -83,9 +83,9 @@ class boost(commands.Cog):
             y += 1
             if text == []:
                 continue
-                embed = discord.Embed(title=f"Players with {SUPER_TROOPS[y]}",
+                embed = disnake.Embed(title=f"Players with {SUPER_TROOPS[y]}",
                                       description="None boosted",
-                                      color=discord.Color.green())
+                                      color=disnake.Color.green())
                 master_embed.append(embed)
             t = ""
             x = 0
@@ -93,16 +93,16 @@ class boost(commands.Cog):
                 t += blocks
                 x+=1
                 if x == 25:
-                    embed = discord.Embed(title=f"Players with {SUPER_TROOPS[y]}",
+                    embed = disnake.Embed(title=f"Players with {SUPER_TROOPS[y]}",
                                           description=t,
-                                          color=discord.Color.green())
+                                          color=disnake.Color.green())
                     master_embed.append(embed)
                     x=0
                     t=""
             if t!="":
-                embed = discord.Embed(title=f"Players with {SUPER_TROOPS[y]}",
+                embed = disnake.Embed(title=f"Players with {SUPER_TROOPS[y]}",
                                       description=t,
-                                      color=discord.Color.green())
+                                      color=disnake.Color.green())
                 master_embed.append(embed)
 
 
@@ -158,15 +158,15 @@ class boost(commands.Cog):
                         opt_text+= f"`{o}`, "
                 x+=1
                 opt_text += "\n"
-            embed = discord.Embed(title=f"Not a valid super troop alias.",
+            embed = disnake.Embed(title=f"Not a valid super troop alias.",
                                   description=opt_text,
-                                  color=discord.Color.red())
+                                  color=disnake.Color.red())
             return await ctx.reply(embed=embed,
                                    mention_author=False)
 
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description="<a:loading:884400064313819146> Loading...",
-            color=discord.Color.green())
+            color=disnake.Color.green())
         msg = await ctx.reply(embed=embed, mention_author=False)
 
         list_clans = []
@@ -215,9 +215,9 @@ class boost(commands.Cog):
 
 
         if len(master_text) == 0:
-            embed = discord.Embed(title=f"Players with {search}",
+            embed = disnake.Embed(title=f"Players with {search}",
                                   description="None boosted",
-                                  color=discord.Color.green())
+                                  color=disnake.Color.green())
             master_embed.append(embed)
 
         t = ""
@@ -226,16 +226,16 @@ class boost(commands.Cog):
             t += text
             x += 1
             if x == 25:
-                embed = discord.Embed(title=f"Players with {search}",
+                embed = disnake.Embed(title=f"Players with {search}",
                                       description=t,
-                                      color=discord.Color.green())
+                                      color=disnake.Color.green())
                 master_embed.append(embed)
                 x = 0
                 t = ""
         if t != "":
-            embed = discord.Embed(title=f"Players with {search}",
+            embed = disnake.Embed(title=f"Players with {search}",
                                   description=t,
-                                  color=discord.Color.green())
+                                  color=disnake.Color.green())
             master_embed.append(embed)
 
         current_page = 0

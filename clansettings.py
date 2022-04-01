@@ -2,7 +2,7 @@ from discord.ext import commands
 from discord_slash.utils.manage_components import create_button, create_actionrow, wait_for_component
 from discord_slash.model import ButtonStyle
 import discord
-from HelperMethods.clashClient import pingToChannel, client, pingToRole
+from utils.clashClient import pingToChannel, client, pingToRole
 from main import check_commands
 usafam = client.usafam
 clans = usafam.clans

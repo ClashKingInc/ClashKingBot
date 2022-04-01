@@ -10,7 +10,7 @@ DB_LOGIN = os.getenv("DB_LOGIN")
 LINK_API_USER = os.getenv("LINK_API_USER")
 LINK_API_PW = os.getenv("LINK_API_PW")
 
-from discord import utils
+from disnake import utils
 
 coc_client = coc.login(COC_EMAIL, COC_PASSWORD, client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 25)
 import certifi
@@ -18,13 +18,19 @@ ca = certifi.where()
 
 import motor.motor_asyncio
 client = motor.motor_asyncio.AsyncIOMotorClient(DB_LOGIN)
-
+import disnake
 #from coc_client import utils
 from coc.ext import discordlinks
 
 link_client = discordlinks.login(LINK_API_USER, LINK_API_PW)
 
-
+async def player_handle(ctx, tag):
+  try:
+    clashPlayer = await coc_client.get_player(tag)
+  except:
+    embed = disnake.Embed(description=f"{tag} is not a valid player tag.",
+                          color=disnake.Color.red())
+    return await ctx.send(embed=embed)
 
 async def getTags(ctx, ping):
   if (ping.startswith('<@') and ping.endswith('>')):

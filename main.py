@@ -1,11 +1,10 @@
 import os
 
-import discord
-from discord import Client
-from discord.ext import commands
-from discord_slash import SlashCommand
+import disnake
+from disnake import Client
+from disnake.ext import commands
 import traceback
-from HelperMethods.clashClient import client, pingToRole, coc_client
+from utils.clash import client, pingToRole, coc_client
 
 #db collections
 usafam = client.usafam
@@ -16,7 +15,7 @@ banlist = usafam.banlist
 
 TOKEN = os.getenv("TOKEN")
 discClient = Client()
-intents = discord.Intents().all()
+intents = disnake.Intents().all()
 
 async def get_prefix(bot, message):
     results = await server.find_one({"server": message.guild.id})
@@ -25,8 +24,8 @@ async def get_prefix(bot, message):
         return [prefix, "."]
     return prefix
 
-bot = commands.Bot(command_prefix=get_prefix, case_insensitive=True, help_command=None, intents=intents)
-slash = SlashCommand(bot, sync_commands=True)
+bot = commands.Bot(command_prefix=get_prefix, case_insensitive=True, help_command=None, intents=intents,
+    sync_commands_debug=True, sync_permissions=True, test_guilds=[767590042675314718, 810466565744230410])
 
 @bot.event
 async def on_ready():
@@ -72,7 +71,15 @@ async def _reload(ctx, *, module : str):
     else:
         await ctx.send("You aren't magic. <:PS_Noob:783126177970782228>")
 
-
+@bot.command(name='leave')
+@commands.is_owner()
+async def leaveg(ctx, *, guild_name):
+    guild = disnake.utils.get(bot.guilds, name=guild_name)  # Get the guild by name
+    if guild is None:
+        await ctx.send("No guild with that name found.")  # No guild found
+        return
+    await guild.leave()  # Guild found
+    await ctx.send(f"I left: {guild.name}!")
 
 
 @bot.event
@@ -81,10 +88,10 @@ async def on_command(ctx):
     server = ctx.guild.name
     user = ctx.author
     command = ctx.message.content
-    embed = discord.Embed(description=f"**{command}** \nused by {user.mention} [{user.name}] in {server} server",
-                           color=discord.Color.blue())
+    embed = disnake.Embed(description=f"**{command}** \nused by {user.mention} [{user.name}] in {server} server",
+                           color=disnake.Color.blue())
     embed.set_thumbnail(url=user.avatar_url)
-    await channel.send(embed=embed)
+    #await channel.send(embed=embed)
 
 def check_commands():
     async def predicate(ctx):

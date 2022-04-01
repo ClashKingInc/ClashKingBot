@@ -1,13 +1,13 @@
 import coc
-import discord
-from HelperMethods.clashClient import client, coc_client, getPlayer
+import disnake
+from utils.clashClient import client, coc_client, getPlayer
 usafam = client.usafam
 server = usafam.server
 clans = usafam.clans
 whitelist = usafam.whitelist
 banlist = usafam.banlist
 
-from discord.ext import commands
+from disnake.ext import commands
 
 class banev(commands.Cog):
 
@@ -50,9 +50,9 @@ class banev(commands.Cog):
 
                     player = await getPlayer(member.tag)
 
-                    embed = discord.Embed(
+                    embed = disnake.Embed(
                         description=f"[WARNING! BANNED PLAYER {member.name} JOINED]({player.share_link})",
-                        color=discord.Color.green())
+                        color=disnake.Color.green())
                     embed.add_field(name="Banned Player.", value=f"Player {member.name} [{member.tag}] has joined {clan.name} and is on the {server.name} BAN list!\n\n"
                                                                  f"Banned on: {date}\nReason: {notes}")
                     embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/843624785560993833/932701461614313562/2EdQ9Cx.png")

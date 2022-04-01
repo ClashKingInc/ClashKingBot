@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from HelperMethods.clashClient import client, getPlayer, getClan, getTags, coc_client
+from utils.clashClient import client, getPlayer, getClan, getTags, coc_client
 import asyncio
 
 from Dictionaries.emojiDictionary import emojiDictionary

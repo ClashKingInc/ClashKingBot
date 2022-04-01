@@ -1,5 +1,5 @@
 from discord.ext import commands
-from HelperMethods.clashClient import client, pingToRole
+from utils.clashClient import client, pingToRole
 import discord
 usafam = client.usafam
 linkrole = usafam.linkrole

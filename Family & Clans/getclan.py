@@ -1,7 +1,7 @@
-import discord
-from discord.ext import commands
-from HelperMethods.clashClient import client, getClan, link_client
-from discord_slash.utils.manage_components import create_select, create_select_option, create_actionrow, wait_for_component
+import disnake
+from disnake.ext import commands
+from utils.clashClient import client, getClan, link_client
+from disnake_slash.utils.manage_components import create_select, create_select_option, create_actionrow, wait_for_component
 from Dictionaries.emojiDictionary import emojiDictionary
 SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker", "Rocket Balloon", "Super Wizard", "Inferno Dragon",
                 "Super Minion", "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", "Super Dragon"]
@@ -44,9 +44,9 @@ class getClans(commands.Cog):
             return await ctx.reply("Not a valid clan tag.",
                             mention_author=False)
 
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description=f"<a:loading:884400064313819146> Fetching clan...",
-            color=discord.Color.green())
+            color=disnake.Color.green())
         msg = await ctx.reply(embed=embed, mention_author=False)
 
         leader = utils.get(clan.members, role=coc.Role.leader)
@@ -68,8 +68,11 @@ class getClans(commands.Cog):
         if str(clan.location) == "International":
             flag = "<a:earth:861321402909327370>"
         else:
-            flag = f":flag_{clan.location.country_code.lower()}:"
-        embed = discord.Embed(title=f"**{clan.name}**",description=f"Tag: [{clan.tag}]({clan.share_link})\n"
+            try:
+                flag = f":flag_{clan.location.country_code.lower()}:"
+            except:
+                flag = "🏳️"
+        embed = disnake.Embed(title=f"**{clan.name}**",description=f"Tag: [{clan.tag}]({clan.share_link})\n"
                               f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.versus_points}\n"
                               f"Required Trophies: <:trophy:825563829705637889> {clan.required_trophies}\n"
                               f"Location: {flag} {clan.location}\n\n"                              
@@ -80,7 +83,7 @@ class getClans(commands.Cog):
                               f"Wars Won: <:warwon:932212939899949176>{warwin}\nWars Lost: <:warlost:932212154164183081>{warloss}\n"
                               f"War Streak: <:warstreak:932212939983847464>{winstreak}\nWinratio: <:winrate:932212939908337705>{winrate}\n\n"
                               f"Description: {clan.description}",
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
 
         compo = await self.war_th_comps(clan)
         embed.add_field(name="**Townhall Composition:**", value=compo[0], inline=False)
@@ -91,27 +94,27 @@ class getClans(commands.Cog):
         disc = "<:discord:840749695466864650>"
         emoji = ''.join(filter(str.isdigit, disc))
         emoji = self.bot.get_emoji(int(emoji))
-        emoji = discord.PartialEmoji(name=emoji.name, id=emoji.id)
+        emoji = disnake.PartialEmoji(name=emoji.name, id=emoji.id)
 
         rx = "<:redtick:601900691312607242>"
         rx = ''.join(filter(str.isdigit, rx))
         rx = self.bot.get_emoji(int(rx))
-        rx = discord.PartialEmoji(name=rx.name, id=rx.id)
+        rx = disnake.PartialEmoji(name=rx.name, id=rx.id)
 
         trophy = "<:trophy:825563829705637889>"
         trophy = ''.join(filter(str.isdigit, trophy))
         trophy = self.bot.get_emoji(int(trophy))
-        trophy = discord.PartialEmoji(name=trophy.name, id=trophy.id)
+        trophy = disnake.PartialEmoji(name=trophy.name, id=trophy.id)
 
         clan_e = "<:clan_castle:855688168816377857>"
         clan_e = ''.join(filter(str.isdigit, clan_e))
         clan_e = self.bot.get_emoji(int(clan_e))
-        clan_e = discord.PartialEmoji(name=clan_e.name, id=clan_e.id)
+        clan_e = disnake.PartialEmoji(name=clan_e.name, id=clan_e.id)
 
         opt = "<:opt_in:944905885367537685>"
         opt = ''.join(filter(str.isdigit, opt))
         opt = self.bot.get_emoji(int(opt))
-        opt = discord.PartialEmoji(name=opt.name, id=opt.id)
+        opt = disnake.PartialEmoji(name=opt.name, id=opt.id)
 
         main = embed
         select = create_select(
@@ -234,7 +237,7 @@ class getClans(commands.Cog):
             member = ""
             if not notLinked:
                 y += 1
-                member = discord.utils.get(ctx.guild.members, id=link)
+                member = disnake.utils.get(ctx.guild.members, id=link)
                 member = str(member)
                 if member == "None":
                     member = ""
@@ -245,8 +248,8 @@ class getClans(commands.Cog):
 
         if stats == disc + "`Name           ` **Discord**\n":
             stats = "No players linked."
-        embed = discord.Embed(title=f"{clan.name} : {str(y)}/{str(clan.member_count)} linked", description=stats,
-                              color=discord.Color.green())
+        embed = disnake.Embed(title=f"{clan.name} : {str(y)}/{str(clan.member_count)} linked", description=stats,
+                              color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
         return embed
 
@@ -290,7 +293,7 @@ class getClans(commands.Cog):
         if stats == disc + "`Name           ` **Discord**\n":
             stats = "No players unlinked."
 
-        embed = discord.Embed(title=f"{clan.name} : {str(y)} unlinked", description=stats,
+        embed = disnake.Embed(title=f"{clan.name} : {str(y)} unlinked", description=stats,
                               color=discord.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
         return embed

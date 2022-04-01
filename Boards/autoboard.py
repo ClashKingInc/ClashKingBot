@@ -1,9 +1,9 @@
 
-from discord.ext import commands, tasks
-from HelperMethods.clashClient import client, pingToChannel, getClan, coc_client
+from disnake.ext import commands, tasks
+from utils.clashClient import client, pingToChannel, getClan, coc_client
 import coc
-from discord_slash.utils.manage_components import wait_for_component, create_select, create_select_option, create_actionrow
-import discord
+from disnake_slash.utils.manage_components import wait_for_component, create_select, create_select_option, create_actionrow
+import disnake
 import datetime as dt
 from main import check_commands
 
@@ -28,8 +28,8 @@ class autoB(commands.Cog):
     @commands.group(name="autoboard", pass_context=True, invoke_without_command=True)
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def setupboard(self, ctx):
-        embed = discord.Embed(title="**For what command would you like an autoboard?**",
-                               color=discord.Color.green())
+        embed = disnake.Embed(title="**For what command would you like an autoboard?**",
+                               color=disnake.Color.green())
 
         select1 = create_select(
             options=[
@@ -82,8 +82,8 @@ class autoB(commands.Cog):
             )
             action_row = create_actionrow(select1)
 
-            embed = discord.Embed(title="**For what country would you like the leaderboard autoboard?**",
-                                  color=discord.Color.green())
+            embed = disnake.Embed(title="**For what country would you like the leaderboard autoboard?**",
+                                  color=disnake.Color.green())
 
             await msg.edit(embed=embed, components=[action_row])
 
@@ -112,10 +112,10 @@ class autoB(commands.Cog):
             rank = rank.ljust(2)
             times+=(f"{rank}. <t:{t}:t>\n")
 
-        embed = discord.Embed(title="**Choose time for autoboard**",
+        embed = disnake.Embed(title="**Choose time for autoboard**",
                               description=f"What time should the autoboard post to a channel?\n"
                                           f"(Shows in local time)\n"
-                                          f"{times}", color=discord.Color.green())
+                                          f"{times}", color=disnake.Color.green())
         await msg.edit(embed=embed, components=[])
 
         time = None
@@ -131,16 +131,16 @@ class autoB(commands.Cog):
             # print(response)
 
             if response == "cancel":
-                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                embed = disnake.Embed(description="**Command Canceled Chief**", color=disnake.Color.red())
                 return await msg.edit(embed=embed)
 
             if response in valid_options:
                 time = real_times[int(response) - 1]
             else:
-                embed = discord.Embed(title=f"`{response}` Not a valid option",
+                embed = disnake.Embed(title=f"`{response}` Not a valid option",
                                       description=f"What time should the autoboard post to a channel?\n"
                                                   f"(Shows in local time)\n"
-                                                  f"{times}", color=discord.Color.red())
+                                                  f"{times}", color=disnake.Color.red())
                 await msg.edit(embed=embed)
 
         utc_time = dt.datetime.utcfromtimestamp(time)
@@ -368,7 +368,7 @@ class autoB(commands.Cog):
                             # print(ranking[x])
                             place = str(x + 1) + "."
                             place = place.ljust(3)
-                            rText += f"\u200e`{place}` \u200e<:a_cups:667119203744088094> \u200e{ranking[x][1]} - \u200e{ranking[x][0]} | \u200e{ranking[x][2]}\n"
+                            rText += f"\u200e`{place}` \u200e<:trophy:956417881778815016> \u200e{ranking[x][1]} - \u200e{ranking[x][0]} | \u200e{ranking[x][2]}\n"
 
                         embed = discord.Embed(title=f"**Top {limit} {g.name} players**",
                                               description=rText)

@@ -1,9 +1,9 @@
-from discord.ext import commands
+from disnake.ext import commands
 import discord
 from Dictionaries.emojiDictionary import emojiDictionary
 from Dictionaries.thPicDictionary import thDictionary
 from HelperMethods.troop_methods import profileSuperTroops, leagueAndTrophies
-from HelperMethods.clashClient import getPlayer, link_client, pingToMember, client
+from utils.clashClient import getPlayer, link_client, pingToMember, client
 
 usafam = client.usafam
 server = usafam.server
@@ -78,7 +78,8 @@ class profileStats(commands.Cog):
                                                         f"Clan: {clan} {role}\n"
                                                         f"[Clash Of Stats Profile](https://www.clashofstats.com/players/{tag})"
                                   , color=discord.Color.green())
-            embed.set_thumbnail(url=thDictionary(player.town_hall))
+            if player.town_hall >= 4:
+                embed.set_thumbnail(url=thDictionary(player.town_hall))
         else:
             embed = discord.Embed(title=f'{emoji} **{name}** ',
                                   description=f"Not linked. Owner? Use `{prefix}link`" +
@@ -87,7 +88,9 @@ class profileStats(commands.Cog):
                                                         f"Clan: {clan} {role}\n"
                                                         f"[Clash Of Stats Profile](https://www.clashofstats.com/players/{tag})"
                                   , color=discord.Color.green())
-            embed.set_thumbnail(url=thDictionary(player.town_hall))
+            if player.town_hall >= 4:
+                embed.set_thumbnail(url=thDictionary(player.town_hall))
+
 
 
 

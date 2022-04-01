@@ -1,12 +1,10 @@
 
-from discord.ext import commands
-from HelperMethods.clashClient import getPlayer, client, pingToChannel
-import discord
-
+from disnake.ext import commands
+from utils.clash import getPlayer, client, pingToChannel, player_handle
+import disnake
+from utils.components import create_components
 from datetime import datetime
 
-from discord_slash.utils.manage_components import create_button, wait_for_component, create_actionrow
-from discord_slash.model import ButtonStyle
 
 from main import check_commands
 
@@ -22,96 +20,113 @@ class banlists(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.group(name='banlist', pass_context=True, invoke_without_command=True)
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def banlisted(self, ctx):
+    @commands.slash_command(name="ban", description="stuff")
+    async def ban(self, ctx):
+        pass
 
-        embed = discord.Embed(
-            description="<a:loading:884400064313819146> Fetching banned players.",
-            color=discord.Color.green())
-        msg = await ctx.reply(embed=embed, mention_author=False)
+    @ban.sub_command(name='list', description="This server's list of banned players")
+    async def ban_list(self, ctx: disnake.ApplicationCommandInteraction):
+
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
+        await ctx.response.defer()
 
         embeds = await self.create_embeds(ctx)
         if embeds == []:
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 description="No banned players on this server.",
-                color=discord.Color.green())
-            return await msg.edit(embed=embed, mention_author=False)
+                color=disnake.Color.green())
+            return await ctx.edit_original_message(embed=embed)
 
 
         current_page = 0
-        limit = len(embeds)
-        await msg.edit(embed=embeds[0], components=self.create_components(current_page, limit),
-                       mention_author=False)
+        await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
 
         while True:
             try:
-                res = await wait_for_component(self.bot, components=self.create_components(current_page, limit),
-                                               messages=msg, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
             except:
                 await msg.edit(components=[])
                 break
 
-            if res.author_id != ctx.author.id:
-                await res.send(content="You must run the command to interact with components.", hidden=True)
-                continue
-
-            await res.edit_origin()
-
-            # print(res.custom_id)
-            if res.custom_id == "Previous":
+            if res.data.custom_id == "Previous":
                 current_page -= 1
-                await msg.edit(embed=embeds[current_page],
-                               components=self.create_components(current_page, limit))
+                await res.response.edit_message(embed=embeds[current_page],
+                               components=create_components(current_page, embeds, True))
 
-            elif res.custom_id == "Next":
+            elif res.data.custom_id == "Next":
                 current_page += 1
-                await msg.edit(embed=embeds[current_page],
-                               components=self.create_components(current_page, limit))
+                await res.response.edit_message(embed=embeds[current_page],
+                               components=create_components(current_page, embeds, True))
 
-            elif res.custom_id == "Print":
+            elif res.data.custom_id == "Print":
                 await msg.delete()
                 for embed in embeds:
                     await ctx.send(embed=embed)
 
 
+    @ban.sub_command(name='add', description="Add player to server ban list")
+    async def ban_add(self, ctx: disnake.ApplicationCommandInteraction, tag: str, reason :str= "None"):
+        """
+            Parameters
+            ----------
+            tag: player_tag to ban
+            reason: reason for ban
+        """
 
-
-    @banlisted.group(name= "add", pass_context=True, invoke_without_command=True)
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def banlist_add(self, ctx, tag, *, notes="None"):
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
 
         player = await getPlayer(tag)
-
         if player is None:
-            embed = discord.Embed(description=f"{tag} is not a valid player tag.",
-                                  color=discord.Color.red())
-            return await ctx.send(embed=embed)
+            return await player_handle(ctx, tag)
+
 
         results = await banlist.find_one({"$and": [
             {"VillageTag": player.tag},
             {"server": ctx.guild.id}
         ]})
 
-        if results is not None:
-            embed = discord.Embed(description=f"{player.name} is already banned on this server.",
-                                  color=discord.Color.red())
+        if results is not None and reason == "None":
+            embed = disnake.Embed(description=f"{player.name} is already banned on this server.\nProvide `reason` to update ban notes.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+        elif results is not None and reason != "None":
+            await banlist.update_one({"$and": [
+                {"VillageTag": player.tag},
+                {"server": ctx.guild.id}
+            ]}, {'$set': {"Notes": reason}})
+            embed = disnake.Embed(
+                description=f"[{player.name}]({player.share_link}) ban reason updated by {ctx.author.mention}.\n"
+                            f"Notes: {reason}",
+                color=disnake.Color.green())
             return await ctx.send(embed=embed)
 
-        now = datetime.now()
-        # dd/mm/YY H:M:S
-        dt_string = now.strftime("%Y-%m-%d %H:%M:%S")
 
+        now = datetime.now()
+        dt_string = now.strftime("%Y-%m-%d %H:%M:%S")
 
         await banlist.insert_one({
             "VillageTag": player.tag,
             "DateCreated": dt_string,
-            "Notes": notes,
+            "Notes": reason,
             "server": ctx.guild.id
         })
-        embed2 = discord.Embed(description=f"[{player.name}]({player.share_link}) added to the banlist by {ctx.message.author.mention}.\n"
-                                          f"Notes: {notes}",
-                              color=discord.Color.green())
+        embed2 = disnake.Embed(description=f"[{player.name}]({player.share_link}) added to the banlist by {ctx.author.mention}.\n"
+                                          f"Notes: {reason}",
+                               color=disnake.Color.green())
         await ctx.send(embed=embed2)
 
         results = await server.find_one({"server": ctx.guild.id})
@@ -131,23 +146,31 @@ class banlists(commands.Cog):
             await channel.send(embed=embed2)
 
 
-    @banlisted.group(name="remove", pass_context=True, invoke_without_command=True)
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def banlist_remove(self, ctx, tag):
-        player = await getPlayer(tag)
+    @ban.sub_command(name='remove', description="Remove player from server ban list")
+    async def ban_remove(self, ctx: disnake.ApplicationCommandInteraction, tag: str):
+        """
+            Parameters
+            ----------
+            tag: player_tag to unban
+        """
 
-        if player is None:
-            embed = discord.Embed(description=f"{tag} is not a valid player tag.",
-                                  color=discord.Color.red())
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
             return await ctx.send(embed=embed)
+
+        player = await getPlayer(tag)
+        if player is None:
+            return await player_handle(ctx, tag)
 
         results = await banlist.find_one({"$and": [
             {"VillageTag": player.tag},
             {"server": ctx.guild.id}
         ]})
         if results is None:
-            embed = discord.Embed(description=f"{player.name} is not banned on this server.",
-                                  color=discord.Color.red())
+            embed = disnake.Embed(description=f"{player.name} is not banned on this server.",
+                                  color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
         await banlist.find_one_and_delete({"$and": [
@@ -155,8 +178,8 @@ class banlists(commands.Cog):
             {"server": ctx.guild.id}
         ]})
 
-        embed2 = discord.Embed(description=f"[{player.name}]({player.share_link}) removed from the banlist by {ctx.message.author.mention}.",
-                              color=discord.Color.green())
+        embed2 = disnake.Embed(description=f"[{player.name}]({player.share_link}) removed from the banlist by {ctx.author.mention}.",
+                              color=disnake.Color.green())
         await ctx.send(embed=embed2)
 
         results = await server.find_one({"server": ctx.guild.id})
@@ -169,6 +192,7 @@ class banlists(commands.Cog):
             for embed in embeds:
                 await channel.send(embed=embed)
             await channel.send(embed=embed2)
+
 
     async def create_embeds(self, ctx):
         text = []
@@ -212,31 +236,14 @@ class banlists(commands.Cog):
 
         embeds = []
         for t in text:
-            embed = discord.Embed(title=f"{ctx.guild.name} Ban List",
+            embed = disnake.Embed(title=f"{ctx.guild.name} Ban List",
                                   description=t,
-                                  color=discord.Color.green())
-            embed.set_thumbnail(url=ctx.guild.icon_url_as())
+                                  color=disnake.Color.green())
+            if ctx.guild.icon is not None:
+                embed.set_thumbnail(url=ctx.guild.icon.url)
             embeds.append(embed)
 
         return embeds
-
-    def create_components(self, current_page, length):
-        if length == 1:
-            return []
-
-        page_buttons = [create_button(label="", emoji="◀️", style=ButtonStyle.blue, disabled=(current_page == 0),
-                                      custom_id="Previous"),
-                        create_button(label=f"Page {current_page + 1}/{length}", style=ButtonStyle.grey,
-                                      disabled=True),
-                        create_button(label="", emoji="▶️", style=ButtonStyle.blue,
-                                      disabled=(current_page == length - 1), custom_id="Next"),
-                        create_button(label="", emoji="🖨️", style=ButtonStyle.grey,
-                                       custom_id="Print")
-                        ]
-        page_buttons = create_actionrow(*page_buttons)
-
-        return [page_buttons]
-
 
 
 def setup(bot: commands.Bot):

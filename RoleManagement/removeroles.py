@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from HelperMethods.clashClient import client, pingToRole
+from utils.clashClient import client, pingToRole
 
 from main import check_commands
 

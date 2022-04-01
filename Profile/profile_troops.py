@@ -1,7 +1,7 @@
-from discord.ext import commands
-import discord
+from disnake.ext import commands
+import disnake
 from HelperMethods.troop_methods import heros, heroPets, troops, deTroops, siegeMachines, spells
-from HelperMethods.clashClient import getPlayer
+from utils.clashClient import getPlayer
 
 
 
@@ -19,9 +19,9 @@ class profileTroops(commands.Cog):
         siege = siegeMachines(player)
         spell = spells(player)
 
-        embed = discord.Embed(title="You are looking at " + player.name,
+        embed = disnake.Embed(title="You are looking at " + player.name,
                                description="Troop, hero, & spell levels for this account.",
-                               color=discord.Color.green())
+                               color=disnake.Color.green())
         embed.add_field(name=f'__**{player.name}** (Th{player.town_hall})__ {player.trophies}', value="Profile: " + f'[{player.tag}]({player.share_link})',
                          inline=False)
 

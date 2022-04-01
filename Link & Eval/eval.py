@@ -1,9 +1,9 @@
 
-from discord.ext import commands # Again, we need this imported
-import discord
-from HelperMethods.clashClient import getClan, getPlayer, client, pingToMember, pingToRole, getTags, link_client
-from discord_slash.utils.manage_components import create_button, wait_for_component, create_actionrow
-from discord_slash.model import ButtonStyle
+from disnake.ext import commands # Again, we need this imported
+import disnake
+from utils.clashClient import getClan, getPlayer, client, pingToMember, pingToRole, getTags, link_client
+from disnake_slash.utils.manage_components import create_button, wait_for_component, create_actionrow
+from disnake_slash.model import ButtonStyle
 
 from main import check_commands
 
@@ -43,10 +43,10 @@ class eval(commands.Cog):
                 return await self.eval_role(ctx, type, test)
         else:
              changes = await self.eval_member(ctx, type, test)
-             embed = discord.Embed(description=f"Eval Complete for {type.mention}\n"
+             embed = disnake.Embed(description=f"Eval Complete for {type.mention}\n"
                                               f"Added: {changes[0]}\n"
                                               f"Removed: {changes[1]}",
-                                  color=discord.Color.green())
+                                  color=disnake.Color.green())
              await ctx.send(embed=embed)
 
     async def eval_member(self, ctx, member, test):
@@ -212,16 +212,16 @@ class eval(commands.Cog):
 
 
     async def eval_role(self, ctx, role, test):
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description="<a:loading:884400064313819146> Evaluating...",
-            color=discord.Color.green())
+            color=disnake.Color.green())
         msg = await ctx.reply(embed=embed, mention_author=False)
         members = role.members
         clan = await clans.find_one({"generalRole": role.id})
         if clan is not None:
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 description="<a:loading:884400064313819146> Evaluating clan members...",
-                color=discord.Color.green())
+                color=disnake.Color.green())
             await msg.edit(embed=embed)
             clanTag = clan.get("tag")
             clan = await getClan(clanTag)

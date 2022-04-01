@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from HelperMethods.clashClient import client, pingToRole
+from utils.clashClient import client, pingToRole
 
 usafam = client.usafam
 whitelist = usafam.whitelist

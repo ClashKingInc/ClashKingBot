@@ -1,6 +1,6 @@
-from discord.ext import commands
-import discord
-from HelperMethods.clashClient import getPlayer, link_client, pingToMember, getClan
+from disnake.ext import commands
+import disnake
+from utils.clashClient import getPlayer, link_client, pingToMember, getClan
 
 
 
@@ -58,9 +58,9 @@ class profileHistory(commands.Cog):
             except:
                 pass
 
-        embed = discord.Embed(title=f"{player.name} History",
+        embed = disnake.Embed(title=f"{player.name} History",
                               description=f"{num_clans}",
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
         embed.add_field(name="**Top 5 Clans Player has stayed the most:**",
                         value=text, inline=False)
 

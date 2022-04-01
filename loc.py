@@ -1,5 +1,5 @@
 from discord.ext import commands, tasks
-from HelperMethods.clashClient import coc_client
+from utils.clashClient import coc_client
 import aiohttp
 from discord import Webhook, AsyncWebhookAdapter
 import motor.motor_asyncio
@@ -84,11 +84,21 @@ class loc(commands.Cog):
         plt.close("all")
         await ctx.send(embed=embed)
 
-    @commands.command(name="test")
+    @commands.command(name="legendfix")
+    @commands.is_owner()
     async def test(self, ctx):
-        start = utils.get_season_start().replace(tzinfo=utc).date()
-        print(start.month)
-        print(start.year)
+        tracked = ongoing_stats.find()
+        # await ongoing_stats.create_index([("tag", 1)], unique = True)
+
+        limit = await ongoing_stats.count_documents(filter={})
+        # print(f"Loop 1 size {limit}")
+        for document in await tracked.to_list(length=limit):
+            tag = document.get("tag")
+            await ongoing_stats.update_one({'tag': f"{tag}"},
+                                           {'$set': {'today_defenses': []}})
+
+        await ctx.send("Today's defenses removed.")
+
 
 
 

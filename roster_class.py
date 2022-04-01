@@ -1,6 +1,6 @@
-import discord
-from HelperMethods.clashClient import client, getClan, getPlayer, coc_client
-from discord.ext import commands
+import disnake
+from utils.clashClient import client, getClan, getPlayer, coc_client
+from disnake.ext import commands
 
 usafam = client.usafam
 rosters = usafam.rosters
@@ -17,9 +17,9 @@ class Roster(commands.Cog):
     async def get_members(self, ctx):
         executor = ctx.message.author
 
-        embed = discord.Embed(title="Hello " + executor.display_name + "!",
+        embed = disnake.Embed(title="Hello " + executor.display_name + "!",
                               description="First: What is the tag of the clan to link to this roster?",
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
         embed.set_footer(text="Type `cancel` at any point to stop.")
         msg = await ctx.send(embed=embed)
         self.msg = msg
@@ -34,14 +34,14 @@ class Roster(commands.Cog):
             response = r.content
             await r.delete()
             if response.lower() == "cancel":
-                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                embed = disnake.Embed(description="**Command Canceled Chief**", color=disnake.Color.red())
                 await msg.edit(embed=embed)
                 return None
 
             clan = await getClan(response)
             if clan is None:
-                embed = discord.Embed(title=f"Sorry {response} is an invalid clan tag. Please try again.",
-                                      description=" What is the tag of the clan to link to this roster?", color=discord.Color.red())
+                embed = disnake.Embed(title=f"Sorry {response} is an invalid clan tag. Please try again.",
+                                      description=" What is the tag of the clan to link to this roster?", color=disnake.Color.red())
                 await msg.edit(embed=embed)
                 embed.set_footer(text="Type `cancel` at any point to stop.")
                 continue
@@ -54,9 +54,9 @@ class Roster(commands.Cog):
 
     async def get_alias(self, ctx):
         executor = ctx.message.author
-        embed = discord.Embed(title="**Roster Alias**",
+        embed = disnake.Embed(title="**Roster Alias**",
                               description=f"What is the alias/name for this roster?\n"
-                              , color=discord.Color.green())
+                              , color=disnake.Color.green())
         await self.msg.edit(embed=embed)
         alias = None
         while alias == None:
@@ -76,15 +76,15 @@ class Roster(commands.Cog):
             ]})
 
             if results != None:
-                embed = discord.Embed(
+                embed = disnake.Embed(
                     title=f"Sorry {response} is already an alias for a roster on this server. Please try again.",
-                    description="What is the alias for this roster?", color=discord.Color.red())
+                    description="What is the alias for this roster?", color=disnake.Color.red())
                 embed.set_footer(text="Type `cancel` at any point to stop.")
                 await self.msg.edit(embed=embed)
                 continue
 
             if response == "cancel":
-                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                embed = disnake.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
                 return await self.msg.edit(embed=embed)
 
             alias = response

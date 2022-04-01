@@ -1,10 +1,10 @@
 import coc
-import discord
-from discord.ext import commands
-from HelperMethods.clashClient import client, getClan, coc_client
+import disnake
+from disnake.ext import commands
+from utils.clashClient import client, getClan, coc_client
 from datetime import datetime
 
-from discord_slash.utils.manage_components import wait_for_component, create_select, create_select_option, create_actionrow
+from disnake_slash.utils.manage_components import wait_for_component, create_select, create_select_option, create_actionrow
 
 import aiohttp
 
@@ -46,8 +46,8 @@ class Cwl(commands.Cog):
 
         clans_list = sorted(cwl_list, key=lambda l: l[0], reverse=False)
 
-        main_embed = discord.Embed(title=f"__**{ctx.guild.name} CWL Leagues**__",
-                                     color=discord.Color.green())
+        main_embed = disnake.Embed(title=f"__**{ctx.guild.name} CWL Leagues**__",
+                                     color=disnake.Color.green())
         main_embed.set_thumbnail(url=ctx.guild.icon_url_as())
 
         print(clans_list)
@@ -65,8 +65,8 @@ class Cwl(commands.Cog):
                     leagues_present.append(league)
                     league_emoji = self.leagueAndTrophies(league)
                     main_embed.add_field(name=f"**{league}**", value=text, inline=False)
-                    embed = discord.Embed(title=f"__**{ctx.guild.name} {league} Clans**__", description=text,
-                                               color=discord.Color.green())
+                    embed = disnake.Embed(title=f"__**{ctx.guild.name} {league} Clans**__", description=text,
+                                               color=disnake.Color.green())
                     embed.set_thumbnail(url=ctx.guild.icon_url_as())
                     embeds.append(embed)
 

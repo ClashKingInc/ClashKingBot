@@ -1,7 +1,7 @@
-from discord.ext import commands
-from discord_slash.utils.manage_components import create_button, create_actionrow, wait_for_component
-from discord_slash.model import ButtonStyle
-import discord
+from disnake.ext import commands
+from disnake_slash.utils.manage_components import create_button, create_actionrow, wait_for_component
+from disnake_slash.model import ButtonStyle
+import disnake
 
 
 class pagination(commands.Cog):
@@ -54,8 +54,8 @@ class pagination(commands.Cog):
                                    components=self.create_components(results, current_page))
                 except:
                     if profile_pages[current_stat] == "History":
-                        embed = discord.Embed(description="This player has made their clash of stats history private.",
-                                              color=discord.Color.green())
+                        embed = disnake.Embed(description="This player has made their clash of stats history private.",
+                                              color=disnake.Color.green())
                         await msg.edit(embed=embed,
                                        components=self.create_components(results, current_page))
 

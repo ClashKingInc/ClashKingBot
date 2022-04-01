@@ -1,13 +1,13 @@
-from discord.ext import commands
-import discord
+from disnake.ext import commands
+import disnake
 
 import coc
 import math
 
-from discord_slash.utils.manage_components import create_button, wait_for_component, create_select, create_select_option, create_actionrow
-from discord_slash.model import ButtonStyle
+from disnake_slash.utils.manage_components import create_button, wait_for_component, create_select, create_select_option, create_actionrow
+from disnake_slash.model import ButtonStyle
 
-from HelperMethods.clashClient import client, getClan, link_client, pingToMember, getPlayer, coc_client
+from utils.clashClient import client, getClan, link_client, pingToMember, getPlayer, coc_client
 usafam = client.usafam
 clans = usafam.clans
 
@@ -82,10 +82,10 @@ class top(commands.Cog):
                 #print(ranking[x])
                 place = str(x+1) + "."
                 place = place.ljust(3)
-                rText+= f"\u200e`{place}` \u200e<:a_cups:667119203744088094> \u200e{ranking[x][1]} - \u200e{ranking[x][0]} | \u200e{ranking[x][2]}\n"
+                rText+= f"\u200e`{place}` \u200e<:trophy:956417881778815016> \u200e{ranking[x][1]} - \u200e{ranking[x][0]} | \u200e{ranking[x][2]}\n"
 
 
-            embed = discord.Embed(title=f"**Top {limit} {ctx.guild} players**",
+            embed = disnake.Embed(title=f"**Top {limit} {ctx.guild} players**",
                                   description=rText)
             embed.set_thumbnail(url=ctx.guild.icon_url_as())
             if limit == 50:
@@ -177,9 +177,9 @@ class top(commands.Cog):
             cum_score = "{:,}".format(cum_score)
             text+=f"Clan #{y+1}: 🏆{cum_score}\n"
 
-        embed = discord.Embed(title=f"Best Possible EOS for {ctx.guild.name}",
+        embed = disnake.Embed(title=f"Best Possible EOS for {ctx.guild.name}",
             description=text,
-            color=discord.Color.green())
+            color=disnake.Color.green())
         embed.set_thumbnail(url=ctx.guild.icon_url_as())
         embed.set_footer(text="All Clans have 50 Members")
         await ctx.reply(embed=embed, mention_author=False)
@@ -188,9 +188,9 @@ class top(commands.Cog):
     async def rank(self, ctx, *, search_query=None):
         if search_query == None:
             search_query = str(ctx.author.id)
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description="<a:loading:884400064313819146> Fetching Stats. | Can take 10-15 seconds.",
-            color=discord.Color.green())
+            color=disnake.Color.green())
         msg = await ctx.reply(embed=embed, mention_author=False)
 
         search = self.bot.get_cog("search")
@@ -264,14 +264,14 @@ class top(commands.Cog):
                 clan = "None"
 
             if member != None:
-                embed = discord.Embed(title=f"**Ranks for {member.display_name}**",
+                embed = disnake.Embed(title=f"**Ranks for {member.display_name}**",
                     description=f"Name: {player.name}\n" +
                                 f"Tag: {player.tag}\n" +
                                 f"Clan: {clan}\n" +
                                 f"Trophies: {player.trophies}\n"
                                 f"{ctx.guild.name} : {usaranking}\n"
                                 f"Rank: <a:earth:861321402909327370> {gspot} | {flag} {cou_spot}\n"+ country_name,
-                    color=discord.Color.green())
+                    color=disnake.Color.green())
                 embed.set_thumbnail(url=member.avatar_url)
             else:
                 embed = discord.Embed(title=f"**Ranks for {player.name}**",

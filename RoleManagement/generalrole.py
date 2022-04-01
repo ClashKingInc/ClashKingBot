@@ -1,6 +1,6 @@
-from discord.ext import commands
-from HelperMethods.clashClient import client, pingToRole
-import discord
+from disnake.ext import commands
+from utils.clash import client, pingToRole
+import disnake
 
 from main import check_commands
 
@@ -16,14 +16,14 @@ class generalroles(commands.Cog):
     @commands.group(name="generalrole", pass_context=True, invoke_without_command=True)
     async def generalrole_co(self, ctx):
         prefix = ctx.prefix
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description=f"**{prefix}generalrole add @RoleName**\n"
                         "Adds a role to add when a player is linked to a family clan.\n"
                         f"**{prefix}generalrole remove @RoleName**\n"
                         "Deletes a role from the list of roles to add when a player is linked to a family clan.\n"
                         f"**{prefix}generalrole list**\n"
                         "Displays the list of roles to add when a player is linked to a family clan.",
-            color=discord.Color.green())
+            color=disnake.Color.green())
         return await ctx.send(embed=embed)
 
     @generalrole_co.group(name="add", pass_context=True, invoke_without_command=True)
@@ -42,8 +42,8 @@ class generalroles(commands.Cog):
             {"server": ctx.guild.id}
         ]})
         if results is not None:
-            embed = discord.Embed(description=f"{role.mention} is already in the general-link roles list.",
-                                  color=discord.Color.red())
+            embed = disnake.Embed(description=f"{role.mention} is already in the general-link roles list.",
+                                  color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
         await generalrole.insert_one({
@@ -51,9 +51,9 @@ class generalroles(commands.Cog):
             "role": role.id
         })
 
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description=f"{role.mention} added to the general-link role list.",
-            color=discord.Color.green())
+            color=disnake.Color.green())
         return await ctx.send(embed=embed)
 
     @generalrole_co.group(name="remove", pass_context=True, invoke_without_command=True)
@@ -79,15 +79,15 @@ class generalroles(commands.Cog):
             {"server": ctx.guild.id}
         ]})
         if results is None:
-            embed = discord.Embed(description=f"<@&{ping}> is not currently in the general-link roles list.",
-                                  color=discord.Color.red())
+            embed = disnake.Embed(description=f"<@&{ping}> is not currently in the general-link roles list.",
+                                  color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
         await generalrole.find_one_and_delete({"role": ping})
 
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description=f"<@&{ping}> removed from the general-link roles list.",
-            color=discord.Color.green())
+            color=disnake.Color.green())
         return await ctx.send(embed=embed)
 
     @generalrole_co.group(name="list", pass_context=True, invoke_without_command=True)
@@ -103,9 +103,9 @@ class generalroles(commands.Cog):
         if text == "":
             text = "No General-Link roles."
 
-        embed = discord.Embed(title=f"General-Link Roles",
+        embed = disnake.Embed(title=f"General-Link Roles",
                               description=text,
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
 
         await ctx.reply(embed=embed, mention_author=False)
 

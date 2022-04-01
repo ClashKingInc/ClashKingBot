@@ -5,7 +5,7 @@ from discord_slash.model import ButtonStyle
 import discord
 from main import check_commands
 
-from HelperMethods.clashClient import getClan, getPlayer, verifyPlayer, link_client, client, pingToChannel
+from utils.clashClient import getClan, getPlayer, verifyPlayer, link_client, client, pingToChannel
 
 usafam = client.usafam
 clans = usafam.clans

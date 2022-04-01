@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord_slash.utils.manage_components import create_select, create_select_option, create_actionrow, wait_for_component
 from Dictionaries.emojiDictionary import emojiDictionary
 import discord
-from HelperMethods.clashClient import getClan, client, coc_client
+from utils.clashClient import getClan, client, coc_client
 usafam = client.usafam
 clans = usafam.clans
 

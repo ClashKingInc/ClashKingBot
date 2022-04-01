@@ -1,6 +1,6 @@
-from discord.ext import commands
-import discord
-from HelperMethods.clashClient import coc_client
+from disnake.ext import commands
+import disnake
+from utils.clashClient import coc_client
 from Dictionaries.emojiDictionary import emojiDictionary
 
 
@@ -14,9 +14,9 @@ class profiles(commands.Cog):
     async def profile(self, ctx, *, search_query = None):
         if search_query == None:
             search_query = str(ctx.author.id)
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description="<a:loading:884400064313819146> Fetching player profile.",
-            color=discord.Color.green())
+            color=disnake.Color.green())
         msg = await ctx.reply(embed=embed, mention_author=False)
 
         search = self.bot.get_cog("search")
@@ -36,9 +36,9 @@ class profiles(commands.Cog):
     async def list(self, ctx, *, search_query=None):
         if search_query == None:
             search_query = str(ctx.author.id)
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description="<a:loading:884400064313819146> Fetching player profile.",
-            color=discord.Color.green())
+            color=disnake.Color.green())
         msg = await ctx.reply(embed=embed, mention_author=False)
 
         search = self.bot.get_cog("search")
@@ -59,9 +59,9 @@ class profiles(commands.Cog):
             text += f"{emoji} {player.name}\n"
 
         average = round((sumth / total), 2)
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description=text,
-            color=discord.Color.green())
+            color=disnake.Color.green())
 
         embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
         await msg.edit(embed=embed)

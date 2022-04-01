@@ -1,9 +1,9 @@
-import discord
-from discord.ext import commands
-from HelperMethods.clashClient import client, getClan, pingToRole, link_client, pingToMember
+import disnake
+from disnake.ext import commands
+from utils.clashClient import client, getClan, pingToRole, link_client, pingToMember
 
-from discord_slash.utils.manage_components import create_button, wait_for_component, create_actionrow
-from discord_slash.model import ButtonStyle
+from disnake_slash.utils.manage_components import create_button, wait_for_component, create_actionrow
+from disnake_slash.model import ButtonStyle
 
 import emoji
 
@@ -22,7 +22,7 @@ class awards(commands.Cog):
     @commands.group(name="award", pass_context=True, invoke_without_command=True)
     async def award(self, ctx):
         prefix = ctx.prefix
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description=f"**{prefix}award list Emoji**\n"
                         "Lists users with a specific emoji in their nickname\n"
                         f"**{prefix}award give #CLANTAG Emoji <@GrantDiscordRole>**\n"

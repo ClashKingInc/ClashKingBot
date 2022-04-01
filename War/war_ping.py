@@ -1,9 +1,9 @@
 
-from discord.ext import commands, tasks
-from HelperMethods.clashClient import client, link_client, coc_client, pingToMember
+from disnake.ext import commands, tasks
+from utils.clashClient import client, link_client, coc_client, pingToMember
 import coc
-from discord_slash.utils.manage_components import wait_for_component, create_select, create_select_option, create_actionrow
-import discord
+from disnake_slash.utils.manage_components import wait_for_component, create_select, create_select_option, create_actionrow
+import disnake
 import datetime as dt
 from main import check_commands
 from datetime import timezone
@@ -50,9 +50,9 @@ class war_pings(commands.Cog):
         )
         dropdown = [create_actionrow(select)]
 
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description=f"Choose the hour reminders you would like for this clan(s).",
-            color=discord.Color.green())
+            color=disnake.Color.green())
 
         msg = await ctx.send(embed=embed, components=dropdown)
 
@@ -138,9 +138,9 @@ class war_pings(commands.Cog):
             else:
                 type = "removed from"
             values = ", ".join(values)
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 description=f"Warpings for {values} hours {type} {limit} clans",
-                color=discord.Color.green())
+                color=disnake.Color.green())
 
             return await msg.edit(embed=embed, components=[])
 
@@ -213,9 +213,9 @@ class war_pings(commands.Cog):
             else:
                 type = "removed from"
             values = ", ".join(values)
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 description=f"Warpings for {values} hours {type} {len(aliases)} clans",
-                color=discord.Color.green())
+                color=disnake.Color.green())
 
             return await msg.edit(embed=embed, components=[])
 
@@ -249,9 +249,9 @@ class war_pings(commands.Cog):
         if text == "":
             text= "No active warpings."
 
-        embed = discord.Embed(title=f"{ctx.guild.name} warpings\n",
+        embed = disnake.Embed(title=f"{ctx.guild.name} warpings\n",
             description=text,
-            color=discord.Color.green())
+            color=disnake.Color.green())
         await ctx.send(embed=embed)
 
 

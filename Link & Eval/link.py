@@ -1,7 +1,7 @@
 from main import check_commands
-from discord.ext import commands # Again, we need this imported
+from disnake.ext import commands # Again, we need this imported
 import discord
-from HelperMethods.clashClient import getClan, getPlayer, verifyPlayer, link_client, pingToMember, getTags, client
+from utils.clashClient import getClan, getPlayer, verifyPlayer, link_client, pingToMember, getTags, client
 
 link_open=[]
 

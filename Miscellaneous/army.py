@@ -1,4 +1,4 @@
-from discord.ext import commands
+from disnake.ext import commands
 import re
 from Dictionaries.army_ids import troop_ids, spell_ids, size
 from Dictionaries.emojiDictionary import emojiDictionary

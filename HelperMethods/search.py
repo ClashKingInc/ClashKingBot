@@ -1,6 +1,6 @@
 
-from discord.ext import commands
-from HelperMethods.clashClient import getPlayer, getTags, client, getClan
+from disnake.ext import commands
+from utils.clashClient import getPlayer, getTags, client, getClan
 
 usafam = client.usafam
 clans = usafam.clans

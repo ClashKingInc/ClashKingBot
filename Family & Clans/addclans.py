@@ -1,12 +1,12 @@
 
-import discord
+import disnake
 from discord.ext import commands
-from HelperMethods.clashClient import getClan, pingToRole, client, pingToChannel
+from utils.clashClient import getClan, pingToRole, client, pingToChannel
 from main import check_commands
 
 from discord_slash.utils.manage_components import wait_for_component, create_select, create_select_option, create_actionrow
 
-from HelperMethods.clashClient import coc_client
+from utils.clashClient import coc_client
 
 usafam = client.usafam
 clans = usafam.clans

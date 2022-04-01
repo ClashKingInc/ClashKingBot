@@ -1,9 +1,9 @@
-import discord
-from discord.ext import commands
-from HelperMethods.clashClient import getPlayer, client, getClan, pingToChannel, pingToRole
+import disnake
+from disnake.ext import commands
+from utils.clashClient import getPlayer, client, getClan, pingToChannel, pingToRole
 
-from discord_slash.utils.manage_components import create_button, wait_for_component, create_actionrow
-from discord_slash.model import ButtonStyle
+from disnake_slash.utils.manage_components import create_button, wait_for_component, create_actionrow
+from disnake_slash.model import ButtonStyle
 
 from main import check_commands
 import time
@@ -24,7 +24,7 @@ class misc(commands.Cog):
         self.up = time.time()
 
     @commands.Cog.listener()
-    async def on_message(self, message : discord.Message):
+    async def on_message(self, message : disnake.Message):
         if "https://link.clashofclans.com/en?action=OpenPlayerProfile&tag=" in message.content:
             m = message.content.replace("\n", " ")
             spots = m.split(" ")
@@ -56,7 +56,7 @@ class misc(commands.Cog):
             else:
                 pets = f"**Pets:**\n{pets}\n"
 
-            embed = discord.Embed(title=f"Invite {player.name} to your clan:",
+            embed = disnake.Embed(title=f"Invite {player.name} to your clan:",
                                   description=f"{player.name} - TH{player.town_hall}\n" +
                                               f"Tag: {player.tag}\n" +
                                               f"Clan: {clan}\n" +
@@ -64,7 +64,7 @@ class misc(commands.Cog):
                                               f"War Stars: {player.war_stars}\n"
                                               f"{hero}{pets}"
                                               f'[View Stats](https://www.clashofstats.com/players/{player.tag}) | [Open in Game]({player.share_link})',
-                                  color=discord.Color.green())
+                                  color=disnake.Color.green())
             embed.set_thumbnail(url=thDictionary(player.town_hall))
 
             channel = message.channel
@@ -98,7 +98,7 @@ class misc(commands.Cog):
         else:
             pets = f"**Pets:**\n{pets}\n"
 
-        embed = discord.Embed(title=f"Invite {player.name} to your clan:",
+        embed = disnake.Embed(title=f"Invite {player.name} to your clan:",
                               description=f"{player.name} - TH{player.town_hall}\n" +
                                           f"Tag: {player.tag}\n" +
                                           f"Clan: {clan}\n" +
@@ -106,7 +106,7 @@ class misc(commands.Cog):
                                           f"War Stars: {player.war_stars}\n"
                                           f"{hero}{pets}"
                                           f'[View Stats](https://www.clashofstats.com/players/{player.tag}) | [Open in Game]({player.share_link})',
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
         embed.set_thumbnail(url=thDictionary(player.town_hall))
 
         await ctx.send(embed=embed)
@@ -160,9 +160,9 @@ class misc(commands.Cog):
                 text+=f"{clan.name}-`{prefix}{alias}`\n"
 
 
-        embed = discord.Embed(title=f"{ctx.guild.name} Clan Aliases",
+        embed = disnake.Embed(title=f"{ctx.guild.name} Clan Aliases",
                               description=text,
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
         embed.set_thumbnail(url=ctx.guild.icon_url_as())
 
         await ctx.reply(embed=embed,
@@ -326,15 +326,7 @@ class misc(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(name='leave')
-    @commands.is_owner()
-    async def leaveg(self, ctx, *, guild_name):
-        guild = discord.utils.get(self.bot.guilds, name=guild_name)  # Get the guild by name
-        if guild is None:
-            await ctx.send("No guild with that name found.")  # No guild found
-            return
-        await guild.leave()  # Guild found
-        await ctx.send(f"I left: {guild.name}!")
+
 
     @commands.command(name="addrole")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())

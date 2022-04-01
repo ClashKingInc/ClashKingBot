@@ -1,6 +1,6 @@
-import discord
-from discord.ext import commands
-from HelperMethods.clashClient import client, pingToRole
+import disnake
+from disnake.ext import commands
+from utils.clash import client, pingToRole
 from main import check_commands
 
 usafam = client.usafam
@@ -15,14 +15,14 @@ class evalignores(commands.Cog):
     @commands.group(name="evalignore", pass_context=True, invoke_without_command=True)
     async def evalignore_co(self, ctx):
         prefix = ctx.prefix
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description=f"**{prefix}evalignore add @RoleName**\n"
                         "Adds a role to ignore when a user or role is evaluated.\n"
                         f"**{prefix}evalignore remove @RoleName**\n"
                         "Deletes a role to ignore when a user or role is evaluated.\n"
                         f"**{prefix}evalignore list**\n"
                         "Displays the list of roles to ignore when a user or role is evaluated.",
-            color=discord.Color.green())
+            color=disnake.Color.green())
         return await ctx.send(embed=embed)
 
     @evalignore_co.group(name= "add", pass_context=True, invoke_without_command=True)
@@ -40,8 +40,8 @@ class evalignores(commands.Cog):
             {"server": ctx.guild.id}
         ]})
         if results is not None:
-            embed = discord.Embed(description=f"{role.mention} role is already ignored during eval.",
-                                  color=discord.Color.red())
+            embed = disnake.Embed(description=f"{role.mention} role is already ignored during eval.",
+                                  color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
         await evalignore.insert_one({
@@ -49,9 +49,9 @@ class evalignores(commands.Cog):
             "role" : role.id
         })
 
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description=f"{role.mention} added as a role to ignore during evaluation.",
-            color=discord.Color.green())
+            color=disnake.Color.green())
         return await ctx.send(embed=embed)
 
     @evalignore_co.group(name="remove", pass_context=True, invoke_without_command=True)
@@ -76,15 +76,15 @@ class evalignores(commands.Cog):
             {"server": ctx.guild.id}
         ]})
         if results is None:
-            embed = discord.Embed(description=f"<@&{ping}> is not currently evalignored.",
-                                  color=discord.Color.red())
+            embed = disnake.Embed(description=f"<@&{ping}> is not currently evalignored.",
+                                  color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
         await evalignore.find_one_and_delete({"role" : ping})
 
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description=f"<@&{ping}> removed as a role to ignore during evaluation.",
-            color=discord.Color.green())
+            color=disnake.Color.green())
         return await ctx.send(embed=embed)
 
     @evalignore_co.group(name="list", pass_context=True, invoke_without_command=True)
@@ -100,9 +100,9 @@ class evalignores(commands.Cog):
         if text == "":
             text = "No evalignored roles."
 
-        embed = discord.Embed(title=f"Eval ignore roles",
+        embed = disnake.Embed(title=f"Eval ignore roles",
                               description=text,
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
 
         await ctx.reply(embed=embed, mention_author= False)
 

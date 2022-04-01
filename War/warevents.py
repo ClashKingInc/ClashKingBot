@@ -1,8 +1,5 @@
 import coc
-import discord
-from HelperMethods.clashClient import client, coc_client, getPlayer
-
-from datetime import datetime, timedelta
+from utils.clashClient import client, coc_client
 
 usafam = client.usafam
 server = usafam.server

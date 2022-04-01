@@ -1,7 +1,7 @@
 
-from discord.ext import commands
-import discord
-from discord_slash.utils.manage_components import create_select, create_select_option, create_actionrow, wait_for_component
+from disnake.ext import commands
+import disnake
+from disnake_slash.utils.manage_components import create_select, create_select_option, create_actionrow, wait_for_component
 
 import inspect
 
@@ -29,9 +29,9 @@ class help(commands.Cog):
         embeds = []
 
         prefix = ctx.prefix
-        embed = discord.Embed(title="Family & Clan Commands",
+        embed = disnake.Embed(title="Family & Clan Commands",
                               description="Family & Clan specific commands",
-                              color=discord.Color.blue())
+                              color=disnake.Color.blue())
 
         text = ""
         if ctx.guild.id == 328997757048324101:
@@ -76,9 +76,9 @@ class help(commands.Cog):
         embed.set_thumbnail(url=ctx.guild.icon_url_as())
         embeds.append(embed)
 
-        embed2 = discord.Embed(title="Player Commands",
+        embed2 = disnake.Embed(title="Player Commands",
                               description="Player related commands",
-                              color=discord.Color.blue())
+                              color=disnake.Color.blue())
 
         embed2.add_field(name=f"__**Player Commands**__",
                         value=f"**{prefix}rank @DiscordName**\n"
@@ -278,6 +278,7 @@ class help(commands.Cog):
                               description="Invite Link: [here](https://discord.com/api/oauth2/authorize?client_id=824653933347209227&permissions=8&scope=bot)",
                               color=discord.Color.blue())
         await ctx.send(embed=embed)
+
 
 
 
