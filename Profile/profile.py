@@ -2,7 +2,8 @@ from disnake.ext import commands
 import disnake
 from utils.clash import coc_client
 from Dictionaries.emojiDictionary import emojiDictionary
-
+from Profile.pagination import button_pagination
+from utils.search import search_results
 
 
 class profiles(commands.Cog):
@@ -12,7 +13,12 @@ class profiles(commands.Cog):
 
     @commands.slash_command(name="lookup", description="Lookup players or discord users")
     async def lookup(self, ctx: disnake.ApplicationCommandInteraction, tag: str=None, discord_user:disnake.Member=None):
-
+        """
+            Parameters
+            ----------
+            tag: (optional) tag to lookup
+            discord_user: (optional) discord user to lookup
+        """
         search_query = None
         if tag is None and discord_user is None:
             search_query = str(ctx.author.id)
@@ -22,16 +28,15 @@ class profiles(commands.Cog):
             search_query = str(discord_user.id)
 
         await ctx.response.defer()
-        search = self.bot.get_cog("search")
-        results = await search.search_results(ctx, search_query)
+        results = await search_results(ctx, search_query)
 
         if results == []:
             return await ctx.edit_original_message(content="No results were found.", embed=None)
 
-        pagination = self.bot.get_cog("pagination")
-        msg = ctx.original_message()
 
-        await pagination.button_pagination(ctx, msg, results)
+        msg = await ctx.original_message()
+
+        await button_pagination(self.bot, ctx, msg, results)
 
 
 

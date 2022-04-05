@@ -310,37 +310,7 @@ class misc(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(name='serverm')
-    @commands.is_owner()
-    async def serversmm(self, ctx, *, sname):
-        text = ""
-        guilds = self.bot.guilds
-        for guild in guilds:
-            name = guild.name
-            if name == sname:
-                for member in guild.members:
-                    text += member.name + "\n"
 
-        embed = discord.Embed(description=text,
-                              color=discord.Color.green())
-
-        await ctx.send(embed=embed)
-
-
-
-    @commands.command(name="addrole")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def addroleperms(self, ctx, role:discord.Role):
-        channel = ctx.message.channel
-        overwrite = discord.PermissionOverwrite()
-        overwrite.view_channel = True
-        overwrite.read_messages = True
-        overwrite.send_messages = True
-        await channel.set_permissions(role, overwrite=overwrite)
-        embed = discord.Embed(description=f"{role.mention} added to channel.",
-                              color=discord.Color.green())
-
-        await ctx.send(embed=embed)
 
 
     def create_components(self, current_page, length):

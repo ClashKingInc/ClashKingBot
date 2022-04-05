@@ -1,6 +1,6 @@
 from disnake.ext import commands, tasks
 
-from utils.clashClient import coc_client
+from utils.clash import coc_client
 
 locations = [32000007, 32000008, 32000009, 32000010, 32000011, 32000012, 32000013, 32000014, 32000015, 32000016,
              32000017,
@@ -50,15 +50,22 @@ locations = [32000007, 32000008, 32000009, 32000010, 32000011, 32000012, 3200001
              32000259, 32000260]
 
 rankingsC = []
+glob_dict = {}
+country_dict = {}
+
+clan_glob_dict = {}
+clan_country_dict = {}
 
 class leaderboards(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.feed_update.start()
+        self.clan_lb_update.start()
 
     def cog_unload(self):
         self.feed_update.cancel()
+        self.clan_lb_update.cancel()
 
     @tasks.loop(seconds=180)
     async def feed_update(self):
@@ -66,19 +73,27 @@ class leaderboards(commands.Cog):
         x = 1
         global rankingsC
         rr = []
+        newglob_dict = {}
+        newcountry_dict = {}
+
         for player in glob:
+
             rr.append(player.tag)
             rr.append("global")
             rr.append(x)
             rr.append("Global")
+            c = c2 = "No Clan"
             try:
                 rr.append(player.clan.tag)
                 rr.append(player.clan.name)
+                c = player.clan.tag
+                c2 = player.clan.name
             except:
                 rr.append("No Clan")
                 rr.append("No Clan")
             rr.append(player.trophies)
             rr.append(player.name)
+            newglob_dict[player.tag] = ["global", x, "Global", c, c2, player.trophies, player.name]
             x += 1
 
         for location in locations:
@@ -93,20 +108,58 @@ class leaderboards(commands.Cog):
                 rr.append(country_code)
                 rr.append(x)
                 rr.append(country_name)
+                c = c2 = "No Clan"
                 try:
                     rr.append(player.clan.tag)
                     rr.append(player.clan.name)
+                    c = player.clan.tag
+                    c2 = player.clan.name
                 except:
                     rr.append("No Clan")
                     rr.append("No Clan")
                 rr.append(player.trophies)
                 rr.append(player.name)
+                newcountry_dict[player.tag] = [country_code, x, country_name, c, c2, player.trophies, player.name]
                 x += 1
+
+        global glob_dict
+        global country_dict
+        glob_dict.clear()
+        country_dict.clear()
+        glob_dict = newglob_dict
+        country_dict = newcountry_dict
         rankingsC = rr
-        print("lb rank done")
+        print("done")
 
+    @tasks.loop(seconds=180)
+    async def clan_lb_update(self):
+        glob = await coc_client.get_location_clans()
+        x = 1
+        newglob_dict = {}
+        newcountry_dict = {}
 
+        for clan in glob:
+            newglob_dict[clan.tag] = [x, clan.name]
+            x += 1
 
+        for location in locations:
+            country = await coc_client.get_location_clans(location_id=location)
+            country_code = await coc_client.get_location(location_id=location)
+            country_name = country_code.name
+            country_code = country_code.country_code
+
+            x = 1
+            for clan in country:
+                newcountry_dict[clan.tag] = [x, clan.name, country_name, country_code]
+                x += 1
+
+        global clan_glob_dict
+        global clan_country_dict
+        clan_glob_dict.clear()
+        clan_country_dict.clear()
+        clan_glob_dict = newglob_dict
+        clan_country_dict = newcountry_dict
+        print("done2")
 
 def setup(bot: commands.Bot):
     bot.add_cog(leaderboards(bot))

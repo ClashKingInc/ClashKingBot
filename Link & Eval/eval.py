@@ -1,9 +1,7 @@
 
-from disnake.ext import commands # Again, we need this imported
+from disnake.ext import commands
 import disnake
-from utils.clashClient import getClan, getPlayer, client, pingToMember, pingToRole, getTags, link_client
-from disnake_slash.utils.manage_components import create_button, wait_for_component, create_actionrow
-from disnake_slash.model import ButtonStyle
+from utils.clash import getClan, getPlayer, client, pingToMember, pingToRole, getTags, link_client
 
 from main import check_commands
 
@@ -50,6 +48,7 @@ class eval(commands.Cog):
              await ctx.send(embed=embed)
 
     async def eval_member(self, ctx, member, test):
+
         roles_to_ignore = []
         all = evalignore.find()
         limit = await evalignore.count_documents(filter={"server": ctx.guild.id})

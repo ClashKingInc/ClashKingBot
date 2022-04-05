@@ -25,7 +25,7 @@ async def get_prefix(bot, message):
     return prefix
 
 bot = commands.Bot(command_prefix=get_prefix, case_insensitive=True, help_command=None, intents=intents,
-    sync_commands_debug=True, sync_permissions=True, test_guilds=[767590042675314718, 810466565744230410])
+    sync_commands_debug=True, sync_permissions=True, test_guilds=[923764211845312533, 548297912443207706, 810466565744230410, 767590042675314718, 869306654640984075, 505168702732369922, 659528917849341954])
 
 @bot.event
 async def on_ready():
@@ -80,6 +80,9 @@ async def leaveg(ctx, *, guild_name):
         return
     await guild.leave()  # Guild found
     await ctx.send(f"I left: {guild.name}!")
+
+
+
 
 
 @bot.event
@@ -154,7 +157,21 @@ async def on_message(message):
     await bot.process_commands(message)
 
 
+@bot.command(name='serverm')
+@commands.is_owner()
+async def serversmm(ctx):
+    text = ""
+    guilds = bot.guilds
+    for guild in guilds:
+        name = guild.name
+        text += f"{name} | {len(guild.members)}\n"
 
+    embed = disnake.Embed(title=f"{len(guilds)} servers",description=text,
+                          color=disnake.Color.green())
+
+    await ctx.send(embed=embed)
+
+'''
 initial_extensions = (
     "Bans.banevent",
     "Bans.banlist",
@@ -195,7 +212,22 @@ initial_extensions = (
     "donations",
     "loc"
 )
+'''
 
+initial_extensions = (
+    "Bans.banevent",
+    "Bans.banlist",
+    "Profile.profile",
+    "Boards.autoboard",
+    "Boards.leaderboards",
+    "Boards.top",
+    "Link & Eval.onjoin",
+    "Family & Clans.addclans",
+    "Family & Clans.family",
+    "Family & Clans.getclan",
+    "evalsetup"
+
+)
 for extension in initial_extensions:
     try:
         bot.load_extension(extension)

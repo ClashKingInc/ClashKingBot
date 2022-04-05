@@ -1,12 +1,12 @@
-import discord
-from discord.ext import commands
-from utils.clashClient import client, getPlayer, getClan, getTags, coc_client
+import disnake
+from disnake.ext import commands
+from utils.clash import client, getPlayer, getClan, getTags, coc_client
 import asyncio
 
 from Dictionaries.emojiDictionary import emojiDictionary
 
-from discord_slash.utils.manage_components import create_button, create_actionrow, wait_for_component, create_select_option, create_select
-from discord_slash.model import ButtonStyle
+from disnake_slash.utils.manage_components import create_button, create_actionrow, wait_for_component, create_select_option, create_select
+from disnake_slash.model import ButtonStyle
 
 from main import check_commands
 
@@ -27,8 +27,8 @@ class Roster_Commands(commands.Cog):
         roster = self.bot.get_cog("Roster")
         valid_alias = await roster.is_valid_alias(alias, ctx.guild.id)
         if not valid_alias:
-            embed = discord.Embed(description=f"A roster with that alias/name does not exist.\nUse `{ctx.prefix}roster list` to see server rosters & aliases.",
-                                  color=discord.Color.red())
+            embed = disnake.Embed(description=f"A roster with that alias/name does not exist.\nUse `{ctx.prefix}roster list` to see server rosters & aliases.",
+                                  color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
         embeds = await roster.create_roster_embeds(alias, ctx.guild.id)
@@ -55,10 +55,10 @@ class Roster_Commands(commands.Cog):
             "alias": alias
         })
 
-        embed = discord.Embed(title=f"Roster ({alias}) successfully added.",
+        embed = disnake.Embed(title=f"Roster ({alias}) successfully added.",
                               description=f"Alias: {alias}\n"
                                           f"Linked Clan: {member_list[1]}",
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
         embed.set_thumbnail(url=ctx.guild.icon_url_as())
         await roster.msg.edit(embed=embed)
 
@@ -74,17 +74,17 @@ class Roster_Commands(commands.Cog):
         roster = self.bot.get_cog("Roster")
         valid_alias = await roster.is_valid_alias(alias, ctx.guild.id)
         if not valid_alias:
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 description=f"A roster with that alias/name does not exist.\nUse `{ctx.prefix}roster list` to see server rosters & aliases.",
-                color=discord.Color.red())
+                color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
         text = await roster.create_member_list(alias, ctx.guild.id)
         clan = await roster.linked_clan(alias, ctx.guild.id)
 
-        embed = discord.Embed(title=f"{clan.name} Roster",
+        embed = disnake.Embed(title=f"{clan.name} Roster",
             description=text,
-            color=discord.Color.green())
+            color=disnake.Color.green())
 
         stat_buttons = [
             create_button(label="Add", emoji="➕", custom_id="Add", style=ButtonStyle.green),
@@ -132,9 +132,9 @@ class Roster_Commands(commands.Cog):
                         await roster.add_member(alias, ctx.guild.id, tag)
                         added += f"[{player.name}]({player.share_link}) | {player.tag}\n"
                         text = await roster.create_member_list(alias, ctx.guild.id)
-                        embed = discord.Embed(title=f"{clan.name} Roster",
+                        embed = disnake.Embed(title=f"{clan.name} Roster",
                                               description=text,
-                                              color=discord.Color.green())
+                                              color=disnake.Color.green())
 
                         embed.set_footer(text=f"Currently in {mode} mode.")
                         await msg.edit(embed=embed, components=[buttons])
@@ -154,7 +154,7 @@ class Roster_Commands(commands.Cog):
                             emoji = emoji[2]
                             emoji = emoji[0:len(emoji) - 1]
                             emoji = self.bot.get_emoji(int(emoji))
-                            emoji = discord.PartialEmoji(name=emoji.name, id=emoji.id)
+                            emoji = disnake.PartialEmoji(name=emoji.name, id=emoji.id)
                             options.append(create_select_option(f"{player.name}", value=f"{player.tag}", emoji=emoji))
 
                         select1 = create_select(
@@ -190,9 +190,9 @@ class Roster_Commands(commands.Cog):
                         player = await getPlayer(value)
                         added += f"[{player.name}]({player.share_link}) | {player.tag}\n"
                         text = await roster.create_member_list(alias, ctx.guild.id)
-                        embed = discord.Embed(title=f"{clan.name} Roster",
+                        embed = disnake.Embed(title=f"{clan.name} Roster",
                                               description=text,
-                                              color=discord.Color.green())
+                                              color=disnake.Color.green())
 
                         embed.set_footer(text=f"Currently in {mode} mode.")
                         await msg.edit(embed=embed, components=[buttons])
@@ -210,9 +210,9 @@ class Roster_Commands(commands.Cog):
                         player = await getPlayer(tag)
                         removed+= f"[{player.name}]({player.share_link}) | {player.tag}\n"
                         text = await roster.create_member_list(alias, ctx.guild.id)
-                        embed = discord.Embed(title=f"{clan.name} Roster",
+                        embed = disnake.Embed(title=f"{clan.name} Roster",
                                               description=text,
-                                              color=discord.Color.green())
+                                              color=disnake.Color.green())
 
                         embed.set_footer(text=f"Currently in {mode} mode.")
                         await msg.edit(embed=embed, components=[buttons])
@@ -226,9 +226,9 @@ class Roster_Commands(commands.Cog):
                 await button.edit_origin()
                 mode = button.custom_id
                 text = await roster.create_member_list(alias, ctx.guild.id)
-                embed = discord.Embed(title=f"{clan.name} Roster",
+                embed = disnake.Embed(title=f"{clan.name} Roster",
                                       description=text,
-                                      color=discord.Color.green())
+                                      color=disnake.Color.green())
 
                 embed.set_footer(text=f"Currently in {mode} mode.")
                 await msg.edit(embed=embed, components=[buttons])
@@ -238,9 +238,9 @@ class Roster_Commands(commands.Cog):
                         added = "None"
                     if removed == "":
                         removed = "None"
-                    embed2 = discord.Embed(title="Changes Made:",
+                    embed2 = disnake.Embed(title="Changes Made:",
                         description=f"Players added:\n{added}\nPlayers Removed:\n{removed}",
-                        color=discord.Color.green())
+                        color=disnake.Color.green())
                     await ctx.reply(embed=embed2, mention_author=False)
                     return await msg.edit(embed =embed,components=[])
 
@@ -249,9 +249,9 @@ class Roster_Commands(commands.Cog):
     async def roster_list(self, ctx):
         roster = self.bot.get_cog("Roster")
         text = await roster.create_alias_list(ctx.guild.id)
-        embed = discord.Embed(title=f"**{ctx.guild} CWL Rosters List:**",
+        embed = disnake.Embed(title=f"**{ctx.guild} CWL Rosters List:**",
                               description=text,
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
         embed.set_thumbnail(url=ctx.guild.icon_url_as())
         await ctx.send(embed=embed)
 
@@ -263,9 +263,9 @@ class Roster_Commands(commands.Cog):
         roster = self.bot.get_cog("Roster")
         valid_alias = await roster.is_valid_alias(alias, ctx.guild.id)
         if not valid_alias:
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 description=f"A roster with that alias/name does not exist.\nUse `{ctx.prefix}roster list` to see server rosters & aliases.",
-                color=discord.Color.red())
+                color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
         await rosters.find_one_and_delete({"$and": [
@@ -273,8 +273,8 @@ class Roster_Commands(commands.Cog):
             {"server": ctx.guild.id}
         ]})
 
-        embed = discord.Embed(description=f"{alias} Roster Removed",
-                              color=discord.Color.green())
+        embed = disnake.Embed(description=f"{alias} Roster Removed",
+                              color=disnake.Color.green())
         embed.set_thumbnail(url=ctx.guild.icon_url_as())
         await ctx.send(embed=embed)
 
@@ -302,9 +302,9 @@ class Roster_Commands(commands.Cog):
         roster = self.bot.get_cog("Roster")
         valid_alias = await roster.is_valid_alias(alias, ctx.guild.id)
         if not valid_alias:
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 description=f"A roster with that alias/name does not exist.\nUse `{ctx.prefix}roster list` to see server rosters & aliases.",
-                color=discord.Color.red())
+                color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
         members = await roster.fetch_members(alias, ctx.guild.id)
@@ -320,9 +320,9 @@ class Roster_Commands(commands.Cog):
                 not_present += f"{member.name}\n"
         if not_present == "":
             not_present = "None"
-        embed = discord.Embed(title=f"{clan.name} Roster/Clan Comparison",
+        embed = disnake.Embed(title=f"{clan.name} Roster/Clan Comparison",
             description=f"Missing Members:\n{not_present}",
-            color=discord.Color.green())
+            color=disnake.Color.green())
         return await ctx.send(embed=embed)
 
 

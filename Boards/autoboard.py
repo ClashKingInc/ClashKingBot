@@ -1,8 +1,7 @@
 
 from disnake.ext import commands, tasks
-from utils.clashClient import client, pingToChannel, getClan, coc_client
+from utils.clash import client, pingToChannel, getClan, coc_client
 import coc
-from disnake_slash.utils.manage_components import wait_for_component, create_select, create_select_option, create_actionrow
 import disnake
 import datetime as dt
 from main import check_commands
@@ -13,7 +12,7 @@ usafam = client.usafam
 clans = usafam.clans
 server = usafam.server
 
-start_time = 1643263200
+
 
 
 class autoB(commands.Cog):
@@ -25,40 +24,23 @@ class autoB(commands.Cog):
     def cog_unload(self):
         self.board_check.cancel()
 
-    @commands.group(name="autoboard", pass_context=True, invoke_without_command=True)
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def setupboard(self, ctx):
-        embed = disnake.Embed(title="**For what command would you like an autoboard?**",
-                               color=disnake.Color.green())
+    @commands.slash_command(name="autoboard")
+    async def autoboard(self, ctx):
+        pass
 
-        select1 = create_select(
-            options=[
-                create_select_option("Top", value=f"Top"),
-                create_select_option("Leaderboard", value=f"Leaderboard")
-            ],
-            placeholder="Choose your option",
-            min_values=1,  # the minimum number of options a user must select
-            max_values=1  # the maximum number of options a user can select
-        )
-        action_row = create_actionrow(select1)
-        msg = await ctx.send(embed=embed, components=[action_row])
+    @autoboard.sub_command(name="create", description="Create server autoposting leaderboards")
+    async def setupboard(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, autoboard_type: str = commands.Param(choices=["Player Leaderboard", "Clan Leaderboard"])):
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
 
-        chose = False
-        while chose == False:
-            try:
-                res = await wait_for_component(self.bot, components=action_row, messages=msg, timeout=600)
-            except:
-                return await msg.edit(components=[])
-
-            if res.author_id != ctx.author.id:
-                await res.send(content="You must run the command to interact with components.", hidden=True)
-                continue
-
-            chose = str(res.values[0])
-            # print(chose)
+        await ctx.response.defer()
+        msg = await ctx.original_message()
 
         country = None
-        if chose == "Leaderboard":
+        if autoboard_type == "Clan Leaderboard":
             rr = []
             tracked = clans.find({"server": ctx.guild.id})
             limit = await clans.count_documents(filter={"server": ctx.guild.id})
@@ -72,172 +54,71 @@ class autoB(commands.Cog):
 
             options = []
             for country in rr:
-                options.append(create_select_option(label=f"{country}", value=f"{country}"))
+                options.append(disnake.SelectOption(label=f"{country}", value=f"{country}"))
 
-            select1 = create_select(
+            select1 = disnake.ui.Select(
                 options=options,
-                placeholder="Choose location",
+                placeholder="Page Navigation",
                 min_values=1,  # the minimum number of options a user must select
                 max_values=1  # the maximum number of options a user can select
             )
-            action_row = create_actionrow(select1)
+            action_row = disnake.ui.ActionRow()
+            action_row.append_item(select1)
 
             embed = disnake.Embed(title="**For what country would you like the leaderboard autoboard?**",
                                   color=disnake.Color.green())
 
-            await msg.edit(embed=embed, components=[action_row])
+            await ctx.edit_original_message(embed=embed, components=[action_row])
+
+            def check(res: disnake.MessageInteraction):
+                return res.message.id == msg.id
 
             country = False
             while country == False:
                 try:
-                    res = await wait_for_component(self.bot, components=action_row, messages=msg, timeout=600)
+                    res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                              timeout=600)
                 except:
-                    return await msg.edit(components=[])
+                    await msg.edit(components=[])
+                    break
 
-                if res.author_id != ctx.author.id:
-                    await res.send(content="You must run the command to interact with components.", hidden=True)
+                if res.author.id != ctx.author.id:
+                    await res.send(content="You must run the command to interact with components.", ephemeral=True)
                     continue
 
                 country = str(res.values[0])
 
-        times = ""
-        valid_options = []
-        real_times = []
 
-        for x in range(0,24):
-            valid_options.append(str(x+1))
-            t = start_time + (x * 3600)
-            real_times.append(t)
-            rank = str(x+1)
-            rank = rank.ljust(2)
-            times+=(f"{rank}. <t:{t}:t>\n")
-
-        embed = disnake.Embed(title="**Choose time for autoboard**",
-                              description=f"What time should the autoboard post to a channel?\n"
-                                          f"(Shows in local time)\n"
-                                          f"{times}", color=disnake.Color.green())
-        await msg.edit(embed=embed, components=[])
-
-        time = None
-
-        while time == None:
-            def check(message):
-                ctx.message.content = message.content
-                return message.content != "" and message.author == ctx.message.author
-
-            r = await self.bot.wait_for("message", check=check, timeout=300)
-            response = r.content
-            await r.delete()
-            # print(response)
-
-            if response == "cancel":
-                embed = disnake.Embed(description="**Command Canceled Chief**", color=disnake.Color.red())
-                return await msg.edit(embed=embed)
-
-            if response in valid_options:
-                time = real_times[int(response) - 1]
-            else:
-                embed = disnake.Embed(title=f"`{response}` Not a valid option",
-                                      description=f"What time should the autoboard post to a channel?\n"
-                                                  f"(Shows in local time)\n"
-                                                  f"{times}", color=disnake.Color.red())
-                await msg.edit(embed=embed)
-
-        utc_time = dt.datetime.utcfromtimestamp(time)
-        hour = utc_time.hour
-
-        embed = discord.Embed(title="**Channel**",
-                              description=f"What is the channel to autopost in?\n Please make sure I have perms to send messages there.", color=discord.Color.green())
-        await msg.edit(embed=embed)
-
-        boardChannel = None
-
-        while boardChannel == None:
-            def check(message):
-                ctx.message.content = message.content
-                return message.content != "" and message.author == ctx.message.author
-
-            r = await self.bot.wait_for("message", check=check, timeout=300)
-            response = r.content
-            await r.delete()
-            boardChannel = await pingToChannel(ctx, response)
-
-            if response == "cancel":
-                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
-                return await msg.edit(embed=embed)
-
-            if boardChannel is None:
-                embed = discord.Embed(title="Sorry that channel is invalid. Please try again.",
-                                      description=f"What is autoboard channel?",
-                                      color=discord.Color.red())
-                await msg.edit(embed=embed)
-                continue
-
-            c = boardChannel
-            g = ctx.guild
-            r = await g.fetch_member(824653933347209227)
-            perms = c.permissions_for(r)
-            send_msg = perms.send_messages
-            if send_msg == False:
-                embed = discord.Embed(
-                    description=f"Missing Permissions.\nMust have `Send Messages` in the autoboard channel.\nTry Again. What is the channel?",
-                    color=discord.Color.red())
-                await msg.edit(embed=embed)
-                boardChannel = None
-                continue
 
         tex = ""
-        if chose == "Top":
-            await server.update_one({"server": ctx.guild.id}, {'$set': {"topboardchannel": boardChannel.id}})
-            await server.update_one({"server": ctx.guild.id}, {'$set': {"tophour": hour}})
+        if autoboard_type == "Player Leaderboard":
+            await server.update_one({"server": ctx.guild.id}, {'$set': {"topboardchannel": channel.id}})
+            await server.update_one({"server": ctx.guild.id}, {'$set': {"tophour": 5}})
         else:
-            await server.update_one({"server": ctx.guild.id}, {'$set': {"lbboardChannel": boardChannel.id}})
+            await server.update_one({"server": ctx.guild.id}, {'$set': {"lbboardChannel": channel.id}})
             await server.update_one({"server": ctx.guild.id}, {'$set': {"country": country}})
-            await server.update_one({"server": ctx.guild.id}, {'$set': {"lbhour": hour}})
+            await server.update_one({"server": ctx.guild.id}, {'$set': {"lbhour": 5}})
             tex = f"\nCountry: {country}"
 
-        time = f"<t:{time}:t>"
-        embed = discord.Embed(title="**Autoboard Successfully Setup**",
-                              description=f"Channel: {boardChannel.mention}\n"
+        time = f"<t:{1643263200}:t>"
+        embed = disnake.Embed(title="**Autoboard Successfully Setup**",
+                              description=f"Channel: {channel.mention}\n"
                                           f"Time: {time}\n"
-                                          f"Type: {chose}{tex}",
-                              color=discord.Color.green())
+                                          f"Type: {autoboard_type}{tex}",
+                              color=disnake.Color.green())
         await msg.edit(embed=embed)
 
 
 
-    @setupboard.group(name="remove", pass_context=True, invoke_without_command=True)
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def removeboard(self, ctx):
-        embed = discord.Embed(title="**For what command would you like to remove autoboard?**",
-                              color=discord.Color.green())
+    @autoboard.sub_command(name="remove", description="Remove a server autoboard")
+    async def removeboard(self, ctx: disnake.ApplicationCommandInteraction, autoboard_type: str = commands.Param(choices=["Player Leaderboard", "Clan Leaderboard"])):
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
 
-        select1 = create_select(
-            options=[
-                create_select_option("Top", value=f"Top"),
-                create_select_option("Leaderboard", value=f"Leaderboard")
-            ],
-            placeholder="Choose your option",
-            min_values=1,  # the minimum number of options a user must select
-            max_values=1  # the maximum number of options a user can select
-        )
-        action_row = create_actionrow(select1)
-        msg = await ctx.send(embed=embed, components=[action_row])
-
-        chose = False
-        while chose == False:
-            try:
-                res = await wait_for_component(self.bot, components=action_row, messages=msg, timeout=600)
-            except:
-                return await msg.edit(components=[])
-
-            if res.author_id != ctx.author.id:
-                await res.send(content="You must run the command to interact with components.", hidden=True)
-                continue
-
-            chose = str(res.values[0])
-
-        if chose == "Top":
+        if autoboard_type == "Player Leaderboard":
             await server.update_one({"server": ctx.guild.id}, {'$set': {"topboardchannel": None}})
             await server.update_one({"server": ctx.guild.id}, {'$set': {"tophour": None}})
         else:
@@ -245,16 +126,14 @@ class autoB(commands.Cog):
             await server.update_one({"server": ctx.guild.id}, {'$set': {"country": None}})
             await server.update_one({"server": ctx.guild.id}, {'$set': {"lbhour": None}})
 
-        embed = discord.Embed(description=f"{chose} autoboard has been removed.",
-                              color=discord.Color.green())
-        await msg.edit(embed=embed, components=[])
+        embed = disnake.Embed(description=f"{autoboard_type} autoboard has been removed.",
+                              color=disnake.Color.green())
+        await ctx.send(embed=embed, components=[])
 
 
 
-    @setupboard.group(name="list", pass_context=True, invoke_without_command=True)
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    @autoboard.sub_command(name="list", description="View server autoboards")
     async def boardlist(self, ctx):
-
         tbc = None
         th = None
         lbc = None
@@ -264,7 +143,7 @@ class autoB(commands.Cog):
         results = await server.find_one({"server": ctx.guild.id})
 
         real_times = []
-
+        start_time = 1643263200
         for x in range(0, 24):
             t = start_time + (x * 3600)
             real_times.append(t)
@@ -279,8 +158,8 @@ class autoB(commands.Cog):
 
         try:
             th = results.get("tophour")
-            th = real_times[th - 6]
-            th = f"<t:{th}:t>"
+            th = real_times[th - 5]
+            th = f"<t:1643263200:t>"
         except:
             pass
 
@@ -293,8 +172,8 @@ class autoB(commands.Cog):
 
         try:
             lbh = results.get("lbhour")
-            lbh = real_times[lbh - 6]
-            lbh = f"<t:{lbh}:t>"
+            lbh = real_times[lbh - 5]
+            lbh = f"<t:1643263200:t>"
         except:
             pass
 
@@ -303,13 +182,13 @@ class autoB(commands.Cog):
         except:
             pass
 
-        embed = discord.Embed(title="**Autoboard List**",
-                              description=f"`{ctx.prefix}top Board Channel`: {tbc}\n"
-                                    f"`{ctx.prefix}top Post Time`: {th}\n"
-                                    f"`{ctx.prefix}leaderboard Channel`: {lbc}\n"
-                                    f"`{ctx.prefix}leaderboard Post Time`: {lbh}\n"
-                                    f"`{ctx.prefix}leaderboard Country`: {country}\n",
-                              color=discord.Color.green())
+        embed = disnake.Embed(title="**Autoboard List**",
+                              description=f"Player leaderboard Channel: {tbc}\n"
+                                    f"Player leaderboard Post Time: {th}\n"
+                                    f"Clan leaderboard Channel: {lbc}\n"
+                                    f"Clan leaderboard Post Time: {lbh}\n"
+                                    f"Clan leaderboard Country: {country}\n",
+                              color=disnake.Color.green())
         await ctx.send(embed=embed)
 
 
@@ -370,9 +249,10 @@ class autoB(commands.Cog):
                             place = place.ljust(3)
                             rText += f"\u200e`{place}` \u200e<:trophy:956417881778815016> \u200e{ranking[x][1]} - \u200e{ranking[x][0]} | \u200e{ranking[x][2]}\n"
 
-                        embed = discord.Embed(title=f"**Top {limit} {g.name} players**",
+                        embed = disnake.Embed(title=f"**Top {limit} {g.name} players**",
                                               description=rText)
-                        embed.set_thumbnail(url=g.icon_url_as())
+                        if g.icon is not None:
+                            embed.set_thumbnail(url=g.icon.url)
                         embeds.append(embed)
                     try:
                         await channel.send(embed=embeds[0])
@@ -420,10 +300,11 @@ class autoB(commands.Cog):
                         if x == 26:
                             break
 
-                    embed = discord.Embed(title=f"{country_names} Top 25 Leaderboard",
+                    embed = disnake.Embed(title=f"{country_names} Top 25 Leaderboard",
                                           description=text,
-                                          color=discord.Color.green())
-                    embed.set_thumbnail(url=g.icon_url_as())
+                                          color=disnake.Color.green())
+                    if g.icon is not None:
+                        embed.set_thumbnail(url=g.icon.url)
                     try:
                         await channel.send(embed=embed)
                     except:

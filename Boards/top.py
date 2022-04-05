@@ -2,28 +2,33 @@ from disnake.ext import commands
 import disnake
 
 import coc
-import math
 
-from disnake_slash.utils.manage_components import create_button, wait_for_component, create_select, create_select_option, create_actionrow
-from disnake_slash.model import ButtonStyle
-
-from utils.clashClient import client, getClan, link_client, pingToMember, getPlayer, coc_client
+from utils.clash import client, getClan, link_client, pingToMember, getPlayer, coc_client
+from utils.components import create_components
 usafam = client.usafam
 clans = usafam.clans
 
 import math
 from Dictionaries.thPicDictionary import thDictionary
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹" ]
+from utils.search import search_results
 
 class top(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        #self.lb_update.start()
 
+    @commands.slash_command(name="ranked")
+    async def rank(self, ctx):
+        pass
 
-    @commands.command(name="top")
-    async def top(self, ctx, *, limit = 100):
+    @commands.slash_command(name="top", description="Server's player trophy leaderboard")
+    async def top(self, ctx: disnake.ApplicationCommandInteraction, limit:int = 100):
+        """
+            Parameters
+            ----------
+            limit: number of players to show
+        """
         rankings = []
         tracked = clans.find({"server": ctx.guild.id})
         l = await clans.count_documents(filter={"server": ctx.guild.id})
@@ -42,7 +47,7 @@ class top(commands.Cog):
                     continue
 
         if limit < 1 :
-            return await ctx.send(content=f"Please use a number between 1 - {len(rankings)}.", embed=None)
+            return await ctx.send(content=f"Please use a number between 1 - {len(rankings)}.")
 
         if limit > len(rankings) :
             limit = len(rankings)
@@ -69,16 +74,16 @@ class top(commands.Cog):
         cum_score = "{:,}".format(cum_score)
 
         embeds = []
-        length = math.ceil(limit / 25)
+        length = math.ceil(limit / 50)
         current_page = 0
 
         for e in range(0, length):
 
             rText = ''
             max = limit
-            if (e+1)*25 < limit:
-                max = (e+1)*25
-            for x in range(e*25, max):
+            if (e+1)*50 < limit:
+                max = (e+1)*50
+            for x in range(e*50, max):
                 #print(ranking[x])
                 place = str(x+1) + "."
                 place = place.ljust(3)
@@ -87,46 +92,46 @@ class top(commands.Cog):
 
             embed = disnake.Embed(title=f"**Top {limit} {ctx.guild} players**",
                                   description=rText)
-            embed.set_thumbnail(url=ctx.guild.icon_url_as())
+            if ctx.guild.icon is not None:
+                embed.set_thumbnail(url=ctx.guild.icon.url)
             if limit == 50:
                 embed.set_footer(text=f"Cumulative Trophies would be 🏆{cum_score}")
             embeds.append(embed)
 
-        msg = await ctx.send(embed=embeds[0], components=self.create_components(current_page, limit), mention_author=False)
+        await ctx.send(embed=embeds[0], components=create_components(current_page, embeds, True))
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
 
         while True:
             try:
-                res = await wait_for_component(self.bot, components=self.create_components(current_page, limit),
-                                               messages=msg, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
             except:
                 await msg.edit(components=[])
                 break
 
-            if res.author_id != ctx.author.id:
-                await res.send(content="You must run the command to interact with components.", hidden=True)
-                continue
-
-            await res.edit_origin()
-
             # print(res.custom_id)
-            if res.custom_id == "Previous":
+            if res.data.custom_id == "Previous":
                 current_page -= 1
-                await msg.edit(embed=embeds[current_page],
-                               components=self.create_components(current_page, limit))
+                await res.response.edit_message(embed=embeds[current_page],
+                               components=create_components(current_page, embeds, True))
 
-            elif res.custom_id == "Next":
+            elif res.data.custom_id == "Next":
                 current_page += 1
-                await msg.edit(embed=embeds[current_page],
-                               components=self.create_components(current_page, limit))
+                await res.response.edit_message(embed=embeds[current_page],
+                               components=create_components(current_page, embeds, True))
 
-            elif res.custom_id == "Print":
+            elif res.data.custom_id == "Print":
                 await msg.delete()
                 for embed in embeds:
                     await ctx.send(embed=embed)
                 return
 
-    @commands.command(name="best")
-    async def best(self, ctx):
+
+    @commands.slash_command(name="best", description="Arranges players to create best 5 clans if eos was now")
+    async def best(self, ctx: disnake.ApplicationCommandInteraction):
         rankings = []
         tracked = clans.find({"server": ctx.guild.id})
         l = await clans.count_documents(filter={"server": ctx.guild.id})
@@ -145,7 +150,7 @@ class top(commands.Cog):
                     continue
 
         if l == 0:
-            return await ctx.send(content=f"No clans linked to server.", embed=None)
+            return await ctx.send(content=f"No clans linked to server.")
 
 
         ranking = sorted(rankings, key=lambda l: l[1], reverse=True)
@@ -180,25 +185,29 @@ class top(commands.Cog):
         embed = disnake.Embed(title=f"Best Possible EOS for {ctx.guild.name}",
             description=text,
             color=disnake.Color.green())
-        embed.set_thumbnail(url=ctx.guild.icon_url_as())
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
         embed.set_footer(text="All Clans have 50 Members")
-        await ctx.reply(embed=embed, mention_author=False)
+        await ctx.send(embed=embed)
 
-    @commands.command(name="rank")
-    async def rank(self, ctx, *, search_query=None):
-        if search_query == None:
-            search_query = str(ctx.author.id)
-        embed = disnake.Embed(
-            description="<a:loading:884400064313819146> Fetching Stats. | Can take 10-15 seconds.",
-            color=disnake.Color.green())
-        msg = await ctx.reply(embed=embed, mention_author=False)
 
-        search = self.bot.get_cog("search")
-        results = await search.search_results(ctx, search_query)
+    @commands.slash_command(name="rank", description="Ranks for player")
+    async def srank(self, ctx: disnake.ApplicationCommandInteraction, tag_or_user=None):
+        """
+            Parameters
+            ----------
+            tag_or_user: Player tag or discord user to search for
+        """
+
+        if tag_or_user is None:
+            tag_or_user = str(ctx.author.id)
+
+        await ctx.response.defer()
+        results = await search_results(ctx, tag_or_user)
         if results == []:
-            return await msg.edit(content="No results were found.", embed=None)
+            return await ctx.edit_original_message(content="No results were found.")
 
-        rr = []
+        rr = {}
         tracked = clans.find({"server": ctx.guild.id})
         limit = await clans.count_documents(filter={"server": ctx.guild.id})
         for clan in await tracked.to_list(length=limit):
@@ -206,16 +215,12 @@ class top(commands.Cog):
             clan = await getClan(tag)
             for player in clan.members:
                 try:
-                    playerStats = []
-                    playerStats.append(player.name)
-                    playerStats.append(player.trophies)
-                    playerStats.append(player.clan.name)
-                    playerStats.append(player.tag)
-                    rr.append(playerStats)
+                    rr[player.tag] = player.trophies
                 except:
                     continue
 
-        ranking = sorted(rr, key=lambda l: l[1], reverse=True)
+        sorted(rr, key=rr.get, reverse=True)
+        rr = {key: rank for rank, key in enumerate(sorted(rr, key=rr.get, reverse=True), 1)}
 
         embeds = []
 
@@ -225,19 +230,19 @@ class top(commands.Cog):
                     return i
             return None
 
-        for result in results:
-            discordID = await link_client.get_link(result)
-            member = await pingToMember(ctx, str(discordID))
-            player = await getPlayer(result)
+        disnakeID = await link_client.get_link(results[0])
+        member = await pingToMember(ctx, str(disnakeID))
+
+        async for player in coc_client.get_players(results):
             result = player.tag
             from Boards.leaderboards import rankingsC
-            usaranking = index_2d(ranking, result)
+            guildranking = None
             try:
-                usaranking = usaranking + 1
+                guildranking = rr[player.tag]
             except:
                 pass
-            if usaranking == None:
-                usaranking = f"<:status_offline:910938138984206347>"
+            if guildranking == None:
+                guildranking = f"<:status_offline:910938138984206347>"
             gspot = "<:status_offline:910938138984206347>"
             cou_spot = "<:status_offline:910938138984206347>"
             flag = "🏳️"
@@ -269,255 +274,215 @@ class top(commands.Cog):
                                 f"Tag: {player.tag}\n" +
                                 f"Clan: {clan}\n" +
                                 f"Trophies: {player.trophies}\n"
-                                f"{ctx.guild.name} : {usaranking}\n"
+                                f"{ctx.guild.name} : {guildranking}\n"
                                 f"Rank: <a:earth:861321402909327370> {gspot} | {flag} {cou_spot}\n"+ country_name,
                     color=disnake.Color.green())
-                embed.set_thumbnail(url=member.avatar_url)
+                embed.set_thumbnail(url=member.avatar.url)
             else:
-                embed = discord.Embed(title=f"**Ranks for {player.name}**",
+                embed = disnake.Embed(title=f"**Ranks for {player.name}**",
                                       description=f"Name: {player.name}\n" +
                                                   f"Tag: {player.tag}\n" +
                                                   f"Clan: {clan}\n" +
                                                   f"Trophies: {player.trophies}\n"
-                                                  f"{ctx.guild.name} : {usaranking}\n"
+                                                  f"{ctx.guild.name} : {guildranking}\n"
                                                   f"Rank: <a:earth:861321402909327370> {gspot} | {flag} {cou_spot}\n" + country_name,
-                                      color=discord.Color.green())
-                embed.set_thumbnail(url=thDictionary(player.town_hall))
+                                      color=disnake.Color.green())
+                if player.town_hall >= 4:
+                    embed.set_thumbnail(url=thDictionary(player.town_hall))
 
             embeds.append(embed)
 
         current_page = 0
-        limit = len(embeds) * 25
-        await msg.edit(embed=embeds[0], components=self.create_components(current_page, limit),
-                             mention_author=False)
+        await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds))
+
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
 
         while True:
             try:
-                res = await wait_for_component(self.bot, components=self.create_components(current_page, limit),
-                                               messages=msg, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
             except:
                 await msg.edit(components=[])
                 break
 
-            if res.author_id != ctx.author.id:
-                await res.send(content="You must run the command to interact with components.", hidden=True)
-                continue
-
-            await res.edit_origin()
-
             # print(res.custom_id)
-            if res.custom_id == "Previous":
+            if res.data.custom_id == "Previous":
                 current_page -= 1
-                await msg.edit(embed=embeds[current_page],
-                               components=self.create_components(current_page, limit))
+                await res.response.edit_message(embed=embeds[current_page],
+                               components=create_components(current_page, embeds))
 
-            elif res.custom_id == "Next":
+            elif res.data.custom_id == "Next":
                 current_page += 1
-                await msg.edit(embed=embeds[current_page],
-                               components=self.create_components(current_page, limit))
+                await res.response.edit_message(embed=embeds[current_page],
+                               components=create_components(current_page, embeds))
 
-
-
-    @commands.command(name="prank")
-    async def prank(self, ctx):
-        master_num = 0
-        if ctx.guild.id == 328997757048324101:
-            master_num = 1
-
-        rr = []
+    
+    @rank.sub_command(name="players", description="Region rankings for players on server")
+    async def prank(self, ctx: disnake.ApplicationCommandInteraction):
+        server_players = {}
         tracked = clans.find({"server": ctx.guild.id})
         limit = await clans.count_documents(filter={"server": ctx.guild.id})
         for clan in await tracked.to_list(length=limit):
             tag = clan.get("tag")
-            rr.append(tag)
+            clan = await getClan(tag)
+            for player in clan.members:
+                try:
+                    server_players[player.tag] = player.trophies
+                except:
+                    continue
 
-        from Boards.leaderboards import rankingsC
+        sorted(server_players, key=server_players.get, reverse=True)
+        server_players = {key: rank for rank, key in enumerate(sorted(server_players, key=server_players.get, reverse=True), 1)}
+        server_players = list(server_players.keys())
+        from Boards.leaderboards import glob_dict, country_dict
 
-        countries = []
-        text = ""
-        prev_country = None
-        country = None
         embeds = []
         num = 0
+        text = ""
+        #[loc, rank, country, clantag, clanname, trophies, playername]
+        for tag in server_players:
+            glob_rank_player = None
+            country_rank_player = None
+            try:
+                glob_rank_player = glob_dict[tag]
+            except:
+                pass
+            try:
+                country_rank_player = country_dict[tag]
+            except:
+                pass
+            if glob_rank_player is None and country_rank_player is None:
+                continue
 
-        #[tag, loc, rank, country, clantag, clanname, trophies, playername]
-        y = 0
-        for x in rankingsC:
-            y += 1
-            if x in rr:
-                #print(f"{rankingsC[y -5]},{rankingsC[y -4]},{rankingsC[y -3]},{rankingsC[y -2]}, {rankingsC[y -1]}, {rankingsC[y]}, {rankingsC[y +1]}, {rankingsC[y +2]}")
-                loc = rankingsC[y -4]
-                loc = loc.lower()
-                rank = rankingsC[y - 3]
-                rank = str(rank)
-                name = rankingsC[y + 2]
-                trophies = rankingsC[y + 1]
-                clanname = rankingsC[y]
-
-                if loc == "global":
-                    country = "Global"
-                else:
-                    country = rankingsC[y-2]
-
+            if glob_rank_player is not None:
                 num += 1
+                rank = str(glob_rank_player[1]).ljust(3)
+                text += f"<:trophy:956417881778815016>`{glob_rank_player[5]}` | <a:earth:861321402909327370> `{rank}` | {glob_rank_player[6]}\n"
 
-                if prev_country == None:
-                    prev_country = country
+            if country_rank_player is not None:
+                num += 1
+                rank = str(country_rank_player[1]).ljust(3)
+                text += f"<:trophy:956417881778815016>`{country_rank_player[5]}` | :flag_{country_rank_player[0].lower()}: `{rank}` | {country_rank_player[6]} | {country_rank_player[2]}\n"
 
-                if prev_country != country:
-                    if num <= master_num:
-                        num = 0
-                        prev_country = country
-                        text = ""
-                    else:
-                        embed = discord.Embed(title=f"**{ctx.guild.name} Rankings | {prev_country}**",
-                                              description=text,
-                                              color=discord.Color.green())
-                        embed.set_thumbnail(url=ctx.guild.icon_url_as())
-                        text = ""
-                        countries.append(prev_country)
-                        # print(prev_country)
-                        prev_country = country
-                        embeds.append(embed)
-                        num = 0
+            if num == 25:
+                embed = disnake.Embed(title=f"**{ctx.guild.name} Player Country LB Rankings**", description=text)
+                embeds.append(embed)
+                num = 0
+                text = ""
 
-                rank = rank.rjust(3)
-                if loc != "global":
-                    flag = f":flag_{loc}:"
-                else:
-                    flag = "<a:earth:861321402909327370>"
-                text += f"`🏆{trophies}`{flag}`{rank}` **{name}** [{clanname}]\n"
-
-        if num >= master_num:
-            embed = discord.Embed(title=f"**{ctx.guild.name} Rankings | {country}**",
-                                  description=text,
-                                  color=discord.Color.green())
-            embed.set_thumbnail(url=ctx.guild.icon_url_as())
-            embeds.append(embed)
-            countries.append(country)
-
-        if prev_country == None:
-            embed = discord.Embed(title=f"**{ctx.guild.name} Rankings **",
-                                  description="No ranked players.",
-                                  color=discord.Color.green())
-            embed.set_thumbnail(url=ctx.guild.icon_url_as())
+        if text != "":
+            embed = disnake.Embed(title=f"**{ctx.guild.name} Player Country LB Rankings**", description=text)
             embeds.append(embed)
 
-        num_countries = len(countries)
-        if num_countries > 25:
-            current_page = 0
-            limit = len(embeds) * 25
-            msg = await ctx.send(embed=embeds[0], components=self.create_components(current_page, limit),
-                           mention_author=False)
+        if embeds == []:
+            return await ctx.send("No ranked players on this server.")
+        current_page = 0
+        await ctx.send(embed=embeds[0], components=create_components(current_page, embeds, True))
+        msg = await ctx.original_message()
 
-            while True:
-                try:
-                    res = await wait_for_component(self.bot, components=self.create_components(current_page, limit),
-                                                   messages=msg, timeout=600)
-                except:
-                    await msg.edit(components=[])
-                    break
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
 
-                if res.author_id != ctx.author.id:
-                    await res.send(content="You must run the command to interact with components.", hidden=True)
-                    continue
+        while True:
+            try:
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
+            except:
+                await msg.edit(components=[])
+                break
 
-                await res.edit_origin()
+            if res.data.custom_id == "Previous":
+                current_page -= 1
+                await res.response.edit_message(embed=embeds[current_page],
+                                                components=create_components(current_page, embeds, True))
 
-                # print(res.custom_id)
-                if res.custom_id == "Previous":
-                    current_page -= 1
-                    await msg.edit(embed=embeds[current_page],
-                                   components=self.create_components(current_page, limit))
+            elif res.data.custom_id == "Next":
+                current_page += 1
+                await res.response.edit_message(embed=embeds[current_page],
+                                                components=create_components(current_page, embeds, True))
 
-                elif res.custom_id == "Next":
-                    current_page += 1
-                    await msg.edit(embed=embeds[current_page],
-                                   components=self.create_components(current_page, limit))
-        else:
-            options = []
-            for country in countries:
-                options.append(create_select_option(label=f"{country}", value=f"{country}"))
+            elif res.data.custom_id == "Print":
+                await msg.delete()
+                for embed in embeds:
+                    await ctx.send(embed=embed)
 
-            select1 = create_select(
-                options=options,
-                placeholder="Choose location",
-                min_values=1,  # the minimum number of options a user must select
-                max_values=1  # the maximum number of options a user can select
-            )
-            action_row = create_actionrow(select1)
 
-            msg = await ctx.send(embed=embeds[0], components=[action_row])
-
-            while True:
-                try:
-                    res = await wait_for_component(self.bot, components=action_row,
-                                                   messages=msg, timeout=600)
-                except:
-                    await msg.edit(components=[])
-                    break
-
-                if res.author_id != ctx.author.id:
-                    await res.send(content="You must run the command to interact with components.", hidden=True)
-                    continue
-
-                await res.edit_origin()
-                value = res.values[0]
-
-                current_page = countries.index(value)
-
-                await msg.edit(embed=embeds[current_page],
-                               components=[action_row])
-
-    @commands.command(name="crank")
+    @rank.sub_command(name="clans", description="Region rankings for clans on server")
     async def crank(self, ctx):
 
-        rr = []
+        server_clans = []
         tracked = clans.find({"server": ctx.guild.id})
         limit = await clans.count_documents(filter={"server": ctx.guild.id})
         for clan in await tracked.to_list(length=limit):
             tag = clan.get("tag")
-            rr.append(tag)
+            server_clans.append(tag)
 
-        global_rank = ""
+        from Boards.leaderboards import clan_glob_dict, clan_country_dict
 
-        glob = await coc_client.get_location_clans()
-        x=0
-        for clan in glob:
-            x+=1
-            if clan.tag in rr:
-                global_rank += f"{clan.name}: {x}\n"
+        num = 0
+        text = ""
+        for tag in server_clans:
+            glob_rank_clan = None
+            country_rank_clan = None
+            try:
+                glob_rank_clan = clan_glob_dict[tag]
+            except:
+                pass
+            try:
+                country_rank_clan = clan_country_dict[tag]
+            except:
+                pass
+            if glob_rank_clan is None and country_rank_clan is None:
+                continue
 
-        us_rank = ""
-        x=0
-        clan_list = await coc_client.get_location_clans(location_id=32000249)
-        for clan in clan_list:
-            x+=1
-            if clan.tag in rr:
-                us_rank += f"{clan.name} ⁽{clan.member_count}/50⁾: {x}\n"
+            if glob_rank_clan is not None:
+                num += 1
+                rank = str(glob_rank_clan[0]).ljust(3)
+                text += f"<a:earth:861321402909327370> `{rank}` | {glob_rank_clan[1]}\n"
 
-        full_rank = ""
-        if global_rank != "":
-            full_rank += f"**Global Rankings**\n{global_rank}\n"
-        if us_rank != "":
-            full_rank += f"**United States Rankings**\n{us_rank}\n\n"
+            if country_rank_clan is not None:
+                num += 1
+                rank = str(country_rank_clan[0]).ljust(3)
+                text += f":flag_{country_rank_clan[3].lower()}: `{rank}` | {country_rank_clan[1]} | {country_rank_clan[2]}\n"
 
-        if full_rank == "":
-            full_rank = "No ranked clans."
-
-
-
-        embed = discord.Embed(title=f"**{ctx.guild.name} Clan Rankings (Top 200)**",
-                              description=full_rank,
-                              color=discord.Color.green())
-        embed.set_thumbnail(url=ctx.guild.icon_url_as())
+        if text == "":
+            text = "No ranked clans"
+        embed = disnake.Embed(title=f"**{ctx.guild.name} Clan Country Rankings (Top 200)**",
+                              description=text,
+                              color=disnake.Color.green())
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
 
         await ctx.send(embed=embed)
 
-    @commands.command(name="leaderboard", aliases=["lb"])
-    async def leaderb(self, ctx):
 
-        rr = []
+    async def autocomp_names(self, query: str):
+        locations = await coc_client.search_locations()
+        results = []
+        if query.lower() in "Global":
+            results.append("Global")
+        for location in locations:
+            if query.lower() in location.name.lower():
+                ignored = ["Africa", "Europe", "North America", "South America", "Asia"]
+                if location.name not in ignored:
+                    if location.name not in results:
+                        results.append(location.name)
+        return results[0:25]
+
+    @commands.slash_command(name="leaderboard")
+    async def leaderboard(self, ctx):
+        pass
+
+    @leaderboard.sub_command(name="clan", description="Clan leaderboard of a location")
+    async def clan_leaderboards(self, ctx: disnake.ApplicationCommandInteraction, country: str = commands.Param(autocomplete=autocomp_names)):
+        """
+            Parameters
+            ----------
+            country: country to fetch leaderboard for
+        """
         tags = []
         tracked = clans.find({"server": ctx.guild.id})
         limit = await clans.count_documents(filter={"server": ctx.guild.id})
@@ -526,97 +491,77 @@ class top(commands.Cog):
         for clan in await tracked.to_list(length=limit):
             tag = clan.get("tag")
             tags.append(tag)
-            c = await getClan(tag)
-            location = str(c.location)
-            if location not in rr:
-                rr.append(str(location))
-                #print(location)
 
 
-        embeds = []
-        for location in rr:
-            text = ""
+
+
+        if country != "Global":
             locations = await coc_client.search_locations(limit=None)
-            is_country = (location != "International")
-            country = coc.utils.get(locations, name=location, is_country=is_country)
+            is_country = (country != "International")
+            country = coc.utils.get(locations, name=country, is_country=is_country)
             country_names = country.name
-            #print(country.id)
             rankings = await coc_client.get_location_clans(location_id=country.id)
-            #print(rankings)
+        else:
+            rankings = await coc_client.get_location_clans()
+            country_names = "Global"
 
-            x = 1
-            for clan in rankings:
-                rank = str(x)
-                rank = rank.ljust(2)
-                star = ""
-                if clan.tag in tags:
-                    star = "⭐"
-                text += f"`\u200e{rank}`🏆`\u200e{clan.points}` \u200e{clan.name}{star}\n"
-                x += 1
-                if x == 26:
-                    break
+        x = 0
+        embeds = []
+        text = ""
+        for clan in rankings:
+            rank = str(x+1)
+            rank = rank.ljust(2)
+            star = ""
+            if clan.tag in tags:
+                star = "⭐"
+            text += f"`\u200e{rank}`🏆`\u200e{clan.points}` \u200e{clan.name}{star}\n"
+            x += 1
+            if x != 0 and x%50 == 0:
+                embed = disnake.Embed(title=f"{country_names} Top 50 Leaderboard",
+                                      description=text,
+                                      color=disnake.Color.green())
+                if ctx.guild.icon is not None:
+                    embed.set_thumbnail(url=ctx.guild.icon.url)
+                embeds.append(embed)
+                text = ""
 
-            embed = discord.Embed(title=f"{country_names} Top 25 Leaderboard",
+        if text != "":
+            embed = disnake.Embed(title=f"{country_names} Top 50 Leaderboard",
                                   description=text,
-                                  color=discord.Color.green())
-            embed.set_thumbnail(url=ctx.guild.icon_url_as())
+                                  color=disnake.Color.green())
+            if ctx.guild.icon is not None:
+                embed.set_thumbnail(url=ctx.guild.icon.url)
             embeds.append(embed)
 
-        options = []
-        for country in rr:
-            options.append(create_select_option(label=f"{country}", value=f"{country}"))
+        current_page = 0
+        await ctx.send(embed=embeds[0], components=create_components(current_page, embeds, True))
+        msg = await ctx.original_message()
 
-        select1 = create_select(
-            options=options,
-            placeholder="Choose location",
-            min_values=1,  # the minimum number of options a user must select
-            max_values=1  # the maximum number of options a user can select
-        )
-        action_row = create_actionrow(select1)
-
-        msg = await ctx.send(embed=embeds[0], components=[action_row])
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
 
         while True:
             try:
-                res = await wait_for_component(self.bot, components=action_row,
-                                               messages=msg, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
             except:
                 await msg.edit(components=[])
                 break
 
-            if res.author_id != ctx.author.id:
-                await res.send(content="You must run the command to interact with components.", hidden=True)
-                continue
+            if res.data.custom_id == "Previous":
+                current_page -= 1
+                await res.response.edit_message(embed=embeds[current_page],
+                                                components=create_components(current_page, embeds, True))
 
-            await res.edit_origin()
-            value = res.values[0]
+            elif res.data.custom_id == "Next":
+                current_page += 1
+                await res.response.edit_message(embed=embeds[current_page],
+                                                components=create_components(current_page, embeds, True))
 
-            current_page = rr.index(value)
-
-            await msg.edit(embed=embeds[current_page],
-                           components=[action_row])
-
-
-
-    def create_components(self, current_page, limit):
-        length = math.ceil(limit/25)
-        if length == 1:
-            return []
-
-        page_buttons = [create_button(label="", emoji="◀️", style=ButtonStyle.blue, disabled=(current_page == 0),
-                                      custom_id="Previous"),
-                        create_button(label=f"Page {current_page + 1}/{length}", style=ButtonStyle.grey,
-                                      disabled=True),
-                        create_button(label="", emoji="▶️", style=ButtonStyle.blue,
-                                      disabled=(current_page == length - 1), custom_id="Next"),
-                        create_button(label="", emoji="🖨️", style=ButtonStyle.grey,
-                                      custom_id="Print")
-                        ]
-        page_buttons = create_actionrow(*page_buttons)
-
-        return [page_buttons]
-
-
+            elif res.data.custom_id == "Print":
+                await msg.delete()
+                for embed in embeds:
+                    await ctx.send(embed=embed)
 
 
 

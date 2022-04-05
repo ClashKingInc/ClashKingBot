@@ -1,6 +1,6 @@
 
 from disnake.ext import commands
-from utils.clash import getPlayer, client, pingToChannel, player_handle
+from utils.clash import getPlayer, client, pingToChannel, player_handle, coc_client
 import disnake
 from utils.components import create_components
 from datetime import datetime
@@ -19,6 +19,8 @@ class banlists(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+
+
 
     @commands.slash_command(name="ban", description="stuff")
     async def ban(self, ctx):

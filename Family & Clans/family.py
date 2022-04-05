@@ -1,12 +1,9 @@
-import discord
-from discord.ext import commands
-from utils.clashClient import client, getClan
+import disnake
+from disnake.ext import commands
+from utils.clash import client, getClan
 from coc import utils
 import coc
 from Dictionaries.emojiDictionary import emojiDictionary
-from discord.ext.commands import CommandNotFound
-
-from discord_slash.utils.manage_components import wait_for_component, create_select, create_select_option, create_actionrow
 
 usafam = client.usafam
 clans = usafam.clans
@@ -17,8 +14,8 @@ class family(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.command(name="family")
-    async def family(self, ctx):
+    @commands.slash_command(name="family", description="List of family clans")
+    async def family(self, ctx: disnake.ApplicationCommandInteraction):
         tracked = clans.find({"server": ctx.guild.id})
         limit = await clans.count_documents(filter={"server": ctx.guild.id})
         if limit == 0:
@@ -32,9 +29,10 @@ class family(commands.Cog):
                 categoryTypesList.append(category)
 
         embeds = []
-        master_embed = discord.Embed(description=f"__**{ctx.guild.name} Clans**__",
-                                     color=discord.Color.green())
-        master_embed.set_thumbnail(url=ctx.guild.icon_url_as())
+        master_embed = disnake.Embed(description=f"__**{ctx.guild.name} Clans**__",
+                                     color=disnake.Color.green())
+        if ctx.guild.icon is not None:
+            master_embed.set_thumbnail(url=ctx.guild.icon.url)
         for category in categoryTypesList:
             if category == "All Clans":
                 continue
@@ -53,17 +51,20 @@ class family(commands.Cog):
             for result in await results.to_list(length=limit):
                 tag = result.get("tag")
                 alias = result.get("alias")
-                print(tag)
                 clan = await getClan(tag)
-                leader = utils.get(clan.members, role=coc.Role.leader)
+                try:
+                    leader = utils.get(clan.members, role=coc.Role.leader)
+                except:
+                    continue
                 text += f"[{clan.name}]({clan.share_link}) | ({clan.member_count}/50)\n" \
                         f"**Leader:** {leader.name}\n**Alias:** `{alias}`\n\n"
                 other_text += f"{clan.name} | ({clan.member_count}/50)\n"
 
-            embed = discord.Embed(title=f"__**{category} Clans**__",
+            embed = disnake.Embed(title=f"__**{category} Clans**__",
                                   description=text,
-                                  color=discord.Color.green())
-            embed.set_thumbnail(url=ctx.guild.icon_url_as())
+                                  color=disnake.Color.green())
+            if ctx.guild.icon is not None:
+                embed.set_thumbnail(url=ctx.guild.icon.url)
             master_embed.add_field(name=f"__**{category} Clans**__", value=other_text, inline=False)
             embeds.append(embed)
 
@@ -72,55 +73,65 @@ class family(commands.Cog):
 
         options = []
         for category in categoryTypesList:
-            options.append(create_select_option(f"{category}", value=f"{category}"))
+            options.append(disnake.SelectOption(label=f"{category}", value=f"{category}"))
 
-        select1 = create_select(
+        select1 = disnake.ui.Select(
             options=options,
             placeholder="Choose clan category",
             min_values=1,  # the minimum number of options a user must select
             max_values=1  # the maximum number of options a user can select
         )
-        action_row = create_actionrow(select1)
+        action_row = disnake.ui.ActionRow()
+        action_row.append_item(select1)
 
+        await ctx.send(embed=embeds[len(embeds)-1], components=[action_row])
 
-        msg = await ctx.reply(embed=embeds[len(embeds)-1], components=[action_row],
-                       mention_author=False)
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
 
         while True:
             try:
-                res = await wait_for_component(self.bot, components=action_row,
-                                               messages=msg, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
             except:
                 await msg.edit(components=[])
                 break
 
-            if res.author_id != ctx.author.id:
-                await res.send(content="You must run the command to interact with components.", hidden=True)
+            if res.author.id != ctx.author.id:
+                await res.send(content="You must run the command to interact with components.", ephemeral=True)
                 continue
 
-            await res.edit_origin()
             value = res.values[0]
 
             current_page = categoryTypesList.index(value)-1
 
-            await msg.edit(embed=embeds[current_page],
-                           components=[action_row])
+            await res.response.edit_message(embed=embeds[current_page])
 
-    @commands.command(name='compo')
-    async def thcomp(self, ctx, *, clan=None):
+
+    @commands.slash_command(name='compo', description="Compo of an individual clan or all server clans if left blank")
+    async def thcomp(self, ctx: disnake.ApplicationCommandInteraction, clan:str=None):
+        """
+            Parameters
+            ----------
+            clan: clan to calculate th composition of [alias or tag], if blank does all server clans
+        """
+
         clan_list = []
         is_all = False
-        msg = None
+        await ctx.response.defer()
+
         if clan is None:
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 description=f"<a:loading:884400064313819146> Calculating TH Composition for {ctx.guild.name}.",
-                color=discord.Color.green())
-            msg = await ctx.reply(embed=embed, mention_author=False)
+                color=disnake.Color.green())
+            await ctx.edit_original_message(embed=embed)
             is_all = True
             tracked = clans.find({"server": ctx.guild.id})
             limit = await clans.count_documents(filter={"server": ctx.guild.id})
             if limit == 0:
-                return await ctx.send("Provide a clan tag please.")
+                return await ctx.edit_original_message(content="Provide a clan tag please.", embed=None)
             for tClan in await tracked.to_list(length=limit):
                 tag = tClan.get("tag")
                 clan = await getClan(tag)
@@ -139,8 +150,7 @@ class family(commands.Cog):
                 clan = await getClan(clan)
 
             if clan is None:
-                return await ctx.reply("Not a valid clan tag.",
-                                mention_author=False)
+                return await ctx.send("Not a valid clan tag.")
             clan_list.append(clan)
 
 
@@ -169,24 +179,17 @@ class family(commands.Cog):
 
         average = round((sumth/total),2)
         if is_all:
-            embed = discord.Embed(title=f"{ctx.guild.name} Townhall Composition", description=stats, color=discord.Color.green())
-            embed.set_thumbnail(url=ctx.guild.icon_url_as())
+            embed = disnake.Embed(title=f"{ctx.guild.name} Townhall Composition", description=stats, color=disnake.Color.green())
+            if ctx.guild.icon is not None:
+                embed.set_thumbnail(url=ctx.guild.icon.url)
             embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
-            await msg.edit(embed=embed)
+            await ctx.edit_original_message(embed=embed)
         else:
-            embed = discord.Embed(title=f"{clan.name} Townhall Composition", description=stats, color=discord.Color.green())
+            embed = disnake.Embed(title=f"{clan.name} Townhall Composition", description=stats, color=disnake.Color.green())
             embed.set_thumbnail(url=clan.badge.large)
             embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
-            await ctx.send(embed=embed)
+            await ctx.edit_original_message(embed=embed)
 
-    '''
-    @commands.Cog.listener()
-    async def on_command_error(self, ctx, error : discord.DiscordServerError):
-        if isinstance(error, CommandNotFound):
-            return
-        embed = discord.Embed(title='Exception in command {}'.format(ctx.command), description=str(error), color=discord.Color.red())
-        await ctx.send(embed=embed)
-    '''
 
 
 def setup(bot: commands.Bot):

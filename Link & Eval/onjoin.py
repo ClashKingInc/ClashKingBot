@@ -1,8 +1,7 @@
-import discord_slash
-from discord.ext import commands
-from discord_slash.utils.manage_components import create_button, create_actionrow
-from discord_slash.model import ButtonStyle
-import discord
+
+from disnake.ext import commands
+
+import disnake
 from main import check_commands
 
 from utils.clashClient import getClan, getPlayer, verifyPlayer, link_client, client, pingToChannel
@@ -20,6 +19,7 @@ class joinstuff(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    '''
     @commands.group(name="welcome", pass_context=True, invoke_without_command=True)
     async def welcome(self,ctx):
         pass
@@ -28,9 +28,9 @@ class joinstuff(commands.Cog):
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def welcome_set(self, ctx):
 
-        embed = discord.Embed(title="**Welcome Channel**",
+        embed = disnake.Embed(title="**Welcome Channel**",
                               description=f"What is the channel to post the welcome message in?\n Please make sure I have perms to send messages there.",
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
         embed.set_footer(text="Type `cancel` at any point to quit.")
         msg = await ctx.send(embed=embed)
 
@@ -45,13 +45,13 @@ class joinstuff(commands.Cog):
             welcomeChannel = await pingToChannel(ctx, response)
 
             if response.lower() == "cancel":
-                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                embed = disnake.Embed(description="**Command Canceled Chief**", color=disnake.Color.red())
                 return await msg.edit(embed=embed)
 
             if welcomeChannel is None:
-                embed = discord.Embed(title="Sorry that channel is invalid. Please try again.",
+                embed = disnake.Embed(title="Sorry that channel is invalid. Please try again.",
                                       description=f"What is welcome channel?",
-                                      color=discord.Color.red())
+                                      color=disnake.Color.red())
                 embed.set_footer(text="Type `cancel` at any point to quit.")
                 await msg.edit(embed=embed)
                 continue
@@ -62,9 +62,9 @@ class joinstuff(commands.Cog):
             perms = c.permissions_for(r)
             send_msg = perms.send_messages
             if send_msg == False:
-                embed = discord.Embed(
+                embed = disnake.Embed(
                     description=f"Missing Permissions.\nMust have `Send Messages` in the welcome channel.\nTry Again. What is the channel?",
-                    color=discord.Color.red())
+                    color=disnake.Color.red())
                 embed.set_footer(text="Type `cancel` at any point to quit.")
                 await msg.edit(embed=embed)
                 welcomeChannel = None
@@ -75,21 +75,21 @@ class joinstuff(commands.Cog):
         arrowleft = "<a:6270_Arrow_1_Gif:932470483205644300>"
         arrowright = "<a:rightarrow:932470092883722271>"
 
-        embed = discord.Embed(title="Enjoy your stay!",
+        embed = disnake.Embed(title="Enjoy your stay!",
                               description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
                                           f"DESCRIPTION TEXT - YOU CAN CHOOSE"
                                           f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
 
         embed.set_thumbnail(url=ctx.author.avatar_url)
 
         stat_buttons = [
             create_button(label="SAMPLE", emoji="1️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
             create_button(label="SAMPLE", emoji="2️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
             create_button(label="SAMPLE", emoji="3️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
         buttons = create_actionrow(*stat_buttons)
         await msg.edit(content=f"{ctx.author.mention}**EXAMPLE OF LIVE EMBED**", embed=embed, components=[buttons])
 
@@ -105,7 +105,7 @@ class joinstuff(commands.Cog):
             response = r.content
             await r.delete()
             if response.lower() == "cancel":
-                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                embed = disnake.Embed(description="**Command Canceled Chief**", color=disnake.Color.red())
                 return await msg2.edit(content="", embed=embed)
             if len(response) >= 1900:
                 await msg2.edit(content="Description must be less than 1900 characters.\nPls try again, What description text would you like?\nType `cancel` at any point to quit.")
@@ -116,21 +116,21 @@ class joinstuff(commands.Cog):
 
 
 
-        embed = discord.Embed(title="Enjoy your stay!",
+        embed = disnake.Embed(title="Enjoy your stay!",
                               description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
                                           f"{description}"
                                           f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
 
         embed.set_thumbnail(url=ctx.author.avatar_url)
 
         stat_buttons = [
             create_button(label="SAMPLE", emoji="1️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
             create_button(label="SAMPLE", emoji="2️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
             create_button(label="SAMPLE", emoji="3️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
         buttons = create_actionrow(*stat_buttons)
         await msg.edit(embed=embed, components=[buttons])
 
@@ -146,7 +146,7 @@ class joinstuff(commands.Cog):
             response = r.content
             await r.delete()
             if response.lower() == "cancel":
-                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                embed = disnake.Embed(description="**Command Canceled Chief**", color=disnake.Color.red())
                 return await msg2.edit(content="", embed=embed)
             if len(response) >= 80:
                 await msg2.edit(
@@ -155,21 +155,21 @@ class joinstuff(commands.Cog):
             button1text = response
 
 
-        embed = discord.Embed(title="Enjoy your stay!",
+        embed = disnake.Embed(title="Enjoy your stay!",
                               description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
                                           f"{description}"
                                           f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
 
         embed.set_thumbnail(url=ctx.author.avatar_url)
 
         stat_buttons = [
             create_button(label=f"{button1text}", emoji="1️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
             create_button(label=f"SAMPLE", emoji="2️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
             create_button(label=f"SAMPLE", emoji="3️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
         buttons = create_actionrow(*stat_buttons)
         await msg.edit(embed=embed, components=[buttons])
 
@@ -185,7 +185,7 @@ class joinstuff(commands.Cog):
             response = r.content
             await r.delete()
             if response.lower() == "cancel":
-                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                embed = disnake.Embed(description="**Command Canceled Chief**", color=disnake.Color.red())
                 return await msg2.edit(content="", embed=embed)
 
             if len(response) >= 80:
@@ -195,21 +195,21 @@ class joinstuff(commands.Cog):
             button2text = response
 
 
-        embed = discord.Embed(title="Enjoy your stay!",
+        embed = disnake.Embed(title="Enjoy your stay!",
                               description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
                                           f"{description}"
                                           f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
 
         embed.set_thumbnail(url=ctx.author.avatar_url)
 
         stat_buttons = [
             create_button(label=f"{button1text}", emoji="1️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
             create_button(label=f"{button2text}", emoji="2️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
             create_button(label=f"SAMPLE", emoji="3️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
         buttons = create_actionrow(*stat_buttons)
         await msg.edit(embed=embed, components=[buttons])
 
@@ -224,7 +224,7 @@ class joinstuff(commands.Cog):
             response = r.content
             await r.delete()
             if response.lower() == "cancel":
-                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                embed = disnake.Embed(description="**Command Canceled Chief**", color=disnake.Color.red())
                 return await msg2.edit(content="", embed=embed)
 
             if len(response) >= 80:
@@ -235,21 +235,21 @@ class joinstuff(commands.Cog):
 
 
 
-        embed = discord.Embed(title="Enjoy your stay!",
+        embed = disnake.Embed(title="Enjoy your stay!",
                               description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
                                           f"{description}"
                                           f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
 
         embed.set_thumbnail(url=ctx.author.avatar_url)
 
         stat_buttons = [
             create_button(label=f"{button1text}", emoji="1️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
             create_button(label=f"{button2text}", emoji="2️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
             create_button(label=f"{button3text}", emoji="3️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
         buttons = create_actionrow(*stat_buttons)
         await msg.edit(embed=embed, components=[buttons])
 
@@ -266,30 +266,30 @@ class joinstuff(commands.Cog):
             await r.delete()
 
             if response.lower() == "cancel":
-                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                embed = disnake.Embed(description="**Command Canceled Chief**", color=disnake.Color.red())
                 return await msg2.edit(content="", embed=embed)
 
             if not em.is_emoji(response):
-                await msg2.edit(content=f"{response} is not a valid emoji (must be a default emoji, not discord/server emoji).")
+                await msg2.edit(content=f"{response} is not a valid emoji (must be a default emoji, not disnake/server emoji).")
                 continue
             button1emoji = response
 
 
-        embed = discord.Embed(title="Enjoy your stay!",
+        embed = disnake.Embed(title="Enjoy your stay!",
                               description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
                                           f"{description}"
                                           f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
 
         embed.set_thumbnail(url=ctx.author.avatar_url)
 
         stat_buttons = [
             create_button(label=f"{button1text}", emoji=f"{button1emoji}", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
             create_button(label=f"{button2text}", emoji="2️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
             create_button(label=f"{button3text}", emoji="3️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
         buttons = create_actionrow(*stat_buttons)
         await msg.edit(embed=embed, components=[buttons])
 
@@ -305,30 +305,30 @@ class joinstuff(commands.Cog):
             response = r.content
             await r.delete()
             if response.lower() == "cancel":
-                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                embed = disnake.Embed(description="**Command Canceled Chief**", color=disnake.Color.red())
                 return await msg2.edit(content="", embed=embed)
 
             if not em.is_emoji(response):
-                await msg2.edit(content=f"{response} is not a valid emoji (must be a default emoji, not discord/server emoji).")
+                await msg2.edit(content=f"{response} is not a valid emoji (must be a default emoji, not disnake/server emoji).")
                 continue
             button2emoji = response
 
 
-        embed = discord.Embed(title="Enjoy your stay!",
+        embed = disnake.Embed(title="Enjoy your stay!",
                               description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
                                           f"{description}"
                                           f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
 
         embed.set_thumbnail(url=ctx.author.avatar_url)
 
         stat_buttons = [
             create_button(label=f"{button1text}", emoji=f"{button1emoji}", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
             create_button(label=f"{button2text}", emoji=f"{button2emoji}", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
             create_button(label=f"{button3text}", emoji="3️⃣", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
         buttons = create_actionrow(*stat_buttons)
         await msg.edit(embed=embed, components=[buttons])
 
@@ -343,30 +343,30 @@ class joinstuff(commands.Cog):
             response = r.content
             await r.delete()
             if response.lower() == "cancel":
-                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                embed = disnake.Embed(description="**Command Canceled Chief**", color=disnake.Color.red())
                 return await msg2.edit(content="", embed=embed)
 
             if not em.is_emoji(response):
-                await msg2.edit(content=f"{response} is not a valid emoji (must be a default emoji, not discord/server emoji).")
+                await msg2.edit(content=f"{response} is not a valid emoji (must be a default emoji, not disnake/server emoji).")
                 continue
             button3emoji = response
 
 
-        embed = discord.Embed(title="Enjoy your stay!",
+        embed = disnake.Embed(title="Enjoy your stay!",
                               description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
                                           f"{description}"
                                           f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
 
         embed.set_thumbnail(url=ctx.author.avatar_url)
 
         stat_buttons = [
             create_button(label=f"{button1text}", emoji=f"{button1emoji}", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
             create_button(label=f"{button2text}", emoji=f"{button2emoji}", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}"),
             create_button(label=f"{button3text}", emoji=f"{button3emoji}", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{ctx.channel.id}")]
         buttons = create_actionrow(*stat_buttons)
         await msg.edit(embed=embed, components=[buttons])
 
@@ -385,7 +385,7 @@ class joinstuff(commands.Cog):
             button1channel = await pingToChannel(ctx, response)
 
             if response.lower() == "cancel":
-                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                embed = disnake.Embed(description="**Command Canceled Chief**", color=disnake.Color.red())
                 return await msg2.edit(content="",embed=embed)
 
             if button1channel is None:
@@ -407,7 +407,7 @@ class joinstuff(commands.Cog):
             button2channel = await pingToChannel(ctx, response)
 
             if response.lower() == "cancel":
-                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                embed = disnake.Embed(description="**Command Canceled Chief**", color=disnake.Color.red())
                 return await msg2.edit(content="", embed=embed)
 
             if button2channel is None:
@@ -428,7 +428,7 @@ class joinstuff(commands.Cog):
             button3channel = await pingToChannel(ctx, response)
 
             if response.lower() == "cancel":
-                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                embed = disnake.Embed(description="**Command Canceled Chief**", color=disnake.Color.red())
                 return await msg2.edit(content="", embed=embed)
 
             if button3channel is None:
@@ -437,21 +437,21 @@ class joinstuff(commands.Cog):
                 continue
 
 
-        embed = discord.Embed(title="Enjoy your stay!",
+        embed = disnake.Embed(title="Enjoy your stay!",
                               description=f"{emoji}**Welcome to {ctx.guild.name}!**{emoji}\n"
                                           f"{description}"
                                           f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
 
         embed.set_thumbnail(url=ctx.author.avatar_url)
 
         stat_buttons = [
             create_button(label=f"{button1text}", emoji=f"{button1emoji}", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{button1channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{button1channel.id}"),
             create_button(label=f"{button2text}", emoji=f"{button2emoji}", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{button2channel.id}"),
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{button2channel.id}"),
             create_button(label=f"{button3text}", emoji=f"{button3emoji}", style=ButtonStyle.URL,
-                          url=f"https://discord.com/channels/{ctx.guild.id}/{button3channel.id}")]
+                          url=f"https://disnake.com/channels/{ctx.guild.id}/{button3channel.id}")]
         buttons = create_actionrow(*stat_buttons)
         await msg.edit(embed=embed, components=[buttons])
 
@@ -498,9 +498,9 @@ class joinstuff(commands.Cog):
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def linkmessage_set(self, ctx):
 
-        embed = discord.Embed(title="**Link Button Channel**",
+        embed = disnake.Embed(title="**Link Button Channel**",
                               description=f"What is the channel to post the Link Button message in?\n Please make sure I have perms to send messages there.",
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
         embed.set_footer(text="Type `cancel` at any point to quit.")
         msg = await ctx.send(embed=embed)
 
@@ -515,13 +515,13 @@ class joinstuff(commands.Cog):
             welcomeChannel = await pingToChannel(ctx, response)
 
             if response.lower() == "cancel":
-                embed = discord.Embed(description="**Command Canceled Chief**", color=discord.Color.red())
+                embed = disnake.Embed(description="**Command Canceled Chief**", color=disnake.Color.red())
                 return await msg.edit(embed=embed)
 
             if welcomeChannel is None:
-                embed = discord.Embed(title="Sorry that channel is invalid. Please try again.",
+                embed = disnake.Embed(title="Sorry that channel is invalid. Please try again.",
                                       description=f"What is the link button channel?",
-                                      color=discord.Color.red())
+                                      color=disnake.Color.red())
                 embed.set_footer(text="Type `cancel` at any point to quit.")
                 await msg.edit(embed=embed)
                 continue
@@ -532,9 +532,9 @@ class joinstuff(commands.Cog):
             perms = c.permissions_for(r)
             send_msg = perms.send_messages
             if send_msg == False:
-                embed = discord.Embed(
+                embed = disnake.Embed(
                     description=f"Missing Permissions.\nMust have `Send Messages` in the link button channel.\nTry Again. What is the channel?",
-                    color=discord.Color.red())
+                    color=disnake.Color.red())
                 embed.set_footer(text="Type `cancel` at any point to quit.")
                 await msg.edit(embed=embed)
                 welcomeChannel = None
@@ -562,8 +562,8 @@ class joinstuff(commands.Cog):
                 "link_channel": welcomeChannel.id
             }})
 
-        embed = discord.Embed(description=f"Link Button Channel Successfully Setup!",
-                              color=discord.Color.green())
+        embed = disnake.Embed(description=f"Link Button Channel Successfully Setup!",
+                              color=disnake.Color.green())
         await msg.edit(embed=embed)
 
     @linkmessage.group(name="remove", pass_context=True, invoke_without_command=True)
@@ -591,8 +591,8 @@ class joinstuff(commands.Cog):
                 "link_channel": None
             }})
 
-        embed = discord.Embed(description=f"Link Button Channel Successfully Removed!",
-                              color=discord.Color.green())
+        embed = disnake.Embed(description=f"Link Button Channel Successfully Removed!",
+                              color=disnake.Color.green())
         await ctx.send(embed=embed)
 
     @welcome.group(name="remove", pass_context=True, invoke_without_command=True)
@@ -629,8 +629,8 @@ class joinstuff(commands.Cog):
                 "button3channel": None
             }})
 
-        embed = discord.Embed(description=f"Welcome Embed Successfully Removed!",
-                              color=discord.Color.green())
+        embed = disnake.Embed(description=f"Welcome Embed Successfully Removed!",
+                              color=disnake.Color.green())
         await ctx.send(embed=embed)
 
     @commands.Cog.listener()
@@ -657,21 +657,21 @@ class joinstuff(commands.Cog):
                 arrowleft = "<a:6270_Arrow_1_Gif:932470483205644300>"
                 arrowright =  "<a:rightarrow:932470092883722271>"
 
-                embed = discord.Embed(title="Enjoy your stay!",
+                embed = disnake.Embed(title="Enjoy your stay!",
                                       description=f"{emoji}**Welcome to {member.guild.name}!**{emoji}\n"
                                                   f"{description}"
                                                   f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
-                                      color=discord.Color.green())
+                                      color=disnake.Color.green())
 
                 embed.set_thumbnail(url=member.avatar_url)
 
                 stat_buttons = [
                     create_button(label=f"{button1text}", emoji=f"{button1emoji}", style=ButtonStyle.URL,
-                                  url=f"https://discord.com/channels/{member.guild.id}/{button1channel}"),
+                                  url=f"https://disnake.com/channels/{member.guild.id}/{button1channel}"),
                     create_button(label=f"{button2text}", emoji=f"{button2emoji}", style=ButtonStyle.URL,
-                                  url=f"https://discord.com/channels/{member.guild.id}/{button2channel}"),
+                                  url=f"https://disnake.com/channels/{member.guild.id}/{button2channel}"),
                     create_button(label=f"{button3text}", emoji=f"{button3emoji}", style=ButtonStyle.URL,
-                                  url=f"https://discord.com/channels/{member.guild.id}/{button3channel}")]
+                                  url=f"https://disnake.com/channels/{member.guild.id}/{button3channel}")]
                 buttons = create_actionrow(*stat_buttons)
                 await channel.send(content=f"{member.mention}",embed=embed, components=[buttons])
 
@@ -679,19 +679,19 @@ class joinstuff(commands.Cog):
             link_channel = results.get("link_channel")
             if link_channel != None:
                 channel = self.bot.get_channel(link_channel)
-                embed = discord.Embed(title=f"**Welcome to {member.guild.name}!**",
+                embed = disnake.Embed(title=f"**Welcome to {member.guild.name}!**",
                                       description=f"To link your account, press the button below & follow the step by step instructions.",
-                                      color=discord.Color.green())
+                                      color=disnake.Color.green())
                 stat_buttons = [
                     create_button(label="Link Account", emoji="🔗", style=ButtonStyle.blue, custom_id="Start Link", disabled=False)]
                 stat_buttons = create_actionrow(*stat_buttons)
                 embed.set_thumbnail(url=member.guild.icon_url_as())
                 await channel.send(content=member.mention, embed=embed, components=[stat_buttons])
 
-
+    
 
     @commands.Cog.listener()
-    async def on_component(self, ctx : discord_slash.ComponentContext):
+    async def on_component(self, ctx : disnake_slash.ComponentContext):
         if ctx.channel.id == 945228791792431154:
             return
         if ctx.custom_id == "Start Link":
@@ -709,32 +709,32 @@ class joinstuff(commands.Cog):
             cancel = False
             correctTag = False
 
-            embed = discord.Embed(description="<a:loading:884400064313819146> Starting link...",
-                                  color=discord.Color.green())
+            embed = disnake.Embed(description="<a:loading:884400064313819146> Starting link...",
+                                  color=disnake.Color.green())
 
             msg = await ctx.reply(embed=embed)
 
 
             playerTag = ""
             playerToken = ""
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 title="Hello, " + ctx.author.display_name + "!",
                 description="Let's get started:" +
                             "\nPlease respond with the player tag of __**your**__ account\n(Example: #PC2UJVVU)\nYou have 10 minutes to reply.\nSee image below for help finding & copying your player tag.",
-                color=discord.Color.green())
+                color=disnake.Color.green())
 
             embed.set_footer(text="Type `cancel` at any point to quit")
             embed.set_image(
-                url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
+                url="https://cdn.disnakeapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
             await msg.edit(embed=embed)
             x = 0
             while (correctTag == False):
                 x += 1
                 if x == 4:
                     link_open.remove(member)
-                    embed = discord.Embed(
+                    embed = disnake.Embed(
                         description=f"Canceling command. Player Tag Failed 4 Times.",
-                        color=discord.Color.red())
+                        color=disnake.Color.red())
                     return await msg.edit(embed=embed)
 
                 def check(message):
@@ -748,9 +748,9 @@ class joinstuff(commands.Cog):
                     await m.delete()
                 except:
                     link_open.remove(member)
-                    embed = discord.Embed(
+                    embed = disnake.Embed(
                         description=f"Command Timed-out please run again.",
-                        color=discord.Color.red())
+                        color=disnake.Color.red())
                     return await msg.edit(embed=embed)
                 playerTag = ctx.message.content
                 player = await getPlayer(playerTag)
@@ -759,26 +759,26 @@ class joinstuff(commands.Cog):
                 if (playerTag.lower() == "cancel"):
                     cancel = True
                     link_open.remove(member)
-                    canceled = discord.Embed(
+                    canceled = disnake.Embed(
                         description="Command Canceled",
                         color=0xf30000)
                     return await msg.edit(embed=canceled)
 
                 if (player == None):
                     if clan is not None:
-                        embed = discord.Embed(
+                        embed = disnake.Embed(
                             title=f"Sorry, `{playerTag}` is invalid and it also appears to be the **clan** tag for " + clan.name,
                             description="Player tags only, What is the correct player tag? (Image below for reference)", color=0xf30000)
                         embed.set_image(
-                            url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
+                            url="https://cdn.disnakeapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
                         embed.set_footer(text="Type `cancel` at any point to quit")
                         await msg.edit(embed=embed)
                     else:
-                        embed = discord.Embed(
+                        embed = disnake.Embed(
                             title=f"Sorry, `{playerTag}` is an invalid player tag. Please try again.",
                             description="What is the correct player tag? (Image below for reference)", color=0xf30000)
                         embed.set_image(
-                            url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
+                            url="https://cdn.disnakeapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
                         embed.set_footer(text="Type `cancel` at any point to quit")
                         await msg.edit(embed=embed)
                     continue
@@ -788,39 +788,39 @@ class joinstuff(commands.Cog):
             player = await getPlayer(playerTag)
             if player == None:
                 link_open.remove(member)
-                embed = discord.Embed(
+                embed = disnake.Embed(
                     title=playerTag + " is an invalid playertag. Try again.",
-                    color=discord.Color.red())
+                    color=disnake.Color.red())
                 return await msg.edit(embed=embed, mention_author=False)
             linked = await link_client.get_link(player.tag)
 
             if (linked != member.id) and (linked != None):
                 link_open.remove(member)
-                embed = discord.Embed(
-                    description=f"[{player.name}]({player.share_link}) is already linked to another discord user.",
-                    color=discord.Color.red())
+                embed = disnake.Embed(
+                    description=f"[{player.name}]({player.share_link}) is already linked to another disnake user.",
+                    color=disnake.Color.red())
                 return await msg.edit(embed=embed, mention_author=False)
             elif linked == member.id:
                 link_open.remove(member)
                 evalua = self.bot.get_cog("eval")
                 changes = await evalua.eval_member(ctx, member, False)
 
-                embed = discord.Embed(
+                embed = disnake.Embed(
                     description=f"You're already linked {executor.mention}! Updating your roles.\n"
                                 f"Added: {changes[0]}\n"
-                                f"Removed: {changes[1]}", color=discord.Color.green())
+                                f"Removed: {changes[1]}", color=disnake.Color.green())
                 return await msg.edit(embed=embed, mention_author=False)
 
             if cancel is not True:
 
-                embed = discord.Embed(
+                embed = disnake.Embed(
                     title="What is your api token? ",
                     description=f"- Reference below for help finding your api token.\n- Open COC and navigate to Settings > More Settings - OR use the below link:\nhttps://link.clashofclans.com/?action=OpenMoreSettings" +
                                 "\n- Scroll down to the bottom and copy the api token.\n- View the picture below for reference.",
-                    color=discord.Color.green())
+                    color=disnake.Color.green())
                 embed.set_footer(text="Type `cancel` at any point to quit\n(API Token is one-time use.)")
                 embed.set_image(
-                    url="https://media.discordapp.net/attachments/822599755905368095/826178477023166484/image0.png?width=1806&height=1261")
+                    url="https://media.disnakeapp.net/attachments/822599755905368095/826178477023166484/image0.png?width=1806&height=1261")
                 await msg.edit(embed=embed)
 
                 def check(message):
@@ -832,15 +832,15 @@ class joinstuff(commands.Cog):
                     await m.delete()
                 except:
                     link_open.remove(member)
-                    embed = discord.Embed(
+                    embed = disnake.Embed(
                         description=f"Command Timed-out please run again.",
-                        color=discord.Color.red())
+                        color=disnake.Color.red())
                     return await msg.edit(embed=embed)
                 playerToken = ctx.message.content
                 if playerToken.lower() == "cancel":
                     cancel = True
                     link_open.remove(member)
-                    canceled = discord.Embed(
+                    canceled = disnake.Embed(
                         description="Command Canceled",
                         color=0xf30000)
                     return await msg.edit(embed=canceled)
@@ -855,10 +855,10 @@ class joinstuff(commands.Cog):
                         await link_client.add_link(player.tag, member.id)
                         evalua = self.bot.get_cog("eval")
                         changes = await evalua.eval_member(ctx, member, False)
-                        embed = discord.Embed(
+                        embed = disnake.Embed(
                             description=f"[{player.name}]({player.share_link}) successfully linked to {member.mention}.\n"
                                         f"Added: {changes[0]}\n"
-                                        f"Removed: {changes[1]}", color=discord.Color.green())
+                                        f"Removed: {changes[1]}", color=disnake.Color.green())
                         await msg.edit(embed=embed, mention_author=False)
                         greet = changes[2]
                         if greet:
@@ -878,18 +878,19 @@ class joinstuff(commands.Cog):
 
                     elif (linked is None) and (playerVerified == False):
                         link_open.remove(member)
-                        embed = discord.Embed(
+                        embed = disnake.Embed(
                             description="Hey " + member.display_name + f"! The player you are looking for is [{player.name}]({player.share_link})  however it appears u may have made a mistake. \nDouble check your player tag and/or api token again.",
-                            color=discord.Color.red())
+                            color=disnake.Color.red())
                         await msg.edit(embed=embed)
 
                 except:
                     link_open.remove(member)
-                    embed = discord.Embed(title="Something went wrong " + member.display_name + " :(",
+                    embed = disnake.Embed(title="Something went wrong " + member.display_name + " :(",
                                           description="Take a second glance at your player tag and/or token, one is completely invalid.",
-                                          color=discord.Color.red())
+                                          color=disnake.Color.red())
                     await msg.edit(embed=embed)
 
+    '''
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
         results = await server.find_one({"server": guild.id})
