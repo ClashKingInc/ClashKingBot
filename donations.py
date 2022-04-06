@@ -99,6 +99,8 @@ class WarEvents(commands.Cog):
     @coc.ClanEvents.member_donations()
     async def dona(self, old_member : coc.ClanMember, new_member : coc.ClanMember):
         donated = new_member.donations - old_member.donations
+        if donated <= 0:
+            return
         tag = new_member.tag
         results = await donations.find_one({"tag": tag})
         if results is None:
