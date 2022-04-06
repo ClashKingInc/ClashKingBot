@@ -34,6 +34,11 @@ class addClan(commands.Cog):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
+        if general_clan_role.id == leadership_clan_role.id:
+            embed = disnake.Embed(description="General Clan Role & Clan Leadership Role cannot be the same.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
         #check if clan is already linked
         clan = await getClan(clan_tag)
         results = await clans.find_one({"$and": [
