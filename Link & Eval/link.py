@@ -244,8 +244,5 @@ class Linking(commands.Cog):
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
-
-
-
 def setup(bot: commands.Bot):
     bot.add_cog(Linking(bot))
