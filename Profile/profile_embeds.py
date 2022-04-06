@@ -65,7 +65,11 @@ async def create_profile_stats(ctx, result):
                                 f"Clan: {clan} {role}\n"
                                 f"[Clash Of Stats Profile](https://www.clashofstats.com/players/{tag})",
                               color=disnake.Color.green())
-        embed.set_thumbnail(url=member.avatar.url)
+        if member.avatar is None:
+            embed.set_thumbnail(
+                url="https://cdn.discordapp.com/attachments/843624785560993833/961411093622816819/4_1.png")
+        else:
+            embed.set_thumbnail(url=member.avatar.url)
     elif (member is None) and (disnakeID is not None):
         embed = disnake.Embed(title=f'{emoji} **{name}** ',
                               description=f"*Linked, but not on this server.*"+
