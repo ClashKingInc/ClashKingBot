@@ -2,8 +2,6 @@
 import disnake
 from disnake.ext import commands
 from utils.clash import getClan, pingToRole, client, pingToChannel, coc_client
-from main import check_commands
-from coc import utils
 usafam = client.usafam
 clans = usafam.clans
 
