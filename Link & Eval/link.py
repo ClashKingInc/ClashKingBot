@@ -123,8 +123,8 @@ class Linking(commands.Cog):
 
     @commands.slash_command(name="linkhelp", description="Help & Reference guide for /link command")
     async def linkhelp(self, ctx: disnake.ApplicationCommandInteraction):
-        embed = disnake.Embed(
-            description=f"Finding a player tag.\n- Open Game\n- Navigate to your account's profile\n- Near top left click copy icon to copy player tag to clipboard\n"
+        embed = disnake.Embed(title="Finding a player tag",
+            description=f"- Open Game\n- Navigate to your account's profile\n- Near top left click copy icon to copy player tag to clipboard\n"
                         f"- Make sure it is the player tag & **not** the clan\n- View photo below for reference",
             color=disnake.Color.red())
         embed.set_image(
@@ -165,7 +165,7 @@ class Linking(commands.Cog):
         if linked is not None:
             if linked == member.id:
                 embed = disnake.Embed(
-                    title=f"{player.name} is already linked to {member.mention}",
+                    description=f"{player.name} is already linked to {member.mention}",
                     color=disnake.Color.red())
                 return await ctx.send(embed=embed)
             else:
