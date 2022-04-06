@@ -1,9 +1,9 @@
 from main import check_commands
 from disnake.ext import commands # Again, we need this imported
-import discord
-from utils.clashClient import getClan, getPlayer, verifyPlayer, link_client, pingToMember, getTags, client
+import disnake
+from utils.clash import getClan, getPlayer, verifyPlayer, link_client, pingToMember, getTags, client
 
-link_open=[]
+
 
 usafam = client.usafam
 clans = usafam.clans
@@ -15,263 +15,66 @@ class Linking(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.command(name="refresh")
+    @commands.slash_command(name="refresh", description="Self evaluate & refresh your server roles")
     async def refresh(self, ctx):
-        tags = await getTags(ctx, str(ctx.message.author.id))
+        tags = await getTags(ctx, str(ctx.author.id))
         if tags !=[]:
             evalua = self.bot.get_cog("eval")
-            changes = await evalua.eval_member(ctx, ctx.message.author, False)
-            embed = discord.Embed(
+            changes = await evalua.eval_member(ctx, ctx.author, False)
+            embed = disnake.Embed(
                 description=f"Refreshed your roles {ctx.author.mention}.\n"
                             f"Added: {changes[0]}\n"
-                            f"Removed: {changes[1]}", color=discord.Color.green())
-            return await ctx.reply(embed=embed, mention_author=False)
+                            f"Removed: {changes[1]}", color=disnake.Color.green())
+            return await ctx.send(embed=embed)
         else:
-            embed = discord.Embed(
-                description=f"You have no accounts linked.", color=discord.Color.red())
-            return await ctx.reply(embed=embed, mention_author=False)
+            embed = disnake.Embed(
+                description=f"You have no accounts linked.", color=disnake.Color.red())
+            return await ctx.send(embed=embed)
 
+    @commands.slash_command(name="link", description="Link clash of clans accounts to your discord profile")
+    async def link(self,  ctx: disnake.ApplicationCommandInteraction, player_tag, api_token):
+        """
+            Parameters
+            ----------
+            player_tag: player_tag as found in-game
+            api_token: player api-token, use /linkhelp for more info
+        """
 
-    @commands.command(name='link')
-    async def link(self, ctx, playerTag=None):
-
-        member = ctx.author
-
-        if member in link_open:
-            return await ctx.send(
-                content="You already have a link command open, please finish linking there or type `cancel` to cancel the command.", delete_after=30)
-
-        executor = ctx.author
-        link_open.append(member)
-
-        messagesSent = []
-
-        cancel = False
-        correctTag = False
-
-        embed = discord.Embed(description="<a:loading:884400064313819146> Starting link...",
-                              color=discord.Color.green())
-
-        msg = await ctx.reply(embed=embed, mention_author=False)
-
-        if playerTag == None:
-            playerTag = ""
-            playerToken = ""
-            embed = discord.Embed(
-                title="Hello, " + ctx.author.display_name + "!",
-                description="Let's get started:" +
-                            "\nPlease respond in the chat with the player tag of __**your**__ account.\n(Example: #PC2UJVVU)\nYou have 10 minutes to reply.\nSee image below for help finding your player tag.",
-                color=discord.Color.green())
-
-            embed.set_footer(text="Type `cancel` at any point to quit")
+        player = await getPlayer(player_tag)
+        if player is None:
+            embed = disnake.Embed(description=f"{player_tag} is not a valid player tag. Use the photo below to help find your player tag.", color=disnake.Color.red())
             embed.set_image(
                 url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
-            await msg.edit(embed=embed)
-            x = 0
-            while (correctTag == False):
-                x += 1
-                if x == 4:
-                    link_open.remove(member)
-                    embed = discord.Embed(
-                        description=f"Canceling command. Player Tag Failed 4 Times.",
-                        color=discord.Color.red())
-                    return await msg.edit(embed=embed)
+            return await ctx.send(embed=embed)
 
-                def check(message):
-                    ctx.message.content = message.content
-                    return message.content != "" and message.author == executor
-
-                # LETS SEEE WHAT HAPPENS
-
-                try:
-                    m = await self.bot.wait_for("message", check=check, timeout=600)
-                    await m.delete()
-                except:
-                    link_open.remove(member)
-                    embed = discord.Embed(
-                        description=f"Command Timed-out please run again.",
-                        color=discord.Color.red())
-                    return await msg.edit(embed=embed)
-                playerTag = ctx.message.content
-                player = await getPlayer(playerTag)
-                clan = await getClan(playerTag)
-
-                if (playerTag.lower() == "cancel"):
-                    cancel = True
-                    link_open.remove(member)
-                    canceled = discord.Embed(
-                        description="Command Canceled",
-                        color=0xf30000)
-                    return await msg.edit(embed=canceled)
-
-                if (player == None):
-                    if clan is not None:
-                        embed = discord.Embed(
-                            title=f"Sorry, `{playerTag}` is invalid and it also appears to be the **clan** tag for " + clan.name,
-                            description="Player tags only, What is the correct player tag? (Image below for reference)",
-                            color=0xf30000)
-                        embed.set_image(
-                            url="https://media.discordapp.net/attachments/815832030084333628/845542691411853312/image0.jpg")
-                        embed.set_footer(text="Type `cancel` at any point to quit")
-                        await msg.edit(embed=embed)
-                    else:
-                        embed = discord.Embed(
-                            title=f"Sorry, `{playerTag}` is an invalid player tag. Please try again.",
-                            description="What is the correct player tag? (Image below for reference)", color=0xf30000)
-                        embed.set_image(
-                            url="https://media.discordapp.net/attachments/815832030084333628/845542691411853312/image0.jpg")
-                        embed.set_footer(text="Type `cancel` at any point to quit")
-                        await msg.edit(embed=embed)
-                    continue
-                else:
-                    correctTag = True
-
-        player = await getPlayer(playerTag)
-        if player == None:
-            link_open.remove(member)
-            embed = discord.Embed(
-                title=playerTag + " is an invalid playertag. Try again. Reference image below & try linking again.",
-                color=discord.Color.red())
-            embed.set_image(
-                url="https://media.discordapp.net/attachments/815832030084333628/845542691411853312/image0.jpg")
-            return await msg.edit(embed=embed, mention_author=False)
+        verified = await verifyPlayer(player.tag, api_token)
         linked = await link_client.get_link(player.tag)
+        is_linked = (linked != None)
 
-        if (linked != member.id) and (linked != None):
-            link_open.remove(member)
-            embed = discord.Embed(
-                description=f"[{player.name}]({player.share_link}) is already linked to another discord user.",
-                color=discord.Color.red())
-            return await msg.edit(embed=embed, mention_author=False)
-        elif linked == member.id:
-            link_open.remove(member)
+        if verified and is_linked:
+            if linked == ctx.author.id:
+                evalua = self.bot.get_cog("eval")
+                changes = await evalua.eval_member(ctx, ctx.author, False)
+                embed = disnake.Embed(
+                    description=f"[{player.name}]({player.share_link}) is already linked to you {ctx.author.mention}.\n"
+                                f"Added: {changes[0]}\n"
+                                f"Removed: {changes[1]}", color=disnake.Color.green())
+                await ctx.send(embed=embed)
+            else:
+                embed = disnake.Embed(
+                    description=f"[{player.name}]({player.share_link}) is already linked to another discord user. Use `/unlink` to remove the link first.", color=disnake.Color.red())
+                await ctx.send(embed=embed)
+
+        elif verified and not is_linked:
+            await link_client.add_link(player.tag, ctx.author.id)
             evalua = self.bot.get_cog("eval")
-            changes = await evalua.eval_member(ctx, member, False)
-
-            embed = discord.Embed(
-                description=f"You're already linked {executor.mention}! Updating your roles.\n"
+            changes = await evalua.eval_member(ctx, ctx.author, False)
+            embed = disnake.Embed(
+                description=f"[{player.name}]({player.share_link}) is successfully linked to {ctx.author.mention}.\n"
                             f"Added: {changes[0]}\n"
-                            f"Removed: {changes[1]}", color=discord.Color.green())
-            return await msg.edit(embed=embed, mention_author=False)
-
-        playerToken = None
-        if cancel is not True:
-
-            embed = discord.Embed(
-                title="What is your api token? ",
-                description=f"- Reference below for help finding your api token.\n- Open COC and navigate to Settings > More Settings - OR use the below link:\nhttps://link.clashofclans.com/?action=OpenMoreSettings" +
-                            "\n- Scroll down to the bottom and copy the api token.\n- View the picture below for reference.",
-                color=discord.Color.green())
-            embed.set_footer(text="Type `cancel` at any point to quit\n(API Token is one-time use.)")
-            embed.set_image(
-                url="https://media.discordapp.net/attachments/822599755905368095/826178477023166484/image0.png?width=1806&height=1261")
-            await msg.edit(embed=embed)
-
-            def check(message):
-                ctx.message.content = message.content
-                return message.content != "" and message.author == executor
-
+                            f"Removed: {changes[1]}", color=disnake.Color.green())
+            await ctx.send(embed=embed)
             try:
-                m = await self.bot.wait_for("message", check=check, timeout=600)
-                await m.delete()
-            except:
-                link_open.remove(member)
-                embed = discord.Embed(
-                    description=f"Command Timed-out please run again.",
-                    color=discord.Color.red())
-                return await msg.edit(embed=embed)
-            playerToken = ctx.message.content
-            if playerToken.lower() == "cancel":
-                cancel = True
-                link_open.remove(member)
-                canceled = discord.Embed(
-                    description="Command Canceled",
-                    color=0xf30000)
-                return await msg.edit(embed=canceled)
-
-        if cancel is not True:
-            try:
-                playerVerified = await verifyPlayer(player.tag, playerToken)
-                linked = await link_client.get_link(player.tag)
-
-                if (linked is None) and (playerVerified == True):
-                    link_open.remove(member)
-                    await link_client.add_link(player.tag, member.id)
-                    evalua = self.bot.get_cog("eval")
-                    changes = await evalua.eval_member(ctx, member, False)
-                    embed = discord.Embed(
-                        description=f"[{player.name}]({player.share_link}) successfully linked to {member.mention}.\n"
-                                    f"Added: {changes[0]}\n"
-                                    f"Removed: {changes[1]}", color=discord.Color.green())
-
-                    await msg.edit(embed=embed, mention_author=False)
-                    greet = changes[2]
-                    if greet:
-                        results = await server.find_one({"server": ctx.guild.id})
-                        greeting = results.get("greeting")
-                        if greeting == None:
-                            greeting = ""
-
-                        results = await clans.find_one({"$and": [
-                            {"alias": player.clan},
-                            {"server": ctx.guild.id}
-                        ]})
-                        channel = results.get("clanChannel")
-                        channel = self.bot.get_channel(channel)
-                        await channel.send(f"{ctx.author.mention}, welcome to {ctx.guild.name}! {greet}")
-
-
-                elif (linked is None) and (playerVerified == False):
-                    link_open.remove(member)
-                    embed = discord.Embed(
-                        description="Hey " + member.display_name + f"! The player you are looking for is [{player.name}]({player.share_link})  however it appears u may have made a mistake. \nDouble check your player tag and/or api token again.",
-                        color=discord.Color.red())
-                    await msg.edit(embed=embed)
-
-            except:
-                link_open.remove(member)
-                embed = discord.Embed(title="Something went wrong " + member.display_name + " :(",
-                                      description="Take a second glance at your player tag and/or token, one is completely invalid.",
-                                      color=discord.Color.red())
-                await msg.edit(embed=embed)
-
-
-    @commands.command(name="modlink")
-    @commands.check_any(commands.has_permissions(manage_roles=True), check_commands())
-    async def modlink(self, ctx, user, *, playerTags):
-        user = await pingToMember(ctx, user)
-        if user is None:
-            embed = discord.Embed(description="Invalid Discord User", color=discord.Color.red())
-            return await ctx.reply(embed=embed, mention_author=False)
-
-        playerTags = playerTags.split()
-        for playerTag in playerTags:
-            player = await getPlayer(playerTag)
-            if player is None:
-                embed = discord.Embed(description="Invalid Player Tag", color=discord.Color.red())
-                await ctx.reply(embed=embed, mention_author=False)
-                continue
-
-            linked = await link_client.get_link(player.tag)
-            if ctx.message.author.id != 706149153431879760:
-                if linked is not None:
-                    embed = discord.Embed(
-                        title=player.name + " is already linked to a discord user.",
-                        color=discord.Color.red())
-                    await ctx.reply(embed=embed, mention_author=False)
-                    continue
-
-            await link_client.add_link(player.tag, user.id)
-
-            evalua = self.bot.get_cog("eval")
-            changes = await evalua.eval_member(ctx, user, False)
-
-            embed = discord.Embed(description=f"[{player.name}]({player.share_link}) has been linked to {user.mention}.\n"
-                                              f"Added: {changes[0]}\n"
-                                                  f"Removed: {changes[1]}", color=discord.Color.green())
-            await ctx.reply(embed=embed, mention_author=False)
-            greet = changes[2]
-            if greet:
                 results = await server.find_one({"server": ctx.guild.id})
                 greeting = results.get("greeting")
                 if greeting == None:
@@ -281,40 +84,165 @@ class Linking(commands.Cog):
                     {"tag": player.clan.tag},
                     {"server": ctx.guild.id}
                 ]})
-                channel = results.get("clanChannel")
-                channel = self.bot.get_channel(channel)
-                await channel.send(f"{user.mention}, welcome to {ctx.guild.name}! {greeting}")
+                if results != None:
+                    channel = results.get("clanChannel")
+                    channel = self.bot.get_channel(channel)
+                    await channel.send(f"{ctx.author.mention}, welcome to {ctx.guild.name}! {greeting}")
+            except:
+                pass
 
-    @commands.command(name="unlink")
-    @commands.check_any(commands.has_permissions(manage_roles=True), check_commands())
-    async def unlink(self, ctx, playerTag):
-        player = await getPlayer(playerTag)
+        elif not verified and is_linked:
+            if linked == ctx.author.id:
+                evalua = self.bot.get_cog("eval")
+                changes = await evalua.eval_member(ctx, ctx.author, False)
+                embed = disnake.Embed(
+                    description=f"[{player.name}]({player.share_link}) is already linked to you {ctx.author.mention}.\n"
+                                f"Added: {changes[0]}\n"
+                                f"Removed: {changes[1]}", color=disnake.Color.green())
+                await ctx.send(embed=embed)
+            else:
+                embed = disnake.Embed(
+                    title="API Token is Incorrect!",
+                    description=f"- Reference below for help finding your api token.\n- Open Clash and navigate to Settings > More Settings - OR use the below link:\nhttps://link.clashofclans.com/?action=OpenMoreSettings" +
+                                "\n- Scroll down to the bottom and copy the api token.\n- View the picture below for reference.",
+                    color=disnake.Color.red())
+                embed.set_image(
+                    url="https://cdn.discordapp.com/attachments/843624785560993833/961379232955658270/image0_2.png")
+                await ctx.send(embed=embed)
+
+        elif not verified and not is_linked:
+            embed = disnake.Embed(
+                title="API Token is Incorrect!",
+                description=f"- Reference below for help finding your api token.\n- Open Clash and navigate to Settings > More Settings - OR use the below link:\nhttps://link.clashofclans.com/?action=OpenMoreSettings" +
+                            "\n- Scroll down to the bottom and copy the api token.\n- View the picture below for reference.",
+                color=disnake.Color.red())
+            embed.set_image(
+                url="https://cdn.discordapp.com/attachments/843624785560993833/961379232955658270/image0_2.png")
+            await ctx.send(embed=embed)
+
+
+    @commands.slash_command(name="linkhelp", description="Help & Reference guide for /link command")
+    async def linkhelp(self, ctx: disnake.ApplicationCommandInteraction):
+        embed = disnake.Embed(
+            description=f"Finding a player tag.\n- Open Game\n- Navigate to your account's profile\n- Near top left click copy icon to copy player tag to clipboard\n"
+                        f"- Make sure it is the player tag & **not** the clan\n- View photo below for reference",
+            color=disnake.Color.red())
+        embed.set_image(
+            url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
+        await ctx.send(embed=embed)
+        embed2 = disnake.Embed(
+            title="What is your api token? ",
+            description=f"- Reference below for help finding your api token.\n- Open Clash and navigate to Settings > More Settings\n- **OR** use the following link:\nhttps://link.clashofclans.com/?action=OpenMoreSettings" +
+                        "\n- Scroll down to the bottom and copy the api token.\n- View the picture below for reference.",
+            color=disnake.Color.red())
+        embed2.set_image(
+            url="https://cdn.discordapp.com/attachments/843624785560993833/961379232955658270/image0_2.png")
+        await ctx.channel.send(embed=embed2)
+
+
+    @commands.slash_command(name="modlink", description="Links clash account to a discord member, on their behalf.")
+    async def modlink(self, ctx: disnake.ApplicationCommandInteraction, member : disnake.Member, player_tag, greet=commands.Param(default="Yes", choices=["Yes", "No"])):
+        """
+            Parameters
+            ----------
+            player_tag: player_tag as found in-game
+            member: discord member to link this player to
+            greet: (optional) don't send the clan greeting for a newly linked account
+        """
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
+        player = await getPlayer(player_tag)
         if player is None:
-            embed = discord.Embed(description="Invalid Player Tag", color=discord.Color.red())
-            return await ctx.reply(embed=embed, mention_author=False)
+            embed = disnake.Embed(description="Invalid Player Tag", color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
+        linked = await link_client.get_link(player.tag)
+
+        if linked is not None:
+            if linked == member.id:
+                embed = disnake.Embed(
+                    title=f"{player.name} is already linked to {member.mention}",
+                    color=disnake.Color.red())
+                return await ctx.send(embed=embed)
+            else:
+                embed = disnake.Embed(
+                    title=f"{player.name} is already linked to a discord user.",
+                    color=disnake.Color.red())
+                return await ctx.send(embed=embed)
+
+
+        await link_client.add_link(player.tag, member.id)
+
+        evalua = self.bot.get_cog("eval")
+        changes = await evalua.eval_member(ctx, member, False)
+
+        embed = disnake.Embed(description=f"[{player.name}]({player.share_link}) has been linked to {member.mention}.\n"
+                                          f"Added: {changes[0]}\n"
+                                        f"Removed: {changes[1]}", color=disnake.Color.green())
+        await ctx.send(embed=embed)
+
+        if greet != "No":
+            try:
+                results = await server.find_one({"server": ctx.guild.id})
+                greeting = results.get("greeting")
+                if greeting == None:
+                    greeting = ""
+
+                results = await clans.find_one({"$and": [
+                    {"tag": player.clan.tag},
+                    {"server": ctx.guild.id}
+                ]})
+                if results != None:
+                    channel = results.get("clanChannel")
+                    channel = self.bot.get_channel(channel)
+                    await channel.send(f"{member.mention}, welcome to {ctx.guild.name}! {greeting}")
+            except:
+                pass
+
+    @commands.slash_command(name="unlink", description="Unlinks a clash account from discord [Manage Guild Required]")
+    async def unlink(self, ctx: disnake.ApplicationCommandInteraction, player_tag):
+        """
+            Parameters
+            ----------
+            player_tag: player_tag as found in-game
+        """
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
+        player = await getPlayer(player_tag)
+        if player is None:
+            embed = disnake.Embed(description="Invalid Player Tag", color=disnake.Color.red())
+            return await ctx.send(embed=embed)
 
         linked = await link_client.get_link(player.tag)
         if linked is None:
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 title=player.name + " is not linked to a discord user.",
-                color=discord.Color.red())
-            return await ctx.reply(embed=embed, mention_author=False)
+                color=disnake.Color.red())
+            return await ctx.send(embed=embed)
 
         member = await pingToMember(ctx, linked)
         is_member = (member != None)
-        if ctx.guild.id == 328997757048324101:
+        if ctx.guild.id == 767590042675314718:
             is_member = True
 
         if is_member == False:
-            embed = discord.Embed(description=f"[{player.name}]({player.share_link}), cannot unlink players not on this server.",
-                                  color=discord.Color.green())
-            await ctx.reply(embed=embed, mention_author=False)
+            embed = disnake.Embed(description=f"[{player.name}]({player.share_link}), cannot unlink players not on this server.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
 
         await link_client.delete_link(player.tag)
 
-        embed = discord.Embed(description=f"[{player.name}]({player.share_link}) has been unlinked from discord.",
-                              color=discord.Color.green())
-        await ctx.reply(embed=embed, mention_author=False)
+        embed = disnake.Embed(description=f"[{player.name}]({player.share_link}) has been unlinked from discord.",
+                              color=disnake.Color.green())
+        await ctx.send(embed=embed)
 
 
 
