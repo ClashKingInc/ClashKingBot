@@ -126,7 +126,7 @@ class top(commands.Cog):
             elif res.data.custom_id == "Print":
                 await msg.delete()
                 for embed in embeds:
-                    await ctx.send(embed=embed)
+                    await ctx.channel.send(embed=embed)
                 return
 
 

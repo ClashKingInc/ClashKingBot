@@ -570,7 +570,7 @@ class eval(commands.Cog):
             elif res.data.custom_id == "Print":
                 await msg.delete()
                 for embed in embeds:
-                    await ctx.send(embed=embed)
+                    await ctx.channel.send(embed=embed)
 
     async def is_in_family(self, player, clan_tags):
         try:
