@@ -1,18 +1,15 @@
-from discord.ext import commands, tasks
-import discord
-from discord_slash.utils.manage_components import wait_for_component, create_select, create_select_option, create_actionrow
-from utils.clashClient import client
-from main import check_commands
+from disnake.ext import commands, tasks
+import disnake
+from utils.clash import client, coc_client
 
 from datetime import datetime
-from datetime import timedelta
 
-from pytz import timezone
 import pytz
 utc = pytz.utc
 
 usafam = client.usafam
 server = usafam.server
+clans = usafam.clans
 
 
 class VoiceCountdowns(commands.Cog):
@@ -36,7 +33,7 @@ class VoiceCountdowns(commands.Cog):
                     channel = await self.bot.fetch_channel(channel)
                     time_ = await self.calculate_time("CWL")
                     await channel.edit(name=f"CWL {time_}")
-                except (discord.NotFound, discord.Forbidden):
+                except (disnake.NotFound, disnake.Forbidden):
                     await server.update_one({"server": servers}, {'$set': {"cwlCountdown": None}})
 
             channel = r.get("gamesCountdown")
@@ -45,79 +42,74 @@ class VoiceCountdowns(commands.Cog):
                     channel = await self.bot.fetch_channel(channel)
                     time_ = await self.calculate_time("Clan Games")
                     await channel.edit(name=f"CG {time_}")
-                except (discord.NotFound, discord.Forbidden):
+                except (disnake.NotFound, disnake.Forbidden):
                     await server.update_one({"server": servers}, {'$set': {"gamesCountdown": None}})
 
-    @commands.group(name="countdown",pass_context=True, invoke_without_command=True)
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+            channel = r.get("memberCount")
+            if channel is not None:
+                try:
+                    channel = await self.bot.fetch_channel(channel)
+                    tracked = clans.find({"server": servers})
+                    limit = await clans.count_documents(filter={"server": servers})
+                    list = []
+                    for tClan in await tracked.to_list(length=limit):
+                        tag = tClan.get("tag")
+                        list.append(tag)
+                    total = 0
+                    async for clan in coc_client.get_clans(list):
+                        total+=len(clan.members)
+                    await channel.edit(name=f"{total} Clan Members")
+                except (disnake.NotFound, disnake.Forbidden):
+                    await server.update_one({"server": servers}, {'$set': {"memberCount": None}})
+
+    @commands.slash_command(name="voice-stats")
     async def voice(self, ctx):
         pass
 
-    @voice.group(name="setup", pass_context=True, invoke_without_command=True)
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def voice_setup(self, ctx):
-        embed = discord.Embed(title=f"Voice Channel Countdown Setup",
-                              description="Choose a countdown to setup.",
-                              color=discord.Color.green())
-        embed.set_thumbnail(url=ctx.guild.icon_url_as())
+    @voice.sub_command(name="setup", description="Setup a voice countdown or stat bar")
+    async def voice_setup(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["CWL", "Clan Games", "Clan Member Count"])):
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
 
+        if type != "Clan Member Count":
+            time_ = await self.calculate_time(type)
 
-        select1 = create_select(
-            options=[
-                create_select_option("CWL", value=f"CWL"),
-                create_select_option("Clan Games", value=f"Clan Games"),
-                create_select_option("Cancel", value=f"Cancel")
-            ],
-            placeholder="Choose countdown type.",
-            min_values=1,  # the minimum number of options a user must select
-            max_values=1  # the maximum number of options a user can select
-        )
-        action_row = create_actionrow(select1)
-        msg = await ctx.send(embed=embed, components=[action_row])
-
-        chose = False
-        while chose == False:
-            try:
-                res = await wait_for_component(self.bot, components=action_row, messages=msg, timeout=600)
-            except:
-                return await msg.edit(components=[])
-
-            if res.author_id != ctx.author.id:
-                await res.send(content="You must run the command to interact with components.", hidden=True)
-                continue
-
-            await res.edit_origin()
-            chose = res.values[0]
-            # print(chose)
-
-            if chose == "Cancel":
-                embed = discord.Embed(description=f"Sorry to hear that. Canceling the command now.",
-                                      color=discord.Color.green())
-                embed.set_thumbnail(url=ctx.guild.icon_url_as())
-                return await msg.edit(embed=embed,
-                                      components=[])
-
-        time_ = await self.calculate_time(chose)
-
-        if chose == "Clan Games":
+        if type == "Clan Games":
             channel = await ctx.guild.create_voice_channel(name=f"CG {time_}")
+        elif type == "CWL":
+            channel = await ctx.guild.create_voice_channel(name=f"{type} {time_}")
         else:
-            channel = await ctx.guild.create_voice_channel(name=f"{chose} {time_}")
+            tracked = clans.find({"server": ctx.guild.id})
+            limit = await clans.count_documents(filter={"server": ctx.guild.id})
+            list = []
+            for tClan in await tracked.to_list(length=limit):
+                tag = tClan.get("tag")
+                list.append(tag)
+            total = 0
+            async for clan in coc_client.get_clans(list):
+                total+=len(clan.members)
+            channel = await ctx.guild.create_voice_channel(name=f"{total} Clan Members")
 
-        overwrite = discord.PermissionOverwrite()
+        overwrite = disnake.PermissionOverwrite()
         overwrite.view_channel = True
         overwrite.connect = False
         await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
 
-        if chose == "CWL":
+        if type == "CWL":
             await server.update_one({"server": ctx.guild.id}, {'$set': {"cwlCountdown": channel.id}})
-        else:
+        elif type == "CWL":
             await server.update_one({"server": ctx.guild.id}, {'$set': {"gamesCountdown": channel.id}})
+        else:
+            await server.update_one({"server": ctx.guild.id}, {'$set': {"memberCount": channel.id}})
 
-        embed = discord.Embed(description=f"{chose} Countdown Created",
-                              color=discord.Color.green())
-        embed.set_thumbnail(url=ctx.guild.icon_url_as())
-        await msg.edit(embed=embed, components=[])
+        embed = disnake.Embed(description=f"{type} Stat Bar Created",
+                              color=disnake.Color.green())
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+        await ctx.send(embed=embed)
 
 
     async def calculate_time(self, type):
