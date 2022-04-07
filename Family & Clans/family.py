@@ -224,7 +224,8 @@ class family(commands.Cog):
         embed = disnake.Embed(title=f"{ctx.guild.name} Clan Aliases",
                               description=text,
                               color=disnake.Color.green())
-        embed.set_thumbnail(url=ctx.guild.icon_url_as())
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
 
         await ctx.send(embed=embed)
 
