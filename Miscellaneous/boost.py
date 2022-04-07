@@ -1,10 +1,9 @@
 
 import disnake
 from disnake.ext import commands
-from utils.clashClient import client, getClan
-
-from disnake_slash.utils.manage_components import create_button, wait_for_component, create_actionrow
-from disnake_slash.model import ButtonStyle
+from utils.clash import client, getClan, coc_client
+from utils.components import create_components
+from Dictionaries.emojiDictionary import emojiDictionary
 
 SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker", "Rocket Balloon", "Super Wizard", "Inferno Dragon",
                 "Super Minion", "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", "Super Dragon"]
@@ -21,19 +20,25 @@ options = [["barb", "barbs"], ["arch", "archers", "archer"], ["giant", "giants"]
 usafam = client.usafam
 clans = usafam.clans
 
-
-
 class boost(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.command(name="boost")
-    async def boosting(self, ctx, clan=None):
+    @commands.slash_command(name="boost", description="Get list of troops listed in a certain clan (or all family clans if blank)")
+    async def boosting(self, ctx: disnake.ApplicationCommandInteraction, clan:str=None):
         list_clans = []
+        first_clan = clan
         if clan == None:
-            return await ctx.reply("Clan tag or alias argument required.",
-                                   mention_author=False)
+            tracked = clans.find({"server": ctx.guild.id})
+            limit = await clans.count_documents(filter={"server": ctx.guild.id})
+            list = []
+            for tClan in await tracked.to_list(length=limit):
+                tag = tClan.get("tag")
+                list.append(tag)
+
+            async for clan in coc_client.get_clans(list):
+                list_clans.append(clan)
         else:
             clan = clan.lower()
             results = await clans.find_one({"$and": [
@@ -47,135 +52,95 @@ class boost(commands.Cog):
                 list_clans.append(clan)
             else:
                 clan = await getClan(clan)
-                list_clans.append(clan)
+                if clan is not None:
+                    list_clans.append(clan)
 
             if clan is None:
-                return await ctx.reply("Not a valid clan tag.",
-                                       mention_author=False)
+                if "|" in first_clan:
+                    search = first_clan.split("|")
+                    tag = search[1]
+                    clan = await getClan(tag)
+                    list_clans.append(clan)
+
+            if clan is None:
+                return await ctx.send("Not a valid clan tag.")
 
         embed = disnake.Embed(
             description="<a:loading:884400064313819146> Loading...",
             color=disnake.Color.green())
-        msg = await ctx.reply(embed=embed, mention_author=False)
+        await ctx.send(embed=embed)
 
-        master_text = [[], [], [], [], [], [], [], [],
-                        [], [], [], [], [], []]
+        print(list_clans)
+        embeds = []
         for clan in list_clans:
+            clan_boosted = {}
             async for player in clan.get_detailed_members():
                 troops = player.troop_cls
                 troops = player.troops
-
-                for x in range(len(troops)):
-                    troop = troops[x]
+                for troop in troops:
                     if (troop.is_active):
-                        #print(troop)
                         try:
-                            ind = SUPER_TROOPS.index(troop.name)
-                            master_text[ind].append(f"{player.clan.name} - {player.name} [{player.tag}]\n")
+                            if troop.name in SUPER_TROOPS:
+                                if troop.name in clan_boosted:
+                                    clan_boosted[troop.name].append(player.name)
+                                else:
+                                    clan_boosted[troop.name] = [player.name]
                         except:
                             pass
-
-
-
-        master_embed = []
-        y = -1
-        for text in master_text:
-            y += 1
-            if text == []:
-                continue
-                embed = disnake.Embed(title=f"Players with {SUPER_TROOPS[y]}",
-                                      description="None boosted",
-                                      color=disnake.Color.green())
-                master_embed.append(embed)
-            t = ""
-            x = 0
-            for blocks in text:
-                t += blocks
-                x+=1
-                if x == 25:
-                    embed = disnake.Embed(title=f"Players with {SUPER_TROOPS[y]}",
-                                          description=t,
-                                          color=disnake.Color.green())
-                    master_embed.append(embed)
-                    x=0
-                    t=""
-            if t!="":
-                embed = disnake.Embed(title=f"Players with {SUPER_TROOPS[y]}",
-                                      description=t,
-                                      color=disnake.Color.green())
-                master_embed.append(embed)
-
-
+            if bool(clan_boosted):
+                embed = disnake.Embed(title=f"{clan.name} Boosted Troops",color=disnake.Color.green())
+                for troop in clan_boosted:
+                    members = clan_boosted[troop]
+                    text = ""
+                    emoji = emojiDictionary(troop)
+                    for member in members:
+                        text += f"{member}\n"
+                    embed.add_field(name=f"{emoji} {troop}", value=text, inline=False)
+                embeds.append(embed)
 
         current_page = 0
-        limit = len(master_embed)
+        await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))
+        msg = await ctx.original_message()
 
-        await msg.edit(embed=master_embed[current_page], components=self.create_components(current_page, limit),
-                       mention_author=False)
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
 
         while True:
             try:
-                res = await wait_for_component(self.bot, components=self.create_components(current_page, limit),
-                                               messages=msg, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
             except:
                 await msg.edit(components=[])
                 break
 
-            if res.author_id != ctx.author.id:
-                await res.send(content="You must run the command to interact with components.", hidden=True)
-                continue
-
-            await res.edit_origin()
-
-            # print(res.custom_id)
-            if res.custom_id == "Previous":
+            if res.data.custom_id == "Previous":
                 current_page -= 1
-                await msg.edit(embed=master_embed[current_page],
-                               components=self.create_components(current_page, limit))
+                await res.response.edit_message(embed=embeds[current_page],
+                                                components=create_components(current_page, embeds, True))
 
-            elif res.custom_id == "Next":
+            elif res.data.custom_id == "Next":
                 current_page += 1
-                await msg.edit(embed=master_embed[current_page],
-                               components=self.create_components(current_page, limit))
+                await res.response.edit_message(embed=embeds[current_page],
+                                                components=create_components(current_page, embeds, True))
 
-    @commands.command(name="super")
-    async def super(self, ctx, troop_type=None, clan=None):
-        is_valid = False
-        ind = 0
-        for valid_options in options:
-            if troop_type in valid_options:
-                is_valid = True
-                ind = options.index(valid_options)
-        if is_valid == False:
-            opt_text = ""
-            x = 0
-            for opt in options:
-                opt_text+=f"{SUPER_TROOPS[x]} aliases: "
-                for o in opt:
-                    if o == opt[len(opt)-1]:
-                        opt_text += f"`{o}`"
-                    else:
-                        opt_text+= f"`{o}`, "
-                x+=1
-                opt_text += "\n"
-            embed = disnake.Embed(title=f"Not a valid super troop alias.",
-                                  description=opt_text,
-                                  color=disnake.Color.red())
-            return await ctx.reply(embed=embed,
-                                   mention_author=False)
+            elif res.data.custom_id == "Print":
+                await msg.delete()
+                for embed in embeds:
+                    await ctx.channel.send(embed=embed)
 
-        embed = disnake.Embed(
-            description="<a:loading:884400064313819146> Loading...",
-            color=disnake.Color.green())
-        msg = await ctx.reply(embed=embed, mention_author=False)
 
+    @commands.slash_command(name="super", description="Find all players with a super troop in the family or a specific clan")
+    async def super(self, ctx: disnake.ApplicationCommandInteraction=None, super_troop=commands.Param(choices=SUPER_TROOPS), clan:str=None):
+        first_clan = clan
         list_clans = []
         if clan == None:
             tracked = clans.find({"server": ctx.guild.id})
             limit = await clans.count_documents(filter={"server": ctx.guild.id})
-            for clan in await tracked.to_list(length=limit):
-                tag = clan.get("tag")
-                clan = await getClan(tag)
+            list = []
+            for tClan in await tracked.to_list(length=limit):
+                tag = tClan.get("tag")
+                list.append(tag)
+            async for clan in coc_client.get_clans(list):
                 list_clans.append(clan)
         else:
             clan = clan.lower()
@@ -190,12 +155,25 @@ class boost(commands.Cog):
                 list_clans.append(clan)
             else:
                 clan = await getClan(clan)
-                list_clans.append(clan)
+                if clan is not None:
+                    list_clans.append(clan)
 
             if clan is None:
-                return await msg.edit(content="Not a valid clan tag.", embed=None)
+                if "|" in first_clan:
+                    search = first_clan.split("|")
+                    tag = search[1]
+                    clan = await getClan(tag)
+                    list_clans.append(clan)
 
-        search = SUPER_TROOPS[ind]
+            if clan is None:
+                return await ctx.send("Not a valid clan tag.")
+
+        embed = disnake.Embed(
+            description="<a:loading:884400064313819146> Loading...",
+            color=disnake.Color.green())
+        await ctx.send(embed=embed)
+
+        search = super_troop
 
         master_text = []
         for clan in list_clans:
@@ -205,86 +183,79 @@ class boost(commands.Cog):
                 for x in range(len(troops)):
                     troop = troops[x]
                     if (troop.is_active) and (troop.name == search):
-                        #print(troop)
                         try:
                             master_text.append(f"{player.clan.name} - {player.name} [{player.tag}]\n")
                         except:
                             pass
 
-        master_embed = []
-
+        embeds = []
 
         if len(master_text) == 0:
             embed = disnake.Embed(title=f"Players with {search}",
                                   description="None boosted",
                                   color=disnake.Color.green())
-            master_embed.append(embed)
+            embeds.append(embed)
 
         t = ""
         x = 0
         for text in master_text:
             t += text
             x += 1
-            if x == 25:
+            if x == 50:
                 embed = disnake.Embed(title=f"Players with {search}",
                                       description=t,
                                       color=disnake.Color.green())
-                master_embed.append(embed)
+                embeds.append(embed)
                 x = 0
                 t = ""
         if t != "":
             embed = disnake.Embed(title=f"Players with {search}",
                                   description=t,
                                   color=disnake.Color.green())
-            master_embed.append(embed)
+            embeds.append(embed)
 
         current_page = 0
-        limit = len(master_embed)
+        await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))
+        msg = await ctx.original_message()
 
-        await msg.edit(embed=master_embed[current_page], components=self.create_components(current_page, limit),
-                             mention_author=False)
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
 
         while True:
             try:
-                res = await wait_for_component(self.bot, components=self.create_components(current_page, limit),
-                                               messages=msg, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
             except:
                 await msg.edit(components=[])
                 break
 
-            if res.author_id != ctx.author.id:
-                await res.send(content="You must run the command to interact with components.", hidden=True)
-                continue
-
-            await res.edit_origin()
-
-            # print(res.custom_id)
-            if res.custom_id == "Previous":
+            if res.data.custom_id == "Previous":
                 current_page -= 1
-                await msg.edit(embed=master_embed[current_page],
-                               components=self.create_components(current_page, limit))
+                await res.response.edit_message(embed=embeds[current_page],
+                                                components=create_components(current_page, embeds, True))
 
-            elif res.custom_id == "Next":
+            elif res.data.custom_id == "Next":
                 current_page += 1
-                await msg.edit(embed=master_embed[current_page],
-                               components=self.create_components(current_page, limit))
+                await res.response.edit_message(embed=embeds[current_page],
+                                                components=create_components(current_page, embeds, True))
 
+            elif res.data.custom_id == "Print":
+                await msg.delete()
+                for embed in embeds:
+                    await ctx.channel.send(embed=embed)
 
-    def create_components(self, current_page, length):
-        if length == 1:
-            return []
-
-        page_buttons = [create_button(label="", emoji="◀️", style=ButtonStyle.blue, disabled=(current_page == 0),
-                                      custom_id="Previous"),
-                        create_button(label=f"Page {current_page + 1}/{length}", style=ButtonStyle.grey,
-                                      disabled=True),
-                        create_button(label="", emoji="▶️", style=ButtonStyle.blue,
-                                      disabled=(current_page == length - 1), custom_id="Next")]
-        page_buttons = create_actionrow(*page_buttons)
-
-        return [page_buttons]
-
-
+    @boosting.autocomplete("clan")
+    @super.autocomplete("clan")
+    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        tracked = clans.find({"server": ctx.guild.id})
+        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        clan_list = []
+        for tClan in await tracked.to_list(length=limit):
+            name = tClan.get("name")
+            tag = tClan.get("tag")
+            if query.lower() in name.lower():
+                    clan_list.append(f"{name} | {tag}")
+        return clan_list[0:25]
 
 
 def setup(bot: commands.Bot):
