@@ -2,7 +2,7 @@ from disnake.ext import commands
 import re
 from Dictionaries.army_ids import troop_ids, spell_ids, size
 from Dictionaries.emojiDictionary import emojiDictionary
-import discord
+import disnake
 import coc
 
 class ArmyLinks(commands.Cog):
@@ -10,9 +10,9 @@ class ArmyLinks(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.command(name='army')
-    async def army(self, ctx, *, link):
-        embed = await self.armyEmbed(ctx, "Results", link)
+    @commands.slash_command(name='army', description="Create a visual message representation of an army link")
+    async def army(self, ctx, army_link):
+        embed = await self.armyEmbed(ctx, "Results", army_link)
         await ctx.send(embed=embed)
 
 
@@ -81,16 +81,12 @@ class ArmyLinks(commands.Cog):
 
         army += f"\n<:troop:861797310224400434> {troopSpace} <:spell:861797310282727484> {spell_space}\n<:blanke:838574915095101470>\n"
 
-
-
-
-
         army += troop_string + "<:blanke:838574915095101470>\n"
         army += spell_string + "<:blanke:838574915095101470>\n"
         army += sieges
 
 
-        embed = discord.Embed(title=nick,description= army, color=discord.Color.green())
+        embed = disnake.Embed(title=nick,description= army, color=disnake.Color.green())
         return embed
 
 
