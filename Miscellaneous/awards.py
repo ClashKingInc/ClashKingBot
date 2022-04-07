@@ -5,8 +5,6 @@ from utils.components import create_components
 
 import emoji as emoji_package
 
-from main import check_commands
-
 usafam = client.usafam
 clans = usafam.clans
 server = usafam.server
@@ -44,6 +42,7 @@ class awards(commands.Cog):
             if not emoji_package.is_emoji(emoji):
                 return await ctx.send(f"{emoji} is not a valid emoji (must be a default emoji, not discord/server emoji).")
 
+        await ctx.response.defer()
         could_not = ""
         num = 0
         members_added = []
@@ -140,7 +139,6 @@ class awards(commands.Cog):
                     await ctx.channel.send(embed=embed)
 
     @award.sub_command(name="remove", description="Remove a role and/or emoji from users")
-    @commands.check_any(commands.has_permissions(manage_roles=True), check_commands())
     async def award_remove(self, ctx: disnake.ApplicationCommandInteraction, role:disnake.Role, emoji=None):
         """
             Parameters
@@ -159,6 +157,7 @@ class awards(commands.Cog):
                 return await ctx.send(
                     f"{emoji} is not a valid emoji (must be a default emoji, not discord/server emoji).")
 
+        await ctx.response.defer()
         could_not = ""
         num = 0
         members = role.members
@@ -263,10 +262,11 @@ class awards(commands.Cog):
             emoji: emoji to search for in nicknames (must be a valid default emoji)
         """
 
-        if not emoji.is_emoji(emoji):
+        if not emoji_package.is_emoji(emoji):
             return await ctx.send(
                 f"{emoji} is not a valid emoji (must be a default emoji, not discord/server emoji).")
 
+        await ctx.response.defer()
         members = ctx.guild.members
         embeds = []
         text = ""

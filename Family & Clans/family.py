@@ -191,6 +191,42 @@ class family(commands.Cog):
             await ctx.edit_original_message(embed=embed)
 
 
+    @commands.slash_command(name="aliases", description="List of aliases for all family clans")
+    async def alias(self, ctx: disnake.ApplicationCommandInteraction):
+        prefix = ctx.prefix
+        tracked = clans.find({"server": ctx.guild.id})
+        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        if limit == 0:
+            return await ctx.send("No clans linked to this server.")
+        categoryTypesList = []
+        for tClan in await tracked.to_list(length=limit):
+            category = tClan.get("category")
+            if category not in categoryTypesList:
+                categoryTypesList.append(category)
+
+        text = ""
+        for category in categoryTypesList:
+            results = clans.find({"$and": [
+                {"category": category},
+                {"server": ctx.guild.id}
+            ]})
+            limit = await clans.count_documents(filter={"$and": [
+                {"category": category},
+                {"server": ctx.guild.id}
+            ]})
+            text += f"\n__**{category} Clans**__\n"
+            for result in await results.to_list(length=limit):
+                tag = result.get("tag")
+                clan = await getClan(tag)
+                alias = result.get("alias")
+                text += f"{clan.name}-`{prefix}{alias}`\n"
+
+        embed = disnake.Embed(title=f"{ctx.guild.name} Clan Aliases",
+                              description=text,
+                              color=disnake.Color.green())
+        embed.set_thumbnail(url=ctx.guild.icon_url_as())
+
+        await ctx.send(embed=embed)
 
 def setup(bot: commands.Bot):
     bot.add_cog(family(bot))

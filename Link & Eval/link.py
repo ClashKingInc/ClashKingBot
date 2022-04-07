@@ -1,4 +1,3 @@
-from main import check_commands
 from disnake.ext import commands # Again, we need this imported
 import disnake
 from utils.clash import getClan, getPlayer, verifyPlayer, link_client, pingToMember, getTags, client

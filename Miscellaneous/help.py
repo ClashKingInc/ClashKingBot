@@ -1,7 +1,6 @@
 
 from disnake.ext import commands
 import disnake
-from disnake_slash.utils.manage_components import create_select, create_select_option, create_actionrow, wait_for_component
 
 import inspect
 
@@ -12,20 +11,6 @@ class help(commands.Cog):
 
     @commands.command(name='help')
     async def help(self, ctx):
-        select = create_select(
-            options=[  # the options in your dropdown
-                create_select_option("Family & Clan", value="1"),
-                create_select_option("Player Commands", value="2"),
-                create_select_option("Clan Settings", value="3"),
-                create_select_option("Moderator Commands", value="4"),
-                create_select_option("Role Management", value="5"),
-                create_select_option("Misc Commands", value="6"),
-            ],
-            placeholder="Choose Command Type",  # the placeholder text to show when no options have been chosen
-            min_values=1,  # the minimum number of options a user must select
-            max_values=1,  # the maximum number of options a user can select
-        )
-
         embeds = []
 
         prefix = ctx.prefix
@@ -264,20 +249,7 @@ class help(commands.Cog):
             #print(res.selected_options)
             await msg.edit(embed=embeds[int(res.selected_options[0])-1])
 
-    @commands.command(name="supportserver")
-    async def support(self,ctx):
-        embed = discord.Embed(title="Support Server & Github",
-                              description="Support Server: [here](https://discord.gg/gChZm3XCrS)\n"
-                                          "Github: [here](https://github.com/MagicTheDev/MagicBot)",
-                              color=discord.Color.blue())
-        await ctx.send(embed=embed)
 
-    @commands.command(name="invitebot")
-    async def invitebot(self, ctx):
-        embed = discord.Embed(title="Bot Invite",
-                              description="Invite Link: [here](https://discord.com/api/oauth2/authorize?client_id=824653933347209227&permissions=8&scope=bot)",
-                              color=discord.Color.blue())
-        await ctx.send(embed=embed)
 
 
 

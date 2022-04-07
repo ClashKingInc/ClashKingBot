@@ -5,9 +5,6 @@ import disnake
 from utils.components import create_components
 from datetime import datetime
 
-
-from main import check_commands
-
 from Dictionaries.emojiDictionary import emojiDictionary
 
 usafam = client.usafam

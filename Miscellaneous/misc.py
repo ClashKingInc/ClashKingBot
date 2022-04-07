@@ -1,11 +1,7 @@
 import disnake
 from disnake.ext import commands
-from utils.clashClient import getPlayer, client, getClan, pingToChannel, pingToRole
+from utils.clash import getPlayer, client, getClan, pingToChannel, pingToRole
 
-from disnake_slash.utils.manage_components import create_button, wait_for_component, create_actionrow
-from disnake_slash.model import ButtonStyle
-
-from main import check_commands
 import time
 from datetime import timedelta
 
@@ -23,53 +19,22 @@ class misc(commands.Cog):
         self.bot = bot
         self.up = time.time()
 
-    @commands.Cog.listener()
-    async def on_message(self, message : disnake.Message):
-        if "https://link.clashofclans.com/en?action=OpenPlayerProfile&tag=" in message.content:
-            m = message.content.replace("\n", " ")
-            spots = m.split(" ")
-            s = ""
-            for spot in spots:
-                if "https://link.clashofclans.com/en?action=OpenPlayerProfile&tag=" in spot:
-                    s = spot
-                    break
-            tag = s.replace("https://link.clashofclans.com/en?action=OpenPlayerProfile&tag=", "")
-            if "%23" in tag:
-                tag = tag.replace("%23", "")
-            player = await getPlayer(tag)
 
-            clan = ""
-            try:
-                clan = player.clan.name
-                clan = f"{clan}"
-            except:
-                clan = "None"
-            hero = heros(player)
-            pets = heroPets(player)
-            if hero == None:
-                hero = ""
-            else:
-                hero = f"**Heroes:**\n{hero}\n"
 
-            if pets == None:
-                pets = ""
-            else:
-                pets = f"**Pets:**\n{pets}\n"
+    @commands.command(name="support-server")
+    async def support(self, ctx):
+        embed = disnake.Embed(title="Support Server & Github",
+                              description="Support Server: [here](https://discord.gg/gChZm3XCrS)\n"
+                                          "Github: [here](https://github.com/MagicTheDev/MagicBot)",
+                              color=disnake.Color.blue())
+        await ctx.send(embed=embed)
 
-            embed = disnake.Embed(title=f"Invite {player.name} to your clan:",
-                                  description=f"{player.name} - TH{player.town_hall}\n" +
-                                              f"Tag: {player.tag}\n" +
-                                              f"Clan: {clan}\n" +
-                                              f"Trophies: {player.trophies}\n"
-                                              f"War Stars: {player.war_stars}\n"
-                                              f"{hero}{pets}"
-                                              f'[View Stats](https://www.clashofstats.com/players/{player.tag}) | [Open in Game]({player.share_link})',
-                                  color=disnake.Color.green())
-            embed.set_thumbnail(url=thDictionary(player.town_hall))
-
-            channel = message.channel
-            await channel.send(embed=embed)
-
+    @commands.slash_command(name="bot-invite")
+    async def invitebot(self, ctx):
+        embed = disnake.Embed(title="Bot Invite",
+                              description="Invite Link: [here](https://discord.com/api/oauth2/authorize?client_id=824653933347209227&permissions=8&scope=bot%20applications.commands)",
+                              color=disnake.Color.blue())
+        await ctx.send(embed=embed)
 
     @commands.command(name="invite")
     async def invite(self, ctx, tag=None):
@@ -295,37 +260,10 @@ class misc(commands.Cog):
 
         await msg.edit(content="", embed=embed)
 
-    @commands.command(name='servers')
-    @commands.is_owner()
-    async def servers(self, ctx):
-        text = ""
-        guilds = self.bot.guilds
-        for guild in guilds:
-            id = guild.member_count
-            # owner = await self.bot.fetch_user(id)
-            text += guild.name + f" | {id} members\n"
-
-        embed = discord.Embed(description=text,
-                              color=discord.Color.green())
-
-        await ctx.send(embed=embed)
 
 
 
 
-    def create_components(self, current_page, length):
-        if length == 1:
-            return []
-
-        page_buttons = [create_button(label="", emoji="◀️", style=ButtonStyle.blue, disabled=(current_page == 0),
-                                      custom_id="Previous"),
-                        create_button(label=f"Page {current_page + 1}/{length}", style=ButtonStyle.grey,
-                                      disabled=True),
-                        create_button(label="", emoji="▶️", style=ButtonStyle.blue,
-                                      disabled=(current_page == length - 1), custom_id="Next")]
-        page_buttons = create_actionrow(*page_buttons)
-
-        return [page_buttons]
 
 
 

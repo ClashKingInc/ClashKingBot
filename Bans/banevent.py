@@ -17,7 +17,7 @@ class banev(commands.Cog):
 
     @coc.ClanEvents.member_join()
     async def foo(self, member, clan):
-        from main import bot
+        bot = self.bot
         tag = member.tag
 
         results = await banlist.find_one({"VillageTag": tag})

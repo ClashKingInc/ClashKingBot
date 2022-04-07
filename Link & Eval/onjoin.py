@@ -2,9 +2,8 @@
 from disnake.ext import commands
 
 import disnake
-from main import check_commands
 
-from utils.clash import getClan, getPlayer, verifyPlayer, link_client, client, pingToChannel
+from utils.clash import getClan, getPlayer, verifyPlayer, link_client, client
 
 usafam = client.usafam
 clans = usafam.clans
@@ -83,11 +82,11 @@ class joinstuff(commands.Cog):
 
         link_buttons = [
             disnake.ui.Button(label=f"{button1_text}", emoji=f"{button1_emoji}",
-                          url=f"https://disnake.com/channels/{ctx.guild.id}/{button1_link.id}"),
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{button1_link.id}"),
             disnake.ui.Button(label=f"{button2_text}", emoji=f"{button2_emoji}",
-                          url=f"https://disnake.com/channels/{ctx.guild.id}/{button2_link.id}"),
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{button2_link.id}"),
             disnake.ui.Button(label=f"{button3_text}", emoji=f"{button3_emoji}",
-                          url=f"https://disnake.com/channels/{ctx.guild.id}/{button3_link.id}")]
+                          url=f"https://discord.com/channels/{ctx.guild.id}/{button3_link.id}")]
         buttons = disnake.ui.ActionRow()
         for button in link_buttons:
             buttons.append_item(button)
@@ -275,18 +274,16 @@ class joinstuff(commands.Cog):
                                                   f"\n\n{arrowleft}__**Use the quick links below to get started.**__{arrowright}",
                                       color=disnake.Color.green())
 
-                if member.avatar is None:
-                    embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/843624785560993833/961411093622816819/4_1.png")
-                else:
-                    embed.set_thumbnail(url=member.avatar.url)
+
+                embed.set_thumbnail(url=member.display_avatar.url)
 
                 stat_buttons = [
                     disnake.ui.Button(label=f"{button1text}", emoji=f"{button1emoji}",
-                                  url=f"https://disnake.com/channels/{member.guild.id}/{button1channel}"),
+                                  url=f"https://discord.com/channels/{member.guild.id}/{button1channel}"),
                     disnake.ui.Button(label=f"{button2text}", emoji=f"{button2emoji}",
-                                  url=f"https://disnake.com/channels/{member.guild.id}/{button2channel}"),
+                                  url=f"https://discord.com/channels/{member.guild.id}/{button2channel}"),
                     disnake.ui.Button(label=f"{button3text}", emoji=f"{button3emoji}",
-                                  url=f"https://disnake.com/channels/{member.guild.id}/{button3channel}")]
+                                  url=f"https://discord.com/channels/{member.guild.id}/{button3channel}")]
                 buttons = disnake.ui.ActionRow()
                 for button in stat_buttons:
                     buttons.append_item(button)
@@ -510,23 +507,7 @@ class joinstuff(commands.Cog):
                     await ctx.edit_original_message(embed=embed)
 
     
-    @commands.Cog.listener()
-    async def on_guild_join(self, guild):
-        results = await server.find_one({"server": guild.id})
-        if results is None:
-            await server.insert_one({
-                "server": guild.id,
-                "prefix": ".",
-                "banlist": None,
-                "greeting": None,
-                "cwlcount": None,
-                "topboardchannel": None,
-                "tophour": None,
-                "lbboardChannel": None,
-                "lbhour": None
-            })
-        channel = self.bot.get_channel(937519135607373874)
-        await channel.send(f"Just joined {guild.name}")
+
 
 
 def setup(bot: commands.Bot):

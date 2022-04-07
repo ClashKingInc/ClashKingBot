@@ -4,7 +4,6 @@ from utils.clash import client, pingToChannel, getClan, coc_client
 import coc
 import disnake
 import datetime as dt
-from main import check_commands
 
 import math
 
