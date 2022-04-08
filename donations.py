@@ -1,9 +1,7 @@
 import coc
 import disnake
-import disnake_slash
-from utils.clashClient import client, coc_client
 
-from disnake_slash.model import ButtonStyle
+from utils.clash import client, coc_client
 
 usafam = client.usafam
 server = usafam.server
@@ -17,10 +15,11 @@ class WarEvents(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         coc_client.add_events(self.dona)
-        coc_client.add_events(self.new_season)
+        #coc_client.add_events(self.new_season)
 
-    @commands.command(name="don")
-    async def dono(self, ctx, *, aliases=None):
+    @commands.slash_command(name="donations")
+    async def dono(self, ctx):
+        aliases = None
         tags = []
         if aliases is None:
             tracked = clans.find({"server": ctx.guild.id})
@@ -60,15 +59,16 @@ class WarEvents(commands.Cog):
         limit = await clans.count_documents(filter={"tag": {"$in" : ptags}})
         for document in await results.to_list(length=limit):
             don = document.get("donations")
-            tag = document.get("tag")
-            ind = ptags.index(tag)
-            r = []
-            r.append(members[ind].name)
-            r.append(don)
-            r.append(members[ind].clan.name)
-            rankings.append(r)
-            members.pop(ind)
-            ptags.pop(ind)
+            if don < 0:
+                tag = document.get("tag")
+                ind = ptags.index(tag)
+                r = []
+                r.append(members[ind].name)
+                r.append(don)
+                r.append(members[ind].clan.name)
+                rankings.append(r)
+                members.pop(ind)
+                ptags.pop(ind)
 
         for member in members:
             r = []
@@ -92,7 +92,8 @@ class WarEvents(commands.Cog):
 
         embed = disnake.Embed(title=f"**Top 50 Donators**",
                               description=text)
-        embed.set_thumbnail(url=ctx.guild.icon_url_as())
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
         await ctx.send(embed=embed)
 
 
@@ -109,9 +110,20 @@ class WarEvents(commands.Cog):
                 "donations": donated
             })
         else:
-            await donations.update_one({"tag": tag}, {'$inc': {
-                "donations": donated
-            }})
+            donos = results.get("donations")
+            if donos < new_member.donations:
+                await donations.update_one({"tag": tag}, {'$set': {
+                    "donations": new_member.donations
+                }})
+            else:
+                await donations.update_one({"tag": tag}, {'$inc': {
+                    "donations": donated
+                }})
+
+    @coc.ClientEvents.new_season_start()
+    async def new_season(self):
+        await donations.update_many({'donations': {'$gt': -1000000}},
+                               {'$set': {'donations': 0}})
 
 
 def setup(bot: commands.Bot):

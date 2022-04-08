@@ -9,7 +9,7 @@ usafam = client.usafam
 clans = usafam.clans
 server = usafam.server
 
-from HelperMethods.troop_methods import heros, heroPets
+from utils.troop_methods import heros, heroPets
 
 from Dictionaries.thPicDictionary import thDictionary
 

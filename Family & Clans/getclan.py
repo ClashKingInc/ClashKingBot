@@ -2,6 +2,8 @@ import disnake
 from disnake.ext import commands
 from utils.clash import client, getClan, link_client, coc_client
 from Dictionaries.emojiDictionary import emojiDictionary
+from utils.discord_utils import partial_emoji_gen
+
 SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker", "Rocket Balloon", "Super Wizard", "Inferno Dragon",
                 "Super Minion", "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", "Super Dragon"]
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
@@ -106,6 +108,11 @@ class getClans(commands.Cog):
                 ranking += f"🌍 <:status_offline:910938138984206347>"
             else:
                 ranking += f":flag_{clan.location.country_code.lower()}: <:status_offline:910938138984206347>"
+
+        results = await clans.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
         
         embed = disnake.Embed(title=f"**{clan.name}**",description=f"Tag: [{clan.tag}]({clan.share_link})\n"
                               f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.versus_points}\n"
@@ -124,33 +131,22 @@ class getClans(commands.Cog):
         compo = await self.war_th_comps(clan)
         embed.add_field(name="**Townhall Composition:**", value=compo[0], inline=False)
         embed.add_field(name="**Boosted Super Troops:**", value=compo[1], inline=False)
+        if results is not None:
+            category = results.get("category")
+            alias = results.get("alias")
+            genRole = results.get("generalRole")
+            leadRole = results.get("leaderRole")
+            clanChannel = results.get("clanChannel")
+            embed.add_field(name="**Server:**", value=f"Category: {category}\nAlias: `{alias}`\nMember Role: <@&{genRole}>\nLeadership Role: <@&{leadRole}>\nChannel: <#{clanChannel}>" , inline=False)
 
         embed.set_thumbnail(url=clan.badge.large)
 
-        disc = "<:disnake:840749695466864650>"
-        emoji = ''.join(filter(str.isdigit, disc))
-        emoji = self.bot.get_emoji(int(emoji))
-        emoji = disnake.PartialEmoji(name=emoji.name, id=emoji.id)
-
-        rx = "<:redtick:601900691312607242>"
-        rx = ''.join(filter(str.isdigit, rx))
-        rx = self.bot.get_emoji(int(rx))
-        rx = disnake.PartialEmoji(name=rx.name, id=rx.id)
-
-        trophy = "<:trophy:825563829705637889>"
-        trophy = ''.join(filter(str.isdigit, trophy))
-        trophy = self.bot.get_emoji(int(trophy))
-        trophy = disnake.PartialEmoji(name=trophy.name, id=trophy.id)
-
-        clan_e = "<:clan_castle:855688168816377857>"
-        clan_e = ''.join(filter(str.isdigit, clan_e))
-        clan_e = self.bot.get_emoji(int(clan_e))
-        clan_e = disnake.PartialEmoji(name=clan_e.name, id=clan_e.id)
-
-        opt = "<:opt_in:944905885367537685>"
-        opt = ''.join(filter(str.isdigit, opt))
-        opt = self.bot.get_emoji(int(opt))
-        opt = disnake.PartialEmoji(name=opt.name, id=opt.id)
+        emoji = partial_emoji_gen(self.bot, "<:discord:840749695466864650>")
+        rx = partial_emoji_gen(self.bot, "<:redtick:601900691312607242>")
+        trophy = partial_emoji_gen(self.bot, "<:trophy:825563829705637889>")
+        clan_e =partial_emoji_gen(self.bot, "<:clan_castle:855688168816377857>")
+        opt = partial_emoji_gen(self.bot, "<:opt_in:944905885367537685>")
+        stroop = partial_emoji_gen(self.bot, "<:stroop:961818095930978314>")
 
         main = embed
         options = [  # the options in your dropdown
@@ -158,7 +154,8 @@ class getClans(commands.Cog):
                 disnake.SelectOption(label="Linked Players", emoji=emoji, value="link"),
                 disnake.SelectOption(label="Unlinked Players", emoji=rx, value="unlink"),
                 disnake.SelectOption(label="Players, Sorted: Trophies", emoji=trophy, value="trophies"),
-                disnake.SelectOption(label="War Opt Statuses", emoji=opt, value="opt")
+                disnake.SelectOption(label="War Opt Statuses", emoji=opt, value="opt"),
+                disnake.SelectOption(label="Super Troops", emoji=stroop, value="stroop")
             ]
 
         if clan.public_war_log:
@@ -201,6 +198,9 @@ class getClans(commands.Cog):
                 await res.response.edit_message(embed=embed)
             elif res.values[0] == "warlog":
                 embed = await self.war_log(clan)
+                await res.response.edit_message(embed=embed)
+            elif res.values[0] == "stroop":
+                embed = await self.stroop_list(clan)
                 await res.response.edit_message(embed=embed)
 
     @getclan.autocomplete("clan")
@@ -262,8 +262,8 @@ class getClans(commands.Cog):
 
     async def linked_players(self, ctx, clan):
         gch = "<:greentick:601900670823694357>"
-        disc = "<:disnake:840749695466864650>"
-        stats = disc + "`Name           ` **disnake**\n"
+        disc = "<:discord:840749695466864650>"
+        stats = disc + "`Name           ` **Discord**\n"
         y = 0
         tags = []
         links = []
@@ -301,17 +301,16 @@ class getClans(commands.Cog):
 
             stats += f'\u200e{linkE}`\u200e{name}` \u200e{member}' + "\n"
 
-        if stats == disc + "`Name           ` **disnake**\n":
+        if stats == disc + "`Name           ` **Discord**\n":
             stats = "No players linked."
         embed = disnake.Embed(title=f"{clan.name} : {str(y)}/{str(clan.member_count)} linked", description=stats,
                               color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
         return embed
 
-
     async def unlinked_players(self, ctx, clan):
         rx = "<:redtick:601900691312607242>"
-        disc = "<:disnake:840749695466864650>"
+        disc = "<:discord:840749695466864650>"
         stats = disc + "`Name           ` **Player Tag**\n"
         y = 0
         tags = []
@@ -345,14 +344,13 @@ class getClans(commands.Cog):
 
             stats += f'\u200e{linkE}`\u200e{name}` \u200e{member}' + "\n"
 
-        if stats == disc + "`Name           ` **disnake**\n":
+        if stats == disc + "`Name           ` **Discord**\n":
             stats = "No players unlinked."
 
         embed = disnake.Embed(title=f"{clan.name} : {str(y)} unlinked", description=stats,
                               color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
         return embed
-
 
     async def player_trophy_sort(self, clan):
         text = ""
@@ -367,7 +365,6 @@ class getClans(commands.Cog):
                               color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
         return embed
-
 
     async def opt_status(self, clan : coc.Clan):
         opted_in = ""
@@ -465,6 +462,34 @@ class getClans(commands.Cog):
         embed.set_thumbnail(url=clan.badge.large)
         return embed
 
+    async def stroop_list(self, clan:coc.Clan):
+        boosted = ""
+        none_boosted = ""
+        async for player in clan.get_detailed_members():
+            troops = player.troop_cls
+            troops = player.troops
+            text = f"{player.name}"
+            num = 0
+            for troop in troops:
+                if troop.is_active:
+                    try:
+                        if troop.name in SUPER_TROOPS:
+                            text = f"{emojiDictionary(troop.name)} " + text
+                            num += 1
+                    except:
+                        pass
+            if num == 1:
+                text = "<:blanke:838574915095101470> " + text
+            if text == player.name:
+                none_boosted+= f"{player.name}\n"
+            else:
+                boosted+= f"{text}\n"
+        embed = disnake.Embed(title=f"**{clan.name} Boosting Statuses**", description=f"\n**Boosting:**\n{boosted}",
+                              color=disnake.Color.green())
+        embed.set_thumbnail(url=clan.badge.large)
+        #embed.add_field(name="Boosting", value=boosted)
+        embed.add_field(name="Not Boosting:", value=none_boosted)
+        return embed
 
 
 def setup(bot: commands.Bot):

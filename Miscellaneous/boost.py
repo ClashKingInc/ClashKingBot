@@ -10,12 +10,6 @@ SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin
 REG_VERSION = ["Barbarian", "Archer", "Giant", "Goblin", "Wall Breaker", "Balloon", "Wizard", "Baby Dragon",
                 "Minion", "Valkyrie", "Witch", "Lava Hound", "Bowler", "Dragon"]
 
-options = [["barb", "barbs"], ["arch", "archers", "archer"], ["giant", "giants"], ["gob", "goblin", "gobs", "goblins"],
-           ["wb", "wallbreaker", "wbs", "wallbreakers"],["loons", "loon", "balloon", "balloons"],
-           ["wiz", "wizard", "wizards"], ["inferno", "babydrag", "bdrag"],
-           ["minion", "minions"],["valk", "valks"],
-           [ "witch", "witches"], ["icehound", "hound", "hounds"], ["bowler","bowlers"], ["drag", "dragon", "dragons", "drags"]]
-
 
 usafam = client.usafam
 clans = usafam.clans
@@ -70,7 +64,6 @@ class boost(commands.Cog):
             color=disnake.Color.green())
         await ctx.send(embed=embed)
 
-        print(list_clans)
         embeds = []
         for clan in list_clans:
             clan_boosted = {}

@@ -1,9 +1,8 @@
 import coc
-from discord.ext import commands
-from discord_slash.utils.manage_components import create_select, create_select_option, create_actionrow, wait_for_component
+from disnake.ext import commands
 from Dictionaries.emojiDictionary import emojiDictionary
-import discord
-from utils.clashClient import getClan, client, coc_client
+import disnake
+from utils.clash import getClan, client, coc_client
 usafam = client.usafam
 clans = usafam.clans
 
@@ -18,15 +17,13 @@ class War(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.command(name = "war")
-    async def clan_war(self, ctx, clan=None):
-        if clan is None:
-            return await ctx.reply("Provide a clan to lookup",
-                            mention_author=False)
+    @commands.slash_command(name= "war", description="Stats & info for a clans current war")
+    async def clan_war(self, ctx: disnake.ApplicationCommandInteraction, clan:str):
 
-        clan = clan.lower()
+        clan_search = clan.lower()
+        first_clan = clan
         results = await clans.find_one({"$and": [
-            {"alias": clan},
+            {"alias": clan_search},
             {"server": ctx.guild.id}
         ]})
 
@@ -37,17 +34,37 @@ class War(commands.Cog):
             clan = await getClan(clan)
 
         if clan is None:
-            return await ctx.reply("Not a valid clan tag.",
-                            mention_author=False)
+            if "|" in first_clan:
+                search = first_clan.split("|")
+                tag = search[1]
+                clan = await getClan(tag)
 
+        if clan is None:
+            return await ctx.send("Not a valid clan tag.")
+
+        war = None
         try:
-            war = await coc_client.get_clan_war(clan.tag)
-        except coc.PrivateWarLog:
-            embed = discord.Embed(description=f"[**{clan.name}**]({clan.share_link}) has a private war log.",
-                                  color=discord.Color.green())
+            group = await coc_client.get_league_group(clan.tag)
+            rounds = group.number_of_rounds
+            league_wars = []
+            async for w in group.get_wars_for_clan(clan.tag):
+                league_wars.append(w)
+                if str(w.state) == "inWar":
+                    war = w
+        except:
+            try:
+                war = await coc_client.get_clan_war(clan.tag)
+            except coc.PrivateWarLog:
+                embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) has a private war log.",
+                                      color=disnake.Color.green())
+                embed.set_thumbnail(url=clan.badge.large)
+                return await ctx.send(embed=embed)
+
+        if war.start_time is None:
+            embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) is not in War.",
+                                  color=disnake.Color.green())
             embed.set_thumbnail(url=clan.badge.large)
-            return await ctx.reply(embed=embed,
-                                   mention_author=False)
+            return await ctx.send(embed=embed)
 
         war_time = war.start_time.seconds_until
         war_state = "In Prep"
@@ -75,8 +92,8 @@ class War(commands.Cog):
 
         th_comps = await self.war_th_comps(war)
 
-        embed = discord.Embed(description=f"[**{clan.name}**]({clan.share_link})",
-                              color=discord.Color.green())
+        embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link})",
+                              color=disnake.Color.green())
         embed.add_field(name=f"**War Against**", value=f"[**{war.opponent.name}**]({war.opponent.share_link})\n­\n", inline=False)
         embed.add_field(name=f"**War State**",
                         value=f"{war_state} ({war.team_size} vs {war.team_size})\n"
@@ -96,87 +113,101 @@ class War(commands.Cog):
         disc = "<:map:944913638500761600>"
         emoji = ''.join(filter(str.isdigit, disc))
         emoji = self.bot.get_emoji(int(emoji))
-        emoji = discord.PartialEmoji(name=emoji.name, id=emoji.id)
+        emoji = disnake.PartialEmoji(name=emoji.name, id=emoji.id)
 
 
         troop = "<:troop:861797310224400434>"
         troop = ''.join(filter(str.isdigit, troop))
         troop = self.bot.get_emoji(int(troop))
-        troop = discord.PartialEmoji(name=troop.name, id=troop.id)
+        troop = disnake.PartialEmoji(name=troop.name, id=troop.id)
 
         swords = "<a:swords:944894455633297418>"
         swords = ''.join(filter(str.isdigit, swords))
         swords = self.bot.get_emoji(int(swords))
-        swords = discord.PartialEmoji(name=swords.name, id=swords.id, animated=True)
+        swords = disnake.PartialEmoji(name=swords.name, id=swords.id, animated=True)
 
         shield = "<:clash:877681427129458739>"
         shield = ''.join(filter(str.isdigit, shield))
         shield = self.bot.get_emoji(int(shield))
-        shield = discord.PartialEmoji(name=shield.name, id=shield.id)
+        shield = disnake.PartialEmoji(name=shield.name, id=shield.id)
 
         magnify = "<:magnify:944914253171810384>"
         magnify = ''.join(filter(str.isdigit, magnify))
         magnify = self.bot.get_emoji(int(magnify))
-        magnify = discord.PartialEmoji(name=magnify.name, id=magnify.id)
+        magnify = disnake.PartialEmoji(name=magnify.name, id=magnify.id)
 
         surr = "<:surrender:947978096034869249>"
         surr = ''.join(filter(str.isdigit, surr))
         surr = self.bot.get_emoji(int(surr))
-        surr = discord.PartialEmoji(name=surr.name, id=surr.id)
+        surr = disnake.PartialEmoji(name=surr.name, id=surr.id)
 
         main = embed
 
-        select = create_select(
+        select = disnake.ui.Select(
             options=[  # the options in your dropdown
-                create_select_option("War Overview", emoji=emoji, value="war"),
-                create_select_option("Clan Roster", emoji=troop, value="croster"),
-                create_select_option("Opponent Roster", emoji=troop, value="oroster"),
-                create_select_option("Attacks", emoji=swords, value="attacks"),
-                create_select_option("Defenses", emoji=shield, value="defenses"),
-                create_select_option("Opponent Defenses", emoji=surr, value="odefenses"),
-                create_select_option("Opponent Clan Overview", emoji=magnify, value="opp_over")
+                disnake.SelectOption(label="War Overview", emoji=emoji, value="war"),
+                disnake.SelectOption(label="Clan Roster", emoji=troop, value="croster"),
+                disnake.SelectOption(label="Opponent Roster", emoji=troop, value="oroster"),
+                disnake.SelectOption(label="Attacks", emoji=swords, value="attacks"),
+                disnake.SelectOption(label="Defenses", emoji=shield, value="defenses"),
+                disnake.SelectOption(label="Opponent Defenses", emoji=surr, value="odefenses"),
+                disnake.SelectOption(label="Opponent Clan Overview", emoji=magnify, value="opp_over")
             ],
             placeholder="Choose a page",  # the placeholder text to show when no options have been chosen
             min_values=1,  # the minimum number of options a user must select
             max_values=1,  # the maximum number of options a user can select
         )
-        dropdown = [create_actionrow(select)]
+        dropdown = [disnake.ui.ActionRow(select)]
 
-        msg = await ctx.reply(embed=embed, components=dropdown,
-                              mention_author=False)
+        await ctx.send(embed=embed, components=dropdown)
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
 
         while True:
-
             try:
-                res = await wait_for_component(self.bot, components=dropdown,
-                                               messages=msg, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
             except:
-                return await msg.edit(components=[])
+                await msg.edit(components=[])
+                break
 
-            await res.edit_origin()
-
-            if res.selected_options[0] == "war":
-                await msg.edit(embed=main)
-            elif res.selected_options[0] == "croster":
+            if res.values[0] == "war":
+                await res.response.edit_message(embed=main)
+            elif res.values[0] == "croster":
                 embed = await self.roster_embed(war)
-                await msg.edit(embed=embed)
-            elif res.selected_options[0] == "oroster":
+                await res.response.edit_message(embed=embed)
+            elif res.values[0] == "oroster":
                 embed = await self.opp_roster_embed(war)
-                await msg.edit(embed=embed)
-            elif res.selected_options[0] == "attacks":
+                await res.response.edit_message(embed=embed)
+            elif res.values[0] == "attacks":
                 embed = await self.attacks_embed(war)
-                await msg.edit(embed=embed)
-            elif res.selected_options[0] == "defenses":
+                await res.response.edit_message(embed=embed)
+            elif res.values[0] == "defenses":
                 embed = await self.defenses_embed(war)
-                await msg.edit(embed=embed)
-            elif res.selected_options[0] == "opp_over":
+                await res.response.edit_message(embed=embed)
+            elif res.values[0] == "opp_over":
                 embed = await self.opp_overview(war)
-                await msg.edit(embed=embed)
-            elif res.selected_options[0] == "odefenses":
+                await res.response.edit_message(embed=embed)
+            elif res.values[0] == "odefenses":
                 embed = await self.opp_defenses_embed(war)
-                await msg.edit(embed=embed)
+                await res.response.edit_message(embed=embed)
 
-    async def roster_embed(self, war):
+    @clan_war.autocomplete("clan")
+    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        tracked = clans.find({"server": ctx.guild.id})
+        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        clan_list = []
+        for tClan in await tracked.to_list(length=limit):
+            name = tClan.get("name")
+            tag = tClan.get("tag")
+            if query.lower() in name.lower():
+                clan_list.append(f"{name} | {tag}")
+        return clan_list[0:25]
+
+
+    async def roster_embed(self, war: coc.ClanWar):
         roster = ""
         tags = []
         lineup = []
@@ -194,8 +225,8 @@ class War(commands.Cog):
             roster += f"`{place}` {th_emoji} {player.name}\n"
             x+=1
 
-        embed = discord.Embed(title=f"{war.clan.name} War Roster", description=roster,
-                              color=discord.Color.green())
+        embed = disnake.Embed(title=f"{war.clan.name} War Roster", description=roster,
+                              color=disnake.Color.green())
         embed.set_thumbnail(url=war.clan.badge.large)
         return embed
 
@@ -216,8 +247,8 @@ class War(commands.Cog):
             roster += f"`{place}` {th_emoji} {player.name}\n"
             x+=1
 
-        embed = discord.Embed(title=f"{war.opponent.name} War Roster", description=roster,
-                              color=discord.Color.green())
+        embed = disnake.Embed(title=f"{war.opponent.name} War Roster", description=roster,
+                              color=disnake.Color.green())
         embed.set_thumbnail(url=war.opponent.badge.large)
         return embed
 
@@ -247,8 +278,8 @@ class War(commands.Cog):
                 attacks += f"{attack}\n"
 
 
-        embed = discord.Embed(title=f"{war.clan.name} War Attacks", description=attacks,
-                              color=discord.Color.green())
+        embed = disnake.Embed(title=f"{war.clan.name} War Attacks", description=attacks,
+                              color=disnake.Color.green())
         if missing_attacks != "":
             embed.add_field(name="**No attacks done:**", value=missing_attacks)
         embed.set_thumbnail(url=war.clan.badge.large)
@@ -275,8 +306,8 @@ class War(commands.Cog):
                 defenses += f"{defense}\n"
 
 
-        embed = discord.Embed(title=f"{war.clan.name} Defenses Taken", description=defenses,
-                              color=discord.Color.green())
+        embed = disnake.Embed(title=f"{war.clan.name} Defenses Taken", description=defenses,
+                              color=disnake.Color.green())
         if missing_defenses != "":
             embed.add_field(name="**No defenses taken:**", value=missing_defenses)
         embed.set_thumbnail(url=war.clan.badge.large)
@@ -302,8 +333,8 @@ class War(commands.Cog):
             defenses += f"{defense}\n"
 
 
-        embed = discord.Embed(title=f"{war.clan.name} Defenses Taken", description=defenses,
-                              color=discord.Color.green())
+        embed = disnake.Embed(title=f"{war.clan.name} Defenses Taken", description=defenses,
+                              color=disnake.Color.green())
         if missing_defenses != "":
             embed.add_field(name="**No defenses taken:**", value=missing_defenses)
         embed.set_thumbnail(url=war.clan.badge.large)
@@ -332,7 +363,7 @@ class War(commands.Cog):
             flag = "<a:earth:861321402909327370>"
         else:
             flag = f":flag_{clan.location.country_code.lower()}:"
-        embed = discord.Embed(title=f"**War Opponent: {clan.name}**", description=f"Tag: [{clan.tag}]({clan.share_link})\n"
+        embed = disnake.Embed(title=f"**War Opponent: {clan.name}**", description=f"Tag: [{clan.tag}]({clan.share_link})\n"
                                                                     f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.versus_points}\n"
                                                                     f"Required Trophies: <:trophy:825563829705637889> {clan.required_trophies}\n"
                                                                     f"Location: {flag} {clan.location}\n\n"
@@ -343,7 +374,7 @@ class War(commands.Cog):
                                                                     f"Wars Won: <:warwon:932212939899949176>{warwin}\nWars Lost: <:warlost:932212154164183081>{warloss}\n"
                                                                     f"War Streak: <:warstreak:932212939983847464>{winstreak}\nWinratio: <:winrate:932212939908337705>{winrate}\n\n"
                                                                     f"Description: {clan.description}",
-                              color=discord.Color.green())
+                              color=disnake.Color.green())
 
         embed.set_thumbnail(url=clan.badge.large)
         return embed

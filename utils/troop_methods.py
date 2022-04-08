@@ -258,7 +258,56 @@ def leagueAndTrophies(player):
     return emoji + " " + str(player.trophies)
 
 
+def cwl_league_emojis(league):
 
+    if (league == "Bronze League III"):
+        emoji = "<:BronzeLeagueIII:601611929311510528>"
+    elif (league == "Bronze League II"):
+        emoji = "<:BronzeLeagueII:601611942850986014>"
+    elif (league == "Bronze League I"):
+        emoji = "<:BronzeLeagueI:601611950228635648>"
+    elif (league == "Silver League III"):
+        emoji = "<:SilverLeagueIII:601611958067920906>"
+    elif (league == "Silver League II"):
+        emoji = "<:SilverLeagueII:601611965550428160>"
+    elif (league == "Silver League I"):
+        emoji = "<:SilverLeagueI:601611974849331222>"
+    elif (league == "Gold League III"):
+        emoji = "<:GoldLeagueIII:601611988992262144>"
+    elif (league == "Gold League II"):
+        emoji = "<:GoldLeagueII:601611996290613249>"
+    elif (league == "Gold League I"):
+        emoji = "<:GoldLeagueI:601612010492526592>"
+    elif (league == "Crystal League III"):
+        emoji = "<:CrystalLeagueIII:601612021472952330>"
+    elif (league == "Crystal League II"):
+        emoji = "<:CrystalLeagueII:601612033976434698>"
+    elif (league == "Crystal League I"):
+        emoji = "<:CrystalLeagueI:601612045359775746>"
+    elif (league == "Master League III"):
+        emoji = "<:MasterLeagueIII:601612064913621002>"
+    elif (league == "Master League II"):
+        emoji = "<:MasterLeagueII:601612075474616399>"
+    elif (league == "Master League I"):
+        emoji = "<:MasterLeagueI:601612085327036436>"
+    elif (league == "Champion League III"):
+        emoji = "<:ChampionLeagueIII:601612099226959892>"
+    elif (league == "Champion League II"):
+        emoji = "<:ChampionLeagueII:601612113345249290>"
+    elif (league == "Champion League I"):
+        emoji = "<:ChampionLeagueI:601612124447440912>"
+    elif (league == "Titan League III"):
+        emoji = "<:TitanLeagueIII:601612137491726374>"
+    elif (league == "Titan League II"):
+        emoji = "<:TitanLeagueII:601612148325744640>"
+    elif (league == "Titan League I"):
+        emoji = "<:TitanLeagueI:601612159327141888>"
+    elif (league == "Legend League"):
+        emoji = "<:LegendLeague:601612163169255436>"
+    else:
+        emoji = "<:Unranked:601618883853680653>"
+
+    return emoji
 
 
 

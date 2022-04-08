@@ -2,7 +2,7 @@
 from disnake.ext import commands
 import disnake
 from Dictionaries.thPicDictionary import thDictionary
-from HelperMethods.troop_methods import heros, heroPets
+from utils.troop_methods import heros, heroPets
 from utils.clash import getPlayer, client, coc_client
 
 usafam = client.usafam

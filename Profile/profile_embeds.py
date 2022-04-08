@@ -1,10 +1,9 @@
-from disnake.ext import commands
 import disnake
 from Dictionaries.emojiDictionary import emojiDictionary
 from Dictionaries.thPicDictionary import thDictionary
-from HelperMethods.troop_methods import profileSuperTroops, leagueAndTrophies
+from utils.troop_methods import profileSuperTroops, leagueAndTrophies
 from utils.clash import getPlayer, link_client, pingToMember, client, getClan
-from HelperMethods.troop_methods import heros, heroPets, troops, deTroops, siegeMachines, spells
+from utils.troop_methods import heros, heroPets, troops, deTroops, siegeMachines, spells
 
 usafam = client.usafam
 server = usafam.server

@@ -62,11 +62,7 @@ class VoiceCountdowns(commands.Cog):
                 except (disnake.NotFound, disnake.Forbidden):
                     await server.update_one({"server": servers}, {'$set': {"memberCount": None}})
 
-    @commands.slash_command(name="voice-stats")
-    async def voice(self, ctx):
-        pass
-
-    @voice.sub_command(name="setup", description="Setup a voice countdown or stat bar")
+    @commands.slash_command(name="voice-statbar", description="Setup a voice countdown/statbar")
     async def voice_setup(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["CWL", "Clan Games", "Clan Member Count"])):
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
@@ -204,13 +200,6 @@ class VoiceCountdowns(commands.Cog):
 
 
         return text
-
-
-
-
-
-
-
 
 def setup(bot: commands.Bot):
     bot.add_cog(VoiceCountdowns(bot))

@@ -193,7 +193,6 @@ class family(commands.Cog):
 
     @commands.slash_command(name="aliases", description="List of aliases for all family clans")
     async def alias(self, ctx: disnake.ApplicationCommandInteraction):
-        prefix = ctx.prefix
         tracked = clans.find({"server": ctx.guild.id})
         limit = await clans.count_documents(filter={"server": ctx.guild.id})
         if limit == 0:
@@ -219,7 +218,7 @@ class family(commands.Cog):
                 tag = result.get("tag")
                 clan = await getClan(tag)
                 alias = result.get("alias")
-                text += f"{clan.name}-`{prefix}{alias}`\n"
+                text += f"{clan.name}-`{alias}`\n"
 
         embed = disnake.Embed(title=f"{ctx.guild.name} Clan Aliases",
                               description=text,

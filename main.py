@@ -17,7 +17,7 @@ TOKEN = os.getenv("TOKEN")
 discClient = Client()
 intents = disnake.Intents().all()
 
-bot = commands.Bot(command_prefix=".", help_command=None, intents=intents,
+bot = commands.Bot(command_prefix="??", help_command=None, intents=intents,
     sync_commands_debug=True, sync_permissions=True, test_guilds=[923764211845312533, 548297912443207706, 810466565744230410, 767590042675314718, 869306654640984075, 505168702732369922, 659528917849341954])
 
 
@@ -83,7 +83,12 @@ initial_extensions = (
     "Miscellaneous.awards",
     "Miscellaneous.boost",
     "discord_events",
-    "owner_commands"
+    "owner_commands",
+    "settings",
+    "voice_countdowns",
+    "War.war",
+    "cwl",
+    "donations"
 
 )
 for extension in initial_extensions:
