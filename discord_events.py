@@ -115,7 +115,8 @@ class DiscordEvents(commands.Cog):
             })
         channel = self.bot.get_channel(937519135607373874)
         await channel.send(f"Just joined {guild.name}")
-        await guild.leave()
+        if len(self.bot.guilds) == 100:
+            await guild.leave()
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
