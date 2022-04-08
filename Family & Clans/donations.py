@@ -10,14 +10,14 @@ donations = usafam.donations
 
 from disnake.ext import commands
 
-class WarEvents(commands.Cog):
+class Donations(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         coc_client.add_events(self.dona)
-        #coc_client.add_events(self.new_season)
+        coc_client.add_events(self.new_season)
 
-    @commands.slash_command(name="donations")
+    @commands.slash_command(name="donations", description="Leaderboard of top 50 donators in family")
     async def dono(self, ctx):
         aliases = None
         tags = []
@@ -96,7 +96,6 @@ class WarEvents(commands.Cog):
             embed.set_thumbnail(url=ctx.guild.icon.url)
         await ctx.send(embed=embed)
 
-
     @coc.ClanEvents.member_donations()
     async def dona(self, old_member : coc.ClanMember, new_member : coc.ClanMember):
         donated = new_member.donations - old_member.donations
@@ -127,4 +126,4 @@ class WarEvents(commands.Cog):
 
 
 def setup(bot: commands.Bot):
-    bot.add_cog(WarEvents(bot))
+    bot.add_cog(Donations(bot))

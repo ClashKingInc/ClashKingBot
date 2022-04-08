@@ -12,7 +12,7 @@ legendleagueroles = usafam.legendleagueroles
 donationroles = usafam.donationroles
 
 
-class EvalSetup(commands.Cog):
+class EvalSetup(commands.Cog, name="Eval Setup"):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot

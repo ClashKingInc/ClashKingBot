@@ -16,7 +16,7 @@ import coc
 
 import re
 
-class getClans(commands.Cog):
+class getClans(commands.Cog, name="Clan"):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -81,7 +81,7 @@ class getClans(commands.Cog):
             except:
                 flag = "🏳️"
 
-        from Boards.leaderboards import clan_glob_dict, clan_country_dict
+        from BackgroundLoops.leaderboards import clan_glob_dict, clan_country_dict
         ranking = ""
         glob_rank_clan = country_rank_clan = None
         try:
@@ -305,7 +305,6 @@ class getClans(commands.Cog):
             stats = "No players linked."
         embed = disnake.Embed(title=f"{clan.name} : {str(y)}/{str(clan.member_count)} linked", description=stats,
                               color=disnake.Color.green())
-        embed.set_thumbnail(url=clan.badge.large)
         return embed
 
     async def unlinked_players(self, ctx, clan):
@@ -349,7 +348,6 @@ class getClans(commands.Cog):
 
         embed = disnake.Embed(title=f"{clan.name} : {str(y)} unlinked", description=stats,
                               color=disnake.Color.green())
-        embed.set_thumbnail(url=clan.badge.large)
         return embed
 
     async def player_trophy_sort(self, clan):

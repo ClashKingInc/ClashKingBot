@@ -9,7 +9,7 @@ usafam = client.usafam
 clans = usafam.clans
 server = usafam.server
 
-class awards(commands.Cog):
+class Awards(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -329,4 +329,4 @@ class awards(commands.Cog):
 
 
 def setup(bot: commands.Bot):
-    bot.add_cog(awards(bot))
+    bot.add_cog(Awards(bot))

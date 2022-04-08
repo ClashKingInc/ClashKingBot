@@ -12,7 +12,7 @@ server = usafam.server
 clans = usafam.clans
 
 
-class VoiceCountdowns(commands.Cog):
+class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot

@@ -6,6 +6,7 @@ from datetime import datetime
 from utils.troop_methods import cwl_league_emojis
 from utils.discord_utils import partial_emoji_gen
 from Dictionaries.emojiDictionary import emojiDictionary
+from Dictionaries.levelEmojis import levelEmojis
 from collections import defaultdict
 import operator
 
@@ -23,7 +24,7 @@ import pytz
 tiz = pytz.utc
 
 
-class Cwl(commands.Cog):
+class Cwl(commands.Cog, name="CWL"):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -125,7 +126,7 @@ class Cwl(commands.Cog):
                 embed = await self.war_embed(next_war, clan)
                 await res.response.edit_message(embed=embed)
             elif res.values[0] == "lineup":
-                embed1 = await self.roster_embed(war)
+                embed1 = await self.roster_embed(next_war)
                 embed2 = await self.opp_roster_embed(next_war)
                 await res.response.edit_message(embeds=[embed1, embed2])
             elif res.values[0] == "stars":
@@ -214,7 +215,15 @@ class Cwl(commands.Cog):
             th_emoji = emojiDictionary(th)
             place = str(lineup[x]) + "."
             place = place.ljust(3)
-            roster += f"\u200e`{place}` {th_emoji} \u200e{player.name}\n"
+            hero_total = 0
+            hero_names = ["Barbarian King", "Archer Queen", "Royal Champion", "Grand Warden"]
+            heros = player.heroes
+            for hero in heros:
+                if hero.name in hero_names:
+                    hero_total += hero.level
+            if hero_total == 0:
+                hero_total = ""
+            roster += f"\u200e`{place}` {th_emoji} \u200e{player.name}\u200e | {hero_total}\n"
             x += 1
 
         embed = disnake.Embed(title=f"{war.clan.name} War Roster", description=roster,
@@ -238,7 +247,15 @@ class Cwl(commands.Cog):
             th_emoji = emojiDictionary(th)
             place = str(lineup[x]) + "."
             place = place.ljust(3)
-            roster += f"\u200e`{place}` {th_emoji} \u200e{player.name}\n"
+            heros = player.heroes
+            hero_total = 0
+            hero_names = ["Barbarian King", "Archer Queen", "Royal Champion", "Grand Warden"]
+            for hero in heros:
+                if hero.name in hero_names:
+                    hero_total += hero.level
+            if hero_total == 0:
+                hero_total = ""
+            roster += f"\u200e`{place}` {th_emoji} \u200e{player.name}\u200e | {hero_total}\n"
             x += 1
 
         embed = disnake.Embed(title=f"{war.opponent.name} War Roster", description=roster,
@@ -270,23 +287,22 @@ class Cwl(commands.Cog):
 
         sorted_list = sorted(star_list, key=operator.itemgetter(1, 2), reverse=True)
         text = ""
-        text += f"`#  STRS  DSTR   NAME           `\n"
+        text += f"` # ST DSTR NAME           `\n"
         x = 1
         for item in sorted_list:
             name = item[0]
             stars = str(item[1])
             dest = str(item[2])
-            rank = str(x) + "."
-            rank = rank.ljust(3)
+            rank = str(x)
+            rank = rank.rjust(2)
             stars = stars.rjust(2)
             name = name.ljust(15)
             dest = dest.rjust(3) + "%"
-            text += f"`{rank} {stars} | {dest} | {name}`\n"
+            text += f"`\u200e{rank} {stars} {dest} \u200e{name}`\n"
             x+=1
 
         embed = disnake.Embed(title=f"{clan.name} Star Leaderboard", description=text,
                               color=disnake.Color.green())
-        embed.set_thumbnail(url=clan.badge.large)
         return embed
 
     async def all_rounds(self, league_wars, clan):
@@ -332,8 +348,6 @@ class Cwl(commands.Cog):
                                   f"{war_pos} <t:{int(war_time)}:R>\n­\n"
                             , inline=False)
             round+=1
-
-        embed.set_thumbnail(url=clan.badge.large)
         return embed
 
     async def ranking_lb(self, group: coc.ClanWarLeagueGroup, clan):
@@ -365,23 +379,22 @@ class Cwl(commands.Cog):
 
         sorted_list = sorted(star_list, key=operator.itemgetter(1, 2), reverse=True)
         text = ""
-        text += f"`#  STRS   DSTR     NAME           `\n"
+        text += f"`# STR DSTR   NAME           `"
         x = 1
         for item in sorted_list:
             name = item[0]
             stars = str(item[1])
             dest = str(item[2])
-            rank = str(x) + "."
-            rank = rank.ljust(3)
+            rank = str(x)
+            rank = rank.rjust(1)
             stars = stars.rjust(2)
             name = name.ljust(15)
             dest = dest.rjust(5) + "%"
-            text += f"`{rank} {stars} | {dest} | {name}`\n"
+            text += f"\n`\u200e{rank} \u200e{stars} {dest} \u200e{name}`"
             x += 1
 
         embed = disnake.Embed(title=f"Clan Ranking Leaderboard", description=text,
                               color=disnake.Color.green())
-        embed.set_thumbnail(url=clan.badge.large)
         return embed
 
 

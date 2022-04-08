@@ -1,17 +1,14 @@
-
 import disnake
 from disnake.ext import commands
-from utils.clash import getClan, pingToRole, client, pingToChannel, coc_client
+from utils.clash import getClan, client, coc_client
 usafam = client.usafam
 clans = usafam.clans
 
-class addClan(commands.Cog):
+class addClan(commands.Cog, name="Clan Setup"):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.color = disnake.Color.dark_theme()
-
-
 
     @commands.slash_command(name="addclan", description="Add a clan to the server")
     async def addClan(self, ctx: disnake.ApplicationCommandInteraction, clan_tag:str, category: str, alias:str, general_clan_role:disnake.Role, leadership_clan_role:disnake.Role,
@@ -93,14 +90,12 @@ class addClan(commands.Cog):
                     categories.append(category)
         return categories[0:25]
 
-
     @commands.slash_command(name="removeclan", description="Remove a clan from the server")
-    async def removeClan(self, ctx: disnake.ApplicationCommandInteraction, clan_tag:str):
-
+    async def removeClan(self, ctx: disnake.ApplicationCommandInteraction, clan:str):
         """
             Parameters
             ----------
-            clan_tag: clan to add to server
+            clan: clan to add to server [clan tag, alias, or autocomplete]
         """
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
@@ -108,21 +103,28 @@ class addClan(commands.Cog):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        clan_tag = clan_tag.lower()
+        clan_search = clan.lower()
+        first_clan = clan
         results = await clans.find_one({"$and": [
-            {"alias": clan_tag},
+            {"alias": clan_search},
             {"server": ctx.guild.id}
         ]})
 
         if results is not None:
-            clan_tag = results.get("tag")
-            clan = await getClan(clan_tag)
+            tag = results.get("tag")
+            clan = await getClan(tag)
         else:
-            clan = await getClan(clan_tag)
-        if clan == None:
-            embed = disnake.Embed(description=f"{clan_tag} is not a valid clan.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            clan = await getClan(clan)
+
+        if clan is None:
+            if "|" in first_clan:
+                search = first_clan.split("|")
+                tag = search[1]
+                clan = await getClan(tag)
+
+        if clan is None:
+            return await ctx.send("Not a valid clan tag.")
+
         results = await clans.find_one({"$and": [
             {"tag": clan.tag},
             {"server": ctx.guild.id}
@@ -184,7 +186,17 @@ class addClan(commands.Cog):
         coc_client.remove_clan_updates(clan.tag)
         return await msg.edit(embed=embed, components=[])
 
-
+    @removeClan.autocomplete("clan")
+    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        tracked = clans.find({"server": ctx.guild.id})
+        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        clan_list = []
+        for tClan in await tracked.to_list(length=limit):
+            name = tClan.get("name")
+            tag = tClan.get("tag")
+            if query.lower() in name.lower():
+                clan_list.append(f"{name} | {tag}")
+        return clan_list[0:25]
 
 def setup(bot: commands.Bot):
     bot.add_cog(addClan(bot))

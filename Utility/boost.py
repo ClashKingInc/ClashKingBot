@@ -14,7 +14,7 @@ REG_VERSION = ["Barbarian", "Archer", "Giant", "Goblin", "Wall Breaker", "Balloo
 usafam = client.usafam
 clans = usafam.clans
 
-class boost(commands.Cog):
+class boost(commands.Cog, name="Super Troops"):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot

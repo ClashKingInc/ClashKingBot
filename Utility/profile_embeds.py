@@ -4,6 +4,9 @@ from Dictionaries.thPicDictionary import thDictionary
 from utils.troop_methods import profileSuperTroops, leagueAndTrophies
 from utils.clash import getPlayer, link_client, pingToMember, client, getClan
 from utils.troop_methods import heros, heroPets, troops, deTroops, siegeMachines, spells
+import aiohttp
+from bs4 import BeautifulSoup
+import cchardet
 
 usafam = client.usafam
 server = usafam.server
@@ -133,93 +136,90 @@ async def history(ctx, result):
     except:
         pass
 
-
-    import requests
     result = result.strip("#")
     url = f'https://www.clashofstats.com/players/{result}/history/'
-    response = requests.get(url)
-    from bs4 import BeautifulSoup
-    soup = BeautifulSoup(response.text, 'html.parser')
-    clans = soup.find_all("a", class_="v-list-item v-list-item--link theme--dark")
-    test = soup.find_all("div", class_="subsection-title")
-    num_clans = test[1].text.strip()
-    text = ""
-    x = 0
-    for clan in clans:
-        try:
-            #title_element = clan.find("div", class_="subsection-title")
-            company_element = clan.find("span", class_="text--secondary caption")
-            location_element = clan.find("div", class_="v-list-item__subtitle")
-            #print(title_element.text.strip())
-            #print(company_element.text.strip())
-            t = company_element.text.strip()
-            t = t.strip("-")
-            c = await getClan(t)
-            t = f"[{c.name}]({c.share_link}), - "
-            lstay = None
-            for d in location_element.find_all("br"):
-                lstay = "".join(d.previous_siblings)
-            # print(location_element.text.strip())
-            lstay = " ".join(lstay.split())
-            lstay = lstay.strip("Total ")
-            text += f"\u200e{t} \u200e{lstay}\n"
-            x+=1
-            if x == 5:
-                break
-        except:
-            pass
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            soup = BeautifulSoup(await response.text(), 'lxml')
+            clans = soup.find_all("a", class_="v-list-item v-list-item--link theme--dark")
+            test = soup.find_all("div", class_="subsection-title")
+            num_clans = test[1].text.strip()
+            text = ""
+            x = 0
+            for clan in clans:
+                try:
+                    #title_element = clan.find("div", class_="subsection-title")
+                    company_element = clan.find("span", class_="text--secondary caption")
+                    location_element = clan.find("div", class_="v-list-item__subtitle")
+                    #print(title_element.text.strip())
+                    #print(company_element.text.strip())
+                    t = company_element.text.strip()
+                    t = t.strip("-")
+                    c = await getClan(t)
+                    t = f"[{c.name}]({c.share_link}), - "
+                    lstay = None
+                    for d in location_element.find_all("br"):
+                        lstay = "".join(d.previous_siblings)
+                    # print(location_element.text.strip())
+                    lstay = " ".join(lstay.split())
+                    lstay = lstay.strip("Total ")
+                    text += f"\u200e{t} \u200e{lstay}\n"
+                    x+=1
+                    if x == 5:
+                        break
+                except:
+                    pass
 
-    embed = disnake.Embed(title=f"{player.name} History",
-                          description=f"{num_clans}",
-                          color=disnake.Color.green())
-    embed.add_field(name="**Top 5 Clans Player has stayed the most:**",
-                    value=text, inline=False)
-
-
-    result = result.strip("#")
-    url = f'https://www.clashofstats.com/players/{result}/history/log'
-    response = requests.get(url)
-    from bs4 import BeautifulSoup
-    soup = BeautifulSoup(response.text, 'html.parser')
-    clans = soup.find_all("a", class_="v-list-item v-list-item--link theme--dark")
-    text = ""
-    x = 0
-    types = ["Member", "Elder", "Co-leader", "Leader"]
-    for clan in clans:
-        try:
-            title_element = clan.find("div", class_="v-list-item__title")
-            location_element = clan.find("div", class_="v-list-item__subtitle text--secondary")
-            t = title_element.text.strip()
-            t = " ".join(t.split())
-            ttt = t.split("#",1)
-            clan = await getClan(ttt[1])
-            type = "No Role"
-            for ty in types:
-                if ty in t:
-                    type = ty
-
-            t = f"\u200e[{clan.name}]({clan.share_link}), \u200e{type}"
-
-            lstay = location_element.text.strip()
-            lstay = " ".join(lstay.split())
-            text += f"{t} \n{lstay}\n"
-            x += 1
-            if x == 5:
-                break
-        except:
-            pass
-
-    embed.add_field(name="**Last 5 Clans Player has been seen at:**",
-                    value=text, inline=False)
+        embed = disnake.Embed(title=f"{player.name} History",
+                              description=f"{num_clans}",
+                              color=disnake.Color.green())
+        embed.add_field(name="**Top 5 Clans Player has stayed the most:**",
+                        value=text, inline=False)
 
 
+        result = result.strip("#")
+        url = f'https://www.clashofstats.com/players/{result}/history/log'
+        async with session.get(url) as response:
+            soup = BeautifulSoup(await response.text(), 'lxml')
+            clans = soup.find_all("a", class_="v-list-item v-list-item--link theme--dark")
+            text = ""
+            x = 0
+            types = ["Member", "Elder", "Co-leader", "Leader"]
+            for clan in clans:
+                try:
+                    title_element = clan.find("div", class_="v-list-item__title")
+                    location_element = clan.find("div", class_="v-list-item__subtitle text--secondary")
+                    t = title_element.text.strip()
+                    t = " ".join(t.split())
+                    ttt = t.split("#", 1)
+                    clan = await getClan(ttt[1])
+                    type = "No Role"
+                    for ty in types:
+                        if ty in t:
+                            type = ty
 
-    if join is not None:
-        embed.add_field(name="**Tenure:**",
-                         value=member.display_name + " has been in this server since " + str(
-                             month + "/" + day + "/" + year), inline=False)
+                    t = f"\u200e[{clan.name}]({clan.share_link}), \u200e{type}"
 
-    return embed
+                    lstay = location_element.text.strip()
+                    lstay = " ".join(lstay.split())
+                    text += f"{t} \n{lstay}\n"
+                    x += 1
+                    if x == 5:
+                        break
+                except:
+                    pass
+
+        embed.add_field(name="**Last 5 Clans Player has been seen at:**",
+                        value=text, inline=False)
+
+        if join is not None:
+            embed.add_field(name="**Tenure:**",
+                            value=member.display_name + " has been in this server since " + str(
+                                month + "/" + day + "/" + year), inline=False)
+
+        embed.set_footer(text="Data from ClashofStats.com")
+        return embed
+
 
 
 async def create_profile_troops(result):

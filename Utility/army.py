@@ -5,7 +5,7 @@ from Dictionaries.emojiDictionary import emojiDictionary
 import disnake
 import coc
 
-class ArmyLinks(commands.Cog):
+class ArmyLinks(commands.Cog, name="Army"):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot

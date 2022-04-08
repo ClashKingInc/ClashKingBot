@@ -2,14 +2,11 @@ import disnake
 from disnake.ext import commands
 from utils.clash import client, getClan
 
-
 usafam = client.usafam
 clans = usafam.clans
 server = usafam.server
 
-
-
-class misc(commands.Cog):
+class misc(commands.Cog, name="Settings"):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot

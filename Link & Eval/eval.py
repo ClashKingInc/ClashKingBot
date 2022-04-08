@@ -14,7 +14,7 @@ townhallroles = usafam.townhallroles
 legendleagueroles = usafam.legendleagueroles
 
 
-class eval(commands.Cog):
+class eval(commands.Cog, name="Eval"):
     """A couple of simple commands."""
 
     def __init__(self, bot: commands.Bot):

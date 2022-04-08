@@ -3,7 +3,7 @@ import disnake
 
 import coc
 
-from utils.clash import client, getClan, link_client, pingToMember, getPlayer, coc_client
+from utils.clash import client, getClan, link_client, pingToMember, coc_client
 from utils.components import create_components
 usafam = client.usafam
 clans = usafam.clans
@@ -13,7 +13,7 @@ from Dictionaries.thPicDictionary import thDictionary
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹" ]
 from utils.search import search_results
 
-class top(commands.Cog):
+class FamilyStats(commands.Cog, name="Family Stats"):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -235,7 +235,7 @@ class top(commands.Cog):
 
         async for player in coc_client.get_players(results):
             result = player.tag
-            from Boards.leaderboards import rankingsC
+            from BackgroundLoops.leaderboards import rankingsC
             guildranking = None
             try:
                 guildranking = rr[player.tag]
@@ -337,7 +337,7 @@ class top(commands.Cog):
         sorted(server_players, key=server_players.get, reverse=True)
         server_players = {key: rank for rank, key in enumerate(sorted(server_players, key=server_players.get, reverse=True), 1)}
         server_players = list(server_players.keys())
-        from Boards.leaderboards import glob_dict, country_dict
+        from BackgroundLoops.leaderboards import glob_dict, country_dict
 
         embeds = []
         num = 0
@@ -420,7 +420,7 @@ class top(commands.Cog):
             tag = clan.get("tag")
             server_clans.append(tag)
 
-        from Boards.leaderboards import clan_glob_dict, clan_country_dict
+        from BackgroundLoops.leaderboards import clan_glob_dict, clan_country_dict
 
         num = 0
         text = ""
@@ -567,4 +567,4 @@ class top(commands.Cog):
 
 
 def setup(bot: commands.Bot):
-    bot.add_cog(top(bot))
+    bot.add_cog(FamilyStats(bot))

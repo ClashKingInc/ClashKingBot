@@ -9,7 +9,7 @@ usafam = client.usafam
 clans = usafam.clans
 
 
-class family(commands.Cog):
+class Family(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -229,4 +229,4 @@ class family(commands.Cog):
         await ctx.send(embed=embed)
 
 def setup(bot: commands.Bot):
-    bot.add_cog(family(bot))
+    bot.add_cog(Family(bot))

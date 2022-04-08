@@ -4,26 +4,26 @@ from utils.clash import getPlayer, client, pingToChannel, player_handle, coc_cli
 import disnake
 from utils.components import create_components
 from datetime import datetime
-
+import coc
 from Dictionaries.emojiDictionary import emojiDictionary
 
 usafam = client.usafam
 banlist = usafam.banlist
 server = usafam.server
+clans = usafam.clans
 
 
-class banlists(commands.Cog):
+class banlists(commands.Cog, name="Bans"):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-
-
+        coc_client.add_events(self.foo)
 
     @commands.slash_command(name="ban", description="stuff")
     async def ban(self, ctx):
         pass
 
-    @ban.sub_command(name='list', description="This server's list of banned players")
+    @ban.sub_command(name='list', description="List of server banned players")
     async def ban_list(self, ctx: disnake.ApplicationCommandInteraction):
 
         perms = ctx.author.guild_permissions.manage_guild
@@ -244,6 +244,50 @@ class banlists(commands.Cog):
 
         return embeds
 
+    @coc.ClanEvents.member_join()
+    async def foo(self, member, clan):
+        bot = self.bot
+        tag = member.tag
+
+        results = await banlist.find_one({"VillageTag": tag})
+
+        if results != None:
+            tracked = clans.find({"tag": f"{clan.tag}"})
+            limit = await clans.count_documents(filter={"tag": f"{clan.tag}"})
+            for cc in await tracked.to_list(length=limit):
+                server = cc.get("server")
+                server = await bot.fetch_guild(server)
+
+                results = await banlist.find_one({"$and": [
+                    {"VillageTag": tag},
+                    {"server": server.id}
+                ]})
+
+                if results != None:
+                    notes = results.get("Notes")
+                    if notes == "":
+                        notes = "No Reason Given"
+                    date = results.get("DateCreated")
+                    date = date[0:10]
+
+                    channel = cc.get("clanChannel")
+
+                    role = cc.get("generalRole")
+
+                    role = server.get_role(role)
+                    channel = bot.get_channel(channel)
+
+                    player = await getPlayer(member.tag)
+
+                    embed = disnake.Embed(
+                        description=f"[WARNING! BANNED PLAYER {member.name} JOINED]({player.share_link})",
+                        color=disnake.Color.green())
+                    embed.add_field(name="Banned Player.",
+                                    value=f"Player {member.name} [{member.tag}] has joined {clan.name} and is on the {server.name} BAN list!\n\n"
+                                          f"Banned on: {date}\nReason: {notes}")
+                    embed.set_thumbnail(
+                        url="https://cdn.discordapp.com/attachments/843624785560993833/932701461614313562/2EdQ9Cx.png")
+                    await channel.send(content=role.mention, embed=embed)
 
 def setup(bot: commands.Bot):
     bot.add_cog(banlists(bot))

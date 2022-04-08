@@ -1,15 +1,12 @@
-from disnake.ext import commands # Again, we need this imported
+from disnake.ext import commands
 import disnake
-from utils.clash import getClan, getPlayer, verifyPlayer, link_client, pingToMember, getTags, client
-
-
+from utils.clash import  getPlayer, verifyPlayer, link_client, pingToMember, getTags, client
 
 usafam = client.usafam
 clans = usafam.clans
 server = usafam.server
 
 class Linking(commands.Cog):
-    """A couple of simple commands."""
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot

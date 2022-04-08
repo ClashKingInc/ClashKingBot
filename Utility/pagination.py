@@ -1,18 +1,15 @@
-from Profile.profile_embeds import *
-
-
-
+from Utility.profile_embeds import *
 
 async def button_pagination(bot, ctx, msg, results):
     # statTypes
     profile_pages = ["Info", "Troops", "History"]
     current_stat = 0
     current_page = 0
+    history_cache_embed = {}
 
     embed = await create_profile_stats(ctx, results[0])
 
     await msg.edit(embed=embed, components=create_components(results, current_page))
-
     def check(res: disnake.MessageInteraction):
         return res.message.id == msg.id
 
@@ -28,20 +25,20 @@ async def button_pagination(bot, ctx, msg, results):
         #print(res.custom_id)
         if res.data.custom_id == "Previous":
             current_page -= 1
-            embed = await display_embed(results, profile_pages[current_stat], current_page, ctx)
+            embed = await display_embed(results, profile_pages[current_stat], current_page, ctx, history_cache_embed)
             await res.edit_original_message(embed=embed,
                            components=create_components(results, current_page))
 
         elif res.data.custom_id == "Next":
             current_page += 1
-            embed = await display_embed(results, profile_pages[current_stat], current_page, ctx)
+            embed = await display_embed(results, profile_pages[current_stat], current_page, ctx, history_cache_embed)
             await res.edit_original_message(embed=embed,
                            components=create_components(results, current_page))
 
         elif res.data.custom_id in profile_pages:
             current_stat = profile_pages.index(res.data.custom_id)
             try:
-                embed = await display_embed(results, profile_pages[current_stat], current_page, ctx)
+                embed = await display_embed(results, profile_pages[current_stat], current_page, ctx, history_cache_embed)
                 await res.edit_original_message(embed=embed,
                                components=create_components(results, current_page))
             except:
@@ -51,14 +48,20 @@ async def button_pagination(bot, ctx, msg, results):
                     await res.edit_original_message(embed=embed,
                                    components=create_components(results, current_page))
 
-async def display_embed(results, stat_type, current_page, ctx):
 
+async def display_embed(results, stat_type, current_page, ctx, history_cache_embed):
     if stat_type == "Info":
         return await create_profile_stats(ctx, results[current_page])
     elif stat_type == "Troops":
         return await create_profile_troops(results[current_page])
     elif stat_type == "History":
-        return await history(ctx, results[current_page])
+        tag = results[current_page]
+        keys = history_cache_embed.keys()
+        if tag not in keys:
+            history_cache_embed[tag] = await history(ctx, results[current_page])
+            return history_cache_embed[tag]
+        else:
+            return history_cache_embed[tag]
 
 
 def create_components(results, current_page):

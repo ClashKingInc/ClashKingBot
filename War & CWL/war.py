@@ -222,7 +222,15 @@ class War(commands.Cog):
             th_emoji = emojiDictionary(th)
             place = str(lineup[x]) + "."
             place = place.ljust(3)
-            roster += f"`{place}` {th_emoji} {player.name}\n"
+            hero_total = 0
+            hero_names = ["Barbarian King", "Archer Queen", "Royal Champion", "Grand Warden"]
+            heros = player.heroes
+            for hero in heros:
+                if hero.name in hero_names:
+                    hero_total += hero.level
+            if hero_total == 0:
+                hero_total = ""
+            roster += f"`{place}` {th_emoji} {player.name} | {hero_total}\n"
             x+=1
 
         embed = disnake.Embed(title=f"{war.clan.name} War Roster", description=roster,
@@ -244,7 +252,15 @@ class War(commands.Cog):
             th_emoji = emojiDictionary(th)
             place = str(lineup[x]) + "."
             place = place.ljust(3)
-            roster += f"`{place}` {th_emoji} {player.name}\n"
+            hero_total = 0
+            hero_names = ["Barbarian King", "Archer Queen", "Royal Champion", "Grand Warden"]
+            heros = player.heroes
+            for hero in heros:
+                if hero.name in hero_names:
+                    hero_total += hero.level
+            if hero_total == 0:
+                hero_total = ""
+            roster += f"`{place}` {th_emoji} {player.name} | {hero_total}\n"
             x+=1
 
         embed = disnake.Embed(title=f"{war.opponent.name} War Roster", description=roster,
