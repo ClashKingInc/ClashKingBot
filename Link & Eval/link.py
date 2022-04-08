@@ -15,7 +15,7 @@ class Linking(commands.Cog):
     async def refresh(self, ctx):
         tags = await getTags(ctx, str(ctx.author.id))
         if tags !=[]:
-            evalua = self.bot.get_cog("eval")
+            evalua = self.bot.get_cog("Eval")
             changes = await evalua.eval_member(ctx, ctx.author, False)
             embed = disnake.Embed(
                 description=f"Refreshed your roles {ctx.author.mention}.\n"
@@ -49,7 +49,7 @@ class Linking(commands.Cog):
 
         if verified and is_linked:
             if linked == ctx.author.id:
-                evalua = self.bot.get_cog("eval")
+                evalua = self.bot.get_cog("Eval")
                 changes = await evalua.eval_member(ctx, ctx.author, False)
                 embed = disnake.Embed(
                     description=f"[{player.name}]({player.share_link}) is already linked to you {ctx.author.mention}.\n"
@@ -63,7 +63,7 @@ class Linking(commands.Cog):
 
         elif verified and not is_linked:
             await link_client.add_link(player.tag, ctx.author.id)
-            evalua = self.bot.get_cog("eval")
+            evalua = self.bot.get_cog("Eval")
             changes = await evalua.eval_member(ctx, ctx.author, False)
             embed = disnake.Embed(
                 description=f"[{player.name}]({player.share_link}) is successfully linked to {ctx.author.mention}.\n"
@@ -173,7 +173,7 @@ class Linking(commands.Cog):
 
         await link_client.add_link(player.tag, member.id)
 
-        evalua = self.bot.get_cog("eval")
+        evalua = self.bot.get_cog("Eval")
         changes = await evalua.eval_member(ctx, member, False)
 
         embed = disnake.Embed(description=f"[{player.name}]({player.share_link}) has been linked to {member.mention}.\n"

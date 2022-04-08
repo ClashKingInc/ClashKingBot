@@ -4,6 +4,7 @@ import disnake
 from Dictionaries.thPicDictionary import thDictionary
 from utils.troop_methods import heros, heroPets
 from utils.clash import getPlayer, client, coc_client, getClan, verifyPlayer, link_client
+import requests
 
 usafam = client.usafam
 server = usafam.server
@@ -97,6 +98,13 @@ class DiscordEvents(commands.Cog):
 
             channel = message.channel
             await channel.send(embed=embed)
+        elif self.bot.user.mention in message.content:
+            text = message.content.replace(self.bot.user.mention,"")
+            r = requests.get(f"https://api.affiliateplus.xyz/api/chatbot?message={text}&botname=Clash+King&ownername=Magic&user={message.author.id}")
+            jso = r.json()
+            mess = jso["message"]
+            await message.channel.send(content=mess)
+
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild:disnake.Guild):
@@ -313,7 +321,7 @@ class DiscordEvents(commands.Cog):
                 return await ctx.edit_original_message(embed=embed)
             elif linked == member.id:
                 link_open.remove(member)
-                evalua = self.bot.get_cog("eval")
+                evalua = self.bot.get_cog("Eval")
                 changes = await evalua.eval_member(ctx, member, False)
 
                 embed = disnake.Embed(
@@ -364,7 +372,7 @@ class DiscordEvents(commands.Cog):
                     if (linked is None) and (playerVerified == True):
                         link_open.remove(member)
                         await link_client.add_link(player.tag, member.id)
-                        evalua = self.bot.get_cog("eval")
+                        evalua = self.bot.get_cog("Eval")
                         changes = await evalua.eval_member(ctx, member, False)
                         embed = disnake.Embed(
                             description=f"[{player.name}]({player.share_link}) successfully linked to {member.mention}.\n"
