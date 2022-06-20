@@ -56,11 +56,12 @@ initial_extensions = (
 
 subreddit = "ClashOfClansRecruit"
 secret = os.getenv("SECRET")
+RPW = os.getenv("RPW")
 reddit = asyncpraw.Reddit(
     client_id="-dOCgLIHqUJK7g",
     client_secret= secret,
     username="Powerful-Flight2605",
-    password="RedditBot@2021",
+    password=RPW,
     user_agent="Reply Recruit"
 )
 
