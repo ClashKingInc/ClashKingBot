@@ -83,12 +83,14 @@ class addClan(commands.Cog, name="Clan Setup"):
         tracked = clans.find({"server": ctx.guild.id})
         limit = await clans.count_documents(filter={"server": ctx.guild.id})
         categories = []
+        if query != "":
+            categories.append(query)
         for tClan in await tracked.to_list(length=limit):
             category = tClan.get("category")
             if query.lower() in category.lower():
                 if category not in categories:
                     categories.append(category)
-        return categories[0:25]
+        return categories[0:24]
 
     @commands.slash_command(name="removeclan", description="Remove a clan from the server")
     async def removeClan(self, ctx: disnake.ApplicationCommandInteraction, clan:str):

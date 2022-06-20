@@ -11,6 +11,7 @@ clans = usafam.clans
 server = usafam.server
 
 
+
 class board_loop(commands.Cog):
 
     def __init__(self, bot: commands.Bot):

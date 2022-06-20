@@ -1,6 +1,6 @@
 from Utility.profile_embeds import *
 
-async def button_pagination(bot, ctx, msg, results):
+async def button_pagination(bot, ctx: disnake.ApplicationCommandInteraction, msg, results):
     # statTypes
     profile_pages = ["Info", "Troops", "History"]
     current_stat = 0
@@ -18,7 +18,7 @@ async def button_pagination(bot, ctx, msg, results):
             res: disnake.MessageInteraction = await bot.wait_for("message_interaction", check=check,
                                                                       timeout=600)
         except:
-            await msg.edit(components=[])
+            await ctx.edit_original_message(components=[])
             break
 
         await res.response.defer()

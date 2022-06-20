@@ -255,7 +255,7 @@ def leagueAndTrophies(player):
     else:
         emoji = "<:Unranked:601618883853680653>"
 
-    return emoji + " " + str(player.trophies)
+    return emoji + str(player.trophies)
 
 
 def cwl_league_emojis(league):

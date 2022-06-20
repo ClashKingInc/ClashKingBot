@@ -120,7 +120,7 @@ class Awards(commands.Cog):
                 res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
                                                                           timeout=600)
             except:
-                await msg.edit(components=[])
+                await ctx.edit_original_message(components=[])
                 break
 
             if res.data.custom_id == "Previous":
@@ -262,6 +262,7 @@ class Awards(commands.Cog):
             emoji: emoji to search for in nicknames (must be a valid default emoji)
         """
 
+        emoji = emoji_package.emojize(emoji)
         if not emoji_package.is_emoji(emoji):
             return await ctx.send(
                 f"{emoji} is not a valid emoji (must be a default emoji, not discord/server emoji).")

@@ -96,7 +96,7 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
 
         if type == "CWL":
             await server.update_one({"server": ctx.guild.id}, {'$set': {"cwlCountdown": channel.id}})
-        elif type == "CWL":
+        elif type == "Clan Games":
             await server.update_one({"server": ctx.guild.id}, {'$set': {"gamesCountdown": channel.id}})
         else:
             await server.update_one({"server": ctx.guild.id}, {'$set': {"memberCount": channel.id}})
@@ -121,9 +121,9 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
                 first = datetime(year, month, 1, hour=8, tzinfo=utc)
             else:
                 first = datetime(year, month + 1, 1, hour=8, tzinfo=utc)
-            end = datetime(year, month, 10, hour=8, tzinfo=utc)
+            end = datetime(year, month, 11, hour=8, tzinfo=utc)
             if (day >= 1 and day<=10):
-                if (day == 1 and hour < 8) or (day == 10 and hour >= 8):
+                if (day == 1 and hour < 8) or (day == 11 and hour >= 8):
                     is_cwl = False
                 else:
                     is_cwl = True

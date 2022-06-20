@@ -58,6 +58,7 @@ class misc(commands.Cog, name="Other"):
             embeds.append(embed)
 
         current_page = 0
+        await ctx.send(embed=embeds[0], components=create_components(current_page, embeds, True))
         msg = await ctx.original_message()
         def check(res: disnake.MessageInteraction):
             return res.message.id == msg.id

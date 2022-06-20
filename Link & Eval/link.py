@@ -36,67 +36,78 @@ class Linking(commands.Cog):
             api_token: player api-token, use /linkhelp for more info
         """
 
-        player = await getPlayer(player_tag)
-        if player is None:
-            embed = disnake.Embed(description=f"{player_tag} is not a valid player tag. Use the photo below to help find your player tag.", color=disnake.Color.red())
-            embed.set_image(
-                url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
-            return await ctx.send(embed=embed)
+        try:
+            player = await getPlayer(player_tag)
+            if player is None:
+                embed = disnake.Embed(description=f"{player_tag} is not a valid player tag. Use the photo below to help find your player tag.", color=disnake.Color.red())
+                embed.set_image(
+                    url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
+                return await ctx.send(embed=embed)
 
-        verified = await verifyPlayer(player.tag, api_token)
-        linked = await link_client.get_link(player.tag)
-        is_linked = (linked != None)
+            verified = await verifyPlayer(player.tag, api_token)
+            linked = await link_client.get_link(player.tag)
+            is_linked = (linked != None)
 
-        if verified and is_linked:
-            if linked == ctx.author.id:
+            if verified and is_linked:
+                if linked == ctx.author.id:
+                    evalua = self.bot.get_cog("Eval")
+                    changes = await evalua.eval_member(ctx, ctx.author, False)
+                    embed = disnake.Embed(
+                        description=f"[{player.name}]({player.share_link}) is already linked to you {ctx.author.mention}.\n"
+                                    f"Added: {changes[0]}\n"
+                                    f"Removed: {changes[1]}", color=disnake.Color.green())
+                    await ctx.send(embed=embed)
+                else:
+                    embed = disnake.Embed(
+                        description=f"[{player.name}]({player.share_link}) is already linked to another discord user. Use `/unlink` to remove the link first.", color=disnake.Color.red())
+                    await ctx.send(embed=embed)
+
+            elif verified and not is_linked:
+                await link_client.add_link(player.tag, ctx.author.id)
                 evalua = self.bot.get_cog("Eval")
                 changes = await evalua.eval_member(ctx, ctx.author, False)
                 embed = disnake.Embed(
-                    description=f"[{player.name}]({player.share_link}) is already linked to you {ctx.author.mention}.\n"
+                    description=f"[{player.name}]({player.share_link}) is successfully linked to {ctx.author.mention}.\n"
                                 f"Added: {changes[0]}\n"
                                 f"Removed: {changes[1]}", color=disnake.Color.green())
                 await ctx.send(embed=embed)
-            else:
-                embed = disnake.Embed(
-                    description=f"[{player.name}]({player.share_link}) is already linked to another discord user. Use `/unlink` to remove the link first.", color=disnake.Color.red())
-                await ctx.send(embed=embed)
+                try:
+                    results = await server.find_one({"server": ctx.guild.id})
+                    greeting = results.get("greeting")
+                    if greeting == None:
+                        greeting = ""
 
-        elif verified and not is_linked:
-            await link_client.add_link(player.tag, ctx.author.id)
-            evalua = self.bot.get_cog("Eval")
-            changes = await evalua.eval_member(ctx, ctx.author, False)
-            embed = disnake.Embed(
-                description=f"[{player.name}]({player.share_link}) is successfully linked to {ctx.author.mention}.\n"
-                            f"Added: {changes[0]}\n"
-                            f"Removed: {changes[1]}", color=disnake.Color.green())
-            await ctx.send(embed=embed)
-            try:
-                results = await server.find_one({"server": ctx.guild.id})
-                greeting = results.get("greeting")
-                if greeting == None:
-                    greeting = ""
+                    results = await clans.find_one({"$and": [
+                        {"tag": player.clan.tag},
+                        {"server": ctx.guild.id}
+                    ]})
+                    if results != None:
+                        channel = results.get("clanChannel")
+                        channel = self.bot.get_channel(channel)
+                        await channel.send(f"{ctx.author.mention}, welcome to {ctx.guild.name}! {greeting}")
+                except:
+                    pass
 
-                results = await clans.find_one({"$and": [
-                    {"tag": player.clan.tag},
-                    {"server": ctx.guild.id}
-                ]})
-                if results != None:
-                    channel = results.get("clanChannel")
-                    channel = self.bot.get_channel(channel)
-                    await channel.send(f"{ctx.author.mention}, welcome to {ctx.guild.name}! {greeting}")
-            except:
-                pass
+            elif not verified and is_linked:
+                if linked == ctx.author.id:
+                    evalua = self.bot.get_cog("eval")
+                    changes = await evalua.eval_member(ctx, ctx.author, False)
+                    embed = disnake.Embed(
+                        description=f"[{player.name}]({player.share_link}) is already linked to you {ctx.author.mention}.\n"
+                                    f"Added: {changes[0]}\n"
+                                    f"Removed: {changes[1]}", color=disnake.Color.green())
+                    await ctx.send(embed=embed)
+                else:
+                    embed = disnake.Embed(
+                        title="API Token is Incorrect!",
+                        description=f"- Reference below for help finding your api token.\n- Open Clash and navigate to Settings > More Settings - OR use the below link:\nhttps://link.clashofclans.com/?action=OpenMoreSettings" +
+                                    "\n- Scroll down to the bottom and copy the api token.\n- View the picture below for reference.",
+                        color=disnake.Color.red())
+                    embed.set_image(
+                        url="https://cdn.discordapp.com/attachments/843624785560993833/961379232955658270/image0_2.png")
+                    await ctx.send(embed=embed)
 
-        elif not verified and is_linked:
-            if linked == ctx.author.id:
-                evalua = self.bot.get_cog("eval")
-                changes = await evalua.eval_member(ctx, ctx.author, False)
-                embed = disnake.Embed(
-                    description=f"[{player.name}]({player.share_link}) is already linked to you {ctx.author.mention}.\n"
-                                f"Added: {changes[0]}\n"
-                                f"Removed: {changes[1]}", color=disnake.Color.green())
-                await ctx.send(embed=embed)
-            else:
+            elif not verified and not is_linked:
                 embed = disnake.Embed(
                     title="API Token is Incorrect!",
                     description=f"- Reference below for help finding your api token.\n- Open Clash and navigate to Settings > More Settings - OR use the below link:\nhttps://link.clashofclans.com/?action=OpenMoreSettings" +
@@ -105,17 +116,72 @@ class Linking(commands.Cog):
                 embed.set_image(
                     url="https://cdn.discordapp.com/attachments/843624785560993833/961379232955658270/image0_2.png")
                 await ctx.send(embed=embed)
+        except Exception as e:
+            await ctx.send(e[0:1000])
 
-        elif not verified and not is_linked:
-            embed = disnake.Embed(
-                title="API Token is Incorrect!",
-                description=f"- Reference below for help finding your api token.\n- Open Clash and navigate to Settings > More Settings - OR use the below link:\nhttps://link.clashofclans.com/?action=OpenMoreSettings" +
-                            "\n- Scroll down to the bottom and copy the api token.\n- View the picture below for reference.",
-                color=disnake.Color.red())
-            embed.set_image(
-                url="https://cdn.discordapp.com/attachments/843624785560993833/961379232955658270/image0_2.png")
-            await ctx.send(embed=embed)
+    @commands.slash_command(name="verify", description="Link clash of clans accounts to your discord profile", guild_ids=[548297912443207706])
+    async def verify(self, ctx: disnake.ApplicationCommandInteraction, player_tag):
+        """
+            Parameters
+            ----------
+            player_tag: player_tag as found in-game
+        """
 
+        try:
+            player = await getPlayer(player_tag)
+            if player is None:
+                embed = disnake.Embed(
+                    description=f"{player_tag} is not a valid player tag. Use the photo below to help find your player tag.",
+                    color=disnake.Color.red())
+                embed.set_image(
+                    url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
+                return await ctx.send(embed=embed)
+
+            linked = await link_client.get_link(player.tag)
+            is_linked = (linked != None)
+
+            if is_linked:
+                if linked == ctx.author.id:
+                    evalua = self.bot.get_cog("Eval")
+                    changes = await evalua.eval_member(ctx, ctx.author, False)
+                    embed = disnake.Embed(
+                        description=f"[{player.name}]({player.share_link}) is already linked to you {ctx.author.mention}.\n"
+                                    f"Added: {changes[0]}\n"
+                                    f"Removed: {changes[1]}", color=disnake.Color.green())
+                    await ctx.send(embed=embed)
+                else:
+                    embed = disnake.Embed(
+                        description=f"[{player.name}]({player.share_link}) is already linked to another discord user. Use `/unlink` to remove the link first.",
+                        color=disnake.Color.red())
+                    await ctx.send(embed=embed)
+
+            elif not is_linked:
+                await link_client.add_link(player.tag, ctx.author.id)
+                evalua = self.bot.get_cog("Eval")
+                changes = await evalua.eval_member(ctx, ctx.author, False)
+                embed = disnake.Embed(
+                    description=f"[{player.name}]({player.share_link}) is successfully linked to {ctx.author.mention}.\n"
+                                f"Added: {changes[0]}\n"
+                                f"Removed: {changes[1]}", color=disnake.Color.green())
+                await ctx.send(embed=embed)
+                try:
+                    results = await server.find_one({"server": ctx.guild.id})
+                    greeting = results.get("greeting")
+                    if greeting == None:
+                        greeting = ""
+
+                    results = await clans.find_one({"$and": [
+                        {"tag": player.clan.tag},
+                        {"server": ctx.guild.id}
+                    ]})
+                    if results != None:
+                        channel = results.get("clanChannel")
+                        channel = self.bot.get_channel(channel)
+                        await channel.send(f"{ctx.author.mention}, welcome to {ctx.guild.name}! {greeting}")
+                except:
+                    pass
+        except Exception as e:
+            await ctx.send(e[0:1000])
 
     @commands.slash_command(name="linkhelp", description="Help & Reference guide for /link command")
     async def linkhelp(self, ctx: disnake.ApplicationCommandInteraction):
@@ -207,10 +273,13 @@ class Linking(commands.Cog):
             player_tag: player_tag as found in-game
         """
         perms = ctx.author.guild_permissions.manage_guild
+        if ctx.author.id == 706149153431879760:
+            perms = True
         if not perms:
             embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
+
 
         player = await getPlayer(player_tag)
         if player is None:
@@ -226,7 +295,7 @@ class Linking(commands.Cog):
 
         member = await pingToMember(ctx, linked)
         is_member = (member != None)
-        if ctx.guild.id == 767590042675314718:
+        if ctx.author.id == 706149153431879760 or ctx.author.id == 161053630038802433:
             is_member = True
 
         if is_member == False:

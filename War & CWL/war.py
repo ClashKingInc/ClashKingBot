@@ -19,7 +19,7 @@ class War(commands.Cog):
 
     @commands.slash_command(name= "war", description="Stats & info for a clans current war")
     async def clan_war(self, ctx: disnake.ApplicationCommandInteraction, clan:str):
-
+        await ctx.response.defer()
         clan_search = clan.lower()
         first_clan = clan
         results = await clans.find_one({"$and": [
@@ -36,7 +36,10 @@ class War(commands.Cog):
         if clan is None:
             if "|" in first_clan:
                 search = first_clan.split("|")
-                tag = search[1]
+                try:
+                    tag = search[4]
+                except:
+                    tag = search[1]
                 clan = await getClan(tag)
 
         if clan is None:
@@ -204,6 +207,17 @@ class War(commands.Cog):
             tag = tClan.get("tag")
             if query.lower() in name.lower():
                 clan_list.append(f"{name} | {tag}")
+
+        if clan_list == [] and len(query) >= 3:
+            clan = await getClan(query)
+            if clan is None:
+                results = await coc_client.search_clans(name=query, limit=25)
+                for clan in results:
+                    clan_list.append(
+                        f"{clan.name} | {clan.member_count}/50 | LV{clan.level} | {clan.war_league} | {clan.tag}")
+            else:
+                clan_list.append(f"{clan.name} | {clan.tag}")
+                return clan_list
         return clan_list[0:25]
 
 

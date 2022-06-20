@@ -551,8 +551,7 @@ class eval(commands.Cog, name="Eval"):
 
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
-                                                                          timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,timeout=600)
             except:
                 await msg.edit(components=[])
                 break

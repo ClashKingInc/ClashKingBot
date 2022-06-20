@@ -288,11 +288,173 @@ class misc(commands.Cog, name="Settings"):
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
+    @set.sub_command(name="join-log", description="Set up a join & leave log for a clan")
+    async def joinleavelog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
+        """
+            Parameters
+            ----------
+            clan: Use clan tag, alias, or select an option from the autocomplete
+            channel: channel to set the join/leave log to
+        """
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
+        clan_search = clan.lower()
+        first_clan = clan
+        results = await clans.find_one({"$and": [
+            {"alias": clan_search},
+            {"server": ctx.guild.id}
+        ]})
+
+        if results is not None:
+            tag = results.get("tag")
+            clan = await getClan(tag)
+        else:
+            clan = await getClan(clan)
+
+        if clan is None:
+            if "|" in first_clan:
+                search = first_clan.split("|")
+                tag = search[1]
+                clan = await getClan(tag)
+
+        if clan is None:
+            return await ctx.send("Not a valid clan tag or alias.")
+
+        results = await clans.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        if results is None:
+            return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
+
+        await clans.update_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]}, {'$set': {"joinlog": channel.id}})
+
+        embed = disnake.Embed(description=f"Join/Leave Log set in {channel.mention} for {clan.name}",
+                              color=disnake.Color.green())
+        await ctx.send(embed=embed)
+
+    @set.sub_command(name="clancapital-log", description="Set up a clan capital log for a clan")
+    async def clancapitallog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
+        """
+            Parameters
+            ----------
+            clan: Use clan tag, alias, or select an option from the autocomplete
+            channel: channel to set the join/leave log to
+        """
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
+        clan_search = clan.lower()
+        first_clan = clan
+        results = await clans.find_one({"$and": [
+            {"alias": clan_search},
+            {"server": ctx.guild.id}
+        ]})
+
+        if results is not None:
+            tag = results.get("tag")
+            clan = await getClan(tag)
+        else:
+            clan = await getClan(clan)
+
+        if clan is None:
+            if "|" in first_clan:
+                search = first_clan.split("|")
+                tag = search[1]
+                clan = await getClan(tag)
+
+        if clan is None:
+            return await ctx.send("Not a valid clan tag or alias.")
+
+        results = await clans.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        if results is None:
+            return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
+
+        await clans.update_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]}, {'$set': {"clan_capital": channel.id}})
+
+        embed = disnake.Embed(description=f"Clan Capital Log set in {channel.mention} for {clan.name}",
+                              color=disnake.Color.green())
+        await ctx.send(embed=embed)
+
+
+    '''
+    @set.sub_command(name="clan-board", description="Set up a auto-refreshing clan info-board for a clan")
+    async def clan_board(self, ctx: disnake.ApplicationCommandInteraction, clan: str):
+        """
+            Parameters
+            ----------
+            clan: Use clan tag, alias, or select an option from the autocomplete
+        """
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
+        channel = ctx.channel
+        clan_search = clan.lower()
+        first_clan = clan
+        results = await clans.find_one({"$and": [
+            {"alias": clan_search},
+            {"server": ctx.guild.id}
+        ]})
+
+        if results is not None:
+            tag = results.get("tag")
+            clan = await getClan(tag)
+        else:
+            clan = await getClan(clan)
+
+        if clan is None:
+            if "|" in first_clan:
+                search = first_clan.split("|")
+                tag = search[1]
+                clan = await getClan(tag)
+
+        if clan is None:
+            return await ctx.send("Not a valid clan tag or alias.")
+
+        results = await clans.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        if results is None:
+            return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
+
+        await clans.update_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]}, {'$set': {"clanboard": channel.id}})
+
+        embed = disnake.Embed(description=f"Clan Board set in {channel.mention} for {clan.name}",
+                              color=disnake.Color.green())
+        await ctx.send(embed=embed)
+    '''
+
     @channel.autocomplete("clan")
     @role.autocomplete("clan")
     @leaderrole.autocomplete("clan")
     @clanalias.autocomplete("clan")
     @category.autocomplete("clan")
+    @joinleavelog.autocomplete("clan")
+    @clancapitallog.autocomplete("clan")
+    #@clan_board.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = clans.find({"server": ctx.guild.id})
         limit = await clans.count_documents(filter={"server": ctx.guild.id})

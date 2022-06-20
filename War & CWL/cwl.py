@@ -31,6 +31,7 @@ class Cwl(commands.Cog, name="CWL"):
 
     @commands.slash_command(name="cwl", description="Stats, stars, and more for a clan's cwl")
     async def cwl(self, ctx: disnake.ApplicationCommandInteraction, clan: str):
+        await ctx.response.defer()
         clan_search = clan.lower()
         first_clan = clan
         results = await clans.find_one({"$and": [
@@ -70,6 +71,10 @@ class Cwl(commands.Cog, name="CWL"):
                                   color=disnake.Color.green())
             embed.set_thumbnail(url=clan.badge.large)
             return await ctx.send(embed=embed)
+
+        if war is None and next_war != None:
+            war = next_war
+            next_war= None
 
         map = partial_emoji_gen(self.bot, "<:map:944913638500761600>")
         swords = partial_emoji_gen(self.bot, "<a:swords:944894455633297418>", animated=True)

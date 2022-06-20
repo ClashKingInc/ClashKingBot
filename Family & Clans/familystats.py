@@ -191,6 +191,68 @@ class FamilyStats(commands.Cog, name="Family Stats"):
         await ctx.send(embed=embed)
 
 
+
+
+
+
+    @commands.command(name="usabest")
+    async def usabest(self, ctx):
+        rankings = []
+        tracked = clans.find({"server": 328997757048324101})
+        l = await clans.count_documents(filter={"server": 328997757048324101})
+        for clan in await tracked.to_list(length=l):
+            tag = clan.get("tag")
+            clan = await getClan(tag)
+            for player in clan.members:
+                try:
+                    playerStats = []
+                    playerStats.append(player.name)
+                    playerStats.append(player.trophies)
+                    playerStats.append(player.clan.name)
+                    playerStats.append(player.tag)
+                    rankings.append(playerStats)
+                except:
+                    continue
+
+        if l == 0:
+            return await ctx.send(content=f"No clans linked to server.")
+
+        ranking = sorted(rankings, key=lambda l: l[1], reverse=True)
+
+        max_clans = math.floor(len(ranking) / 50)
+        if max_clans > 5:
+            max_clans = 5
+        text = ""
+        clan_num = 0
+        for y in range(clan_num, max_clans):
+            cum_score = 0
+            z = 1
+            tt = ranking[(50 * y):((50 * y) + 50)]
+            for r in tt:
+                if z >= 1 and z <= 10:
+                    cum_score += (r[1]) * 0.50
+                elif z >= 11 and z <= 20:
+                    cum_score += (r[1]) * 0.25
+                elif z >= 21 and z <= 30:
+                    cum_score += (r[1]) * 0.12
+                elif z >= 31 and z <= 40:
+                    cum_score += (r[1]) * 0.10
+                elif z >= 41 and z <= 50:
+                    cum_score += (r[1]) * 0.03
+                z += 1
+
+            cum_score = int(cum_score)
+            cum_score = "{:,}".format(cum_score)
+            text += f"Clan #{y + 1}: 🏆{cum_score}\n"
+
+        embed = disnake.Embed(title=f"Best Possible EOS for USA Family",
+                              description=text,
+                              color=disnake.Color.green())
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/843624785560993833/936739893541994576/a_06b3a6e66b6ae8dad709f9354e63e940.gif")
+        embed.set_footer(text="All Clans have 50 Members")
+        await ctx.send(embed=embed)
+
     @commands.slash_command(name="rank", description="Ranks for player")
     async def srank(self, ctx: disnake.ApplicationCommandInteraction, tag_or_user=None):
         """
@@ -486,8 +548,6 @@ class FamilyStats(commands.Cog, name="Family Stats"):
         tags = []
         tracked = clans.find({"server": ctx.guild.id})
         limit = await clans.count_documents(filter={"server": ctx.guild.id})
-        if limit == 0:
-            return await ctx.send("No clans linked to this server.")
         for clan in await tracked.to_list(length=limit):
             tag = clan.get("tag")
             tags.append(tag)
@@ -517,7 +577,7 @@ class FamilyStats(commands.Cog, name="Family Stats"):
             text += f"`\u200e{rank}`🏆`\u200e{clan.points}` \u200e{clan.name}{star}\n"
             x += 1
             if x != 0 and x%50 == 0:
-                embed = disnake.Embed(title=f"{country_names} Top 50 Leaderboard",
+                embed = disnake.Embed(title=f"{country_names} Top 200 Leaderboard",
                                       description=text,
                                       color=disnake.Color.green())
                 if ctx.guild.icon is not None:
@@ -526,7 +586,7 @@ class FamilyStats(commands.Cog, name="Family Stats"):
                 text = ""
 
         if text != "":
-            embed = disnake.Embed(title=f"{country_names} Top 50 Leaderboard",
+            embed = disnake.Embed(title=f"{country_names} Top 200 Leaderboard",
                                   description=text,
                                   color=disnake.Color.green())
             if ctx.guild.icon is not None:

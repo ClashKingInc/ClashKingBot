@@ -1,7 +1,7 @@
-from discord.ext import commands, tasks
+from disnake.ext import commands, tasks
 from PIL import Image, ImageDraw, ImageFont
 import io
-import discord
+import disnake
 from wand.image import Image as Im
 from wand.display import display
 
@@ -12,8 +12,6 @@ class pfp(commands.Cog):
 
     @commands.command(name="pfp")
     async def createPFP(self,ctx, *, name):
-        if (ctx.guild.id != 328997757048324101) and (ctx.message.author != 706149153431879760):
-            return
         size = 95
         if len(name) >= 20:
             return await ctx.send("Name too long, sorry :/")
@@ -61,7 +59,7 @@ class pfp(commands.Cog):
 
 
         temp.seek(0)
-        file = discord.File(fp=temp, filename="ProfilePic/filename.png")
+        file = disnake.File(fp=temp, filename="ProfilePic/filename.png")
         await ctx.reply(file=file, mention_author= False)
 
 

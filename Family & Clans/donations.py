@@ -3,6 +3,7 @@ import disnake
 
 from utils.clash import client, coc_client
 
+from datetime import datetime
 usafam = client.usafam
 server = usafam.server
 clans = usafam.clans
@@ -19,31 +20,31 @@ class Donations(commands.Cog):
 
     @commands.slash_command(name="donations", description="Leaderboard of top 50 donators in family")
     async def dono(self, ctx):
-        aliases = None
+        embed = await self.dono_embed(ctx)
+        refresh_buttons = [
+            disnake.ui.Button(label="", emoji="🔁", style=disnake.ButtonStyle.grey,custom_id="donation"),
+        ]
+        buttons = disnake.ui.ActionRow()
+        for button in refresh_buttons:
+            buttons.append_item(button)
+        await ctx.send(embed=embed, components=buttons)
+
+    @commands.Cog.listener()
+    async def on_button_click(self, ctx: disnake.MessageInteraction):
+        if str(ctx.data.custom_id) == "donation":
+            await ctx.response.defer()
+            embed = await self.dono_embed(ctx)
+            await ctx.edit_original_message(embed=embed)
+
+    async def dono_embed(self, ctx):
         tags = []
-        if aliases is None:
-            tracked = clans.find({"server": ctx.guild.id})
-            limit = await clans.count_documents(filter={"server": ctx.guild.id})
-            if limit == 0:
-                return await ctx.send("This server has no linked clans.")
-            for tClan in await tracked.to_list(length=limit):
-                tag = tClan.get("tag")
-                tags.append(tag)
-        else:
-            aliases = aliases.split(" ")
-            if len(aliases) > 5:
-                return await ctx.send(
-                    f"Command only supports up to 5 clans.")
-            for alias in aliases:
-                results = await clans.find_one({"$and": [
-                    {"alias": alias},
-                    {"server": ctx.guild.id}
-                ]})
-                if results is None:
-                    return await ctx.send(
-                        f"Invalid alias {alias} found.\n**Note:** This command only supports single word aliases when given multiple.")
-                tag = results.get("tag")
-                tags.append(tag)
+        tracked = clans.find({"server": ctx.guild.id})
+        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        if limit == 0:
+            return await ctx.send("This server has no linked clans.")
+        for tClan in await tracked.to_list(length=limit):
+            tag = tClan.get("tag")
+            tags.append(tag)
 
         rankings = []
         members = []
@@ -53,10 +54,9 @@ class Donations(commands.Cog):
                 members.append(member)
                 ptags.append(member.tag)
 
-
         don = 0
-        results = donations.find({"tag": {"$in" : ptags}})
-        limit = await clans.count_documents(filter={"tag": {"$in" : ptags}})
+        results = donations.find({"tag": {"$in": ptags}})
+        limit = await clans.count_documents(filter={"tag": {"$in": ptags}})
         for document in await results.to_list(length=limit):
             don = document.get("donations")
             if don < 0:
@@ -77,7 +77,6 @@ class Donations(commands.Cog):
             r.append(member.clan.name)
             rankings.append(r)
 
-
         ranking = sorted(rankings, key=lambda l: l[1], reverse=True)
         ranking = ranking[0:50]
 
@@ -94,7 +93,13 @@ class Donations(commands.Cog):
                               description=text)
         if ctx.guild.icon is not None:
             embed.set_thumbnail(url=ctx.guild.icon.url)
-        await ctx.send(embed=embed)
+
+        now = datetime.now()
+        # dd/mm/YY H:M:S
+        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+        embed.set_footer(text=f"Last refreshed {dt_string} CST")
+
+        return embed
 
     @coc.ClanEvents.member_donations()
     async def dona(self, old_member : coc.ClanMember, new_member : coc.ClanMember):

@@ -34,8 +34,6 @@ class profiles(commands.Cog, name="Profile"):
 
         if results == []:
             return await ctx.edit_original_message(content="No results were found.", embed=None)
-
-
         msg = await ctx.original_message()
 
         await button_pagination(self.bot, ctx, msg, results)
@@ -49,8 +47,7 @@ class profiles(commands.Cog, name="Profile"):
             search_query = str(discord_user.id)
         await ctx.response.defer()
 
-        search = self.bot.get_cog("search")
-        results = await search.search_results(ctx, search_query)
+        results = await search_results(ctx, search_query)
 
         if results == []:
             return await ctx.edit_original_message(content="No results were found.")

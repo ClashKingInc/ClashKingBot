@@ -45,10 +45,13 @@ class getClans(commands.Cog, name="Clan"):
         if clan is None:
             if "|" in first_clan:
                 search = first_clan.split("|")
-                tag = search[1]
+                try:
+                    tag = search[4]
+                except:
+                    tag = search[1]
                 clan = await getClan(tag)
 
-        if clan is None:
+        if clan is None or clan.member_count == 0:
             return await ctx.send("Not a valid clan tag.")
         
         await ctx.response.defer()
@@ -98,16 +101,24 @@ class getClans(commands.Cog, name="Clan"):
         else:
             ranking += f"<a:earth:861321402909327370> <:status_offline:910938138984206347> | "
 
+        try:
+            location_name = clan.location.name
+        except:
+            location_name = "Not Set"
+
         if country_rank_clan is not None:
             if clan.location.name == "International":
                 ranking += f"🌍 `{country_rank_clan[0]}`"
             else:
                 ranking += f":flag_{country_rank_clan[3].lower()}: `{country_rank_clan[0]}`"
         else:
-            if clan.location.name == "International":
-                ranking += f"🌍 <:status_offline:910938138984206347>"
-            else:
-                ranking += f":flag_{clan.location.country_code.lower()}: <:status_offline:910938138984206347>"
+            try:
+                if clan.location.name == "International":
+                    ranking += f"🌍 <:status_offline:910938138984206347>"
+                else:
+                    ranking += f":flag_{clan.location.country_code.lower()}: <:status_offline:910938138984206347>"
+            except:
+                pass
 
         results = await clans.find_one({"$and": [
             {"tag": clan.tag},
@@ -117,7 +128,7 @@ class getClans(commands.Cog, name="Clan"):
         embed = disnake.Embed(title=f"**{clan.name}**",description=f"Tag: [{clan.tag}]({clan.share_link})\n"
                               f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.versus_points}\n"
                               f"Required Trophies: <:trophy:825563829705637889> {clan.required_trophies}\n"
-                              f"Location: {flag} {clan.location.name}\n"
+                              f"Location: {flag} {location_name}\n"
                               f"Rankings: {ranking}\n\n"                              
                               f"Leader: {leader.name}\n"
                               f"Level: {clan.level} \n"
@@ -213,6 +224,17 @@ class getClans(commands.Cog, name="Clan"):
             tag = tClan.get("tag")
             if query.lower() in name.lower():
                     clan_list.append(f"{name} | {tag}")
+
+        if clan_list == [] and len(query) >= 3:
+            clan = await getClan(query)
+            if clan is None:
+                results = await coc_client.search_clans(name=query, limit=25)
+                for clan in results:
+                    league = str(clan.war_league).replace("League ", "")
+                    clan_list.append(f"{clan.name} | {clan.member_count}/50 | LV{clan.level} | {league} | {clan.tag}")
+            else:
+                clan_list.append(f"{clan.name} | {clan.tag}")
+                return clan_list
         return clan_list[0:25]
 
     async def war_th_comps(self, clan: coc.Clan):
@@ -365,17 +387,26 @@ class getClans(commands.Cog, name="Clan"):
         return embed
 
     async def opt_status(self, clan : coc.Clan):
-        opted_in = ""
-        opted_out = ""
+        opted_in = []
+        opted_out = []
         num_in = 0
         num_out = 0
         async for player in clan.get_detailed_members():
-            if player.war_opted_in :
-                opted_in += f"<:opt_in:944905885367537685>\u200e{player.name}\n"
+            if player.war_opted_in:
+                th_emoji = emojiDictionary(player.town_hall)
+                opted_in.append([player.town_hall, f"<:opt_in:944905885367537685>{th_emoji}\u200e{player.name}\n"])
                 num_in += 1
             else:
-                opted_out += f"<:opt_out:944905931265810432>\u200e{player.name}\n"
+                th_emoji = emojiDictionary(player.town_hall)
+                opted_out.append([player.town_hall, f"<:opt_out:944905931265810432>{th_emoji}\u200e{player.name}\n"])
                 num_out += 1
+
+
+
+        opted_out = sorted(opted_out, key=lambda l: l[0], reverse=True)
+        opted_in = sorted(opted_in, key=lambda l: l[0], reverse=True)
+        opted_out = "".join([i[1] for i in opted_out])
+        opted_in = "".join([i[1] for i in opted_in])
 
         if opted_in == "":
             opted_in = "None"
@@ -450,14 +481,14 @@ class getClans(commands.Cog, name="Clan"):
                 status = "❌"
 
             num_hit = SUPER_SCRIPTS[war.attacks_per_member]
-            text+= f"{status} {war.clan.name} vs {war.opponent.name} | {war.team_size}{num_hit} ʰᶦᵗ\n"
+            text+= f"{status} {war.clan.name} vs {war.opponent.name} | {war.team_size}{num_hit} | {war.clan.stars}-{war.opponent.stars}\n"
 
         if text == "":
             text = "Empty War Log"
         embed = disnake.Embed(title=f"**{clan.name} WarLog (last 25)**",
                               description=text,
                               color=disnake.Color.green())
-        embed.set_thumbnail(url=clan.badge.large)
+        #embed.set_thumbnail(url=clan.badge.large)
         return embed
 
     async def stroop_list(self, clan:coc.Clan):
@@ -467,6 +498,8 @@ class getClans(commands.Cog, name="Clan"):
             troops = player.troop_cls
             troops = player.troops
             text = f"{player.name}"
+            if player.town_hall < 11:
+                continue
             num = 0
             for troop in troops:
                 if troop.is_active:
@@ -482,9 +515,13 @@ class getClans(commands.Cog, name="Clan"):
                 none_boosted+= f"{player.name}\n"
             else:
                 boosted+= f"{text}\n"
+        if boosted == "":
+            boosted = "None"
         embed = disnake.Embed(title=f"**{clan.name} Boosting Statuses**", description=f"\n**Boosting:**\n{boosted}",
                               color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
+        if none_boosted == "":
+            none_boosted = "None"
         #embed.add_field(name="Boosting", value=boosted)
         embed.add_field(name="Not Boosting:", value=none_boosted)
         return embed

@@ -12,7 +12,7 @@ clans = usafam.clans
 welcome = usafam.welcome
 
 link_open=[]
-
+import urllib.parse
 
 class DiscordEvents(commands.Cog):
 
@@ -34,6 +34,12 @@ class DiscordEvents(commands.Cog):
             tags.append(tag)
 
         coc_client.add_clan_updates(*tags)
+
+        player_tags = []
+        async for clan in coc_client.get_clans(tags=tags):
+            for member in clan.members:
+                player_tags.append(member.tag)
+        coc_client.add_player_updates(*player_tags)
 
         for g in self.bot.guilds:
             results = await server.find_one({"server": g.id})
@@ -98,9 +104,11 @@ class DiscordEvents(commands.Cog):
 
             channel = message.channel
             await channel.send(embed=embed)
-        elif self.bot.user.mention in message.content:
-            text = message.content.replace(self.bot.user.mention,"")
-            r = requests.get(f"https://api.affiliateplus.xyz/api/chatbot?message={text}&botname=Clash+King&ownername=Magic&user={message.author.id}")
+        elif "824653933347209227" in message.content:
+            text = message.content.replace("<@824653933347209227>","")
+            text = text.replace("<@!824653933347209227>", "")
+            text = urllib.parse.quote(text)
+            r = requests.get(f"https://api.affiliateplus.xyz/api/chatbot?message={text}&user={message.author.name}")
             jso = r.json()
             mess = jso["message"]
             await message.channel.send(content=mess)
@@ -123,8 +131,13 @@ class DiscordEvents(commands.Cog):
             })
         channel = self.bot.get_channel(937519135607373874)
         await channel.send(f"Just joined {guild.name}")
-        if len(self.bot.guilds) == 100:
-            await guild.leave()
+        owner = guild.owner
+        len_g = len(self.bot.guilds)
+        await self.bot.change_presence(
+            activity=disnake.Activity(name=f'{len_g} servers', type=3))  # type 3 watching type#1 - playing
+        channel = self.bot.get_channel(937528942661877851)
+        await channel.edit(name=f"ClashKing: {len_g} Servers")
+
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
@@ -289,7 +302,7 @@ class DiscordEvents(commands.Cog):
                             description="Player tags only, What is the correct player tag? (Image below for reference)",
                             color=0xf30000)
                         embed.set_image(
-                            url="https://cdn.disnakeapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
+                            url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
                         embed.set_footer(text="Type `cancel` at any point to quit")
                         await ctx.edit_original_message(embed=embed)
                     else:
@@ -297,7 +310,7 @@ class DiscordEvents(commands.Cog):
                             title=f"Sorry, `{playerTag}` is an invalid player tag. Please try again.",
                             description="What is the correct player tag? (Image below for reference)", color=0xf30000)
                         embed.set_image(
-                            url="https://cdn.disnakeapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
+                            url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
                         embed.set_footer(text="Type `cancel` at any point to quit")
                         await ctx.edit_original_message(embed=embed)
                     continue
