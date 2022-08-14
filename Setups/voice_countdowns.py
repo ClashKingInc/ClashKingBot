@@ -27,6 +27,7 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
         limit = await server.count_documents(filter={})
         for r in await results.to_list(length=limit):
             channel = r.get("cwlCountdown")
+            #print(channel)
             servers = r.get("server")
             if channel is not None:
                 try:
@@ -45,6 +46,7 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
                 except (disnake.NotFound, disnake.Forbidden):
                     await server.update_one({"server": servers}, {'$set': {"gamesCountdown": None}})
 
+            '''
             channel = r.get("memberCount")
             if channel is not None:
                 try:
@@ -61,6 +63,7 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
                     await channel.edit(name=f"{total} Clan Members")
                 except (disnake.NotFound, disnake.Forbidden):
                     await server.update_one({"server": servers}, {'$set': {"memberCount": None}})
+            '''
 
     @commands.slash_command(name="voice-statbar", description="Setup a voice countdown/statbar")
     async def voice_setup(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["CWL", "Clan Games", "Clan Member Count"])):

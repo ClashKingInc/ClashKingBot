@@ -39,7 +39,14 @@ class join_leave_log(commands.Cog, name="Join & Leave Log"):
             joinlog_channel = cc.get("joinlog")
             if joinlog_channel is None:
                 continue
-            joinlog_channel = await server.fetch_channel(joinlog_channel)
+            try:
+                joinlog_channel = await server.fetch_channel(joinlog_channel)
+            except disnake.errors.Forbidden:
+                await clans.update_one({"$and": [
+                    {"tag": clan.tag},
+                    {"server": server.id}
+                ]}, {'$set': {"joinlog": None}})
+
             if joinlog_channel is None:
                 continue
 

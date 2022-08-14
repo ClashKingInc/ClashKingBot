@@ -25,12 +25,13 @@ class eval(commands.Cog, name="Eval"):
         pass
 
     @eval.sub_command(name="user", description="Evaluate a user's roles")
-    async def eval_user(self, ctx, user:disnake.Member, test=commands.Param(default="No", choices=["Yes", "No"])):
+    async def eval_user(self, ctx: disnake.ApplicationCommandInteraction, user:disnake.Member, test=commands.Param(default="No", choices=["Yes", "No"])):
+        await ctx.response.defer()
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
             embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
                                   color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            return await ctx.edit_original_message(embed=embed)
 
         test = (test != "No")
         changes = await self.eval_member(ctx, user, test)
@@ -38,7 +39,7 @@ class eval(commands.Cog, name="Eval"):
                                           f"Added: {changes[0]}\n"
                                           f"Removed: {changes[1]}",
                               color=disnake.Color.green())
-        await ctx.send(embed=embed)
+        await ctx.edit_original_message(embed=embed)
 
 
 

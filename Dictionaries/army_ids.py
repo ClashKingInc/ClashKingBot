@@ -67,7 +67,6 @@ def spell_ids(spell_id):
         17: "Skeleton Spell",
         28: "Bat Spell",
         35: "Invisibility Spell"
-
     }
 
     spell_name = switcher.get(spell_id, False)

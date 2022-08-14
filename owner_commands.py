@@ -4,7 +4,13 @@ import disnake
 from disnake.ext import commands
 from jokeapi import Jokes
 import asyncpraw
-from utils.clash import coc_client
+from utils.clash import coc_client, client, getClan
+
+usafam = client.usafam
+banlist = usafam.banlist
+server = usafam.server
+clans = usafam.clans
+clancapital = usafam.clancapital
 
 clan_tags = ["#2P0JJQGUJ"]
 known_streak = []
@@ -29,6 +35,72 @@ class OwnerCommands(commands.Cog):
                 await ctx.send('<a:check:861157797134729256> Reloaded module successfully')
         else:
             await ctx.send("You aren't magic. <:PS_Noob:783126177970782228>")
+
+    @commands.command(name="fixcapital", hidden=True)
+    async def fixcapital(self, ctx):
+        tags = []
+        tracked = clancapital.find()
+        limit = await clancapital.count_documents(filter={})
+        for document in await tracked.to_list(length=limit):
+            tag = document.get("tag")
+            if tag not in tags:
+                tags.append(tag)
+
+        async for player in coc_client.get_players(tags):
+            if player.clan is None:
+                continue
+            await clancapital.update_one({"tag": player.tag}, {'$set': {
+                "clan": player.clan.tag,
+            }})
+
+        await ctx.send("done")
+
+
+    @commands.command(name="testraid")
+    async def testraid(self, ctx, tag):
+
+        text = ""
+        clan = await getClan(tag)
+
+        tracked = clans.find({"tag": f"{clan.tag}"})
+        limit = await clans.count_documents(filter={"tag": f"{clan.tag}"})
+        for cc in await tracked.to_list(length=limit):
+            server = cc.get("server")
+            try:
+                server = await self.bot.fetch_guild(server)
+            except:
+                continue
+            clancapital_channel = cc.get("clan_capital")
+            if clancapital_channel is None:
+                continue
+
+            try:
+                clancapital_channel = await server.fetch_channel(clancapital_channel)
+                if clancapital_channel is None:
+                    continue
+            except:
+                continue
+
+            embed = disnake.Embed(
+                description=f"Test Player donated <:capitalgold:987861320286216223>1000"
+                , color=disnake.Color.green())
+
+            embed.set_footer(icon_url=clan.badge.url, text=clan.name)
+
+            try:
+                member = await server.getch_member(self.bot.user.id)
+                ow = clancapital_channel.overwrites_for(member)
+                send =ow.send_messages
+                await clancapital_channel.send(embed=embed)
+                text += f"{server.name} : Successful\n> Send Messages Perm: {send}\n"
+            except Exception as e:
+                member = await server.getch_member(self.bot.user.id)
+                ow = clancapital_channel.overwrites_for(member)
+                send = ow.send_messages
+                text += f"{server.name} : Not Successful\n> Send Messages Perm: {send}\n> {str(e)[0:1000]}\n"
+
+        embed = disnake.Embed(title=f"Test Raid {clan.name}", description=text, color=disnake.Color.green())
+        await ctx.send(embed=embed)
 
     @commands.command(name='leave')
     @commands.is_owner()
@@ -74,54 +146,7 @@ class OwnerCommands(commands.Cog):
                 await asyncio.sleep(1)
             await msg.edit(content=joke["setup"] + "\n\n" + joke["delivery"])
 
-    @commands.command(name="feed")
-    @commands.is_owner()
-    async def feed(self, ctx):
-        print("feed")
 
-
-        count = 0
-        sub = await reddit.subreddit(subreddit)
-        async for submission in sub.stream.submissions():
-            if count < 100:  # This removes the 100 historical submissions that SubredditStream pulls.
-                count += 1
-                continue
-
-            if submission.link_flair_text == 'Searching':
-                #submission: asyncpraw.Reddit.submission
-                text = submission.selftext
-                title = submission.title
-
-                for x in range(6, 9):
-                    test = "th" + str(x + 6)
-                    test2 = "th " + str(x + 6)
-                    test3 = "TH" + str(x + 6)
-                    test4 = "TH " + str(x + 6)
-                    test5 = "Townhall " + str(x + 6)
-                    test6 = "Town hall" + str(x + 6)
-                    test7 = "Town hall " + str(x + 6)
-                    test8 = "Th" + str(x + 6)
-                    test9 = "Th " + str(x + 6)
-
-                    a = test in text or test in title
-                    b = test2 in text or test2 in title
-                    c = test3 in text or test3 in title
-                    d = test4 in text or test4 in title
-                    e = test5 in text or test5 in title
-                    f = test6 in text or test6 in title
-                    g = test7 in text or test7 in title
-                    h = test8 in text or test8 in title
-                    i = test9 in text or test9 in title
-
-                    match = a or b or c or d or e or f or g or h or i
-
-                    if match:
-                        channel = self.bot.get_channel(981051561172156518)
-                        # await channel.send("<@&818564701910597683>")
-                        embed = disnake.Embed(title=f'{submission.title}', description=submission.selftext
-                                               + f'\n{submission.score} points | [Link]({submission.url}) | [Comments](https://www.reddit.com/r/{subreddit}/comments/{submission.id})')
-
-                        await channel.send(content="<@&916493154243457074> <@326112461369376770>",embed=embed)
 
 
     @commands.command("hunt")
@@ -213,6 +238,9 @@ class OwnerCommands(commands.Cog):
                     clan_tags.append(war.opponent.tag)
             except:
                 continue
+
+
+
 
 def setup(bot: commands.Bot):
     bot.add_cog(OwnerCommands(bot))

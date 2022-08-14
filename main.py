@@ -6,6 +6,12 @@ import traceback
 from utils.clash import client
 import asyncpraw
 
+import asyncio
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from pytz import utc
+scheduler = AsyncIOScheduler(timezone=utc)
+scheduler.start()
+
 #db collections
 usafam = client.usafam
 server = usafam.server
@@ -22,8 +28,8 @@ bot = commands.Bot(command_prefix="??", help_command=None, intents=intents,
     sync_commands_debug=False, sync_permissions=True)
 
 initial_extensions = (
-    "BackgroundLoops.autoboard_loop",
-    "BackgroundLoops.leaderboards",
+    "BackgroundCrons.autoboard_loop",
+    "BackgroundCrons.leaderboards",
     "Family & Clans.bans",
     "Family & Clans.clan",
     "Family & Clans.donations",

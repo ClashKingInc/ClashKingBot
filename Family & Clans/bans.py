@@ -256,7 +256,10 @@ class banlists(commands.Cog, name="Bans"):
             limit = await clans.count_documents(filter={"tag": f"{clan.tag}"})
             for cc in await tracked.to_list(length=limit):
                 server = cc.get("server")
-                server = await bot.fetch_guild(server)
+                try:
+                    server = await bot.fetch_guild(server)
+                except:
+                    continue
 
                 results = await banlist.find_one({"$and": [
                     {"VillageTag": tag},

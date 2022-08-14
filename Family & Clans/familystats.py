@@ -191,10 +191,6 @@ class FamilyStats(commands.Cog, name="Family Stats"):
         await ctx.send(embed=embed)
 
 
-
-
-
-
     @commands.command(name="usabest")
     async def usabest(self, ctx):
         rankings = []
@@ -297,7 +293,7 @@ class FamilyStats(commands.Cog, name="Family Stats"):
 
         async for player in coc_client.get_players(results):
             result = player.tag
-            from BackgroundLoops.leaderboards import rankingsC
+            from BackgroundCrons.leaderboards import rankingsC
             guildranking = None
             try:
                 guildranking = rr[player.tag]
@@ -399,7 +395,7 @@ class FamilyStats(commands.Cog, name="Family Stats"):
         sorted(server_players, key=server_players.get, reverse=True)
         server_players = {key: rank for rank, key in enumerate(sorted(server_players, key=server_players.get, reverse=True), 1)}
         server_players = list(server_players.keys())
-        from BackgroundLoops.leaderboards import glob_dict, country_dict
+        from BackgroundCrons.leaderboards import glob_dict, country_dict
 
         embeds = []
         num = 0
@@ -482,7 +478,7 @@ class FamilyStats(commands.Cog, name="Family Stats"):
             tag = clan.get("tag")
             server_clans.append(tag)
 
-        from BackgroundLoops.leaderboards import clan_glob_dict, clan_country_dict
+        from BackgroundCrons.leaderboards import clan_glob_dict, clan_country_dict
 
         num = 0
         text = ""

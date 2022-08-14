@@ -25,6 +25,7 @@ class DiscordEvents(commands.Cog):
         await self.bot.change_presence(
             activity=disnake.Activity(name=f'{len_g} servers', type=3))  # type 3 watching type#1 - playing
 
+        print("back")
         tags = []
         tracked = clans.find()
         limit = await clans.count_documents(filter={})
@@ -35,11 +36,21 @@ class DiscordEvents(commands.Cog):
 
         coc_client.add_clan_updates(*tags)
 
+        print("here")
+        tags = []
+        tracked = clans.find({"clan_capital" : {"$ne": None}})
+        limit = await clans.count_documents(filter={"clan_capital" : {"$ne": None}})
+        for tClan in await tracked.to_list(length=limit):
+            tag = tClan.get("tag")
+            tags.append(tag)
+
+        print(len(tags))
         player_tags = []
         async for clan in coc_client.get_clans(tags=tags):
             for member in clan.members:
                 player_tags.append(member.tag)
         coc_client.add_player_updates(*player_tags)
+
 
         for g in self.bot.guilds:
             results = await server.find_one({"server": g.id})
@@ -55,6 +66,7 @@ class DiscordEvents(commands.Cog):
                     "lbboardChannel": None,
                     "lbhour": None
                 })
+
 
         print(f'We have logged in')
 

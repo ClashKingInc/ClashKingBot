@@ -66,6 +66,10 @@ class addClan(commands.Cog, name="Clan Setup"):
             "clanChannel" : clan_channel.id
         })
         coc_client.add_clan_updates(clan.tag)
+        player_tags = []
+        for member in clan.members:
+            player_tags.append(member.tag)
+        coc_client.add_player_updates(*player_tags)
 
         embed = disnake.Embed(title=f"{clan.name} successfully added.",
                               description=f"Clan Tag: {clan.tag}\n"
@@ -178,8 +182,20 @@ class addClan(commands.Cog, name="Clan Setup"):
                 return await res.response.edit_message(embed=embed,
                                       components=[])
 
-        await clans.find_one_and_delete({"tag": clan.tag},
-            {"server": ctx.guild.id})
+        await clans.find_one_and_delete({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+
+        results = await clans.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        if results is None:
+            player_tags = []
+            for member in clan.members:
+                player_tags.append(member.tag)
+            coc_client.remove_player_updates(*player_tags)
 
         embed = disnake.Embed(
             description=f"{clan.name} removed as a family clan.",

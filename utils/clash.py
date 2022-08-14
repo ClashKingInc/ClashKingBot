@@ -1,5 +1,7 @@
 import os
 import coc
+from apscheduler.schedulers.background import BackgroundScheduler
+from pytz import utc
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -12,7 +14,7 @@ LINK_API_PW = os.getenv("LINK_API_PW")
 
 from disnake import utils
 
-coc_client = coc.login(COC_EMAIL, COC_PASSWORD, client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 25, cache_max_size=50000)
+coc_client = coc.login(COC_EMAIL, COC_PASSWORD, client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 30, cache_max_size=50000)
 import certifi
 ca = certifi.where()
 
@@ -20,8 +22,8 @@ import motor.motor_asyncio
 client = motor.motor_asyncio.AsyncIOMotorClient(DB_LOGIN)
 import disnake
 from coc.ext import discordlinks
-
 link_client = discordlinks.login(LINK_API_USER, LINK_API_PW)
+
 
 async def player_handle(ctx, tag):
   try:
@@ -39,6 +41,7 @@ async def getTags(ctx, ping):
     ping = ping[1:len(ping)]
   id = ping
   tags = await link_client.get_linked_players(id)
+
   return tags
 
 async def getPlayer(playerTag):

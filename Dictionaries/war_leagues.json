@@ -1,0 +1,116 @@
+{
+  "items": [
+    {
+      "id": 48000000,
+      "name": "Unranked"
+    },
+    {
+      "id": 48000001,
+      "name": "Bronze League III",
+      "promo" : 3,
+      "demote" : 9
+    },
+    {
+      "id": 48000002,
+      "name": "Bronze League II",
+      "promo" : 3,
+      "demote" : 8
+    },
+    {
+      "id": 48000003,
+      "name": "Bronze League I",
+      "promo" : 3,
+      "demote" : 8
+    },
+    {
+      "id": 48000004,
+      "name": "Silver League III",
+      "promo" : 2,
+      "demote" : 8
+    },
+    {
+      "id": 48000005,
+      "name": "Silver League II",
+      "promo" : 2,
+      "demote" : 7
+    },
+    {
+      "id": 48000006,
+      "name": "Silver League I",
+      "promo" : 2,
+      "demote" : 7
+    },
+    {
+      "id": 48000007,
+      "name": "Gold League III",
+      "promo" : 2,
+      "demote" : 7
+    },
+    {
+      "id": 48000008,
+      "name": "Gold League II",
+      "promo" : 2,
+      "demote" : 7
+    },
+    {
+      "id": 48000009,
+      "name": "Gold League I",
+      "promo" : 2,
+      "demote" : 7
+    },
+    {
+      "id": 48000010,
+      "name": "Crystal League III",
+      "promo" : 2,
+      "demote" : 7
+    },
+    {
+      "id": 48000011,
+      "name": "Crystal League II",
+      "promo" : 2,
+      "demote" : 7
+    },
+    {
+      "id": 48000012,
+      "name": "Crystal League I",
+      "promo" : 1,
+      "demote" : 7
+    },
+    {
+      "id": 48000013,
+      "name": "Master League III",
+      "promo" : 1,
+      "demote" : 7
+    },
+    {
+      "id": 48000014,
+      "name": "Master League II",
+      "promo" : 1,
+      "demote" : 7
+    },
+    {
+      "id": 48000015,
+      "name": "Master League I",
+      "promo" : 1,
+      "demote" : 7
+    },
+    {
+      "id": 48000016,
+      "name": "Champion League III",
+      "promo" : 1,
+      "demote" : 7
+    },
+    {
+      "id": 48000017,
+      "name": "Champion League II",
+      "promo" : 1,
+      "demote" : 7
+    },
+    {
+      "id": 48000018,
+      "name": "Champion League I",
+      "promo" : 0,
+      "demote" : 6
+    }
+  ]
+}

@@ -1,6 +1,8 @@
+import json
+
 import coc
 import disnake
-from disnake.ext import commands
+from disnake.ext import commands, tasks
 from utils.clash import client, getClan, coc_client
 from datetime import datetime
 from utils.troop_methods import cwl_league_emojis
@@ -9,6 +11,9 @@ from Dictionaries.emojiDictionary import emojiDictionary
 from Dictionaries.levelEmojis import levelEmojis
 from collections import defaultdict
 import operator
+import aiohttp
+from bs4 import BeautifulSoup
+import asyncio
 
 usafam = client.usafam
 clans = usafam.clans
@@ -402,14 +407,6 @@ class Cwl(commands.Cog, name="CWL"):
                               color=disnake.Color.green())
         return embed
 
-
-
-
-
-
-
-
-
     async def calculate_stars_percent(self, war: coc.ClanWar):
         stars = 0
         destr = 0
@@ -668,25 +665,29 @@ class Cwl(commands.Cog, name="CWL"):
                 league = await coc_client.get_league_group(tag)
                 state = league.state
                 if str(state) == "preparation":
-                    c.append("- Matched, Prep")
+                    c.append("<a:CheckAccept:992611802561134662>")
+                    c.append(1)
                 elif str(state) == "ended":
-                    c.append("")
+                    c.append("<:dash:933150462818021437>")
+                    c.append(3)
                 elif str(state) == "inWar":
-                    c.append("- Matched, In War")
+                    c.append("<a:swords:944894455633297418>")
+                    c.append(0)
             except coc.errors.NotFound:
-                c.append("")
+                c.append("<:dash:933150462818021437>")
+                c.append(3)
             except:
-                c.append("- Spinning")
+                c.append("<a:spinning:992612297048588338>")
+                c.append(2)
             spin_list.append(c)
 
         #print(spin_list)
-        clans_list = sorted(spin_list, key=lambda l: l[1], reverse=False)
+        clans_list = sorted(spin_list, key=lambda x: (x[1], x[4]), reverse=False)
 
         main_embed = disnake.Embed(title=f"__**{ctx.guild.name} CWL Status**__",
                                    color=disnake.Color.green())
         if ctx.guild.icon is not None:
             main_embed.set_thumbnail(url=ctx.guild.icon.url)
-        main_embed.set_footer(text="Blank = Not Spun")
 
         embeds = []
         leagues_present = ["All"]
@@ -694,7 +695,7 @@ class Cwl(commands.Cog, name="CWL"):
             text = ""
             for clan in clans_list:
                 if clan[1] == league:
-                    text += f"{clan[0]} {clan[3]}\n"
+                    text += f"{clan[3]} {clan[0]}\n"
                 if (clan[2] == clans_list[len(clans_list) - 1][2]) and (text != ""):
                     leagues_present.append(league)
                     main_embed.add_field(name=f"**{league}**", value=text, inline=False)
@@ -704,56 +705,10 @@ class Cwl(commands.Cog, name="CWL"):
                         embed.set_thumbnail(url=ctx.guild.icon.url)
                     embeds.append(embed)
 
+        main_embed.add_field(name="Legend", value=f"<a:spinning:992612297048588338> Spinning | <:dash:933150462818021437> Not Spun | <a:CheckAccept:992611802561134662> Prep |  <a:swords:944894455633297418> War")
         embeds.append(main_embed)
         await ctx.edit_original_message(embed=main_embed)
 
-        '''
-        options = []
-        for league in leagues_present:
-            if league == "All":
-                league_emoji = "<:LeagueMedal:858424820857307176>"
-            else:
-                league_emoji = self.leagueAndTrophies(league)
-            emoji = league_emoji.split(":", 2)
-            emoji = emoji[2]
-            emoji = emoji[0:len(emoji) - 1]
-            emoji = self.bot.get_emoji(int(emoji))
-            emoji = disnake.PartialEmoji(name=emoji.name, id=emoji.id)
-            options.append(create_select_option(f"{league}", value=f"{league}", emoji=emoji))
-
-        select1 = create_select(
-            options=options,
-            placeholder="Choose cwl league",
-            min_values=1,  # the minimum number of options a user must select
-            max_values=1  # the maximum number of options a user can select
-        )
-        action_row = create_actionrow(select1)
-
-
-
-        await msg.edit(embed=main_embed, components=[action_row],
-                              mention_author=False)
-
-        while True:
-            try:
-                res = await wait_for_component(self.bot, components=action_row,
-                                               messages=msg, timeout=600)
-            except:
-                await msg.edit(components=[])
-                break
-
-            if res.author_id != ctx.author.id:
-                await res.send(content="You must run the command to interact with components.", hidden=True)
-                continue
-
-            await res.edit_origin()
-            value = res.values[0]
-
-            current_page = leagues_present.index(value) - 1
-
-            await msg.edit(embed=embeds[current_page],
-                           components=[action_row])
-            '''
 
 
 def setup(bot: commands.Bot):

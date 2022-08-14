@@ -30,6 +30,7 @@ def maxLevelEmojis(emojiName):
         9: "<:9_:849370198905716756>",
         10: "<:10_:849370199210590228>",
         11: "<:118:932849917016305685>"
+
     }
 
     emoji = switcher.get(emojiName, "No Emoji Found")

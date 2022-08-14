@@ -12,7 +12,8 @@ class Linking(commands.Cog):
         self.bot = bot
 
     @commands.slash_command(name="refresh", description="Self evaluate & refresh your server roles")
-    async def refresh(self, ctx):
+    async def refresh(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
         tags = await getTags(ctx, str(ctx.author.id))
         if tags !=[]:
             evalua = self.bot.get_cog("Eval")
@@ -21,11 +22,11 @@ class Linking(commands.Cog):
                 description=f"Refreshed your roles {ctx.author.mention}.\n"
                             f"Added: {changes[0]}\n"
                             f"Removed: {changes[1]}", color=disnake.Color.green())
-            return await ctx.send(embed=embed)
+            return await ctx.edit_original_message(embed=embed)
         else:
             embed = disnake.Embed(
                 description=f"You have no accounts linked.", color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            return await ctx.edit_original_message(embed=embed)
 
     @commands.slash_command(name="link", description="Link clash of clans accounts to your discord profile")
     async def link(self,  ctx: disnake.ApplicationCommandInteraction, player_tag, api_token):

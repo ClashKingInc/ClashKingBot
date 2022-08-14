@@ -13,6 +13,11 @@ server = usafam.server
 
 from coc import utils
 import coc
+import pytz
+tiz = pytz.utc
+import asyncio
+import aiohttp
+import calendar
 
 import re
 
@@ -20,7 +25,6 @@ class getClans(commands.Cog, name="Clan"):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-
 
     @commands.slash_command(name="clan", description="lookup clan by tag or alias")
     async def getclan(self, ctx: disnake.ApplicationCommandInteraction, clan:str):
@@ -84,7 +88,7 @@ class getClans(commands.Cog, name="Clan"):
             except:
                 flag = "🏳️"
 
-        from BackgroundLoops.leaderboards import clan_glob_dict, clan_country_dict
+        from BackgroundCrons.leaderboards import clan_glob_dict, clan_country_dict
         ranking = ""
         glob_rank_clan = country_rank_clan = None
         try:
@@ -158,6 +162,7 @@ class getClans(commands.Cog, name="Clan"):
         clan_e =partial_emoji_gen(self.bot, "<:clan_castle:855688168816377857>")
         opt = partial_emoji_gen(self.bot, "<:opt_in:944905885367537685>")
         stroop = partial_emoji_gen(self.bot, "<:stroop:961818095930978314>")
+        cwl_emoji = partial_emoji_gen(self.bot, "<:cwlmedal:793561011801948160>")
 
         main = embed
         options = [  # the options in your dropdown
@@ -166,7 +171,8 @@ class getClans(commands.Cog, name="Clan"):
                 disnake.SelectOption(label="Unlinked Players", emoji=rx, value="unlink"),
                 disnake.SelectOption(label="Players, Sorted: Trophies", emoji=trophy, value="trophies"),
                 disnake.SelectOption(label="War Opt Statuses", emoji=opt, value="opt"),
-                disnake.SelectOption(label="Super Troops", emoji=stroop, value="stroop")
+                disnake.SelectOption(label="Super Troops", emoji=stroop, value="stroop"),
+                disnake.SelectOption(label="CWL History", emoji=cwl_emoji, value="cwl")
             ]
 
         if clan.public_war_log:
@@ -193,26 +199,31 @@ class getClans(commands.Cog, name="Clan"):
                 await msg.edit(components=[])
                 break
 
+            await res.response.defer()
+
             if res.values[0] == "link":
                 embed = await self.linked_players(ctx, clan)
-                await res.response.edit_message(embed=embed)
+                await res.edit_original_message(embed=embed)
             elif res.values[0] == "unlink":
                 embed = await self.unlinked_players(ctx, clan)
-                await res.response.edit_message(embed=embed)
+                await res.edit_original_message(embed=embed)
             elif res.values[0] == "trophies":
                 embed = await self.player_trophy_sort(clan)
-                await res.response.edit_message(embed=embed)
+                await res.edit_original_message(embed=embed)
             elif res.values[0] == "clan":
-                await res.response.edit_message(embed=main)
+                await res.edit_original_message(embed=main)
             elif res.values[0] == "opt":
                 embed = await self.opt_status(clan)
-                await res.response.edit_message(embed=embed)
+                await res.edit_original_message(embed=embed)
             elif res.values[0] == "warlog":
                 embed = await self.war_log(clan)
-                await res.response.edit_message(embed=embed)
+                await res.edit_original_message(embed=embed)
             elif res.values[0] == "stroop":
                 embed = await self.stroop_list(clan)
-                await res.response.edit_message(embed=embed)
+                await res.edit_original_message(embed=embed)
+            elif res.values[0] == "cwl":
+                embed = await self.cwl_performance(clan)
+                await res.edit_original_message(embed=embed)
 
     @getclan.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
@@ -475,13 +486,31 @@ class getClans(commands.Cog, name="Clan"):
         for war in warlog[0:25]:
             if war.is_league_entry:
                 continue
-            if war.result == "win":
-                status = "✅"
-            else:
-                status = "❌"
 
-            num_hit = SUPER_SCRIPTS[war.attacks_per_member]
-            text+= f"{status} {war.clan.name} vs {war.opponent.name} | {war.team_size}{num_hit} | {war.clan.stars}-{war.opponent.stars}\n"
+            t1 = war.clan.attacks_used
+            t2 = war.opponent.attacks_used
+
+            if war.result == "win":
+                status = "<:warwon:932212939899949176>"
+                op_status = "Win"
+            else:
+                status = "<:warlost:932212154164183081>"
+                op_status = "Loss"
+
+
+            time = f"<t:{int(war.end_time.time.replace(tzinfo=tiz).timestamp())}:R>"
+            war : coc.ClanWarLogEntry
+            try:
+                total = war.team_size * war.attacks_per_member
+                num_hit = SUPER_SCRIPTS[war.attacks_per_member]
+            except:
+                total = war.team_size
+                num_hit = SUPER_SCRIPTS[1]
+
+            text+= f"{status}**{op_status} vs \u200e{war.opponent.name}**\n" \
+                   f"({war.team_size} vs {war.team_size}){num_hit} | {time}\n" \
+                   f"{war.clan.stars} <:star:825571962699907152> {war.opponent.stars} | {t1}/{total} | {round(war.clan.destruction, 1)}% | +{war.clan.exp_earned}xp\n"\
+
 
         if text == "":
             text = "Empty War Log"
@@ -491,7 +520,7 @@ class getClans(commands.Cog, name="Clan"):
         #embed.set_thumbnail(url=clan.badge.large)
         return embed
 
-    async def stroop_list(self, clan:coc.Clan):
+    async def stroop_list(self, clan: coc.Clan):
         boosted = ""
         none_boosted = ""
         async for player in clan.get_detailed_members():
@@ -525,6 +554,121 @@ class getClans(commands.Cog, name="Clan"):
         #embed.add_field(name="Boosting", value=boosted)
         embed.add_field(name="Not Boosting:", value=none_boosted)
         return embed
+
+    async def cwl_performance(self, clan: coc.Clan):
+
+        async def fetch(url, session):
+            async with session.get(url) as response:
+                return await response.json()
+
+        dates = await coc_client.get_seasons(29000022)
+        dates = reversed(dates)
+
+        tasks = []
+        async with aiohttp.ClientSession() as session:
+            tag = clan.tag.replace("#", "")
+            for date in dates:
+                url = f"https://api.clashofstats.com/clans/{tag}/cwl/seasons/{date}"
+                task = asyncio.ensure_future(fetch(url, session))
+                tasks.append(task)
+
+            responses = await asyncio.gather(*tasks)
+
+        embed = disnake.Embed(title=f"**{clan.name} CWL History**",
+                              color=disnake.Color.green())
+        embed.set_thumbnail(url=clan.badge.large)
+
+        old_year = "2015"
+        year_text = ""
+        not_empty = False
+        for response in responses:
+            try:
+                text, year = self.response_to_line(response, clan)
+            except:
+                continue
+            if year != old_year:
+                if year_text != "":
+                    not_empty = True
+                    embed.add_field(name=old_year, value=year_text, inline=False)
+                    year_text = ""
+                old_year = year
+            year_text += text
+
+        if year_text != "":
+            not_empty = True
+            embed.add_field(name = f"**{old_year}**", value=year_text, inline=False)
+
+
+        if not not_empty:
+            embed.description = "No prior cwl data"
+        return embed
+
+
+    def response_to_line(self, response, clan):
+        import json
+        te = json.dumps(response)
+        if "Not Found" in te:
+            return ""
+
+        clans = response["clans"]
+        season = response["season"]
+        tags = [x["tag"] for x in clans]
+        stars = {}
+        for tag in tags:
+            stars[tag] = 0
+        rounds = response["rounds"]
+        for round in rounds:
+            wars = round["wars"]
+            for war in wars:
+                main_stars = war["clan"]["stars"]
+                main_destruction = war["clan"]["destructionPercentage"]
+                stars[war["clan"]["tag"]] += main_stars
+
+                opp_stars = war["opponent"]["stars"]
+                opp_destruction = war["opponent"]["destructionPercentage"]
+                stars[war["opponent"]["tag"]] += opp_stars
+
+                if main_stars > opp_stars:
+                    stars[war["clan"]["tag"]] += 10
+                elif opp_stars > main_stars:
+                    stars[war["opponent"]["tag"]] += 10
+                elif main_destruction > opp_destruction:
+                    stars[war["clan"]["tag"]] += 10
+                elif opp_destruction > main_destruction:
+                    stars[war["opponent"]["tag"]] += 10
+        stars = dict(sorted(stars.items(), key=lambda item: item[1], reverse=True))
+        place = list(stars.keys()).index(clan.tag) + 1
+        league = response["leagueId"]
+        war_leagues = open(f"Dictionaries/war_leagues.json")
+        war_leagues = json.load(war_leagues)
+        league_name = [x["name"] for x in war_leagues["items"] if x["id"] == league][0]
+        promo = [x["promo"] for x in war_leagues["items"] if x["id"] == league][0]
+        demo = [x["demote"] for x in war_leagues["items"] if x["id"] == league][0]
+
+        if place <= promo:
+            emoji = "<:warwon:932212939899949176>"
+        elif place >= demo:
+            emoji = "<:warlost:932212154164183081>"
+        else:
+            emoji = "<:dash:933150462818021437>"
+
+        end = "th"
+        ends = {1 : "st", 2: "nd", 3: "rd"}
+        if place <= 3:
+            end = ends[place]
+
+        year = season[0:4]
+        month = season[5:]
+        month = calendar.month_name[int(month)]
+        #month = month.ljust(9)
+        date = f"`{month}`"
+        league = str(league_name).replace('League ','')
+        league = league.ljust(14)
+        league = f"{league}"
+
+        tier = str(league_name).count("I")
+
+        return [f"{emoji} {self.leagueAndTrophies(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n", year]
 
 
 def setup(bot: commands.Bot):
