@@ -1,25 +1,17 @@
-import coc
+
 import disnake
-
-from utils.clash import client, coc_client
-
-from datetime import datetime
-usafam = client.usafam
-server = usafam.server
-clans = usafam.clans
-donations = usafam.donations
-
 from disnake.ext import commands
+import asyncio
+from CustomClasses.CustomBot import CustomClient
 
 class Donations(commands.Cog):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
-        coc_client.add_events(self.dona)
-        coc_client.add_events(self.new_season)
+
 
     @commands.slash_command(name="donations", description="Leaderboard of top 50 donators in family")
-    async def dono(self, ctx):
+    async def dono(self, ctx: disnake.ApplicationCommandInteraction):
         embed = await self.dono_embed(ctx)
         refresh_buttons = [
             disnake.ui.Button(label="", emoji="🔁", style=disnake.ButtonStyle.grey,custom_id="donation"),
@@ -27,7 +19,7 @@ class Donations(commands.Cog):
         buttons = disnake.ui.ActionRow()
         for button in refresh_buttons:
             buttons.append_item(button)
-        await ctx.send(embed=embed, components=buttons)
+        await ctx.edit_original_message(embed=embed, components=buttons)
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
@@ -36,99 +28,56 @@ class Donations(commands.Cog):
             embed = await self.dono_embed(ctx)
             await ctx.edit_original_message(embed=embed)
 
-    async def dono_embed(self, ctx):
-        tags = []
-        tracked = clans.find({"server": ctx.guild.id})
-        limit = await clans.count_documents(filter={"server": ctx.guild.id})
-        if limit == 0:
-            return await ctx.send("This server has no linked clans.")
-        for tClan in await tracked.to_list(length=limit):
-            tag = tClan.get("tag")
-            tags.append(tag)
+    async def dono_embed(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        clan_tags = await self.bot.clan_db.distinct("tag", {"server" : ctx.guild.id})
 
-        rankings = []
-        members = []
-        ptags = []
-        async for clan in coc_client.get_clans(tags):
-            for member in clan.members:
-                members.append(member)
-                ptags.append(member.tag)
+        tasks = []
+        for tag in clan_tags:
+            task = asyncio.ensure_future(self.bot.getClan(tag))
+            tasks.append(task)
+        responses = await asyncio.gather(*tasks)
 
-        don = 0
-        results = donations.find({"tag": {"$in": ptags}})
-        limit = await clans.count_documents(filter={"tag": {"$in": ptags}})
-        for document in await results.to_list(length=limit):
-            don = document.get("donations")
-            if don < 0:
-                tag = document.get("tag")
-                ind = ptags.index(tag)
-                r = []
-                r.append(members[ind].name)
-                r.append(don)
-                r.append(members[ind].clan.name)
-                rankings.append(r)
-                members.pop(ind)
-                ptags.pop(ind)
-
-        for member in members:
-            r = []
-            r.append(member.name)
-            r.append(member.donations)
-            r.append(member.clan.name)
-            rankings.append(r)
-
-        ranking = sorted(rankings, key=lambda l: l[1], reverse=True)
-        ranking = ranking[0:50]
-
-        text = ""
-        x = 0
-        for rr in ranking:
-            place = str(x + 1) + "."
-            place = place.ljust(3)
-            do = "{:,}".format(rr[1])
-            text += f"\u200e`{place}` \u200e<:troop:861797310224400434> \u200e{do} - \u200e{rr[0]} | \u200e{rr[2]}\n"
-            x += 1
-
-        embed = disnake.Embed(title=f"**Top 50 Donators**",
-                              description=text)
-        if ctx.guild.icon is not None:
-            embed.set_thumbnail(url=ctx.guild.icon.url)
-
-        now = datetime.now()
-        # dd/mm/YY H:M:S
-        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-        embed.set_footer(text=f"Last refreshed {dt_string} CST")
-
-        return embed
-
-    @coc.ClanEvents.member_donations()
-    async def dona(self, old_member : coc.ClanMember, new_member : coc.ClanMember):
-        donated = new_member.donations - old_member.donations
-        if donated <= 0:
-            return
-        tag = new_member.tag
-        results = await donations.find_one({"tag": tag})
-        if results is None:
-            await donations.insert_one({
-                "tag": tag,
-                "donations": donated
-            })
-        else:
-            donos = results.get("donations")
-            if donos < new_member.donations:
-                await donations.update_one({"tag": tag}, {'$set': {
-                    "donations": new_member.donations
-                }})
-            else:
-                await donations.update_one({"tag": tag}, {'$inc': {
-                    "donations": donated
-                }})
-
-    @coc.ClientEvents.new_season_start()
-    async def new_season(self):
-        await donations.update_many({'donations': {'$gt': -1000000}},
-                               {'$set': {'donations': 0}})
+        clan_member_tags = [member.tag for member in [clan.members for clan in responses]]
 
 
-def setup(bot: commands.Bot):
+
+        donation_list = []
+        raid_list = []
+        for member in responses:
+            player: MyCustomPlayer
+            cc_stats = player.clan_capital_stats(week=weekend)
+            if cc_stats is None:
+                continue
+            # donated lines
+            donation_text = f"{cc_stats.donated}".ljust(5)
+            donation_list.append([f"{self.bot.emoji.capital_gold}`{donation_text}`: {player.name}", cc_stats.donated])
+            # raid lines
+            if clan.tag == cc_stats.raid_clan:
+                raid_text = f"{cc_stats.raided}".ljust(5)
+                raid_list.append([f"{self.bot.emoji.capital_gold}`{raid_text}`: {player.name}", cc_stats.raided])
+
+        # donation sort
+        donation_ranked = sorted(donation_list, key=lambda l: l[1], reverse=True)
+        # raid sort
+        raids_ranked = sorted(raid_list, key=lambda l: l[1], reverse=True)
+
+        donated_lines = [line[0] for line in donation_ranked]
+        raid_lines = [line[0] for line in raids_ranked]
+        if donated_lines == []:
+            donated_lines = ["No Capital Gold Donated"]
+        if raid_lines == []:
+            raid_lines = ["No Capital Gold Raided"]
+
+        raid_embed = self.bot.create_embeds(line_lists=raid_lines, title=f"**{clan.name} Raid Totals**", max_lines=50,
+                                            thumbnail_url=clan.badge.url)
+        donation_embed = self.bot.create_embeds(line_lists=donated_lines, title="**Clan Capital Donations**",
+                                                max_lines=50, thumbnail_url=clan.badge.url)
+
+        await ctx.edit_original_message(embed=raid_embed[0])
+
+
+
+
+def setup(bot: CustomClient):
     bot.add_cog(Donations(bot))

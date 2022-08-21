@@ -1,9 +1,5 @@
-import asyncio
-
 import disnake
 from disnake.ext import commands
-from jokeapi import Jokes
-import asyncpraw
 from utils.clash import coc_client, client, getClan
 
 usafam = client.usafam
@@ -12,14 +8,19 @@ server = usafam.server
 clans = usafam.clans
 clancapital = usafam.clancapital
 
+import motor.motor_asyncio
+new_client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://localhost:27017")
+
 clan_tags = ["#2P0JJQGUJ"]
 known_streak = []
 count = 0
 list_size = 0
+from CustomClasses.CustomPlayer import MyCustomPlayer
+from CustomClasses.CustomBot import CustomClient
 
 class OwnerCommands(commands.Cog):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.command(name='reload', hidden=True)
@@ -36,24 +37,6 @@ class OwnerCommands(commands.Cog):
         else:
             await ctx.send("You aren't magic. <:PS_Noob:783126177970782228>")
 
-    @commands.command(name="fixcapital", hidden=True)
-    async def fixcapital(self, ctx):
-        tags = []
-        tracked = clancapital.find()
-        limit = await clancapital.count_documents(filter={})
-        for document in await tracked.to_list(length=limit):
-            tag = document.get("tag")
-            if tag not in tags:
-                tags.append(tag)
-
-        async for player in coc_client.get_players(tags):
-            if player.clan is None:
-                continue
-            await clancapital.update_one({"tag": player.tag}, {'$set': {
-                "clan": player.clan.tag,
-            }})
-
-        await ctx.send("done")
 
 
     @commands.command(name="testraid")
@@ -112,104 +95,16 @@ class OwnerCommands(commands.Cog):
         await guild.leave()  # Guild found
         await ctx.send(f"I left: {guild.name}!")
 
-    @commands.command(name='servers')
+
+    @commands.command(name="testy")
     @commands.is_owner()
-    async def serversmm(self, ctx):
-        text = ""
-        guilds = self.bot.guilds
-        for guild in guilds:
-            name = guild.name
-            text += f"{name} | {len(guild.members)}\n"
-
-        embed = disnake.Embed(title=f"{len(guilds)} servers", description=text,
-                              color=disnake.Color.green())
-
-        await ctx.send(embed=embed)
-
-    @commands.command(name="joke")
-    async def joke(self, ctx, category=None):
-        category = []
-        cat_list = ["Dark", "Pun"]
-        if category is not None and category in cat_list:
-            category.append(category)
-        j = await Jokes()  # Initialise the class
-        if category is not None:
-            joke = await j.get_joke(category=category)
-        else:
-            joke = await j.get_joke() # Retrieve a random joke
-        if joke["type"] == "single":  # Print the joke
-            await ctx.send(joke["joke"])
-        else:
-            msg = await ctx.send(joke["setup"] + f"\n\n**10**")
-            for x in range(9, 0, -1):
-                await msg.edit(content=joke["setup"] + f"\n\n**{x}**")
-                await asyncio.sleep(1)
-            await msg.edit(content=joke["setup"] + "\n\n" + joke["delivery"])
+    async def testy(self, ctx, date):
+        tag = "#20LLYQYQ2"
+        results = await self.bot.player_stats.find_one({"tag" : tag})
+        player: MyCustomPlayer = await coc_client.get_player(player_tag=tag, cls=MyCustomPlayer, bot=self.bot, results=results)
+        print(player.town_hall.emoji)
 
 
-
-
-    @commands.command("hunt")
-    @commands.is_owner()
-    async def hunt(self, ctx):
-        global known_streak
-        global count
-        channel = ctx.message.channel
-        global clan_tags
-        global list_size
-        scanned = []
-        while True:
-            # print(clan_tags)
-            list_size = len(clan_tags)
-            clan_tags = list(dict.fromkeys(clan_tags))
-            hold = clan_tags
-            async for clan in coc_client.get_clans(clan_tags):
-                scanned.append(clan.tag)
-                count += 1
-                if clan.war_win_streak >= 35:
-                    if clan.member_count >= 10:
-                        if str(clan.chat_language) == "English" or str(clan.chat_language) == "None":
-                            description = clan.description
-                            rest = ""
-                            if "discord.gg" in description:
-                                rest = description.partition("discord.gg")[2]
-                                rest = "discord.gg" + rest
-                            location = ""
-                            try:
-                                location = str(clan.location)
-                            except:
-                                pass
-
-                            if clan.tag not in known_streak:
-                                await channel.send(
-                                    f"{clan.name} | {clan.tag} | ({clan.member_count}/50) - {clan.war_win_streak} wins | {location} | {rest}")
-                            known_streak.append(clan.tag)
-
-                clan_tags.remove(clan.tag)
-
-            print(len(hold))
-            for tag in hold:
-                try:
-                    warlog = await coc_client.get_warlog(clan_tag=tag)
-                except:
-                    continue
-                for war in warlog:
-                    try:
-                        if war.opponent.tag not in clan_tags and war.opponent.tag not in scanned:
-                            clan_tags.append(war.opponent.tag)
-                    except:
-                        continue
-
-
-
-    @commands.command("count")
-    async def coun(self, ctx):
-        global count
-        global list_size
-        global clan_tags
-        await ctx.send(f"{count} clans searched through\n"
-                       f"Previous Search Size: {list_size} clans\n"
-                       f"Current List Size: {len(clan_tags)} clans")
 
     async def get_warlog(self,clan, channel):
         global clan_tags

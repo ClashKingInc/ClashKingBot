@@ -597,7 +597,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
             list += f"{type}: <@&{roleid}>\n"
 
         if list == "":
-            list = "No Legends Roles."
+            list = "No Legends & Trophies Roles."
 
         embed = disnake.Embed(title=f"Legend Eval Roles",
                               description=list,

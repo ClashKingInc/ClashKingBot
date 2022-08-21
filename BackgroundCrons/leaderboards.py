@@ -60,15 +60,14 @@ class leaderboards(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.feed_update.start()
         self.clan_lb_update.start()
 
     def cog_unload(self):
-        self.feed_update.cancel()
         self.clan_lb_update.cancel()
 
     @tasks.loop(seconds=180)
     async def feed_update(self):
+
         try:
             glob = await coc_client.get_location_players()
             x = 1
@@ -97,12 +96,14 @@ class leaderboards(commands.Cog):
                 newglob_dict[player.tag] = ["global", x, "Global", c, c2, player.trophies, player.name]
                 x += 1
 
+            test = {}
             for location in locations:
                 country = await coc_client.get_location_players(location_id=location)
                 country_code = await coc_client.get_location(location_id=location)
                 country_name = country_code.name
                 #print(country_name)
                 country_code = country_code.country_code
+                test[location] = [country_code, country_name]
                 x = 1
                 for player in country:
                     rr.append(player.tag)
@@ -123,6 +124,7 @@ class leaderboards(commands.Cog):
                     newcountry_dict[player.tag] = [country_code, x, country_name, c, c2, player.trophies, player.name]
                     x += 1
 
+            print(test)
             global glob_dict
             global country_dict
             glob_dict.clear()

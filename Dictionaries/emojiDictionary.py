@@ -81,26 +81,45 @@ def emojiDictionary(emojiName):
         12 : "<:12:701579365162418188>",
         13 : "<:132:704082689816395787>",
         14 : "<:14:828991721181806623>",
-        "Heroic Heist" : "<:dark_elixir:858423313894211584>",
-        "Nice and Tidy" : "<:bush:858423580319678564>",
-        "Clan War Wealth" : "<:gold:801033639507918858>",
-        "Friend in Need" : "<:clan_castle:855688168816377857>",
-        "Sharing is caring" : "<:rs:665562307606347822>",
-        "Siege Sharer" : "<:sb:665361865861234700>",
-        "War Hero" : "⭐",
-        "War League Legend" : "<:LeagueMedal:858424820857307176>",
-        "Games Champion" : "<:cg:858425112256970772>",
-        "Unbreakable" : "<:clash:855491735488036904>",
-        "Conqueror" : "⚔️",
-        "Sweet Victory" : "<:trophyy:849144172698402817>",
-        "Humiliator" : "<:Town_Hall8:831746066864144406>",
-        "Union Buster" : "<:bh:858426739608649778>",
-        "Wall Buster" : "<:wall:858427105045250078>",
-        "Well Seasoned" : "<:pass:858432465872879637>"
-
+        "Capital Gold" : "<:capitalgold:987861320286216223>"
 
     }
 
-    emoji = switcher.get(emojiName, "No Emoji Found")
+    emoji = switcher.get(emojiName, None)
     return emoji
 
+def legend_emojis(emojiName):
+    switcher = {
+        "legends_shield" : "<:legends:881450752109850635>",
+        "sword" : "<:sword:825589136026501160>",
+        "shield" : "<:clash:877681427129458739>",
+        "Previous Days" : "<:cal:989351376146530304>",
+        "Legends Overview" : "<:list:989351376796680213>",
+        "Graph & Stats" : "<:graph:989351375349624832>",
+        "Legends History" : "<:history:989351374087151617>",
+        "quick_check" : "<:plusminus:989351373608980490>",
+        "gear" : "<:gear:989351372711399504>",
+        "pin" : "<:magnify:944914253171810384>",
+        "back" : "<:back_arrow:989399022156525650>",
+        "forward" : "<:forward_arrow:989399021602877470>",
+        "print" : "<:print:989400875766251581>",
+        "refresh" : "<:refresh:989399023087652864>",
+        "trashcan" : "<:trashcan:989534332425232464>",
+        "alphabet" : "<:alphabet:989649421564280872>",
+        "start" : "<:start:989649420742176818>",
+        "blueshield" : "<:blueshield:989649418665996321>",
+        "bluesword" : "<:bluesword:989649419878166558>",
+        "bluetrophy" : "<:bluetrophy:989649417760018483>",
+        6: "<:06:701579365573459988>",
+        7: "<:07:701579365598756874>",
+        8: "<:08:701579365321801809>",
+        9: "<:09:701579365389041767>",
+        10: "<:10:701579365661671464>",
+        11: "<:11:701579365699551293>",
+        12: "<:12:701579365162418188>",
+        13: "<:132:704082689816395787>",
+        14: "<:14:828991721181806623>",
+    }
+
+    emoji = switcher.get(emojiName, None)
+    return emoji

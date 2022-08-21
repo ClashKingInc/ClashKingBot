@@ -1,23 +1,17 @@
 
 from disnake.ext import commands
-from utils.clash import getPlayer, client, pingToChannel, player_handle, coc_client
 import disnake
 from utils.components import create_components
 from datetime import datetime
 import coc
 from Dictionaries.emojiDictionary import emojiDictionary
-
-usafam = client.usafam
-banlist = usafam.banlist
-server = usafam.server
-clans = usafam.clans
-
+from CustomClasses.CustomBot import CustomClient
 
 class banlists(commands.Cog, name="Bans"):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
-        coc_client.add_events(self.foo)
+        self.bot.coc_client.add_events(self.ban_alerts)
 
     @commands.slash_command(name="ban", description="stuff")
     async def ban(self, ctx):
@@ -88,12 +82,12 @@ class banlists(commands.Cog, name="Bans"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        player = await getPlayer(tag)
+        player = await self.bot.getPlayer(tag)
         if player is None:
-            return await player_handle(ctx, tag)
+            return await self.bot.player_handle(ctx, tag)
 
 
-        results = await banlist.find_one({"$and": [
+        results = await self.bot.banlist.find_one({"$and": [
             {"VillageTag": player.tag},
             {"server": ctx.guild.id}
         ]})
@@ -103,7 +97,7 @@ class banlists(commands.Cog, name="Bans"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
         elif results is not None and reason != "None":
-            await banlist.update_one({"$and": [
+            await self.bot.banlist.update_one({"$and": [
                 {"VillageTag": player.tag},
                 {"server": ctx.guild.id}
             ]}, {'$set': {"Notes": reason}})
@@ -117,7 +111,7 @@ class banlists(commands.Cog, name="Bans"):
         now = datetime.now()
         dt_string = now.strftime("%Y-%m-%d %H:%M:%S")
 
-        await banlist.insert_one({
+        await self.bot.banlist.insert_one({
             "VillageTag": player.tag,
             "DateCreated": dt_string,
             "Notes": reason,
@@ -128,9 +122,9 @@ class banlists(commands.Cog, name="Bans"):
                                color=disnake.Color.green())
         await ctx.send(embed=embed2)
 
-        results = await server.find_one({"server": ctx.guild.id})
+        results = await self.bot.server_db.find_one({"server": ctx.guild.id})
         banChannel = results.get("banlist")
-        channel = await pingToChannel(ctx,banChannel)
+        channel = await self.bot.pingToChannel(ctx,banChannel)
 
         if channel is not None:
             x = 0
@@ -159,11 +153,11 @@ class banlists(commands.Cog, name="Bans"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        player = await getPlayer(tag)
+        player = await self.bot.getPlayer(tag)
         if player is None:
-            return await player_handle(ctx, tag)
+            return await self.bot.player_handle(ctx, tag)
 
-        results = await banlist.find_one({"$and": [
+        results = await self.bot.banlist.find_one({"$and": [
             {"VillageTag": player.tag},
             {"server": ctx.guild.id}
         ]})
@@ -172,7 +166,7 @@ class banlists(commands.Cog, name="Bans"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        await banlist.find_one_and_delete({"$and": [
+        await self.bot.banlist.find_one_and_delete({"$and": [
             {"VillageTag": player.tag},
             {"server": ctx.guild.id}
         ]})
@@ -181,9 +175,9 @@ class banlists(commands.Cog, name="Bans"):
                               color=disnake.Color.green())
         await ctx.send(embed=embed2)
 
-        results = await server.find_one({"server": ctx.guild.id})
+        results = await self.bot.server_db.find_one({"server": ctx.guild.id})
         banChannel = results.get("banlist")
-        channel = await pingToChannel(ctx, banChannel)
+        channel = await self.bot.pingToChannel(ctx, banChannel)
         if channel is not None:
             async for message in channel.history(limit=None):
                 await message.delete()
@@ -197,14 +191,14 @@ class banlists(commands.Cog, name="Bans"):
         text = []
         hold = ""
         num = 0
-        all = banlist.find({"server": ctx.guild.id}).sort("DateCreated", 1)
-        limit = await banlist.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.banlist.find({"server": ctx.guild.id}).sort("DateCreated", 1)
+        limit = await self.bot.banlist.count_documents(filter={"server": ctx.guild.id})
         if limit == 0:
             return []
 
         for ban in await all.to_list(length=limit):
             tag = ban.get("VillageTag")
-            player = await getPlayer(tag)
+            player = await self.bot.getPlayer(tag)
             if player is None:
                 continue
             name = player.name
@@ -245,15 +239,15 @@ class banlists(commands.Cog, name="Bans"):
         return embeds
 
     @coc.ClanEvents.member_join()
-    async def foo(self, member, clan):
+    async def ban_alerts(self, member, clan):
         bot = self.bot
         tag = member.tag
 
-        results = await banlist.find_one({"VillageTag": tag})
+        results = await self.bot.banlist.find_one({"VillageTag": tag})
 
         if results != None:
-            tracked = clans.find({"tag": f"{clan.tag}"})
-            limit = await clans.count_documents(filter={"tag": f"{clan.tag}"})
+            tracked = self.bot.clan_db.find({"tag": f"{clan.tag}"})
+            limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan.tag}"})
             for cc in await tracked.to_list(length=limit):
                 server = cc.get("server")
                 try:
@@ -261,7 +255,7 @@ class banlists(commands.Cog, name="Bans"):
                 except:
                     continue
 
-                results = await banlist.find_one({"$and": [
+                results = await self.bot.banlist.find_one({"$and": [
                     {"VillageTag": tag},
                     {"server": server.id}
                 ]})
@@ -280,7 +274,7 @@ class banlists(commands.Cog, name="Bans"):
                     role = server.get_role(role)
                     channel = bot.get_channel(channel)
 
-                    player = await getPlayer(member.tag)
+                    player = await self.bot.getPlayer(member.tag)
 
                     embed = disnake.Embed(
                         description=f"[WARNING! BANNED PLAYER {member.name} JOINED]({player.share_link})",
@@ -292,5 +286,5 @@ class banlists(commands.Cog, name="Bans"):
                         url="https://cdn.discordapp.com/attachments/843624785560993833/932701461614313562/2EdQ9Cx.png")
                     await channel.send(content=role.mention, embed=embed)
 
-def setup(bot: commands.Bot):
+def setup(bot: CustomClient):
     bot.add_cog(banlists(bot))

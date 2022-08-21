@@ -1,23 +1,19 @@
 import disnake
 from disnake.ext import commands
-from utils.clash import client, getClan
 from coc import utils
 import coc
 from Dictionaries.emojiDictionary import emojiDictionary
-
-usafam = client.usafam
-clans = usafam.clans
-
+from CustomClasses.CustomBot import CustomClient
 
 class Family(commands.Cog):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.slash_command(name="family", description="List of family clans")
     async def family(self, ctx: disnake.ApplicationCommandInteraction):
-        tracked = clans.find({"server": ctx.guild.id})
-        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         if limit == 0:
             return await ctx.send("No clans linked to this server.")
         categoryTypesList = []
@@ -39,22 +35,24 @@ class Family(commands.Cog):
             text = ""
             other_text = ""
 
-            results = clans.find({"$and": [
+            results = self.bot.clan_db.find({"$and": [
                 {"category": category},
                 {"server": ctx.guild.id}
             ]}).sort("name", 1)
 
-            limit = await clans.count_documents(filter={"$and": [
+            limit = await self.bot.clan_db.count_documents(filter={"$and": [
                 {"category": category},
                 {"server": ctx.guild.id}
             ]})
             for result in await results.to_list(length=limit):
                 tag = result.get("tag")
                 alias = result.get("alias")
-                clan = await getClan(tag)
+                clan = await self.bot.getClan(tag)
                 try:
                     leader = utils.get(clan.members, role=coc.Role.leader)
                 except:
+                    continue
+                if clan is None:
                     continue
                 text += f"[{clan.name}]({clan.share_link}) | ({clan.member_count}/50)\n" \
                         f"**Leader:** {leader.name}\n**Alias:** `{alias}`\n\n"
@@ -128,26 +126,26 @@ class Family(commands.Cog):
                 color=disnake.Color.green())
             await ctx.edit_original_message(embed=embed)
             is_all = True
-            tracked = clans.find({"server": ctx.guild.id})
-            limit = await clans.count_documents(filter={"server": ctx.guild.id})
+            tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+            limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
             if limit == 0:
                 return await ctx.edit_original_message(content="Provide a clan tag please.", embed=None)
             for tClan in await tracked.to_list(length=limit):
                 tag = tClan.get("tag")
-                clan = await getClan(tag)
+                clan = await self.bot.getClan(tag)
                 clan_list.append(clan)
         else:
             clan = clan.lower()
-            results = await clans.find_one({"$and": [
+            results = await self.bot.clan_db.find_one({"$and": [
                 {"alias": clan},
                 {"server": ctx.guild.id}
             ]})
 
             if results is not None:
                 tag = results.get("tag")
-                clan = await getClan(tag)
+                clan = await self.bot.getClan(tag)
             else:
-                clan = await getClan(clan)
+                clan = await self.bot.getClan(clan)
 
             if clan is None:
                 return await ctx.send("Not a valid clan tag.")
@@ -205,18 +203,18 @@ class Family(commands.Cog):
 
         text = ""
         for category in categoryTypesList:
-            results = clans.find({"$and": [
+            results = self.bot.clans.find({"$and": [
                 {"category": category},
                 {"server": ctx.guild.id}
             ]})
-            limit = await clans.count_documents(filter={"$and": [
+            limit = await self.bot.clans.count_documents(filter={"$and": [
                 {"category": category},
                 {"server": ctx.guild.id}
             ]})
             text += f"\n__**{category} Clans**__\n"
             for result in await results.to_list(length=limit):
                 tag = result.get("tag")
-                clan = await getClan(tag)
+                clan = await self.bot.getClan(tag)
                 alias = result.get("alias")
                 text += f"{clan.name}-`{alias}`\n"
 
@@ -228,5 +226,5 @@ class Family(commands.Cog):
 
         await ctx.send(embed=embed)
 
-def setup(bot: commands.Bot):
+def setup(bot: CustomClient):
     bot.add_cog(Family(bot))

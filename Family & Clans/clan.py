@@ -1,15 +1,11 @@
 import disnake
 from disnake.ext import commands
-from utils.clash import client, getClan, link_client, coc_client
 from Dictionaries.emojiDictionary import emojiDictionary
 from utils.discord_utils import partial_emoji_gen
 
 SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker", "Rocket Balloon", "Super Wizard", "Inferno Dragon",
                 "Super Minion", "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", "Super Dragon"]
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
-usafam = client.usafam
-clans = usafam.clans
-server = usafam.server
 
 from coc import utils
 import coc
@@ -18,12 +14,13 @@ tiz = pytz.utc
 import asyncio
 import aiohttp
 import calendar
-
 import re
+
+from CustomClasses.CustomBot import CustomClient
 
 class getClans(commands.Cog, name="Clan"):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.slash_command(name="clan", description="lookup clan by tag or alias")
@@ -33,27 +30,8 @@ class getClans(commands.Cog, name="Clan"):
             ----------
             clan: Search by clan tag, alias, or select an option from the autocomplete
         """
-        clan_search = clan.lower()
-        first_clan = clan
-        results = await clans.find_one({"$and": [
-            {"alias": clan_search},
-            {"server": ctx.guild.id}
-        ]})
 
-        if results is not None:
-            tag = results.get("tag")
-            clan = await getClan(tag)
-        else:
-            clan = await getClan(clan)
-
-        if clan is None:
-            if "|" in first_clan:
-                search = first_clan.split("|")
-                try:
-                    tag = search[4]
-                except:
-                    tag = search[1]
-                clan = await getClan(tag)
+        clan = await self.bot.getClan(clan)
 
         if clan is None or clan.member_count == 0:
             return await ctx.send("Not a valid clan tag.")
@@ -124,7 +102,7 @@ class getClans(commands.Cog, name="Clan"):
             except:
                 pass
 
-        results = await clans.find_one({"$and": [
+        results = await self.bot.clan_db.find_one({"$and": [
             {"tag": clan.tag},
             {"server": ctx.guild.id}
         ]})
@@ -227,8 +205,8 @@ class getClans(commands.Cog, name="Clan"):
 
     @getclan.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        tracked = clans.find({"server": ctx.guild.id})
-        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         clan_list = []
         for tClan in await tracked.to_list(length=limit):
             name = tClan.get("name")
@@ -237,9 +215,9 @@ class getClans(commands.Cog, name="Clan"):
                     clan_list.append(f"{name} | {tag}")
 
         if clan_list == [] and len(query) >= 3:
-            clan = await getClan(query)
+            clan = await self.bot.getClan(query)
             if clan is None:
-                results = await coc_client.search_clans(name=query, limit=25)
+                results = await self.bot.coc_client.search_clans(name=query, limit=5)
                 for clan in results:
                     league = str(clan.war_league).replace("League ", "")
                     clan_list.append(f"{clan.name} | {clan.member_count}/50 | LV{clan.level} | {league} | {clan.tag}")
@@ -303,7 +281,7 @@ class getClans(commands.Cog, name="Clan"):
         for player in clan.members:
             tags.append(player.tag)
 
-        links = await link_client.get_links(*tags)
+        links = await self.bot.link_client.get_links(*tags)
         links = dict(links)
         for player in clan.members:
             link = links[f"{player.tag}"]
@@ -350,7 +328,7 @@ class getClans(commands.Cog, name="Clan"):
         for player in clan.members:
             tags.append(player.tag)
 
-        links = await link_client.get_links(*tags)
+        links = await self.bot.link_client.get_links(*tags)
         links = dict(links)
         for player in clan.members:
             link = links[f"{player.tag}"]
@@ -481,7 +459,7 @@ class getClans(commands.Cog, name="Clan"):
         return emoji
 
     async def war_log(self, clan: coc.Clan):
-        warlog = await coc_client.get_warlog(clan.tag)
+        warlog = await self.bot.coc_client.get_warlog(clan.tag)
         text = ""
         for war in warlog[0:25]:
             if war.is_league_entry:
@@ -561,7 +539,7 @@ class getClans(commands.Cog, name="Clan"):
             async with session.get(url) as response:
                 return await response.json()
 
-        dates = await coc_client.get_seasons(29000022)
+        dates = await self.bot.coc_client.get_seasons(29000022)
         dates = reversed(dates)
 
         tasks = []
@@ -572,7 +550,7 @@ class getClans(commands.Cog, name="Clan"):
                 task = asyncio.ensure_future(fetch(url, session))
                 tasks.append(task)
 
-            responses = await asyncio.gather(*tasks)
+        responses = await asyncio.gather(*tasks)
 
         embed = disnake.Embed(title=f"**{clan.name} CWL History**",
                               color=disnake.Color.green())
@@ -671,5 +649,5 @@ class getClans(commands.Cog, name="Clan"):
         return [f"{emoji} {self.leagueAndTrophies(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n", year]
 
 
-def setup(bot: commands.Bot):
+def setup(bot: CustomClient):
     bot.add_cog(getClans(bot))

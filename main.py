@@ -1,14 +1,18 @@
 import os
 import disnake
 from disnake import Client
-from disnake.ext import commands
 import traceback
 from utils.clash import client
-import asyncpraw
-
 import asyncio
+from CustomClasses.CustomBot import CustomClient
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
+from EventHub.event_websockets import player_websocket, clan_websocket
+
+import asyncpraw
+
+
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
 
@@ -24,17 +28,20 @@ TOKEN = os.getenv("TOKEN")
 discClient = Client()
 intents = disnake.Intents().default()
 intents.members = True
-bot = commands.Bot(command_prefix="??", help_command=None, intents=intents,
+bot = CustomClient(command_prefix="??", help_command=None, intents=intents,
     sync_commands_debug=False, sync_permissions=True)
 
 initial_extensions = (
     "BackgroundCrons.autoboard_loop",
     "BackgroundCrons.leaderboards",
+    "EventHub.clan_capital_events",
+    "EventHub.join_leave_events",
     "Family & Clans.bans",
     "Family & Clans.clan",
-    "Family & Clans.donations",
+    #"Family & Clans.donations",
     "Family & Clans.family",
-    "Family & Clans.familystats",
+    "Legends & Trophies.family_trophy_stats",
+    "Legends & Trophies.legends",
     "Link & Eval.link",
     "Link & Eval.eval",
     "Setups.addclans",
@@ -57,7 +64,6 @@ initial_extensions = (
     "owner_commands",
     "settings",
     "testing",
-    "ProfilePic.pfp"
 )
 
 subreddit = "ClashOfClansRecruit"
@@ -71,9 +77,7 @@ reddit = asyncpraw.Reddit(
     user_agent="Reply Recruit"
 )
 
-
 async def reddit_task():
-    await bot.wait_until_ready()
     print("feed")
     count = 0
     sub = await reddit.subreddit(subreddit)
@@ -130,6 +134,9 @@ async def reddit_task():
 
                     await channel.send(content="<@&916493154243457074> <@326112461369376770>", embed=embed)
 
+
+
+
 if __name__ == "__main__":
     for extension in initial_extensions:
         try:
@@ -137,4 +144,7 @@ if __name__ == "__main__":
         except Exception as extension:
             traceback.print_exc()
     bot.loop.create_task(reddit_task())
+    loop = asyncio.get_event_loop()
+    loop.create_task(player_websocket())
+    loop.create_task(clan_websocket())
     bot.run(TOKEN)

@@ -1,7 +1,9 @@
 import os
 import coc
-from apscheduler.schedulers.background import BackgroundScheduler
-from pytz import utc
+from datetime import datetime
+from datetime import timedelta
+import pytz
+utc = pytz.utc
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -14,102 +16,30 @@ LINK_API_PW = os.getenv("LINK_API_PW")
 
 from disnake import utils
 
-coc_client = coc.login(COC_EMAIL, COC_PASSWORD, client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 30, cache_max_size=50000)
 import certifi
 ca = certifi.where()
 
 import motor.motor_asyncio
 client = motor.motor_asyncio.AsyncIOMotorClient(DB_LOGIN)
 import disnake
-from coc.ext import discordlinks
-link_client = discordlinks.login(LINK_API_USER, LINK_API_PW)
 
 
-async def player_handle(ctx, tag):
-  try:
-    clashPlayer = await coc_client.get_player(tag)
-  except:
-    embed = disnake.Embed(description=f"{tag} is not a valid player tag.",
-                          color=disnake.Color.red())
-    return await ctx.send(embed=embed)
+def create_weekends():
+    weekends = []
+    for x in range(0, 7):
 
-async def getTags(ctx, ping):
-  if (ping.startswith('<@') and ping.endswith('>')):
-    ping = ping[2:len(ping) - 1]
-
-  if (ping.startswith('!')):
-    ping = ping[1:len(ping)]
-  id = ping
-  tags = await link_client.get_linked_players(id)
-
-  return tags
-
-async def getPlayer(playerTag):
-  #print(playerTag)
-  try:
-    #print("here")
-    clashPlayer = await coc_client.get_player(playerTag)
-    #print(clashPlayer.name)
-    return clashPlayer
-  except:
-    return None
-
-async def getClan(clanTag):
-  try:
-    clan = await coc_client.get_clan(clanTag)
-    return clan
-  except:
-    return None
-
-async def verifyPlayer(playerTag, playerToken):
-  verified = await coc_client.verify_player_token(playerTag, playerToken)
-  return verified
-
-
-async def getClanWar(clanTag):
-  try:
-    war = await coc_client.get_clan_war(clanTag)
-    return war
-  except:
-    return None
-
-async def pingToMember(ctx, ping):
-  ping = str(ping)
-  if (ping.startswith('<@') and ping.endswith('>')):
-    ping = ping[2:len(ping) - 1]
-
-  if (ping.startswith('!')):
-    ping = ping[1:len(ping)]
-
-  try:
-    member = await ctx.guild.fetch_member(ping)
-    return member
-  except:
-    return None
-
-
-async def pingToRole(ctx, ping):
-    ping = str(ping)
-    if (ping.startswith('<@') and ping.endswith('>')):
-        ping = ping[2:len(ping) - 1]
-
-    if (ping.startswith('&')):
-        ping = ping[1:len(ping)]
-
-    try:
-      roles = await ctx.guild.fetch_roles()
-      role = utils.get(roles, id=int(ping))
-      return role
-    except:
-        return None
-
-async def pingToChannel(ctx, ping):
-  ping = str(ping)
-  if (ping.startswith('<#') and ping.endswith('>')):
-    ping = ping[2:len(ping) - 1]
-
-  try:
-    channel =  ctx.guild.get_channel(int(ping))
-    return channel
-  except:
-    return None
+        now = datetime.utcnow().replace(tzinfo=utc)
+        now = now - timedelta(x * 7)
+        current_dayofweek = now.weekday()
+        if (current_dayofweek == 4 and now.hour >= 7) or (current_dayofweek == 5) or (current_dayofweek == 6) or (
+                current_dayofweek == 0 and now.hour < 7):
+            if current_dayofweek == 0:
+                current_dayofweek = 7
+            fallback = current_dayofweek - 4
+            raidDate = (now - timedelta(fallback)).date()
+            weekends.append(str(raidDate))
+        else:
+            forward = 4 - current_dayofweek
+            raidDate = (now + timedelta(forward)).date()
+            weekends.append(str(raidDate))
+    return weekends

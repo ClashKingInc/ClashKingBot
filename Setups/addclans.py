@@ -1,12 +1,10 @@
 import disnake
 from disnake.ext import commands
-from utils.clash import getClan, client, coc_client
-usafam = client.usafam
-clans = usafam.clans
+from CustomClasses.CustomBot import CustomClient
 
 class addClan(commands.Cog, name="Clan Setup"):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
         self.color = disnake.Color.dark_theme()
 
@@ -216,5 +214,5 @@ class addClan(commands.Cog, name="Clan Setup"):
                 clan_list.append(f"{name} | {tag}")
         return clan_list[0:25]
 
-def setup(bot: commands.Bot):
+def setup(bot: CustomClient):
     bot.add_cog(addClan(bot))

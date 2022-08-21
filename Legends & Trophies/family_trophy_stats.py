@@ -1,12 +1,8 @@
 from disnake.ext import commands
 import disnake
-
 import coc
-
-from utils.clash import client, getClan, link_client, pingToMember, coc_client
 from utils.components import create_components
-usafam = client.usafam
-clans = usafam.clans
+from CustomClasses.CustomBot import CustomClient
 
 import math
 from Dictionaries.thPicDictionary import thDictionary
@@ -15,7 +11,7 @@ from utils.search import search_results
 
 class FamilyStats(commands.Cog, name="Family Stats"):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.slash_command(name="ranked")
@@ -30,11 +26,11 @@ class FamilyStats(commands.Cog, name="Family Stats"):
             limit: number of players to show
         """
         rankings = []
-        tracked = clans.find({"server": ctx.guild.id})
-        l = await clans.count_documents(filter={"server": ctx.guild.id})
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        l = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         for clan in await tracked.to_list(length=l):
             tag = clan.get("tag")
-            clan = await getClan(tag)
+            clan = await self.bot.getClan(tag)
             for player in clan.members:
                 try:
                     playerStats = []
@@ -133,11 +129,11 @@ class FamilyStats(commands.Cog, name="Family Stats"):
     @commands.slash_command(name="best", description="Arranges players to create best 5 clans if eos was now")
     async def best(self, ctx: disnake.ApplicationCommandInteraction):
         rankings = []
-        tracked = clans.find({"server": ctx.guild.id})
-        l = await clans.count_documents(filter={"server": ctx.guild.id})
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        l = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         for clan in await tracked.to_list(length=l):
             tag = clan.get("tag")
-            clan = await getClan(tag)
+            clan = await self.bot.getClan(tag)
             for player in clan.members:
                 try:
                     playerStats = []
@@ -191,64 +187,6 @@ class FamilyStats(commands.Cog, name="Family Stats"):
         await ctx.send(embed=embed)
 
 
-    @commands.command(name="usabest")
-    async def usabest(self, ctx):
-        rankings = []
-        tracked = clans.find({"server": 328997757048324101})
-        l = await clans.count_documents(filter={"server": 328997757048324101})
-        for clan in await tracked.to_list(length=l):
-            tag = clan.get("tag")
-            clan = await getClan(tag)
-            for player in clan.members:
-                try:
-                    playerStats = []
-                    playerStats.append(player.name)
-                    playerStats.append(player.trophies)
-                    playerStats.append(player.clan.name)
-                    playerStats.append(player.tag)
-                    rankings.append(playerStats)
-                except:
-                    continue
-
-        if l == 0:
-            return await ctx.send(content=f"No clans linked to server.")
-
-        ranking = sorted(rankings, key=lambda l: l[1], reverse=True)
-
-        max_clans = math.floor(len(ranking) / 50)
-        if max_clans > 5:
-            max_clans = 5
-        text = ""
-        clan_num = 0
-        for y in range(clan_num, max_clans):
-            cum_score = 0
-            z = 1
-            tt = ranking[(50 * y):((50 * y) + 50)]
-            for r in tt:
-                if z >= 1 and z <= 10:
-                    cum_score += (r[1]) * 0.50
-                elif z >= 11 and z <= 20:
-                    cum_score += (r[1]) * 0.25
-                elif z >= 21 and z <= 30:
-                    cum_score += (r[1]) * 0.12
-                elif z >= 31 and z <= 40:
-                    cum_score += (r[1]) * 0.10
-                elif z >= 41 and z <= 50:
-                    cum_score += (r[1]) * 0.03
-                z += 1
-
-            cum_score = int(cum_score)
-            cum_score = "{:,}".format(cum_score)
-            text += f"Clan #{y + 1}: 🏆{cum_score}\n"
-
-        embed = disnake.Embed(title=f"Best Possible EOS for USA Family",
-                              description=text,
-                              color=disnake.Color.green())
-        if ctx.guild.icon is not None:
-            embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/843624785560993833/936739893541994576/a_06b3a6e66b6ae8dad709f9354e63e940.gif")
-        embed.set_footer(text="All Clans have 50 Members")
-        await ctx.send(embed=embed)
-
     @commands.slash_command(name="rank", description="Ranks for player")
     async def srank(self, ctx: disnake.ApplicationCommandInteraction, tag_or_user=None):
         """
@@ -266,11 +204,11 @@ class FamilyStats(commands.Cog, name="Family Stats"):
             return await ctx.edit_original_message(content="No results were found.")
 
         rr = {}
-        tracked = clans.find({"server": ctx.guild.id})
-        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         for clan in await tracked.to_list(length=limit):
             tag = clan.get("tag")
-            clan = await getClan(tag)
+            clan = await self.bot.getClan(tag)
             for player in clan.members:
                 try:
                     rr[player.tag] = player.trophies
@@ -288,10 +226,10 @@ class FamilyStats(commands.Cog, name="Family Stats"):
                     return i
             return None
 
-        disnakeID = await link_client.get_link(results[0])
-        member = await pingToMember(ctx, str(disnakeID))
+        disnakeID = await self.bot.link_client.get_link(results[0])
+        member = await self.bot.pingToMember(ctx, str(disnakeID))
 
-        async for player in coc_client.get_players(results):
+        async for player in self.bot.coc_client.get_players(results):
             result = player.tag
             from BackgroundCrons.leaderboards import rankingsC
             guildranking = None
@@ -381,11 +319,11 @@ class FamilyStats(commands.Cog, name="Family Stats"):
     @rank.sub_command(name="players", description="Region rankings for players on server")
     async def prank(self, ctx: disnake.ApplicationCommandInteraction):
         server_players = {}
-        tracked = clans.find({"server": ctx.guild.id})
-        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         for clan in await tracked.to_list(length=limit):
             tag = clan.get("tag")
-            clan = await getClan(tag)
+            clan = await self.bot.getClan(tag)
             for player in clan.members:
                 try:
                     server_players[player.tag] = player.trophies
@@ -472,8 +410,8 @@ class FamilyStats(commands.Cog, name="Family Stats"):
     async def crank(self, ctx):
 
         server_clans = []
-        tracked = clans.find({"server": ctx.guild.id})
-        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         for clan in await tracked.to_list(length=limit):
             tag = clan.get("tag")
             server_clans.append(tag)
@@ -518,7 +456,7 @@ class FamilyStats(commands.Cog, name="Family Stats"):
 
 
     async def autocomp_names(self, query: str):
-        locations = await coc_client.search_locations()
+        locations = await self.bot.coc_client.search_locations()
         results = []
         if query.lower() in "Global":
             results.append("Global")
@@ -542,8 +480,8 @@ class FamilyStats(commands.Cog, name="Family Stats"):
             country: country to fetch leaderboard for
         """
         tags = []
-        tracked = clans.find({"server": ctx.guild.id})
-        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         for clan in await tracked.to_list(length=limit):
             tag = clan.get("tag")
             tags.append(tag)
@@ -552,13 +490,13 @@ class FamilyStats(commands.Cog, name="Family Stats"):
 
 
         if country != "Global":
-            locations = await coc_client.search_locations(limit=None)
+            locations = await self.bot.coc_client.search_locations(limit=None)
             is_country = (country != "International")
             country = coc.utils.get(locations, name=country, is_country=is_country)
             country_names = country.name
-            rankings = await coc_client.get_location_clans(location_id=country.id)
+            rankings = await self.bot.coc_client.get_location_clans(location_id=country.id)
         else:
-            rankings = await coc_client.get_location_clans()
+            rankings = await self.bot.coc_client.get_location_clans()
             country_names = "Global"
 
         x = 0
@@ -622,5 +560,5 @@ class FamilyStats(commands.Cog, name="Family Stats"):
 
 
 
-def setup(bot: commands.Bot):
+def setup(bot: CustomClient):
     bot.add_cog(FamilyStats(bot))

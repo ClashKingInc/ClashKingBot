@@ -1,0 +1,43 @@
+import disnake
+
+class EmojiType():
+    def __init__(self, emoji_string):
+        self.emoji_string = emoji_string
+
+    @property
+    def partial_emoji(self):
+        emoji = self.emoji_string.split(":")
+        emoji = disnake.PartialEmoji(name=emoji[1][1:], id=int(str(emoji[2])[:-1]), animated=False)
+        return emoji
+
+class Emojis():
+    def __init__(self):
+        self.clan_castle = EmojiType("<:clan_castle:855688168816377857>")
+        self.shield = EmojiType("<:sh:948845842809360424>")
+        self.trophy = EmojiType("<:trophyy:849144172698402817>")
+        self.capital_gold = EmojiType("<:capitalgold:987861320286216223>")
+        self.legends_shield = EmojiType("<:legends:881450752109850635>")
+        self.sword = EmojiType("<:cw:948845649229647952>")
+        self.previous_days = EmojiType("<:cal:989351376146530304>")
+        self.legends_overview = EmojiType("<:list:989351376796680213>")
+        self.graph_and_stats = EmojiType("<:graph:989351375349624832>")
+        self.history = EmojiType("<:history:989351374087151617>")
+        self.quick_check = EmojiType("<:plusminus:989351373608980490>")
+        self.gear = EmojiType("<:gear:989351372711399504>")
+        self.pin = EmojiType("<:magnify:944914253171810384>")
+        self.back = EmojiType("<:back_arrow:989399022156525650>")
+        self.forward = EmojiType("<:forward_arrow:989399021602877470>")
+        self.print = EmojiType("<:print:989400875766251581>")
+        self.refresh = EmojiType("<:refresh:989399023087652864>")
+        self.trashcan = EmojiType("<:trashcan:989534332425232464>")
+        self.alphabet = EmojiType("<:alphabet:989649421564280872>")
+        self.start = EmojiType("<:start:989649420742176818>")
+        self.blue_shield = EmojiType("<:blueshield:989649418665996321>")
+        self.blue_sword = EmojiType("<:bluesword:989649419878166558>")
+        self.blue_trophy = EmojiType("<:bluetrophy:989649417760018483>")
+        self.grey_circle = EmojiType("<:status_offline:910938138984206347>")
+        self.earth = EmojiType("<a:earth:861321402909327370>")
+
+
+
+

@@ -116,14 +116,7 @@ class DiscordEvents(commands.Cog):
 
             channel = message.channel
             await channel.send(embed=embed)
-        elif "824653933347209227" in message.content:
-            text = message.content.replace("<@824653933347209227>","")
-            text = text.replace("<@!824653933347209227>", "")
-            text = urllib.parse.quote(text)
-            r = requests.get(f"https://api.affiliateplus.xyz/api/chatbot?message={text}&user={message.author.name}")
-            jso = r.json()
-            mess = jso["message"]
-            await message.channel.send(content=mess)
+
 
 
     @commands.Cog.listener()
