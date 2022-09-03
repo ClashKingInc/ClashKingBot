@@ -7,7 +7,7 @@ async def button_pagination(bot, ctx: disnake.ApplicationCommandInteraction, msg
     current_page = 0
     history_cache_embed = {}
 
-    embed = await create_profile_stats(ctx, results[0])
+    embed = await create_profile_stats(bot, ctx, results[0])
 
     await msg.edit(embed=embed, components=create_components(results, current_page))
     def check(res: disnake.MessageInteraction):
@@ -18,27 +18,30 @@ async def button_pagination(bot, ctx: disnake.ApplicationCommandInteraction, msg
             res: disnake.MessageInteraction = await bot.wait_for("message_interaction", check=check,
                                                                       timeout=600)
         except:
-            await ctx.edit_original_message(components=[])
+            try:
+                await ctx.edit_original_message(components=[])
+            except:
+                pass
             break
 
         await res.response.defer()
         #print(res.custom_id)
         if res.data.custom_id == "Previous":
             current_page -= 1
-            embed = await display_embed(results, profile_pages[current_stat], current_page, ctx, history_cache_embed)
+            embed = await display_embed(results, profile_pages[current_stat], current_page, ctx, history_cache_embed, bot)
             await res.edit_original_message(embed=embed,
                            components=create_components(results, current_page))
 
         elif res.data.custom_id == "Next":
             current_page += 1
-            embed = await display_embed(results, profile_pages[current_stat], current_page, ctx, history_cache_embed)
+            embed = await display_embed(results, profile_pages[current_stat], current_page, ctx, history_cache_embed, bot)
             await res.edit_original_message(embed=embed,
                            components=create_components(results, current_page))
 
         elif res.data.custom_id in profile_pages:
             current_stat = profile_pages.index(res.data.custom_id)
             try:
-                embed = await display_embed(results, profile_pages[current_stat], current_page, ctx, history_cache_embed)
+                embed = await display_embed(results, profile_pages[current_stat], current_page, ctx, history_cache_embed, bot)
                 await res.edit_original_message(embed=embed,
                                components=create_components(results, current_page))
             except:
@@ -49,16 +52,16 @@ async def button_pagination(bot, ctx: disnake.ApplicationCommandInteraction, msg
                                    components=create_components(results, current_page))
 
 
-async def display_embed(results, stat_type, current_page, ctx, history_cache_embed):
+async def display_embed(results, stat_type, current_page, ctx, history_cache_embed, bot):
     if stat_type == "Info":
-        return await create_profile_stats(ctx, results[current_page])
+        return await create_profile_stats(bot, ctx, results[current_page])
     elif stat_type == "Troops":
-        return await create_profile_troops(results[current_page])
+        return await create_profile_troops(bot, results[current_page])
     elif stat_type == "History":
         tag = results[current_page]
         keys = history_cache_embed.keys()
         if tag not in keys:
-            history_cache_embed[tag] = await history(ctx, results[current_page])
+            history_cache_embed[tag] = await history(bot, ctx, results[current_page])
             return history_cache_embed[tag]
         else:
             return history_cache_embed[tag]

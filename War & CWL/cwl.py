@@ -3,7 +3,6 @@ import json
 import coc
 import disnake
 from disnake.ext import commands, tasks
-from utils.clash import client, getClan, coc_client
 from datetime import datetime
 from utils.troop_methods import cwl_league_emojis
 from utils.discord_utils import partial_emoji_gen
@@ -15,8 +14,7 @@ import aiohttp
 from bs4 import BeautifulSoup
 import asyncio
 
-usafam = client.usafam
-clans = usafam.clans
+from CustomClasses.CustomBot import CustomClient
 
 leagues = ["Champion League I", "Champion League II", "Champion League III",
                    "Master League I", "Master League II", "Master League III",
@@ -31,7 +29,7 @@ tiz = pytz.utc
 
 class Cwl(commands.Cog, name="CWL"):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.slash_command(name="cwl", description="Stats, stars, and more for a clan's cwl")
@@ -39,22 +37,22 @@ class Cwl(commands.Cog, name="CWL"):
         await ctx.response.defer()
         clan_search = clan.lower()
         first_clan = clan
-        results = await clans.find_one({"$and": [
+        results = await self.bot.clan_db.find_one({"$and": [
             {"alias": clan_search},
             {"server": ctx.guild.id}
         ]})
 
         if results is not None:
             tag = results.get("tag")
-            clan = await getClan(tag)
+            clan = await self.bot.getClan(tag)
         else:
-            clan = await getClan(clan)
+            clan = await self.bot.getClan(clan)
 
         if clan is None:
             if "|" in first_clan:
                 search = first_clan.split("|")
                 tag = search[1]
-                clan = await getClan(tag)
+                clan = await self.bot.getClan(tag)
 
         if clan is None:
             return await ctx.send("Not a valid clan tag.")
@@ -62,7 +60,7 @@ class Cwl(commands.Cog, name="CWL"):
         war = None
         next_war = None
         try:
-            group = await coc_client.get_league_group(clan.tag)
+            group = await self.bot.coc_client.get_league_group(clan.tag)
             rounds = group.number_of_rounds
             league_wars = []
             async for w in group.get_wars_for_clan(clan.tag):
@@ -127,7 +125,10 @@ class Cwl(commands.Cog, name="CWL"):
                 res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
                                                                           timeout=600)
             except:
-                await msg.edit(components=[])
+                try:
+                    await msg.edit(components=[])
+                except:
+                    pass
                 break
 
             if res.values[0] == "round":
@@ -151,8 +152,8 @@ class Cwl(commands.Cog, name="CWL"):
 
     @cwl.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        tracked = clans.find({"server": ctx.guild.id})
-        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         clan_list = []
         for tClan in await tracked.to_list(length=limit):
             name = tClan.get("name")
@@ -220,7 +221,7 @@ class Cwl(commands.Cog, name="CWL"):
                 lineup.append(x)
 
         x = 0
-        async for player in coc_client.get_players(tags):
+        async for player in self.bot.coc_client.get_players(tags):
             th = player.town_hall
             th_emoji = emojiDictionary(th)
             place = str(lineup[x]) + "."
@@ -252,7 +253,7 @@ class Cwl(commands.Cog, name="CWL"):
             lineup.append(x)
 
         x = 0
-        async for player in coc_client.get_players(tags):
+        async for player in self.bot.coc_client.get_players(tags):
             th = player.town_hall
             th_emoji = emojiDictionary(th)
             place = str(lineup[x]) + "."
@@ -368,7 +369,7 @@ class Cwl(commands.Cog, name="CWL"):
         rounds = group.rounds
         for round in rounds:
             for war_tag in round:
-                war = await coc_client.get_league_war(war_tag)
+                war = await self.bot.coc_client.get_league_war(war_tag)
                 if str(war.status) == "won":
                     star_dict[war.clan.tag] += 10
                 elif str(war.status) == "lost":
@@ -539,8 +540,8 @@ class Cwl(commands.Cog, name="CWL"):
 
     @commands.slash_command(name="cwl-leagues", description="List of clans in family, sorted by cwl league")
     async def cwl_co(self, ctx: disnake.ApplicationCommandInteraction):
-        tracked = clans.find({"server": ctx.guild.id})
-        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         if limit == 0:
             return await ctx.send("No clans linked to this server.")
 
@@ -551,7 +552,7 @@ class Cwl(commands.Cog, name="CWL"):
         for tClan in await tracked.to_list(length=limit):
             c = []
             tag = tClan.get("tag")
-            clan = await getClan(tag)
+            clan = await self.bot.getClan(tag)
             c.append(clan.name)
             c.append(clan.war_league.name)
             cwl_list.append(c)
@@ -642,8 +643,8 @@ class Cwl(commands.Cog, name="CWL"):
             month = f"0{month}"
         dt = f"{year}-{month}"
         #print(dt)
-        tracked = clans.find({"server": ctx.guild.id})
-        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         if limit == 0:
             return await ctx.edit_original_message(content="No clans linked to this server.")
 
@@ -658,11 +659,11 @@ class Cwl(commands.Cog, name="CWL"):
             tag = tClan.get("tag")
             name = tClan.get("name")
             c.append(name)
-            clan = await getClan(tag)
+            clan = await self.bot.getClan(tag)
             c.append(clan.war_league.name)
             c.append(clan.tag)
             try:
-                league = await coc_client.get_league_group(tag)
+                league = await self.bot.coc_client.get_league_group(tag)
                 state = league.state
                 if str(state) == "preparation":
                     c.append("<a:CheckAccept:992611802561134662>")
@@ -711,5 +712,5 @@ class Cwl(commands.Cog, name="CWL"):
 
 
 
-def setup(bot: commands.Bot):
+def setup(bot: CustomClient):
     bot.add_cog(Cwl(bot))

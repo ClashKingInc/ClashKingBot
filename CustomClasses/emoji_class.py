@@ -7,7 +7,8 @@ class EmojiType():
     @property
     def partial_emoji(self):
         emoji = self.emoji_string.split(":")
-        emoji = disnake.PartialEmoji(name=emoji[1][1:], id=int(str(emoji[2])[:-1]), animated=False)
+        animated = "<a:" in self.emoji_string
+        emoji = disnake.PartialEmoji(name=emoji[1][1:], id=int(str(emoji[2])[:-1]), animated=animated)
         return emoji
 
 class Emojis():
@@ -37,6 +38,12 @@ class Emojis():
         self.blue_trophy = EmojiType("<:bluetrophy:989649417760018483>")
         self.grey_circle = EmojiType("<:status_offline:910938138984206347>")
         self.earth = EmojiType("<a:earth:861321402909327370>")
+        self.sword_clash = EmojiType("<a:swords:944894455633297418>")
+        self.war_star = EmojiType("<:war_star:1013159341395816618>")
+        self.blank = EmojiType("<:blanke:838574915095101470>")
+        self.clock = EmojiType("<:clock:1013161445833326653>")
+        self.troop = EmojiType("<:troop:861797310224400434>")
+        self.reddit_icon = EmojiType("<:reddit:1015107963536539688>")
 
 
 

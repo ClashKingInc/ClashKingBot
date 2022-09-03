@@ -1,17 +1,14 @@
 import disnake
 from disnake.ext import commands
-from utils.clash import client, getClan, pingToRole, link_client, pingToMember
 from utils.components import create_components
 
 import emoji as emoji_package
 
-usafam = client.usafam
-clans = usafam.clans
-server = usafam.server
+from CustomClasses.CustomBot import CustomClient
 
 class Awards(commands.Cog):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
 
 
@@ -34,7 +31,7 @@ class Awards(commands.Cog):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        clan = await getClan(clan_tag)
+        clan = await self.bot.getClan(clan_tag)
         if clan == None:
             return await ctx.send(f"{clan_tag} is not a valid clan_tag.")
 
@@ -49,10 +46,10 @@ class Awards(commands.Cog):
         text = ""
         embeds = []
         for player in clan.members:
-            link = await link_client.get_link(player.tag)
+            link = await self.bot.link_client.get_link(player.tag)
             if link != None:
                 if link not in members_added:
-                    member = await pingToMember(ctx, link)
+                    member = await self.bot.pingToMember(ctx, link)
                     if member == None:
                         continue
                     try:
@@ -329,5 +326,5 @@ class Awards(commands.Cog):
 
 
 
-def setup(bot: commands.Bot):
+def setup(bot: CustomClient):
     bot.add_cog(Awards(bot))

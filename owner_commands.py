@@ -1,27 +1,97 @@
 import disnake
 from disnake.ext import commands
-from utils.clash import coc_client, client, getClan
-
-usafam = client.usafam
-banlist = usafam.banlist
-server = usafam.server
-clans = usafam.clans
-clancapital = usafam.clancapital
-
-import motor.motor_asyncio
-new_client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://localhost:27017")
 
 clan_tags = ["#2P0JJQGUJ"]
 known_streak = []
 count = 0
 list_size = 0
-from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.CustomBot import CustomClient
 
 class OwnerCommands(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
+
+    @commands.slash_command(name="track-wars", guild_ids=[1013113692654686271])
+    async def track_war(self, ctx: disnake.ApplicationCommandInteraction, clan:str):
+        clan = await self.bot.getClan(clan)
+        if clan is None:
+            return await ctx.send("Not a valid clan tag")
+
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        if results is not None:
+            embed = disnake.Embed(description=f"{clan.name} is already linked to this server.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
+        embed = disnake.Embed(description=f"Tracking for {clan.name} has been sent for approval.",
+                              color=disnake.Color.green())
+        await ctx.send(embed=embed)
+
+        channel = await self.bot.fetch_channel(1013152300627402773)
+        embed = disnake.Embed(description=f"{ctx.user.mention} has requested tracking for {clan.name}.",
+                              color=disnake.Color.green())
+
+        page_buttons = [
+            disnake.ui.Button(label="Yes", emoji="✅", style=disnake.ButtonStyle.green,
+                              custom_id=f"yestrack_{clan.tag}"),
+            disnake.ui.Button(label="No", emoji="❌",
+                              style=disnake.ButtonStyle.red,
+                              custom_id=f"notrack_{clan.tag}")
+        ]
+        buttons = disnake.ui.ActionRow()
+        for button in page_buttons:
+            buttons.append_item(button)
+
+        await channel.send(embed=embed, components=buttons)
+
+    @commands.Cog.listener()
+    async def on_button_click(self, ctx: disnake.MessageInteraction):
+        if "yestrack" in str(ctx.data.custom_id):
+            clan = (str(ctx.data.custom_id).split("_"))[1]
+            clan = await self.bot.getClan(clan)
+            await ctx.send(content=f"Setting up {clan.name}", ephemeral=True)
+            category = await self.bot.fetch_channel(1013167881363652638)
+            clan_channel = await ctx.guild.create_text_channel(category=category.category, name=clan.name, topic=clan.tag)
+            await self.bot.clan_db.insert_one({
+                "name": clan.name,
+                "tag": clan.tag,
+                "generalRole": 1013113817032573009,
+                "leaderRole": 1013113817032573009,
+                "category": "War Tracking",
+                "server": ctx.guild.id,
+                "clanChannel": clan_channel.id,
+                "war_log" : clan_channel.id
+            })
+            await ctx.message.edit(components=[])
+        elif "notrack" in str(ctx.data.custom_id):
+            clan = (str(ctx.data.custom_id).split("_"))[1]
+            clan = await self.bot.getClan(clan)
+            await ctx.send(content=f"Declining request...", ephemeral=True)
+            await ctx.message.edit(components=[])
+            channel = await self.bot.fetch_channel(1013156154177765386)
+            embed = disnake.Embed(description=f"Request to set up {clan.name} denied.",color=disnake.Color.red())
+            await channel.send(embed=embed)
+
+    @track_war.autocomplete("clan")
+    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+
+        clan_list = []
+        if len(query) >= 3:
+            clan = await self.bot.getClan(query)
+            if clan is None:
+                results = await self.bot.coc_client.search_clans(name=query, limit=10)
+                for clan in results:
+                    league = str(clan.war_league).replace("League ", "")
+                    clan_list.append(f"{clan.name} | {clan.member_count}/50 | LV{clan.level} | {league} | {clan.tag}")
+            else:
+                clan_list.append(f"{clan.name} | {clan.tag}")
+                return clan_list
+        return clan_list[0:25]
+
 
     @commands.command(name='reload', hidden=True)
     async def _reload(self,ctx, *, module: str):
@@ -38,7 +108,7 @@ class OwnerCommands(commands.Cog):
             await ctx.send("You aren't magic. <:PS_Noob:783126177970782228>")
 
 
-
+    '''
     @commands.command(name="testraid")
     async def testraid(self, ctx, tag):
 
@@ -94,48 +164,11 @@ class OwnerCommands(commands.Cog):
             return
         await guild.leave()  # Guild found
         await ctx.send(f"I left: {guild.name}!")
-
-
-    @commands.command(name="testy")
-    @commands.is_owner()
-    async def testy(self, ctx, date):
-        tag = "#20LLYQYQ2"
-        results = await self.bot.player_stats.find_one({"tag" : tag})
-        player: MyCustomPlayer = await coc_client.get_player(player_tag=tag, cls=MyCustomPlayer, bot=self.bot, results=results)
-        print(player.town_hall.emoji)
-
-
-
-    async def get_warlog(self,clan, channel):
-        global clan_tags
-        try:
-            warlog = await coc_client.get_warlog(clan_tag=clan.tag)
-        except:
-            return
-        for war in warlog:
-            try:
-                clan = await coc_client.get_clan(tag=war.opponent.tag)
-                if war.opponent.tag not in clan_tags:
-                    if clan.war_win_streak >= 35:
-                        if clan.member_count >= 10:
-                            if str(clan.chat_language) == "English" or str(clan.chat_language) == "None":
-                                description = clan.description
-                                rest = ""
-                                if "discord.gg" in description:
-                                    rest = description.partition("discord.gg")[2]
-                                location = ""
-                                try:
-                                    location = str(clan.location)
-                                except:
-                                    pass
-
-                                await channel.send(f"{clan.name} | {clan.tag} | ({clan.member_count}/50) - {clan.war_win_streak} wins | {location} | {rest}")
-                    clan_tags.append(war.opponent.tag)
-            except:
-                continue
+    '''
 
 
 
 
-def setup(bot: commands.Bot):
+
+def setup(bot: CustomClient):
     bot.add_cog(OwnerCommands(bot))

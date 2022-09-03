@@ -3,20 +3,16 @@ from disnake.ext import commands
 import disnake
 from Dictionaries.thPicDictionary import thDictionary
 from utils.troop_methods import heros, heroPets
-from utils.clash import getPlayer, client, coc_client, getClan, verifyPlayer, link_client
-import requests
 
-usafam = client.usafam
-server = usafam.server
-clans = usafam.clans
-welcome = usafam.welcome
+import requests
 
 link_open=[]
 import urllib.parse
+from CustomClasses.CustomBot import CustomClient
 
 class DiscordEvents(commands.Cog):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.Cog.listener()
@@ -25,37 +21,38 @@ class DiscordEvents(commands.Cog):
         await self.bot.change_presence(
             activity=disnake.Activity(name=f'{len_g} servers', type=3))  # type 3 watching type#1 - playing
 
+        '''
         print("back")
         tags = []
-        tracked = clans.find()
-        limit = await clans.count_documents(filter={})
+        tracked = self.bot.clan_db.find()
+        limit = await self.bot.clan_db.count_documents(filter={})
 
         for tClan in await tracked.to_list(length=limit):
             tag = tClan.get("tag")
             tags.append(tag)
 
-        coc_client.add_clan_updates(*tags)
+        self.bot.coc_client.add_clan_updates(*tags)
 
         print("here")
         tags = []
-        tracked = clans.find({"clan_capital" : {"$ne": None}})
-        limit = await clans.count_documents(filter={"clan_capital" : {"$ne": None}})
+        tracked = self.bot.clan_db.find({"clan_capital" : {"$ne": None}})
+        limit = await self.bot.clan_db.count_documents(filter={"clan_capital" : {"$ne": None}})
         for tClan in await tracked.to_list(length=limit):
             tag = tClan.get("tag")
             tags.append(tag)
 
         print(len(tags))
         player_tags = []
-        async for clan in coc_client.get_clans(tags=tags):
+        async for clan in self.bot.coc_client.get_clans(tags=tags):
             for member in clan.members:
                 player_tags.append(member.tag)
-        coc_client.add_player_updates(*player_tags)
-
+        self.bot.coc_client.add_player_updates(*player_tags)
+        '''
 
         for g in self.bot.guilds:
-            results = await server.find_one({"server": g.id})
+            results = await self.bot.server_db.find_one({"server": g.id})
             if results is None:
-                await server.insert_one({
+                await self.bot.server_db.insert_one({
                     "server": g.id,
                     "prefix": ".",
                     "banlist": None,
@@ -83,7 +80,7 @@ class DiscordEvents(commands.Cog):
             tag = s.replace("https://link.clashofclans.com/en?action=OpenPlayerProfile&tag=", "")
             if "%23" in tag:
                 tag = tag.replace("%23", "")
-            player = await getPlayer(tag)
+            player = await self.bot.getPlayer(tag)
 
             clan = ""
             try:
@@ -121,9 +118,9 @@ class DiscordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild:disnake.Guild):
-        results = await server.find_one({"server": guild.id})
+        results = await self.bot.server_db.find_one({"server": guild.id})
         if results is None:
-            await server.insert_one({
+            await self.bot.server_db.insert_one({
                 "server": guild.id,
                 "prefix": ".",
                 "banlist": None,
@@ -154,21 +151,27 @@ class DiscordEvents(commands.Cog):
         channel = self.bot.get_channel(937528942661877851)
         await channel.edit(name=f"ClashKing: {len_g} Servers")
 
+
     @commands.Cog.listener()
     async def on_application_command(self, ctx:disnake.ApplicationCommandInteraction):
         channel = self.bot.get_channel(960972432993304616)
-        server = ctx.guild.name
+        try:
+            server = ctx.guild.name
+        except:
+            server = "None"
+
         user = ctx.author
-        command = ctx.data.name
+        command = ctx.application_command
         embed = disnake.Embed(
-            description=f"**{command} {ctx.filled_options}** \nused by {user.mention} [{user.name}] in {server} server",
+            description=f"</{command.qualified_name}:{ctx.data.id}> **{ctx.filled_options}** \nused by {user.mention} [{user.name}] in {server} server",
             color=disnake.Color.blue())
         embed.set_thumbnail(url=user.display_avatar.url)
         await channel.send(embed=embed)
 
+
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        results = await welcome.find_one({"server": member.guild.id})
+        results = await self.bot.welcome.find_one({"server": member.guild.id})
         if results is not None:
             welcome_channel = results.get("welcome_channel")
 
@@ -224,7 +227,10 @@ class DiscordEvents(commands.Cog):
                     buttons.append_item(button)
                 if member.guild.icon is not None:
                     embed.set_thumbnail(url=member.guild.icon.url)
-                await channel.send(content=member.mention, embed=embed, components=[stat_buttons])
+                try:
+                    await channel.send(content=member.mention, embed=embed, components=[stat_buttons])
+                except:
+                    pass
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
@@ -289,8 +295,8 @@ class DiscordEvents(commands.Cog):
                         color=disnake.Color.red())
                     return await ctx.edit_original_message(embed=embed)
                 playerTag = ctx.message.content
-                player = await getPlayer(playerTag)
-                clan = await getClan(playerTag)
+                player = await self.bot.getPlayer(playerTag)
+                clan = await self.bot.getClan(playerTag)
 
                 if (playerTag.lower() == "cancel"):
                     cancel = True
@@ -322,14 +328,14 @@ class DiscordEvents(commands.Cog):
                 else:
                     correctTag = True
 
-            player = await getPlayer(playerTag)
+            player = await self.bot.getPlayer(playerTag)
             if player == None:
                 link_open.remove(member)
                 embed = disnake.Embed(
                     title=playerTag + " is an invalid playertag. Try again.",
                     color=disnake.Color.red())
                 return await ctx.edit_original_message(embed=embed)
-            linked = await link_client.get_link(player.tag)
+            linked = await self.bot.link_client.get_link(player.tag)
 
             if (linked != member.id) and (linked != None):
                 link_open.remove(member)
@@ -384,12 +390,12 @@ class DiscordEvents(commands.Cog):
 
             if cancel is not True:
                 try:
-                    playerVerified = await verifyPlayer(player.tag, playerToken)
-                    linked = await link_client.get_link(player.tag)
+                    playerVerified = await self.bot.verifyPlayer(player.tag, playerToken)
+                    linked = await self.bot.link_client.get_link(player.tag)
 
                     if (linked is None) and (playerVerified == True):
                         link_open.remove(member)
-                        await link_client.add_link(player.tag, member.id)
+                        await self.bot.link_client.add_link(player.tag, member.id)
                         evalua = self.bot.get_cog("Eval")
                         changes = await evalua.eval_member(ctx, member, False)
                         embed = disnake.Embed(
@@ -398,12 +404,12 @@ class DiscordEvents(commands.Cog):
                                         f"Removed: {changes[1]}", color=disnake.Color.green())
                         await ctx.edit_original_message(embed=embed)
                         try:
-                            results = await server.find_one({"server": ctx.guild.id})
+                            results = await self.bot.server_db.find_one({"server": ctx.guild.id})
                             greeting = results.get("greeting")
                             if greeting == None:
                                 greeting = ""
 
-                            results = await clans.find_one({"$and": [
+                            results = await self.bot.clan_db.find_one({"$and": [
                                 {"tag": player.clan.tag},
                                 {"server": ctx.guild.id}
                             ]})
@@ -429,5 +435,5 @@ class DiscordEvents(commands.Cog):
                     await ctx.edit_original_message(embed=embed)
 
 
-def setup(bot: commands.Bot):
+def setup(bot: CustomClient):
     bot.add_cog(DiscordEvents(bot))

@@ -2,24 +2,21 @@ import disnake
 from Dictionaries.emojiDictionary import emojiDictionary
 from Dictionaries.thPicDictionary import thDictionary
 from utils.troop_methods import profileSuperTroops, leagueAndTrophies
-from utils.clash import getPlayer, link_client, pingToMember, client, getClan
 from utils.troop_methods import heros, heroPets, troops, deTroops, siegeMachines, spells
 import aiohttp
 from bs4 import BeautifulSoup
 import cchardet
 
-usafam = client.usafam
-server = usafam.server
-banlist = usafam.banlist
 
 
-async def create_profile_stats(ctx, result):
+
+async def create_profile_stats(bot, ctx, result):
 
     embed=[]
 
-    disnakeID = await link_client.get_link(result)
-    player = await getPlayer(result)
-    member = await pingToMember(ctx, str(disnakeID))
+    disnakeID = await bot.link_client.get_link(result)
+    player = await bot.getPlayer(result)
+    member = await bot.pingToMember(ctx, str(disnakeID))
 
 
 
@@ -54,7 +51,7 @@ async def create_profile_stats(ctx, result):
         role = ""
     emoji = emojiDictionary(player.town_hall)
 
-    results = await server.find_one({"server": ctx.guild.id})
+    results = await bot.server_db.find_one({"server": ctx.guild.id})
     prefix = results.get("prefix")
 
     tag = player.tag
@@ -108,7 +105,7 @@ async def create_profile_stats(ctx, result):
                           f"War Stars: ⭐ {player.war_stars}\n"
                           f"All Time Donos: {friendInNeed}", inline=False)
 
-    ban = await banlist.find_one({"$and": [
+    ban = await bot.banlist.find_one({"$and": [
         {"VillageTag": f"{player.tag}"},
         {"server": ctx.guild.id}
     ]})
@@ -123,10 +120,10 @@ async def create_profile_stats(ctx, result):
                         value=f"Date: {date}\nReason: {notes}")
     return embed
 
-async def history(ctx, result):
-    discordID = await link_client.get_link(result)
-    member = await pingToMember(ctx, str(discordID))
-    player = await getPlayer(result)
+async def history(bot, ctx, result):
+    discordID = await bot.link_client.get_link(result)
+    member = await bot.pingToMember(ctx, str(discordID))
+    player = await bot.getPlayer(result)
     join = None
     try:
         join = member.joined_at
@@ -155,7 +152,7 @@ async def history(ctx, result):
                     #print(company_element.text.strip())
                     t = company_element.text.strip()
                     t = t.strip("-")
-                    c = await getClan(t)
+                    c = await bot.getClan(t)
                     t = f"[{c.name}]({c.share_link}), - "
                     lstay = None
                     for d in location_element.find_all("br"):
@@ -192,7 +189,7 @@ async def history(ctx, result):
                     t = title_element.text.strip()
                     t = " ".join(t.split())
                     ttt = t.split("#", 1)
-                    clan = await getClan(ttt[1])
+                    clan = await bot.getClan(ttt[1])
                     type = "No Role"
                     for ty in types:
                         if ty in t:
@@ -222,8 +219,8 @@ async def history(ctx, result):
 
 
 
-async def create_profile_troops(result):
-    player = await getPlayer(result)
+async def create_profile_troops(bot, result):
+    player = await bot.getPlayer(result)
     hero = heros(player)
     pets = heroPets(player)
     troop = troops(player)

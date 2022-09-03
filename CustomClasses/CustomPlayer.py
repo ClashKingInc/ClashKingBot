@@ -2,7 +2,6 @@
 import coc
 import pytz
 from coc import utils
-from CustomClasses.CustomBot import CustomClient
 from Dictionaries.emojiDictionary import emojiDictionary
 from Dictionaries.thPicDictionary import thDictionary
 from datetime import datetime, timedelta
@@ -24,7 +23,7 @@ class MyCustomPlayer(coc.Player):
         self.spell_cls = MyCustomSpells
         self.pet_cls = MyCustomPets
         super().__init__(**kwargs)
-        self.bot: CustomClient = kwargs.pop("bot")
+        self.bot = kwargs.pop("bot")
         self.role_as_string = str(self.role)
         self.league_as_string = str(self.league)
         self.streak = 0
@@ -45,47 +44,54 @@ class MyCustomPlayer(coc.Player):
             clan_name = "No Clan"
         return clan_name
 
+    def clan_tag(self):
+        try:
+            clan_tag = self.clan.tag
+        except:
+            clan_tag = "No Tag"
+        return clan_tag
+
     def is_legends(self):
-        if str(self.league) == "Legend League":
-            return True
-        return False
+        return str(self.league) == "Legend League"
 
     def trophy_start(self):
         leg_day = self.legend_day()
-        if leg_day is None:
-            return None
-        return self.trophies - leg_day.net_gain
+        return None if leg_day is None else self.trophies - leg_day.net_gain
 
-    def ranking(self):
-        legends = self.results.get("legends")
-        if legends is None:
-            return None
-        return LegendRanking(self.results, legends)
+    async def ranking(self):
+        ranking_result = await self.bot.leaderboard_db.find_one({"tag": self.tag})
+        return LegendRanking(ranking_result)
 
     def legend_day(self, date=None):
         if date is None:
             date = self.bot.gen_legend_date()
+        if self.results is None:
+            return LegendDay(None)
         legends = self.results.get("legends")
         if legends is None:
-            return None
+            return LegendDay(legends)
         return LegendDay(legends.get(date))
 
     def season_of_legends(self, season=None):
         if season is None:
             season = self.bot.gen_season_date()
-        year = season[0:4]
+        year = season[:4]
         month = season[-2:]
         season_start = utils.get_season_start(month=int(month) - 1, year=int(year))
         season_end = utils.get_season_end(month=int(month) - 1, year=int(year))
-
-        delta = season_end - season_start  # as timedelta
+        delta = season_end - season_start
         days = [season_start + timedelta(days=i) for i in range(delta.days + 1)]
         days = [day.strftime("%Y-%m-%d") for day in days]
-
-        legends = self.results.get("legends")
+        try:
+            legends = self.results.get("legends")
+        except:
+            legends = None
         legend_days = {}
         for day in days:
-            legend_days[day] = LegendDay(legends.get(day))
+            if legends is None:
+                legend_days[day] = LegendDay(legends)
+            else:
+                legend_days[day] = LegendDay(legends.get(day))
         return legend_days
 
     def season_legend_stats(self, season=None):
@@ -95,60 +101,80 @@ class MyCustomPlayer(coc.Player):
         return LegendStats(season_stats)
 
     async def donation_ratio(self):
-        if self.received == 0:
-            return self.donations  # we can't divide by 0!
-        return self.donations / self.received
+        return self.donations if self.received == 0 else self.donations / self.received
 
     def clan_capital_stats(self, week=None):
         if week is None:
             week = self.bot.gen_raid_date()
+        if self.results is None:
+            return ClanCapitalWeek(None)
         clan_capital_result = self.results.get("capital_gold")
         if clan_capital_result is None:
-            return None
+            return ClanCapitalWeek(None)
         week_result = clan_capital_result.get(week)
         if week_result is None:
-            return None
+            return ClanCapitalWeek(None)
         return ClanCapitalWeek(week_result)
 
     async def track(self):
-        await self.bot.track_players(tags=[self.tag])
+        if self.results is None:
+            return await self.bot.track_players(players=[self])
 
 class ClanCapitalWeek():
     def __init__(self, clan_capital_result):
         self.clan_capital_result = clan_capital_result
-        self.raid_clan = clan_capital_result.get("raided_clan")
+
+    @property
+    def raid_clan(self):
+        if self.clan_capital_result is None:
+            return None
+        return self.clan_capital_result.get("raided_clan")
 
     @property
     def donated(self):
-        donations = self.clan_capital_result.get("donated")
-        if donations is None:
-            return 0
-        return donations
+        if self.clan_capital_result is None:
+            return []
+        donations = self.clan_capital_result.get("donate")
+        return [] if donations is None else donations
 
     @property
     def raided(self):
-        raids = self.clan_capital_result.get("raided")
-        if raids is None:
-            return 0
-        return raids
+        if self.clan_capital_result is None:
+            return []
+        raids = self.clan_capital_result.get("raid")
+        return [] if raids is None else raids
 
 class LegendRanking():
-    def __init__(self, result, legend_result):
-        self.legend_result = legend_result
-        self.country = result.get("country_name")
-        self.country_code = result.get("country_code")
+    def __init__(self, ranking_result):
+        self.ranking_result = ranking_result
+
+    @property
+    def country_code(self):
+        if self.ranking_result is None:
+            return None
+        return self.ranking_result.get("country_code")
+
+    @property
+    def country(self):
+        if self.ranking_result is None:
+            return None
+        return self.ranking_result.get("country_name")
 
     @property
     def local_ranking(self):
-        if self.legend_result.get("local_rank") is None:
+        if self.ranking_result is None:
             return "<:status_offline:910938138984206347>"
-        return self.legend_result.get("local_rank")
+        if self.ranking_result.get("local_rank") is None:
+            return "<:status_offline:910938138984206347>"
+        return self.ranking_result.get("local_rank")
 
     @property
     def global_ranking(self):
-        if self.legend_result.get("global_rank") is None:
+        if self.ranking_result is None:
             return "<:status_offline:910938138984206347>"
-        return self.legend_result.get("global_rank")
+        if self.ranking_result.get("global_rank") is None:
+            return "<:status_offline:910938138984206347>"
+        return self.ranking_result.get("global_rank")
 
     @property
     def flag(self):
@@ -158,13 +184,44 @@ class LegendRanking():
 
 class LegendDay():
     def __init__(self, legend_result):
-        self.attacks = legend_result.get("attacks")
-        self.defenses = legend_result.get("defenses")
-        self.num_attacks = NumChoice(legend_result.get("num_attacks"))
-        self.num_defenses = NumChoice(len(self.defenses))
-        self.attack_sum = sum(self.attacks)
-        self.defense_sum = sum(self.defenses)
-        self.net_gain = sum(self.attack_sum - self.defense_sum)
+        self.legend_result = legend_result
+        self.net_gain = self.attack_sum - self.defense_sum
+
+    @property
+    def attacks(self):
+        if self.legend_result is None:
+            return []
+        if self.legend_result.get("attacks") is None:
+            return []
+        return self.legend_result.get("attacks")
+
+    @property
+    def defenses(self):
+        if self.legend_result is None:
+            return []
+        if self.legend_result.get("defenses") is None:
+            return []
+        return self.legend_result.get("defenses")
+
+    @property
+    def num_attacks(self):
+        if self.legend_result is None:
+            return NumChoice(0)
+        if self.legend_result.get("num_attacks") is None:
+            return NumChoice(0)
+        return NumChoice(self.legend_result.get("num_attacks"))
+
+    @property
+    def num_defenses(self):
+        return NumChoice(len(self.defenses))
+
+    @property
+    def attack_sum(self):
+        return sum(self.attacks)
+
+    @property
+    def defense_sum(self):
+        return sum(self.defenses)
 
 class LegendStats():
     def __init__(self, season_stats):
@@ -216,11 +273,11 @@ class LegendStats():
                 sum_defs += legend_day.defense_sum
                 def_days_used += 1
             for hit in legend_day.defenses:
-                if hit >= 0 and hit <= 4:
+                if 0 <= hit <= 4:
                     zero_star_def += 1
-                if hit >= 5 and hit <= 15:
+                if 5 <= hit <= 15:
                     one_stars_def += 1
-                elif hit >= 16 and hit <= 32:
+                elif 16 <= hit <= 32:
                     two_stars_def += 1
                 elif hit == 40:
                     three_stars_def += 1

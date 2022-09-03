@@ -1,10 +1,5 @@
 from disnake.ext import commands, tasks
 import disnake
-from utils.clash import client, coc_client
-usafam = client.usafam
-server = usafam.server
-clans = usafam.clans
-
 
 class clan_boards(commands.Cog, name="Clan Board"):
 

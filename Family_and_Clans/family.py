@@ -10,8 +10,12 @@ class Family(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @commands.slash_command(name="family", description="List of family clans")
-    async def family(self, ctx: disnake.ApplicationCommandInteraction):
+    @commands.slash_command(name="family")
+    async def family(self, ctx):
+        pass
+
+    @family.sub_command(name="clans", description="List of family clans")
+    async def family_clan(self, ctx: disnake.ApplicationCommandInteraction):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         if limit == 0:
@@ -46,7 +50,6 @@ class Family(commands.Cog):
             ]})
             for result in await results.to_list(length=limit):
                 tag = result.get("tag")
-                alias = result.get("alias")
                 clan = await self.bot.getClan(tag)
                 try:
                     leader = utils.get(clan.members, role=coc.Role.leader)
@@ -54,8 +57,10 @@ class Family(commands.Cog):
                     continue
                 if clan is None:
                     continue
+                if clan.member_count == 0:
+                    continue
                 text += f"[{clan.name}]({clan.share_link}) | ({clan.member_count}/50)\n" \
-                        f"**Leader:** {leader.name}\n**Alias:** `{alias}`\n\n"
+                        f"**Leader:** {leader.name}\n\n"
                 other_text += f"{clan.name} | ({clan.member_count}/50)\n"
 
             embed = disnake.Embed(title=f"__**{category} Clans**__",
@@ -107,8 +112,7 @@ class Family(commands.Cog):
 
             await res.response.edit_message(embed=embeds[current_page])
 
-
-    @commands.slash_command(name='compo', description="Compo of an individual clan or all server clans if left blank")
+    @family.sub_command(name='compo', description="Compo of an individual clan or all server clans if left blank")
     async def thcomp(self, ctx: disnake.ApplicationCommandInteraction, clan:str=None):
         """
             Parameters
@@ -187,44 +191,6 @@ class Family(commands.Cog):
             embed.set_thumbnail(url=clan.badge.large)
             embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
             await ctx.edit_original_message(embed=embed)
-
-
-    @commands.slash_command(name="aliases", description="List of aliases for all family clans")
-    async def alias(self, ctx: disnake.ApplicationCommandInteraction):
-        tracked = clans.find({"server": ctx.guild.id})
-        limit = await clans.count_documents(filter={"server": ctx.guild.id})
-        if limit == 0:
-            return await ctx.send("No clans linked to this server.")
-        categoryTypesList = []
-        for tClan in await tracked.to_list(length=limit):
-            category = tClan.get("category")
-            if category not in categoryTypesList:
-                categoryTypesList.append(category)
-
-        text = ""
-        for category in categoryTypesList:
-            results = self.bot.clans.find({"$and": [
-                {"category": category},
-                {"server": ctx.guild.id}
-            ]})
-            limit = await self.bot.clans.count_documents(filter={"$and": [
-                {"category": category},
-                {"server": ctx.guild.id}
-            ]})
-            text += f"\n__**{category} Clans**__\n"
-            for result in await results.to_list(length=limit):
-                tag = result.get("tag")
-                clan = await self.bot.getClan(tag)
-                alias = result.get("alias")
-                text += f"{clan.name}-`{alias}`\n"
-
-        embed = disnake.Embed(title=f"{ctx.guild.name} Clan Aliases",
-                              description=text,
-                              color=disnake.Color.green())
-        if ctx.guild.icon is not None:
-            embed.set_thumbnail(url=ctx.guild.icon.url)
-
-        await ctx.send(embed=embed)
 
 def setup(bot: CustomClient):
     bot.add_cog(Family(bot))

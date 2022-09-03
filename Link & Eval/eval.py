@@ -1,23 +1,15 @@
 
 from disnake.ext import commands
 import disnake
-from utils.clash import client, getTags, coc_client, getClan, link_client,  pingToMember
+
 from utils.components import create_components
-
-usafam = client.usafam
-
-clans = usafam.clans
-ignoredroles = usafam.evalignore
-generalfamroles = usafam.generalrole
-notfamroles = usafam.linkrole
-townhallroles = usafam.townhallroles
-legendleagueroles = usafam.legendleagueroles
-
+from CustomClasses.CustomBot import CustomClient
+from CustomClasses.CustomServer import CustomServer
 
 class eval(commands.Cog, name="Eval"):
     """A couple of simple commands."""
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.slash_command(name="eval")
@@ -58,24 +50,26 @@ class eval(commands.Cog, name="Eval"):
 
 
     async def eval_member(self, ctx, member, test):
+        server = CustomServer(guild=ctx.guild, bot=self.bot)
+        leadership_eval = await server.leadership_eval_choice
 
         ignored_roles = []
-        all = ignoredroles.find({"server": ctx.guild.id})
-        limit = await ignoredroles.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.ignoredroles.find({"server": ctx.guild.id})
+        limit = await self.bot.ignoredroles.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("role")
             ignored_roles.append(r)
 
         family_roles = []
-        all = generalfamroles.find({"server": ctx.guild.id})
-        limit = await generalfamroles.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.generalfamroles.find({"server": ctx.guild.id})
+        limit = await self.bot.generalfamroles.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("role")
             family_roles.append(r)
 
         not_fam_roles = []
-        all = notfamroles.find({"server": ctx.guild.id})
-        limit = await notfamroles.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.notfamroles.find({"server": ctx.guild.id})
+        limit = await self.bot.notfamroles.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("role")
             not_fam_roles.append(r)
@@ -83,8 +77,8 @@ class eval(commands.Cog, name="Eval"):
         clan_roles = []
         clan_tags = []
         clan_role_dict = {}
-        all = clans.find({"server": ctx.guild.id})
-        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("generalRole")
             tag = role.get("tag")
@@ -93,17 +87,20 @@ class eval(commands.Cog, name="Eval"):
             clan_roles.append(r)
 
         leadership_roles = []
-        all = clans.find({"server": ctx.guild.id})
-        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        clan_leadership_role_dict = {}
+        all = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
+            tag = role.get("tag")
             r = role.get("leaderRole")
+            clan_leadership_role_dict[tag] = r
             leadership_roles.append(r)
 
 
         townhall_roles = {}
         th_role_list = []
-        all = townhallroles.find({"server": ctx.guild.id})
-        limit = await townhallroles.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.townhallroles.find({"server": ctx.guild.id})
+        limit = await self.bot.townhallroles.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("role")
             th = role.get("th")
@@ -114,8 +111,8 @@ class eval(commands.Cog, name="Eval"):
 
         legend_roles = {}
         legend_role_list = []
-        all = legendleagueroles.find({"server": ctx.guild.id})
-        limit = await legendleagueroles.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.legendleagueroles.find({"server": ctx.guild.id})
+        limit = await self.bot.legendleagueroles.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("role")
             type = role.get("type")
@@ -123,6 +120,8 @@ class eval(commands.Cog, name="Eval"):
             legend_role_list.append(r)
 
         ALL_CLASH_ROLES = family_roles + clan_roles + not_fam_roles + legend_role_list + th_role_list
+        if leadership_eval:
+            ALL_CLASH_ROLES += leadership_roles
 
         MASTER_ROLES = []
         #convert master role list to ids
@@ -130,10 +129,10 @@ class eval(commands.Cog, name="Eval"):
             MASTER_ROLES.append(m_role.id)
         ROLES_TO_ADD = set()
         ROLES_SHOULD_HAVE = set()
-        account_tags = await getTags(ctx, str(member.id))
+        account_tags = await self.bot.get_tags(str(member.id))
         GLOBAL_IS_FAMILY = False
 
-        async for player in coc_client.get_players(account_tags):
+        async for player in self.bot.coc_client.get_players(account_tags):
 
             #check if is a family member for 2 things - 1. to check for global roles (Not/is family) and 2. for if they shuld get roles on individual lvl
             #ignore the global if even one account is in family
@@ -151,6 +150,17 @@ class eval(commands.Cog, name="Eval"):
             ROLES_SHOULD_HAVE.add(clan_role)
             if clan_role not in MASTER_ROLES:
                 ROLES_TO_ADD.add(clan_role)
+
+            #if server has leadership_eval turned on
+            #check & add any leadership roles
+            if leadership_eval:
+                in_clan_role = str(player.role)
+                if in_clan_role == "Co-Leader" or in_clan_role == "Leader":
+                    leadership_clan_role = clan_leadership_role_dict[player.clan.tag]
+                    ROLES_SHOULD_HAVE.add(leadership_clan_role)
+                    if leadership_clan_role not in MASTER_ROLES:
+                        ROLES_TO_ADD.add(leadership_clan_role)
+
 
             #check if they have any townhall roles setup
             #try/except because dict throws error if it doesnt exist
@@ -216,9 +226,10 @@ class eval(commands.Cog, name="Eval"):
                 ROLES_SHOULD_HAVE.add(role)
                 if role not in MASTER_ROLES:
                     ROLES_TO_ADD.add(role)
-            for role in leadership_roles:
-                if role in MASTER_ROLES:
-                    ROLES_TO_REMOVE.add(role)
+            if not leadership_eval:
+                for role in leadership_roles:
+                    if role in MASTER_ROLES:
+                        ROLES_TO_REMOVE.add(role)
 
 
         #convert sets to a list
@@ -245,14 +256,14 @@ class eval(commands.Cog, name="Eval"):
         FINAL_ROLES_TO_ADD = []
         FINAL_ROLES_TO_REMOVE  = []
         for role in ROLES_TO_ADD:
-            r = ctx.guild.get_role(role)
+            r = disnake.utils.get(ctx.guild.roles, id=role)
             if r is None:
                 continue
             FINAL_ROLES_TO_ADD.append(r)
             added += r.mention +" "
 
         for role in ROLES_TO_REMOVE:
-            r = ctx.guild.get_role(role)
+            r = disnake.utils.get(ctx.guild.roles, id=role)
             if r is None:
                 continue
             FINAL_ROLES_TO_REMOVE.append(r)
@@ -262,6 +273,7 @@ class eval(commands.Cog, name="Eval"):
             if FINAL_ROLES_TO_ADD != []:
                 await member.add_roles(*FINAL_ROLES_TO_ADD)
             if FINAL_ROLES_TO_REMOVE != []:
+                member: disnake.Member
                 await member.remove_roles(*FINAL_ROLES_TO_REMOVE)
 
         if added == "":
@@ -274,44 +286,47 @@ class eval(commands.Cog, name="Eval"):
 
 
     async def eval_roles(self, ctx: disnake.ApplicationCommandInteraction, evaled_role, test):
+        server = CustomServer(guild=ctx.guild, bot=self.bot)
+        leadership_eval = await server.leadership_eval_choice
         embed = disnake.Embed(
             description="<a:loading:884400064313819146> Evaluating...",
             color=disnake.Color.green())
         await ctx.send(embed=embed)
         members = evaled_role.members
 
-        clan = await clans.find_one({"generalRole": evaled_role.id})
+
+        clan = await self.bot.clan_db.find_one({"generalRole": evaled_role.id})
         if clan is not None:
             embed = disnake.Embed(
                 description="<a:loading:884400064313819146> Adding current clan members to eval...",
                 color=disnake.Color.green())
             await ctx.edit_original_message(embed=embed)
             clanTag = clan.get("tag")
-            clan = await getClan(clanTag)
+            clan = await self.bot.getClan(clanTag)
             async for player in clan.get_detailed_members():
                 tag = player.tag
-                member = await link_client.get_link(tag)
-                member = await pingToMember(ctx, str(member))
+                member = await self.bot.link_client.get_link(tag)
+                member = await self.bot.pingToMember(ctx, str(member))
                 if (member not in members) and (member != None):
                     members.append(member)
 
         ignored_roles = []
-        all = ignoredroles.find({"server": ctx.guild.id})
-        limit = await ignoredroles.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.ignoredroles.find({"server": ctx.guild.id})
+        limit = await self.bot.ignoredroles.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("role")
             ignored_roles.append(r)
 
         family_roles = []
-        all = generalfamroles.find({"server": ctx.guild.id})
-        limit = await generalfamroles.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.generalfamroles.find({"server": ctx.guild.id})
+        limit = await self.bot.generalfamroles.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("role")
             family_roles.append(r)
 
         not_fam_roles = []
-        all = notfamroles.find({"server": ctx.guild.id})
-        limit = await notfamroles.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.notfamroles.find({"server": ctx.guild.id})
+        limit = await self.bot.notfamroles.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("role")
             not_fam_roles.append(r)
@@ -319,8 +334,8 @@ class eval(commands.Cog, name="Eval"):
         clan_roles = []
         clan_tags = []
         clan_role_dict = {}
-        all = clans.find({"server": ctx.guild.id})
-        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("generalRole")
             tag = role.get("tag")
@@ -329,16 +344,19 @@ class eval(commands.Cog, name="Eval"):
             clan_roles.append(r)
 
         leadership_roles = []
-        all = clans.find({"server": ctx.guild.id})
-        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        clan_leadership_role_dict = {}
+        all = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
+            tag = role.get("tag")
             r = role.get("leaderRole")
+            clan_leadership_role_dict[tag] = r
             leadership_roles.append(r)
 
         townhall_roles = {}
         th_role_list = []
-        all = townhallroles.find({"server": ctx.guild.id})
-        limit = await townhallroles.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.townhallroles.find({"server": ctx.guild.id})
+        limit = await self.bot.townhallroles.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("role")
             th = role.get("th")
@@ -349,8 +367,8 @@ class eval(commands.Cog, name="Eval"):
 
         legend_roles = {}
         legend_role_list = []
-        all = legendleagueroles.find({"server": ctx.guild.id})
-        limit = await legendleagueroles.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.legendleagueroles.find({"server": ctx.guild.id})
+        limit = await self.bot.legendleagueroles.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("role")
             type = role.get("type")
@@ -358,6 +376,8 @@ class eval(commands.Cog, name="Eval"):
             legend_role_list.append(r)
 
         ALL_CLASH_ROLES = family_roles + clan_roles + not_fam_roles + legend_role_list + th_role_list
+        if leadership_eval:
+            ALL_CLASH_ROLES += leadership_roles
 
         text = ""
         embeds = []
@@ -378,10 +398,10 @@ class eval(commands.Cog, name="Eval"):
                     MASTER_ROLES.append(m_role.id)
                 ROLES_TO_ADD = set()
                 ROLES_SHOULD_HAVE = set()
-                account_tags = await getTags(ctx, str(member.id))
+                account_tags = await self.bot.get_tags(str(member.id))
                 GLOBAL_IS_FAMILY = False
 
-                async for player in coc_client.get_players(account_tags):
+                async for player in self.bot.coc_client.get_players(account_tags):
 
                     # check if is a family member for 2 things - 1. to check for global roles (Not/is family) and 2. for if they shuld get roles on individual lvl
                     # ignore the global if even one account is in family
@@ -399,6 +419,16 @@ class eval(commands.Cog, name="Eval"):
                     ROLES_SHOULD_HAVE.add(clan_role)
                     if clan_role not in MASTER_ROLES:
                         ROLES_TO_ADD.add(clan_role)
+
+                    # if server has leadership_eval turned on
+                    # check & add any leadership roles
+                    if leadership_eval:
+                        in_clan_role = str(player.role)
+                        if in_clan_role == "Co-Leader" or in_clan_role == "Leader":
+                            leadership_clan_role = clan_leadership_role_dict[player.clan.tag]
+                            ROLES_SHOULD_HAVE.add(leadership_clan_role)
+                            if leadership_clan_role not in MASTER_ROLES:
+                                ROLES_TO_ADD.add(leadership_clan_role)
 
                     # check if they have any townhall roles setup
                     # try/except because dict throws error if it doesnt exist
@@ -464,9 +494,10 @@ class eval(commands.Cog, name="Eval"):
                         ROLES_SHOULD_HAVE.add(role)
                         if role not in MASTER_ROLES:
                             ROLES_TO_ADD.add(role)
-                    for role in leadership_roles:
-                        if role in MASTER_ROLES:
-                            ROLES_TO_REMOVE.add(role)
+                    if not leadership_eval:
+                        for role in leadership_roles:
+                            if role in MASTER_ROLES:
+                                ROLES_TO_REMOVE.add(role)
 
                 # convert sets to a list
                 ROLES_TO_ADD = list(ROLES_TO_ADD)
@@ -585,5 +616,5 @@ class eval(commands.Cog, name="Eval"):
 
 
 
-def setup(bot: commands.Bot):
+def setup(bot:  CustomClient):
     bot.add_cog(eval(bot))

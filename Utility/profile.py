@@ -1,16 +1,15 @@
 from disnake.ext import commands
 import disnake
-from utils.clash import coc_client, getPlayer
 from Dictionaries.emojiDictionary import emojiDictionary
 from Utility.pagination import button_pagination
 from utils.search import search_results
 from utils.troop_methods import heros, heroPets
 from Dictionaries.thPicDictionary import thDictionary
-
+from CustomClasses.CustomBot import CustomClient
 
 class profiles(commands.Cog, name="Profile"):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.slash_command(name="lookup", description="Lookup players or discord users")
@@ -30,7 +29,7 @@ class profiles(commands.Cog, name="Profile"):
             search_query = str(discord_user.id)
 
         await ctx.response.defer()
-        results = await search_results(ctx, search_query)
+        results = await search_results(self.bot, search_query)
 
         if results == []:
             return await ctx.edit_original_message(content="No results were found.", embed=None)
@@ -47,7 +46,7 @@ class profiles(commands.Cog, name="Profile"):
             search_query = str(discord_user.id)
         await ctx.response.defer()
 
-        results = await search_results(ctx, search_query)
+        results = await self.bot.search_results(search_query)
 
         if results == []:
             return await ctx.edit_original_message(content="No results were found.")
@@ -56,7 +55,7 @@ class profiles(commands.Cog, name="Profile"):
         total = 0
         sumth = 0
 
-        async for player in coc_client.get_players(results):
+        async for player in self.bot.coc_client.get_players(results):
             emoji = emojiDictionary(player.town_hall)
             th = player.town_hall
             sumth += th
@@ -74,7 +73,7 @@ class profiles(commands.Cog, name="Profile"):
 
     @commands.slash_command(name="invite", description="Embed with basic info & link for a player to be invited")
     async def invite(self, ctx, player_tag):
-        player = await getPlayer(player_tag)
+        player = await self.bot.getPlayer(player_tag)
         if player is None:
             return await ctx.send("Not a valid playerTag.")
 
@@ -111,5 +110,5 @@ class profiles(commands.Cog, name="Profile"):
 
         await ctx.send(embed=embed)
 
-def setup(bot: commands.Bot):
+def setup(bot: CustomClient):
     bot.add_cog(profiles(bot))

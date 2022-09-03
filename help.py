@@ -4,16 +4,17 @@ import disnake
 from utils.components import create_components
 from collections import defaultdict
 
-family = ["Bans", "Clan", "Donations", "Family", "Family Stats"]
+family = ["Bans", "Clan Commands", "Family"]
 war = ["War", "CWL"]
+trophies = ["Legends", "Family Trophy Stats", "Leaderboards", ]
 utility = ["Army", "Awards", "Super Troops", "Profile"]
 link = ["Eval", "Linking"]
 setups = ["Clan Setup", "Board Setup", "Eval Setup", "Statbar Setup", "Welcome Setup"]
 settings = ["Settings"]
 other = ["Other"]
 
-pages = [family, war, utility, link, setups, settings, other]
-page_names = ["Family & Clans", "War & CWL", "Utility", "Link & Eval", "Setups", "Settings", "Other"]
+pages = [family, trophies, war, utility, link, setups, settings, other]
+page_names = ["Family_and_Clans", "Legends & Trophies", "War & CWL", "Utility", "Link & Eval", "Setups", "Settings", "Other"]
 
 class help(commands.Cog):
 
@@ -25,6 +26,7 @@ class help(commands.Cog):
         await ctx.response.defer()
         cog_dict = defaultdict(list)
         command_description = {}
+        command_mentions = {}
         for command in self.bot.slash_commands:
             cog_name = command.cog_name
             base_command = command.name
@@ -55,11 +57,16 @@ class help(commands.Cog):
                 text = ""
                 commands = cog_dict[cog]
                 for command in commands:
+
                     description = command_description[command]
-                    if len(text) + len(f"`/{command}`\n{description}\n") >= 1020:
+                    name = command.split(" ")[0]
+                    command_ = self.bot.get_global_command_named(name=name)
+                    if command_ is None:
+                        continue
+                    if len(text) + len(f"</{command}:{command_.id}>\n{description}\n") >= 1020:
                         embed.add_field(name=cog, value=text, inline=False)
                         text = ""
-                    text+= f"`/{command}`\n{description}\n"
+                    text+= f"</{command}:{command_.id}>\n{description}\n"
                 embed.add_field(name=cog, value=text, inline=False)
             embeds.append(embed)
             x+=1
@@ -75,7 +82,10 @@ class help(commands.Cog):
                 res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
                                                                           timeout=600)
             except:
-                await msg.edit(components=[])
+                try:
+                    await msg.edit(components=[])
+                except:
+                    pass
                 break
 
             if res.data.custom_id == "Previous":

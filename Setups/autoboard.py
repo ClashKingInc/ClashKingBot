@@ -1,14 +1,11 @@
 from disnake.ext import commands
-from utils.clash import client, pingToChannel, getClan
 import disnake
 
-usafam = client.usafam
-clans = usafam.clans
-server = usafam.server
+from CustomClasses.CustomBot import CustomClient
 
 class autoB(commands.Cog, name="Board Setup"):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.slash_command(name="autoboard")
@@ -29,12 +26,12 @@ class autoB(commands.Cog, name="Board Setup"):
         country = None
         if autoboard_type == "Clan Leaderboard":
             rr = []
-            tracked = clans.find({"server": ctx.guild.id})
-            limit = await clans.count_documents(filter={"server": ctx.guild.id})
+            tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+            limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
 
             for clan in await tracked.to_list(length=limit):
                 tag = clan.get("tag")
-                c = await getClan(tag)
+                c = await self.bot.getClan(tag)
                 location = str(c.location)
                 if location not in rr:
                     rr.append(str(location))
@@ -79,12 +76,12 @@ class autoB(commands.Cog, name="Board Setup"):
 
         tex = ""
         if autoboard_type == "Player Leaderboard":
-            await server.update_one({"server": ctx.guild.id}, {'$set': {"topboardchannel": channel.id}})
-            await server.update_one({"server": ctx.guild.id}, {'$set': {"tophour": 5}})
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"topboardchannel": channel.id}})
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"tophour": 5}})
         else:
-            await server.update_one({"server": ctx.guild.id}, {'$set': {"lbboardChannel": channel.id}})
-            await server.update_one({"server": ctx.guild.id}, {'$set': {"country": country}})
-            await server.update_one({"server": ctx.guild.id}, {'$set': {"lbhour": 5}})
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"lbboardChannel": channel.id}})
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"country": country}})
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"lbhour": 5}})
             tex = f"\nCountry: {country}"
 
         time = f"<t:{1643263200}:t>"
@@ -105,12 +102,12 @@ class autoB(commands.Cog, name="Board Setup"):
             return await ctx.send(embed=embed)
 
         if autoboard_type == "Player Leaderboard":
-            await server.update_one({"server": ctx.guild.id}, {'$set': {"topboardchannel": None}})
-            await server.update_one({"server": ctx.guild.id}, {'$set': {"tophour": None}})
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"topboardchannel": None}})
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"tophour": None}})
         else:
-            await server.update_one({"server": ctx.guild.id}, {'$set': {"lbboardChannel": None}})
-            await server.update_one({"server": ctx.guild.id}, {'$set': {"country": None}})
-            await server.update_one({"server": ctx.guild.id}, {'$set': {"lbhour": None}})
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"lbboardChannel": None}})
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"country": None}})
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"lbhour": None}})
 
         embed = disnake.Embed(description=f"{autoboard_type} autoboard has been removed.",
                               color=disnake.Color.green())
@@ -125,7 +122,7 @@ class autoB(commands.Cog, name="Board Setup"):
         lbh = None
         country = None
 
-        results = await server.find_one({"server": ctx.guild.id})
+        results = await self.bot.server_db.find_one({"server": ctx.guild.id})
 
         real_times = []
         start_time = 1643263200
@@ -135,7 +132,7 @@ class autoB(commands.Cog, name="Board Setup"):
 
         try:
             tbc =  results.get("topboardchannel")
-            tbc = await pingToChannel(ctx, tbc)
+            tbc = await self.bot.pingToChannel(ctx, tbc)
             tbc = tbc.mention
         except:
             pass
@@ -150,7 +147,7 @@ class autoB(commands.Cog, name="Board Setup"):
 
         try:
             lbc = results.get("lbboardChannel")
-            lbc = await pingToChannel(ctx, lbc)
+            lbc = await self.bot.pingToChannel(ctx, lbc)
             lbc = lbc.mention
         except:
             pass
@@ -176,5 +173,5 @@ class autoB(commands.Cog, name="Board Setup"):
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
-def setup(bot: commands.Bot):
+def setup(bot: CustomClient):
     bot.add_cog(autoB(bot))

@@ -1,17 +1,12 @@
 from disnake.ext import commands
 import disnake
-from utils.clash import client
 import emoji as em
 
-usafam = client.usafam
-clans = usafam.clans
-server = usafam.server
-welcome = usafam.welcome
-
+from CustomClasses.CustomBot import CustomClient
 
 class joinstuff(commands.Cog, name="Welcome Setup"):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.slash_command(name="welcome-message")
@@ -91,9 +86,9 @@ class joinstuff(commands.Cog, name="Welcome Setup"):
         await ctx.channel.send(
             content="Welcome channel embed complete! The embed above is a live version of how it will look.")
 
-        results = await welcome.find_one({"server": ctx.guild.id})
+        results = await self.bot.welcome.find_one({"server": ctx.guild.id})
         if results is None:
-            await welcome.insert_one({
+            await self.bot.welcome.insert_one({
                 "server": ctx.guild.id,
                 "welcome_channel": welcome_channel.id,
                 "description" : body_text,
@@ -109,7 +104,7 @@ class joinstuff(commands.Cog, name="Welcome Setup"):
                 "link_channel" : None
             })
         else:
-            await welcome.update_one({"server": ctx.guild.id}, {'$set': {
+            await self.bot.welcome.update_one({"server": ctx.guild.id}, {'$set': {
                 "welcome_channel": welcome_channel.id,
                 "description" : body_text,
                 "button1text" : button1_text,
@@ -130,9 +125,9 @@ class joinstuff(commands.Cog, name="Welcome Setup"):
             embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
-        results = await welcome.find_one({"server": ctx.guild.id})
+        results = await self.bot.welcome.find_one({"server": ctx.guild.id})
         if results is None:
-            await welcome.insert_one({
+            await self.bot.welcome.insert_one({
                 "server": None,
                 "welcome_channel": None,
                 "description": None,
@@ -148,7 +143,7 @@ class joinstuff(commands.Cog, name="Welcome Setup"):
                 "link_channel": None
             })
         else:
-            await welcome.update_one({"server": ctx.guild.id}, {'$set': {
+            await self.bot.welcome.update_one({"server": ctx.guild.id}, {'$set': {
                 "welcome_channel": None,
                 "description": None,
                 "button1text": None,
@@ -185,9 +180,9 @@ class joinstuff(commands.Cog, name="Welcome Setup"):
                 color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        results = await welcome.find_one({"server": ctx.guild.id})
+        results = await self.bot.welcome.find_one({"server": ctx.guild.id})
         if results is None:
-            await welcome.insert_one({
+            await self.bot.welcome.insert_one({
                 "server": ctx.guild.id,
                 "welcome_channel": None,
                 "description": None,
@@ -203,7 +198,7 @@ class joinstuff(commands.Cog, name="Welcome Setup"):
                 "link_channel": channel.id
             })
         else:
-            await welcome.update_one({"server": ctx.guild.id}, {'$set': {
+            await self.bot.welcome.update_one({"server": ctx.guild.id}, {'$set': {
                 "link_channel": channel.id
             }})
 
@@ -214,9 +209,9 @@ class joinstuff(commands.Cog, name="Welcome Setup"):
     @link_button.sub_command(name="remove", description="Setup the on-join link button prompt for new users")
     async def linkmessage_remove(self, ctx):
 
-        results = await welcome.find_one({"server": ctx.guild.id})
+        results = await self.bot.welcome.find_one({"server": ctx.guild.id})
         if results is None:
-            await welcome.insert_one({
+            await self.bot.welcome.insert_one({
                 "server": ctx.guild.id,
                 "welcome_channel": None,
                 "description": None,
@@ -232,7 +227,7 @@ class joinstuff(commands.Cog, name="Welcome Setup"):
                 "link_channel": None
             })
         else:
-            await welcome.update_one({"server": ctx.guild.id}, {'$set': {
+            await self.bot.welcome.update_one({"server": ctx.guild.id}, {'$set': {
                 "link_channel": None
             }})
 
@@ -242,5 +237,5 @@ class joinstuff(commands.Cog, name="Welcome Setup"):
 
 
 
-def setup(bot: commands.Bot):
+def setup(bot: CustomClient):
     bot.add_cog(joinstuff(bot))

@@ -1,7 +1,8 @@
 import disnake
 from disnake.ext import commands
 from Dictionaries.emojiDictionary import emojiDictionary
-from utils.discord_utils import partial_emoji_gen
+
+
 
 SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker", "Rocket Balloon", "Super Wizard", "Inferno Dragon",
                 "Super Minion", "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", "Super Dragon"]
@@ -17,31 +18,14 @@ import calendar
 import re
 
 from CustomClasses.CustomBot import CustomClient
+from CustomClasses.CustomPlayer import LegendRanking
 
 class getClans(commands.Cog, name="Clan"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @commands.slash_command(name="clan", description="lookup clan by tag or alias")
-    async def getclan(self, ctx: disnake.ApplicationCommandInteraction, clan:str):
-        """
-            Parameters
-            ----------
-            clan: Search by clan tag, alias, or select an option from the autocomplete
-        """
-
-        clan = await self.bot.getClan(clan)
-
-        if clan is None or clan.member_count == 0:
-            return await ctx.send("Not a valid clan tag.")
-        
-        await ctx.response.defer()
-        embed = disnake.Embed(
-            description=f"<a:loading:884400064313819146> Fetching clan...",
-            color=disnake.Color.green())
-        await ctx.edit_original_message(embed=embed)
-
+    async def clan_overview(self, ctx, clan: coc.Clan):
         leader = utils.get(clan.members, role=coc.Role.leader)
 
         if clan.public_war_log:
@@ -50,14 +34,24 @@ class getClans(commands.Cog, name="Clan"):
             if warloss == 0:
                 warloss = 1
             winstreak = clan.war_win_streak
-            winrate = round((warwin/warloss),2)
+            winrate = round((warwin / warloss), 2)
         else:
             warwin = clan.war_wins
             warloss = "Hidden Log"
             winstreak = clan.war_win_streak
             winrate = "Hidden Log"
 
-        flag = ""
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+
+        category = ""
+        if results is not None:
+            ctg= results.get("category")
+            if ctg is not None:
+                category = f"Category: {ctg}\n"
+
         if str(clan.location) == "International":
             flag = "<a:earth:861321402909327370>"
         else:
@@ -66,165 +60,46 @@ class getClans(commands.Cog, name="Clan"):
             except:
                 flag = "🏳️"
 
-        from BackgroundCrons.leaderboards import clan_glob_dict, clan_country_dict
-        ranking = ""
-        glob_rank_clan = country_rank_clan = None
-        try:
-            glob_rank_clan = clan_glob_dict[clan.tag]
-        except:
-            pass
-        try:
-            country_rank_clan = clan_country_dict[clan.tag]
-        except:
-            pass
 
-        if glob_rank_clan is not None:
-            ranking += f"<a:earth:861321402909327370> `{glob_rank_clan[0]}` | "
-        else:
-            ranking += f"<a:earth:861321402909327370> <:status_offline:910938138984206347> | "
+        result_ranking = await self.bot.clan_leaderboard_db.find_one({"tag" : clan.tag})
+        ranking = LegendRanking(result_ranking)
+
+        rank_text = ""
+        rank_text += f"<a:earth:861321402909327370> {ranking.global_ranking} | "
 
         try:
             location_name = clan.location.name
         except:
             location_name = "Not Set"
 
-        if country_rank_clan is not None:
-            if clan.location.name == "International":
-                ranking += f"🌍 `{country_rank_clan[0]}`"
-            else:
-                ranking += f":flag_{country_rank_clan[3].lower()}: `{country_rank_clan[0]}`"
+        if clan.location.name == "International":
+            rank_text += f"🌍 {ranking.local_ranking}"
         else:
-            try:
-                if clan.location.name == "International":
-                    ranking += f"🌍 <:status_offline:910938138984206347>"
-                else:
-                    ranking += f":flag_{clan.location.country_code.lower()}: <:status_offline:910938138984206347>"
-            except:
-                pass
+            rank_text += f"{flag} {ranking.local_ranking}"
 
-        results = await self.bot.clan_db.find_one({"$and": [
-            {"tag": clan.tag},
-            {"server": ctx.guild.id}
-        ]})
-        
-        embed = disnake.Embed(title=f"**{clan.name}**",description=f"Tag: [{clan.tag}]({clan.share_link})\n"
-                              f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.versus_points}\n"
-                              f"Required Trophies: <:trophy:825563829705637889> {clan.required_trophies}\n"
-                              f"Location: {flag} {location_name}\n"
-                              f"Rankings: {ranking}\n\n"                              
-                              f"Leader: {leader.name}\n"
-                              f"Level: {clan.level} \n"
-                              f"Members: <:people:932212939891552256>{clan.member_count}/50\n\n"
-                              f"CWL: {self.leagueAndTrophies(str(clan.war_league))}{str(clan.war_league)}\n"
-                              f"Wars Won: <:warwon:932212939899949176>{warwin}\nWars Lost: <:warlost:932212154164183081>{warloss}\n"
-                              f"War Streak: <:warstreak:932212939983847464>{winstreak}\nWinratio: <:winrate:932212939908337705>{winrate}\n\n"
-                              f"Description: {clan.description}",
+
+        embed = disnake.Embed(title=f"**{clan.name}**", description=f"Tag: [{clan.tag}]({clan.share_link})\n"
+                                                                    f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.versus_points}\n"
+                                                                    f"Required Trophies: <:trophy:825563829705637889> {clan.required_trophies}\n"
+                                                                    f"Location: {flag} {location_name}\n"
+                                                                    f"Type: {clan.type}\n"
+                                                                    f"{category}"
+                                                                    f"Rankings: {rank_text}\n\n"
+                                                                    f"Leader: {leader.name}\n"
+                                                                    f"Level: {clan.level} \n"
+                                                                    f"Members: <:people:932212939891552256>{clan.member_count}/50\n\n"
+                                                                    f"CWL: {self.leagueAndTrophies(str(clan.war_league))}{str(clan.war_league)}\n"
+                                                                    f"Wars Won: <:warwon:932212939899949176>{warwin}\nWars Lost: <:warlost:932212154164183081>{warloss}\n"
+                                                                    f"War Streak: <:warstreak:932212939983847464>{winstreak}\nWinratio: <:winrate:932212939908337705>{winrate}\n\n"
+                                                                    f"Description: {clan.description}",
                               color=disnake.Color.green())
 
         compo = await self.war_th_comps(clan)
         embed.add_field(name="**Townhall Composition:**", value=compo[0], inline=False)
         embed.add_field(name="**Boosted Super Troops:**", value=compo[1], inline=False)
-        if results is not None:
-            category = results.get("category")
-            alias = results.get("alias")
-            genRole = results.get("generalRole")
-            leadRole = results.get("leaderRole")
-            clanChannel = results.get("clanChannel")
-            embed.add_field(name="**Server:**", value=f"Category: {category}\nAlias: `{alias}`\nMember Role: <@&{genRole}>\nLeadership Role: <@&{leadRole}>\nChannel: <#{clanChannel}>" , inline=False)
 
         embed.set_thumbnail(url=clan.badge.large)
-
-        emoji = partial_emoji_gen(self.bot, "<:discord:840749695466864650>")
-        rx = partial_emoji_gen(self.bot, "<:redtick:601900691312607242>")
-        trophy = partial_emoji_gen(self.bot, "<:trophy:825563829705637889>")
-        clan_e =partial_emoji_gen(self.bot, "<:clan_castle:855688168816377857>")
-        opt = partial_emoji_gen(self.bot, "<:opt_in:944905885367537685>")
-        stroop = partial_emoji_gen(self.bot, "<:stroop:961818095930978314>")
-        cwl_emoji = partial_emoji_gen(self.bot, "<:cwlmedal:793561011801948160>")
-
-        main = embed
-        options = [  # the options in your dropdown
-                disnake.SelectOption(label="Clan Overview", emoji=clan_e, value="clan"),
-                disnake.SelectOption(label="Linked Players", emoji=emoji, value="link"),
-                disnake.SelectOption(label="Unlinked Players", emoji=rx, value="unlink"),
-                disnake.SelectOption(label="Players, Sorted: Trophies", emoji=trophy, value="trophies"),
-                disnake.SelectOption(label="War Opt Statuses", emoji=opt, value="opt"),
-                disnake.SelectOption(label="Super Troops", emoji=stroop, value="stroop"),
-                disnake.SelectOption(label="CWL History", emoji=cwl_emoji, value="cwl")
-            ]
-
-        if clan.public_war_log:
-            options.append(disnake.SelectOption(label="Warlog", emoji="ℹ️", value="warlog"))
-        select = disnake.ui.Select(
-            options=options,
-            placeholder="Choose a page",  # the placeholder text to show when no options have been chosen
-            min_values=1,  # the minimum number of options a user must select
-            max_values=1,  # the maximum number of options a user can select
-        )
-        dropdown = [disnake.ui.ActionRow(select)]
-
-        await ctx.edit_original_message(embed=embed, components=dropdown)
-        msg = await ctx.original_message()
-
-        def check(res: disnake.MessageInteraction):
-            return res.message.id == msg.id
-
-        while True:
-            try:
-                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
-                                                                          timeout=600)
-            except:
-                await msg.edit(components=[])
-                break
-
-            await res.response.defer()
-
-            if res.values[0] == "link":
-                embed = await self.linked_players(ctx, clan)
-                await res.edit_original_message(embed=embed)
-            elif res.values[0] == "unlink":
-                embed = await self.unlinked_players(ctx, clan)
-                await res.edit_original_message(embed=embed)
-            elif res.values[0] == "trophies":
-                embed = await self.player_trophy_sort(clan)
-                await res.edit_original_message(embed=embed)
-            elif res.values[0] == "clan":
-                await res.edit_original_message(embed=main)
-            elif res.values[0] == "opt":
-                embed = await self.opt_status(clan)
-                await res.edit_original_message(embed=embed)
-            elif res.values[0] == "warlog":
-                embed = await self.war_log(clan)
-                await res.edit_original_message(embed=embed)
-            elif res.values[0] == "stroop":
-                embed = await self.stroop_list(clan)
-                await res.edit_original_message(embed=embed)
-            elif res.values[0] == "cwl":
-                embed = await self.cwl_performance(clan)
-                await res.edit_original_message(embed=embed)
-
-    @getclan.autocomplete("clan")
-    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
-        clan_list = []
-        for tClan in await tracked.to_list(length=limit):
-            name = tClan.get("name")
-            tag = tClan.get("tag")
-            if query.lower() in name.lower():
-                    clan_list.append(f"{name} | {tag}")
-
-        if clan_list == [] and len(query) >= 3:
-            clan = await self.bot.getClan(query)
-            if clan is None:
-                results = await self.bot.coc_client.search_clans(name=query, limit=5)
-                for clan in results:
-                    league = str(clan.war_league).replace("League ", "")
-                    clan_list.append(f"{clan.name} | {clan.member_count}/50 | LV{clan.level} | {league} | {clan.tag}")
-            else:
-                clan_list.append(f"{clan.name} | {clan.tag}")
-                return clan_list
-        return clan_list[0:25]
+        return embed
 
     async def war_th_comps(self, clan: coc.Clan):
         thcount = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -314,11 +189,12 @@ class getClans(commands.Cog, name="Clan"):
 
         if stats == disc + "`Name           ` **Discord**\n":
             stats = "No players linked."
-        embed = disnake.Embed(title=f"{clan.name} : {str(y)}/{str(clan.member_count)} linked", description=stats,
+        embed = disnake.Embed(title=f"{clan.name}: {str(y)}/{str(clan.member_count)} linked", description=stats,
                               color=disnake.Color.green())
+        embed.set_footer(text="Discord blank if linked but not on this server.")
         return embed
 
-    async def unlinked_players(self, ctx, clan):
+    async def unlinked_players(self, ctx, clan: coc.Clan):
         rx = "<:redtick:601900691312607242>"
         disc = "<:discord:840749695466864650>"
         stats = disc + "`Name           ` **Player Tag**\n"
@@ -357,7 +233,7 @@ class getClans(commands.Cog, name="Clan"):
         if stats == disc + "`Name           ` **Discord**\n":
             stats = "No players unlinked."
 
-        embed = disnake.Embed(title=f"{clan.name} : {str(y)} unlinked", description=stats,
+        embed = disnake.Embed(title=f"{clan.name}: {str(y)}/{clan.member_count} unlinked", description=stats,
                               color=disnake.Color.green())
         return embed
 
@@ -372,7 +248,7 @@ class getClans(commands.Cog, name="Clan"):
 
         embed = disnake.Embed(title=f"{clan.name} Players - Sorted: Trophies", description=text,
                               color=disnake.Color.green())
-        embed.set_thumbnail(url=clan.badge.large)
+        embed.set_footer(icon_url=clan.badge.large, text=clan.name)
         return embed
 
     async def opt_status(self, clan : coc.Clan):
@@ -495,7 +371,7 @@ class getClans(commands.Cog, name="Clan"):
         embed = disnake.Embed(title=f"**{clan.name} WarLog (last 25)**",
                               description=text,
                               color=disnake.Color.green())
-        #embed.set_thumbnail(url=clan.badge.large)
+        embed.set_footer(icon_url=clan.badge.large, text=clan.name)
         return embed
 
     async def stroop_list(self, clan: coc.Clan):
@@ -540,6 +416,7 @@ class getClans(commands.Cog, name="Clan"):
                 return await response.json()
 
         dates = await self.bot.coc_client.get_seasons(29000022)
+        dates.append(self.bot.gen_season_date())
         dates = reversed(dates)
 
         tasks = []
@@ -550,7 +427,8 @@ class getClans(commands.Cog, name="Clan"):
                 task = asyncio.ensure_future(fetch(url, session))
                 tasks.append(task)
 
-        responses = await asyncio.gather(*tasks)
+            responses = await asyncio.gather(*tasks)
+            await session.close()
 
         embed = disnake.Embed(title=f"**{clan.name} CWL History**",
                               color=disnake.Color.green())
@@ -648,6 +526,3 @@ class getClans(commands.Cog, name="Clan"):
 
         return [f"{emoji} {self.leagueAndTrophies(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n", year]
 
-
-def setup(bot: CustomClient):
-    bot.add_cog(getClans(bot))

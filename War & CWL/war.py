@@ -2,10 +2,8 @@ import coc
 from disnake.ext import commands
 from Dictionaries.emojiDictionary import emojiDictionary
 import disnake
-from utils.clash import getClan, client, coc_client
-usafam = client.usafam
-clans = usafam.clans
 
+from CustomClasses.CustomBot import CustomClient
 import pytz
 tiz = pytz.utc
 
@@ -14,7 +12,7 @@ SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 
 class War(commands.Cog):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.slash_command(name= "war", description="Stats & info for a clans current war")
@@ -22,16 +20,16 @@ class War(commands.Cog):
         await ctx.response.defer()
         clan_search = clan.lower()
         first_clan = clan
-        results = await clans.find_one({"$and": [
+        results = await self.bot.clan_db.find_one({"$and": [
             {"alias": clan_search},
             {"server": ctx.guild.id}
         ]})
 
         if results is not None:
             tag = results.get("tag")
-            clan = await getClan(tag)
+            clan = await self.bot.getClan(tag)
         else:
-            clan = await getClan(clan)
+            clan = await self.bot.getClan(clan)
 
         if clan is None:
             if "|" in first_clan:
@@ -40,14 +38,14 @@ class War(commands.Cog):
                     tag = search[4]
                 except:
                     tag = search[1]
-                clan = await getClan(tag)
+                clan = await self.bot.getClan(tag)
 
         if clan is None:
             return await ctx.send("Not a valid clan tag.")
 
         war = None
         try:
-            group = await coc_client.get_league_group(clan.tag)
+            group = await self.bot.coc_client.get_league_group(clan.tag)
             rounds = group.number_of_rounds
             league_wars = []
             async for w in group.get_wars_for_clan(clan.tag):
@@ -56,14 +54,14 @@ class War(commands.Cog):
                     war = w
         except:
             try:
-                war = await coc_client.get_clan_war(clan.tag)
+                war = await self.bot.coc_client.get_clan_war(clan.tag)
             except coc.PrivateWarLog:
                 embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) has a private war log.",
                                       color=disnake.Color.green())
                 embed.set_thumbnail(url=clan.badge.large)
                 return await ctx.send(embed=embed)
 
-        if war.start_time is None:
+        if war is None or war.start_time is None:
             embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) is not in War.",
                                   color=disnake.Color.green())
             embed.set_thumbnail(url=clan.badge.large)
@@ -199,8 +197,8 @@ class War(commands.Cog):
 
     @clan_war.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        tracked = clans.find({"server": ctx.guild.id})
-        limit = await clans.count_documents(filter={"server": ctx.guild.id})
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         clan_list = []
         for tClan in await tracked.to_list(length=limit):
             name = tClan.get("name")
@@ -209,9 +207,9 @@ class War(commands.Cog):
                 clan_list.append(f"{name} | {tag}")
 
         if clan_list == [] and len(query) >= 3:
-            clan = await getClan(query)
+            clan = await self.bot.getClan(query)
             if clan is None:
-                results = await coc_client.search_clans(name=query, limit=25)
+                results = await self.bot.coc_client.search_clans(name=query, limit=25)
                 for clan in results:
                     clan_list.append(
                         f"{clan.name} | {clan.member_count}/50 | LV{clan.level} | {clan.war_league} | {clan.tag}")
@@ -231,7 +229,7 @@ class War(commands.Cog):
                 lineup.append(player.map_position)
 
         x = 0
-        async for player in coc_client.get_players(tags):
+        async for player in self.bot.coc_client.get_players(tags):
             th = player.town_hall
             th_emoji = emojiDictionary(th)
             place = str(lineup[x]) + "."
@@ -261,7 +259,7 @@ class War(commands.Cog):
             lineup.append(player.map_position)
 
         x = 0
-        async for player in coc_client.get_players(tags):
+        async for player in self.bot.coc_client.get_players(tags):
             th = player.town_hall
             th_emoji = emojiDictionary(th)
             place = str(lineup[x]) + "."
@@ -371,7 +369,7 @@ class War(commands.Cog):
         return embed
 
     async def opp_overview(self, war: coc.ClanWar):
-        clan = await getClan(war.opponent.tag)
+        clan = await self.bot.getClan(war.opponent.tag)
 
         leader = utils.get(clan.members, role=coc.Role.leader)
 
@@ -551,5 +549,5 @@ class War(commands.Cog):
         return emoji
 
 
-def setup(bot: commands.Bot):
+def setup(bot: CustomClient):
     bot.add_cog(War(bot))

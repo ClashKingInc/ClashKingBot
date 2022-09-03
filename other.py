@@ -1,18 +1,15 @@
 import disnake
 from disnake.ext import commands
-from utils.clash import getPlayer, client
 import time
+from CustomClasses.CustomBot import CustomClient
 
-usafam = client.usafam
-clans = usafam.clans
-server = usafam.server
 
 
 from utils.components import create_components
 
 class misc(commands.Cog, name="Other"):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
         self.up = time.time()
 
@@ -94,7 +91,7 @@ class misc(commands.Cog, name="Other"):
         me = self.bot.user.mention
 
         before = time.time()
-        await getPlayer("#P2PQDW")
+        await self.bot.getPlayer("#P2PQDW")
         after = time.time()
         cocping = round(((after - before) * 1000), 2)
 
@@ -118,9 +115,5 @@ class misc(commands.Cog, name="Other"):
 
 
 
-
-
-
-
-def setup(bot: commands.Bot):
+def setup(bot: CustomClient):
     bot.add_cog(misc(bot))

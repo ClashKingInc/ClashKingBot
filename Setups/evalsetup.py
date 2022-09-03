@@ -1,20 +1,10 @@
 import disnake
 from disnake.ext import commands
-from utils.clash import client
-
-usafam = client.usafam
-
-ignoredroles = usafam.evalignore
-generalfamroles = usafam.generalrole
-notfamroles = usafam.linkrole
-townhallroles = usafam.townhallroles
-legendleagueroles = usafam.legendleagueroles
-donationroles = usafam.donationroles
-
+from CustomClasses.CustomBot import CustomClient
 
 class EvalSetup(commands.Cog, name="Eval Setup"):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
 
     ###Command Groups
@@ -48,7 +38,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        results = await generalfamroles.find_one({"$and": [
+        results = await self.bot.generalfamroles.find_one({"$and": [
             {"role": role.id},
             {"server": ctx.guild.id}
         ]})
@@ -57,7 +47,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        await generalfamroles.insert_one({
+        await self.bot.generalfamroles.insert_one({
             "server": ctx.guild.id,
             "role": role.id
         })
@@ -76,7 +66,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        results = await generalfamroles.find_one({"$and": [
+        results = await self.bot.generalfamroles.find_one({"$and": [
             {"role": role.id},
             {"server": ctx.guild.id}
         ]})
@@ -85,7 +75,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        await generalfamroles.find_one_and_delete({"role": role.id})
+        await self.bot.generalfamroles.find_one_and_delete({"role": role.id})
 
         embed = disnake.Embed(
             description=f"{role.mention} removed from the general family roles list.",
@@ -95,8 +85,8 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
     @general_fam_roles.sub_command(name="list", description="List of roles that are given to family members")
     async def general_fam_roles_list(self, ctx: disnake.ApplicationCommandInteraction):
         text = ""
-        all = generalfamroles.find({"server": ctx.guild.id})
-        limit = await generalfamroles.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.generalfamroles.find({"server": ctx.guild.id})
+        limit = await self.bot.generalfamroles.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("role")
             text += f"<@&{r}>\n"
@@ -121,7 +111,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        results = await notfamroles.find_one({"$and": [
+        results = await self.bot.notfamroles.find_one({"$and": [
             {"role": role.id},
             {"server": ctx.guild.id}
         ]})
@@ -130,7 +120,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        await notfamroles.insert_one({
+        await self.bot.notfamroles.insert_one({
             "server": ctx.guild.id,
             "role": role.id
         })
@@ -149,7 +139,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        results = await notfamroles.find_one({"$and": [
+        results = await self.bot.notfamroles.find_one({"$and": [
             {"role": role.id},
             {"server": ctx.guild.id}
         ]})
@@ -158,7 +148,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        await notfamroles.find_one_and_delete({"role": role.id})
+        await self.bot.notfamroles.find_one_and_delete({"role": role.id})
 
         embed = disnake.Embed(
             description=f"{role.mention} removed from the not family roles list.",
@@ -168,8 +158,8 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
     @not_fam_roles.sub_command(name="list", description="List of roles that are given to non family members")
     async def not_fam_roles_list(self, ctx: disnake.ApplicationCommandInteraction):
         text = ""
-        all = notfamroles.find({"server": ctx.guild.id})
-        limit = await notfamroles.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.notfamroles.find({"server": ctx.guild.id})
+        limit = await self.bot.notfamroles.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("role")
             text += f"<@&{r}>\n"
@@ -194,7 +184,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        results = await ignoredroles.find_one({"$and": [
+        results = await self.bot.ignoredroles.find_one({"$and": [
             {"role": role.id},
             {"server": ctx.guild.id}
         ]})
@@ -203,7 +193,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        await ignoredroles.insert_one({
+        await self.bot.ignoredroles.insert_one({
             "server": ctx.guild.id,
             "role" : role.id
         })
@@ -222,7 +212,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        results = await ignoredroles.find_one({"$and": [
+        results = await self.bot.ignoredroles.find_one({"$and": [
             {"role": role.id},
             {"server": ctx.guild.id}
         ]})
@@ -231,7 +221,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        await ignoredroles.find_one_and_delete({"role" : role.id})
+        await self.bot.ignoredroles.find_one_and_delete({"role" : role.id})
 
         embed = disnake.Embed(
             description=f"{role.mention} removed as a role to ignore during evaluation for family members.",
@@ -241,8 +231,8 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
     @ignored_roles.sub_command(name="list", description="List of roles that are ignored for family members during eval")
     async def ignored_roles_list(self, ctx: disnake.ApplicationCommandInteraction):
         text = ""
-        all = ignoredroles.find({"server" : ctx.guild.id})
-        limit = await ignoredroles.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.ignoredroles.find({"server" : ctx.guild.id})
+        limit = await self.bot.ignoredroles.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("role")
             text += f"<@&{r}>\n"
@@ -275,145 +265,145 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
 
         if th7 is not None:
             roles_updated+=f"TH7: {th7.mention}\n"
-            results = await townhallroles.find_one({"$and": [
+            results = await self.bot.townhallroles.find_one({"$and": [
                 {"role": th7.id},
                 {"th" : "th7"},
                 {"server": ctx.guild.id}
             ]})
 
             if results is None:
-                await townhallroles.insert_one(
+                await self.bot.townhallroles.insert_one(
                     {"role": th7.id,
                     "th": "th7",
                     "server": ctx.guild.id})
             else:
-                await townhallroles.update_one({"$and": [
+                await self.bot.townhallroles.update_one({"$and": [
                     {"th": "th7"},
                     {"server": ctx.guild.id}
                 ]}, {'$set': {"role": th7.id}})
         if th8 is not None:
             roles_updated += f"TH8: {th8.mention}\n"
-            results = await townhallroles.find_one({"$and": [
+            results = await self.bot.townhallroles.find_one({"$and": [
                 {"role": th8.id},
                 {"th": "th8"},
                 {"server": ctx.guild.id}
             ]})
 
             if results is None:
-                await townhallroles.insert_one(
+                await self.bot.townhallroles.insert_one(
                     {"role": th8.id,
                      "th": "th8",
                      "server": ctx.guild.id})
             else:
-                await townhallroles.update_one({"$and": [
+                await self.bot.townhallroles.update_one({"$and": [
                     {"th": "th8"},
                     {"server": ctx.guild.id}
                 ]}, {'$set': {"role": th8.id}})
         if th9 is not None:
             roles_updated += f"TH9: {th9.mention}\n"
-            results = await townhallroles.find_one({"$and": [
+            results = await self.bot.townhallroles.find_one({"$and": [
                 {"role": th9.id},
                 {"th": "th9"},
                 {"server": ctx.guild.id}
             ]})
 
             if results is None:
-                await townhallroles.insert_one(
+                await self.bot.townhallroles.insert_one(
                     {"role": th9.id,
                      "th": "th9",
                      "server": ctx.guild.id})
             else:
-                await townhallroles.update_one({"$and": [
+                await self.bot.townhallroles.update_one({"$and": [
                     {"th": "th9"},
                     {"server": ctx.guild.id}
                 ]}, {'$set': {"role": th9.id}})
         if th10 is not None:
             roles_updated += f"TH10: {th10.mention}\n"
-            results = await townhallroles.find_one({"$and": [
+            results = await self.bot.townhallroles.find_one({"$and": [
                 {"role": th10.id},
                 {"th": "th10"},
                 {"server": ctx.guild.id}
             ]})
 
             if results is None:
-                await townhallroles.insert_one(
+                await self.bot.townhallroles.insert_one(
                     {"role": th10.id,
                      "th": "th10",
                      "server": ctx.guild.id})
             else:
-                await townhallroles.update_one({"$and": [
+                await self.bot.townhallroles.update_one({"$and": [
                     {"th": "th10"},
                     {"server": ctx.guild.id}
                 ]}, {'$set': {"role": th10.id}})
         if th11 is not None:
             roles_updated += f"TH11: {th11.mention}\n"
-            results = await townhallroles.find_one({"$and": [
+            results = await self.bot.townhallroles.find_one({"$and": [
                 {"role": th11.id},
                 {"th": "th11"},
                 {"server": ctx.guild.id}
             ]})
 
             if results is None:
-                await townhallroles.insert_one(
+                await self.bot.townhallroles.insert_one(
                     {"role": th11.id,
                      "th": "th11",
                      "server": ctx.guild.id})
             else:
-                await townhallroles.update_one({"$and": [
+                await self.bot.townhallroles.update_one({"$and": [
                     {"th": "th11"},
                     {"server": ctx.guild.id}
                 ]}, {'$set': {"role": th11.id}})
         if th12 is not None:
             roles_updated += f"TH12: {th12.mention}\n"
-            results = await townhallroles.find_one({"$and": [
+            results = await self.bot.townhallroles.find_one({"$and": [
                 {"role": th12.id},
                 {"th": "th12"},
                 {"server": ctx.guild.id}
             ]})
 
             if results is None:
-                await townhallroles.insert_one(
+                await self.bot.townhallroles.insert_one(
                     {"role": th12.id,
                      "th": "th12",
                      "server": ctx.guild.id})
             else:
-                await townhallroles.update_one({"$and": [
+                await self.bot.townhallroles.update_one({"$and": [
                     {"th": "th12"},
                     {"server": ctx.guild.id}
                 ]}, {'$set': {"role": th12.id}})
         if th13 is not None:
             roles_updated += f"TH13: {th13.mention}\n"
-            results = await townhallroles.find_one({"$and": [
+            results = await self.bot.townhallroles.find_one({"$and": [
                 {"role": th13.id},
                 {"th": "th13"},
                 {"server": ctx.guild.id}
             ]})
 
             if results is None:
-                await townhallroles.insert_one(
+                await self.bot.townhallroles.insert_one(
                     {"role": th13.id,
                      "th": "th13",
                      "server": ctx.guild.id})
             else:
-                await townhallroles.update_one({"$and": [
+                await self.bot.townhallroles.update_one({"$and": [
                     {"th": "th13"},
                     {"server": ctx.guild.id}
                 ]}, {'$set': {"role": th13.id}})
         if th14 is not None:
             roles_updated += f"TH14: {th14.mention}\n"
-            results = await townhallroles.find_one({"$and": [
+            results = await self.bot.townhallroles.find_one({"$and": [
                 {"role": th14.id},
                 {"th": "th14"},
                 {"server": ctx.guild.id}
             ]})
 
             if results is None:
-                await townhallroles.insert_one(
+                await self.bot.townhallroles.insert_one(
                     {"role": th14.id,
                      "th": "th14",
                      "server": ctx.guild.id})
             else:
-                await townhallroles.update_one({"$and": [
+                await self.bot.townhallroles.update_one({"$and": [
                     {"th": "th14"},
                     {"server": ctx.guild.id}
                 ]}, {'$set': {"role": th14.id}})
@@ -433,7 +423,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        results = await townhallroles.find_one({"$and": [
+        results = await self.bot.townhallroles.find_one({"$and": [
             {"th": f"{townhall}"},
             {"server": ctx.guild.id}
         ]})
@@ -441,7 +431,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
             return await ctx.send("That townhall does not have a role assigned to it for eval currently.")
         else:
             mention = results.get("role")
-            await townhallroles.find_one_and_delete({"$and": [
+            await self.bot.townhallroles.find_one_and_delete({"$and": [
             {"th": f"{townhall}"},
             {"server": ctx.guild.id}
             ]})
@@ -454,9 +444,9 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
     async def townhall_roles_list(self, ctx: disnake.ApplicationCommandInteraction):
         list_ths = ""
 
-        all = townhallroles.find({"server": ctx.guild.id})
+        all = self.bot.townhallroles.find({"server": ctx.guild.id})
         all.sort('th', -1)
-        limit = await townhallroles.count_documents(filter={"server": ctx.guild.id})
+        limit = await self.bot.townhallroles.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             roleid = role.get("role")
             th = role.get("th")
@@ -488,73 +478,73 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
 
         if legends_league is not None:
             roles_updated+=f"Legend League: {legends_league.mention}\n"
-            results = await legendleagueroles.find_one({"$and": [
+            results = await self.bot.legendleagueroles.find_one({"$and": [
                 {"role": legends_league.id},
                 {"type" : "legends_league"},
                 {"server": ctx.guild.id}
             ]})
 
             if results is None:
-                await legendleagueroles.insert_one(
+                await self.bot.legendleagueroles.insert_one(
                     {"role": legends_league.id,
                     "type": "legends_league",
                     "server": ctx.guild.id})
             else:
-                await legendleagueroles.update_one({"$and": [
+                await self.bot.legendleagueroles.update_one({"$and": [
                     {"type": "legends_league"},
                     {"server": ctx.guild.id}
                 ]}, {'$set': {"role": legends_league.id}})
         if trophies_5500 is not None:
             roles_updated+=f"5500+ Trophies: {trophies_5500.mention}\n"
-            results = await legendleagueroles.find_one({"$and": [
+            results = await self.bot.legendleagueroles.find_one({"$and": [
                 {"role": trophies_5500.id},
                 {"type" : "trophies_5500"},
                 {"server": ctx.guild.id}
             ]})
 
             if results is None:
-                await legendleagueroles.insert_one(
+                await self.bot.legendleagueroles.insert_one(
                     {"role": trophies_5500.id,
                     "type": "trophies_5500",
                     "server": ctx.guild.id})
             else:
-                await legendleagueroles.update_one({"$and": [
+                await self.bot.legendleagueroles.update_one({"$and": [
                     {"type": "trophies_5500"},
                     {"server": ctx.guild.id}
                 ]}, {'$set': {"role": trophies_5500.id}})
         if trophies_5700 is not None:
             roles_updated+=f"5700+ Trophies: {trophies_5700.mention}\n"
-            results = await legendleagueroles.find_one({"$and": [
+            results = await self.bot.legendleagueroles.find_one({"$and": [
                 {"role": trophies_5700.id},
                 {"type" : "trophies_5700"},
                 {"server": ctx.guild.id}
             ]})
 
             if results is None:
-                await legendleagueroles.insert_one(
+                await self.bot.legendleagueroles.insert_one(
                     {"role": trophies_5700.id,
                     "type": "trophies_5700",
                     "server": ctx.guild.id})
             else:
-                await legendleagueroles.update_one({"$and": [
+                await self.bot.legendleagueroles.update_one({"$and": [
                     {"type": "trophies_5700"},
                     {"server": ctx.guild.id}
                 ]}, {'$set': {"role": trophies_5700.id}})
         if trophies_6000 is not None:
             roles_updated+=f"6000+ Trophies: {trophies_6000.mention}\n"
-            results = await legendleagueroles.find_one({"$and": [
+            results = await self.bot.legendleagueroles.find_one({"$and": [
                 {"role": trophies_6000.id},
                 {"type" : "trophies_6000"},
                 {"server": ctx.guild.id}
             ]})
 
             if results is None:
-                await legendleagueroles.insert_one(
+                await self.bot.legendleagueroles.insert_one(
                     {"role": trophies_6000.id,
                     "type": "trophies_6000",
                     "server": ctx.guild.id})
             else:
-                await legendleagueroles.update_one({"$and": [
+                await self.bot.legendleagueroles.update_one({"$and": [
                     {"type": "trophies_6000"},
                     {"server": ctx.guild.id}
                 ]}, {'$set': {"role": trophies_6000.id}})
@@ -569,7 +559,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        results = await legendleagueroles.find_one({"$and": [
+        results = await self.bot.legendleagueroles.find_one({"$and": [
             {"type": f"{legend_role_type}"},
             {"server": ctx.guild.id}
         ]})
@@ -577,7 +567,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
             return await ctx.send("That legend role type does not have a role assigned to it for eval currently.")
         else:
             mention = results.get("role")
-            await legendleagueroles.find_one_and_delete({"$and": [
+            await self.bot.legendleagueroles.find_one_and_delete({"$and": [
                 {"type": f"{legend_role_type}"},
                 {"server": ctx.guild.id}
             ]})
@@ -589,8 +579,8 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
     @legend_roles.sub_command(name="list", description="List of legend roles for eval")
     async def legend_roles_list(self, ctx: disnake.ApplicationCommandInteraction):
         list = ""
-        all = legendleagueroles.find({"server": ctx.guild.id})
-        limit = await legendleagueroles.count_documents(filter={"server": ctx.guild.id})
+        all = self.bot.legendleagueroles.find({"server": ctx.guild.id})
+        limit = await self.bot.legendleagueroles.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             roleid = role.get("role")
             type = role.get("type")
@@ -610,5 +600,5 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
 
 
 
-def setup(bot: commands.Bot):
+def setup(bot: CustomClient):
     bot.add_cog(EvalSetup(bot))
