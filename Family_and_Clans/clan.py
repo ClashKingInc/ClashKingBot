@@ -251,6 +251,21 @@ class getClans(commands.Cog, name="Clan"):
         embed.set_footer(icon_url=clan.badge.large, text=clan.name)
         return embed
 
+    async def player_townhall_sort(self, clan):
+        ranking = []
+        async for player in clan.get_detailed_members():
+            th_emoji = emojiDictionary(player.town_hall)
+            ranking.append([player.town_hall, f"{th_emoji}\u200e{player.name}\n"])
+
+        ranking = sorted(ranking, key=lambda l: l[0], reverse=True)
+        ranking = "".join([i[1] for i in ranking])
+
+        embed = disnake.Embed(title=f"{clan.name} Players - Sorted: Townhall",
+                              description=ranking,
+                              color=disnake.Color.green())
+        embed.set_thumbnail(url=clan.badge.large)
+        return embed
+
     async def opt_status(self, clan : coc.Clan):
         opted_in = []
         opted_out = []

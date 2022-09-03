@@ -338,7 +338,7 @@ class misc(commands.Cog, name="Settings"):
             Parameters
             ----------
             clan: Use clan tag or select an option from the autocomplete
-            channel: channel to set the join/leave log to
+            channel: channel to set the war log to
         """
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
@@ -367,6 +367,41 @@ class misc(commands.Cog, name="Settings"):
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
+    @set.sub_command(name="legend-log", description="Set up a legend log for a clan")
+    async def warlog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
+        """
+            Parameters
+            ----------
+            clan: Use clan tag or select an option from the autocomplete
+            channel: channel to set the legend log to
+        """
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
+        clan = await self.bot.getClan(clan)
+
+        if clan is None:
+            return await ctx.send("Not a valid clan tag")
+
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        if results is None:
+            return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
+
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]}, {'$set': {"legend_log.channel": channel.id}})
+
+        embed = disnake.Embed(description=f"Legend Log set in {channel.mention} for {clan.name}",
+                              color=disnake.Color.green())
+        await ctx.send(embed=embed)
+
     @set.sub_command(name="leadership-eval", description="Have eval assign leadership role to clan coleads & leads (on default)")
     async def leadership_eval(self, ctx: disnake.ApplicationCommandInteraction, option=commands.Param(choices=["On", "Off"])):
         perms = ctx.author.guild_permissions.manage_guild
@@ -380,9 +415,39 @@ class misc(commands.Cog, name="Settings"):
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
+
+    @set.sub_command(name="reddit-recruit-feed", description="Feed of searching for a clan posts on the recruiting subreddit")
+    async def reddit_recruit(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, role_to_ping: disnake.Role = None, remove=commands.Param(default=None, choices=["Remove Feed"])):
+        """
+            Parameters
+            ----------
+            channel: channel to set the feed to
+            role_to_ping: role to ping when a new recruit appears
+            remove: option to remove this feed
+        """
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.", color=disnake.Color.red())
+
+            return await ctx.send(embed=embed)
+        await ctx.response.defer()
+        if remove is None:
+            role_id = None if role_to_ping is None else role_to_ping.id
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"reddit_feed": channel.id, "reddit_role": role_id}})
+
+            embed = disnake.Embed(description=f"**Reddit Recruit feed set to {channel.mention}**", color=disnake.Color.green())
+
+        else:
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"reddit_feed": None, "reddit_role": None}})
+
+            embed = disnake.Embed(description="**Reddit Recruit feed removed**", color=disnake.Color.green())
+
+        return await ctx.edit_original_message(embed=embed)
+
     @set.sub_command(name="remove", description="Remove a setup")
-    async def remove_setup(self, ctx: disnake.ApplicationCommandInteraction, clan:str, log_to_remove=commands.Param(choices=["Clan Capital Log", "Join Log", "War Log"])):
-        type_dict = {"Clan Capital Log" : "clan_capital", "Join Log" : "joinlog", "War Log" : "war_log"}
+    async def remove_setup(self, ctx: disnake.ApplicationCommandInteraction, clan: str,
+                           log_to_remove=commands.Param(choices=["Clan Capital Log", "Join Log", "War Log"])):
+        type_dict = {"Clan Capital Log": "clan_capital", "Join Log": "joinlog", "War Log": "war_log"}
         log_type = type_dict[log_to_remove]
 
         perms = ctx.author.guild_permissions.manage_guild
@@ -420,34 +485,6 @@ class misc(commands.Cog, name="Settings"):
                               color=disnake.Color.green())
 
         await ctx.send(embed=embed)
-
-    @set.sub_command(name="reddit-recruit-feed", description="Feed of searching for a clan posts on the recruiting subreddit")
-    async def reddit_recruit(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, role_to_ping: disnake.Role = None, remove=commands.Param(default=None, choices=["Remove Feed"])):
-        """
-            Parameters
-            ----------
-            channel: channel to set the feed to
-            role_to_ping: role to ping when a new recruit appears
-            remove: option to remove this feed
-        """
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.", color=disnake.Color.red())
-
-            return await ctx.send(embed=embed)
-        await ctx.response.defer()
-        if remove is None:
-            role_id = None if role_to_ping is None else role_to_ping.id
-            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"reddit_feed": channel.id, "reddit_role": role_id}})
-
-            embed = disnake.Embed(description=f"**Reddit Recruit feed set to {channel.mention}**", color=disnake.Color.green())
-
-        else:
-            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"reddit_feed": None, "reddit_role": None}})
-
-            embed = disnake.Embed(description="**Reddit Recruit feed removed**", color=disnake.Color.green())
-
-        return await ctx.edit_original_message(embed=embed)
 
     @commands.slash_command(name="server-settings", description="Complete list of channels & roles set up on server")
     async def server_info(self, ctx: disnake.ApplicationCommandInteraction):

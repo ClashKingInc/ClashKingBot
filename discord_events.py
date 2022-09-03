@@ -154,6 +154,9 @@ class DiscordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_application_command(self, ctx:disnake.ApplicationCommandInteraction):
+        if not ctx.guild:
+            return await ctx.send("<:redTick:1015712098560512020> Slash commands only work in servers.")
+
         channel = self.bot.get_channel(960972432993304616)
         try:
             server = ctx.guild.name

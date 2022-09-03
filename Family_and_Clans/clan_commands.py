@@ -52,6 +52,7 @@ class clan_commands(commands.Cog):
             disnake.SelectOption(label="Linked Players", emoji=emoji, value="link"),
             disnake.SelectOption(label="Unlinked Players", emoji=rx, value="unlink"),
             disnake.SelectOption(label="Players, Sorted: Trophies", emoji=trophy, value="trophies"),
+            disnake.SelectOption(label="Players, Sorted: TH", emoji=self.bot.partial_emoji_gen(self.bot.fetch_emoji(14)), value="townhalls"),
             disnake.SelectOption(label="War Opt Statuses", emoji=opt, value="opt"),
             disnake.SelectOption(label="Super Troops", emoji=stroop, value="stroop"),
             disnake.SelectOption(label="CWL History", emoji=cwl_emoji, value="cwl")
@@ -91,6 +92,9 @@ class clan_commands(commands.Cog):
                 await res.edit_original_message(embed=embed)
             elif res.values[0] == "trophies":
                 embed = await self.player_trophy_sort(clan)
+                await res.edit_original_message(embed=embed)
+            elif res.values[0] == "townhalls":
+                embed = await self.player_townhall_sort(clan)
                 await res.edit_original_message(embed=embed)
             elif res.values[0] == "clan":
                 await res.edit_original_message(embed=main)
@@ -150,6 +154,29 @@ class clan_commands(commands.Cog):
         buttons.append_item(
             disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
                               custom_id=f"trophies_{clan.tag}"))
+        await ctx.edit_original_message(embed=embed, components=buttons)
+
+    @clan.sub_command(name="players-townhall", description="List of players, sorted by trophies")
+    async def player_th(self, ctx: disnake.ApplicationCommandInteraction, clan):
+        """
+            Parameters
+            ----------
+            clan: Use clan tag or select an option from the autocomplete
+        """
+        await ctx.response.defer()
+        time = datetime.now().timestamp()
+
+        clan = await self.bot.getClan(clan)
+        if clan is None or clan.member_count == 0:
+            embed = disnake.Embed(description="Not a valid clan tag.",
+                                  color=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+        embed = await self.player_townhall_sort(clan)
+        embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
+                              custom_id=f"townhall_{clan.tag}"))
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     @clan.sub_command(name="war-preferences", description="List of player's war preferences")
@@ -407,6 +434,13 @@ class clan_commands(commands.Cog):
             values = embed.fields[-1].value + f"\nLast Refreshed: <t:{int(time)}:R>"
             embed.set_field_at(len(embed.fields) - 1, name="**Boosted Super Troops:**", value=values, inline=False)
             await ctx.edit_original_message(embed=embed)
+        elif "townhall_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            clan = (str(ctx.data.custom_id).split("_"))[-1]
+            clan = await self.bot.getClan(clan)
+            embed: disnake.Embed = await self.player_townhall_sort(clan)
+            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+            await ctx.edit_original_message(embed=embed)
 
 
     @linked_clans.autocomplete("clan")
@@ -417,6 +451,7 @@ class clan_commands(commands.Cog):
     @clan_board.autocomplete("clan")
     @getclan.autocomplete("clan")
     @clan_capital.autocomplete("clan")
+    @player_th.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
             tracked = self.bot.clan_db.find({"server": ctx.guild.id})
             limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
