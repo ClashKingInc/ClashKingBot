@@ -75,7 +75,7 @@ class Cwl(commands.Cog, name="CWL"):
             embed.set_thumbnail(url=clan.badge.large)
             return await ctx.send(embed=embed)
 
-        if war is None and next_war != None:
+        if war is None and next_war is not None:
             war = next_war
             next_war= None
 

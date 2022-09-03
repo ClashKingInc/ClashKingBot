@@ -90,12 +90,12 @@ class DiscordEvents(commands.Cog):
                 clan = "None"
             hero = heros(player)
             pets = heroPets(player)
-            if hero == None:
+            if hero is None:
                 hero = ""
             else:
                 hero = f"**Heroes:**\n{hero}\n"
 
-            if pets == None:
+            if pets is None:
                 pets = ""
             else:
                 pets = f"**Pets:**\n{pets}\n"
@@ -178,7 +178,7 @@ class DiscordEvents(commands.Cog):
         if results is not None:
             welcome_channel = results.get("welcome_channel")
 
-            if welcome_channel != None:
+            if welcome_channel is not None:
                 description = results.get("description")
                 button1text = results.get("button1text")
                 button2text = results.get("button2text")
@@ -217,7 +217,7 @@ class DiscordEvents(commands.Cog):
                 await channel.send(content=f"{member.mention}", embed=embed, components=[buttons])
 
             link_channel = results.get("link_channel")
-            if link_channel != None:
+            if link_channel is not None:
                 channel = self.bot.get_channel(link_channel)
                 embed = disnake.Embed(title=f"**Welcome to {member.guild.name}!**",
                                       description=f"To link your account, press the button below & follow the step by step instructions.",
@@ -273,7 +273,7 @@ class DiscordEvents(commands.Cog):
                 url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
             await ctx.edit_original_message(embed=embed)
             x = 0
-            while (correctTag == False):
+            while (correctTag is False):
                 x += 1
                 if x == 4:
                     link_open.remove(member)
@@ -309,7 +309,7 @@ class DiscordEvents(commands.Cog):
                         color=0xf30000)
                     return await ctx.edit_original_message(embed=canceled)
 
-                if (player == None):
+                if (player is None):
                     if clan is not None:
                         embed = disnake.Embed(
                             title=f"Sorry, `{playerTag}` is invalid and it also appears to be the **clan** tag for " + clan.name,
@@ -332,7 +332,7 @@ class DiscordEvents(commands.Cog):
                     correctTag = True
 
             player = await self.bot.getPlayer(playerTag)
-            if player == None:
+            if player is None:
                 link_open.remove(member)
                 embed = disnake.Embed(
                     title=playerTag + " is an invalid playertag. Try again.",
@@ -340,7 +340,7 @@ class DiscordEvents(commands.Cog):
                 return await ctx.edit_original_message(embed=embed)
             linked = await self.bot.link_client.get_link(player.tag)
 
-            if (linked != member.id) and (linked != None):
+            if (linked != member.id) and (linked is not None):
                 link_open.remove(member)
                 embed = disnake.Embed(
                     description=f"[{player.name}]({player.share_link}) is already linked to another discord user.",
@@ -396,7 +396,7 @@ class DiscordEvents(commands.Cog):
                     playerVerified = await self.bot.verifyPlayer(player.tag, playerToken)
                     linked = await self.bot.link_client.get_link(player.tag)
 
-                    if (linked is None) and (playerVerified == True):
+                    if (linked is None) and (playerVerified is True):
                         link_open.remove(member)
                         await self.bot.link_client.add_link(player.tag, member.id)
                         evalua = self.bot.get_cog("Eval")
@@ -409,21 +409,21 @@ class DiscordEvents(commands.Cog):
                         try:
                             results = await self.bot.server_db.find_one({"server": ctx.guild.id})
                             greeting = results.get("greeting")
-                            if greeting == None:
+                            if greeting is None:
                                 greeting = ""
 
                             results = await self.bot.clan_db.find_one({"$and": [
                                 {"tag": player.clan.tag},
                                 {"server": ctx.guild.id}
                             ]})
-                            if results != None:
+                            if results is not None:
                                 channel = results.get("clanChannel")
                                 channel = self.bot.get_channel(channel)
                                 await channel.send(f"{ctx.author.mention}, welcome to {ctx.guild.name}! {greeting}")
                         except:
                             pass
 
-                    elif (linked is None) and (playerVerified == False):
+                    elif (linked is None) and (playerVerified is False):
                         link_open.remove(member)
                         embed = disnake.Embed(
                             description="Hey " + member.display_name + f"! The player you are looking for is [{player.name}]({player.share_link})  however it appears u may have made a mistake. \nDouble check your api token again.",

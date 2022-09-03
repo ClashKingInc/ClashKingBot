@@ -48,12 +48,12 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
 
                 hero = heros(player)
                 pets = heroPets(player)
-                if hero == None:
+                if hero is None:
                     hero = ""
                 else:
                     hero = f"{hero}"
 
-                if pets == None:
+                if pets is None:
                     pets = ""
                 else:
                     pets = f"{pets}"
@@ -93,12 +93,12 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
 
                 hero = heros(player)
                 pets = heroPets(player)
-                if hero == None:
+                if hero is None:
                     hero = ""
                 else:
                     hero = f"{hero}"
 
-                if pets == None:
+                if pets is None:
                     pets = ""
                 else:
                     pets = f"{pets}"

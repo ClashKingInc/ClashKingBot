@@ -44,7 +44,7 @@ class Linking(commands.Cog):
 
             verified = await self.bot.verifyPlayer(player.tag, api_token)
             linked = await self.bot.link_client.get_link(player.tag)
-            is_linked = (linked != None)
+            is_linked = (linked is not None)
 
             if verified and is_linked:
                 if linked == ctx.author.id:
@@ -72,14 +72,14 @@ class Linking(commands.Cog):
                 try:
                     results = await self.bot.server_db.find_one({"server": ctx.guild.id})
                     greeting = results.get("greeting")
-                    if greeting == None:
+                    if greeting is None:
                         greeting = ""
 
                     results = await self.bot.clan_db.find_one({"$and": [
                         {"tag": player.clan.tag},
                         {"server": ctx.guild.id}
                     ]})
-                    if results != None:
+                    if results is not None:
                         channel = results.get("clanChannel")
                         channel = self.bot.get_channel(channel)
                         await channel.send(f"{ctx.author.mention}, welcome to {ctx.guild.name}! {greeting}")
@@ -136,7 +136,7 @@ class Linking(commands.Cog):
                 return await ctx.send(embed=embed)
 
             linked = await self.bot.link_client.get_link(player.tag)
-            is_linked = (linked != None)
+            is_linked = (linked is not None)
 
             if is_linked:
                 if linked == ctx.author.id:
@@ -165,14 +165,14 @@ class Linking(commands.Cog):
                 try:
                     results = await self.bot.server_db.find_one({"server": ctx.guild.id})
                     greeting = results.get("greeting")
-                    if greeting == None:
+                    if greeting is None:
                         greeting = ""
 
                     results = await self.bot.clan_db.find_one({"$and": [
                         {"tag": player.clan.tag},
                         {"server": ctx.guild.id}
                     ]})
-                    if results != None:
+                    if results is not None:
                         channel = results.get("clanChannel")
                         channel = self.bot.get_channel(channel)
                         await channel.send(f"{ctx.author.mention}, welcome to {ctx.guild.name}! {greeting}")
@@ -249,14 +249,14 @@ class Linking(commands.Cog):
             try:
                 results = await self.bot.server_db.find_one({"server": ctx.guild.id})
                 greeting = results.get("greeting")
-                if greeting == None:
+                if greeting is None:
                     greeting = ""
 
                 results = await self.bot.clan_db.find_one({"$and": [
                     {"tag": player.clan.tag},
                     {"server": ctx.guild.id}
                 ]})
-                if results != None:
+                if results is not None:
                     channel = results.get("clanChannel")
                     channel = self.bot.get_channel(channel)
                     await channel.send(f"{member.mention}, welcome to {ctx.guild.name}! {greeting}")
@@ -294,11 +294,11 @@ class Linking(commands.Cog):
 
         if api_token is None:
             member = await self.bot.pingToMember(ctx, linked)
-            is_member = (member != None)
+            is_member = (member is not None)
             if ctx.author.id == 706149153431879760 or ctx.author.id == 161053630038802433:
                 is_member = True
 
-            if is_member == False:
+            if is_member is False:
                 embed = disnake.Embed(description=f"[{player.name}]({player.share_link}), cannot unlink players not on this server.",
                                       color=disnake.Color.red())
                 return await ctx.send(embed=embed)

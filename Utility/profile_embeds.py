@@ -110,7 +110,7 @@ async def create_profile_stats(bot, ctx, result):
         {"server": ctx.guild.id}
     ]})
 
-    if ban != None:
+    if ban is not None:
         date = ban.get("DateCreated")
         date = date[0:10]
         notes = ban.get("Notes")
@@ -234,22 +234,22 @@ async def create_profile_troops(bot, result):
     embed.add_field(name=f'__**{player.name}** (Th{player.town_hall})__ {player.trophies}', value="Profile: " + f'[{player.tag}]({player.share_link})',
                      inline=False)
 
-    if (hero != None):
+    if (hero is not None):
         embed.add_field(name="**Heroes:** ", value=hero, inline=False)
 
-    if (pets != None):
+    if (pets is not None):
         embed.add_field(name="**Pets:** ", value=pets, inline=False)
 
-    if (troop != None):
+    if (troop is not None):
         embed.add_field(name="**Elixir Troops:** ", value=troop, inline=False)
 
-    if (deTroop != None):
+    if (deTroop is not None):
         embed.add_field(name="**Dark Elixir Troops:** ", value=deTroop, inline=False)
 
-    if (siege != None):
+    if (siege is not None):
         embed.add_field(name="**Siege Machines:** ", value=siege, inline=False)
 
-    if (spell != None):
+    if (spell is not None):
         embed.add_field(name="**Spells:** ", value=spell, inline=False)
 
     return embed

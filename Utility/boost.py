@@ -23,7 +23,7 @@ class boost(commands.Cog, name="Super Troops"):
     async def boosting(self, ctx: disnake.ApplicationCommandInteraction, clan:str=None):
         server = CustomServer(ctx.guild, self.bot)
         list_clans = []
-        if clan == None:
+        if clan is None:
             list_clans = await server.clan_list
         else:
             clan = await self.bot.getClan(clan)
@@ -81,7 +81,7 @@ class boost(commands.Cog, name="Super Troops"):
     async def super(self, ctx: disnake.ApplicationCommandInteraction=None, super_troop=commands.Param(choices=SUPER_TROOPS), clan:str=None):
         first_clan = clan
         list_clans = []
-        if clan == None:
+        if clan is None:
             tracked = self.bot.clan_db.find({"server": ctx.guild.id})
             limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
             list = []
