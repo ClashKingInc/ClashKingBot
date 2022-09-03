@@ -22,7 +22,7 @@ class Roster_Commands(commands.Cog):
 
     @commands.group(name="roster", pass_context=True, invoke_without_command=True)
     async def roster_co(self, ctx, *, alias=None):
-        if alias==None:
+        if alias is None:
             await ctx.send(f"Alias is a required argument. `{ctx.prefix}roster [alias]")
         roster = self.bot.get_cog("Roster")
         valid_alias = await roster.is_valid_alias(alias, ctx.guild.id)
@@ -42,10 +42,10 @@ class Roster_Commands(commands.Cog):
 
         roster = self.bot.get_cog("Roster")
         member_list = await roster.get_members(ctx)
-        if member_list == None:
+        if member_list is None:
             return
         alias = await roster.get_alias(ctx)
-        if alias == None:
+        if alias is None:
             return
 
         await rosters.insert_one({
@@ -66,7 +66,7 @@ class Roster_Commands(commands.Cog):
     @roster_co.group(name="edit", pass_context=True, invoke_without_command=True)
     @commands.check_any(commands.has_permissions(manage_roles=True), check_commands())
     async def roster_edit(self, ctx, *, alias=None):
-        if alias==None:
+        if alias is None:
             await ctx.send(f"Alias is a required argument. `{ctx.prefix}roster edit [alias]")
         added = ""
         removed = ""
@@ -169,7 +169,7 @@ class Roster_Commands(commands.Cog):
                                               mention_author=False)
 
                         value = None
-                        while value == None:
+                        while value is None:
                             try:
                                 res = await wait_for_component(self.bot, components=action_row,
                                                                messages=msg2, timeout=600)
@@ -258,7 +258,7 @@ class Roster_Commands(commands.Cog):
     @roster_co.group(name="delete", pass_context=True, invoke_without_command=True)
     @commands.check_any(commands.has_permissions(manage_roles=True), check_commands())
     async def roster_remove(self, ctx, *, alias=None):
-        if alias==None:
+        if alias is None:
             return await ctx.send(f"Alias is a required argument. `{ctx.prefix}roster remove [alias]")
         roster = self.bot.get_cog("Roster")
         valid_alias = await roster.is_valid_alias(alias, ctx.guild.id)
@@ -280,7 +280,7 @@ class Roster_Commands(commands.Cog):
 
     @roster_co.group(name="compare", pass_context=True, invoke_without_command=True)
     async def roster_compare(self, ctx, clan=None, *, alias=None):
-        if clan==None or alias==None:
+        if clan is None or alias is None:
             await ctx.send(f"Alias and Clan are required arguments. `{ctx.prefix}roster compare [clan] [alias]")
 
         clan = clan.lower()

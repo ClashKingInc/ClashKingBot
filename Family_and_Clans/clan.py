@@ -160,7 +160,7 @@ class getClans(commands.Cog, name="Clan"):
         links = dict(links)
         for player in clan.members:
             link = links[f"{player.tag}"]
-            notLinked = (link == None)
+            notLinked = (link is None)
             name = player.name
             linkE = gch
             if (notLinked):
@@ -208,7 +208,7 @@ class getClans(commands.Cog, name="Clan"):
         links = dict(links)
         for player in clan.members:
             link = links[f"{player.tag}"]
-            notLinked = (link == None)
+            notLinked = (link is None)
             name = player.name
             linkE = rx
             if not notLinked:

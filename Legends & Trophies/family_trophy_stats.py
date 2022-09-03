@@ -125,7 +125,7 @@ class FamilyStats(commands.Cog, name="Family Trophy Stats"):
                 guildranking = rr[player.tag]
             except:
                 pass
-            if guildranking == None:
+            if guildranking is None:
                 guildranking = f"<:status_offline:910938138984206347>"
 
 
@@ -135,7 +135,7 @@ class FamilyStats(commands.Cog, name="Family Trophy Stats"):
             except:
                 clan = "None"
 
-            if member != None:
+            if member is not None:
                 embed = disnake.Embed(title=f"**Ranks for {member.display_name}**",
                     description=f"Name: {player.name}\n" +
                                 f"Tag: {player.tag}\n" +

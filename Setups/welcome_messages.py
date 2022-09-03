@@ -33,7 +33,7 @@ class joinstuff(commands.Cog, name="Welcome Setup"):
         r = await g.fetch_member(824653933347209227)
         perms = welcome_channel.permissions_for(r)
         send_msg = perms.send_messages
-        if send_msg == False:
+        if send_msg is False:
             embed = disnake.Embed(
                 description=f"Missing Permissions.\nMust have `Send Messages` in the welcome channel.\n",
                 color=disnake.Color.red())
@@ -174,7 +174,7 @@ class joinstuff(commands.Cog, name="Welcome Setup"):
         r = await g.fetch_member(824653933347209227)
         perms = channel.permissions_for(r)
         send_msg = perms.send_messages
-        if send_msg == False:
+        if send_msg is False:
             embed = disnake.Embed(
                 description=f"Missing Permissions.\nMust have `Send Messages` in the link button channel.\nTry Again. What is the channel?",
                 color=disnake.Color.red())

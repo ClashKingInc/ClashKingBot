@@ -32,7 +32,7 @@ class Awards(commands.Cog):
             return await ctx.send(embed=embed)
 
         clan = await self.bot.getClan(clan_tag)
-        if clan == None:
+        if clan is None:
             return await ctx.send(f"{clan_tag} is not a valid clan_tag.")
 
         if emoji is not None:
@@ -47,10 +47,10 @@ class Awards(commands.Cog):
         embeds = []
         for player in clan.members:
             link = await self.bot.link_client.get_link(player.tag)
-            if link != None:
+            if link is not None:
                 if link not in members_added:
                     member = await self.bot.pingToMember(ctx, link)
-                    if member == None:
+                    if member is None:
                         continue
                     try:
                         if emoji is not None:

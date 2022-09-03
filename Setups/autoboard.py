@@ -58,7 +58,7 @@ class autoB(commands.Cog, name="Board Setup"):
                 return res.message.id == msg.id
 
             country = False
-            while country == False:
+            while country is False:
                 try:
                     res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
                                                                               timeout=600)

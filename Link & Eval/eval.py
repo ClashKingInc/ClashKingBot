@@ -307,7 +307,7 @@ class eval(commands.Cog, name="Eval"):
                 tag = player.tag
                 member = await self.bot.link_client.get_link(tag)
                 member = await self.bot.pingToMember(ctx, str(member))
-                if (member not in members) and (member != None):
+                if (member not in members) and (member is not None):
                     members.append(member)
 
         ignored_roles = []

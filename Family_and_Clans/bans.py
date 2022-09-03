@@ -245,7 +245,7 @@ class banlists(commands.Cog, name="Bans"):
 
         results = await self.bot.banlist.find_one({"VillageTag": tag})
 
-        if results != None:
+        if results is not None:
             tracked = self.bot.clan_db.find({"tag": f"{clan.tag}"})
             limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan.tag}"})
             for cc in await tracked.to_list(length=limit):
@@ -260,7 +260,7 @@ class banlists(commands.Cog, name="Bans"):
                     {"server": server.id}
                 ]})
 
-                if results != None:
+                if results is not None:
                     notes = results.get("Notes")
                     if notes == "":
                         notes = "No Reason Given"

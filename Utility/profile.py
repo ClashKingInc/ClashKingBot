@@ -23,7 +23,7 @@ class profiles(commands.Cog, name="Profile"):
         search_query = None
         if tag is None and discord_user is None:
             search_query = str(ctx.author.id)
-        elif tag != None:
+        elif tag is not None:
             search_query = tag
         else:
             search_query = str(discord_user.id)
@@ -40,7 +40,7 @@ class profiles(commands.Cog, name="Profile"):
 
     @commands.slash_command(name="list", description="List of accounts a user has & average th compo")
     async def list(self, ctx: disnake.ApplicationCommandInteraction, discord_user:disnake.Member=None):
-        if discord_user == None:
+        if discord_user is None:
             search_query = str(ctx.author.id)
         else:
             search_query = str(discord_user.id)
@@ -85,12 +85,12 @@ class profiles(commands.Cog, name="Profile"):
             clan = "None"
         hero = heros(player)
         pets = heroPets(player)
-        if hero == None:
+        if hero is None:
             hero = ""
         else:
             hero = f"**Heroes:**\n{hero}\n"
 
-        if pets == None:
+        if pets is None:
             pets = ""
         else:
             pets = f"**Pets:**\n{pets}\n"

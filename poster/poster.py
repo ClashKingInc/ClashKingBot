@@ -166,7 +166,7 @@ class Poster(commands.Cog):
             except:
                 gspot = None
 
-            if gspot != None and gspot > 99999:
+            if gspot is not None and gspot > 99999:
                 gspot = None
 
         poster.paste(graph, (1175, 475), graph.convert("RGBA"))

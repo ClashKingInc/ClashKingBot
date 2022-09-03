@@ -25,7 +25,7 @@ class Roster(commands.Cog):
         self.msg = msg
 
         clan = None
-        while clan ==None:
+        while clan is None:
             def check(message):
                 ctx.message.content = message.content
                 return message.content != "" and message.author == executor and message.channel == ctx.message.channel
@@ -59,7 +59,7 @@ class Roster(commands.Cog):
                               , color=disnake.Color.green())
         await self.msg.edit(embed=embed)
         alias = None
-        while alias == None:
+        while alias is None:
             def check(message):
                 ctx.message.content = message.content
                 return message.content != "" and message.author == executor
@@ -75,7 +75,7 @@ class Roster(commands.Cog):
                 {"server": ctx.guild.id}
             ]})
 
-            if results != None:
+            if results is not None:
                 embed = disnake.Embed(
                     title=f"Sorry {response} is already an alias for a roster on this server. Please try again.",
                     description="What is the alias for this roster?", color=disnake.Color.red())
@@ -231,7 +231,7 @@ class Roster(commands.Cog):
             {"alias": alias},
             {"server": guild_id}
         ]})
-        return (results != None)
+        return (results is not None)
 
     async def linked_clan(self, alias, guild_id):
         results = await rosters.find_one({"$and": [
