@@ -1,9 +1,7 @@
-
 from disnake.ext import commands
 import disnake
 from utils.components import create_components
 from datetime import datetime
-import coc
 from Dictionaries.emojiDictionary import emojiDictionary
 from CustomClasses.CustomBot import CustomClient
 
@@ -11,7 +9,6 @@ class banlists(commands.Cog, name="Bans"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        self.bot.coc_client.add_events(self.ban_alerts)
 
     @commands.slash_command(name="ban", description="stuff")
     async def ban(self, ctx):
@@ -238,53 +235,7 @@ class banlists(commands.Cog, name="Bans"):
 
         return embeds
 
-    @coc.ClanEvents.member_join()
-    async def ban_alerts(self, member, clan):
-        bot = self.bot
-        tag = member.tag
 
-        results = await self.bot.banlist.find_one({"VillageTag": tag})
-
-        if results is not None:
-            tracked = self.bot.clan_db.find({"tag": f"{clan.tag}"})
-            limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan.tag}"})
-            for cc in await tracked.to_list(length=limit):
-                server = cc.get("server")
-                try:
-                    server = await bot.fetch_guild(server)
-                except:
-                    continue
-
-                results = await self.bot.banlist.find_one({"$and": [
-                    {"VillageTag": tag},
-                    {"server": server.id}
-                ]})
-
-                if results is not None:
-                    notes = results.get("Notes")
-                    if notes == "":
-                        notes = "No Reason Given"
-                    date = results.get("DateCreated")
-                    date = date[0:10]
-
-                    channel = cc.get("clanChannel")
-
-                    role = cc.get("generalRole")
-
-                    role = server.get_role(role)
-                    channel = bot.get_channel(channel)
-
-                    player = await self.bot.getPlayer(member.tag)
-
-                    embed = disnake.Embed(
-                        description=f"[WARNING! BANNED PLAYER {member.name} JOINED]({player.share_link})",
-                        color=disnake.Color.green())
-                    embed.add_field(name="Banned Player.",
-                                    value=f"Player {member.name} [{member.tag}] has joined {clan.name} and is on the {server.name} BAN list!\n\n"
-                                          f"Banned on: {date}\nReason: {notes}")
-                    embed.set_thumbnail(
-                        url="https://cdn.discordapp.com/attachments/843624785560993833/932701461614313562/2EdQ9Cx.png")
-                    await channel.send(content=role.mention, embed=embed)
 
 def setup(bot: CustomClient):
     bot.add_cog(banlists(bot))

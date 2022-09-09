@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 from Dictionaries.emojiDictionary import emojiDictionary, legend_emojis
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis
+from pyngrok import ngrok
+from pyyoutube import Api
 
 import coc
 import motor.motor_asyncio
@@ -65,21 +67,21 @@ locations = ["global", 32000007, 32000008, 32000009, 32000010, 32000011, 3200001
              32000248,
              32000249, 32000250, 32000251, 32000252, 32000253, 32000254, 32000255, 32000256, 32000257, 32000258,
              32000259, 32000260]
+http_tunnel = ngrok.connect(addr='8080')
+api = Api(api_key=os.getenv("YT_API_KEY"))
 
 class CustomClient(commands.Bot):
     def __init__(self, **options):
         super().__init__(**options)
 
-        self.looper_db = motor.motor_asyncio.AsyncIOMotorClient("mongodb://104.251.216.53:27017/admin?readPreference=primary&directConnection=true&ssl=false")
+        self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
         self.new_looper = self.looper_db.new_looper
         self.user_db = self.new_looper.user_db
         self.player_stats = self.new_looper.player_stats
         self.leaderboard_db = self.new_looper.leaderboard_db
         self.clan_leaderboard_db = self.new_looper.clan_leaderboard_db
+        self.history_db = self.looper_db.legend_history
         self.user_name = "admin"
-
-        self.local_db = motor.motor_asyncio.AsyncIOMotorClient("mongodb://localhost:27017")
-        self.history_db = self.local_db.clan_tags
 
         self.link_client = discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW"))
 
@@ -98,11 +100,17 @@ class CustomClient(commands.Bot):
         self.autoboards = self.db_client.usafam.autoboards
         self.erikuh = self.db_client.usafam.erikuh
         self.button_db = self.db_client.usafam.button_db
+        self.dm_updates = self.db_client.usafam.dm_updates
+        self.youtube_channels = self.db_client.usafam.youtube_channels
 
         self.coc_client = coc.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD"), client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 30, cache_max_size=50000)
 
         self.emoji = emoji_class
         self.locations = locations
+
+        self.callback_url = http_tunnel.public_url
+        self.yt_api = api
+
 
     async def track_players(self, players: list):
         for player in players:

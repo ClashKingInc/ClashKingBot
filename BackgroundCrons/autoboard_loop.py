@@ -24,7 +24,7 @@ class board_loop(commands.Cog):
                 channel = r.get("topboardchannel")
                 channel = await self.bot.fetch_channel(channel)
                 g = self.bot.get_guild(serv)
-                limit = 500
+                limit = 250
                 rankings = []
                 tracked = self.bot.clan_db.find({"server": serv})
                 l = await self.bot.clan_db.count_documents(filter={"server": serv})

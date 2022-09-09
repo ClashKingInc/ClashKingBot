@@ -1,8 +1,7 @@
 from disnake.ext import commands
 import disnake
-
+from coc import utils
 from datetime import datetime
-from datetime import timedelta
 import pytz
 utc = pytz.utc
 
@@ -14,7 +13,7 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
         self.bot = bot
 
     @commands.slash_command(name="voice-statbar", description="Setup a voice countdown/statbar")
-    async def voice_setup(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["CWL", "Clan Games", "Raid Weekend"])):
+    async def voice_setup(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["CWL", "Clan Games", "Raid Weekend", "EOS"])):
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
             embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
@@ -51,7 +50,6 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
             embed.set_thumbnail(url=ctx.guild.icon.url)
         await ctx.send(embed=embed)
 
-
     async def calculate_time(self, type):
         text = ""
         now = datetime.utcnow().replace(tzinfo=utc)
@@ -66,7 +64,7 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
             else:
                 first = datetime(year, month + 1, 1, hour=8, tzinfo=utc)
             end = datetime(year, month, 11, hour=8, tzinfo=utc)
-            if (day >= 1 and day<=10):
+            if (day >= 1 and day <= 10):
                 if (day == 1 and hour < 8) or (day == 11 and hour >= 8):
                     is_cwl = False
                 else:
@@ -81,11 +79,11 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
                 hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
                 mins, secs = divmod(secs, secs_per_min := 60)
                 if int(days) == 0:
-                    text = f"ends {int(hrs)} Hours {int(mins)} Mins"
+                    text = f"ends {int(hrs)}H {int(mins)}M"
                     if int(hrs) == 0:
-                        text = f"ends {int(mins)} Minutes"
+                        text = f"ends in {int(mins)}M"
                 else:
-                    text = f"ends {int(days)} Days {int(hrs)} Hours"
+                    text = f"ends {int(days)}D {int(hrs)}H"
             else:
                 time_left = first - now
                 secs = time_left.total_seconds()
@@ -93,11 +91,11 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
                 hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
                 mins, secs = divmod(secs, secs_per_min := 60)
                 if int(days) == 0:
-                    text = f"in {int(hrs)} Hours {int(mins)} Mins"
+                    text = f"in {int(hrs)}H {int(mins)}M"
                     if int(hrs) == 0:
-                        text = f"in {int(mins)} Minutes"
+                        text = f"in {int(mins)}M"
                 else:
-                    text = f"in {int(days)} Days {int(hrs)} Hours"
+                    text = f"in {int(days)}D {int(hrs)}H"
 
         elif type == "Clan Games":
             is_games = True
@@ -112,10 +110,10 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
                 is_games = False
 
             if day == 28 and hour >= 8:
-                first = datetime(year, month+1, 22, hour=8, tzinfo=utc)
+                first = datetime(year, month + 1, 22, hour=8, tzinfo=utc)
 
             if day >= 29:
-                first = datetime(year, month+1, 22, hour=8, tzinfo=utc)
+                first = datetime(year, month + 1, 22, hour=8, tzinfo=utc)
 
             if is_games:
                 time_left = end - now
@@ -124,11 +122,11 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
                 hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
                 mins, secs = divmod(secs, secs_per_min := 60)
                 if int(days) == 0:
-                    text = f"ends {int(hrs)} Hours {int(mins)} Mins"
+                    text = f"ends {int(hrs)}H {int(mins)}M"
                     if int(hrs) == 0:
-                        text = f"ends {int(mins)} Minutes"
+                        text = f"ends in {int(mins)}M"
                 else:
-                    text = f"ends {int(days)} Days {int(hrs)} Hours"
+                    text = f"ends {int(days)}D {int(hrs)}H"
             else:
                 time_left = first - now
                 secs = time_left.total_seconds()
@@ -136,11 +134,11 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
                 hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
                 mins, secs = divmod(secs, secs_per_min := 60)
                 if int(days) == 0:
-                    text = f"in {int(hrs)} Hours {int(mins)} Mins"
+                    text = f"in {int(hrs)}H {int(mins)}M"
                     if int(hrs) == 0:
-                        text = f"in {int(mins)} Minutes"
+                        text = f"in {int(mins)}M"
                 else:
-                    text = f"in {int(days)} Days {int(hrs)} Hours"
+                    text = f"in {int(days)}D {int(hrs)}H"
 
         elif type == "Raid Weekend":
 
@@ -150,39 +148,54 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
                     current_dayofweek == 0 and now.hour < 7):
                 if current_dayofweek == 0:
                     current_dayofweek = 7
-                is_raids =True
+                is_raids = True
             else:
                 is_raids = False
 
-
             if is_raids:
-                end = datetime(year, month, day + (7-current_dayofweek), hour=7, tzinfo=utc)
+                end = datetime(year, month, day + (7 - current_dayofweek), hour=7, tzinfo=utc)
                 time_left = end - now
                 secs = time_left.total_seconds()
                 days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
                 hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
                 mins, secs = divmod(secs, secs_per_min := 60)
                 if int(days) == 0:
-                    text = f"ends {int(hrs)} Hours {int(mins)} Mins"
+                    text = f"end {int(hrs)}H {int(mins)}M"
                     if int(hrs) == 0:
-                        text = f"ends {int(mins)} Minutes"
+                        text = f"end in {int(mins)}M"
                 else:
-                    text = f"ends {int(days)} Days {int(hrs)} Hours"
+                    text = f"end {int(days)}D {int(hrs)}H"
             else:
-                first = datetime(year, month, day + (4-current_dayofweek), hour=7, tzinfo=utc)
+                first = datetime(year, month, day + (4 - current_dayofweek), hour=7, tzinfo=utc)
                 time_left = first - now
                 secs = time_left.total_seconds()
                 days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
                 hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
                 mins, secs = divmod(secs, secs_per_min := 60)
                 if int(days) == 0:
-                    text = f"in {int(hrs)} Hours {int(mins)} Mins"
+                    text = f"in {int(hrs)}H {int(mins)}M"
                     if int(hrs) == 0:
-                        text = f"in {int(mins)} Minutes"
+                        text = f"in {int(mins)}M"
                 else:
-                    text = f"in {int(days)} Days {int(hrs)} Hours"
+                    text = f"in {int(days)}D {int(hrs)}H"
+
+        elif type == "EOS":
+            end = utils.get_season_end().replace(tzinfo=utc)
+            time_left = end - now
+            secs = time_left.total_seconds()
+            days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
+            hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
+            mins, secs = divmod(secs, secs_per_min := 60)
+
+            if int(days) == 0:
+                text = f"in {int(hrs)}H {int(mins)}M"
+                if int(hrs) == 0:
+                    text = f"in {int(mins)}M"
+            else:
+                text = f"in {int(days)}D {int(hrs)}H "
 
         return text
+
 
 def setup(bot: CustomClient):
     bot.add_cog(VoiceCountdowns(bot))

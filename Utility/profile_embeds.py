@@ -5,20 +5,13 @@ from utils.troop_methods import profileSuperTroops, leagueAndTrophies
 from utils.troop_methods import heros, heroPets, troops, deTroops, siegeMachines, spells
 import aiohttp
 from bs4 import BeautifulSoup
-import cchardet
-
-
-
 
 async def create_profile_stats(bot, ctx, result):
 
     embed=[]
-
-    disnakeID = await bot.link_client.get_link(result)
-    player = await bot.getPlayer(result)
+    player = result
+    disnakeID = await bot.link_client.get_link(player.tag)
     member = await bot.pingToMember(ctx, str(disnakeID))
-
-
 
     name = player.name
     link = player.share_link
@@ -26,8 +19,8 @@ async def create_profile_stats(bot, ctx, result):
     received = player.received
     ratio = str(round((donos / (received + 1)), 2))
     bestTrophies = emojiDictionary("trophy") + str(player.best_trophies)
-    friendInNeed = str(player.get_achievement("Friend in Need").value)
-
+    friendInNeed = player.get_achievement("Friend in Need").value
+    friendInNeed = "{:,}".format(friendInNeed)
 
     clan = ""
     try:
@@ -91,8 +84,6 @@ async def create_profile_stats(bot, ctx, result):
             embed.set_thumbnail(url=thDictionary(player.town_hall))
 
 
-
-
     embed.add_field(name="**Info:**",
                     value=f"<:warwon:932212939899949176>Donated: {donos} troops\n"
                           f"<:warlost:932212154164183081>Received: {received} troops\n"
@@ -112,7 +103,7 @@ async def create_profile_stats(bot, ctx, result):
 
     if ban is not None:
         date = ban.get("DateCreated")
-        date = date[0:10]
+        date = date[:10]
         notes = ban.get("Notes")
         if notes == "":
             notes = "No Reason Given"
@@ -121,9 +112,9 @@ async def create_profile_stats(bot, ctx, result):
     return embed
 
 async def history(bot, ctx, result):
-    discordID = await bot.link_client.get_link(result)
+    player = result
+    discordID = await bot.link_client.get_link(player.tag)
     member = await bot.pingToMember(ctx, str(discordID))
-    player = await bot.getPlayer(result)
     join = None
     try:
         join = member.joined_at
@@ -133,7 +124,7 @@ async def history(bot, ctx, result):
     except:
         pass
 
-    result = result.strip("#")
+    result = player.tag.strip("#")
     url = f'https://www.clashofstats.com/players/{result}/history/'
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
@@ -210,9 +201,8 @@ async def history(bot, ctx, result):
                         value=text, inline=False)
 
         if join is not None:
-            embed.add_field(name="**Tenure:**",
-                            value=member.display_name + " has been in this server since " + str(
-                                month + "/" + day + "/" + year), inline=False)
+            embed.add_field(name="**Tenure:**", value=(f"{member.display_name} has been in this server since {month}/{day}/{year}"), inline=False)
+
 
         embed.set_footer(text="Data from ClashofStats.com")
         return embed
@@ -220,7 +210,7 @@ async def history(bot, ctx, result):
 
 
 async def create_profile_troops(bot, result):
-    player = await bot.getPlayer(result)
+    player = result
     hero = heros(player)
     pets = heroPets(player)
     troop = troops(player)

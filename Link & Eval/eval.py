@@ -256,6 +256,8 @@ class eval(commands.Cog, name="Eval"):
         FINAL_ROLES_TO_ADD = []
         FINAL_ROLES_TO_REMOVE  = []
         for role in ROLES_TO_ADD:
+            if role == ctx.guild.default_role.id:
+                continue
             r = disnake.utils.get(ctx.guild.roles, id=role)
             if r is None:
                 continue
@@ -263,6 +265,8 @@ class eval(commands.Cog, name="Eval"):
             added += r.mention +" "
 
         for role in ROLES_TO_REMOVE:
+            if role == ctx.guild.default_role.id:
+                continue
             r = disnake.utils.get(ctx.guild.roles, id=role)
             if r is None:
                 continue

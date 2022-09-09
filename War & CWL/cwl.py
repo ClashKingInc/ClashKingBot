@@ -35,24 +35,7 @@ class Cwl(commands.Cog, name="CWL"):
     @commands.slash_command(name="cwl", description="Stats, stars, and more for a clan's cwl")
     async def cwl(self, ctx: disnake.ApplicationCommandInteraction, clan: str):
         await ctx.response.defer()
-        clan_search = clan.lower()
-        first_clan = clan
-        results = await self.bot.clan_db.find_one({"$and": [
-            {"alias": clan_search},
-            {"server": ctx.guild.id}
-        ]})
-
-        if results is not None:
-            tag = results.get("tag")
-            clan = await self.bot.getClan(tag)
-        else:
-            clan = await self.bot.getClan(clan)
-
-        if clan is None:
-            if "|" in first_clan:
-                search = first_clan.split("|")
-                tag = search[1]
-                clan = await self.bot.getClan(tag)
+        clan = await self.bot.getClan(clan)
 
         if clan is None:
             return await ctx.send("Not a valid clan tag.")
@@ -78,6 +61,12 @@ class Cwl(commands.Cog, name="CWL"):
         if war is None and next_war is not None:
             war = next_war
             next_war= None
+
+        if war is None and next_war is None:
+            embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) is not in CWL.",
+                                  color=disnake.Color.green())
+            embed.set_thumbnail(url=clan.badge.large)
+            return await ctx.send(embed=embed)
 
         map = partial_emoji_gen(self.bot, "<:map:944913638500761600>")
         swords = partial_emoji_gen(self.bot, "<a:swords:944894455633297418>", animated=True)
@@ -163,7 +152,9 @@ class Cwl(commands.Cog, name="CWL"):
         return clan_list[0:25]
 
     async def war_embed(self, war: coc.ClanWar, clan: coc.Clan):
+
         war_time = war.start_time.seconds_until
+
         war_state = "In Prep"
         war_pos = "Starting"
         if war_time >= 0:

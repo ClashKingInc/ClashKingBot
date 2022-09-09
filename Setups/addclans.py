@@ -26,6 +26,16 @@ class addClan(commands.Cog, name="Clan Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
+        if general_clan_role.id == ctx.guild.default_role.id:
+            embed = disnake.Embed(description=f"General Clan Role cannot be {ctx.guild.default_role.mention}.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
+        if leadership_clan_role.id == ctx.guild.default_role.id:
+            embed = disnake.Embed(description=f"Leadership Clan Role cannot be {ctx.guild.default_role.mention}.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
         if general_clan_role.id == leadership_clan_role.id:
             embed = disnake.Embed(description="General Clan Role & Clan Leadership Role cannot be the same.",
                                   color=disnake.Color.red())

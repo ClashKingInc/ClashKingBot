@@ -2,7 +2,7 @@ from disnake.ext import commands, tasks
 import disnake
 
 from datetime import datetime
-from datetime import timedelta
+from coc import utils
 from main import scheduler
 import pytz
 utc = pytz.utc
@@ -26,7 +26,13 @@ class VoiceStatCron(commands.Cog):
                 try:
                     channel = await self.bot.fetch_channel(channel)
                     time_ = await self.calculate_time("CWL")
-                    await channel.edit(name=f"CWL {time_}")
+                    prev_name = channel.name
+                    text = f"CWL {time_}"
+                    if "|" in prev_name:
+                        custom = prev_name.split("|")[0]
+                        text = f"{custom}| {text}"
+                    if text != channel.name:
+                        await channel.edit(name=text)
                 except (disnake.NotFound, disnake.Forbidden):
                     await self.bot.server_db.update_one({"server": servers}, {'$set': {"cwlCountdown": None}})
 
@@ -35,7 +41,13 @@ class VoiceStatCron(commands.Cog):
                 try:
                     channel = await self.bot.fetch_channel(channel)
                     time_ = await self.calculate_time("Clan Games")
-                    await channel.edit(name=f"CG {time_}")
+                    prev_name = channel.name
+                    text = f"CG {time_}"
+                    if "|" in prev_name:
+                        custom = prev_name.split("|")[0]
+                        text = f"{custom}| {text}"
+                    if text != channel.name:
+                        await channel.edit(name=text)
                 except (disnake.NotFound, disnake.Forbidden):
                     await self.bot.server_db.update_one({"server": servers}, {'$set': {"gamesCountdown": None}})
 
@@ -44,9 +56,30 @@ class VoiceStatCron(commands.Cog):
                 try:
                     channel = await self.bot.fetch_channel(channel)
                     time_ = await self.calculate_time("Raid Weekend")
-                    await channel.edit(name=f"Raids {time_}")
+                    prev_name = channel.name
+                    text = f"Raids {time_}"
+                    if "|" in prev_name:
+                        custom = prev_name.split("|")[0]
+                        text = f"{custom}| {text}"
+                    if text != channel.name:
+                        await channel.edit(name=text)
                 except (disnake.NotFound, disnake.Forbidden):
                     await self.bot.server_db.update_one({"server": servers}, {'$set': {"raidCountdown": None}})
+
+            channel = r.get("eosCountdown")
+            if channel is not None:
+                try:
+                    channel = await self.bot.fetch_channel(channel)
+                    time_ = await self.calculate_time("EOS")
+                    prev_name = channel.name
+                    text = f"EOS {time_}"
+                    if "|" in prev_name:
+                        custom = prev_name.split("|")[0]
+                        text = f"{custom}| {text}"
+                    if text != channel.name:
+                        await channel.edit(name=text)
+                except (disnake.NotFound, disnake.Forbidden):
+                    await self.bot.server_db.update_one({"server": servers}, {'$set': {"eosCountdown": None}})
 
             '''
             channel = r.get("memberCount")
@@ -96,11 +129,11 @@ class VoiceStatCron(commands.Cog):
                 hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
                 mins, secs = divmod(secs, secs_per_min := 60)
                 if int(days) == 0:
-                    text = f"ends {int(hrs)} Hours {int(mins)} Mins"
+                    text = f"ends {int(hrs)}H {int(mins)}M"
                     if int(hrs) == 0:
-                        text = f"ends {int(mins)} Minutes"
+                        text = f"ends in {int(mins)}M"
                 else:
-                    text = f"ends {int(days)} Days {int(hrs)} Hours"
+                    text = f"ends {int(days)}D {int(hrs)}H"
             else:
                 time_left = first - now
                 secs = time_left.total_seconds()
@@ -108,11 +141,11 @@ class VoiceStatCron(commands.Cog):
                 hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
                 mins, secs = divmod(secs, secs_per_min := 60)
                 if int(days) == 0:
-                    text = f"in {int(hrs)} Hours {int(mins)} Mins"
+                    text = f"in {int(hrs)}H {int(mins)}M"
                     if int(hrs) == 0:
-                        text = f"in {int(mins)} Minutes"
+                        text = f"in {int(mins)}M"
                 else:
-                    text = f"in {int(days)} Days {int(hrs)} Hours"
+                    text = f"in {int(days)}D {int(hrs)}H"
 
         elif type == "Clan Games":
             is_games = True
@@ -139,11 +172,11 @@ class VoiceStatCron(commands.Cog):
                 hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
                 mins, secs = divmod(secs, secs_per_min := 60)
                 if int(days) == 0:
-                    text = f"ends {int(hrs)} Hours {int(mins)} Mins"
+                    text = f"ends {int(hrs)}H {int(mins)}M"
                     if int(hrs) == 0:
-                        text = f"ends {int(mins)} Minutes"
+                        text = f"ends in {int(mins)}M"
                 else:
-                    text = f"ends {int(days)} Days {int(hrs)} Hours"
+                    text = f"ends {int(days)}D {int(hrs)}H"
             else:
                 time_left = first - now
                 secs = time_left.total_seconds()
@@ -151,13 +184,14 @@ class VoiceStatCron(commands.Cog):
                 hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
                 mins, secs = divmod(secs, secs_per_min := 60)
                 if int(days) == 0:
-                    text = f"in {int(hrs)} Hours {int(mins)} Mins"
+                    text = f"in {int(hrs)}H {int(mins)}M"
                     if int(hrs) == 0:
-                        text = f"in {int(mins)} Minutes"
+                        text = f"in {int(mins)}M"
                 else:
-                    text = f"in {int(days)} Days {int(hrs)} Hours"
+                    text = f"in {int(days)}D {int(hrs)}H"
 
         elif type == "Raid Weekend":
+
             now = datetime.utcnow().replace(tzinfo=utc)
             current_dayofweek = now.weekday()
             if (current_dayofweek == 4 and now.hour >= 7) or (current_dayofweek == 5) or (current_dayofweek == 6) or (
@@ -169,31 +203,46 @@ class VoiceStatCron(commands.Cog):
                 is_raids = False
 
             if is_raids:
-                end = datetime(year, month, day, hour=7, tzinfo=utc) + timedelta((7 - current_dayofweek))
+                end = datetime(year, month, day + (7 - current_dayofweek), hour=7, tzinfo=utc)
                 time_left = end - now
                 secs = time_left.total_seconds()
                 days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
                 hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
                 mins, secs = divmod(secs, secs_per_min := 60)
                 if int(days) == 0:
-                    text = f"ends {int(hrs)} Hours {int(mins)} Mins"
+                    text = f"end {int(hrs)}H {int(mins)}M"
                     if int(hrs) == 0:
-                        text = f"ends {int(mins)} Minutes"
+                        text = f"end in {int(mins)}M"
                 else:
-                    text = f"ends {int(days)} Days {int(hrs)} Hours"
+                    text = f"end {int(days)}D {int(hrs)}H"
             else:
-                first = datetime(year, month, day, hour=7, tzinfo=utc) + timedelta((4 - current_dayofweek))
+                first = datetime(year, month, day + (4 - current_dayofweek), hour=7, tzinfo=utc)
                 time_left = first - now
                 secs = time_left.total_seconds()
                 days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
                 hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
                 mins, secs = divmod(secs, secs_per_min := 60)
                 if int(days) == 0:
-                    text = f"in {int(hrs)} Hours {int(mins)} Mins"
+                    text = f"in {int(hrs)}H {int(mins)}M"
                     if int(hrs) == 0:
-                        text = f"in {int(mins)} Minutes"
+                        text = f"in {int(mins)}M"
                 else:
-                    text = f"in {int(days)} Days {int(hrs)} Hours"
+                    text = f"in {int(days)}D {int(hrs)}H"
+
+        elif type == "EOS":
+            end = utils.get_season_end().replace(tzinfo=utc)
+            time_left = end - now
+            secs = time_left.total_seconds()
+            days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
+            hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
+            mins, secs = divmod(secs, secs_per_min := 60)
+
+            if int(days) == 0:
+                text = f"in {int(hrs)}H {int(mins)}M"
+                if int(hrs) == 0:
+                    text = f"in {int(mins)}M"
+            else:
+                text = f"in {int(days)}D {int(hrs)}H "
 
         return text
 

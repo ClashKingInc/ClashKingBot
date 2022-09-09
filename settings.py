@@ -332,7 +332,7 @@ class misc(commands.Cog, name="Settings"):
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
-    @set.sub_command(name="war-log", description="Set up a war log for a clan")
+    @set.sub_command(name="war-log-beta", description="Set up a war log for a clan. in beta.")
     async def warlog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
         """
             Parameters
@@ -368,7 +368,7 @@ class misc(commands.Cog, name="Settings"):
         await ctx.send(embed=embed)
 
     @set.sub_command(name="legend-log", description="Set up a legend log for a clan")
-    async def warlog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
+    async def legend_log(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
         """
             Parameters
             ----------
@@ -417,7 +417,7 @@ class misc(commands.Cog, name="Settings"):
 
 
     @set.sub_command(name="reddit-recruit-feed", description="Feed of searching for a clan posts on the recruiting subreddit")
-    async def reddit_recruit(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, role_to_ping: disnake.Role = None, remove=commands.Param(default=None, choices=["Remove Feed"])):
+    async def reddit_recruit(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, remove=commands.Param(default=None, choices=["Remove Feed"])):
         """
             Parameters
             ----------
@@ -444,10 +444,42 @@ class misc(commands.Cog, name="Settings"):
 
         return await ctx.edit_original_message(embed=embed)
 
+    @set.sub_command(name="ytbase-feed",
+                     description="Feed of yt base links from new yt videos")
+    async def ytbase_feed(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel,
+                             remove=commands.Param(default=None, choices=["Remove Feed"])):
+        """
+            Parameters
+            ----------
+            channel: channel to set the feed to
+            remove: option to remove this feed
+        """
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
+
+            return await ctx.send(embed=embed)
+        await ctx.response.defer()
+        if remove is None:
+            await self.bot.server_db.update_one({"server": ctx.guild.id},
+                                                {"$set": {"yt_feed": channel.id}})
+
+            embed = disnake.Embed(description=f"**YT base feed set to {channel.mention}**",
+                                  color=disnake.Color.green())
+
+        else:
+            await self.bot.server_db.update_one({"server": ctx.guild.id},
+                                                {"$set": {"yt_feed": None}})
+
+            embed = disnake.Embed(description="**YT Base feed removed**", color=disnake.Color.green())
+
+        return await ctx.edit_original_message(embed=embed)
+
     @set.sub_command(name="remove", description="Remove a setup")
     async def remove_setup(self, ctx: disnake.ApplicationCommandInteraction, clan: str,
-                           log_to_remove=commands.Param(choices=["Clan Capital Log", "Join Log", "War Log"])):
-        type_dict = {"Clan Capital Log": "clan_capital", "Join Log": "joinlog", "War Log": "war_log"}
+                           log_to_remove=commands.Param(choices=["Clan Capital Log", "Join Log", "War Log", "Legend Log"])):
+        type_dict = {"Clan Capital Log": "clan_capital", "Join Log": "joinlog", "War Log": "war_log", "Legend Log" : "legend_log"}
         log_type = type_dict[log_to_remove]
 
         perms = ctx.author.guild_permissions.manage_guild
@@ -468,11 +500,18 @@ class misc(commands.Cog, name="Settings"):
         if results is None:
             return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
 
+
         log_channel = results.get(log_type)
+        if log_type == "legend_log" and log_channel is not None:
+            log_channel = log_channel.get("channel")
+
         if log_channel is None:
             embed = disnake.Embed(description=f"This clan does not have a {log_to_remove} set up on this server.",
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
+
+        if log_type == "legend_log":
+            log_type += ".channel"
 
         await self.bot.clan_db.update_one({"$and": [
             {"tag": clan.tag},
@@ -532,6 +571,7 @@ class misc(commands.Cog, name="Settings"):
     @clancapitallog.autocomplete("clan")
     @warlog.autocomplete("clan")
     @remove_setup.autocomplete("clan")
+    @legend_log.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})

@@ -119,7 +119,7 @@ class LegendEvents(commands.Cog):
             change = f"+{legend_day.attacks[-1]} | {og_player.name}"
             emoji = "<:warwon:932212939899949176>"
         else:
-            change = f"-{legend_day.defenses[-1]}"
+            change = f"-{legend_day.defenses[-1]} | {og_player.name}"
             emoji = "<:warlost:932212154164183081>"
 
         if new:

@@ -1,4 +1,6 @@
 from Utility.profile_embeds import *
+from CustomClasses.CustomBot import CustomClient
+from CustomClasses.CustomPlayer import MyCustomPlayer
 
 async def button_pagination(bot, ctx: disnake.ApplicationCommandInteraction, msg, results):
     # statTypes
@@ -9,7 +11,7 @@ async def button_pagination(bot, ctx: disnake.ApplicationCommandInteraction, msg
 
     embed = await create_profile_stats(bot, ctx, results[0])
 
-    await msg.edit(embed=embed, components=create_components(results, current_page))
+    await msg.edit(embed=embed, components=create_components(bot, results))
     def check(res: disnake.MessageInteraction):
         return res.message.id == msg.id
 
@@ -25,31 +27,23 @@ async def button_pagination(bot, ctx: disnake.ApplicationCommandInteraction, msg
             break
 
         await res.response.defer()
-        #print(res.custom_id)
-        if res.data.custom_id == "Previous":
-            current_page -= 1
-            embed = await display_embed(results, profile_pages[current_stat], current_page, ctx, history_cache_embed, bot)
-            await res.edit_original_message(embed=embed,
-                           components=create_components(results, current_page))
-
-        elif res.data.custom_id == "Next":
-            current_page += 1
-            embed = await display_embed(results, profile_pages[current_stat], current_page, ctx, history_cache_embed, bot)
-            await res.edit_original_message(embed=embed,
-                           components=create_components(results, current_page))
-
-        elif res.data.custom_id in profile_pages:
-            current_stat = profile_pages.index(res.data.custom_id)
+        if res.values[0] in profile_pages:
+            current_stat = profile_pages.index(res.values[0])
             try:
                 embed = await display_embed(results, profile_pages[current_stat], current_page, ctx, history_cache_embed, bot)
-                await res.edit_original_message(embed=embed,
-                               components=create_components(results, current_page))
+                await res.edit_original_message(embed=embed)
             except:
                 if profile_pages[current_stat] == "History":
                     embed = disnake.Embed(description="This player has made their clash of stats history private.",
                                           color=disnake.Color.green())
-                    await res.edit_original_message(embed=embed,
-                                   components=create_components(results, current_page))
+                    player = results[current_page]
+                    history_cache_embed[player.tag] = embed
+                    await res.edit_original_message(embed=embed)
+        else:
+            current_page = int(res.values[0])
+            embed = await display_embed(results, profile_pages[current_stat], current_page, ctx, history_cache_embed,
+                                        bot)
+            await res.edit_original_message(embed=embed)
 
 
 async def display_embed(results, stat_type, current_page, ctx, history_cache_embed, bot):
@@ -58,41 +52,41 @@ async def display_embed(results, stat_type, current_page, ctx, history_cache_emb
     elif stat_type == "Troops":
         return await create_profile_troops(bot, results[current_page])
     elif stat_type == "History":
-        tag = results[current_page]
+        player = results[current_page]
         keys = history_cache_embed.keys()
-        if tag not in keys:
-            history_cache_embed[tag] = await history(bot, ctx, results[current_page])
-            return history_cache_embed[tag]
-        else:
-            return history_cache_embed[tag]
+        if player.tag not in keys:
+            history_cache_embed[player.tag] = await history(bot, ctx, results[current_page])
+        return history_cache_embed[player.tag]
 
 
-def create_components(results, current_page):
+def create_components(bot: CustomClient, results):
     length = len(results)
 
-    page_buttons = [
-        disnake.ui.Button(label="", emoji="◀️", style=disnake.ButtonStyle.grey, disabled=(current_page == 0),
-                          custom_id="Previous"),
-        disnake.ui.Button(label=f"Page {current_page + 1}/{length}", style=disnake.ButtonStyle.grey,
-                          disabled=True),
-        disnake.ui.Button(label="", emoji="▶️", style=disnake.ButtonStyle.grey,
-                          disabled=(current_page == length - 1), custom_id="Next")
+    options = [  # the options in your dropdown
+        disnake.SelectOption(label="Overview", emoji=bot.emoji.xp.partial_emoji, value="Info"),
+        disnake.SelectOption(label="Troops", emoji=bot.emoji.troop.partial_emoji, value="Troops"),
+        disnake.SelectOption(label="Clan History", emoji=bot.emoji.clan_castle.partial_emoji, value="History"),
     ]
-    buttons = disnake.ui.ActionRow()
-    for button in page_buttons:
-        buttons.append_item(button)
 
-    stat_buttons = [disnake.ui.Button(label="Info", style=disnake.ButtonStyle.grey, custom_id="Info", disabled=False),
-                    disnake.ui.Button(label="Troops", style=disnake.ButtonStyle.grey, custom_id="Troops"),
-                    disnake.ui.Button(label="History", style=disnake.ButtonStyle.grey, custom_id="History", disabled=False)]
+    stat_select = disnake.ui.Select(options=options, placeholder="Choose a page", max_values=1)
 
-    stat_button = disnake.ui.ActionRow()
-    for button in stat_buttons:
-        stat_button.append_item(button)
+    st = disnake.ui.ActionRow()
+    st.append_item(stat_select)
 
     if length == 1:
-        return [stat_button]
+        return st
 
-    return [stat_button, buttons]
+    player_results = []
+    for count, player in enumerate(results):
+        player:MyCustomPlayer
+        player_results.append(disnake.SelectOption(label=f"{player.name}", emoji=player.town_hall_cls.emoji.partial_emoji, value=f"{count}"))
+
+    profile_select = disnake.ui.Select(options=player_results, placeholder="Accounts", max_values=1)
+
+    st2 = disnake.ui.ActionRow()
+    st2.append_item(profile_select)
+
+    return [st, st2]
+
 
 

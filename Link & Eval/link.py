@@ -115,7 +115,7 @@ class Linking(commands.Cog):
                     url="https://cdn.discordapp.com/attachments/843624785560993833/961379232955658270/image0_2.png")
                 await ctx.edit_original_message(embed=embed)
         except Exception as e:
-            await ctx.edit_original_message((str(e))[0:1000])
+            await ctx.edit_original_message(content=(str(e))[:1000])
 
     @commands.slash_command(name="verify", description="Link clash of clans accounts to your discord profile", guild_ids=[548297912443207706])
     async def verify(self, ctx: disnake.ApplicationCommandInteraction, player_tag):
@@ -189,7 +189,6 @@ class Linking(commands.Cog):
             color=disnake.Color.red())
         embed.set_image(
             url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
-        await ctx.send(embed=embed)
         embed2 = disnake.Embed(
             title="What is your api token? ",
             description=f"- Reference below for help finding your api token.\n- Open Clash and navigate to Settings > More Settings\n- **OR** use the following link:\nhttps://link.clashofclans.com/?action=OpenMoreSettings" +
@@ -197,7 +196,7 @@ class Linking(commands.Cog):
             color=disnake.Color.red())
         embed2.set_image(
             url="https://cdn.discordapp.com/attachments/843624785560993833/961379232955658270/image0_2.png")
-        await ctx.channel.send(embed=embed2)
+        await ctx.send(embeds=[embed, embed2])
 
 
     @commands.slash_command(name="modlink", description="Links clash account to a discord member, on their behalf.")
@@ -215,10 +214,11 @@ class Linking(commands.Cog):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
+        await ctx.response.defer()
         player = await self.bot.getPlayer(player_tag)
         if player is None:
             embed = disnake.Embed(description="Invalid Player Tag", color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            return await ctx.edit_original_message(embed=embed)
 
         linked = await self.bot.link_client.get_link(player.tag)
 
@@ -227,12 +227,12 @@ class Linking(commands.Cog):
                 embed = disnake.Embed(
                     description=f"{player.name} is already linked to {member.mention}",
                     color=disnake.Color.red())
-                return await ctx.send(embed=embed)
+                return await ctx.edit_original_message(embed=embed)
             else:
                 embed = disnake.Embed(
                     title=f"{player.name} is already linked to a discord user.",
                     color=disnake.Color.red())
-                return await ctx.send(embed=embed)
+                return await ctx.edit_original_message(embed=embed)
 
 
         await self.bot.link_client.add_link(player.tag, member.id)
@@ -243,7 +243,7 @@ class Linking(commands.Cog):
         embed = disnake.Embed(description=f"[{player.name}]({player.share_link}) has been linked to {member.mention}.\n"
                                           f"Added: {changes[0]}\n"
                                         f"Removed: {changes[1]}", color=disnake.Color.green())
-        await ctx.send(embed=embed)
+        await ctx.edit_original_message(embed=embed)
 
         if greet != "No":
             try:

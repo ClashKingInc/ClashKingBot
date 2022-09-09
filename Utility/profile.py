@@ -46,7 +46,7 @@ class profiles(commands.Cog, name="Profile"):
             search_query = str(discord_user.id)
         await ctx.response.defer()
 
-        results = await self.bot.search_results(search_query)
+        results = await search_results(self.bot, search_query)
 
         if results == []:
             return await ctx.edit_original_message(content="No results were found.")
@@ -55,7 +55,7 @@ class profiles(commands.Cog, name="Profile"):
         total = 0
         sumth = 0
 
-        async for player in self.bot.coc_client.get_players(results):
+        for player in results:
             emoji = emojiDictionary(player.town_hall)
             th = player.town_hall
             sumth += th

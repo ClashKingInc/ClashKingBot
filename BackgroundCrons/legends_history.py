@@ -18,13 +18,17 @@ class LegendCron(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.legend_update, 'interval', hours=12)
+        scheduler.add_job(self.legend_update, 'interval', hours=1)
 
     async def legend_update(self):
         keys = await self.create_keys()
         key= keys[0]
 
         names = await self.bot.history_db.list_collection_names()
+        for name in names:
+            collection = self.bot.history_db[name]
+            await collection.create_index("tag")
+
         seasons = await self.bot.coc_client.get_seasons(league_id=29000022)
         missing = set(seasons) - set(names)
 
@@ -32,8 +36,9 @@ class LegendCron(commands.Cog):
             "Accept": "application/json",
             "authorization": f"Bearer {key}"
         }
-        print(missing)
+        #print(missing)
         for year in missing:
+            print(year)
             after = ""
             while after is not None:
                 changes = []

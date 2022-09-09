@@ -120,6 +120,17 @@ class MyCustomPlayer(coc.Player):
         if self.results is None:
             return await self.bot.track_players(players=[self])
 
+    async def verify(self, api_token):
+        verified = await self.bot.coc_client.verify_player_token(player_tag=self.tag, token=api_token)
+        return verified
+
+    async def linked(self):
+        linked_id = await self.bot.link_client.get_link(self.tag)
+        return linked_id
+
+    async def add_link(self, member):
+        await self.bot.link_client.add_link(self.tag, member.id)
+
 class ClanCapitalWeek():
     def __init__(self, clan_capital_result):
         self.clan_capital_result = clan_capital_result

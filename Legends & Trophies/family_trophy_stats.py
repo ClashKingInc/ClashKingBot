@@ -113,10 +113,10 @@ class FamilyStats(commands.Cog, name="Family Trophy Stats"):
 
         embeds = []
 
-        disnakeID = await self.bot.link_client.get_link(results[0])
+        disnakeID = await self.bot.link_client.get_link(results[0].tag)
         member = await self.bot.pingToMember(ctx, str(disnakeID))
 
-        async for player in self.bot.coc_client.get_players(results):
+        for player in results:
             result_ranking = await self.bot.leaderboard_db.find_one({"tag": player.tag})
             ranking = LegendRanking(result_ranking)
 
@@ -144,7 +144,8 @@ class FamilyStats(commands.Cog, name="Family Trophy Stats"):
                                 f"{ctx.guild.name} : {guildranking}\n"
                                 f"Rank: <a:earth:861321402909327370> {ranking.global_ranking} | {ranking.flag} {ranking.local_ranking}\n"+ f"Country: {ranking.country}",
                     color=disnake.Color.green())
-                embed.set_thumbnail(url=member.avatar.url)
+                if member.avatar is not None:
+                    embed.set_thumbnail(url=member.avatar.url)
             else:
                 embed = disnake.Embed(title=f"**Ranks for {player.name}**",
                                       description=f"Name: {player.name}\n" +
