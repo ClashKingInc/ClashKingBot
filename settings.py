@@ -417,7 +417,7 @@ class misc(commands.Cog, name="Settings"):
 
 
     @set.sub_command(name="reddit-recruit-feed", description="Feed of searching for a clan posts on the recruiting subreddit")
-    async def reddit_recruit(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, remove=commands.Param(default=None, choices=["Remove Feed"])):
+    async def reddit_recruit(self, ctx: disnake.ApplicationCommandInteraction, role_to_ping: disnake.Role, channel: disnake.TextChannel, remove=commands.Param(default=None, choices=["Remove Feed"])):
         """
             Parameters
             ----------

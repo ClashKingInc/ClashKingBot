@@ -79,7 +79,10 @@ class clan_commands(commands.Cog):
                 res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
                                                                           timeout=600)
             except:
-                await msg.edit(components=[])
+                try:
+                    await msg.edit(components=[])
+                except:
+                    pass
                 break
 
             await res.response.defer()

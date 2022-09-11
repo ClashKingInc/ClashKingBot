@@ -1,5 +1,6 @@
 import disnake
 import calendar
+import pytz
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
@@ -7,12 +8,16 @@ from EventHub.event_websockets import player_ee
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from datetime import datetime
 
+utc = pytz.utc
+
 class LegendEvents(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.player_ee = player_ee
         self.player_ee.on("trophies", self.legend_event)
+        self.player_ee.on("trophies", self.dm_legend_event)
+
 
     async def legend_event(self, event):
         trophy_change = event["new_player"]["trophies"] - event["old_player"]["trophies"]
@@ -64,7 +69,6 @@ class LegendEvents(commands.Cog):
 
     async def edit_embeds(self, old_embeds: list, player: MyCustomPlayer):
         return []
-
 
     async def create_embeds(self, clan_tag, og_player, attack, new, message):
         clan = await self.bot.getClan(clan_tag)
@@ -140,6 +144,52 @@ class LegendEvents(commands.Cog):
 
         return embeds
 
+
+    async def dm_legend_event(self, event):
+        trophy_change = event["new_player"]["trophies"] - event["old_player"]["trophies"]
+
+        dt = datetime.now(utc)
+        utc_time = dt.replace(tzinfo=utc)
+        utc_timestamp = utc_time.timestamp()
+        discord_time = f"<t:{int(utc_timestamp)}:R>"
+
+        player_tag = event["new_player"]["tag"]
+
+        player: MyCustomPlayer = await self.bot.getPlayer(player_tag=player_tag, custom=True)
+
+        if trophy_change >= 1:
+            color = disnake.Color.green()
+            change = f"{self.bot.emoji.sword} +{trophy_change} trophies\n Current Trophies:{self.bot.emoji.legends_shield}{player.trophies}"
+        elif trophy_change <= -1:
+            color = disnake.Color.red()
+            change = f"{self.bot.emoji.sword} +{trophy_change} trophies\n Current Trophies:{self.bot.emoji.legends_shield}{player.trophies}"
+
+
+        embed = disnake.Embed(title=f"{player.name} | {player.clan_name()}",
+                              description=f"{change}\n{discord_time} | [profile]({player.share_link})",
+                              color=color)
+        embed.set_footer(text=f"{player.tag} | Remove entire feed at any time")
+
+        results = self.bot.legend_profile.find({"feed_tags": player.tag})
+        limit = await self.bot.legend_profile.count_documents(filter={"feed_tags": player.tag})
+        for document in await results.to_list(length=limit):
+            user_id = document.get("discord_id")
+            button = disnake.ui.Button(label="Remove Feed", style=disnake.ButtonStyle.red, custom_id=f"feed_{user_id}")
+            buttons = disnake.ui.ActionRow()
+            buttons.append_item(button)
+            try:
+                user = await self.bot.get_or_fetch_user(user_id=user_id)
+                await user.send(embed=embed, components=[buttons])
+            except (disnake.NotFound, disnake.Forbidden):
+                await self.bot.legend_profile.update_one({'discord_id': user_id},
+                                                         {'$set': {"feed_tags": []}})
+
+    @commands.Cog.listener()
+    async def on_message_interaction(self, res: disnake.MessageInteraction):
+        if "feed_" in res.data.custom_id:
+            await self.bot.legend_profile.update_one({'discord_id': res.author.id},
+                                                     {'$set': {"feed_tags": []}})
+            await res.send(content="You have removed all players from your dm feed", ephemeral=True)
 
 
 def setup(bot: CustomClient):

@@ -4,6 +4,9 @@ class EmojiType():
     def __init__(self, emoji_string):
         self.emoji_string = emoji_string
 
+    def __str__(self):
+        return self.emoji_string
+
     @property
     def partial_emoji(self):
         emoji = self.emoji_string.split(":")
@@ -45,6 +48,9 @@ class Emojis():
         self.troop = EmojiType("<:troop:861797310224400434>")
         self.reddit_icon = EmojiType("<:reddit:1015107963536539688>")
         self.xp = EmojiType("<:xp:991965062703095938>")
+
+
+
 
 
 

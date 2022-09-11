@@ -33,6 +33,8 @@ class Pagination(commands.Cog):
         responses = await asyncio.gather(*tasks)
         for player in responses:
             player: MyCustomPlayer
+            if player is None:
+                continue
             legend_day = player.legend_day()
             text += f"\u200e**{self.bot.emoji.trophy.emoji_string}{player.trophies} | \u200e{player.name}**\n➼ {self.bot.emoji.sword.emoji_string}{legend_day.attack_sum}{legend_day.num_attacks.superscript}" \
                         f" {self.bot.emoji.shield.emoji_string} {legend_day.defense_sum}{legend_day.num_defenses.superscript}\n"
@@ -89,9 +91,9 @@ class Pagination(commands.Cog):
 
     async def add_profile(self, res, tag, msg, trophy_results, current_page, is_true, rresult):
         tag = tag.get("tag")
-        results = await self.bot.profile_db.find_one({'discord_id': res.author.id})
+        results = await self.bot.legend_profile.find_one({'discord_id': res.author.id})
         if results is None:
-            await self.bot.profile_db.insert_one({'discord_id': res.author.id, "profile_tags": [f"{tag}"]})
+            await self.bot.legend_profile.insert_one({'discord_id': res.author.id, "profile_tags": [f"{tag}"]})
 
             player = await self.bot.getPlayer(tag)
             await res.send(content=f"Added {player.name} to your Quick Check & Daily Report list.", ephemeral=True)
@@ -101,7 +103,7 @@ class Pagination(commands.Cog):
             if profile_tags is None:
                 profile_tags = []
             if tag in profile_tags:
-                await self.bot.profile_db.update_one({'discord_id': res.author.id}, {'$pull': {"profile_tags": tag}})
+                await self.bot.legend_profile.update_one({'discord_id': res.author.id}, {'$pull': {"profile_tags": tag, "feed_tags" : tag}})
 
                 player = await self.bot.getPlayer(tag)
                 await res.send(content=f"Removed {player.name} from your Quick Check & Daily Report list.", ephemeral=True)
@@ -110,7 +112,7 @@ class Pagination(commands.Cog):
                 await res.send(content="Can only have 24 players on your Quick Check & Daily Report list. Please remove one.", ephemeral=True)
 
             else:
-                await self.bot.profile_db.update_one({'discord_id': res.author.id}, {'$push': {"profile_tags": tag}})
+                await self.bot.legend_profile.update_one({'discord_id': res.author.id}, {'$push': {"profile_tags": tag}})
 
                 player = await self.bot.getPlayer(tag)
                 await res.send(content=f"Added {player.name} to your Quick Check & Daily Report list.", ephemeral=True)
@@ -120,7 +122,6 @@ class Pagination(commands.Cog):
         await msg.edit(components=components)
 
     async def display_embed(self, results, stat_type, current_page):
-        embed =disnake.Embed(description="In Progress :)", colour=disnake.Color.green())
         check = self.bot.get_cog("Legends")
 
         if stat_type == "Legends Overview":
@@ -128,8 +129,7 @@ class Pagination(commands.Cog):
         elif stat_type == "Previous Days":
             return await check.checkYEmbed(results[current_page])
         elif stat_type == "Graph & Stats":
-            #return await check.createGraphEmbed(results[current_page], ctx)
-            return embed
+            return await check.createPosterEmbed(results[current_page])
         elif stat_type == "Legends History":
             return await check.create_history(results[current_page].tag)
 
@@ -138,8 +138,9 @@ class Pagination(commands.Cog):
         options = []
         for stat in stat_types:
             if stat == "Quick Check & Daily Report Add":
-                presults = await self.bot.profile_db.find_one({'discord_id': ctx.author.id})
+                presults = await self.bot.legend_profile.find_one({'discord_id': ctx.author.id})
                 if presults is None:
+                    options.append(disnake.SelectOption(label=f"{stat}", value=f"{stat}", emoji=self.bot.emoji.quick_check.partial_emoji))
                     continue
                 tags = presults.get("profile_tags")
                 if tags is None:
@@ -152,7 +153,7 @@ class Pagination(commands.Cog):
                     continue
                 options.append(disnake.SelectOption(label=f"{stat}", value=f"{stat}", emoji=self.bot.emoji.quick_check.partial_emoji))
             elif stat == "Quick Check & Daily Report Remove":
-                presults = await self.bot.profile_db.find_one({'discord_id': ctx.author.id})
+                presults = await self.bot.legend_profile.find_one({'discord_id': ctx.author.id})
                 if presults is None:
                     continue
                 tags = presults.get("profile_tags")

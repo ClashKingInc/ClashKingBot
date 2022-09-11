@@ -100,7 +100,7 @@ class CustomClient(commands.Bot):
         self.autoboards = self.db_client.usafam.autoboards
         self.erikuh = self.db_client.usafam.erikuh
         self.button_db = self.db_client.usafam.button_db
-        self.dm_updates = self.db_client.usafam.dm_updates
+        self.legend_profile = self.db_client.usafam.legend_profile
         self.youtube_channels = self.db_client.usafam.youtube_channels
 
         self.coc_client = coc.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD"), client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 30, cache_max_size=50000)
@@ -111,6 +111,7 @@ class CustomClient(commands.Bot):
         self.callback_url = http_tunnel.public_url
         self.yt_api = api
 
+        self.MAX_FEED_LEN = 3
 
     async def track_players(self, players: list):
         for player in players:
