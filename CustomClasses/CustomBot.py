@@ -102,6 +102,7 @@ class CustomClient(commands.Bot):
         self.button_db = self.db_client.usafam.button_db
         self.legend_profile = self.db_client.usafam.legend_profile
         self.youtube_channels = self.db_client.usafam.youtube_channels
+        self.reminders = self.db_client.usafam.reminders
 
         self.coc_client = coc.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD"), client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 30, cache_max_size=50000)
 
@@ -399,4 +400,6 @@ class CustomClient(commands.Bot):
             return None
 
 
-
+    #SERVER HELPERS
+    async def open_clan_capital_reminders(self):
+        pass

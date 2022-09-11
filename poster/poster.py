@@ -43,7 +43,7 @@ class Poster(commands.Cog):
         return results
 
     @commands.slash_command(name="poster", description="Poster w/ graph & stats to show off season legends stats")
-    async def createPoster(self, ctx, smart_search: str = commands.Param(autocomplete=autocomp_names),
+    async def create_poster(self, ctx, smart_search: str = commands.Param(autocomplete=autocomp_names),
                            background: str = commands.Param(default=None,
         choices=["Edrag", "Hogrider", "Clash Forest", "Clan War", "Loons", "Witch", "Archers", "Bowler", "Barbs", "Barb & Archer", "Big Boy Skelly",
                  "Wiz Tower", "Spells", "Barb Sunset", "Wood Board", "Clash Sky", "Super Wizard", "Village Battle", "Hero Pets"]),

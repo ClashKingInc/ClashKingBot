@@ -29,12 +29,13 @@ class CustomServer():
             clan_tags.append(tClan.get("tag"))
         return clan_tags
 
-    async def initialize_server(self):
+    async def initialize_server(self, with_clans=True):
         self.server = await self.bot.server_db.find_one({"server": self.guild.id})
-        tracked = self.bot.clan_db.find({"server": self.guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": self.guild.id})
-        for clan in await tracked.to_list(length=limit):
-            self.clans.append(clan)
+        if with_clans:
+            tracked = self.bot.clan_db.find({"server": self.guild.id})
+            limit = await self.bot.clan_db.count_documents(filter={"server": self.guild.id})
+            for clan in await tracked.to_list(length=limit):
+                self.clans.append(clan)
 
     @property
     def banlist_channel(self):
@@ -58,12 +59,16 @@ class CustomServer():
 
     @property
     def server_clans(self):
-        return [ServerClan(clan) for clan in self.clans]
+        return [ServerClan(clan, self.bot) for clan in self.clans]
 
+    @property
+    def reminders(self):
+        return [clan.reminders for clan in self.server_clans]
 
 class ServerClan():
-    def __init__(self, clan_result):
+    def __init__(self, clan_result, bot):
         self.clan_result = clan_result
+        self.bot = bot
 
     @property
     def name(self):
@@ -102,3 +107,48 @@ class ServerClan():
     def war_log(self):
         channel = self.clan_result.get("war_log")
         return f"<#{channel}>" if channel is not None else channel
+
+    @property
+    def reminders(self):
+        return Reminders(self.clan_result, self.bot)
+
+class Reminders():
+    def __init__(self, clan_result, bot):
+        self.clan_result = clan_result
+        self.reminders = clan_result.get("reminders")
+        self.bot = bot
+
+    @property
+    def clan_capital_reminder(self):
+        if self.reminders is None:
+            return Reminder(clan_tag=None, reminder_result=self.reminders, bot=self.bot, reminder_type="clan_capital")
+        return Reminder(clan_tag=self.clan_result.get("tag"), reminder_result=self.reminders.get("clan_capital"), bot=self.bot, reminder_type="clan_capital")
+
+
+class Reminder():
+    def __init__(self, clan_tag, reminder_result, bot, reminder_type):
+        self.clan_tag = clan_tag
+        self.reminder_result = reminder_result
+        self.bot: CustomClient = bot
+        self.reminder_type = reminder_type
+
+    @property
+    def channel(self):
+        if self.reminder_result is None:
+            return Channel(channel_id=None)
+        return Channel(channel_id=self.reminder_result.get("channel"))
+
+    def set_channel(self, channel_id: int):
+        await self.bot.reminders.update_one({"tag": self.clan_tag}, {"$set": {f"reminders.{self.reminder_type}.channel": channel_id}})
+
+    def set_time(self, time: str, setting: bool):
+        await self.bot.reminders.update_one({"tag": self.clan_tag},
+                                            {"$set": {f"reminders.{self.reminder_type}.{time}": setting}})
+
+
+class Channel():
+    def __init__(self, channel_id):
+        self.channel_id = channel_id
+
+    def __str__(self):
+        return None if self.channel_id is None else f"<#{self.channel_id}>"

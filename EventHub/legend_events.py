@@ -7,7 +7,6 @@ from CustomClasses.CustomBot import CustomClient
 from EventHub.event_websockets import player_ee
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from datetime import datetime
-
 utc = pytz.utc
 
 class LegendEvents(commands.Cog):
@@ -17,7 +16,6 @@ class LegendEvents(commands.Cog):
         self.player_ee = player_ee
         self.player_ee.on("trophies", self.legend_event)
         self.player_ee.on("trophies", self.dm_legend_event)
-
 
     async def legend_event(self, event):
         trophy_change = event["new_player"]["trophies"] - event["old_player"]["trophies"]
@@ -162,7 +160,7 @@ class LegendEvents(commands.Cog):
             change = f"{self.bot.emoji.sword} +{trophy_change} trophies\n Current Trophies:{self.bot.emoji.legends_shield}{player.trophies}"
         elif trophy_change <= -1:
             color = disnake.Color.red()
-            change = f"{self.bot.emoji.sword} +{trophy_change} trophies\n Current Trophies:{self.bot.emoji.legends_shield}{player.trophies}"
+            change = f"{self.bot.emoji.shield} {trophy_change} trophies\n Current Trophies:{self.bot.emoji.legends_shield}{player.trophies}"
 
 
         embed = disnake.Embed(title=f"{player.name} | {player.clan_name()}",
