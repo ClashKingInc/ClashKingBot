@@ -41,12 +41,14 @@ class CheckPoster(commands.Cog):
 
         start = utils.get_season_start().replace(tzinfo=utc).date()
         today = datetime.utcnow().date()
+        length = today - start
         month = calendar.month_name[start.month + 1]
         trophies = player.trophies
         season = self.bot.gen_season_date()
 
         season_stats = player.season_of_legends(season=season)
         season_stats = list(season_stats.values())
+        season_stats = season_stats[0:length.days + 1]
 
         y = []
         new_trophies = trophies
@@ -63,9 +65,8 @@ class CheckPoster(commands.Cog):
                  marker="*", markerfacecolor="white", markeredgecolor="yellow", markersize=20)
         plt.ylim(min(y) - 100, max(y) + 100)
 
-
-        plt.xticks([], [])
-        plt.xlabel('Trophies Over Time', color="yellow", fontsize=14)
+        plt.xlim(int(len(season_stats)), -1)
+        plt.xlabel('Days Ago', color="yellow", fontsize=14)
 
         plt.gca().spines["top"].set_color("yellow")
         plt.gca().spines["bottom"].set_color("yellow")

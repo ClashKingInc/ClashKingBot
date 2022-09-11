@@ -2,6 +2,7 @@ import emoji
 import disnake
 
 from CustomClasses.CustomBot import CustomClient
+from CustomClasses.CustomPlayer import MyCustomPlayer
 from main import scheduler
 from disnake.ext import commands
 
@@ -62,10 +63,12 @@ class DMFeed(commands.Cog, name="DM Feed & Reports"):
             return await ctx.send(content="You don't have any players tracked, use `/quick_check` to get started.", ephemeral=True)
 
         profile_tags = results.get("profile_tags")
-        if profile_tags is None:
+        if profile_tags is None or profile_tags == []:
                 return await ctx.send(content="You don't have any players tracked, use `/quick_check` to get started.", ephemeral=True)
 
         feed_tags = results.get("feed_tags")
+        if feed_tags is None:
+            feed_tags = []
         players = await self.bot.get_players(tags=profile_tags, custom=False)
 
         build = self.legend_feed_embed_and_components(feed_tags=feed_tags, players=players)
@@ -90,22 +93,22 @@ class DMFeed(commands.Cog, name="DM Feed & Reports"):
             if "addleg_" in res.values[0]:
                 player_tag = res.values[0].split("_")[-1]
                 if len(feed_tags) == self.bot.MAX_FEED_LEN:
-                    await res.send(content="Can only have 3 people in your dm feed at this time. Please remove one first.")
+                    await res.send(content="Can only have 3 people in your dm feed at this time. Please remove one first.", ephemeral=True)
                 else:
                     await self.bot.legend_profile.update_one({'discord_id': res.author.id}, {'$push': {"feed_tags": player_tag}})
-                    feed_tags = feed_tags.append(player_tag)
+                    feed_tags.append(player_tag)
                     build = self.legend_feed_embed_and_components(feed_tags=feed_tags, players=players)
                     embed = disnake.Embed(title="Edit Legend Feed Tracking (up to 3 players)", description=build[1])
-                    await res.edit_original_message(embed=embed, components=build[0])
+                    await res.response.edit_message(embed=embed, components=build[0])
 
             elif "removeleg_" in res.values[0]:
                 player_tag = res.values[0].split("_")[-1]
                 await self.bot.legend_profile.update_one({'discord_id': res.author.id},
                                                          {'$pull': {"feed_tags": player_tag}})
-                feed_tags = feed_tags.remove(player_tag)
+                feed_tags.remove(player_tag)
                 build = self.legend_feed_embed_and_components(feed_tags=feed_tags, players=players)
                 embed = disnake.Embed(title="Edit Legend Feed Tracking (up to 3 players)", description=build[1])
-                await res.edit_original_message(embed=embed, components=build[0])
+                await res.response.edit_message(embed=embed, components=build[0])
 
 
     def legend_feed_embed_and_components(self, feed_tags, players):
@@ -130,16 +133,12 @@ class DMFeed(commands.Cog, name="DM Feed & Reports"):
         return [[st2], text]
 
 
-    @daily_report.autocomplete("player")
-    async def autocomp_names(self, ctx: disnake.ApplicationCommandInteraction, user_input: str):
-        results = await self.bot.search_name_with_tag(user_input)
-        return results
-
 
 
     async def dm_check(self):
-        results = profile_db.find({"opt": "Opt-In"})
-        limit = await profile_db.count_documents(filter={"opt": "Opt-In"})
+
+        results = self.bot.legend_profile.find({"opt": "Opt-In"})
+        limit = await self.bot.legend_profile.count_documents(filter={"opt": "Opt-In"})
         for document in await results.to_list(length=limit):
             tracked_players = document.get("profile_tags")
             user_id = document.get("discord_id")
@@ -148,62 +147,41 @@ class DMFeed(commands.Cog, name="DM Feed & Reports"):
             buttons.append_item(button)
             if len(tracked_players) == 0:
                 continue
+
             ranking = []
-            for member in tracked_players:
-                person = await ongoing_stats.find_one({'tag': member})
-                if person is None:
+
+            players = await self.bot.get_players(tags=tracked_players, custom=True)
+            for player in players:
+                player: MyCustomPlayer
+                if player is None:
+                    continue
+                legend_day = player.legend_day()
+
+                if not player.is_legends():
                     continue
 
-                league = person.get("league")
-                if league != "Legend League":
-                    continue
-
-                thisPlayer = []
-                trophy = person.get("trophies")
-
-                name = person.get("name")
+                name = player.name
                 name = emoji.get_emoji_regexp().sub('', name)
-                name = f"{name}"
-                hits = person.get("today_hits")
-                hits = sum(hits)
-                numHit = person.get("num_today_hits")
-                defs = person.get("today_defenses")
-                numDef = len(defs)
-                defs = sum(defs)
 
-                started = trophy - (hits - defs)
-
-                thisPlayer.append(name)
-                thisPlayer.append(started)
-                thisPlayer.append(hits)
-                thisPlayer.append(numHit)
-                thisPlayer.append(defs)
-                thisPlayer.append(numDef)
-                thisPlayer.append(trophy)
-
-                ranking.append(thisPlayer)
+                ranking.append([name, player.trophy_start(), legend_day.attack_sum, legend_day.num_attacks.superscript, legend_day.defense_sum, legend_day.num_defenses.superscript, player.trophies])
 
             ranking = sorted(ranking, key=lambda l: l[6], reverse=True)
 
             text = ""
-            initial = f"__**{translate('daily_report', None, user_id)}**__"
-            for player in ranking:
-                name = player[0]
-                hits = player[2]
-                hits = player[2]
-                numHits = player[3]
-                if numHits >= 9:
-                    numHits = 8
-                defs = player[4]
-                numDefs = player[5]
-                numHits = SUPER_SCRIPTS[numHits]
-                numDefs = SUPER_SCRIPTS[numDefs]
-                trophies = player[6]
+            initial = f"__**Quick Check Daily Report**__"
+            for person in ranking:
+                name = person[0]
+                hits = person[2]
+                hits = person[2]
+                numHits = person[3]
+                defs = person[4]
+                numDefs = person[5]
+                trophies = person[6]
                 text += f"\u200e**<:trophyy:849144172698402817>{trophies} | \u200e{name}**\n➼ <:cw:948845649229647952> {hits}{numHits} <:sh:948845842809360424> {defs}{numDefs}\n"
 
             embed = disnake.Embed(title=initial,
                                   description=text)
-            embed.set_footer(text=translate("opt_out_time", None, user_id))
+            embed.set_footer(text="Opt out at any time.")
             user = await self.bot.get_or_fetch_user(user_id=user_id)
             try:
                 await user.send(embed=embed, components=[buttons])
@@ -216,9 +194,9 @@ class DMFeed(commands.Cog, name="DM Feed & Reports"):
             data = res.data.custom_id
             data = data.split("_")
             user_id = data[1]
-            await profile_db.update_one({'discord_id': int(user_id)},
+            await self.bot.legend_profile.update_one({'discord_id': int(user_id)},
                                         {'$set': {"opt": "Opt-Out"}})
-            await res.send(content=translate("opted_out_button", None, user_id), ephemeral=True)
+            await res.send(content="Opted out of daily legend report.", ephemeral=True)
 
 
 

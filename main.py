@@ -44,7 +44,6 @@ initial_extensions = (
     "EventHub.ban_events",
     "EventHub.war_events",
     "EventHub.legend_events",
-    "EventHub.legend_events",
     "Family_and_Clans.bans",
     "Family_and_Clans.clancog",
     "Family_and_Clans.family",

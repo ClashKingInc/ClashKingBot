@@ -23,12 +23,17 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
 
         time_ = await self.calculate_time(type)
 
-        if type == "Clan Games":
-            channel = await ctx.guild.create_voice_channel(name=f"CG {time_}")
-        elif type == "Raid Weekend":
-            channel = await ctx.guild.create_voice_channel(name=f"Raids {time_}")
-        else:
-            channel = await ctx.guild.create_voice_channel(name=f"{type} {time_}")
+        try:
+            if type == "Clan Games":
+                channel = await ctx.guild.create_voice_channel(name=f"CG {time_}")
+            elif type == "Raid Weekend":
+                channel = await ctx.guild.create_voice_channel(name=f"Raids {time_}")
+            else:
+                channel = await ctx.guild.create_voice_channel(name=f"{type} {time_}")
+        except disnake.Forbidden:
+            embed = disnake.Embed(description="Bot requires admin to create & set permissions for channel.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
 
         overwrite = disnake.PermissionOverwrite()
         overwrite.view_channel = True

@@ -45,7 +45,7 @@ class Pagination(commands.Cog):
             player_order += 1
 
         if len(tags) > 1 and ez_look:
-            embed = disnake.Embed(title=f"{len(results)} Results",
+            embed = disnake.Embed(title=f"{len(results) - 1} Results",
                                   description=text)
             trophy_results.insert(0, disnake.SelectOption(label="Results Overview", value="0", emoji=self.bot.emoji.pin.partial_emoji))
 
@@ -89,8 +89,8 @@ class Pagination(commands.Cog):
                 except:
                     continue
 
-    async def add_profile(self, res, tag, msg, trophy_results, current_page, is_true, rresult):
-        tag = tag.get("tag")
+    async def add_profile(self, res, player, msg, trophy_results, current_page, is_true, rresult):
+        tag = player.tag
         results = await self.bot.legend_profile.find_one({'discord_id': res.author.id})
         if results is None:
             await self.bot.legend_profile.insert_one({'discord_id': res.author.id, "profile_tags": [f"{tag}"]})
@@ -104,8 +104,6 @@ class Pagination(commands.Cog):
                 profile_tags = []
             if tag in profile_tags:
                 await self.bot.legend_profile.update_one({'discord_id': res.author.id}, {'$pull': {"profile_tags": tag, "feed_tags" : tag}})
-
-                player = await self.bot.getPlayer(tag)
                 await res.send(content=f"Removed {player.name} from your Quick Check & Daily Report list.", ephemeral=True)
 
             elif len(profile_tags) > 24:
@@ -113,8 +111,6 @@ class Pagination(commands.Cog):
 
             else:
                 await self.bot.legend_profile.update_one({'discord_id': res.author.id}, {'$push': {"profile_tags": tag}})
-
-                player = await self.bot.getPlayer(tag)
                 await res.send(content=f"Added {player.name} to your Quick Check & Daily Report list.", ephemeral=True)
 
         components = await self.create_components(rresult, trophy_results, current_page, is_true, res)
