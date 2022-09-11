@@ -1,4 +1,4 @@
-# MagicBot
+# ClashKing
 <div id="top"></div>
 <!--
 *** Thanks for checking out the Best-README-Template. If you have a suggestion
@@ -34,7 +34,7 @@
     <img src="https://cdn.discordapp.com/attachments/843624785560993833/936730769487978506/2715c2864c10dc64a848f7d12d1640d0.png" alt="Logo" width="80" height="80">
   </a>
 
-<h3 align="center">MagicBot</h3>
+<h3 align="center">Clashking</h3>
 
   <p align="center">
     Clash of Clans family management bot for roles, player info, rankings, leaderboards, and more!
@@ -53,7 +53,7 @@
 
 
 <!-- ABOUT THE PROJECT -->
-## MagicBot
+## ClashKing
 
 Clash of Clans family management bot for roles, player info, rankings, leaderboards, and more!
 
@@ -64,9 +64,6 @@ Clash of Clans family management bot for roles, player info, rankings, leaderboa
 * [Python](https://www.python.org/)
 * [coc.py](https://cocpy.readthedocs.io/en/latest/)
 * [Motor](https://motor.readthedocs.io/en/stable/tutorial-asyncio.html)
-* [Pycord](https://pycord.dev/)
-* [interactions.py](https://discord-interactions.readthedocs.io/en/latest/)
-
 
 
 
