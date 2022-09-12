@@ -136,7 +136,7 @@ class clan_commands(commands.Cog):
         buttons.append_item(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=f"linked_{clan.tag}"))
         await ctx.edit_original_message(embeds=[embed, embed2], components=buttons)
 
-    @clan.sub_command(name="players-trophies", description="List of players, sorted by trophies")
+    @clan.sub_command(name="sorted-trophies", description="List of clan members, sorted by trophies")
     async def player_trophy(self, ctx: disnake.ApplicationCommandInteraction, clan):
         """
             Parameters
@@ -159,7 +159,7 @@ class clan_commands(commands.Cog):
                               custom_id=f"trophies_{clan.tag}"))
         await ctx.edit_original_message(embed=embed, components=buttons)
 
-    @clan.sub_command(name="players-townhall", description="List of players, sorted by trophies")
+    @clan.sub_command(name="sorted-townhall", description="List of clan members, sorted by trophies")
     async def player_th(self, ctx: disnake.ApplicationCommandInteraction, clan):
         """
             Parameters

@@ -138,10 +138,10 @@ class Reminder():
             return Channel(channel_id=None)
         return Channel(channel_id=self.reminder_result.get("channel"))
 
-    def set_channel(self, channel_id: int):
+    async def set_channel(self, channel_id: int):
         await self.bot.reminders.update_one({"tag": self.clan_tag}, {"$set": {f"reminders.{self.reminder_type}.channel": channel_id}})
 
-    def set_time(self, time: str, setting: bool):
+    async def set_time(self, time: str, setting: bool):
         await self.bot.reminders.update_one({"tag": self.clan_tag},
                                             {"$set": {f"reminders.{self.reminder_type}.{time}": setting}})
 
