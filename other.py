@@ -35,7 +35,7 @@ class misc(commands.Cog, name="Other"):
             text += f"{member.display_name} [{member.mention}]\n"
             num += 1
             if num == 25:
-                embed = disnake.Embed(title=f"Users in {role.name}", description=text, color=disnake.Color.green())
+                embed = disnake.Embed(title=f"{len(role.members)} Users in {role.name}", description=text, color=disnake.Color.green())
 
                 if ctx.guild.icon is not None:
                     embed.set_thumbnail(url=ctx.guild.icon.url)
@@ -43,7 +43,7 @@ class misc(commands.Cog, name="Other"):
                 num = 0
                 text = ""
         if text != "":
-            embed = disnake.Embed(title=f"Users in {role.name}", description=text, color=disnake.Color.green())
+            embed = disnake.Embed(title=f"{len(role.members)} Users in {role.name}", description=text, color=disnake.Color.green())
 
             if ctx.guild.icon is not None:
                 embed.set_thumbnail(url=ctx.guild.icon.url)
