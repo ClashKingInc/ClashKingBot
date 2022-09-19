@@ -289,8 +289,9 @@ class eval(commands.Cog, name="Eval"):
                 await member.remove_roles(*FINAL_ROLES_TO_REMOVE)
 
             if change_nick:
+                abbreviations_to_have = list(set(abbreviations_to_have))
                 top_account: coc.Player = results[0][1]
-                abbreviations = ",".join(abbreviations_to_have)
+                abbreviations = ", ".join(abbreviations_to_have)
                 abbreviations = "| " + abbreviations
                 if len(abbreviations_to_have) == 0:
                     new_name = f"{top_account.name}"
@@ -298,7 +299,7 @@ class eval(commands.Cog, name="Eval"):
                     new_name = f"{top_account.name} {abbreviations}"
                 while len(new_name) > 31:
                     abbreviations_to_have = abbreviations_to_have.pop()
-                    abbreviations = ",".join(abbreviations_to_have)
+                    abbreviations = ", ".join(abbreviations_to_have)
                     abbreviations = "| " + abbreviations
                     if len(abbreviations_to_have) == 0:
                         new_name = f"{top_account.name}"
