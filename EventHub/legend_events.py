@@ -14,7 +14,7 @@ class LegendEvents(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.player_ee = player_ee
-        self.player_ee.on("trophies", self.legend_event)
+        #self.player_ee.on("trophies", self.legend_event)
         self.player_ee.on("trophies", self.dm_legend_event)
 
     async def legend_event(self, event):
