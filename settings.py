@@ -234,7 +234,7 @@ class misc(commands.Cog, name="Settings"):
             Parameters
             ----------
             clan: Use clan tag, alias, or select an option from the autocomplete
-            new_abbreviation: Maximum of 4 characters
+            new_abbreviation: Maximum of 6 characters
         """
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
@@ -264,8 +264,8 @@ class misc(commands.Cog, name="Settings"):
         if clan is None:
             return await ctx.send("Not a valid clan tag or alias.")
 
-        if len(new_abbreviation) >= 5:
-            return await ctx.send("Abbreviation must be 1 to 4 characters.")
+        if len(new_abbreviation) >= 5 or len(new_abbreviation) < 2:
+            return await ctx.send("Abbreviation must be 2 to 6 characters.")
 
         await self.bot.clan_db.update_one({"$and": [
             {"tag": clan.tag},

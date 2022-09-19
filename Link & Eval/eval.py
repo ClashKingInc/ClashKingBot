@@ -34,7 +34,6 @@ class eval(commands.Cog, name="Eval"):
         await ctx.edit_original_message(embed=embed)
 
 
-
     @eval.sub_command(name="role", description="Evaluate the roles of all members in a specific role")
     async def eval_role(self, ctx, role:disnake.Role, test=commands.Param(default="No", choices=["Yes", "No"])):
         perms = ctx.author.guild_permissions.manage_guild
@@ -47,7 +46,16 @@ class eval(commands.Cog, name="Eval"):
         test = (test != "No")
         await self.eval_roles(ctx, role, test)
 
-
+    @commands.user_command(name="Auto Nickname", description="Runs an auto nickname on a user")
+    async def auto_nick(self, ctx: disnake.ApplicationCommandInteraction, user: disnake.User):
+        try:
+            member = await ctx.guild.fetch_member(user.id)
+        except:
+            member = None
+        if member is None:
+            return await ctx.send(f"{user.name} [{user.mention}] is not a member of this server.")
+        await self.eval_member(ctx, member, True, True)
+        return await ctx.send(f"{member.display_name} [{member.mention}] - name changed.")
 
     async def eval_member(self, ctx, member, test, change_nick=False):
         server = CustomServer(guild=ctx.guild, bot=self.bot)
@@ -294,27 +302,27 @@ class eval(commands.Cog, name="Eval"):
                 except:
                     removed = ""
 
-            if change_nick:
-                abbreviations_to_have = list(set(abbreviations_to_have))
-                top_account: coc.Player = results[0][1]
+        if change_nick:
+            abbreviations_to_have = list(set(abbreviations_to_have))
+            top_account: coc.Player = results[0][1]
+            abbreviations = ", ".join(abbreviations_to_have)
+            abbreviations = "| " + abbreviations
+            if len(abbreviations_to_have) == 0:
+                new_name = f"{top_account.name}"
+            else:
+                new_name = f"{top_account.name} {abbreviations}"
+            while len(new_name) > 31:
+                abbreviations_to_have = abbreviations_to_have.pop()
                 abbreviations = ", ".join(abbreviations_to_have)
                 abbreviations = "| " + abbreviations
                 if len(abbreviations_to_have) == 0:
                     new_name = f"{top_account.name}"
                 else:
                     new_name = f"{top_account.name} {abbreviations}"
-                while len(new_name) > 31:
-                    abbreviations_to_have = abbreviations_to_have.pop()
-                    abbreviations = ", ".join(abbreviations_to_have)
-                    abbreviations = "| " + abbreviations
-                    if len(abbreviations_to_have) == 0:
-                        new_name = f"{top_account.name}"
-                    else:
-                        new_name = f"{top_account.name} {abbreviations}"
-                try:
-                    await member.edit(nick=new_name)
-                except:
-                    pass
+            try:
+                await member.edit(nick=new_name)
+            except:
+                pass
 
         if added == "":
             added = "None"
