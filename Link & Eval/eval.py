@@ -291,11 +291,19 @@ class eval(commands.Cog, name="Eval"):
             if change_nick:
                 top_account: coc.Player = results[0][1]
                 abbreviations = ",".join(abbreviations_to_have)
-                new_name = f"{top_account.name} | {abbreviations}"
+                abbreviations = "| " + abbreviations
+                if len(abbreviations_to_have) == 0:
+                    new_name = f"{top_account.name}"
+                else:
+                    new_name = f"{top_account.name} {abbreviations}"
                 while len(new_name) > 31:
                     abbreviations_to_have = abbreviations_to_have.pop()
                     abbreviations = ",".join(abbreviations_to_have)
-                    new_name = f"{top_account.name} | {abbreviations}"
+                    abbreviations = "| " + abbreviations
+                    if len(abbreviations_to_have) == 0:
+                        new_name = f"{top_account.name}"
+                    else:
+                        new_name = f"{top_account.name} {abbreviations}"
                 try:
                     await member.edit(nick=new_name)
                 except:
