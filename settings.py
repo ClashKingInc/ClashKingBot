@@ -228,6 +228,54 @@ class misc(commands.Cog, name="Settings"):
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
+    @set.sub_command(name="clan-abbreviation", description="Set a new abbreviation for a clan (used for auto nicknames)")
+    async def abbreviation(self, ctx: disnake.ApplicationCommandInteraction, clan: str, new_abbreviation: str):
+        """
+            Parameters
+            ----------
+            clan: Use clan tag, alias, or select an option from the autocomplete
+            new_abbreviation: Maximum of 3 characters
+        """
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
+        clan_search = clan.lower()
+        first_clan = clan
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"alias": clan_search},
+            {"server": ctx.guild.id}
+        ]})
+
+        if results is not None:
+            tag = results.get("tag")
+            clan = await self.bot.getClan(tag)
+        else:
+            clan = await self.bot.getClan(clan)
+
+        if clan is None:
+            if "|" in first_clan:
+                search = first_clan.split("|")
+                tag = search[1]
+                clan = await self.bot.getClan(tag)
+
+        if clan is None:
+            return await ctx.send("Not a valid clan tag or alias.")
+
+        if len(new_abbreviation) >= 4:
+            return await ctx.send("Abbreviation must be 1 to 3 characters.")
+
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]}, {'$set': {"abbreviation": new_abbreviation.upper()}})
+
+        embed = disnake.Embed(description=f"Category for {clan.name} changed to {new_abbreviation.upper()}.",
+                              color=disnake.Color.green())
+        await ctx.send(embed=embed)
+
     @set.sub_command(name="join-log", description="Set up a join & leave log for a clan")
     async def joinleavelog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
         """
@@ -415,6 +463,21 @@ class misc(commands.Cog, name="Settings"):
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
+    @set.sub_command(name="auto-nickname",
+                     description="Have linking change discord name to name | clan (on default)")
+    async def auto_nickname(self, ctx: disnake.ApplicationCommandInteraction,
+                              option=commands.Param(choices=["On", "Off"])):
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+        server = CustomServer(guild=ctx.guild, bot=self.bot)
+        await server.change_auto_nickname(option=(option == "On"))
+        embed = disnake.Embed(description=f"Auto Nickname turned {option}.",
+                              color=disnake.Color.green())
+        await ctx.send(embed=embed)
+
 
     @set.sub_command(name="reddit-recruit-feed", description="Feed of searching for a clan posts on the recruiting subreddit")
     async def reddit_recruit(self, ctx: disnake.ApplicationCommandInteraction, role_to_ping: disnake.Role, channel: disnake.TextChannel, remove=commands.Param(default=None, choices=["Remove Feed"])):
@@ -572,6 +635,7 @@ class misc(commands.Cog, name="Settings"):
     @warlog.autocomplete("clan")
     @remove_setup.autocomplete("clan")
     @legend_log.autocomplete("clan")
+    @abbreviation.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})

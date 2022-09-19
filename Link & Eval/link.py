@@ -1,7 +1,7 @@
 from disnake.ext import commands
 import disnake
 from CustomClasses.CustomBot import CustomClient
-
+from CustomClasses.CustomServer import CustomServer
 
 class Linking(commands.Cog):
 
@@ -12,7 +12,7 @@ class Linking(commands.Cog):
     async def refresh(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
         tags = await self.bot.get_tags(str(ctx.author.id))
-        if tags !=[]:
+        if tags != []:
             evalua = self.bot.get_cog("Eval")
             changes = await evalua.eval_member(ctx, ctx.author, False)
             embed = disnake.Embed(
@@ -34,6 +34,8 @@ class Linking(commands.Cog):
             api_token: player api-token, use /linkhelp for more info
         """
         await ctx.response.defer()
+        server = CustomServer(guild=ctx.guild, bot=self.bot)
+        change_nickname = await server.nickname_choice
         try:
             player = await self.bot.getPlayer(player_tag)
             if player is None:
@@ -63,7 +65,7 @@ class Linking(commands.Cog):
             elif verified and not is_linked:
                 await self.bot.link_client.add_link(player.tag, ctx.author.id)
                 evalua = self.bot.get_cog("Eval")
-                changes = await evalua.eval_member(ctx, ctx.author, False)
+                changes = await evalua.eval_member(ctx, ctx.author, False, change_nickname)
                 embed = disnake.Embed(
                     description=f"[{player.name}]({player.share_link}) is successfully linked to {ctx.author.mention}.\n"
                                 f"Added: {changes[0]}\n"
@@ -124,7 +126,8 @@ class Linking(commands.Cog):
             ----------
             player_tag: player_tag as found in-game
         """
-
+        server = CustomServer(guild=ctx.guild, bot=self.bot)
+        change_nickname = await server.nickname_choice
         try:
             player = await self.bot.getPlayer(player_tag)
             if player is None:
@@ -156,7 +159,7 @@ class Linking(commands.Cog):
             elif not is_linked:
                 await self.bot.link_client.add_link(player.tag, ctx.author.id)
                 evalua = self.bot.get_cog("Eval")
-                changes = await evalua.eval_member(ctx, ctx.author, False)
+                changes = await evalua.eval_member(ctx, ctx.author, False, change_nickname)
                 embed = disnake.Embed(
                     description=f"[{player.name}]({player.share_link}) is successfully linked to {ctx.author.mention}.\n"
                                 f"Added: {changes[0]}\n"
@@ -215,6 +218,8 @@ class Linking(commands.Cog):
             return await ctx.send(embed=embed)
 
         await ctx.response.defer()
+        server = CustomServer(guild=ctx.guild, bot=self.bot)
+        change_nickname = await server.nickname_choice
         player = await self.bot.getPlayer(player_tag)
         if player is None:
             embed = disnake.Embed(description="Invalid Player Tag", color=disnake.Color.red())
@@ -238,7 +243,7 @@ class Linking(commands.Cog):
         await self.bot.link_client.add_link(player.tag, member.id)
 
         evalua = self.bot.get_cog("Eval")
-        changes = await evalua.eval_member(ctx, member, False)
+        changes = await evalua.eval_member(ctx, member, False, change_nickname)
 
         embed = disnake.Embed(description=f"[{player.name}]({player.share_link}) has been linked to {member.mention}.\n"
                                           f"Added: {changes[0]}\n"
@@ -269,8 +274,9 @@ class Linking(commands.Cog):
             Parameters
             ----------
             player_tag: player_tag as found in-game
-            api_token: required if
+            api_token: required if no Manage Server perms
         """
+
         if api_token is None:
             perms = ctx.author.guild_permissions.manage_guild
             if ctx.author.id == 706149153431879760:

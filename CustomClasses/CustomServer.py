@@ -15,8 +15,17 @@ class CustomServer():
         eval_option = server.get("leadership_eval")
         return True if eval_option is None else eval_option
 
+    @property
+    async def nickname_choice(self):
+        server = await self.bot.server_db.find_one({"server": self.guild.id})
+        eval_option = server.get("auto_nickname")
+        return True if eval_option is None else eval_option
+
     async def change_leadership_eval(self, option: bool):
         await self.bot.server_db.update_one({"server": self.guild.id}, {"$set" : {"leadership_eval" : option}})
+
+    async def change_auto_nickname(self, option: bool):
+        await self.bot.server_db.update_one({"server": self.guild.id}, {"$set" : {"auto_nickname" : option}})
 
     @property
     async def clan_list(self):

@@ -1,4 +1,4 @@
-
+import coc
 from disnake.ext import commands
 import disnake
 
@@ -17,7 +17,7 @@ class eval(commands.Cog, name="Eval"):
         pass
 
     @eval.sub_command(name="user", description="Evaluate a user's roles")
-    async def eval_user(self, ctx: disnake.ApplicationCommandInteraction, user:disnake.Member, test=commands.Param(default="No", choices=["Yes", "No"])):
+    async def eval_user(self, ctx: disnake.ApplicationCommandInteraction, user:disnake.Member, test=commands.Param(default="No", choices=["Yes", "No"]), change_nick=commands.Param(default="No", choices=["Yes", "No"])):
         await ctx.response.defer()
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
@@ -26,7 +26,7 @@ class eval(commands.Cog, name="Eval"):
             return await ctx.edit_original_message(embed=embed)
 
         test = (test != "No")
-        changes = await self.eval_member(ctx, user, test)
+        changes = await self.eval_member(ctx, user, test, change_nick=(change_nick=="Yes"))
         embed = disnake.Embed(description=f"Eval Complete for {user.mention}\n"
                                           f"Added: {changes[0]}\n"
                                           f"Removed: {changes[1]}",
@@ -49,7 +49,7 @@ class eval(commands.Cog, name="Eval"):
 
 
 
-    async def eval_member(self, ctx, member, test):
+    async def eval_member(self, ctx, member, test, change_nick=False):
         server = CustomServer(guild=ctx.guild, bot=self.bot)
         leadership_eval = await server.leadership_eval_choice
 
@@ -77,11 +77,14 @@ class eval(commands.Cog, name="Eval"):
         clan_roles = []
         clan_tags = []
         clan_role_dict = {}
+        abbreviations = {}
         all = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         for role in await all.to_list(length=limit):
             r = role.get("generalRole")
             tag = role.get("tag")
+            clan_abbreviation = role.get("abbreviation")
+            abbreviations[tag] = clan_abbreviation
             clan_role_dict[tag] = r
             clan_tags.append(tag)
             clan_roles.append(r)
@@ -132,8 +135,10 @@ class eval(commands.Cog, name="Eval"):
         account_tags = await self.bot.get_tags(str(member.id))
         GLOBAL_IS_FAMILY = False
 
+        list_accounts = []
+        abbreviations_to_have = []
         async for player in self.bot.coc_client.get_players(account_tags):
-
+            list_accounts.append([player.trophies, player])
             #check if is a family member for 2 things - 1. to check for global roles (Not/is family) and 2. for if they shuld get roles on individual lvl
             #ignore the global if even one account is in family
             is_family_member = await self.is_in_family(player, clan_tags)
@@ -147,6 +152,8 @@ class eval(commands.Cog, name="Eval"):
             #if the user doesnt have it in their master list - add to roles they should have
             #set doesnt allow duplicates, so no check needed
             clan_role = clan_role_dict[player.clan.tag]
+            if abbreviations[player.clan.tag] is not None:
+                abbreviations_to_have.append(abbreviations[player.clan.tag])
             ROLES_SHOULD_HAVE.add(clan_role)
             if clan_role not in MASTER_ROLES:
                 ROLES_TO_ADD.add(clan_role)
@@ -273,6 +280,7 @@ class eval(commands.Cog, name="Eval"):
             FINAL_ROLES_TO_REMOVE.append(r)
             removed += r.mention + " "
 
+        results = sorted(list_accounts, key=lambda l: l[0], reverse=True)
         if not test:
             if FINAL_ROLES_TO_ADD != []:
                 await member.add_roles(*FINAL_ROLES_TO_ADD)
@@ -280,10 +288,21 @@ class eval(commands.Cog, name="Eval"):
                 member: disnake.Member
                 await member.remove_roles(*FINAL_ROLES_TO_REMOVE)
 
+            if change_nick:
+                top_account: coc.Player = results[0][1]
+                abbreviations = ",".join(abbreviations_to_have)
+                new_name = f"{top_account.name} | {abbreviations}"
+                while len(new_name) > 31:
+                    abbreviations_to_have = abbreviations_to_have.pop()
+                    abbreviations = ",".join(abbreviations_to_have)
+                    new_name = f"{top_account.name} | {abbreviations}"
+                await member.edit(nick=new_name)
+
         if added == "":
             added = "None"
         if removed == "":
             removed = "None"
+
 
         changes = [added, removed]
         return changes
