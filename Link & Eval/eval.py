@@ -296,7 +296,10 @@ class eval(commands.Cog, name="Eval"):
                     abbreviations_to_have = abbreviations_to_have.pop()
                     abbreviations = ",".join(abbreviations_to_have)
                     new_name = f"{top_account.name} | {abbreviations}"
-                await member.edit(nick=new_name)
+                try:
+                    await member.edit(nick=new_name)
+                except:
+                    pass
 
         if added == "":
             added = "None"
