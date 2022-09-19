@@ -283,10 +283,16 @@ class eval(commands.Cog, name="Eval"):
         results = sorted(list_accounts, key=lambda l: l[0], reverse=True)
         if not test:
             if FINAL_ROLES_TO_ADD != []:
-                await member.add_roles(*FINAL_ROLES_TO_ADD)
+                try:
+                    await member.add_roles(*FINAL_ROLES_TO_ADD)
+                except:
+                    added = ""
             if FINAL_ROLES_TO_REMOVE != []:
                 member: disnake.Member
-                await member.remove_roles(*FINAL_ROLES_TO_REMOVE)
+                try:
+                    await member.remove_roles(*FINAL_ROLES_TO_REMOVE)
+                except:
+                    removed = ""
 
             if change_nick:
                 abbreviations_to_have = list(set(abbreviations_to_have))
