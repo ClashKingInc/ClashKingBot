@@ -48,6 +48,11 @@ class eval(commands.Cog, name="Eval"):
 
     @commands.user_command(name="Auto Nickname", description="Runs an auto nickname on a user")
     async def auto_nick(self, ctx: disnake.ApplicationCommandInteraction, user: disnake.User):
+        perms = ctx.author.guild_permissions.manage_nicknames
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Nickname` permissions.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
         try:
             member = await ctx.guild.fetch_member(user.id)
         except:
