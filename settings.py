@@ -264,7 +264,7 @@ class misc(commands.Cog, name="Settings"):
         if clan is None:
             return await ctx.send("Not a valid clan tag or alias.")
 
-        if len(new_abbreviation) >= 5 or len(new_abbreviation) < 2:
+        if len(new_abbreviation) >= 7 or len(new_abbreviation) < 2:
             return await ctx.send("Abbreviation must be 2 to 6 characters.")
 
         await self.bot.clan_db.update_one({"$and": [
