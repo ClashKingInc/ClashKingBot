@@ -55,7 +55,7 @@ class eval(commands.Cog, name="Eval"):
         if member is None:
             return await ctx.send(f"{user.name} [{user.mention}] is not a member of this server.")
         await self.eval_member(ctx, member, True, True)
-        return await ctx.send(f"{member.display_name} [{member.mention}] - name changed.")
+        return await ctx.send(f"{member.mention} - name changed.")
 
     async def eval_member(self, ctx, member, test, change_nick=False):
         server = CustomServer(guild=ctx.guild, bot=self.bot)
