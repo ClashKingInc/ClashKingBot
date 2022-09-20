@@ -127,7 +127,7 @@ class eval(commands.Cog, name="Eval"):
             abbreviations.append(", ".join(abbreviations_to_have))
         label_list = abbreviations + family_label + list_of_clans
 
-        label_list = label_list[:25]
+        label_list = list(set(label_list[:25]))
         if label_list == []:
             label_list.append(ctx.guild.name)
         options = []
