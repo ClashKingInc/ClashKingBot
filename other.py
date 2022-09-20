@@ -16,11 +16,7 @@ class misc(commands.Cog, name="Other"):
 
     @commands.slash_command(name="support-server", description="Invite to bot support server")
     async def support(self, ctx):
-        embed = disnake.Embed(title="Support Server & Github",
-                              description="Support Server: [here](https://discord.gg/gChZm3XCrS)\n"
-                                          "Github: [here](https://github.com/MagicTheDev/MagicBot)",
-                              color=disnake.Color.blue())
-        await ctx.send(embed=embed)
+        await ctx.send(content="https://discord.gg/gChZm3XCrS")
 
     @commands.slash_command(name="bot-invite", description="Invite bot to other servers!")
     async def invitebot(self, ctx):
@@ -36,7 +32,6 @@ class misc(commands.Cog, name="Other"):
             num += 1
             if num == 25:
                 embed = disnake.Embed(title=f"{len(role.members)} Users in {role.name}", description=text, color=disnake.Color.green())
-
                 if ctx.guild.icon is not None:
                     embed.set_thumbnail(url=ctx.guild.icon.url)
                 embeds.append(embed)
@@ -44,7 +39,6 @@ class misc(commands.Cog, name="Other"):
                 text = ""
         if text != "":
             embed = disnake.Embed(title=f"{len(role.members)} Users in {role.name}", description=text, color=disnake.Color.green())
-
             if ctx.guild.icon is not None:
                 embed.set_thumbnail(url=ctx.guild.icon.url)
             embeds.append(embed)
