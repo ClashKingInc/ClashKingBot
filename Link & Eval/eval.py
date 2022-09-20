@@ -126,9 +126,6 @@ class eval(commands.Cog, name="Eval"):
         if abbreviations_to_have != []:
             abbreviations.append(", ".join(abbreviations_to_have))
 
-        print(abbreviations)
-        print(family_label)
-        print(list_of_clans)
         label_list = abbreviations + family_label + list_of_clans
 
         label_list = list(set(label_list[:25]))
@@ -199,16 +196,6 @@ class eval(commands.Cog, name="Eval"):
                     await res.send(content=f"{member.mention} name changed.", ephemeral=True)
                 except:
                     await res.send(content=f"Could not edit {member.mention} name. Permissions error or user is above or equal to the bot's highest role.", ephemeral=True)
-
-
-
-
-
-
-
-
-
-
 
 
     async def eval_member(self, ctx, member, test, change_nick="Off"):
