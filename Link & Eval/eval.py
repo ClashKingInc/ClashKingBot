@@ -125,6 +125,10 @@ class eval(commands.Cog, name="Eval"):
         abbreviations = []
         if abbreviations_to_have != []:
             abbreviations.append(", ".join(abbreviations_to_have))
+
+        print(abbreviations)
+        print(family_label)
+        print(list_of_clans)
         label_list = abbreviations + family_label + list_of_clans
 
         label_list = list(set(label_list[:25]))
@@ -145,7 +149,7 @@ class eval(commands.Cog, name="Eval"):
         results = sorted(list_accounts, key=lambda l: l[0], reverse=True)
         for player in list_accounts:
             player = player[1]
-            options.append(disnake.SelectOption(label=f"{player.name}", value=f"{player.name}"))
+            options.append(disnake.SelectOption(label=f"{player.name}", value=f"{player.name}", emoji=self.bot.partial_emoji_gen(emoji_string=self.bot.fetch_emoji(player.town_hall))))
 
         profile_select = disnake.ui.Select(options=options, placeholder="Account List", min_values=1,
                                            max_values=1)
@@ -176,10 +180,11 @@ class eval(commands.Cog, name="Eval"):
                 break
 
             if "label_" in res.values[0]:
-                if label_to_set == f" | {res.values[0]}":
+                label = res.values[0].replace("label_", "")
+                if label_to_set == f" | {label}":
                     label_to_set = ""
                 else:
-                    label_to_set = f" | {res.values[0]}"
+                    label_to_set = f" | {label}"
                 try:
                     await member.edit(nick=f"{name_to_set}{label_to_set}")
                     await res.send(content=f"{member.mention} name changed.", ephemeral=True)
