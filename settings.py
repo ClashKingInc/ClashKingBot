@@ -228,13 +228,13 @@ class misc(commands.Cog, name="Settings"):
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
-    @set.sub_command(name="clan-abbreviation", description="Set a new abbreviation for a clan (used for auto nicknames)")
-    async def abbreviation(self, ctx: disnake.ApplicationCommandInteraction, clan: str, new_abbreviation: str):
+    @set.sub_command(name="nickname-labels", description="Set new abreviations for a clan or labels for family members (used for auto nicknames)")
+    async def abbreviation(self, ctx: disnake.ApplicationCommandInteraction, type: str, new_label: str):
         """
             Parameters
             ----------
-            clan: Use clan tag, alias, or select an option from the autocomplete
-            new_abbreviation: Maximum of 6 characters
+            type: clan or family
+            new_label: label that goes after a player's nickname on discord
         """
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
@@ -242,37 +242,24 @@ class misc(commands.Cog, name="Settings"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        clan_search = clan.lower()
-        first_clan = clan
-        results = await self.bot.clan_db.find_one({"$and": [
-            {"alias": clan_search},
-            {"server": ctx.guild.id}
-        ]})
+        if type != "Family":
+            clan = await self.bot.getClan(type)
+            if clan is None:
+                return await ctx.send("Not a valid clan tag or alias.")
+            if len(new_label) >= 7 or len(new_label) < 2:
+                return await ctx.send("Clan Abbreviation must be 2 to 6 characters (this is to minimize name length's being too long).")
 
-        if results is not None:
-            tag = results.get("tag")
-            clan = await self.bot.getClan(tag)
+            await self.bot.clan_db.update_one({"$and": [
+                {"tag": clan.tag},
+                {"server": ctx.guild.id}
+            ]}, {'$set': {"abbreviation": new_label.upper()}})
+            embed = disnake.Embed(description=f"Abbreviation for {clan.name} changed to {new_label.upper()}.",
+                                  color=disnake.Color.green())
         else:
-            clan = await self.bot.getClan(clan)
-
-        if clan is None:
-            if "|" in first_clan:
-                search = first_clan.split("|")
-                tag = search[1]
-                clan = await self.bot.getClan(tag)
-
-        if clan is None:
-            return await ctx.send("Not a valid clan tag or alias.")
-        if len(new_abbreviation) >= 7 or len(new_abbreviation) < 2:
-            return await ctx.send("Abbreviation must be 2 to 6 characters.")
-
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": clan.tag},
-            {"server": ctx.guild.id}
-        ]}, {'$set': {"abbreviation": new_abbreviation.upper()}})
-
-        embed = disnake.Embed(description=f"Abbreviation for {clan.name} changed to {new_abbreviation.upper()}.",
-                              color=disnake.Color.green())
+            server = CustomServer(guild=ctx.guild, bot=self.bot)
+            await server.set_family_label(new_label)
+            embed = disnake.Embed(description=f"Family label changed to {new_label}.",
+                                  color=disnake.Color.green())
         await ctx.send(embed=embed)
 
     @set.sub_command(name="join-log", description="Set up a join & leave log for a clan")
@@ -463,17 +450,16 @@ class misc(commands.Cog, name="Settings"):
         await ctx.send(embed=embed)
 
     @set.sub_command(name="auto-nickname",
-                     description="Have linking change discord name to name | clan (on default)")
-    async def auto_nickname(self, ctx: disnake.ApplicationCommandInteraction,
-                              option=commands.Param(choices=["On", "Off"])):
+                     description="Have linking change discord name to name | clan or name | family")
+    async def auto_nickname(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Clan Abbreviations", "Family Name", "Off"])):
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
             embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
         server = CustomServer(guild=ctx.guild, bot=self.bot)
-        await server.change_auto_nickname(option=(option == "On"))
-        embed = disnake.Embed(description=f"Auto Nickname turned {option}.",
+        await server.change_auto_nickname(type)
+        embed = disnake.Embed(description=f"Auto Nickname set to {type}.",
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
@@ -634,11 +620,22 @@ class misc(commands.Cog, name="Settings"):
     @warlog.autocomplete("clan")
     @remove_setup.autocomplete("clan")
     @legend_log.autocomplete("clan")
-    @abbreviation.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         clan_list = []
+        for tClan in await tracked.to_list(length=limit):
+            name = tClan.get("name")
+            tag = tClan.get("tag")
+            if query.lower() in name.lower():
+                clan_list.append(f"{name} | {tag}")
+        return clan_list[:25]
+
+    @abbreviation.autocomplete("type")
+    async def autocomp_type(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
+        clan_list = ["Family"]
         for tClan in await tracked.to_list(length=limit):
             name = tClan.get("name")
             tag = tClan.get("tag")
