@@ -25,7 +25,7 @@ class CustomServer():
     async def family_label(self):
         server = await self.bot.server_db.find_one({"server": self.guild.id})
         family_label = server.get("family_label")
-        return True if family_label is None else family_label
+        return "" if family_label is None else family_label
 
     async def change_leadership_eval(self, option: bool):
         await self.bot.server_db.update_one({"server": self.guild.id}, {"$set" : {"leadership_eval" : option}})

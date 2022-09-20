@@ -147,7 +147,7 @@ class eval(commands.Cog, name="Eval"):
         options = []
         list_accounts = list_accounts[:25]
         results = sorted(list_accounts, key=lambda l: l[0], reverse=True)
-        for player in list_accounts:
+        for player in results:
             player = player[1]
             options.append(disnake.SelectOption(label=f"{player.name}", value=f"{player.name}", emoji=self.bot.partial_emoji_gen(emoji_string=self.bot.fetch_emoji(player.town_hall))))
 
@@ -486,7 +486,10 @@ class eval(commands.Cog, name="Eval"):
                 family_label = await server.family_label
                 top_account: coc.Player = results[0][1]
                 try:
-                    await member.edit(nick=f"{top_account.name} | {family_label}")
+                    if family_label == "":
+                        await member.edit(nick=f"{top_account.name}")
+                    else:
+                        await member.edit(nick=f"{top_account.name} | {family_label}")
                 except:
                     pass
 
