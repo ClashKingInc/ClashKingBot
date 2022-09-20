@@ -449,7 +449,7 @@ class misc(commands.Cog, name="Settings"):
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
-    @set.sub_command(name="auto-nickname",
+    @set.sub_command(name="eval-nickname",
                      description="Have linking change discord name to name | clan or name | family")
     async def auto_nickname(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Clan Abbreviations", "Family Name", "Off"])):
         perms = ctx.author.guild_permissions.manage_guild
