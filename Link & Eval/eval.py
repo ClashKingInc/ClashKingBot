@@ -45,7 +45,7 @@ class eval(commands.Cog, name="Eval"):
         test = (test != "No")
         await self.eval_roles(ctx, role, test)
 
-    @commands.user_command(name="Auto Nickname", description="Runs an auto nickname on a user")
+    @commands.user_command(name="Nickname", description="Change nickname of a user")
     async def auto_nick(self, ctx: disnake.ApplicationCommandInteraction, user: disnake.User):
         perms = ctx.author.guild_permissions.manage_nicknames
         if not perms:
@@ -58,10 +58,133 @@ class eval(commands.Cog, name="Eval"):
             member = None
         if member is None:
             return await ctx.send(f"{user.name} [{user.mention}] is not a member of this server.")
+        account_tags = await self.bot.get_tags(str(user.id))
+        if len(account_tags) == 0:
+            return await ctx.send(content=f"No accounts linked to {user.mention}", ephemeral=True)
+
+        await ctx.response.defer(ephemeral=True)
+        member = await ctx.guild.fetch_member(user.id)
+        abbreviations = {}
+        clan_tags = []
+        all = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
+        for role in await all.to_list(length=limit):
+            tag = role.get("tag")
+            clan_tags.append(tag)
+            clan_abbreviation = role.get("abbreviation")
+            abbreviations[tag] = clan_abbreviation
+
+        GLOBAL_IS_FAMILY = False
+
+        list_accounts = []
+        abbreviations_to_have = []
+        async for player in self.bot.coc_client.get_players(account_tags):
+            list_accounts.append([player.trophies, player])
+
+            # ignore the global if even one account is in family
+            is_family_member = await self.is_in_family(player, clan_tags)
+            if not GLOBAL_IS_FAMILY:
+                GLOBAL_IS_FAMILY = is_family_member
+
+            if not is_family_member:
+                continue
+
+            if abbreviations[player.clan.tag] is not None:
+                abbreviations_to_have.append(abbreviations[player.clan.tag])
+
+        abbreviations_to_have = list(set(abbreviations_to_have))
         server = CustomServer(guild=ctx.guild, bot=self.bot)
-        nickname_type = await server.nickname_choice
-        await self.eval_member(ctx, member, True, nickname_type)
-        return await ctx.send(f"{member.mention} - name changed.")
+        family_label = await server.family_label
+        if family_label == "":
+            family_label = []
+        else:
+            family_label = [family_label]
+        list_of_clans = []
+        for player in list_accounts:
+            player = player[1]
+            if player.clan is not None:
+                list_of_clans.append(player.clan.name)
+        list_of_clans = list(set(list_of_clans))
+        abbreviations = []
+        if abbreviations_to_have != []:
+            abbreviations.append(", ".join(abbreviations_to_have))
+
+        label_list = abbreviations + family_label + list_of_clans
+
+        label_list = list(set(label_list[:25]))
+        if label_list == []:
+            label_list.append(ctx.guild.name)
+        options = []
+        for label in label_list:
+            options.append(disnake.SelectOption(label=f"{label}", value=f"label_{label}"))
+
+        stat_select = disnake.ui.Select(options=options, placeholder="Nickname Labels", min_values=1,
+                                        max_values=1)
+
+        st = disnake.ui.ActionRow()
+        st.append_item(stat_select)
+
+        options = []
+        list_accounts = list_accounts[:25]
+        results = sorted(list_accounts, key=lambda l: l[0], reverse=True)
+        for player in results:
+            player = player[1]
+            options.append(disnake.SelectOption(label=f"{player.name}", value=f"{player.name}",
+                                                emoji=self.bot.partial_emoji_gen(
+                                                    emoji_string=self.bot.fetch_emoji(player.town_hall))))
+
+        profile_select = disnake.ui.Select(options=options, placeholder="Account List", min_values=1,
+                                           max_values=1)
+
+        st2 = disnake.ui.ActionRow()
+        st2.append_item(profile_select)
+
+        all_components = [st2, st]
+
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        embed = disnake.Embed(description=f"Nickname change for {user.mention}")
+        await ctx.edit_original_message(embed=embed, components=all_components)
+
+        name_to_set = results[0][1].name
+        label_to_set = ""
+
+        while True:
+            try:
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
+            except:
+                try:
+                    await msg.edit(components=[])
+                except:
+                    pass
+                break
+
+            if "label_" in res.values[0]:
+                label = res.values[0].replace("label_", "")
+                if label_to_set == f" | {label}":
+                    label_to_set = ""
+                else:
+                    label_to_set = f" | {label}"
+                try:
+                    await member.edit(nick=f"{name_to_set}{label_to_set}")
+                    await res.send(content=f"{member.mention} name changed.", ephemeral=True)
+                except:
+                    await res.send(
+                        content=f"Could not edit {member.mention} name. Permissions error or user is above or equal to the bot's highest role.",
+                        ephemeral=True)
+            else:
+                name_to_set = res.values[0]
+                try:
+                    await member.edit(nick=f"{name_to_set}{label_to_set}")
+                    await res.send(content=f"{member.mention} name changed.", ephemeral=True)
+                except:
+                    await res.send(
+                        content=f"Could not edit {member.mention} name. Permissions error or user is above or equal to the bot's highest role.",
+                        ephemeral=True)
 
     @commands.slash_command(name="nickname", description="Change the nickname of a discord user")
     async def nickname(self, ctx: disnake.ApplicationCommandInteraction, user: disnake.User = None):
