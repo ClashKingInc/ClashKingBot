@@ -187,8 +187,7 @@ class eval(commands.Cog, name="Eval"):
                     await res.send(content=f"{member.mention} name changed.", ephemeral=True)
                 except:
                     await res.send(
-                        content=f"Could not edit {member.mention} name. Permissions error or user is above or equal to the bot's highest role.",
-                        ephemeral=True)
+                        content=f"Could not edit {member.mention} name. Permissions error or user is above or equal to the bot's highest role.", ephemeral=True)
             else:
                 name_to_set = res.values[0]
                 try:
