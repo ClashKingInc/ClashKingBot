@@ -26,7 +26,12 @@ class eval(commands.Cog, name="Eval"):
             return await ctx.edit_original_message(embed=embed)
 
         test = (test != "No")
-        changes = await self.eval_member(ctx, user, test, change_nick=(change_nick=="Yes"))
+        if change_nick == "Yes":
+            server = CustomServer(guild=ctx.guild, bot=self.bot)
+            change_nick = await server.nickname_choice
+        else:
+            change_nick = "Off"
+        changes = await self.eval_member(ctx, user, test, change_nick=change_nick)
         embed = disnake.Embed(description=f"Eval Complete for {user.mention}\n"
                                           f"Added: {changes[0]}\n"
                                           f"Removed: {changes[1]}",

@@ -526,7 +526,7 @@ class misc(commands.Cog, name="Settings"):
 
         return await ctx.edit_original_message(embed=embed)
 
-    @set.sub_command(name="ytbase-feed",
+    @set.sub_command(name="ytbase-feed-beta",
                      description="Feed of yt base links from new yt videos")
     async def ytbase_feed(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel,
                              remove=commands.Param(default=None, choices=["Remove Feed"])):

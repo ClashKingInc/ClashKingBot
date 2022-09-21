@@ -18,7 +18,7 @@ class misc(commands.Cog, name="Other"):
     async def support(self, ctx):
         await ctx.send(content="https://discord.gg/gChZm3XCrS")
 
-    @commands.slash_command(name="bot-invite", description="Invite bot to other servers!")
+    @commands.slash_command(name="invite-bot", description="Invite bot to other servers!")
     async def invitebot(self, ctx):
         await ctx.send("https://discord.com/api/oauth2/authorize?client_id=824653933347209227&permissions=8&scope=bot%20applications.commands")
 
