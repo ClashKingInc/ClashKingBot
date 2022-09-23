@@ -37,7 +37,7 @@ initial_extensions = (
     "BackgroundCrons.region_lb_update",
     "BackgroundCrons.legends_history",
     "BackgroundCrons.reddit_recruit_feed",
-    "BackgroundCrons.youtube_base_feed",
+    #"BackgroundCrons.youtube_base_feed",
     "BackgroundCrons.dm_reports",
     "EventHub.clan_capital_events",
     "EventHub.join_leave_events",
