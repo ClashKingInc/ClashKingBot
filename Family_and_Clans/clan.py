@@ -72,8 +72,11 @@ class getClans(commands.Cog, name="Clan"):
         except:
             location_name = "Not Set"
 
-        if clan.location.name == "International":
-            rank_text += f"🌍 {ranking.local_ranking}"
+        if clan.location is not None:
+            if clan.location.name == "International":
+                rank_text += f"🌍 {ranking.local_ranking}"
+            else:
+                rank_text += f"{flag} {ranking.local_ranking}"
         else:
             rank_text += f"{flag} {ranking.local_ranking}"
 
