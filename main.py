@@ -1,6 +1,7 @@
 import os
 import disnake
 from disnake import Client
+
 import traceback
 from utils.clash import client
 from CustomClasses.CustomBot import CustomClient
@@ -28,7 +29,7 @@ intents.guilds = True
 intents.emojis = True
 intents.guild_messages = True
 
-bot = CustomClient(help_command=None, intents=intents,
+bot = CustomClient(command_prefix="<@824653933347209227> ",help_command=None, intents=intents,
     sync_commands_debug=False, sync_permissions=True)
 
 initial_extensions = (
