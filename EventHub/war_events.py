@@ -16,11 +16,7 @@ class war_event(commands.Cog):
         self.bot = bot
         self.war_ee = war_ee
         self.war_ee.on("attack", self.attack_event)
-        self.war_ee.on("defense", self.defense_event)
-        self.war_ee.on("preparation", self.state_change)
-        self.war_ee.on("inWar", self.state_change)
-        self.war_ee.on("warEnded", self.state_change)
-
+        self.war_ee.on("state", self.state_change)
 
     async def attack_event(self, event):
         name = event["name"]
@@ -80,75 +76,6 @@ class war_event(commands.Cog):
                 color = disnake.Color.green()
             embed = disnake.Embed(
                 description=f"{self.bot.emoji.sword_clash.emoji_string} [**{name}**]({self.bot.create_link(tag=attack['attackerTag'])}) attacked [**{opponent_name}**]({self.bot.create_link(tag=attack['defenderTag'])})\n"
-                            f"{star_str}{attack['destructionPercentage']}% | {self.bot.emoji.clock.emoji_string}{duration}"
-                , color=color)
-
-            embed.set_footer(icon_url=event["war"]["clan"]["badgeUrls"]["large"], text=f"{event['war']['clan']['name']} {clan_score} - {event['war']['opponent']['name']} {opp_score}")
-
-            try:
-                await warlog_channel.send(embed=embed)
-            except:
-                continue
-
-    async def defense_event(self, event):
-        name = event["name"]
-        opponent_name = event["opponent_name"]
-        attack = event["defense"]
-        clan_tag = event["war"]["clan"]["tag"]
-
-        war = event["war"]
-        clan = war["clan"]
-        opponent = war["opponent"]
-        opp_score = 0
-        clan_score = 0
-        for member in clan["members"]:
-            try:
-                opp_score += member["bestOpponentAttack"]["stars"]
-            except:
-                pass
-
-        for member in opponent["members"]:
-            try:
-                clan_score += member["bestOpponentAttack"]["stars"]
-            except:
-                pass
-
-        tracked = self.bot.clan_db.find({"tag": f"{clan_tag}"})
-        limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan_tag}"})
-        for cc in await tracked.to_list(length=limit):
-            server = cc.get("server")
-            try:
-                server = await self.bot.fetch_guild(server)
-            except:
-                continue
-            warlog_channel = cc.get("war_log")
-            if warlog_channel is None:
-                continue
-
-            try:
-                warlog_channel = await server.fetch_channel(warlog_channel)
-                if warlog_channel is None:
-                    continue
-            except:
-                continue
-
-            star_str = ""
-            stars = attack["stars"]
-            for x in range(0, stars):
-                star_str += self.bot.emoji.war_star.emoji_string
-            for x in range(0, 3 - stars):
-                star_str += self.bot.emoji.blank.emoji_string
-
-            duration = strftime("%M:%S", gmtime(attack["duration"]))
-            if stars == 3:
-                color = disnake.Color.red()
-            elif stars == 0:
-                color = disnake.Color.gold()
-            else:
-                color = disnake.Color.green()
-
-            embed = disnake.Embed(
-                description=f"{self.bot.emoji.shield.emoji_string} [**{opponent_name}**]({self.bot.create_link(tag=attack['defenderTag'])}) defended [**{name}**]({self.bot.create_link(tag=attack['attackerTag'])})\n"
                             f"{star_str}{attack['destructionPercentage']}% | {self.bot.emoji.clock.emoji_string}{duration}"
                 , color=color)
 

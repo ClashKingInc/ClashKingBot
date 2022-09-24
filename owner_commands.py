@@ -108,15 +108,16 @@ class OwnerCommands(commands.Cog):
             await ctx.send("You aren't magic. <:PS_Noob:783126177970782228>")
 
 
-    '''
+
     @commands.command(name="testraid")
+    @commands.is_owner()
     async def testraid(self, ctx, tag):
 
         text = ""
-        clan = await getClan(tag)
+        clan = await self.bot.getClan(tag)
 
-        tracked = clans.find({"tag": f"{clan.tag}"})
-        limit = await clans.count_documents(filter={"tag": f"{clan.tag}"})
+        tracked = self.bot.clan_db.find({"tag": f"{clan.tag}"})
+        limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan.tag}"})
         for cc in await tracked.to_list(length=limit):
             server = cc.get("server")
             try:
@@ -141,16 +142,18 @@ class OwnerCommands(commands.Cog):
             embed.set_footer(icon_url=clan.badge.url, text=clan.name)
 
             try:
-                member = await server.getch_member(self.bot.user.id)
+                member = await server.fetch_member(self.bot.user.id)
                 ow = clancapital_channel.overwrites_for(member)
                 send =ow.send_messages
+                embed_link = ow.embed_links
                 await clancapital_channel.send(embed=embed)
-                text += f"{server.name} : Successful\n> Send Messages Perm: {send}\n"
+                text += f"{server.name} : Successful\n> Send Messages Perm: {send}\nEmbed Link Perm: {embed_link}\n"
             except Exception as e:
                 member = await server.getch_member(self.bot.user.id)
                 ow = clancapital_channel.overwrites_for(member)
                 send = ow.send_messages
-                text += f"{server.name} : Not Successful\n> Send Messages Perm: {send}\n> {str(e)[0:1000]}\n"
+                embed_link = ow.embed_links
+                text += f"{server.name} : Not Successful\n> Send Messages Perm: {send}\nEmbed Link Perm: {embed_link}\n> {str(e)[0:1000]}\n"
 
         embed = disnake.Embed(title=f"Test Raid {clan.name}", description=text, color=disnake.Color.green())
         await ctx.send(embed=embed)
@@ -164,7 +167,7 @@ class OwnerCommands(commands.Cog):
             return
         await guild.leave()  # Guild found
         await ctx.send(f"I left: {guild.name}!")
-    '''
+
 
 
 
