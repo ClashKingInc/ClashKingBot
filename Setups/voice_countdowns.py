@@ -2,6 +2,7 @@ from disnake.ext import commands
 import disnake
 from coc import utils
 from datetime import datetime
+import datetime as dt
 import pytz
 utc = pytz.utc
 
@@ -158,7 +159,7 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
                 is_raids = False
 
             if is_raids:
-                end = datetime(year, month, day + (7 - current_dayofweek), hour=7, tzinfo=utc)
+                end = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days= (7 - current_dayofweek))
                 time_left = end - now
                 secs = time_left.total_seconds()
                 days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
@@ -171,7 +172,7 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
                 else:
                     text = f"end {int(days)}D {int(hrs)}H"
             else:
-                first = datetime(year, month, day + (4 - current_dayofweek), hour=7, tzinfo=utc)
+                first = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days=(4 - current_dayofweek))
                 time_left = first - now
                 secs = time_left.total_seconds()
                 days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)

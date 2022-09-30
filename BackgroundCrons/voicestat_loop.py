@@ -203,7 +203,7 @@ class VoiceStatCron(commands.Cog):
                 is_raids = False
 
             if is_raids:
-                end = datetime(year, month, day + (7 - current_dayofweek), hour=7, tzinfo=utc)
+                end = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days=(7 - current_dayofweek))
                 time_left = end - now
                 secs = time_left.total_seconds()
                 days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
@@ -216,7 +216,7 @@ class VoiceStatCron(commands.Cog):
                 else:
                     text = f"end {int(days)}D {int(hrs)}H"
             else:
-                first = datetime(year, month, day + (4 - current_dayofweek), hour=7, tzinfo=utc)
+                first = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days=(4 - current_dayofweek))
                 time_left = first - now
                 secs = time_left.total_seconds()
                 days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
