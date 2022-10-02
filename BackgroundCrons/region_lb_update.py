@@ -10,6 +10,7 @@ class lb_updater(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         scheduler.add_job(self.leaderboard_cron, 'interval', minutes=30)
+        scheduler.add_job(self.update_clan_badges, 'interval', minutes=1)
 
     async def leaderboard_cron(self):
         await self.bot.leaderboard_db.update_many({}, {"$set": {"global_rank": None, "local_rank": None}})
@@ -61,6 +62,23 @@ class lb_updater(commands.Cog):
 
         if lb_changes != []:
             results = await self.bot.clan_leaderboard_db.bulk_write(lb_changes)
+
+    async def update_clan_badges(self):
+        tracked = self.bot.clan_db.find({})
+        limit = await self.bot.clan_db.count_documents(filter={})
+        for tClan in await tracked.to_list(length=limit):
+            tag = tClan.get("tag")
+            server = tClan.get("server")
+            clan: coc.Clan = await self.bot.getClan(tag)
+            if clan is None:
+                continue
+            try:
+                await self.bot.clan_db.update_one({"$and": [
+                    {"tag": clan.tag},
+                    {"server": server}
+                ]}, {'$set': {"badge_link": clan.badge.url}})
+            except:
+                continue
 
 def setup(bot: CustomClient):
     bot.add_cog(lb_updater(bot))
