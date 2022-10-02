@@ -85,6 +85,8 @@ class lb_updater(commands.Cog):
 
     async def update_servs(self):
         all_servers = await self.bot.server_db.distinct("server")
+        list_string = map(str, all_servers)
+        all_servers = list(list_string)
         await self.bot.server_db.update_one({"server": 923764211845312533}, {"$set": {"all_servers": all_servers}})
 
 def setup(bot: CustomClient):
