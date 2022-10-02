@@ -10,7 +10,7 @@ class lb_updater(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         scheduler.add_job(self.leaderboard_cron, 'interval', minutes=30)
-        scheduler.add_job(self.update_clan_badges, 'interval', minutes=1)
+        scheduler.add_job(self.update_clan_badges, 'interval', minutes=240)
 
     async def leaderboard_cron(self):
         await self.bot.leaderboard_db.update_many({}, {"$set": {"global_rank": None, "local_rank": None}})
