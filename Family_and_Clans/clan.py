@@ -105,7 +105,7 @@ class getClans(commands.Cog, name="Clan"):
         return embed
 
     async def war_th_comps(self, clan: coc.Clan):
-        thcount = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        thcount = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
         stroops = {"Super Barbarian" : 0, "Super Archer": 0, "Super Giant": 0, "Sneaky Goblin": 0, "Super Wall Breaker": 0, "Rocket Balloon": 0, "Super Wizard": 0, "Inferno Dragon": 0,
                 "Super Minion": 0, "Super Valkyrie": 0, "Super Witch": 0, "Ice Hound": 0, "Super Bowler": 0, "Super Dragon": 0}
@@ -256,8 +256,10 @@ class getClans(commands.Cog, name="Clan"):
 
     async def player_townhall_sort(self, clan):
         ranking = []
+        thcount = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         async for player in clan.get_detailed_members():
             th_emoji = emojiDictionary(player.town_hall)
+            thcount[player.town_hall - 1] += 1
             ranking.append([player.town_hall, f"{th_emoji}\u200e{player.name}\n"])
 
         ranking = sorted(ranking, key=lambda l: l[0], reverse=True)
@@ -267,6 +269,8 @@ class getClans(commands.Cog, name="Clan"):
                               description=ranking,
                               color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
+        footer_text = "".join(f"Th{index + 1}: {th} " for index, th in enumerate(thcount) if th != 0)
+        embed.set_footer(text=footer_text)
         return embed
 
     async def opt_status(self, clan : coc.Clan):
