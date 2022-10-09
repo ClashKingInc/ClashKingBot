@@ -269,7 +269,7 @@ class getClans(commands.Cog, name="Clan"):
                               description=ranking,
                               color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
-        footer_text = "".join(f"Th{index + 1}: {th} " for index, th in enumerate(thcount) if th != 0)
+        footer_text = "".join(f"Th{index + 1}: {th} " for index, th in reversed(list(enumerate(thcount))) if th != 0)
         embed.set_footer(text=footer_text)
         return embed
 
