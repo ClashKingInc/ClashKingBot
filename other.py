@@ -149,7 +149,6 @@ class misc(commands.Cog, name="Other"):
             embeds = []
             menu_options = []
             for spot, (question, answer) in enumerate(q_n_a.items()):
-                print(question)
                 embed = disnake.Embed(title=f"**{question}**", description=answer,
                                       color=disnake.Color.green())
                 embeds.append(embed)
