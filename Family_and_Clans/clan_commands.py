@@ -389,6 +389,7 @@ class clan_commands(commands.Cog):
         def check(res: disnake.MessageInteraction):
             return res.message.id == msg.id
 
+        file = None
         while True:
             try:
                 res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
@@ -405,12 +406,23 @@ class clan_commands(commands.Cog):
             elif res.data.custom_id == "cg_raid":
                 await res.edit_original_message(embed=raid_embed[0])
             elif res.data.custom_id == "capseason":
-                await res.edit_original_message(file=self.create_excel(columns=columns, index=index, data=data, weekend=weekend))
+                if file is None:
+                    file = self.create_excel(columns=columns, index=index, data=data, weekend=weekend)
+                await res.edit_original_message(file=file)
 
     def create_excel(self, columns, index, data, weekend):
         df = pd.DataFrame(data, index=index, columns=columns)
-        df.to_excel('ClanCapitalStats.xlsx', sheet_name=f'{weekend}')
-        return disnake.File("Family_and_Clans/ClanCapitalStats.xlsx", filename=f"{weekend}_ccstats")
+        writer = pd.ExcelWriter('ClanCapitalStats.xlsx', engine='xlsxwriter')
+        df.to_excel(writer, sheet_name=f'{weekend}')
+
+        workbook = writer.book
+        worksheet = writer.sheets[f'{weekend}']
+        worksheet.set_column(1, 1, 18)
+        worksheet.set_column(2, 2, 10)
+        worksheet.set_column(3, 3, 18)
+        worksheet.set_column(4, 4, 10)
+
+        return disnake.File("ClanCapitalStats.xlsx", filename=f"{weekend}_ccstats")
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
