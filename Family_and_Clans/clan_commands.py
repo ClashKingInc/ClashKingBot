@@ -342,10 +342,17 @@ class clan_commands(commands.Cog):
                 donation_list.append([f"{self.bot.emoji.capital_gold.emoji_string}`{donation_text}`: {name}", sum(cc_stats.donated)])
 
             elif show_zeros and player.clan_tag() == clan.tag:
-                p_data.append(sum(cc_stats.donated))
-                p_data.append(len(cc_stats.donated))
                 donation_text = f"{sum(cc_stats.donated)}".ljust(5)
                 donation_list.append([f"{self.bot.emoji.capital_gold.emoji_string}`{donation_text}`: {name}", sum(cc_stats.donated)])
+
+            p_data.append(sum(cc_stats.donated))
+            p_data.append(len(cc_stats.donated))
+            if cc_stats.raid_clan is None:
+                p_data.append(0)
+                p_data.append(0)
+            else:
+                p_data.append(sum(cc_stats.raided))
+                p_data.append(len(cc_stats.raided))
 
             if clan.tag == cc_stats.raid_clan:
                 if player.clan_tag() == clan.tag:
@@ -361,13 +368,10 @@ class clan_commands(commands.Cog):
                     if num_raided > 6:
                         num_raided = "6"
                     raid_list.append([f"<:deny_mark:892770746034704384>`{num_raided}/6 {raid_text}`: {name}", sum(cc_stats.raided)])
-                p_data.append(sum(cc_stats.raided))
-                p_data.append(len(cc_stats.raided))
+
 
             elif show_zeros and cc_stats.raid_clan is None:
                 raid_text = f"{0}".ljust(5)
-                p_data.append(0)
-                p_data.append(0)
                 raid_list.append([f"{self.bot.emoji.capital_gold.emoji_string}`{0}/6 {raid_text}`: {name}", 0])
             data.append(p_data)
 
@@ -406,12 +410,12 @@ class clan_commands(commands.Cog):
                 await res.edit_original_message(embed=raid_embed[0])
             elif res.data.custom_id == "capseason":
                 file = self.create_excel(columns=columns, index=index, data=data, weekend=weekend)
-                await res.edit_original_message(file=file)
+                await res.send(file=file)
 
     def create_excel(self, columns, index, data, weekend):
         df = pd.DataFrame(data, index=index, columns=columns)
         df.to_excel('ClanCapitalStats.xlsx', sheet_name=f'{weekend}')
-        return disnake.File("ClanCapitalStats.xlsx", filename=f"{weekend}_ccstats")
+        return disnake.File("ClanCapitalStats.xlsx", filename=f"{weekend}_clancapital.xlsx")
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
