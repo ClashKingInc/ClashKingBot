@@ -302,14 +302,15 @@ class clan_commands(commands.Cog):
             weekend: weekend to show stats for
         """
         show_zeros = show_zeros == "True"
-        date = self.bot.gen_raid_date()
+        if weekend is None:
+            weekend = self.bot.gen_raid_date()
         await ctx.response.defer()
         clan = await self.bot.getClan(clan)
         if clan is None or clan.member_count == 0:
             return await ctx.send("Not a valid clan tag.")
         clan_member_tags = [player.tag for player in clan.members]
         other_tags = []
-        results = self.bot.player_stats.find({f"capital_gold.{date}.raided_clan": clan.tag})
+        results = self.bot.player_stats.find({f"capital_gold.{weekend}.raided_clan": clan.tag})
 
         for result in await results.to_list(length=100):
             tag = result.get("tag")
@@ -365,11 +366,11 @@ class clan_commands(commands.Cog):
             donated_lines = ["No Capital Gold Donated"]
         if raid_lines == []:
             raid_lines = ["No Capital Gold Raided"]
-        raid_embed = self.bot.create_embeds(line_lists=raid_lines, title=f"**{clan.name} Raid Totals**", max_lines=50, thumbnail_url=clan.badge.url, footer=f"Week of {self.bot.gen_raid_date()} | {len(raid_lines)}/50")
+        raid_embed = self.bot.create_embeds(line_lists=raid_lines, title=f"**{clan.name} Raid Totals**", max_lines=50, thumbnail_url=clan.badge.url, footer=f"Week of {weekend} | {len(raid_lines)}/50")
 
-        donation_embed = self.bot.create_embeds(line_lists=donated_lines, title="**Clan Capital Donations**", max_lines=50, thumbnail_url=clan.badge.url, footer=f"Week of {self.bot.gen_raid_date()} | {len(donated_lines)}/50")
+        donation_embed = self.bot.create_embeds(line_lists=donated_lines, title="**Clan Capital Donations**", max_lines=50, thumbnail_url=clan.badge.url, footer=f"Week of {weekend} | {len(donated_lines)}/50")
 
-        buttons = raid_buttons(self.bot)
+        buttons = raid_buttons(self.bot, weekend)
         await ctx.edit_original_message(embed=raid_embed[0], components=buttons)
         msg = await ctx.original_message()
         def check(res: disnake.MessageInteraction):
