@@ -344,7 +344,9 @@ class clan_commands(commands.Cog):
             len_raided = 0
             is_in_clan = False
             for week in weekend_list:
+                print(week)
                 cc_stats = player.clan_capital_stats(week=week)
+                print(sum(cc_stats.donated))
                 sum_donated += sum(cc_stats.donated)
                 len_donated += len(cc_stats.donated)
                 if cc_stats.raid_clan is None:
@@ -354,8 +356,7 @@ class clan_commands(commands.Cog):
                     if player.clan_tag() == clan.tag:
                         is_in_clan = True
                     num_raided = len(cc_stats.raided)
-                    if num_raided > 6:
-                        num_raided = 6
+                    num_raided = min(num_raided, 6)
                     sum_raided += sum(cc_stats.raided)
                     len_raided += num_raided
 
@@ -364,10 +365,10 @@ class clan_commands(commands.Cog):
             index.append(name)
             for char in ["`", "*", "_", "~"]:
                 name = name.replace(char, "", 10)
+            #print(sum_donated)
             if not show_zeros and player.clan_tag() == clan.tag and sum_donated != 0:
                 donation_text = f"{sum_donated}".ljust(5)
                 donation_list.append([f"{self.bot.emoji.capital_gold.emoji_string}`{donation_text}`: {name}", sum_donated])
-
             elif show_zeros and player.clan_tag() == clan.tag:
                 donation_text = f"{sum_donated}".ljust(5)
                 donation_list.append([f"{self.bot.emoji.capital_gold.emoji_string}`{donation_text}`: {name}", sum_donated])

@@ -50,8 +50,8 @@ def create_weekend_list(option):
     elif option == "Two Weeks Ago":
         return [weekends[0]]
     elif option == "Last 4 Weeks (all)":
-        return [weekends[0:4]]
+        return weekends[0:4]
     elif option == "Last 8 Weeks (all)":
-        return [weekends[0:8]]
+        return weekends[0:8]
 
     return weekends
