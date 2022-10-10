@@ -141,6 +141,7 @@ class misc(commands.Cog, name="Other"):
     async def faq(self, ctx: disnake.ApplicationCommandInteraction, question=None):
         await ctx.response.defer()
         q_n_a = await self.parse_faq()
+        print(q_n_a)
         if question is not None:
             embed = disnake.Embed(title=f"**{question}**", description=q_n_a[question],
                                   color=disnake.Color.green())
@@ -195,7 +196,7 @@ class misc(commands.Cog, name="Other"):
         questions = []
         for question, answer in q_n_a.items():
             if query.lower() in question.lower():
-                questions.append(question)
+                questions.append(question[0:99])
         return questions
 
 
