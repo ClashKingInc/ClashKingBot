@@ -74,7 +74,7 @@ class DMFeed(commands.Cog, name="DM Feed & Reports"):
         build = self.legend_feed_embed_and_components(feed_tags=feed_tags, players=players)
         embed = disnake.Embed(title="Edit Legend Feed Tracking (up to 3 players)", description=build[1])
 
-        await ctx.send(embed=embed, components=build[0])
+        await ctx.send(embed=embed, components=build[0], ephemeral=True)
         msg = await ctx.original_message()
 
         def check(res: disnake.MessageInteraction):
