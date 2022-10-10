@@ -389,7 +389,6 @@ class clan_commands(commands.Cog):
         def check(res: disnake.MessageInteraction):
             return res.message.id == msg.id
 
-        file = None
         while True:
             try:
                 res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
@@ -406,8 +405,7 @@ class clan_commands(commands.Cog):
             elif res.data.custom_id == "cg_raid":
                 await res.edit_original_message(embed=raid_embed[0])
             elif res.data.custom_id == "capseason":
-                if file is None:
-                    file = self.create_excel(columns=columns, index=index, data=data, weekend=weekend)
+                file = self.create_excel(columns=columns, index=index, data=data, weekend=weekend)
                 await res.edit_original_message(file=file)
 
     def create_excel(self, columns, index, data, weekend):
@@ -421,6 +419,7 @@ class clan_commands(commands.Cog):
         worksheet.set_column(2, 2, 10)
         worksheet.set_column(3, 3, 18)
         worksheet.set_column(4, 4, 10)
+        workbook.save()
 
         return disnake.File("ClanCapitalStats.xlsx", filename=f"{weekend}_ccstats")
 
