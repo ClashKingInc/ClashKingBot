@@ -4,7 +4,7 @@ from CustomClasses.CustomBot import CustomClient
 from datetime import datetime
 from utils.discord_utils import partial_emoji_gen
 from utils.components import raid_buttons
-from utils.clash import create_weekends
+from utils.clash import create_weekends, create_weekend_list
 import asyncio
 from CustomClasses.CustomPlayer import MyCustomPlayer
 import pandas as pd
@@ -303,19 +303,25 @@ class clan_commands(commands.Cog):
             weekend: weekend to show stats for
         """
         show_zeros = show_zeros == "True"
+
         if weekend is None:
             weekend = self.bot.gen_raid_date()
+            weekend_list = [weekend]
+        else:
+            weekend_list = create_weekend_list(weekend)
         await ctx.response.defer()
         clan = await self.bot.getClan(clan)
         if clan is None or clan.member_count == 0:
             return await ctx.send("Not a valid clan tag.")
         clan_member_tags = [player.tag for player in clan.members]
         other_tags = []
-        results = self.bot.player_stats.find({f"capital_gold.{weekend}.raided_clan": clan.tag})
 
-        for result in await results.to_list(length=100):
-            tag = result.get("tag")
-            other_tags.append(tag)
+        for week in weekend_list:
+            results = self.bot.player_stats.find({f"capital_gold.{week}.raided_clan": clan.tag})
+            for result in await results.to_list(length=100):
+                tag = result.get("tag")
+                other_tags.append(tag)
+
         all_tags = list(set(clan_member_tags + other_tags))
         tasks = []
         for tag in all_tags:
@@ -324,55 +330,61 @@ class clan_commands(commands.Cog):
 
             tasks.append(task)
         responses = await asyncio.gather(*tasks)
+
         donation_list = []
         raid_list = []
         data = []
-        columns = ["Donated", "Number of Donations", "Raided" , "Number of Raids"]
+        columns = ["Donated", "Number of Donations", "Raided", "Number of Raids"]
         index = []
         for player in responses:
             player: MyCustomPlayer
-            cc_stats = player.clan_capital_stats(week=weekend)
+            sum_donated = 0
+            len_donated = 0
+            sum_raided = 0
+            len_raided = 0
+            is_in_clan = False
+            for week in weekend_list:
+                cc_stats = player.clan_capital_stats(week=week)
+                sum_donated += sum(cc_stats.donated)
+                len_donated += len(cc_stats.donated)
+                if cc_stats.raid_clan is None:
+                    sum_raided += 0
+                    len_raided += 0
+                elif clan.tag == cc_stats.raid_clan:
+                    if player.clan_tag() == clan.tag:
+                        is_in_clan = True
+                    num_raided = len(cc_stats.raided)
+                    if num_raided > 6:
+                        num_raided = 6
+                    sum_raided += sum(cc_stats.raided)
+                    len_raided += num_raided
+
             name: str = player.name
             p_data = []
             index.append(name)
             for char in ["`", "*", "_", "~"]:
                 name = name.replace(char, "", 10)
-            if not show_zeros and player.clan_tag() == clan.tag and sum(cc_stats.donated) != 0:
-                donation_text = f"{sum(cc_stats.donated)}".ljust(5)
-                donation_list.append([f"{self.bot.emoji.capital_gold.emoji_string}`{donation_text}`: {name}", sum(cc_stats.donated)])
+            if not show_zeros and player.clan_tag() == clan.tag and sum_donated != 0:
+                donation_text = f"{sum_donated}".ljust(5)
+                donation_list.append([f"{self.bot.emoji.capital_gold.emoji_string}`{donation_text}`: {name}", sum_donated])
 
             elif show_zeros and player.clan_tag() == clan.tag:
-                donation_text = f"{sum(cc_stats.donated)}".ljust(5)
-                donation_list.append([f"{self.bot.emoji.capital_gold.emoji_string}`{donation_text}`: {name}", sum(cc_stats.donated)])
+                donation_text = f"{sum_donated}".ljust(5)
+                donation_list.append([f"{self.bot.emoji.capital_gold.emoji_string}`{donation_text}`: {name}", sum_donated])
 
-            p_data.append(sum(cc_stats.donated))
-            p_data.append(len(cc_stats.donated))
-            if cc_stats.raid_clan is None:
-                p_data.append(0)
-                p_data.append(0)
+            p_data.append(sum_donated)
+            p_data.append(len_donated)
+            p_data.append(sum_raided)
+            p_data.append(len_raided)
+
+
+            if is_in_clan:
+                raid_text = f"{sum_raided}".ljust(5)
+                raid_list.append([f"{self.bot.emoji.capital_gold.emoji_string}`{len_raided}/{6*len(weekend_list)} {raid_text}`: {name}", sum_raided])
             else:
-                p_data.append(sum(cc_stats.raided))
-                p_data.append(len(cc_stats.raided))
+                raid_text = f"{sum_raided}".ljust(5)
+                raid_list.append([f"<:deny_mark:892770746034704384>`{len_raided}/{6*len(weekend_list)} {raid_text}`: {name}", sum_raided])
 
-            if clan.tag == cc_stats.raid_clan:
-                if player.clan_tag() == clan.tag:
-                    raid_text = f"{sum(cc_stats.raided)}".ljust(5)
-                    num_raided = len(cc_stats.raided)
-                    if num_raided > 6:
-                        num_raided = "6"
-                    raid_list.append([f"{self.bot.emoji.capital_gold.emoji_string}`{num_raided}/6 {raid_text}`: {name}", sum(cc_stats.raided)])
-
-                else:
-                    raid_text = f"{sum(cc_stats.raided)}".ljust(5)
-                    num_raided = len(cc_stats.raided)
-                    if num_raided > 6:
-                        num_raided = "6"
-                    raid_list.append([f"<:deny_mark:892770746034704384>`{num_raided}/6 {raid_text}`: {name}", sum(cc_stats.raided)])
-
-
-            elif show_zeros and cc_stats.raid_clan is None:
-                raid_text = f"{0}".ljust(5)
-                raid_list.append([f"{self.bot.emoji.capital_gold.emoji_string}`{0}/6 {raid_text}`: {name}", 0])
             data.append(p_data)
 
         donation_ranked = sorted(donation_list, key=lambda l: l[1], reverse=True)
@@ -383,9 +395,13 @@ class clan_commands(commands.Cog):
             donated_lines = ["No Capital Gold Donated"]
         if raid_lines == []:
             raid_lines = ["No Capital Gold Raided"]
-        raid_embed = self.bot.create_embeds(line_lists=raid_lines, title=f"**{clan.name} Raid Totals**", max_lines=50, thumbnail_url=clan.badge.url, footer=f"Week of {weekend} | {len(raid_lines)}/50")
 
-        donation_embed = self.bot.create_embeds(line_lists=donated_lines, title="**Clan Capital Donations**", max_lines=50, thumbnail_url=clan.badge.url, footer=f"Week of {weekend} | {len(donated_lines)}/50")
+        footer_text = f"Week of {weekend}"
+        if "-" not in weekend:
+            footer_text = weekend
+        raid_embed = self.bot.create_embeds(line_lists=raid_lines, title=f"**{clan.name} Raid Totals**", max_lines=50, thumbnail_url=clan.badge.url, footer=f"{footer_text} | {len(raid_lines)} Raiders")
+
+        donation_embed = self.bot.create_embeds(line_lists=donated_lines, title="**Clan Capital Donations**", max_lines=50, thumbnail_url=clan.badge.url, footer=f"{footer_text} | {len(donated_lines)} Donators")
 
         buttons = raid_buttons(self.bot, data)
         await ctx.edit_original_message(embed=raid_embed[0], components=buttons)
