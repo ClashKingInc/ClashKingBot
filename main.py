@@ -83,6 +83,6 @@ if __name__ == "__main__":
         except Exception as extension:
             traceback.print_exc()
     bot.loop.create_task(player_websocket())
-    bot.loop.create_task(war_websocket())
+    #bot.loop.create_task(war_websocket())
     bot.loop.create_task(clan_websocket())
     bot.run(TOKEN)

@@ -11,8 +11,8 @@ def thDictionary(thLevel):
         11: "https://cdn.discordapp.com/attachments/842820614163398698/861379432995094538/11.png",
         12: "https://cdn.discordapp.com/attachments/842820614163398698/861379431415283732/12.5.png",
         13: "https://cdn.discordapp.com/attachments/886889518890885141/911184958293430282/786299624725545010.png",
-        14: "https://cdn.discordapp.com/attachments/886889518890885141/911184447628513280/1_14_5.png"
+        14: "https://cdn.discordapp.com/attachments/886889518890885141/911184447628513280/1_14_5.png",
+        15: "https://cdn.discordapp.com/attachments/1028905437300531271/1028905577662922772/unknown.png"
     }
 
-    pic = switcher.get(thLevel, "No Picture Found")
-    return pic
+    return switcher.get(thLevel, "No Picture Found")

@@ -80,6 +80,7 @@ class lb_updater(commands.Cog):
                     {"tag": clan.tag},
                     {"server": server}
                 ]}, {'$set': {"badge_link": clan.badge.url}})
+
             except:
                 continue
 

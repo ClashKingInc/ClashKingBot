@@ -137,6 +137,68 @@ class misc(commands.Cog, name="Other"):
         else:
             await ctx.send(file=file)
 
+    @commands.slash_command(name="faq", description="Frequently Asked Questions")
+    async def faq(self, ctx: disnake.ApplicationCommandInteraction, question=None):
+        await ctx.response.defer()
+        q_n_a = await self.parse_faq()
+        if question is not None:
+            embed = disnake.Embed(title=f"**{question}**", description=q_n_a[question],
+                                  color=disnake.Color.green())
+            await ctx.edit_original_message(embed=embed)
+        else:
+            embeds = []
+            menu_options = []
+            for spot, (question, answer) in enumerate(q_n_a.items()):
+                embed = disnake.Embed(title=f"**{question}**", description=answer,
+                                      color=disnake.Color.green())
+                embeds.append(embed)
+                menu_options.append(disnake.SelectOption(label=f"{question.replace('`', '')}", value=f"{spot}"))
+
+            stat_select = disnake.ui.Select(options=menu_options, placeholder="FAQ's", max_values=1)
+            st = disnake.ui.ActionRow()
+            st.append_item(stat_select)
+            faq_menu = [st]
+
+            await ctx.edit_original_message(embed=embeds[0], components=faq_menu)
+            msg = await ctx.original_message()
+
+            def check(res: disnake.MessageInteraction):
+                return res.message.id == msg.id
+
+            while True:
+                try:
+                    res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
+                except:
+                    try:
+                        await ctx.edit_original_message(components=[])
+                    except:
+                        pass
+                    break
+
+                await res.response.defer()
+                await res.edit_original_message(embed=embeds[int(res.values[0])])
+
+
+    async def parse_faq(self):
+        faq_channel = await self.bot.fetch_channel(self.bot.FAQ_CHANNEL_ID)
+        q_n_a = {}
+        async for message in faq_channel.history(limit=25):
+            split_content = message.content.split("**")
+            for count, content in enumerate(split_content):
+                if "?" in content:
+                    q_n_a[content] = split_content[count+1]
+        return q_n_a
+
+    @faq.autocomplete("question")
+    async def faq_question(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        q_n_a = await self.parse_faq()
+        questions = []
+        for question, answer in q_n_a.items():
+            if query.lower() in question.lower():
+                questions.append(question)
+        return questions
+
+
 
 
 def setup(bot: CustomClient):

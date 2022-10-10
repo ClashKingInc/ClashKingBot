@@ -248,3 +248,4 @@ class VoiceStatCron(commands.Cog):
 
 def setup(bot: CustomClient):
     bot.add_cog(VoiceStatCron(bot))
+

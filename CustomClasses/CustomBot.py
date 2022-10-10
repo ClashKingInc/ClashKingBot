@@ -112,7 +112,8 @@ class CustomClient(commands.Bot):
         self.callback_url = http_tunnel.public_url
         self.yt_api = api
 
-        self.MAX_FEED_LEN = 3
+        self.MAX_FEED_LEN = 5
+        self.FAQ_CHANNEL_ID = 1010727127806648371
 
     async def track_players(self, players: list):
         for player in players:
