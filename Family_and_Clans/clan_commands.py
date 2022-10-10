@@ -410,17 +410,7 @@ class clan_commands(commands.Cog):
 
     def create_excel(self, columns, index, data, weekend):
         df = pd.DataFrame(data, index=index, columns=columns)
-        writer = pd.ExcelWriter('ClanCapitalStats.xlsx', engine='xlsxwriter')
-        df.to_excel(writer, sheet_name=f'{weekend}')
-
-        workbook = writer.book
-        worksheet = writer.sheets[f'{weekend}']
-        worksheet.set_column(1, 1, 18)
-        worksheet.set_column(2, 2, 10)
-        worksheet.set_column(3, 3, 18)
-        worksheet.set_column(4, 4, 10)
-        writer.save()
-
+        df.to_excel('ClanCapitalStats.xlsx', sheet_name=f'{weekend}')
         return disnake.File("ClanCapitalStats.xlsx", filename=f"{weekend}_ccstats")
 
     @commands.Cog.listener()
