@@ -343,14 +343,14 @@ class clan_commands(commands.Cog):
                     raid_text = f"{sum(cc_stats.raided)}".ljust(5)
                     num_raided = len(cc_stats.raided)
                     if num_raided > 6:
-                        num_raided = "6⁺"
+                        num_raided = "6"
                     raid_list.append([f"{self.bot.emoji.capital_gold.emoji_string}`{num_raided}/6 {raid_text}`: {name}", sum(cc_stats.raided)])
 
                 else:
                     raid_text = f"{sum(cc_stats.raided)}".ljust(5)
                     num_raided = len(cc_stats.raided)
                     if num_raided > 6:
-                        num_raided = "6⁺"
+                        num_raided = "6"
                     raid_list.append([f"<:deny_mark:892770746034704384>`{num_raided}/6 {raid_text}`: {name}", sum(cc_stats.raided)])
 
             elif show_zeros and cc_stats.raid_clan is None:
