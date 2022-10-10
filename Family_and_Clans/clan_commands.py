@@ -419,7 +419,7 @@ class clan_commands(commands.Cog):
         worksheet.set_column(2, 2, 10)
         worksheet.set_column(3, 3, 18)
         worksheet.set_column(4, 4, 10)
-        workbook.save()
+        writer.save()
 
         return disnake.File("ClanCapitalStats.xlsx", filename=f"{weekend}_ccstats")
 
