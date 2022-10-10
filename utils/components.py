@@ -34,15 +34,16 @@ def create_components(current_page, embeds, print=False):
     return [buttons]
 
 
-def raid_buttons(bot: CustomClient, season):
+def raid_buttons(bot: CustomClient, data):
     page_buttons = [
         disnake.ui.Button(label="Raids", emoji=bot.emoji.sword_clash.partial_emoji, style=disnake.ButtonStyle.grey,
                           custom_id="cg_raid"),
         disnake.ui.Button(label="Donations", emoji=bot.emoji.capital_gold.partial_emoji, style=disnake.ButtonStyle.grey,
-                          custom_id="cg_dono"),
-        disnake.ui.Button(label="Excel File", emoji="📊", style=disnake.ButtonStyle.green,
-                          custom_id=season),
+                          custom_id="cg_dono")
         ]
+    if data != []:
+        page_buttons.append(disnake.ui.Button(label="Excel File", emoji="📊", style=disnake.ButtonStyle.green,
+                          custom_id="capseason"))
     buttons = disnake.ui.ActionRow()
     for button in page_buttons:
         buttons.append_item(button)
