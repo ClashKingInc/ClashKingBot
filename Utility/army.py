@@ -12,15 +12,15 @@ class ArmyLinks(commands.Cog, name="Army"):
         self.bot = bot
 
     @commands.slash_command(name='army', description="Create a visual message representation of an army link")
-    async def army(self, ctx: disnake.ApplicationCommandInteraction, army_link, clan_castle:str = "None"):
-        #try:
-            embed = await self.armyEmbed(ctx, "Results", army_link, clan_castle)
+    async def army(self, ctx: disnake.ApplicationCommandInteraction, army_link, army_name:str = "Results", clan_castle:str = "None"):
+        try:
+            embed = await self.armyEmbed(ctx, name, army_link, clan_castle)
             buttons = disnake.ui.ActionRow()
             buttons.append_item(disnake.ui.Button(label=f"Copy Army Link", emoji=self.bot.emoji.troop.partial_emoji,
                                   url=army_link))
             await ctx.send(embed=embed, components=buttons)
-        #except:
-            #pass
+        except:
+            pass
 
 
     async def armyEmbed(self, ctx, nick, link, clan_castle):
