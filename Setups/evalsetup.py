@@ -250,7 +250,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
     ###Townhall Roles Section
     @townhall_roles.sub_command(name="set", description="Sets roles to add for townhall levels 7 and up")
     async def townhall_roles_set(self, ctx: disnake.ApplicationCommandInteraction, th7:disnake.Role=None, th8:disnake.Role=None, th9:disnake.Role=None,
-                th10:disnake.Role=None, th11:disnake.Role=None, th12:disnake.Role=None, th13:disnake.Role=None, th14:disnake.Role=None):
+                th10:disnake.Role=None, th11:disnake.Role=None, th12:disnake.Role=None, th13:disnake.Role=None, th14:disnake.Role=None, th15:disnake.Role=None):
 
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
@@ -258,7 +258,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        if th7 is None and th8 is None and th9 is None and th10 is None and th11 is None and th12 is None and th13 is None and th14 is None:
+        if th7 is None and th8 is None and th9 is None and th10 is None and th11 is None and th12 is None and th13 is None and th14 is None and th15 is None:
             return await ctx.send("Please provide a role for at least 1 townhall level.")
 
         roles_updated = ""
@@ -407,6 +407,24 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                     {"th": "th14"},
                     {"server": ctx.guild.id}
                 ]}, {'$set': {"role": th14.id}})
+        if th15 is not None:
+            roles_updated += f"TH15: {th15.mention}\n"
+            results = await self.bot.townhallroles.find_one({"$and": [
+                {"role": th15.id},
+                {"th": "th15"},
+                {"server": ctx.guild.id}
+            ]})
+
+            if results is None:
+                await self.bot.townhallroles.insert_one(
+                    {"role": th15.id,
+                     "th": "th15",
+                     "server": ctx.guild.id})
+            else:
+                await self.bot.townhallroles.update_one({"$and": [
+                    {"th": "th15"},
+                    {"server": ctx.guild.id}
+                ]}, {'$set': {"role": th15.id}})
 
         embed = disnake.Embed(title="**Townhall Roles that were set:**",
             description=roles_updated,
@@ -415,7 +433,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
 
     @townhall_roles.sub_command(name="remove", description="Remove townhall eval roles")
     async def townhall_roles_remove(self, ctx: disnake.ApplicationCommandInteraction, townhall: str =
-        commands.Param(choices=["th7", "th8", "th9", "th10", "th11", "th12", "th13", "th14"])):
+        commands.Param(choices=["th7", "th8", "th9", "th10", "th11", "th12", "th13", "th14", "th15"])):
 
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
