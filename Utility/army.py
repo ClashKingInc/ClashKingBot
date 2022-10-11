@@ -122,6 +122,8 @@ class ArmyLinks(commands.Cog, name="Army"):
             return ["TH12", 12]
         elif size <= 300:
             return ["TH13-14", 13]
+        elif size <= 320:
+            return ["TH13-15", 15]
 
     async def is_link_valid(self, link: str):
 
