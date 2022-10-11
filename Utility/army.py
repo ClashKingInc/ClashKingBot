@@ -13,14 +13,14 @@ class ArmyLinks(commands.Cog, name="Army"):
 
     @commands.slash_command(name='army', description="Create a visual message representation of an army link")
     async def army(self, ctx: disnake.ApplicationCommandInteraction, army_link, clan_castle:str = "None"):
-        try:
+        #try:
             embed = await self.armyEmbed(ctx, "Results", army_link, clan_castle)
             buttons = disnake.ui.ActionRow()
             buttons.append_item(disnake.ui.Button(label=f"Copy Army Link", emoji=self.bot.emoji.troop.partial_emoji,
                                   url=army_link))
             await ctx.send(embed=embed, components=buttons)
-        except:
-            pass
+        #except:
+            #pass
 
 
     async def armyEmbed(self, ctx, nick, link, clan_castle):
@@ -32,18 +32,21 @@ class ArmyLinks(commands.Cog, name="Army"):
 
         sieges = "**Sieges:**\n"
         troop_string = ""
+        troops_used = []
         eightTroops = ["Valkyrie", "Golem", "P.E.K.K.A"]
         isEight = False
         #generate troops
-        troops = armycomp[1]
+
         troopSpace = 0
         troop_string += "**Troops:**\n"
-        if troops != '':
+        if len(armycomp) > 1 and armycomp[1] != '':
+            troops = armycomp[1]
             troops_str = troops.split('-')
             for troop in troops_str:
                 split_num_and_id = troop.split('x')
                 num = split_num_and_id[0]
                 id = split_num_and_id[1]
+                troops_used.append(id)
                 troop_name = troop_ids(int(id))
                 if troop_name in eightTroops:
                     isEight = True
@@ -59,15 +62,18 @@ class ArmyLinks(commands.Cog, name="Army"):
 
         spells_patten = "s([\d+x-]+)"
         armycomp = re.split(spells_patten, link)
-        spells = armycomp[1]
+
         spell_string = "**Spells:**\n"
+        spells_used = []
         spell_space = 0
-        if spells != '':
+        if len(armycomp) > 1 and armycomp[1] != '':
+            spells = armycomp[1]
             spells_str = spells.split('-')
             for spell in spells_str:
                 split_num_and_id = spell.split('x')
                 num = split_num_and_id[0]
                 id = split_num_and_id[1]
+                spells_used.append(id)
                 spell_name = spell_ids(int(id))
                 spell_emoji = emojiDictionary(spell_name)
                 spell_space += (size(spell_name) * int(num))
@@ -79,7 +85,7 @@ class ArmyLinks(commands.Cog, name="Army"):
             sieges += "None"
 
         army = ""
-        townhall_lv = self.townhall_army(troopSpace)
+        townhall_lv = self.townhall_army(troopSpace, troops_used, spells_used)
         townhall_lv = townhall_lv[0]
         if townhall_lv == "TH7-8" and isEight:
             townhall_lv = "TH8"
@@ -97,7 +103,8 @@ class ArmyLinks(commands.Cog, name="Army"):
         embed = disnake.Embed(title=nick,description= army, color=disnake.Color.green())
         return embed
 
-    def townhall_army(self, size):
+    def townhall_army(self, size, troops, spells):
+
         if size <= 20:
             return ["TH1", 1]
         elif size <= 30:
@@ -123,7 +130,7 @@ class ArmyLinks(commands.Cog, name="Army"):
         elif size <= 300:
             return ["TH13-14", 13]
         elif size <= 320:
-            return ["TH13-15", 15]
+            return ["TH15", 15]
 
     async def is_link_valid(self, link: str):
 
@@ -160,12 +167,12 @@ class ArmyLinks(commands.Cog, name="Army"):
 
         troops_patten = "u([\d+x-]+)"
         check_link_troops = re.split(troops_patten, link)
-
-        if check_link_troops[1] != '':
+        print(check_link_troops)
+        if len(check_link_troops) > 1 and check_link_troops[1] != '':
             troops_str = check_link_troops[1].split('-')
             for troop in troops_str:
                 strings = troop.split('x')
-                if int(strings[0]) > 300:  # check for a valid count of the unit
+                if int(strings[0]) > 320:  # check for a valid count of the unit
                     # print('wrong count')
                     return False
                 if not troop_ids(int(strings[1])):  # check if it actually exists in dicts
@@ -174,8 +181,8 @@ class ArmyLinks(commands.Cog, name="Army"):
 
         spells_patten = "s([\d+x-]+)"
         check_link_spells = re.split(spells_patten, link)
-
-        if check_link_spells[1] != '':
+        print(check_link_spells)
+        if len(check_link_spells) > 1 and check_link_spells[1] != '':
             spells_str = check_link_spells[1].split('-')
             for spell in spells_str:
                 string = spell.split('x')
