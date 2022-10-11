@@ -39,6 +39,7 @@ def troop_ids(troop_id):
         82: "Headhunter",
         83: "Super Wizard",
         84: "Super Minion",
+        95: "Electro Titan",
 
 
         51: "Wall Wrecker",
@@ -46,7 +47,8 @@ def troop_ids(troop_id):
         62: "Stone Slammer",
         75: "Siege Barracks",
         87: "Log Launcher",
-        91 : "Flame Flinger"
+        91 : "Flame Flinger",
+        92 : "Battle Drill"
 
     }
 
@@ -66,7 +68,8 @@ def spell_ids(spell_id):
         16: "Clone Spell",
         17: "Skeleton Spell",
         28: "Bat Spell",
-        35: "Invisibility Spell"
+        35: "Invisibility Spell",
+        53: "Recall Spell"
     }
 
     spell_name = switcher.get(spell_id, False)
@@ -112,6 +115,7 @@ def size(troop_or_spell):
         "Super Minion" : 12,
         "Super Bowler" : 30,
         "Super Dragon" : 40,
+        "Electro Titan" : 32,
 
         "Lightning Spell" : 1,
         "Healing Spell" : 2,
@@ -124,7 +128,8 @@ def size(troop_or_spell):
         "Clone Spell" : 3,
         "Skeleton Spell" : 1,
         "Bat Spell" : 1,
-        "Invisibility Spell" : 1
+        "Invisibility Spell" : 1,
+        "Recall Spell" : 2
     }
 
     size = switcher.get(troop_or_spell, 0)
