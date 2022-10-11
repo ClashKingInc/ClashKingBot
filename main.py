@@ -23,12 +23,12 @@ bot = CustomClient(command_prefix="<@824653933347209227> ",help_command=None, in
     sync_commands_debug=False, sync_permissions=True)
 
 initial_extensions = (
-    #"BackgroundCrons.autoboard_loop",
-    #"BackgroundCrons.voicestat_loop",
-    #"BackgroundCrons.region_lb_update",
-    #"BackgroundCrons.legends_history",
-    #"BackgroundCrons.reddit_recruit_feed",
-    #"BackgroundCrons.youtube_base_feed",
+    "BackgroundCrons.autoboard_loop",
+    "BackgroundCrons.voicestat_loop",
+    "BackgroundCrons.region_lb_update",
+    "BackgroundCrons.legends_history",
+    "BackgroundCrons.reddit_recruit_feed",
+    "BackgroundCrons.youtube_base_feed",
     "BackgroundCrons.dm_reports",
     "EventHub.clan_capital_events",
     "EventHub.join_leave_events",
@@ -62,7 +62,7 @@ initial_extensions = (
     "other",
     "settings",
     "owner_commands",
-    #"erikuh_comp"
+    "erikuh_comp"
 )
 
 
@@ -73,6 +73,5 @@ if __name__ == "__main__":
         except Exception as extension:
             traceback.print_exc()
     bot.loop.create_task(player_websocket())
-    #bot.loop.create_task(war_websocket())
     bot.loop.create_task(clan_websocket())
     bot.run(os.getenv("TOKEN"))

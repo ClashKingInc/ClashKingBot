@@ -93,7 +93,7 @@ def troops(player):
             if troop.level <= 11:
                 levelList += " "
 
-            if (z != 0 and z % 5 == 0):
+            if (z != 0 and z % 6 == 0):
                 troopList += "\n" + levelList + "\n"
                 levelList = ""
 
@@ -174,14 +174,17 @@ def heroPets(player):
     if (pets == []):
         return None
     petList = ""
-
+    pet_names = []
     for x in range(len(pets)):
         pet = pets[x]
-        if pet.level == pet.max_level:
-            petList += emojiDictionary(pet.name) + maxLevelEmojis(pet.level)
-        else:
-            petList += emojiDictionary(pet.name) + levelEmojis(pet.level)
-            # print(heroList)
+        if pet.name not in pet_names:
+            pet_names.append(pet.name)
+            if pet.level == pet.max_level:
+                petList += emojiDictionary(pet.name) + maxLevelEmojis(pet.level)
+            else:
+                petList += emojiDictionary(pet.name) + levelEmojis(pet.level)
+        if x == 3:
+            petList += "\n"
     return petList
 
 

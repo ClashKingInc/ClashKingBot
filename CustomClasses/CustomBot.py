@@ -107,7 +107,6 @@ class CustomClient(commands.Bot):
         self.emoji = emoji_class
         self.locations = locations
 
-        self.callback_url = http_tunnel.public_url
         self.yt_api = api
 
         self.MAX_FEED_LEN = 5
