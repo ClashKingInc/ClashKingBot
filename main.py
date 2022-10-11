@@ -3,7 +3,6 @@ import disnake
 from disnake import Client
 
 import traceback
-from utils.clash import client
 from CustomClasses.CustomBot import CustomClient
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -13,15 +12,6 @@ from EventHub.event_websockets import player_websocket, clan_websocket, war_webs
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
 
-#db collections
-usafam = client.usafam
-server = usafam.server
-clans = usafam.clans
-whitelist = usafam.whitelist
-banlist = usafam.banlist
-
-
-TOKEN = os.getenv("TOKEN")
 discClient = Client()
 intents = disnake.Intents().none()
 intents.members = True
@@ -33,11 +23,11 @@ bot = CustomClient(command_prefix="<@824653933347209227> ",help_command=None, in
     sync_commands_debug=False, sync_permissions=True)
 
 initial_extensions = (
-    "BackgroundCrons.autoboard_loop",
-    "BackgroundCrons.voicestat_loop",
-    "BackgroundCrons.region_lb_update",
-    "BackgroundCrons.legends_history",
-    "BackgroundCrons.reddit_recruit_feed",
+    #"BackgroundCrons.autoboard_loop",
+    #"BackgroundCrons.voicestat_loop",
+    #"BackgroundCrons.region_lb_update",
+    #"BackgroundCrons.legends_history",
+    #"BackgroundCrons.reddit_recruit_feed",
     #"BackgroundCrons.youtube_base_feed",
     "BackgroundCrons.dm_reports",
     "EventHub.clan_capital_events",
@@ -72,7 +62,7 @@ initial_extensions = (
     "other",
     "settings",
     "owner_commands",
-    "erikuh_comp"
+    #"erikuh_comp"
 )
 
 
@@ -85,4 +75,4 @@ if __name__ == "__main__":
     bot.loop.create_task(player_websocket())
     #bot.loop.create_task(war_websocket())
     bot.loop.create_task(clan_websocket())
-    bot.run(TOKEN)
+    bot.run(os.getenv("TOKEN"))

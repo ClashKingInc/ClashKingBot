@@ -67,13 +67,11 @@ locations = ["global", 32000007, 32000008, 32000009, 32000010, 32000011, 3200001
              32000248,
              32000249, 32000250, 32000251, 32000252, 32000253, 32000254, 32000255, 32000256, 32000257, 32000258,
              32000259, 32000260]
-http_tunnel = ngrok.connect(addr='8080')
 api = Api(api_key=os.getenv("YT_API_KEY"))
 
 class CustomClient(commands.Bot):
     def __init__(self, **options):
         super().__init__(**options)
-
         self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
         self.new_looper = self.looper_db.new_looper
         self.user_db = self.new_looper.user_db
@@ -83,7 +81,7 @@ class CustomClient(commands.Bot):
         self.history_db = self.looper_db.legend_history
         self.user_name = "admin"
 
-        self.link_client = discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW"))
+        self.link_client = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
         self.clan_db = self.db_client.usafam.clans
