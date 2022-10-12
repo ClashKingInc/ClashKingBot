@@ -1,3 +1,4 @@
+import coc
 import disnake
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
@@ -429,6 +430,31 @@ class clan_commands(commands.Cog):
                 file = self.create_excel(columns=columns, index=index, data=data, weekend=weekend)
                 await res.send(file=file)
 
+
+    @clan.sub_command(name="capital-raids")
+    async def beta_cc(self, ctx: disnake.ApplicationCommandInteraction, clan:str):
+        await ctx.response.defer()
+        clan = await self.bot.getClan(clan)
+        raidlog = await self.bot.coc_client.get_raidlog(clan.tag)
+        capital_hall = coc.utils.get(clan.capital_districts, name="Capital Peak")
+        embed = disnake.Embed(description=f"**{clan.name} Clan Capital Raids**")
+        #for raid in raidlog:
+        raid_weekend = raidlog[-1]
+        raids = raid_weekend.attack_log
+
+
+        for raid_clan in raids:
+            url = raid_clan.badge.url.replace(".png", "")
+            emoji = disnake.utils.get(self.bot.emojis, name=url[-15:].replace("-", ""))
+            if emoji is None:
+                emoji = await self.bot.create_new_badge_emoji(url=raid_clan.badge.url)
+            embed.add_field(name=f"<:{emoji.name}:{emoji.id}>{raid_clan.name}", value=f"Attacks: {raid_clan.attack_count}\n"
+                                                                                      f"<:cd:1029655519134240789> ", inline=False)
+        await ctx.edit_original_message(embed=embed)
+
+
+
+
     def create_excel(self, columns, index, data, weekend):
         df = pd.DataFrame(data, index=index, columns=columns)
         df.to_excel('ClanCapitalStats.xlsx', sheet_name=f'{weekend}')
@@ -494,7 +520,7 @@ class clan_commands(commands.Cog):
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
 
-
+    @beta_cc.autocomplete("clan")
     @linked_clans.autocomplete("clan")
     @player_trophy.autocomplete("clan")
     @war_opt.autocomplete("clan")

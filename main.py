@@ -23,13 +23,13 @@ bot = CustomClient(command_prefix="<@824653933347209227> ",help_command=None, in
     sync_commands_debug=False, sync_permissions=True)
 
 initial_extensions = (
-    "BackgroundCrons.autoboard_loop",
-    "BackgroundCrons.voicestat_loop",
-    "BackgroundCrons.region_lb_update",
-    "BackgroundCrons.legends_history",
-    "BackgroundCrons.reddit_recruit_feed",
-    "BackgroundCrons.youtube_base_feed",
-    "BackgroundCrons.dm_reports",
+    #"BackgroundCrons.autoboard_loop",
+    #"BackgroundCrons.voicestat_loop",
+    #"BackgroundCrons.region_lb_update",
+    #"BackgroundCrons.legends_history",
+    #"BackgroundCrons.reddit_recruit_feed",
+    #"BackgroundCrons.youtube_base_feed",
+    #"BackgroundCrons.dm_reports",
     "EventHub.clan_capital_events",
     "EventHub.join_leave_events",
     "EventHub.ban_events",
@@ -57,12 +57,12 @@ initial_extensions = (
     "War & CWL.cwl",
     "War & CWL.war",
    # "War & CWL.war_track",
-    "discord_events",
+    #"discord_events",
     "help",
     "other",
     "settings",
     "owner_commands",
-    "erikuh_comp"
+    #"erikuh_comp"
 )
 
 

@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 from Dictionaries.emojiDictionary import emojiDictionary, legend_emojis
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis
-from pyngrok import ngrok
 from pyyoutube import Api
+from urllib.request import urlopen
 
 import coc
 import motor.motor_asyncio
@@ -17,6 +17,8 @@ import pytz
 import os
 import re
 import asyncio
+import collections
+import random
 
 utc = pytz.utc
 load_dotenv()
@@ -67,6 +69,10 @@ locations = ["global", 32000007, 32000008, 32000009, 32000010, 32000011, 3200001
              32000248,
              32000249, 32000250, 32000251, 32000252, 32000253, 32000254, 32000255, 32000256, 32000257, 32000258,
              32000259, 32000260]
+BADGE_GUILDS = [1029631304817451078, 1029631182196977766, 1029631107240562689, 1029631144641183774, 1029629452403097651,
+                             1029629694854828082, 1029629763087777862, 1029629811221610516, 1029629853017841754, 1029629905903833139,
+                             1029629953907634286, 1029629992830783549, 1029630376911581255, 1029630455202455563, 1029630702125318144,
+                             1029630796966932520, 1029630873588469760, 1029630918106824754, 1029630974025277470, 1029631012084396102]
 api = Api(api_key=os.getenv("YT_API_KEY"))
 
 class CustomClient(commands.Bot):
@@ -111,6 +117,28 @@ class CustomClient(commands.Bot):
 
         self.MAX_FEED_LEN = 5
         self.FAQ_CHANNEL_ID = 1010727127806648371
+
+    async def create_new_badge_emoji(self, url:str):
+        img = urlopen(url).read()
+        global BADGE_GUILDS
+        guild_ids = collections.deque(BADGE_GUILDS)
+        guild_ids.rotate(1)
+        BADGE_GUILDS = list(guild_ids)
+
+        guild = self.get_guild(BADGE_GUILDS[0])
+        while len(guild.emojis) >= 47:
+            num_to_delete = random.randint(1, 5)
+            for emoji in guild.emojis[:num_to_delete]:
+                await guild.delete_emoji(emoji=emoji)
+            guild_ids = collections.deque(BADGE_GUILDS)
+            guild_ids.rotate(1)
+            BADGE_GUILDS = list(guild_ids)
+            guild = self.get_guild(BADGE_GUILDS[0])
+
+        url = url.replace(".png", "")
+        emoji = await guild.create_custom_emoji(name=url[-15:].replace("-", ""), image=img)
+        return emoji
+
 
     async def track_players(self, players: list):
         for player in players:

@@ -1,6 +1,6 @@
 import disnake
 from disnake.ext import commands
-
+from datetime import datetime
 clan_tags = ["#2P0JJQGUJ"]
 known_streak = []
 count = 0
@@ -12,85 +12,15 @@ class OwnerCommands(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @commands.slash_command(name="track-wars", guild_ids=[1013113692654686271])
-    async def track_war(self, ctx: disnake.ApplicationCommandInteraction, clan:str):
-        clan = await self.bot.getClan(clan)
-        if clan is None:
-            return await ctx.send("Not a valid clan tag")
 
-        results = await self.bot.clan_db.find_one({"$and": [
-            {"tag": clan.tag},
-            {"server": ctx.guild.id}
-        ]})
-        if results is not None:
-            embed = disnake.Embed(description=f"{clan.name} is already linked to this server.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
-
-        embed = disnake.Embed(description=f"Tracking for {clan.name} has been sent for approval.",
-                              color=disnake.Color.green())
-        await ctx.send(embed=embed)
-
-        channel = await self.bot.fetch_channel(1013152300627402773)
-        embed = disnake.Embed(description=f"{ctx.user.mention} has requested tracking for {clan.name}.",
-                              color=disnake.Color.green())
-
-        page_buttons = [
-            disnake.ui.Button(label="Yes", emoji="✅", style=disnake.ButtonStyle.green,
-                              custom_id=f"yestrack_{clan.tag}"),
-            disnake.ui.Button(label="No", emoji="❌",
-                              style=disnake.ButtonStyle.red,
-                              custom_id=f"notrack_{clan.tag}")
-        ]
-        buttons = disnake.ui.ActionRow()
-        for button in page_buttons:
-            buttons.append_item(button)
-
-        await channel.send(embed=embed, components=buttons)
-
-    @commands.Cog.listener()
-    async def on_button_click(self, ctx: disnake.MessageInteraction):
-        if "yestrack" in str(ctx.data.custom_id):
-            clan = (str(ctx.data.custom_id).split("_"))[1]
-            clan = await self.bot.getClan(clan)
-            await ctx.send(content=f"Setting up {clan.name}", ephemeral=True)
-            category = await self.bot.fetch_channel(1013167881363652638)
-            clan_channel = await ctx.guild.create_text_channel(category=category.category, name=clan.name, topic=clan.tag)
-            await self.bot.clan_db.insert_one({
-                "name": clan.name,
-                "tag": clan.tag,
-                "generalRole": 1013113817032573009,
-                "leaderRole": 1013113817032573009,
-                "category": "War Tracking",
-                "server": ctx.guild.id,
-                "clanChannel": clan_channel.id,
-                "war_log" : clan_channel.id
-            })
-            await ctx.message.edit(components=[])
-        elif "notrack" in str(ctx.data.custom_id):
-            clan = (str(ctx.data.custom_id).split("_"))[1]
-            clan = await self.bot.getClan(clan)
-            await ctx.send(content=f"Declining request...", ephemeral=True)
-            await ctx.message.edit(components=[])
-            channel = await self.bot.fetch_channel(1013156154177765386)
-            embed = disnake.Embed(description=f"Request to set up {clan.name} denied.",color=disnake.Color.red())
-            await channel.send(embed=embed)
-
-    @track_war.autocomplete("clan")
-    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-
-        clan_list = []
-        if len(query) >= 3:
-            clan = await self.bot.getClan(query)
-            if clan is None:
-                results = await self.bot.coc_client.search_clans(name=query, limit=10)
-                for clan in results:
-                    league = str(clan.war_league).replace("League ", "")
-                    clan_list.append(f"{clan.name} | {clan.member_count}/50 | LV{clan.level} | {league} | {clan.tag}")
-            else:
-                clan_list.append(f"{clan.name} | {clan.tag}")
-                return clan_list
-        return clan_list[0:25]
+    @commands.slash_command(name="emoji_to_json")
+    async def emoji_json(self, ctx: disnake.ApplicationCommandInteraction):
+        emojis = ctx.guild.emojis
+        text = ""
+        for emoji in emojis:
+            text += f'"{emoji.name}" : "<{emoji.name}:{emoji.id}>",\n'
+        text = "```{\n" + f"{text}" + "}```"
+        await ctx.send(text)
 
 
     @commands.command(name='reload', hidden=True)
@@ -107,6 +37,34 @@ class OwnerCommands(commands.Cog):
         else:
             await ctx.send("You aren't magic. <:PS_Noob:783126177970782228>")
 
+    @commands.slash_command(name="owner_anniversary", guild_ids=[923764211845312533])
+    @commands.is_owner()
+    async def anniversary(self, ctx: disnake.ApplicationCommandInteraction):
+        guild = ctx.guild
+        await ctx.send(content="Edited 0 members")
+        x = 0
+        for member in guild.members:
+            year = member.joined_at.year
+            month = member.joined_at.month
+            n_year = datetime.now().year
+            n_month = datetime.now().month
+            num_months = (n_year - year) * 12 + (n_month - month)
+            if num_months >= 12:
+                r = disnake.utils.get(ctx.guild.roles, id=1029249316981833748)
+                await member.add_roles(*[r])
+            elif num_months >= 9:
+                r = disnake.utils.get(ctx.guild.roles, id=1029249365858062366)
+                await member.add_roles(*[r])
+            elif num_months >= 6:
+                r = disnake.utils.get(ctx.guild.roles, id=1029249360178987018)
+                await member.add_roles(*[r])
+            elif num_months >= 3:
+                r = disnake.utils.get(ctx.guild.roles, id=1029249480261906463)
+                await member.add_roles(*[r])
+            x += 1
+            if x % 5 == 0:
+                await ctx.edit_original_message(content=f"Edited {x} members")
+        await ctx.edit_original_message(content="Done")
 
 
     @commands.command(name="testraid")

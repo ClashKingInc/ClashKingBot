@@ -27,7 +27,6 @@ class getClans(commands.Cog, name="Clan"):
 
     async def clan_overview(self, ctx, clan: coc.Clan):
         leader = utils.get(clan.members, role=coc.Role.leader)
-
         if clan.public_war_log:
             warwin = clan.war_wins
             warloss = clan.war_losses
