@@ -279,7 +279,7 @@ class Linking(commands.Cog):
 
         if api_token is None:
             perms = ctx.author.guild_permissions.manage_guild
-            if ctx.author.id == 706149153431879760:
+            if ctx.author.id == self.bot.owner.id:
                 perms = True
             if not perms:
                 embed = disnake.Embed(description="Must have `Manage Server` permissions to use command without `api_token`.",
@@ -301,7 +301,7 @@ class Linking(commands.Cog):
         if api_token is None:
             member = await self.bot.pingToMember(ctx, linked)
             is_member = (member is not None)
-            if ctx.author.id == 706149153431879760 or ctx.author.id == 161053630038802433:
+            if ctx.author.id == self.bot.owner.id:
                 is_member = True
 
             if is_member is False:
@@ -315,6 +315,7 @@ class Linking(commands.Cog):
         else:
             verified = await self.bot.verifyPlayer(playerTag=player.tag, playerToken=api_token)
             if verified:
+                await self.bot.link_client.delete_link(player.tag)
                 embed = disnake.Embed(
                     description=f"[{player.name}]({player.share_link}) has been unlinked from discord.",
                     color=disnake.Color.green())
