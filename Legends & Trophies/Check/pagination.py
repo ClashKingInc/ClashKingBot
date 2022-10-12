@@ -106,7 +106,7 @@ class Pagination(commands.Cog):
                 await self.bot.legend_profile.update_one({'discord_id': res.author.id}, {'$pull': {"profile_tags": tag, "feed_tags" : tag}})
                 await res.send(content=f"Removed {player.name} from your Quick Check & Daily Report list.", ephemeral=True)
 
-            elif len(profile_tags) > 24:
+            elif len(profile_tags) >= 24:
                 await res.send(content="Can only have 24 players on your Quick Check & Daily Report list. Please remove one.", ephemeral=True)
 
             else:
