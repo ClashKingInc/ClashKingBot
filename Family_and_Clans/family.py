@@ -174,7 +174,7 @@ class Family(commands.Cog):
             thcount[th] += 1
 
         stats = ""
-        for th_level, th_count in thcount.items():
+        for th_level, th_count in sorted(thcount.items(), reverse=True):
             if (th_level) <= 9:
                 th_emoji = emojiDictionary(th_level)
                 stats += f"{th_emoji} `TH{th_level} ` : {th_count}\n"
