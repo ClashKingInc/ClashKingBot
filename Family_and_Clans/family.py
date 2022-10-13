@@ -4,6 +4,7 @@ from coc import utils
 import coc
 from Dictionaries.emojiDictionary import emojiDictionary
 from CustomClasses.CustomBot import CustomClient
+from collections import defaultdict
 
 class Family(commands.Cog):
 
@@ -156,28 +157,30 @@ class Family(commands.Cog):
             clan_list.append(clan)
 
 
-        thcount = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        thcount = defaultdict(int)
         total = 0
         sumth = 0
 
+
+        clan_members = []
         for clan in clan_list:
-            async for player in clan.get_detailed_members():
-                th = player.town_hall
-                sumth += th
-                total += 1
-                count = thcount[th - 1]
-                thcount[th - 1] = count + 1
+            clan = await self.bot.getClan(clan.tag)
+            clan_members += [member.tag for member in clan.members]
+        list_members = await self.bot.get_players(tags=clan_members, custom=False)
+        for player in list_members:
+            th = player.town_hall
+            sumth += th
+            total += 1
+            thcount[th] += 1
 
         stats = ""
-        for x in reversed(range(len(thcount))):
-            count = thcount[x]
-            if count != 0:
-                if (x + 1) <= 9:
-                    th_emoji = emojiDictionary(x + 1)
-                    stats += f"{th_emoji} `TH{x + 1} ` : {count}\n"
-                else:
-                    th_emoji = emojiDictionary(x + 1)
-                    stats += f"{th_emoji} `TH{x + 1}` : {count}\n"
+        for th_level, th_count in thcount.items():
+            if (th_level) <= 9:
+                th_emoji = emojiDictionary(th_level)
+                stats += f"{th_emoji} `TH{th_level} ` : {th_count}\n"
+            else:
+                th_emoji = emojiDictionary(th_level)
+                stats += f"{th_emoji} `TH{th_level}` : {th_count}\n"
 
         average = round((sumth/total),2)
         if is_all:
