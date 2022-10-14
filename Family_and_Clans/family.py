@@ -179,9 +179,10 @@ class Family(commands.Cog):
             if war is not None:
                 war_list.append(war)
 
+        if len(war_list) == 0:
+            return await ctx.send("No clans in war and/or have public war logs.")
+
         embed = disnake.Embed(description=f"**{ctx.guild.name} Current Wars**", color=disnake.Color.green())
-        if ctx.guild.icon is not None:
-            embed.set_thumbnail(url=ctx.guild.icon.url)
         for war in war_list:
             if war.clan.name is None:
                 continue
