@@ -1,21 +1,21 @@
 import disnake
-from disnake.ext import commands
-from Dictionaries.emojiDictionary import emojiDictionary
-
-
-
-SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker", "Rocket Balloon", "Super Wizard", "Inferno Dragon",
-                "Super Minion", "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", "Super Dragon"]
-SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
-
-from coc import utils
 import coc
 import pytz
-tiz = pytz.utc
 import asyncio
 import aiohttp
 import calendar
 import re
+
+from disnake.ext import commands
+from Dictionaries.emojiDictionary import emojiDictionary
+from collections import defaultdict
+from coc import utils
+
+SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker", "Rocket Balloon", "Super Wizard", "Inferno Dragon",
+                "Super Minion", "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", "Super Dragon"]
+SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
+tiz = pytz.utc
+
 
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import LegendRanking
@@ -255,10 +255,10 @@ class getClans(commands.Cog, name="Clan"):
 
     async def player_townhall_sort(self, clan):
         ranking = []
-        thcount = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        thcount = defaultdict(int)
         async for player in clan.get_detailed_members():
             th_emoji = emojiDictionary(player.town_hall)
-            thcount[player.town_hall - 1] += 1
+            thcount[player.town_hall] += 1
             ranking.append([player.town_hall, f"{th_emoji}\u200e{player.name}\n"])
 
         ranking = sorted(ranking, key=lambda l: l[0], reverse=True)
@@ -268,7 +268,7 @@ class getClans(commands.Cog, name="Clan"):
                               description=ranking,
                               color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
-        footer_text = "".join(f"Th{index + 1}: {th} " for index, th in reversed(list(enumerate(thcount))) if th != 0)
+        footer_text = "".join(f"Th{index}: {th} " for index, th in sorted(thcount.items(), reverse=True) if th != 0)
         embed.set_footer(text=footer_text)
         return embed
 
@@ -277,14 +277,18 @@ class getClans(commands.Cog, name="Clan"):
         opted_out = []
         num_in = 0
         num_out = 0
+        thcount = defaultdict(int)
+        out_thcount = defaultdict(int)
         async for player in clan.get_detailed_members():
             if player.war_opted_in:
                 th_emoji = emojiDictionary(player.town_hall)
                 opted_in.append([player.town_hall, f"<:opt_in:944905885367537685>{th_emoji}\u200e{player.name}\n"])
+                thcount[player.town_hall] += 1
                 num_in += 1
             else:
                 th_emoji = emojiDictionary(player.town_hall)
                 opted_out.append([player.town_hall, f"<:opt_out:944905931265810432>{th_emoji}\u200e{player.name}\n"])
+                out_thcount[player.town_hall] += 1
                 num_out += 1
 
 
@@ -294,14 +298,18 @@ class getClans(commands.Cog, name="Clan"):
         opted_out = "".join([i[1] for i in opted_out])
         opted_in = "".join([i[1] for i in opted_in])
 
-        if opted_in == "":
+        if not opted_in:
             opted_in = "None"
-        if opted_out == "":
+        if not opted_out:
             opted_out = "None"
 
         embed = disnake.Embed(title=f"**{clan.name} War Opt Statuses**", description=f"**Players Opted In - {num_in}:**\n{opted_in}\n**Players Opted Out - {num_out}:**\n{opted_out}\n",
                               color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
+        footer_text = ", ".join(f"Th{index}: {th} " for index, th in sorted(thcount.items(), reverse=True) if th != 0)
+        footer_text2 = ", ".join(f"Th{index}: {th} " for index, th in sorted(out_thcount.items(), reverse=True) if th != 0)
+        embed.set_footer(text=f"In: {footer_text}\nOut: {footer_text2}")
+
         return embed
 
     def leagueAndTrophies(self, league):

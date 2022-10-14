@@ -338,8 +338,6 @@ class clan_commands(commands.Cog):
         embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
         await ctx.edit_original_message(embed=embed)
 
-
-
     Weekends = commands.option_enum(create_weekends())
     @clan.sub_command(name="capital", description="See clan capital stats for a week")
     async def clan_capital(self, ctx: disnake.ApplicationCommandInteraction, clan: str, show_zeros=commands.Param(default="False", choices=["True", "False"]), weekend: Weekends = None):
