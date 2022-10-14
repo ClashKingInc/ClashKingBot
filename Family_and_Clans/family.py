@@ -141,6 +141,8 @@ class Family(commands.Cog):
             clan_members += [member.tag for member in clan.members]
         list_members = await self.bot.get_players(tags=clan_members, custom=False)
         for player in list_members:
+            if player is None:
+                continue
             th = player.town_hall
             sumth += th
             total += 1
