@@ -126,10 +126,14 @@ class banlists(commands.Cog, name="Bans"):
         if channel is not None:
             x = 0
             async for message in channel.history(limit=None):
-                await message.delete()
+                message: disnake.Message
                 x += 1
-                if x == 100:
+                if x == 101:
                     break
+                if message.author.id != self.bot.user.id:
+                    continue
+                await message.delete()
+
             embeds = await self.create_embeds(ctx)
             for embed in embeds:
                 await channel.send(embed=embed)
