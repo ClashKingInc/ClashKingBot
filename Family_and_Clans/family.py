@@ -167,9 +167,10 @@ class Family(commands.Cog):
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
         if len(clan_tags) == 0:
             return await ctx.send("No clans linked to this server.")
-        clan_tags.append("#29Q9809")
-        clan_tags.append("#20VRYL99C")
-        clan_tags.append("#88UUCRR9")
+        if ctx.guild.id == 923764211845312533:
+            clan_tags.append("#29Q9809")
+            clan_tags.append("#20VRYL99C")
+            clan_tags.append("#88UUCRR9")
         war_list = []
         for tag in clan_tags:
             war = await self.bot.get_clanwar(tag)
