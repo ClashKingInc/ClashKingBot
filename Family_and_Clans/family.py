@@ -1,10 +1,14 @@
 import disnake
+import coc
+import pytz
+
 from disnake.ext import commands
 from coc import utils
-import coc
 from Dictionaries.emojiDictionary import emojiDictionary
 from CustomClasses.CustomBot import CustomClient
 from collections import defaultdict
+
+tiz = pytz.utc
 
 class Family(commands.Cog):
 
@@ -113,55 +117,24 @@ class Family(commands.Cog):
 
             await res.response.edit_message(embed=embeds[current_page])
 
-    @family.sub_command(name='compo', description="Compo of an individual clan or all server clans if left blank")
-    async def thcomp(self, ctx: disnake.ApplicationCommandInteraction, clan:str=None):
-        """
-            Parameters
-            ----------
-            clan: clan to calculate th composition of [alias or tag], if blank does all server clans
-        """
-
+    @family.sub_command(name='compo', description="Compo of an all clans in server")
+    async def family_compo(self, ctx: disnake.ApplicationCommandInteraction):
         clan_list = []
-        is_all = False
         await ctx.response.defer()
+        embed = disnake.Embed(description=f"<a:loading:884400064313819146> Calculating TH Composition for {ctx.guild.name}.", color=disnake.Color.green())
 
-        if clan is None:
-            embed = disnake.Embed(
-                description=f"<a:loading:884400064313819146> Calculating TH Composition for {ctx.guild.name}.",
-                color=disnake.Color.green())
-            await ctx.edit_original_message(embed=embed)
-            is_all = True
-            tracked = self.bot.clan_db.find({"server": ctx.guild.id})
-            limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
-            if limit == 0:
-                return await ctx.edit_original_message(content="Provide a clan tag please.", embed=None)
-            for tClan in await tracked.to_list(length=limit):
-                tag = tClan.get("tag")
-                clan = await self.bot.getClan(tag)
-                clan_list.append(clan)
-        else:
-            clan = clan.lower()
-            results = await self.bot.clan_db.find_one({"$and": [
-                {"alias": clan},
-                {"server": ctx.guild.id}
-            ]})
+        await ctx.edit_original_message(embed=embed)
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
+        if len(clan_tags) == 0:
+            return await ctx.edit_original_message(content="No clans linked to this server.", embed=None)
 
-            if results is not None:
-                tag = results.get("tag")
-                clan = await self.bot.getClan(tag)
-            else:
-                clan = await self.bot.getClan(clan)
-
-            if clan is None:
-                return await ctx.send("Not a valid clan tag.")
+        for tag in clan_tags:
+            clan = await self.bot.getClan(tag)
             clan_list.append(clan)
-
 
         thcount = defaultdict(int)
         total = 0
         sumth = 0
-
-
         clan_members = []
         for clan in clan_list:
             clan = await self.bot.getClan(clan.tag)
@@ -172,28 +145,80 @@ class Family(commands.Cog):
             sumth += th
             total += 1
             thcount[th] += 1
-
         stats = ""
         for th_level, th_count in sorted(thcount.items(), reverse=True):
-            if (th_level) <= 9:
+            if th_level <= 9:
                 th_emoji = emojiDictionary(th_level)
-                stats += f"{th_emoji} `TH{th_level} ` : {th_count}\n"
+                stats += f"{th_emoji} `TH{th_level} `: {th_count} "
             else:
                 th_emoji = emojiDictionary(th_level)
-                stats += f"{th_emoji} `TH{th_level}` : {th_count}\n"
+                stats += f"{th_emoji} `TH{th_level}` : {th_count} "
+        average = round(sumth / total, 2)
+        embed = disnake.Embed(title=f"{ctx.guild.name} Townhall Composition", description=stats, color=disnake.Color.green())
 
-        average = round((sumth/total),2)
-        if is_all:
-            embed = disnake.Embed(title=f"{ctx.guild.name} Townhall Composition", description=stats, color=disnake.Color.green())
-            if ctx.guild.icon is not None:
-                embed.set_thumbnail(url=ctx.guild.icon.url)
-            embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
-            await ctx.edit_original_message(embed=embed)
-        else:
-            embed = disnake.Embed(title=f"{clan.name} Townhall Composition", description=stats, color=disnake.Color.green())
-            embed.set_thumbnail(url=clan.badge.large)
-            embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
-            await ctx.edit_original_message(embed=embed)
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+        embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
+        await ctx.edit_original_message(embed=embed)
+
+    @family.sub_command(name="wars", description="List of current wars by family clans")
+    async def family_wars(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
+        if len(clan_tags) == 0:
+            return await ctx.send("No clans linked to this server.")
+        clan_tags.append("#29Q9809")
+        clan_tags.append("#20VRYL99C")
+        clan_tags.append("#88UUCRR9")
+        war_list = []
+        for tag in clan_tags:
+            war = await self.bot.get_clanwar(tag)
+            if war is not None:
+                war_list.append(war)
+
+        embed = disnake.Embed(description=f"**{ctx.guild.name} Current Wars**", color=disnake.Color.green())
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+        for war in war_list:
+            if war.clan.name is None:
+                continue
+            emoji = await self.bot.create_new_badge_emoji(url=war.clan.badge.url)
+            war_cog = self.bot.get_cog(name="War")
+            stars_percent = await war_cog.calculate_stars_percent(war)
+
+            war_time = war.start_time.seconds_until
+            war_pos = "Starting"
+            if war_time >= 0:
+                war_time = war.start_time.time.replace(tzinfo=tiz).timestamp()
+            else:
+                war_time = war.end_time.seconds_until
+                if war_time <= 0:
+                    war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
+                    war_pos = "Ended"
+                else:
+                    war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
+                    war_pos = "Ending"
+
+            team_hits = f"{len(war.attacks) - len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".ljust(7)
+            opp_hits = f"{len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".rjust(7)
+            team_stars = str(stars_percent[2]).ljust(7)
+            opp_stars = str(stars_percent[0]).rjust(7)
+            team_per = (str(stars_percent[3]) + "%").ljust(7)
+            opp_per = (str(stars_percent[1]) + "%").rjust(7)
+
+            embed.add_field(name=f"{emoji}{war.clan.name} vs {war.opponent.name}",
+                            value=f"> `{team_hits}`<a:swords:944894455633297418>`{opp_hits}`\n"
+                                  f"> `{team_stars}`<:star:825571962699907152>`{opp_stars}`\n"
+                                  f"> `{team_per}`<:broken_sword:944896241429540915>`{opp_per}`\n"
+                                  f"> {war_pos}: <t:{int(war_time)}:R>", inline=False)
+
+        await ctx.edit_original_message(embed=embed)
+
+
+
+
+
+
 
 def setup(bot: CustomClient):
     bot.add_cog(Family(bot))

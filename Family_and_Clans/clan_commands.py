@@ -9,6 +9,7 @@ from utils.clash import create_weekends, create_weekend_list
 import asyncio
 from CustomClasses.CustomPlayer import MyCustomPlayer
 import pandas as pd
+from collections import defaultdict
 
 class clan_commands(commands.Cog):
 
@@ -293,6 +294,52 @@ class clan_commands(commands.Cog):
                                   color=disnake.Color.red())
             return await ctx.edit_original_message(embed=embed)
 
+    @clan.sub_command(name="compo", description="Townhall composition of a clan")
+    async def clan_compo(self, ctx: disnake.ApplicationCommandInteraction, clan):
+        """
+            Parameters
+            ----------
+            clan: Use clan tag or select an option from the autocomplete
+        """
+        await ctx.response.defer()
+        thcount = defaultdict(int)
+        total = 0
+        sumth = 0
+
+        clan_members = []
+
+        clan = await self.bot.getClan(clan)
+        if clan is None or clan.member_count == 0:
+            embed = disnake.Embed(description="Not a valid clan tag.",
+                                  color=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+
+        clan_members += [member.tag for member in clan.members]
+        list_members = await self.bot.get_players(tags=clan_members, custom=False)
+        for player in list_members:
+            th = player.town_hall
+            sumth += th
+            total += 1
+            thcount[th] += 1
+
+        stats = ""
+        for th_level, th_count in sorted(thcount.items(), reverse=True):
+            if (th_level) <= 9:
+                th_emoji = self.bot.fetch_emoji(th_level)
+                stats += f"{th_emoji} `TH{th_level} ` : {th_count}\n"
+            else:
+                th_emoji = self.bot.fetch_emoji(th_level)
+                stats += f"{th_emoji} `TH{th_level}` : {th_count}\n"
+
+        average = round((sumth / total), 2)
+        embed = disnake.Embed(title=f"{clan.name} Townhall Composition", description=stats,
+                              color=disnake.Color.green())
+        embed.set_thumbnail(url=clan.badge.large)
+        embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
+        await ctx.edit_original_message(embed=embed)
+
+
+
     Weekends = commands.option_enum(create_weekends())
     @clan.sub_command(name="capital", description="See clan capital stats for a week")
     async def clan_capital(self, ctx: disnake.ApplicationCommandInteraction, clan: str, show_zeros=commands.Param(default="False", choices=["True", "False"]), weekend: Weekends = None):
@@ -448,12 +495,16 @@ class clan_commands(commands.Cog):
             emoji = disnake.utils.get(self.bot.emojis, name=url[-15:].replace("-", ""))
             if emoji is None:
                 emoji = await self.bot.create_new_badge_emoji(url=raid_clan.badge.url)
-            embed.add_field(name=f"<:{emoji.name}:{emoji.id}>{raid_clan.name}", value=f"Attacks: {raid_clan.attack_count}\n"
-                                                                                      f"<:cd:1029655519134240789> ", inline=False)
+
+            looted = sum(district.looted for district in raid_clan.districts)
+            embed.add_field(name=f"<:{emoji.name}:{emoji.id}>\u200e{raid_clan.name}", value=f"> {self.bot.emoji.sword} Attacks: {raid_clan.attack_count}\n"
+                                                                                      f"> <:cd:1029655519134240789> Destroyed: {raid_clan.destroyed_district_count}\n"
+                                                                                      f"> {self.bot.emoji.capital_gold} Looted: {'{:,}'.format(looted)}", inline=False)
         await ctx.edit_original_message(embed=embed)
 
 
-
+    def create_clan_raid_page(self):
+        pass
 
     def create_excel(self, columns, index, data, weekend):
         df = pd.DataFrame(data, index=index, columns=columns)
@@ -530,6 +581,7 @@ class clan_commands(commands.Cog):
     @getclan.autocomplete("clan")
     @clan_capital.autocomplete("clan")
     @player_th.autocomplete("clan")
+    @clan_compo.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
             tracked = self.bot.clan_db.find({"server": ctx.guild.id})
             limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})

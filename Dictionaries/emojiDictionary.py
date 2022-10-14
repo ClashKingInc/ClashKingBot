@@ -88,7 +88,7 @@ def emojiDictionary(emojiName):
         12 : "<:12:701579365162418188>",
         13 : "<:132:704082689816395787>",
         14 : "<:14:828991721181806623>",
-        15: "<:th15_big:1029215029486157855>",
+        15 : "<:th15_big:1029215029486157855>",
         "Capital Gold" : "<:capitalgold:987861320286216223>",
         "Capital_Hall7": "<CH7:1029590574031970434>",
         "District_Hall4": "<DH4:1029590574900195358>",
@@ -108,8 +108,7 @@ def emojiDictionary(emojiName):
 
     }
 
-    emoji = switcher.get(emojiName, None)
-    return emoji
+    return switcher.get(emojiName)
 
 def legend_emojis(emojiName):
     switcher = {

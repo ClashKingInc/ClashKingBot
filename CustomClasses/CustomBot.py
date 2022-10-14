@@ -137,7 +137,7 @@ class CustomClient(commands.Bot):
 
         url = url.replace(".png", "")
         emoji = await guild.create_custom_emoji(name=url[-15:].replace("-", ""), image=img)
-        return emoji
+        return f"<:{emoji.name}:{emoji.id}>"
 
 
     async def track_players(self, players: list):
@@ -418,7 +418,7 @@ class CustomClient(commands.Bot):
         verified = await self.coc_client.verify_player_token(playerTag, playerToken)
         return verified
 
-    async def getClanWar(self, clanTag):
+    async def get_clanwar(self, clanTag):
         try:
             war = await self.coc_client.get_clan_war(clanTag)
             return war
