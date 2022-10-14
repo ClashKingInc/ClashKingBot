@@ -219,10 +219,5 @@ class Family(commands.Cog):
         await ctx.edit_original_message(embed=embed)
 
 
-
-
-
-
-
 def setup(bot: CustomClient):
     bot.add_cog(Family(bot))
