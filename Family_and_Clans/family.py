@@ -149,10 +149,10 @@ class Family(commands.Cog):
         for th_level, th_count in sorted(thcount.items(), reverse=True):
             if th_level <= 9:
                 th_emoji = emojiDictionary(th_level)
-                stats += f"{th_emoji} `TH{th_level} `: {th_count} "
+                stats += f"{th_emoji} `TH{th_level} `: {th_count}\n"
             else:
                 th_emoji = emojiDictionary(th_level)
-                stats += f"{th_emoji} `TH{th_level}` : {th_count} "
+                stats += f"{th_emoji} `TH{th_level}` : {th_count}\n"
         average = round(sumth / total, 2)
         embed = disnake.Embed(title=f"{ctx.guild.name} Townhall Composition", description=stats, color=disnake.Color.green())
 
