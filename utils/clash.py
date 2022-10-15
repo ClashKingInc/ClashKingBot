@@ -30,7 +30,7 @@ def create_weekends():
 
 def create_weekend_list(option):
     weekends = []
-    for x in range(8):
+    for x in range(4):
         now = datetime.utcnow().replace(tzinfo=utc)
         now = now - timedelta(x * 7)
         current_dayofweek = now.weekday()
@@ -44,7 +44,15 @@ def create_weekend_list(option):
             forward = 4 - current_dayofweek
             raidDate = (now + timedelta(forward)).date()
         weekends.append(str(raidDate))
-    return weekends
+
+    if option == "Current Week":
+        return [weekends[0]]
+    elif option == "Last Week":
+        return [weekends[1]]
+    else:
+        return weekends[0:4]
+
+
 
 def weekend_timestamps():
     weekends = []

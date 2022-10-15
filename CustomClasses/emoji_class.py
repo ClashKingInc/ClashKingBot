@@ -48,6 +48,7 @@ class Emojis():
         self.troop = EmojiType("<:troop:861797310224400434>")
         self.reddit_icon = EmojiType("<:reddit:1015107963536539688>")
         self.xp = EmojiType("<:xp:991965062703095938>")
+        self.deny_mark = EmojiType("<:deny_mark:892770746034704384>")
 
 
 

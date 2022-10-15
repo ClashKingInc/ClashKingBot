@@ -37,9 +37,9 @@ def create_components(current_page, embeds, print=False):
 def raid_buttons(bot: CustomClient, data):
     page_buttons = [
         disnake.ui.Button(label="Raids", emoji=bot.emoji.sword_clash.partial_emoji, style=disnake.ButtonStyle.grey,
-                          custom_id="cg_raid"),
+                          custom_id="raids"),
         disnake.ui.Button(label="Donations", emoji=bot.emoji.capital_gold.partial_emoji, style=disnake.ButtonStyle.grey,
-                          custom_id="cg_dono")
+                          custom_id="donations")
         ]
     if data != []:
         page_buttons.append(disnake.ui.Button(label="Excel File", emoji="📊", style=disnake.ButtonStyle.green,
