@@ -515,7 +515,7 @@ class clan_commands(commands.Cog):
             for district in raid_clan.districts:
                 attack_text = ""
                 for attack in district.attacks:
-                    attack_text += f"> \u200e{attack.attacker_name} - {attack.destruction}%\n"
+                    attack_text += f"> \u200e{attack.destruction}% - \u200e{attack.attacker_name}\n"
                 if district.id == 70000000:
                     emoji = self.bot.fetch_emoji(name=f"Capital_Hall{district.hall_level}")
                 else:
