@@ -5,7 +5,7 @@ from CustomClasses.CustomBot import CustomClient
 from datetime import datetime
 from utils.discord_utils import partial_emoji_gen
 from utils.components import raid_buttons
-from utils.clash import create_weekends, create_weekend_list
+from utils.clash import create_weekends, create_weekend_list, weekend_timestamps
 import asyncio
 from CustomClasses.CustomPlayer import MyCustomPlayer
 import pandas as pd
@@ -338,6 +338,7 @@ class clan_commands(commands.Cog):
         embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
         await ctx.edit_original_message(embed=embed)
 
+    '''
     Weekends = commands.option_enum(create_weekends())
     @clan.sub_command(name="capital", description="See clan capital stats for a week")
     async def clan_capital(self, ctx: disnake.ApplicationCommandInteraction, clan: str, show_zeros=commands.Param(default="False", choices=["True", "False"]), weekend: Weekends = None):
@@ -474,32 +475,87 @@ class clan_commands(commands.Cog):
             elif res.data.custom_id == "capseason":
                 file = self.create_excel(columns=columns, index=index, data=data, weekend=weekend)
                 await res.send(file=file)
+    '''
 
-
-    @clan.sub_command(name="capital-raids")
-    async def beta_cc(self, ctx: disnake.ApplicationCommandInteraction, clan:str):
+    @clan.sub_command(name="capital-raids", description="See breakdown of clan's raids per clan & week")
+    async def beta_cc(self, ctx: disnake.ApplicationCommandInteraction, clan:str, weekend=commands.Param(default="Current Week", choices=["Current Week", "Last Week", "2 Weeks Ago"])):
         await ctx.response.defer()
         clan = await self.bot.getClan(clan)
         raidlog = await self.bot.coc_client.get_raidlog(clan.tag)
-        capital_hall = coc.utils.get(clan.capital_districts, name="Capital Peak")
-        embed = disnake.Embed(description=f"**{clan.name} Clan Capital Raids**")
-        #for raid in raidlog:
-        raid_weekend = raidlog[-1]
+        choice_to_date = {"Current Week" : 0, "Last Week" : 1,  "2 Weeks Ago" : 2}
+        weekend_times = weekend_timestamps()
+
+        embed = disnake.Embed(description=f"**{clan.name} Clan Capital Raids**", color=disnake.Color.green())
+        raid_weekend = self.get_raid(raid_log=raidlog, before=weekend_times[choice_to_date[weekend]], after=weekend_times[choice_to_date[weekend ] + 1])
         raids = raid_weekend.attack_log
 
-
+        select_menu_options = [disnake.SelectOption(label="Overview", emoji=self.bot.emoji.sword_clash.partial_emoji, value="Overview")]
+        embeds = {}
+        total_attacks = 0; total_looted = 0
         for raid_clan in raids:
             url = raid_clan.badge.url.replace(".png", "")
             emoji = disnake.utils.get(self.bot.emojis, name=url[-15:].replace("-", ""))
             if emoji is None:
                 emoji = await self.bot.create_new_badge_emoji(url=raid_clan.badge.url)
-
+            else:
+                emoji = f"<:{emoji.name}:{emoji.id}>"
             looted = sum(district.looted for district in raid_clan.districts)
-            embed.add_field(name=f"<:{emoji.name}:{emoji.id}>\u200e{raid_clan.name}", value=f"> {self.bot.emoji.sword} Attacks: {raid_clan.attack_count}\n"
-                                                                                      f"> <:cd:1029655519134240789> Destroyed: {raid_clan.destroyed_district_count}\n"
+            total_looted += looted
+            total_attacks += raid_clan.attack_count
+            embed.add_field(name=f"{emoji}\u200e{raid_clan.name}", value=f"> {self.bot.emoji.sword} Attacks: {raid_clan.attack_count}\n"
                                                                                       f"> {self.bot.emoji.capital_gold} Looted: {'{:,}'.format(looted)}", inline=False)
-        await ctx.edit_original_message(embed=embed)
+            select_menu_options.append(disnake.SelectOption(label=raid_clan.name, emoji=self.bot.partial_emoji_gen(emoji_string=emoji), value=raid_clan.tag))
 
+            #create detailed embeds
+
+            detail_embed = disnake.Embed(description=f"**Attacks on {raid_clan.name}**",color=disnake.Color.green())
+            for district in raid_clan.districts:
+                attack_text = ""
+                for attack in district.attacks:
+                    attack_text += f"> \u200e{attack.attacker_name} - {attack.destruction}%\n"
+                if district.id == 70000000:
+                    emoji = self.bot.fetch_emoji(name=f"Capital_Hall{district.hall_level}")
+                else:
+                    emoji = self.bot.fetch_emoji(name=f"District_Hall{district.hall_level}")
+                if attack_text == "":
+                    attack_text = "None"
+                detail_embed.add_field(name=f"{emoji}{district.name}", value=attack_text, inline=False)
+
+            embeds[raid_clan.tag] = detail_embed
+
+        embed.set_footer(text=f"Attacks: {total_attacks}/300 | Looted: {'{:,}'.format(total_looted)}")
+        embeds["Overview"] = embed
+        select = disnake.ui.Select(
+            options=select_menu_options,
+            placeholder="Detailed View",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=1,  # the maximum number of options a user can select
+        )
+        dropdown = [disnake.ui.ActionRow(select)]
+
+        await ctx.edit_original_message(embed=embed, components=dropdown)
+
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        while True:
+            try:
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
+            except:
+                await msg.edit(components=[])
+                break
+
+            await res.response.edit_message(embed=embeds[res.values[0]])
+
+    def get_raid(self, raid_log, after, before):
+        for count, raid in enumerate(raid_log):
+            time_start = int(raid.start_time.time.timestamp())
+            print(f"{after}, {time_start}, {before}")
+            if before > time_start > after:
+                return raid
 
     def create_clan_raid_page(self):
         pass
@@ -577,7 +633,7 @@ class clan_commands(commands.Cog):
     @clan_super_troops.autocomplete("clan")
     @clan_board.autocomplete("clan")
     @getclan.autocomplete("clan")
-    @clan_capital.autocomplete("clan")
+    #@clan_capital.autocomplete("clan")
     @player_th.autocomplete("clan")
     @clan_compo.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):

@@ -2,6 +2,7 @@ import os
 import coc
 from datetime import datetime
 from datetime import timedelta
+import datetime as dt
 import pytz
 utc = pytz.utc
 
@@ -29,7 +30,7 @@ def create_weekends():
 
 def create_weekend_list(option):
     weekends = []
-    for x in range(0, 12):
+    for x in range(8):
         now = datetime.utcnow().replace(tzinfo=utc)
         now = now - timedelta(x * 7)
         current_dayofweek = now.weekday()
@@ -39,19 +40,24 @@ def create_weekend_list(option):
                 current_dayofweek = 7
             fallback = current_dayofweek - 4
             raidDate = (now - timedelta(fallback)).date()
-            weekends.append(str(raidDate))
         else:
             forward = 4 - current_dayofweek
             raidDate = (now + timedelta(forward)).date()
-            weekends.append(str(raidDate))
+        weekends.append(str(raidDate))
+    return weekends
 
-    if option == "Last Week":
-        return [weekends[0]]
-    elif option == "Two Weeks Ago":
-        return [weekends[0]]
-    elif option == "Last 4 Weeks (all)":
-        return weekends[0:4]
-    elif option == "Last 8 Weeks (all)":
-        return weekends[0:8]
+def weekend_timestamps():
+    weekends = []
+    for x in range(-1, 8):
+        now = datetime.utcnow().replace(tzinfo=utc)
+        now = now - timedelta(x * 7)
+        year = now.year
+        month = now.month
+        day = now.day
+        hour = now.hour
+        current_dayofweek = now.weekday()
+        #end = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days=(7 - current_dayofweek))
+        first = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days=(4 - current_dayofweek))
 
+        weekends.append(int(first.timestamp()))
     return weekends
