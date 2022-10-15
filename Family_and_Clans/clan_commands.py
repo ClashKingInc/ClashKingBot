@@ -478,7 +478,7 @@ class clan_commands(commands.Cog):
     '''
 
     @clan.sub_command(name="capital-raids", description="See breakdown of clan's raids per clan & week")
-    async def beta_cc(self, ctx: disnake.ApplicationCommandInteraction, clan:str, weekend=commands.Param(default="Current Week", choices=["Current Week", "Last Week", "2 Weeks Ago"])):
+    async def clan_capital_raids(self, ctx: disnake.ApplicationCommandInteraction, clan:str, weekend=commands.Param(default="Current Week", choices=["Current Week", "Last Week", "2 Weeks Ago"])):
         await ctx.response.defer()
         clan = await self.bot.getClan(clan)
         raidlog = await self.bot.coc_client.get_raidlog(clan.tag)
@@ -487,6 +487,9 @@ class clan_commands(commands.Cog):
 
         embed = disnake.Embed(description=f"**{clan.name} Clan Capital Raids**", color=disnake.Color.green())
         raid_weekend = self.get_raid(raid_log=raidlog, before=weekend_times[choice_to_date[weekend]], after=weekend_times[choice_to_date[weekend ] + 1])
+        if raid_weekend is None:
+            embed = disnake.Embed(description=f"**{clan.name} has no capital raids in the time frame - {weekend}**", color=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
         raids = raid_weekend.attack_log
 
         select_menu_options = [disnake.SelectOption(label="Overview", emoji=self.bot.emoji.sword_clash.partial_emoji, value="Overview")]
@@ -551,11 +554,11 @@ class clan_commands(commands.Cog):
             await res.response.edit_message(embed=embeds[res.values[0]])
 
     def get_raid(self, raid_log, after, before):
-        for count, raid in enumerate(raid_log):
+        for raid in raid_log:
             time_start = int(raid.start_time.time.timestamp())
-            print(f"{after}, {time_start}, {before}")
             if before > time_start > after:
                 return raid
+        return None
 
     def create_clan_raid_page(self):
         pass
@@ -625,7 +628,7 @@ class clan_commands(commands.Cog):
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
 
-    @beta_cc.autocomplete("clan")
+    @clan_capital_raids.autocomplete("clan")
     @linked_clans.autocomplete("clan")
     @player_trophy.autocomplete("clan")
     @war_opt.autocomplete("clan")
