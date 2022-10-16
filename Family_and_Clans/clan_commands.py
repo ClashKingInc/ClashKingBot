@@ -16,22 +16,23 @@ class clan_commands(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
+    async def clan_converter(self, clan_tag: str):
+        clan = await self.bot.getClan(clan_tag=clan_tag, raise_exceptions=True)
+        if clan.member_count == 0:
+            raise coc.errors.NotFound
+        return clan
+
     @commands.slash_command(name="clan")
     async def clan(self, ctx):
         pass
 
     @clan.sub_command(name="search", description="lookup clan by tag")
-    async def getclan(self, ctx: disnake.ApplicationCommandInteraction, clan: str):
+    async def getclan(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
             clan: Search by clan tag or select an option from the autocomplete
         """
-
-        clan = await self.bot.getClan(clan)
-
-        if clan is None or clan.member_count == 0:
-            return await ctx.send("Not a valid clan tag.")
 
         await ctx.response.defer()
         embed = disnake.Embed(
@@ -118,7 +119,7 @@ class clan_commands(commands.Cog):
                 await res.edit_original_message(embed=embed)
 
     @clan.sub_command(name="player-links", description="List of un/linked players in clan")
-    async def linked_clans(self, ctx: disnake.ApplicationCommandInteraction, clan):
+    async def linked_clans(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
@@ -126,11 +127,6 @@ class clan_commands(commands.Cog):
         """
         await ctx.response.defer()
         time = datetime.now().timestamp()
-        clan = await self.bot.getClan(clan)
-        if clan is None or clan.member_count == 0:
-            embed = disnake.Embed(description="Not a valid clan tag.",
-                                  color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
 
         embed = await self.linked_players(ctx, clan)
         embed2 = await self.unlinked_players(ctx, clan)
@@ -140,7 +136,7 @@ class clan_commands(commands.Cog):
         await ctx.edit_original_message(embeds=[embed, embed2], components=buttons)
 
     @clan.sub_command(name="sorted-trophies", description="List of clan members, sorted by trophies")
-    async def player_trophy(self, ctx: disnake.ApplicationCommandInteraction, clan):
+    async def player_trophy(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
@@ -149,11 +145,6 @@ class clan_commands(commands.Cog):
         await ctx.response.defer()
         time = datetime.now().timestamp()
 
-        clan = await self.bot.getClan(clan)
-        if clan is None or clan.member_count == 0:
-            embed = disnake.Embed(description="Not a valid clan tag.",
-                                  color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
         embed = await self.player_trophy_sort(clan)
         embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
         buttons = disnake.ui.ActionRow()
@@ -163,7 +154,7 @@ class clan_commands(commands.Cog):
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     @clan.sub_command(name="sorted-townhall", description="List of clan members, sorted by trophies")
-    async def player_th(self, ctx: disnake.ApplicationCommandInteraction, clan):
+    async def player_th(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
@@ -172,11 +163,6 @@ class clan_commands(commands.Cog):
         await ctx.response.defer()
         time = datetime.now().timestamp()
 
-        clan = await self.bot.getClan(clan)
-        if clan is None or clan.member_count == 0:
-            embed = disnake.Embed(description="Not a valid clan tag.",
-                                  color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
         embed = await self.player_townhall_sort(clan)
         embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
         buttons = disnake.ui.ActionRow()
@@ -186,7 +172,7 @@ class clan_commands(commands.Cog):
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     @clan.sub_command(name="war-preferences", description="List of player's war preferences")
-    async def war_opt(self, ctx: disnake.ApplicationCommandInteraction, clan):
+    async def war_opt(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
@@ -209,7 +195,7 @@ class clan_commands(commands.Cog):
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     @clan.sub_command(name="war-log", description="List of clan's last 25 war win & losses")
-    async def clan_war_log(self, ctx: disnake.ApplicationCommandInteraction, clan):
+    async def clan_war_log(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
@@ -218,11 +204,6 @@ class clan_commands(commands.Cog):
         await ctx.response.defer()
         time = datetime.now().timestamp()
 
-        clan = await self.bot.getClan(clan)
-        if clan is None or clan.member_count == 0:
-            embed = disnake.Embed(description="Not a valid clan tag.",
-                                  color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
         if not clan.public_war_log:
             embed = disnake.Embed(description="Clan has a private war log.",
                                   color=disnake.Color.red())
@@ -238,7 +219,7 @@ class clan_commands(commands.Cog):
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     @clan.sub_command(name="super-troops", description="List of clan member's boosted & unboosted troops")
-    async def clan_super_troops(self, ctx: disnake.ApplicationCommandInteraction, clan):
+    async def clan_super_troops(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
@@ -247,11 +228,6 @@ class clan_commands(commands.Cog):
         await ctx.response.defer()
         time = datetime.now().timestamp()
 
-        clan = await self.bot.getClan(clan)
-        if clan is None or clan.member_count == 0:
-            embed = disnake.Embed(description="Not a valid clan tag.",
-                                  color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
         embed: disnake.Embed = await self.stroop_list(clan)
         values = embed.fields[0].value + f"\nLast Refreshed: <t:{int(time)}:R>"
         embed.set_field_at(0, name="**Not Boosting:**",value=values, inline=False)
@@ -262,7 +238,7 @@ class clan_commands(commands.Cog):
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     @clan.sub_command(name="board", description="Simple embed, with overview of a clan")
-    async def clan_board(self, ctx: disnake.ApplicationCommandInteraction, clan, button_text: str = None, button_link: str = None):
+    async def clan_board(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), button_text: str = None, button_link: str = None):
         """
             Parameters
             ----------
@@ -273,11 +249,6 @@ class clan_commands(commands.Cog):
         await ctx.response.defer()
         time = datetime.now().timestamp()
 
-        clan = await self.bot.getClan(clan)
-        if clan is None or clan.member_count == 0:
-            embed = disnake.Embed(description="Not a valid clan tag.",
-                                  color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
         embed = await self.clan_overview(ctx, clan)
         values = embed.fields[-1].value + f"\nLast Refreshed: <t:{int(time)}:R>"
         embed.set_field_at(len(embed.fields) - 1, name="**Boosted Super Troops:**", value=values, inline=False)
@@ -295,7 +266,7 @@ class clan_commands(commands.Cog):
             return await ctx.edit_original_message(embed=embed)
 
     @clan.sub_command(name="compo", description="Townhall composition of a clan")
-    async def clan_compo(self, ctx: disnake.ApplicationCommandInteraction, clan):
+    async def clan_compo(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
@@ -307,12 +278,6 @@ class clan_commands(commands.Cog):
         sumth = 0
 
         clan_members = []
-
-        clan = await self.bot.getClan(clan)
-        if clan is None or clan.member_count == 0:
-            embed = disnake.Embed(description="Not a valid clan tag.",
-                                  color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
 
         clan_members += [member.tag for member in clan.members]
         list_members = await self.bot.get_players(tags=clan_members, custom=False)
@@ -338,10 +303,9 @@ class clan_commands(commands.Cog):
         embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
         await ctx.edit_original_message(embed=embed)
 
-    @clan.sub_command(name="capital-stats", description="Gte stats on raids & donations during selected time period")
-    async def clan_capital_stats(self, ctx: disnake.ApplicationCommandInteraction, clan:str, weekend=commands.Param(default="Current Week", choices=["Current Week", "Last Week", "Last 4 Weeks (all)"])):
+    @clan.sub_command(name="capital-stats", description="Get stats on raids & donations during selected time period")
+    async def clan_capital_stats(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), weekend=commands.Param(default="Current Week", choices=["Current Week", "Last Week", "Last 4 Weeks (all)"])):
         await ctx.response.defer()
-        clan = await self.bot.getClan(clan)
         raidlog = await self.bot.coc_client.get_raidlog(clan.tag)
         choice_to_date = {"Current Week": [0], "Last Week": [1], "Last 4 Weeks (all)": [0, 1, 2, 3]}
         weekend_times = weekend_timestamps()
@@ -479,9 +443,8 @@ class clan_commands(commands.Cog):
                 await res.send(file=file, ephemeral=True)
 
     @clan.sub_command(name="capital-raids", description="See breakdown of clan's raids per clan & week")
-    async def clan_capital_raids(self, ctx: disnake.ApplicationCommandInteraction, clan:str, weekend=commands.Param(default="Current Week", choices=["Current Week", "Last Week", "2 Weeks Ago"])):
+    async def clan_capital_raids(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), weekend=commands.Param(default="Current Week", choices=["Current Week", "Last Week", "2 Weeks Ago"])):
         await ctx.response.defer()
-        clan = await self.bot.getClan(clan)
         raidlog = await self.bot.coc_client.get_raidlog(clan.tag)
         choice_to_date = {"Current Week" : 0, "Last Week" : 1,  "2 Weeks Ago" : 2}
         weekend_times = weekend_timestamps()
@@ -553,6 +516,34 @@ class clan_commands(commands.Cog):
                 break
 
             await res.response.edit_message(embed=embeds[res.values[0]])
+
+    @clan.sub_command(name="last_online", description="List of most recently online players in clan")
+    async def last_online(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+        await ctx.response.defer()
+        member_tags = [member.tag for member in clan.members]
+        members = await self.bot.get_players(tags=member_tags, custom=True)
+        text = []
+        avg_time = []
+        for member in members:
+            member: MyCustomPlayer
+            last_online = member.last_online
+            last_online_sort = last_online
+            if last_online is None:
+                last_online_sort = 0
+            else:
+                avg_time.append(last_online)
+            #name = member.name.ljust(15)
+            text.append([f"<t:{last_online}:R> - {member.name}", last_online_sort])
+
+        text = sorted(text, key=lambda l: l[1], reverse=True)
+        text = [line[0] for line in text]
+        text = "\n".join(text)
+        avg_time = round((sum(avg_time) / len(avg_time)), 2)
+        embed = disnake.Embed(title=f"**{clan.name} Last Online**", description=text + f"\n**Average L.O.** <t:{int(avg_time)}:R>",
+                                       color=disnake.Color.green())
+        await ctx.edit_original_message(embed=embed)
+
+
 
     def get_raid(self, raid_log, after, before):
         for raid in raid_log:
@@ -637,6 +628,7 @@ class clan_commands(commands.Cog):
     @clan_capital_stats.autocomplete("clan")
     @player_th.autocomplete("clan")
     @clan_compo.autocomplete("clan")
+    @last_online.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
             tracked = self.bot.clan_db.find({"server": ctx.guild.id})
             limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})

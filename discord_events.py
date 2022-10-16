@@ -1,13 +1,11 @@
+import disnake
+import coc
 
 from disnake.ext import commands
-import disnake
 from Dictionaries.thPicDictionary import thDictionary
 from utils.troop_methods import heros, heroPets
 
-import requests
-
 link_open=[]
-import urllib.parse
 from CustomClasses.CustomBot import CustomClient
 
 class DiscordEvents(commands.Cog):
@@ -166,6 +164,18 @@ class DiscordEvents(commands.Cog):
             color=disnake.Color.blue())
         embed.set_thumbnail(url=user.display_avatar.url)
         await channel.send(embed=embed)
+
+    @commands.Cog.listener()
+    async def on_slash_command_error(self, ctx: disnake.ApplicationCommandInteraction, error):
+        if isinstance(error, disnake.ext.commands.ConversionError):
+            error = error.original
+        if isinstance(error, coc.errors.NotFound):
+            embed = disnake.Embed(description="Not a valid clan tag.", color=disnake.Color.red())
+            await ctx.send(embed=embed)
+
+        if isinstance(error, coc.errors.Maintenance):
+            embed = disnake.Embed(description=f"Game is currently in Maintenance.", color=disnake.Color.red())
+            await ctx.send(embed=embed)
 
 
 def setup(bot: CustomClient):

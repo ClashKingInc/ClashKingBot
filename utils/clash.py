@@ -24,7 +24,6 @@ import motor.motor_asyncio
 client = motor.motor_asyncio.AsyncIOMotorClient(DB_LOGIN)
 import disnake
 
-
 def create_weekends():
     return ["Last Week", "Two Weeks Ago", "Last 4 Weeks (all)", "Last 8 Weeks (all)"]
 
