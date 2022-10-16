@@ -394,7 +394,7 @@ class CustomClient(commands.Bot):
         responses = await asyncio.gather(*tasks)
         return responses
 
-    async def getClan(self, clan_tag):
+    async def getClan(self, clan_tag, raise_exceptions=False):
         try:
             if "|" in clan_tag:
                 search = clan_tag.split("|")
@@ -406,12 +406,15 @@ class CustomClient(commands.Bot):
                 return clan
         except:
             pass
-
-        try:
+        if raise_exceptions:
             clan = await self.coc_client.get_clan(clan_tag)
-            return clan
-        except:
-            return None
+        else:
+            try:
+                clan = await self.coc_client.get_clan(clan_tag)
+            except:
+                return None
+        return clan
+
 
     async def verifyPlayer(self, playerTag:str, playerToken:str):
         verified = await self.coc_client.verify_player_token(playerTag, playerToken)

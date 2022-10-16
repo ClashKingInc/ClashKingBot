@@ -116,6 +116,10 @@ class MyCustomPlayer(coc.Player):
             return ClanCapitalWeek(None)
         return ClanCapitalWeek(week_result)
 
+    @property
+    def last_online(self):
+        return None if self.results is None else self.results.get("last_online")
+
     async def track(self):
         if self.results is None:
             return await self.bot.track_players(players=[self])
