@@ -517,7 +517,7 @@ class clan_commands(commands.Cog):
 
             await res.response.edit_message(embed=embeds[res.values[0]])
 
-    @clan.sub_command(name="last_online", description="List of most recently online players in clan")
+    @clan.sub_command(name="last-online", description="List of most recently online players in clan")
     async def last_online(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
         await ctx.response.defer()
         time = datetime.now().timestamp()
