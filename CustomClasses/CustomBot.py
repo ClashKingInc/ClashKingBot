@@ -362,7 +362,6 @@ class CustomClient(commands.Bot):
         except:
             return None
 
-
     #CLASH HELPERS
     async def player_handle(self, ctx, tag):
         try:
