@@ -520,27 +520,14 @@ class clan_commands(commands.Cog):
     @clan.sub_command(name="last_online", description="List of most recently online players in clan")
     async def last_online(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
         await ctx.response.defer()
-        member_tags = [member.tag for member in clan.members]
-        members = await self.bot.get_players(tags=member_tags, custom=True)
-        text = []
-        avg_time = []
-        for member in members:
-            member: MyCustomPlayer
-            last_online = member.last_online
-            last_online_sort = last_online
-            if last_online is None:
-                last_online_sort = 0
-                text.append([f"Not Seen - {member.name}", last_online_sort])
-            else:
-                avg_time.append(last_online)
-                text.append([f"<t:{last_online}:R> - {member.name}", last_online_sort])
-
-        text = sorted(text, key=lambda l: l[1], reverse=True)
-        text = [line[0] for line in text]
-        text = "\n".join(text)
-        avg_time = round((sum(avg_time) / len(avg_time)), 2)
-        embed = disnake.Embed(title=f"**{clan.name} Last Online**", description=text + f"\n**Average L.O.** <t:{int(avg_time)}:R>",
-                                       color=disnake.Color.green())
+        time = datetime.now().timestamp()
+        embed = await self.create_last_online(clan)
+        embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
+                              custom_id=f"lo_{clan.tag}"))
+        await ctx.edit_original_message(embed=embed, components=buttons)
         await ctx.edit_original_message(embed=embed)
 
 
@@ -614,6 +601,13 @@ class clan_commands(commands.Cog):
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
             embed: disnake.Embed = await self.player_townhall_sort(clan)
+            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+            await ctx.edit_original_message(embed=embed)
+        elif "lo_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            clan = (str(ctx.data.custom_id).split("_"))[-1]
+            clan = await self.bot.getClan(clan)
+            embed: disnake.Embed = await self.create_last_online(clan)
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
 
