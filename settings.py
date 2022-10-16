@@ -280,8 +280,8 @@ class misc(commands.Cog, name="Settings"):
             ]})
             if results is None:
                 return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
-            if len(new_label) >= 7 or len(new_label) < 2:
-                return await ctx.send("Clan Abbreviation must be 2 to 6 characters (this is to minimize name length's being too long).")
+            if len(new_label) >= 16 or len(new_label) < 2:
+                return await ctx.send("Clan Abbreviation must be 2 to 15 characters (this is to minimize name length's being too long).")
 
             await self.bot.clan_db.update_one({"$and": [
                 {"tag": clan.tag},
