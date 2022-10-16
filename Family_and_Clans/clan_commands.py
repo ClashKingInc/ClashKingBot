@@ -440,7 +440,7 @@ class clan_commands(commands.Cog):
         raid_text = [line[0] for line in raid_text]
         raid_text = "\n".join(raid_text)
         raid_embed = disnake.Embed(title=f"**{clan.name} Raid Totals**", description=raid_text, color=disnake.Color.green())
-        raid_embed.set_footer(text=f"Attacks: {sum(total_attacks.values())}/300 | Looted: {'{:,}'.format(sum(total_looted.values()))}")
+        raid_embed.set_footer(text=f"Spots: {len(total_attacks.values())}/50 | Attacks: {sum(total_attacks.values())}/300 | Looted: {'{:,}'.format(sum(total_looted.values()))}")
         embeds["raids"] = raid_embed
 
 
