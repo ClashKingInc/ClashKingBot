@@ -424,7 +424,7 @@ class CustomClient(commands.Bot):
         except:
             return None
 
-
+    #THIS IS MASTER
     #SERVER HELPERS
     async def open_clan_capital_reminders(self):
         pass
