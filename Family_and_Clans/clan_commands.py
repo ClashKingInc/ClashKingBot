@@ -530,10 +530,10 @@ class clan_commands(commands.Cog):
             last_online_sort = last_online
             if last_online is None:
                 last_online_sort = 0
+                text.append([f"Not Seen - {member.name}", last_online_sort])
             else:
                 avg_time.append(last_online)
-            #name = member.name.ljust(15)
-            text.append([f"<t:{last_online}:R> - {member.name}", last_online_sort])
+                text.append([f"<t:{last_online}:R> - {member.name}", last_online_sort])
 
         text = sorted(text, key=lambda l: l[1], reverse=True)
         text = [line[0] for line in text]
