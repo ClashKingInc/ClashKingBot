@@ -7,6 +7,7 @@ from coc import utils
 from Dictionaries.emojiDictionary import emojiDictionary
 from CustomClasses.CustomBot import CustomClient
 from collections import defaultdict
+from collections import Counter
 
 tiz = pytz.utc
 
@@ -136,17 +137,47 @@ class Family(commands.Cog):
         total = 0
         sumth = 0
         clan_members = []
-        for clan in clan_list:
+        select_menu_options = []
+        names = {}
+        for count, clan in enumerate(clan_list):
             clan = await self.bot.getClan(clan.tag)
+            names[clan.tag] = clan.name
             clan_members += [member.tag for member in clan.members]
+            url = clan.badge.url.replace(".png", "")
+            emoji = disnake.utils.get(self.bot.emojis, name=url[-15:].replace("-", ""))
+            if emoji is None:
+                emoji = await self.bot.create_new_badge_emoji(url=clan.badge.url)
+            else:
+                emoji = f"<:{emoji.name}:{emoji.id}>"
+
+            if count < 25:
+                select_menu_options.append(disnake.SelectOption(label=clan.name, emoji=self.bot.partial_emoji_gen(emoji_string=emoji), value=clan.tag))
+
+        select = disnake.ui.Select(
+            options=select_menu_options,
+            placeholder="Mix & Match Compo",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=len(select_menu_options),  # the maximum number of options a user can select
+        )
+        dropdown = [disnake.ui.ActionRow(select)]
+
         list_members = await self.bot.get_players(tags=clan_members, custom=False)
+
+        compos = {}
         for player in list_members:
             if player is None:
                 continue
+            if player.clan is not None:
+                if player.clan.tag not in compos.keys():
+                    compos[player.clan.tag] = {}
+                if player.town_hall not in compos[player.clan.tag].keys():
+                    compos[player.clan.tag][player.town_hall] = 0
+                compos[player.clan.tag][player.town_hall] += 1
             th = player.town_hall
             sumth += th
             total += 1
             thcount[th] += 1
+
         stats = ""
         for th_level, th_count in sorted(thcount.items(), reverse=True):
             if th_level <= 9:
@@ -161,7 +192,45 @@ class Family(commands.Cog):
         if ctx.guild.icon is not None:
             embed.set_thumbnail(url=ctx.guild.icon.url)
         embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
-        await ctx.edit_original_message(embed=embed)
+        await ctx.edit_original_message(embed=embed, components=dropdown)
+
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        while True:
+            try:
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
+            except:
+                await msg.edit(components=[])
+                break
+
+            all_added = Counter(compos[res.values[0]])
+            name_clans = [names[res.values[0]]]
+            for value in res.values[1:]:
+                all_added += Counter(compos[value])
+                name_clans.append(names[value])
+
+            stats = ""
+            for th_level, th_count in dict(all_added).items():
+                if th_level <= 9:
+                    th_emoji = emojiDictionary(th_level)
+                    stats += f"{th_emoji} `TH{th_level} `: {th_count}\n"
+                else:
+                    th_emoji = emojiDictionary(th_level)
+                    stats += f"{th_emoji} `TH{th_level}` : {th_count}\n"
+            average = round(sumth / total, 2)
+            embed = disnake.Embed(title=f"Selected Clans Townhall Composition", description=stats,
+                                  color=disnake.Color.green())
+
+            if ctx.guild.icon is not None:
+                embed.set_thumbnail(url=ctx.guild.icon.url)
+            embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts\nClans: {', '.join(name_clans)}")
+            await res.response.edit_message(embed=embed)
+
+
 
     @family.sub_command(name="wars", description="List of current wars by family clans")
     async def family_wars(self, ctx: disnake.ApplicationCommandInteraction):
