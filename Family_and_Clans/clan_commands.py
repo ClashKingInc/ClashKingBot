@@ -361,7 +361,7 @@ class clan_commands(commands.Cog):
             if raid_weekend is not None:
                 raid_weekends.append(raid_weekend)
 
-        print(raid_weekends)
+        #print(raid_weekends)
         if not raid_weekends:
             raid_embed = disnake.Embed(title=f"**{clan.name} Raid Totals**", description="No raids", color=disnake.Color.green())
             embeds["raids"] = raid_embed
