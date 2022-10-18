@@ -561,12 +561,14 @@ class eval(commands.Cog, name="Eval"):
 
         if not test:
             if FINAL_ROLES_TO_ADD != []:
+                print(FINAL_ROLES_TO_ADD)
                 try:
                     await member.add_roles(*FINAL_ROLES_TO_ADD)
                 except:
                     added = ""
             if FINAL_ROLES_TO_REMOVE != []:
                 member: disnake.Member
+                print(FINAL_ROLES_TO_REMOVE)
                 try:
                     await member.remove_roles(*FINAL_ROLES_TO_REMOVE)
                 except:
