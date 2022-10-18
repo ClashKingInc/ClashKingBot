@@ -362,45 +362,44 @@ class clan_commands(commands.Cog):
                 raid_weekends.append(raid_weekend)
 
         if not raid_weekends:
-            embed = disnake.Embed(description=f"**{clan.name} has no capital raids in the time frame - {weekend}**",
-                                  color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
+            raid_embed = disnake.Embed(title=f"**{clan.name} Raid Totals**", description="No raids", color=disnake.Color.green())
+            embeds["raids"] = raid_embed
+        else:
+            total_attacks = defaultdict(int); total_looted = defaultdict(int); attack_limit = defaultdict(int); name_list = {}
+            members_not_looted = member_tags.copy()
+            for raid_weekend in raid_weekends:
+                for member in raid_weekend.members:
+                    name_list[member.tag] = member.name
+                    total_attacks[member.tag] += member.attack_count
+                    total_looted[member.tag] += member.capital_resources_looted
+                    attack_limit[member.tag] += (member.attack_limit + member.bonus_attack_limit)
+                    if len(raid_weekends) == 1 and member.tag in members_not_looted:
+                        members_not_looted.remove(member.tag)
 
-        total_attacks = defaultdict(int); total_looted = defaultdict(int); attack_limit = defaultdict(int); name_list = {}
-        members_not_looted = member_tags.copy()
-        for raid_weekend in raid_weekends:
-            for member in raid_weekend.members:
-                name_list[member.tag] = member.name
-                total_attacks[member.tag] += member.attack_count
-                total_looted[member.tag] += member.capital_resources_looted
-                attack_limit[member.tag] += (member.attack_limit + member.bonus_attack_limit)
-                if len(raid_weekends) == 1 and member.tag in members_not_looted:
-                    members_not_looted.remove(member.tag)
+            raid_text = []
+            for tag, amount in total_looted.items():
+                raided_amount = f"{amount}".ljust(6)
+                name = name_list[tag]
+                for char in ["`", "*", "_", "~"]:
+                    name = name.replace(char, "", 10)
+                #print(tag)
+                #print(member_tags)
+                if tag in member_tags:
+                    raid_text.append([f"\u200e{self.bot.emoji.capital_gold}`{total_attacks[tag]}/{attack_limit[tag]} {raided_amount}`: \u200e{name}", amount])
+                else:
+                    raid_text.append([f"\u200e{self.bot.emoji.deny_mark}`{total_attacks[tag]}/{attack_limit[tag]} {raided_amount}`: \u200e{name}",amount])
 
-        raid_text = []
-        for tag, amount in total_looted.items():
-            raided_amount = f"{amount}".ljust(6)
-            name = name_list[tag]
-            for char in ["`", "*", "_", "~"]:
-                name = name.replace(char, "", 10)
-            #print(tag)
-            #print(member_tags)
-            if tag in member_tags:
-                raid_text.append([f"\u200e{self.bot.emoji.capital_gold}`{total_attacks[tag]}/{attack_limit[tag]} {raided_amount}`: \u200e{name}", amount])
-            else:
-                raid_text.append([f"\u200e{self.bot.emoji.deny_mark}`{total_attacks[tag]}/{attack_limit[tag]} {raided_amount}`: \u200e{name}",amount])
+            if len(raid_weekends) == 1:
+                for member in members_not_looted:
+                    name = coc.utils.get(clan.members, tag=member)
+                    raid_text.append([f"{self.bot.emoji.capital_gold}`{0}/{6*len(raid_weekends)} {0}`: {name.name}",0])
 
-        if len(raid_weekends) == 1:
-            for member in members_not_looted:
-                name = coc.utils.get(clan.members, tag=member)
-                raid_text.append([f"{self.bot.emoji.capital_gold}`{0}/{6*len(raid_weekends)} {0}`: {name.name}",0])
-
-        raid_text = sorted(raid_text, key=lambda l: l[1], reverse=True)
-        raid_text = [line[0] for line in raid_text]
-        raid_text = "\n".join(raid_text)
-        raid_embed = disnake.Embed(title=f"**{clan.name} Raid Totals**", description=raid_text, color=disnake.Color.green())
-        raid_embed.set_footer(text=f"Spots: {len(total_attacks.values())}/50 | Attacks: {sum(total_attacks.values())}/300 | Looted: {'{:,}'.format(sum(total_looted.values()))}")
-        embeds["raids"] = raid_embed
+            raid_text = sorted(raid_text, key=lambda l: l[1], reverse=True)
+            raid_text = [line[0] for line in raid_text]
+            raid_text = "\n".join(raid_text)
+            raid_embed = disnake.Embed(title=f"**{clan.name} Raid Totals**", description=raid_text, color=disnake.Color.green())
+            raid_embed.set_footer(text=f"Spots: {len(total_attacks.values())}/50 | Attacks: {sum(total_attacks.values())}/300 | Looted: {'{:,}'.format(sum(total_looted.values()))}")
+            embeds["raids"] = raid_embed
 
 
         data = []
@@ -411,7 +410,11 @@ class clan_commands(commands.Cog):
             data.append([tag, donated_data[tag], number_donated_data[tag], total_looted[tag], total_attacks[tag]])
 
         buttons = raid_buttons(self.bot, data)
-        await ctx.edit_original_message(embed=raid_embed, components=buttons)
+        if not raid_weekends:
+            await ctx.edit_original_message(embed=donation_embed, components=buttons)
+        else:
+            await ctx.edit_original_message(embed=raid_embed, components=buttons)
+
         msg = await ctx.original_message()
 
         def check(res: disnake.MessageInteraction):
