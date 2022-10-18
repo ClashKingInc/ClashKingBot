@@ -20,10 +20,15 @@ class eval(commands.Cog, name="Eval"):
     async def eval_user(self, ctx: disnake.ApplicationCommandInteraction, user:disnake.Member, test=commands.Param(default="No", choices=["Yes", "No"]), change_nick=commands.Param(default="No", choices=["Yes", "No"])):
         await ctx.response.defer()
         perms = ctx.author.guild_permissions.manage_guild
+        if ctx.author.id == self.bot.owner.id:
+            perms = True
+
         if not perms:
             embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
                                   color=disnake.Color.red())
             return await ctx.edit_original_message(embed=embed)
+
+
 
         test = (test != "No")
         if change_nick == "Yes":
