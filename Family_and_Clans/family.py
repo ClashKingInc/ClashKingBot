@@ -214,7 +214,10 @@ class Family(commands.Cog):
                 name_clans.append(names[value])
 
             stats = ""
-            for th_level, th_count in dict(all_added).items():
+            total = sum(all_added.values())
+            sumth = 0
+            for th_level, th_count in sorted(dict(all_added).items(), reverse=True):
+                sumth += (th_level * th_count)
                 if th_level <= 9:
                     th_emoji = emojiDictionary(th_level)
                     stats += f"{th_emoji} `TH{th_level} `: {th_count}\n"
