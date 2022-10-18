@@ -181,11 +181,6 @@ class clan_commands(commands.Cog):
         await ctx.response.defer()
         time = datetime.now().timestamp()
 
-        clan = await self.bot.getClan(clan)
-        if clan is None or clan.member_count == 0:
-            embed = disnake.Embed(description="Not a valid clan tag.",
-                                  color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
         embed = await self.opt_status(clan)
         embed.description += f"Last Refreshed: <t:{int(time)}:R>"
         buttons = disnake.ui.ActionRow()
