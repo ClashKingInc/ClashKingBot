@@ -361,6 +361,7 @@ class clan_commands(commands.Cog):
             if raid_weekend is not None:
                 raid_weekends.append(raid_weekend)
 
+        print(raid_weekends)
         if not raid_weekends:
             raid_embed = disnake.Embed(title=f"**{clan.name} Raid Totals**", description="No raids", color=disnake.Color.green())
             embeds["raids"] = raid_embed
@@ -407,9 +408,17 @@ class clan_commands(commands.Cog):
         for tag in member_tags:
             name = coc.utils.get(clan.members, tag=tag)
             index.append(name.name)
-            data.append([tag, donated_data[tag], number_donated_data[tag], total_looted[tag], total_attacks[tag]])
+            if not raid_weekends:
+                looted = 0
+                attacks = 0
+            else:
+                looted = total_looted[tag]
+                attacks = total_attacks[tag]
+
+            data.append([tag, donated_data[tag], number_donated_data[tag], looted, attacks])
 
         buttons = raid_buttons(self.bot, data)
+
         if not raid_weekends:
             await ctx.edit_original_message(embed=donation_embed, components=buttons)
         else:
