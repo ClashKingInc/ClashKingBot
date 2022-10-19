@@ -235,7 +235,7 @@ class Linking(commands.Cog):
                 return await ctx.edit_original_message(embed=embed)
             else:
                 embed = disnake.Embed(
-                    title=f"{player.name} is already linked to a discord user.",
+                    title=f"{player.name} is already linked to a discord user on another server.",
                     color=disnake.Color.red())
                 return await ctx.edit_original_message(embed=embed)
 
@@ -299,13 +299,8 @@ class Linking(commands.Cog):
             return await ctx.send(embed=embed)
 
         if api_token is None:
-            member = await self.bot.pingToMember(ctx, linked)
-            is_member = (member is not None)
-            if ctx.author.id == self.bot.owner.id:
-                is_member = True
-
-            if is_member is False:
-                embed = disnake.Embed(description=f"[{player.name}]({player.share_link}), cannot unlink players not on this server.",
+            if ctx.guild.member_count <= 250 is False:
+                embed = disnake.Embed(description=f"[{player.name}]({player.share_link}), cannot unlink players not on this server.\n(Reach out on the support server if you have questions about this)",
                                       color=disnake.Color.red())
                 return await ctx.send(embed=embed)
             await self.bot.link_client.delete_link(player.tag)
@@ -326,6 +321,10 @@ class Linking(commands.Cog):
                     color=disnake.Color.green())
                 await ctx.send(embed=embed)
 
+    @modlink.autocomplete("player_tag")
+    async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        names = await self.bot.family_names(query=query, guild=ctx.guild)
+        return names
 
 
 def setup(bot: CustomClient):
