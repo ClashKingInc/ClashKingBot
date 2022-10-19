@@ -304,6 +304,43 @@ class CustomClient(commands.Bot):
             names.append(document.get("name") + " | " + document.get("tag"))
         return names
 
+    async def family_names(self, query, guild):
+        names = []
+        # if search is a player tag, pull stats of the player tag
+        clan_tags = await self.clan_db.distinct("tag", filter={"server": guild.id})
+        if utils.is_valid_tag(query) is True:
+            t = utils.correct_tag(tag=query)
+            query = query.lower()
+            query = re.escape(query)
+            results = self.player_stats.find({"$and": [
+                {"tag": {"$regex": f"^(?i).*{t}.*$"}}
+                , {"clan_tag": {"$in": clan_tags}}
+            ]})
+            for document in await results.to_list(length=25):
+                name = document.get("name")
+                if name is None:
+                    continue
+                names.append(name + " | " + document.get("tag"))
+            return names
+
+        # ignore capitalization
+        # results 3 or larger check for partial match
+        # results 2 or shorter must be exact
+        # await ongoing_stats.create_index([("name", "text")])
+
+        query = query.lower()
+        query = re.escape(query)
+        results = self.player_stats.find({"$and": [
+            {"name": {"$regex": f"^(?i).*{query}.*$"}}
+            , {"clan_tag": {"$in": clan_tags}}
+
+        ]})
+        for document in await results.to_list(length=25):
+            names.append(document.get("name") + " | " + document.get("tag"))
+        return names
+
+
+
     def create_link(self, tag):
         tag = tag.replace("#", "%23")
         url = f"https://link.clashofclans.com/en?action=OpenPlayerProfile&tag={tag}"
