@@ -397,6 +397,12 @@ class clan_commands(commands.Cog):
             raid_text = sorted(raid_text, key=lambda l: l[1], reverse=True)
             raid_text = [line[0] for line in raid_text]
             raid_text = "\n".join(raid_text)
+            if len(raid_weekends) == 1:
+                rw = raid_weekends[0]
+                offensive_reward = rw.offensive_reward * 6
+                defensive_reward = rw.defensive_reward
+                raid_text += f"\n\n{self.bot.emoji.raid_medal}{offensive_reward} + {self.bot.emoji.raid_medal}{defensive_reward} = {self.bot.emoji.raid_medal}{offensive_reward + defensive_reward}"
+                raid_text += "\n`Offense + Defense = Total`"
             raid_embed = disnake.Embed(title=f"**{clan.name} Raid Totals**", description=raid_text, color=disnake.Color.green())
             raid_embed.set_footer(text=f"Spots: {len(total_attacks.values())}/50 | Attacks: {sum(total_attacks.values())}/300 | Looted: {'{:,}'.format(sum(total_looted.values()))}")
             embeds["raids"] = raid_embed
