@@ -55,6 +55,42 @@ class eval(commands.Cog, name="Eval"):
         test = (test != "No")
         await self.eval_roles(ctx, role, test)
 
+    @eval.sub_command(name="tag", description="Evaluate the role of the user connected to a tag")
+    async def eval_tag(self, ctx: disnake.ApplicationCommandInteraction, player_tag, test=commands.Param(default="No", choices=["Yes", "No"])):
+        await ctx.response.defer()
+        perms = ctx.author.guild_permissions.manage_guild
+        if ctx.author.id == self.bot.owner.id:
+            perms = True
+
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+
+        test = (test != "No")
+        player = await self.bot.getPlayer(player_tag)
+        user = await self.bot.link_client.get_link(player.tag)
+        if user is None:
+            embed = disnake.Embed(description="Player is not linked to a discord account",
+                                  color=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+        try:
+            user = await ctx.guild.fetch_member(user)
+        except:
+            user = None
+        if user is None:
+            embed = disnake.Embed(description="Player is linked but not on this server.",
+                                  color=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+
+
+        changes = await self.eval_member(ctx, user, test, change_nick="Off")
+        embed = disnake.Embed(description=f"Eval Complete for {user.mention}\n"
+                                          f"Added: {changes[0]}\n"
+                                          f"Removed: {changes[1]}",
+                              color=disnake.Color.green())
+        await ctx.edit_original_message(embed=embed)
+
     @commands.user_command(name="Nickname", description="Change nickname of a user")
     async def auto_nick(self, ctx: disnake.ApplicationCommandInteraction, user: disnake.User):
         perms = ctx.author.guild_permissions.manage_nicknames
