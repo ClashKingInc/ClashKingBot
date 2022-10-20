@@ -307,6 +307,8 @@ class CustomClient(commands.Bot):
     async def family_names(self, query, guild):
         names = []
         # if search is a player tag, pull stats of the player tag
+        if query != "":
+            names.append(query)
         clan_tags = await self.clan_db.distinct("tag", filter={"server": guild.id})
         if utils.is_valid_tag(query) is True:
             t = utils.correct_tag(tag=query)
