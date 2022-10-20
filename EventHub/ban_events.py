@@ -48,8 +48,9 @@ class BanEvents(commands.Cog):
                             notes = "No Reason Given"
                         date = results.get("DateCreated")
                         date = date[:10]
-
-                        channel = cc.get("clanChannel")
+                        channel = cc.get("ban_alert_channel")
+                        if channel is None:
+                            channel = cc.get("clanChannel")
 
                         role = cc.get("generalRole")
 

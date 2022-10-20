@@ -187,6 +187,10 @@ class banlists(commands.Cog, name="Bans"):
                 await channel.send(embed=embed)
             await channel.send(embed=embed2)
 
+    @ban_add.autocomplete("tag")
+    async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        names = await self.bot.family_names(query=query, guild=ctx.guild)
+        return names
 
     async def create_embeds(self, ctx):
         text = []

@@ -256,6 +256,39 @@ class misc(commands.Cog, name="Settings"):
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
+    @set.sub_command(name="ban-alert-channel", description="Set a new channel for ban alerts")
+    async def ban_alert(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
+        """
+                    Parameters
+                    ----------
+                    clan: Use clan tag, alias, or select an option from the autocomplete
+                    channel: New channel to switch to
+                """
+        perms = ctx.author.guild_permissions.manage_guild
+        if not perms:
+            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
+        clan = await self.bot.getClan(clan_tag=clan)
+
+        if clan is None:
+            return await ctx.send("Not a valid clan tag or alias.")
+
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        if results is None:
+            return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
+
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]}, {'$set': {"ban_alert_channel": channel.id}})
+
+        await ctx.send(f"Ban alert channel for {clan.tag} switched to {channel.mention}")
+
     @set.sub_command(name="nickname-labels", description="Set new abreviations for a clan or labels for family members (used for auto nicknames)")
     async def abbreviation(self, ctx: disnake.ApplicationCommandInteraction, type: str, new_label: str):
         """
@@ -483,6 +516,7 @@ class misc(commands.Cog, name="Settings"):
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
+
     @set.sub_command(name="eval-nickname",
                      description="Have linking change discord name to name | clan or name | family")
     async def auto_nickname(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Clan Abbreviations", "Family Name", "Off"])):
@@ -496,7 +530,6 @@ class misc(commands.Cog, name="Settings"):
         embed = disnake.Embed(description=f"Auto Nickname set to {type}.",
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
-
 
     @set.sub_command(name="reddit-recruit-feed", description="Feed of searching for a clan posts on the recruiting subreddit")
     async def reddit_recruit(self, ctx: disnake.ApplicationCommandInteraction, role_to_ping: disnake.Role, channel: disnake.TextChannel, remove=commands.Param(default=None, choices=["Remove Feed"])):
@@ -523,38 +556,6 @@ class misc(commands.Cog, name="Settings"):
             await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"reddit_feed": None, "reddit_role": None}})
 
             embed = disnake.Embed(description="**Reddit Recruit feed removed**", color=disnake.Color.green())
-
-        return await ctx.edit_original_message(embed=embed)
-
-    @set.sub_command(name="ytbase-feed-beta",
-                     description="Feed of yt base links from new yt videos")
-    async def ytbase_feed(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel,
-                             remove=commands.Param(default=None, choices=["Remove Feed"])):
-        """
-            Parameters
-            ----------
-            channel: channel to set the feed to
-            remove: option to remove this feed
-        """
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-
-            return await ctx.send(embed=embed)
-        await ctx.response.defer()
-        if remove is None:
-            await self.bot.server_db.update_one({"server": ctx.guild.id},
-                                                {"$set": {"yt_feed": channel.id}})
-
-            embed = disnake.Embed(description=f"**YT base feed set to {channel.mention}**",
-                                  color=disnake.Color.green())
-
-        else:
-            await self.bot.server_db.update_one({"server": ctx.guild.id},
-                                                {"$set": {"yt_feed": None}})
-
-            embed = disnake.Embed(description="**YT Base feed removed**", color=disnake.Color.green())
 
         return await ctx.edit_original_message(embed=embed)
 
@@ -654,6 +655,7 @@ class misc(commands.Cog, name="Settings"):
     @warlog.autocomplete("clan")
     @remove_setup.autocomplete("clan")
     @legend_log.autocomplete("clan")
+    @ban_alert.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})

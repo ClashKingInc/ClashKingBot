@@ -119,7 +119,7 @@ class Linking(commands.Cog):
         except Exception as e:
             await ctx.edit_original_message(content=(str(e))[:1000])
 
-    @commands.slash_command(name="verify", description="Link clash of clans accounts to your discord profile", guild_ids=[548297912443207706])
+    @commands.slash_command(name="verify", description="Link clash of clans accounts to your discord profile")
     async def verify(self, ctx: disnake.ApplicationCommandInteraction, player_tag):
         """
             Parameters
@@ -200,7 +200,6 @@ class Linking(commands.Cog):
         embed2.set_image(
             url="https://cdn.discordapp.com/attachments/843624785560993833/961379232955658270/image0_2.png")
         await ctx.send(embeds=[embed, embed2])
-
 
     @commands.slash_command(name="modlink", description="Links clash account to a discord member, on their behalf.")
     async def modlink(self, ctx: disnake.ApplicationCommandInteraction, member : disnake.Member, player_tag, greet=commands.Param(default="Yes", choices=["Yes", "No"])):
@@ -299,7 +298,7 @@ class Linking(commands.Cog):
             return await ctx.send(embed=embed)
 
         if api_token is None:
-            if ctx.guild.member_count <= 250 is False:
+            if ctx.guild.member_count <= 250:
                 embed = disnake.Embed(description=f"[{player.name}]({player.share_link}), cannot unlink players not on this server.\n(Reach out on the support server if you have questions about this)",
                                       color=disnake.Color.red())
                 return await ctx.send(embed=embed)
@@ -322,6 +321,8 @@ class Linking(commands.Cog):
                 await ctx.send(embed=embed)
 
     @modlink.autocomplete("player_tag")
+    @unlink.autocomplete("player_tag")
+    @verify.autocomplete("player_tag")
     async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         names = await self.bot.family_names(query=query, guild=ctx.guild)
         return names

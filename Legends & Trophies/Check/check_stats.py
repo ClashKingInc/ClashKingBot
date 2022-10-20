@@ -74,7 +74,7 @@ class CheckStats(commands.Cog):
         '''
 
         if player.league_as_string != "Legend League":
-            embed = disnake.Embed(title=f"{player.name} ({player.tag}) | {player.clan_name}",
+            embed = disnake.Embed(title=f"{player.name} ({player.tag}) | {player.clan_name()}",
                                   description=f"Player not currently in legends.",
                                   color=disnake.Color.blue())
             return embed

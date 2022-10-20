@@ -110,5 +110,12 @@ class profiles(commands.Cog, name="Profile"):
 
         await ctx.send(embed=embed)
 
+    @invite.autocomplete("player_tag")
+    @lookup.autocomplete("tag")
+    async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        names = await self.bot.family_names(query=query, guild=ctx.guild)
+        return names
+
+
 def setup(bot: CustomClient):
     bot.add_cog(profiles(bot))

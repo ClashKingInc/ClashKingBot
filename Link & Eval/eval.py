@@ -999,9 +999,10 @@ class eval(commands.Cog, name="Eval"):
 
         return clan in clan_tags
 
-
-
-
+    @eval_tag.autocomplete("player_tag")
+    async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        names = await self.bot.family_names(query=query, guild=ctx.guild)
+        return names
 
 
 def setup(bot:  CustomClient):
