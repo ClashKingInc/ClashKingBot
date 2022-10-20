@@ -180,8 +180,8 @@ class banlists(commands.Cog, name="Bans"):
         banChannel = results.get("banlist")
         channel = await self.bot.pingToChannel(ctx, banChannel)
         if channel is not None:
-            async for message in channel.history(limit=None):
-                await message.delete()
+            async for message in channel.history(limit=10):
+                pass
             embeds = await self.create_embeds(ctx)
             for embed in embeds:
                 await channel.send(embed=embed)
