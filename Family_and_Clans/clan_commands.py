@@ -541,8 +541,6 @@ class clan_commands(commands.Cog):
         await ctx.edit_original_message(embed=embed, components=buttons)
         await ctx.edit_original_message(embed=embed)
 
-
-
     def get_raid(self, raid_log, after, before):
         for raid in raid_log:
             time_start = int(raid.start_time.time.timestamp())

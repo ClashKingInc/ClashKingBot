@@ -4,6 +4,7 @@ from utils.components import create_components
 from datetime import datetime
 from Dictionaries.emojiDictionary import emojiDictionary
 from CustomClasses.CustomBot import CustomClient
+from main import check_commands
 
 class banlists(commands.Cog, name="Bans"):
 
@@ -65,6 +66,7 @@ class banlists(commands.Cog, name="Bans"):
 
 
     @ban.sub_command(name='add', description="Add player to server ban list")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ban_add(self, ctx: disnake.ApplicationCommandInteraction, tag: str, reason :str= "None"):
         """
             Parameters
@@ -72,12 +74,6 @@ class banlists(commands.Cog, name="Bans"):
             tag: player_tag to ban
             reason: reason for ban
         """
-
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         player = await self.bot.getPlayer(tag)
         if player is None:
@@ -125,7 +121,7 @@ class banlists(commands.Cog, name="Bans"):
 
         if channel is not None:
             x = 0
-            async for message in channel.history(limit=None):
+            async for message in channel.history(limit=200):
                 message: disnake.Message
                 x += 1
                 if x == 101:
@@ -141,18 +137,13 @@ class banlists(commands.Cog, name="Bans"):
 
 
     @ban.sub_command(name='remove', description="Remove player from server ban list")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ban_remove(self, ctx: disnake.ApplicationCommandInteraction, tag: str):
         """
             Parameters
             ----------
             tag: player_tag to unban
         """
-
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         player = await self.bot.getPlayer(tag)
         if player is None:
@@ -179,9 +170,18 @@ class banlists(commands.Cog, name="Bans"):
         results = await self.bot.server_db.find_one({"server": ctx.guild.id})
         banChannel = results.get("banlist")
         channel = await self.bot.pingToChannel(ctx, banChannel)
+
         if channel is not None:
-            async for message in channel.history(limit=None):
+            x = 0
+            async for message in channel.history(limit=200):
+                message: disnake.Message
+                x += 1
+                if x == 101:
+                    break
+                if message.author.id != self.bot.user.id:
+                    continue
                 await message.delete()
+
             embeds = await self.create_embeds(ctx)
             for embed in embeds:
                 await channel.send(embed=embed)

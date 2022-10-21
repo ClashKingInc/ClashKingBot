@@ -1,13 +1,15 @@
 import os
 import disnake
-from disnake import Client
-
 import traceback
+import motor.motor_asyncio
+
 from CustomClasses.CustomBot import CustomClient
+from disnake import Client
+from disnake.ext import commands
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
-from EventHub.event_websockets import player_websocket, clan_websocket, war_websocket
+from EventHub.event_websockets import player_websocket, clan_websocket
 
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
@@ -18,9 +20,45 @@ intents.members = True
 intents.guilds = True
 intents.emojis = True
 intents.guild_messages = True
-
 bot = CustomClient(command_prefix="<@824653933347209227> ",help_command=None, intents=intents,
-    sync_commands_debug=False, sync_permissions=True)
+    sync_commands_debug=False, sync_permissions=True, reload=True)
+
+def check_commands():
+    async def predicate(ctx: disnake.ApplicationCommandInteraction):
+        db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
+        whitelist = db_client.usafam.whitelist
+        member = ctx.author
+
+        commandd = ctx.application_command.qualified_name
+        guild = ctx.guild.id
+        results =  whitelist.find({"$and" : [
+                {"command": commandd},
+                {"server" : guild}
+            ]})
+
+        if results is None:
+            return False
+
+        limit = await whitelist.count_documents(filter={"$and" : [
+                {"command": commandd},
+                {"server" : guild}
+            ]})
+
+        perms = False
+        for role in await results.to_list(length=limit):
+            role_ = role.get("role_user")
+            is_role = role.get("is_role")
+            if is_role:
+                role_ = ctx.guild.get_role(role_)
+                if member in role_.members:
+                    return True
+            else:
+                if member.id == role_:
+                    return True
+
+        return perms
+
+    return commands.check(predicate)
 
 initial_extensions = (
     "BackgroundCrons.autoboard_loop",
@@ -28,8 +66,9 @@ initial_extensions = (
     "BackgroundCrons.region_lb_update",
     "BackgroundCrons.legends_history",
     "BackgroundCrons.reddit_recruit_feed",
-    "BackgroundCrons.youtube_base_feed",
     "BackgroundCrons.dm_reports",
+    "BackgroundCrons.store_clan_capital",
+    "BackgroundCrons.reminders",
     "EventHub.clan_capital_events",
     "EventHub.join_leave_events",
     "EventHub.ban_events",

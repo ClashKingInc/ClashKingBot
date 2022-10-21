@@ -1,5 +1,6 @@
 import disnake
 import coc
+import traceback
 
 from disnake.ext import commands
 from Dictionaries.thPicDictionary import thDictionary
@@ -165,6 +166,7 @@ class DiscordEvents(commands.Cog):
         embed.set_thumbnail(url=user.display_avatar.url)
         await channel.send(embed=embed)
 
+
     @commands.Cog.listener()
     async def on_slash_command_error(self, ctx: disnake.ApplicationCommandInteraction, error):
         if isinstance(error, disnake.ext.commands.ConversionError):
@@ -175,6 +177,15 @@ class DiscordEvents(commands.Cog):
 
         if isinstance(error, coc.errors.Maintenance):
             embed = disnake.Embed(description=f"Game is currently in Maintenance.", color=disnake.Color.red())
+            await ctx.send(embed=embed)
+
+        if isinstance(error, disnake.ext.commands.CheckAnyFailure):
+            if isinstance(error.errors[0], disnake.ext.commands.MissingPermissions):
+                embed = disnake.Embed(description=error.errors[0], color=disnake.Color.red())
+                await ctx.send(embed=embed)
+
+        if isinstance(error, disnake.ext.commands.MissingPermissions):
+            embed = disnake.Embed(description=error, color=disnake.Color.red())
             await ctx.send(embed=embed)
 
 

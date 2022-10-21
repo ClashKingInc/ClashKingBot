@@ -2,6 +2,8 @@ import disnake
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer, ServerClan
+from main import check_commands
+from typing import Union
 
 class misc(commands.Cog, name="Settings"):
 
@@ -13,33 +15,24 @@ class misc(commands.Cog, name="Settings"):
         pass
 
     @set.sub_command(name="banlist-channel", description="Set channel to post banlist in")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def setbanlist(self, ctx: disnake.ApplicationCommandInteraction, channel:disnake.TextChannel):
         """
             Parameters
             ----------
             channel: channel to post & update banlist in when changes are made
         """
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
-
         await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"banlist": channel.id}})
         await ctx.send(f"Banlist channel switched to {channel.mention}")
 
     @set.sub_command(name="greeting", description="Set a custom clan greeting message")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def setgreeting(self, ctx: disnake.ApplicationCommandInteraction, greet):
         """
             Parameters
             ----------
             greet: text for custom new member clan greeting
         """
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"greeting": greet}})
 
@@ -48,6 +41,7 @@ class misc(commands.Cog, name="Settings"):
                          allowed_mentions=disnake.AllowedMentions.none())
 
     @set.sub_command(name="clan-channel", description="Set a new clan channel for a clan")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def channel(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
         """
             Parameters
@@ -55,11 +49,6 @@ class misc(commands.Cog, name="Settings"):
             clan: Use clan tag, alias, or select an option from the autocomplete
             channel: New channel to switch to
         """
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         clan_search = clan.lower()
         first_clan = clan
@@ -98,6 +87,7 @@ class misc(commands.Cog, name="Settings"):
         await ctx.send(f"Clan channel switched to {channel.mention}")
 
     @set.sub_command(name="member-role", description="Set a new member role for a clan")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def role(self, ctx: disnake.ApplicationCommandInteraction, clan: str, role: disnake.Role):
         """
             Parameters
@@ -105,11 +95,6 @@ class misc(commands.Cog, name="Settings"):
             clan: Use clan tag, alias, or select an option from the autocomplete
             role: New role to switch to
         """
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         clan_search = clan.lower()
         first_clan = clan
@@ -151,6 +136,7 @@ class misc(commands.Cog, name="Settings"):
         await ctx.send(embed=embed)
 
     @set.sub_command(name="leader-role", description="Set a new leader role for a clan")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def leaderrole(self, ctx: disnake.ApplicationCommandInteraction, clan: str, role: disnake.Role):
         """
             Parameters
@@ -158,12 +144,6 @@ class misc(commands.Cog, name="Settings"):
             clan: Use clan tag, alias, or select an option from the autocomplete
             role: New role to switch to
         """
-
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         clan_search = clan.lower()
         first_clan = clan
@@ -205,6 +185,7 @@ class misc(commands.Cog, name="Settings"):
         await ctx.send(embed=embed)
 
     @set.sub_command(name="clan-category", description="Set a new category for a clan")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def category(self, ctx: disnake.ApplicationCommandInteraction, clan: str, new_category: str):
         """
             Parameters
@@ -212,11 +193,6 @@ class misc(commands.Cog, name="Settings"):
             clan: Use clan tag, alias, or select an option from the autocomplete
             new_category: new category to use for this clan (type one or choose from autocomplete)
         """
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         clan_search = clan.lower()
         first_clan = clan
@@ -257,6 +233,7 @@ class misc(commands.Cog, name="Settings"):
         await ctx.send(embed=embed)
 
     @set.sub_command(name="ban-alert-channel", description="Set a new channel for ban alerts")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ban_alert(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
         """
                     Parameters
@@ -264,11 +241,6 @@ class misc(commands.Cog, name="Settings"):
                     clan: Use clan tag, alias, or select an option from the autocomplete
                     channel: New channel to switch to
                 """
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         clan = await self.bot.getClan(clan_tag=clan)
 
@@ -290,6 +262,7 @@ class misc(commands.Cog, name="Settings"):
         await ctx.send(f"Ban alert channel for {clan.tag} switched to {channel.mention}")
 
     @set.sub_command(name="nickname-labels", description="Set new abreviations for a clan or labels for family members (used for auto nicknames)")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def abbreviation(self, ctx: disnake.ApplicationCommandInteraction, type: str, new_label: str):
         """
             Parameters
@@ -297,11 +270,6 @@ class misc(commands.Cog, name="Settings"):
             type: clan or family
             new_label: label that goes after a player's nickname on discord
         """
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         if type != "Family":
             clan = await self.bot.getClan(type)
@@ -330,6 +298,7 @@ class misc(commands.Cog, name="Settings"):
         await ctx.send(embed=embed)
 
     @set.sub_command(name="join-log", description="Set up a join & leave log for a clan")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def joinleavelog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
         """
             Parameters
@@ -337,11 +306,6 @@ class misc(commands.Cog, name="Settings"):
             clan: Use clan tag, alias, or select an option from the autocomplete
             channel: channel to set the join/leave log to
         """
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         clan_search = clan.lower()
         first_clan = clan
@@ -382,6 +346,7 @@ class misc(commands.Cog, name="Settings"):
         await ctx.send(embed=embed)
 
     @set.sub_command(name="clancapital-log", description="Set up a clan capital log for a clan")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def clancapitallog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
         """
             Parameters
@@ -389,11 +354,6 @@ class misc(commands.Cog, name="Settings"):
             clan: Use clan tag, alias, or select an option from the autocomplete
             channel: channel to set the join/leave log to
         """
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         clan_search = clan.lower()
         first_clan = clan
@@ -434,6 +394,7 @@ class misc(commands.Cog, name="Settings"):
         await ctx.send(embed=embed)
 
     @set.sub_command(name="war-log-beta", description="Set up a war log for a clan. in beta.")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def warlog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
         """
             Parameters
@@ -441,11 +402,6 @@ class misc(commands.Cog, name="Settings"):
             clan: Use clan tag or select an option from the autocomplete
             channel: channel to set the war log to
         """
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         clan = await self.bot.getClan(clan)
 
@@ -469,6 +425,7 @@ class misc(commands.Cog, name="Settings"):
         await ctx.send(embed=embed)
 
     @set.sub_command(name="legend-log", description="Set up a legend log for a clan")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def legend_log(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
         """
             Parameters
@@ -476,11 +433,6 @@ class misc(commands.Cog, name="Settings"):
             clan: Use clan tag or select an option from the autocomplete
             channel: channel to set the legend log to
         """
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         clan = await self.bot.getClan(clan)
 
@@ -504,12 +456,8 @@ class misc(commands.Cog, name="Settings"):
         await ctx.send(embed=embed)
 
     @set.sub_command(name="leadership-eval", description="Have eval assign leadership role to clan coleads & leads (on default)")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def leadership_eval(self, ctx: disnake.ApplicationCommandInteraction, option=commands.Param(choices=["On", "Off"])):
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
         server = CustomServer(guild=ctx.guild, bot=self.bot)
         await server.change_leadership_eval(option=(option == "On"))
         embed = disnake.Embed(description=f"Leadership Eval turned {option}.",
@@ -517,14 +465,9 @@ class misc(commands.Cog, name="Settings"):
         await ctx.send(embed=embed)
 
 
-    @set.sub_command(name="eval-nickname",
-                     description="Have linking change discord name to name | clan or name | family")
+    @set.sub_command(name="eval-nickname", description="Have linking change discord name to name | clan or name | family")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def auto_nickname(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Clan Abbreviations", "Family Name", "Off"])):
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
         server = CustomServer(guild=ctx.guild, bot=self.bot)
         await server.change_auto_nickname(type)
         embed = disnake.Embed(description=f"Auto Nickname set to {type}.",
@@ -532,6 +475,7 @@ class misc(commands.Cog, name="Settings"):
         await ctx.send(embed=embed)
 
     @set.sub_command(name="reddit-recruit-feed", description="Feed of searching for a clan posts on the recruiting subreddit")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def reddit_recruit(self, ctx: disnake.ApplicationCommandInteraction, role_to_ping: disnake.Role, channel: disnake.TextChannel, remove=commands.Param(default=None, choices=["Remove Feed"])):
         """
             Parameters
@@ -540,11 +484,6 @@ class misc(commands.Cog, name="Settings"):
             role_to_ping: role to ping when a new recruit appears
             remove: option to remove this feed
         """
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.", color=disnake.Color.red())
-
-            return await ctx.send(embed=embed)
         await ctx.response.defer()
         if remove is None:
             role_id = None if role_to_ping is None else role_to_ping.id
@@ -560,16 +499,11 @@ class misc(commands.Cog, name="Settings"):
         return await ctx.edit_original_message(embed=embed)
 
     @set.sub_command(name="remove", description="Remove a setup")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def remove_setup(self, ctx: disnake.ApplicationCommandInteraction, clan: str,
                            log_to_remove=commands.Param(choices=["Clan Capital Log", "Join Log", "War Log", "Legend Log"])):
         type_dict = {"Clan Capital Log": "clan_capital", "Join Log": "joinlog", "War Log": "war_log", "Legend Log" : "legend_log"}
         log_type = type_dict[log_to_remove]
-
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         clan = await self.bot.getClan(clan)
 
@@ -645,6 +579,134 @@ class misc(commands.Cog, name="Settings"):
             else:
                 await ctx.followup.send(embeds=embeds)
 
+    @commands.slash_command(name="whitelist")
+    async def whitelist(self, ctx):
+        pass
+
+    @whitelist.sub_command(name="add", description="Adds a role that can run a specific command.")
+    @commands.has_permissions(manage_guild=True)
+    async def whitelist_add(self, ctx, ping: Union[disnake.Member, disnake.Role], command: str):
+
+        list_commands = []
+        for command_ in self.bot.slash_commands:
+            base_command = command_.name
+            children = command_.children
+            if children != {}:
+                for child in children:
+                    command_l = children[child]
+                    full_name = f"{base_command} {command_l.name}"
+                    command_l = self.bot.get_slash_command(name=full_name)
+                    if command_l.checks != []:
+                        list_commands.append(full_name)
+            else:
+                full_name = base_command
+                if command_.checks != []:
+                    list_commands.append(full_name)
+
+        is_command = command in list_commands
+
+        if "whitelist" in command:
+            is_command = False
+
+        if is_command == False:
+            return await ctx.reply("Not a valid command or command cannot be whitelisted.")
+
+        results = await self.bot.whitelist.find_one({"$and": [
+            {"command": command},
+            {"server": ctx.guild.id},
+            {"role_user": ping.id}
+        ]})
+
+        if results is not None:
+            embed = disnake.Embed(description=f"{ping.mention} is already whitelisted for `{command}`.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
+        await self.bot.whitelist.insert_one({
+            "command": command,
+            "server": ctx.guild.id,
+            "role_user": ping.id,
+            "is_role" : isinstance(ping, disnake.Role)
+        })
+
+        embed = disnake.Embed(
+            description=f"{ping.mention} added to `{command}` whitelist.",
+            color=disnake.Color.green())
+        return await ctx.send(embed=embed)
+
+    @whitelist.sub_command(name="remove", description="Deletes a role/user that can run a specific command")
+    @commands.has_permissions(manage_guild=True)
+    async def whitelist_remove(self, ctx, ping: Union[disnake.Member, disnake.Role], command: str):
+
+        list_commands = []
+        for command_ in self.bot.slash_commands:
+            base_command = command_.name
+            children = command_.children
+            if children != {}:
+                for child in children:
+                    command_l = children[child]
+                    full_name = f"{base_command} {command_l.name}"
+                    command_l = self.bot.get_slash_command(name=full_name)
+                    if command_l.checks != []:
+                        list_commands.append(full_name)
+            else:
+                full_name = base_command
+                if command_.checks != []:
+                    list_commands.append(full_name)
+
+        is_command = command in list_commands
+
+        if "whitelist" in command:
+            is_command = False
+
+        if is_command == False:
+            return await ctx.reply("Not a valid command or command cannot be whitelisted.")
+
+        results = await self.bot.whitelist.find_one({"$and": [
+            {"command": command},
+            {"server": ctx.guild.id},
+            {"role_user": ping.id}
+        ]})
+
+        if results is None:
+            embed = disnake.Embed(description=f"{ping.mention} has no active whitelist for `{command}`.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
+        await self.bot.whitelist.find_one_and_delete({
+            "command": command,
+            "server": ctx.guild.id,
+            "role_user": ping.id
+        })
+
+        embed = disnake.Embed(
+            description=f"{ping.mention} removed from `{command}` whitelist.",
+            color=disnake.Color.green())
+        return await ctx.send(embed=embed)
+
+    @whitelist.sub_command(name="list", description="Displays the list of commands that have whitelist overrides.")
+    async def whitelist_list(self, ctx):
+        text = ""
+        results = self.bot.whitelist.find({"server": ctx.guild.id})
+        limit = await self.bot.whitelist.count_documents(filter={"server": ctx.guild.id})
+        for role in await results.to_list(length=limit):
+            r = role.get("role_user")
+            command = role.get("command")
+            if role.get("is_role") :
+                text += f"<@&{r}> | `{command}`\n"
+            else:
+                text += f"<@{r}> | `{command}`\n"
+
+        if text == "":
+            text = "Whitelist is empty."
+
+        embed = disnake.Embed(title=f"Command Whitelist",
+                              description=text,
+                              color=disnake.Color.green())
+
+        await ctx.send(embed=embed)
+
+
 
     @channel.autocomplete("clan")
     @role.autocomplete("clan")
@@ -689,6 +751,27 @@ class misc(commands.Cog, name="Settings"):
             if query.lower() in category.lower() and category not in categories:
                 categories.append(category)
         return categories[:25]
+
+    @whitelist_add.autocomplete("command")
+    async def autocomp_comamnds(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        commands = []
+        for command_ in self.bot.slash_commands:
+            base_command = command_.name
+            if "whitelist" in base_command:
+                continue
+            children = command_.children
+            if children != {}:
+                for child in children:
+                    command = children[child]
+                    full_name = f"{base_command} {command.name}"
+                    command = self.bot.get_slash_command(name=full_name)
+                    if query.lower() in full_name.lower() and command.checks != []:
+                        commands.append(full_name)
+            else:
+                full_name = base_command
+                if query.lower() in full_name.lower() and command_.checks != []:
+                    commands.append(full_name)
+        return commands[:25]
 
 
 def setup(bot: CustomClient):
