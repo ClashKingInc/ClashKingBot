@@ -753,6 +753,7 @@ class misc(commands.Cog, name="Settings"):
         return categories[:25]
 
     @whitelist_add.autocomplete("command")
+    @whitelist_remove.autocomplete("command")
     async def autocomp_comamnds(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         commands = []
         for command_ in self.bot.slash_commands:
