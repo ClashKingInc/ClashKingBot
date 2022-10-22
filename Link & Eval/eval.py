@@ -615,7 +615,7 @@ class eval(commands.Cog, name="Eval"):
                 except:
                     removed = ""
 
-        if len(account_tags) >= 1:
+        if len(family_accounts) >= 1:
             if change_nick == "Clan Abbreviations":
                 results = sorted(family_accounts, key=lambda l: l[0], reverse=True)
                 abbreviations_to_have = list(set(abbreviations_to_have))

@@ -2,6 +2,7 @@ from disnake.ext import commands
 import disnake
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer
+from main import check_commands
 
 class Linking(commands.Cog):
 
@@ -202,6 +203,7 @@ class Linking(commands.Cog):
         await ctx.send(embeds=[embed, embed2])
 
     @commands.slash_command(name="modlink", description="Links clash account to a discord member, on their behalf.")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def modlink(self, ctx: disnake.ApplicationCommandInteraction, member : disnake.Member, player_tag, greet=commands.Param(default="Yes", choices=["Yes", "No"])):
         """
             Parameters
@@ -210,11 +212,6 @@ class Linking(commands.Cog):
             member: discord member to link this player to
             greet: (optional) don't send the clan greeting for a newly linked account
         """
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         await ctx.response.defer()
         server = CustomServer(guild=ctx.guild, bot=self.bot)
