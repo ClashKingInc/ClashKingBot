@@ -65,9 +65,6 @@ class LegendEvents(commands.Cog):
             except:
                 continue
 
-    async def edit_embeds(self, old_embeds: list, player: MyCustomPlayer):
-        return []
-
     async def create_embeds(self, clan_tag, og_player, attack, new, message):
         clan = await self.bot.getClan(clan_tag)
         member_tags = [member.tag for member in clan.members]
@@ -166,6 +163,40 @@ class LegendEvents(commands.Cog):
         embed = disnake.Embed(title=f"{player.name} | {player.clan_name()}",
                               description=f"{change}\n{discord_time} | [profile]({player.share_link})",
                               color=color)
+
+        clan_tag = None
+        try:
+            clan_tag = event["new_player"]["clan"]["tag"]
+        except:
+            pass
+
+        if clan_tag != None:
+            tracked = self.bot.clan_db.find({"$and": [{"tag": clan_tag}, {"legend_log.webhook": {"$ne" : None}}]})
+            limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan_tag}"})
+            for cc in await tracked.to_list(length=limit):
+                try:
+                    server_id = cc.get("server")
+                    legendlog = cc.get("legend_log")
+                    webhook_id = legendlog.get("webhook")
+                    thread_id = legendlog.get("thread")
+                    try:
+                        webhook = await self.bot.fetch_webhook(webhook_id)
+                        if thread_id is not None:
+                            thread = await self.bot.fetch_channel(thread_id)
+                            if thread.locked:
+                                continue
+                    except (disnake.NotFound, disnake.Forbidden):
+                        await self.bot.clan_db.update_one({"server": server_id}, {'$set': {"legend_log.webhook": None}})
+                        await self.bot.clan_db.update_one({"server": server_id}, {'$set': {"legend_log.thread": None}})
+                        continue
+
+                    if thread_id is None:
+                        await webhook.send(embed=embed, avatar_url=self.bot.user.display_avatar.url)
+                    else:
+                        await webhook.send(embed=embed, avatar_url=self.bot.user.display_avatar.url, thread=thread)
+                except:
+                    continue
+
         embed.set_footer(text=f"{player.tag} | Remove entire feed at any time")
 
         results = self.bot.legend_profile.find({"feed_tags": player.tag})
