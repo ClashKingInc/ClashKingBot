@@ -49,7 +49,9 @@ class help(commands.Cog):
 
         embeds = []
         x = 0
+        select_options = []
         for page in pages:
+            select_options.append(disnake.SelectOption(label=page_names[x], value=page_names[x]))
             embed = disnake.Embed(title=page_names[x],
                                   color=disnake.Color.green())
             embed.set_footer(text=f"{len(command_description)} commands")
@@ -70,8 +72,17 @@ class help(commands.Cog):
                 embed.add_field(name=cog, value=text, inline=False)
             embeds.append(embed)
             x+=1
+
+        select_options.append(disnake.SelectOption(label="Print", emoji="🖨️", value="Print"))
         current_page = 0
-        await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))
+        select = disnake.ui.Select(
+            options=select_options,
+            placeholder="Help Modules",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=1,  # the maximum number of options a user can select
+        )
+        dropdown = [disnake.ui.ActionRow(select)]
+        await ctx.edit_original_message(embed=embeds[0], components=dropdown)
         msg = await ctx.original_message()
 
         def check(res: disnake.MessageInteraction):
@@ -88,20 +99,12 @@ class help(commands.Cog):
                     pass
                 break
 
-            if res.data.custom_id == "Previous":
-                current_page -= 1
-                await res.response.edit_message(embed=embeds[current_page],
-                                                components=create_components(current_page, embeds, True))
-
-            elif res.data.custom_id == "Next":
-                current_page += 1
-                await res.response.edit_message(embed=embeds[current_page],
-                                                components=create_components(current_page, embeds, True))
-
-            elif res.data.custom_id == "Print":
+            if res.values[0] == "Print":
                 await msg.delete()
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)
+            else:
+                res.response.edit_message(embed=embeds[page_names.index(res.values[0])])
 
 
 
