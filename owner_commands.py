@@ -5,7 +5,10 @@ clan_tags = ["#2P0JJQGUJ"]
 known_streak = []
 count = 0
 list_size = 0
+from utils.clash import weekend_timestamps
+import asyncio
 from CustomClasses.CustomBot import CustomClient
+from pymongo import UpdateOne
 
 class OwnerCommands(commands.Cog):
 
@@ -114,6 +117,50 @@ class OwnerCommands(commands.Cog):
                 text += f"{server.name} : Not Successful\n> Send Messages Perm: {send}\nEmbed Link Perm: {embed_link}\n> {str(e)[0:1000]}\n"
 
         embed = disnake.Embed(title=f"Test Raid {clan.name}", description=text, color=disnake.Color.green())
+        await ctx.send(embed=embed)
+
+    @commands.command(name="testreddit")
+    @commands.is_owner()
+    async def testraid(self, ctx, server_id):
+
+        text = ""
+        server_id = int(server_id)
+
+        server = await self.bot.server_db.find_one({"server" : server_id})
+        reddit_channel = server.get("reddit_feed")
+        if reddit_channel is None:
+            await ctx.send("No channel set up")
+
+        server = server.get("server")
+
+        server = await self.bot.fetch_guild(server)
+
+
+
+        reddit_channel = await server.fetch_channel(reddit_channel)
+        if reddit_channel is None:
+            await ctx.send("Invalid channel")
+
+
+        embed = disnake.Embed(
+            description=f"Test Reddit Feed"
+            , color=disnake.Color.green())
+
+        try:
+            member = await server.fetch_member(self.bot.user.id)
+            ow = reddit_channel.overwrites_for(member)
+            send = ow.send_messages
+            embed_link = ow.embed_links
+            await reddit_channel.send(embed=embed)
+            text += f"{server.name} : Successful\n> Send Messages Perm: {send}\nEmbed Link Perm: {embed_link}\n"
+        except Exception as e:
+            member = await server.getch_member(self.bot.user.id)
+            ow = reddit_channel.overwrites_for(member)
+            send = ow.send_messages
+            embed_link = ow.embed_links
+            text += f"{server.name} : Not Successful\n> Send Messages Perm: {send}\nEmbed Link Perm: {embed_link}\n> {str(e)[0:1000]}\n"
+
+        embed = disnake.Embed(title=f"Test Reddit Feed for {server.name}", description=text, color=disnake.Color.green())
         await ctx.send(embed=embed)
 
     @commands.command(name='leave')
