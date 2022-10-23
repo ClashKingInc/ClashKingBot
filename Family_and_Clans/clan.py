@@ -539,12 +539,11 @@ class getClans(commands.Cog, name="Clan"):
             for char in ["`", "*", "_", "~"]:
                 name = player.name.replace(char, "", 10)
             points = player.clan_games
-            points = f"{points}".ljust(4)
 
             if player.tag in member_tags:
-                point_text.append([f"{self.bot.emoji.clan_games}`{points}`: {name}", points])
+                point_text.append([f"{self.bot.emoji.clan_games}`{str(points).ljust(4)}`: {name}", points])
             else:
-                point_text.append([f"{self.bot.emoji.deny_mark}`{points}`: {name}", points])
+                point_text.append([f"{self.bot.emoji.deny_mark}`{str(points).ljust(4)}`: {name}", points])
 
         point_text = sorted(point_text, key=lambda l: l[1], reverse=True)
         point_text = [line[0] for line in point_text]

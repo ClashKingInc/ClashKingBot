@@ -122,12 +122,16 @@ class MyCustomPlayer(coc.Player):
 
     @property
     def clan_games(self):
+        date = self.bot.gen_season_date()
         if self.results is None:
             return 0
         clan_game = self.results.get("clan_games")
         if clan_game is None:
             return 0
-        points = clan_game.get("points")
+        date = clan_game.get(date)
+        if date is None:
+            return 0
+        points = date.get("points")
         if points is None:
             return 0
         return points
