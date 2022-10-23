@@ -128,7 +128,7 @@ class ServerClan():
         return f"<#{channel}>" if channel is not None else channel
 
     @property
-    def legend_log(self):
+    async def legend_log(self):
         legend_log = self.clan_result.get("legend_log")
         if legend_log is None:
             return legend_log
