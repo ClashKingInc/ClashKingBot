@@ -446,6 +446,8 @@ class misc(commands.Cog, name="Settings"):
         if results is None:
             return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
 
+        #may activate if duplicates becomes an issue
+        #clan_webhooks = await self.bot.clan_db.distinct("legend_log.webhook", filter={"server": ctx.guild.id})
         is_thread = False
         try:
 
@@ -454,7 +456,6 @@ class misc(commands.Cog, name="Settings"):
                 webhooks = await channel.parent.webhooks()
             else:
                 webhooks = await channel.webhooks()
-
             webhook = next((w for w in webhooks if w.user.id == self.bot.user.id), None)
             if webhook is None:
                 if isinstance(channel, disnake.Thread):
