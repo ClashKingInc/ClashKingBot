@@ -74,7 +74,6 @@ class help(commands.Cog):
             x+=1
 
         select_options.append(disnake.SelectOption(label="Print", emoji="🖨️", value="Print"))
-        current_page = 0
         select = disnake.ui.Select(
             options=select_options,
             placeholder="Help Modules",  # the placeholder text to show when no options have been chosen
