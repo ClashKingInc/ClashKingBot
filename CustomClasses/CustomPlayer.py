@@ -120,6 +120,18 @@ class MyCustomPlayer(coc.Player):
     def last_online(self):
         return None if self.results is None else self.results.get("last_online")
 
+    @property
+    def clan_games(self):
+        if self.results is None:
+            return 0
+        clan_game = self.results.get("clan_games")
+        if clan_game is None:
+            return 0
+        points = clan_game.get("points")
+        if points is None:
+            return 0
+        return points
+
     async def track(self):
         if self.results is None:
             return await self.bot.track_players(players=[self])

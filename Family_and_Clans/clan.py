@@ -10,6 +10,7 @@ from disnake.ext import commands
 from Dictionaries.emojiDictionary import emojiDictionary
 from collections import defaultdict
 from coc import utils
+from CustomClasses.CustomPlayer import MyCustomPlayer
 
 SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker", "Rocket Balloon", "Super Wizard", "Inferno Dragon",
                 "Super Minion", "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", "Super Dragon"]
@@ -515,6 +516,43 @@ class getClans(commands.Cog, name="Clan"):
                               description=text + avg_time,
                               color=disnake.Color.green())
         return embed
+
+    async def create_clan_games(self, clan: coc.Clan):
+        date = self.bot.gen_season_date()
+        member_tags = [member.tag for member in clan.members]
+
+        tags = await self.bot.player_stats.distinct("tag", filter={f"clan_games.{date}.clan": clan.tag})
+        all_tags = list(set(member_tags + tags))
+
+        tasks = []
+        for tag in all_tags:
+            results = await self.bot.player_stats.find_one({"tag": tag})
+            task = asyncio.ensure_future(
+                self.bot.coc_client.get_player(player_tag=tag, cls=MyCustomPlayer, bot=self.bot, results=results))
+            tasks.append(task)
+        responses = await asyncio.gather(*tasks)
+
+        point_text = []
+        total_points = sum(player.clan_games for player in responses)
+        for player in responses:
+            player: MyCustomPlayer
+            for char in ["`", "*", "_", "~"]:
+                name = player.name.replace(char, "", 10)
+            points = player.clan_games
+            points = f"{points}".ljust(4)
+
+            if player.tag in member_tags:
+                point_text.append([f"{self.bot.emoji.clan_games}`{points}`: {name}", points])
+            else:
+                point_text.append([f"{self.bot.emoji.deny_mark}`{points}`: {name}", points])
+
+        point_text = sorted(point_text, key=lambda l: l[1], reverse=True)
+        point_text = [line[0] for line in point_text]
+        point_text = "\n".join(point_text)
+        cg_point_embed = disnake.Embed(title=f"**{clan.name} Clan Game Totals**", description=point_text,
+                                       color=disnake.Color.green())
+        cg_point_embed.set_footer(text=f"Total Points: {'{:,}'.format(total_points)}")
+        return cg_point_embed
 
     def response_to_line(self, response, clan):
         import json
