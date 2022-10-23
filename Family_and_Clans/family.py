@@ -22,17 +22,19 @@ class Family(commands.Cog):
 
     @family.sub_command(name="clans", description="List of family clans")
     async def family_clan(self, ctx: disnake.ApplicationCommandInteraction):
-        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         if limit == 0:
             return await ctx.send("No clans linked to this server.")
         categoryTypesList = []
         categoryTypesList.append("All Clans")
 
-        for tClan in await tracked.to_list(length=limit):
-            category = tClan.get("category")
-            if category not in categoryTypesList:
-                categoryTypesList.append(category)
+        categories = await self.bot.clan_db.distinct("category", filter={"server": ctx.guild.id})
+        server_db = await self.bot.server_db.find_one({"server": ctx.guild.id})
+        sorted_categories = server_db.get("category_order")
+        if sorted_categories is not None:
+            missing_cats = list(set(categories).difference(sorted_categories))
+            categories = sorted_categories + missing_cats
+        categoryTypesList += categories
 
         embeds = []
         master_embed = disnake.Embed(description=f"__**{ctx.guild.name} Clans**__",

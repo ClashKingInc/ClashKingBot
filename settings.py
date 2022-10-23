@@ -538,6 +538,38 @@ class misc(commands.Cog, name="Settings"):
 
         return await ctx.edit_original_message(embed=embed)
 
+    @set.sub_command(name="category-order", description="Change the order family categories display on /family-clans")
+    async def family_cat_order(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        categories = await self.bot.clan_db.distinct("category", filter={"server": ctx.guild.id})
+        select_options = []
+        for category in categories:
+            select_options.append(disnake.SelectOption(label=category, value=category))
+        select = disnake.ui.Select(
+            options=select_options,
+            placeholder="Categories",  # the placeholder text to show when no options have been chosen
+            min_values=len(select_options),  # the minimum number of options a user must select
+            max_values=len(select_options),  # the maximum number of options a user can select
+        )
+        dropdown = [disnake.ui.ActionRow(select)]
+        embed= disnake.Embed(description="**Select from the categories below in the order you would like them to be in**", color=disnake.Color.green())
+        await ctx.edit_original_message(embed=embed, components=dropdown)
+        msg = await ctx.original_message()
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        try:
+            res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                      timeout=600)
+        except:
+            return await msg.edit(components=[])
+        await res.response.defer()
+        await self.bot.server_db.update_one({"server" : ctx.guild.id}, {"$set" : {"category_order" : res.values}})
+        new_order = ", ".join(res.values)
+        embed= disnake.Embed(description=f"New Category Order: `{new_order}`", color=disnake.Color.green())
+        await res.edit_original_message(embed=embed)
+
+
     @set.sub_command(name="remove", description="Remove a setup")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def remove_setup(self, ctx: disnake.ApplicationCommandInteraction, clan: str,
