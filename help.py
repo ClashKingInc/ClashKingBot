@@ -51,7 +51,7 @@ class help(commands.Cog):
         x = 0
         select_options = []
         for page in pages:
-            select_options.append(disnake.SelectOption(label=page_names[x], value=page_names[x]))
+            select_options.append(disnake.SelectOption(label=page_names[x], emoji="⚙️", value=page_names[x]))
             embed = disnake.Embed(title=page_names[x],
                                   color=disnake.Color.green())
             embed.set_footer(text=f"{len(command_description)} commands")
@@ -104,7 +104,7 @@ class help(commands.Cog):
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)
             else:
-                res.response.edit_message(embed=embeds[page_names.index(res.values[0])])
+                await res.response.edit_message(embed=embeds[page_names.index(res.values[0])])
 
 
 
