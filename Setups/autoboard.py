@@ -71,7 +71,7 @@ class autoB(commands.Cog, name="Board Setup"):
                     continue
 
                 country = str(res.values[0])
-
+                await res.edit_original_message(components=[])
 
 
         tex = ""
