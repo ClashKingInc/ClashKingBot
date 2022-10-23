@@ -604,6 +604,7 @@ class misc(commands.Cog, name="Settings"):
         clans = server.server_clans
         for clan in clans:
             clan: ServerClan
+            ll_log = await clan.legend_log
             got_clan = await self.bot.getClan(clan.tag)
             embed = disnake.Embed(title=f"{clan.name}", color=disnake.Color.green())
             embed.set_thumbnail(url=got_clan.badge.url)
@@ -613,7 +614,7 @@ class misc(commands.Cog, name="Settings"):
             embed.add_field(name="War Log:", value=f"{clan.war_log}", inline=True)
             embed.add_field(name="Join Log:", value=f"{clan.join_log}", inline=True)
             embed.add_field(name="Clan Capital Log:", value=f"{clan.capital_log}", inline=True)
-            embed.add_field(name="Legend Log:", value=f"{clan.legend_log}", inline=True)
+            embed.add_field(name="Legend Log:", value=f"{ll_log}", inline=True)
             embeds.append(embed)
 
         chunk_embeds = [embeds[i:i + 10] for i in range(0, len(embeds), 10)]
