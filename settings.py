@@ -299,7 +299,7 @@ class misc(commands.Cog, name="Settings"):
 
     @set.sub_command(name="join-log", description="Set up a join & leave log for a clan")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def joinleavelog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
+    async def joinleavelog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: Union[disnake.TextChannel, disnake.Thread]):
         """
             Parameters
             ----------
@@ -347,7 +347,7 @@ class misc(commands.Cog, name="Settings"):
 
     @set.sub_command(name="clancapital-log", description="Set up a clan capital log for a clan")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def clancapitallog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
+    async def clancapitallog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: Union[disnake.TextChannel, disnake.Thread]):
         """
             Parameters
             ----------
@@ -395,7 +395,7 @@ class misc(commands.Cog, name="Settings"):
 
     @set.sub_command(name="war-log-beta", description="Set up a war log for a clan. in beta.")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def warlog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
+    async def warlog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: Union[disnake.TextChannel, disnake.Thread]):
         """
             Parameters
             ----------
@@ -426,7 +426,7 @@ class misc(commands.Cog, name="Settings"):
 
     @set.sub_command(name="legend-log", description="Set up a legend log for a clan")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def legend_log(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
+    async def legend_log(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: Union[disnake.TextChannel, disnake.Thread]):
         """
             Parameters
             ----------
@@ -446,14 +446,45 @@ class misc(commands.Cog, name="Settings"):
         if results is None:
             return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
 
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": clan.tag},
-            {"server": ctx.guild.id}
-        ]}, {'$set': {"legend_log.channel": channel.id}})
+        is_thread = False
+        try:
 
-        embed = disnake.Embed(description=f"Legend Log set in {channel.mention} for {clan.name}",
-                              color=disnake.Color.green())
-        await ctx.send(embed=embed)
+            bot_av = self.bot.user.avatar.read().close()
+            if isinstance(channel, disnake.Thread):
+                webhooks = await channel.parent.webhooks()
+            else:
+                webhooks = await channel.webhooks()
+
+            webhook = next((w for w in webhooks if w.user.id == self.bot.user.id), None)
+            if webhook is None:
+                if isinstance(channel, disnake.Thread):
+                    webhook = await channel.parent.create_webhook(name="ClashKing", avatar=bot_av, reason="Legends Feed")
+                else:
+                    webhook = await channel.create_webhook(name="ClashKing", avatar=bot_av, reason="Legends Feed")
+        except Exception as e:
+            e = str(e)[:1000]
+            embed = disnake.Embed(title="Error",
+                                  description="Likely Missing Permissions\nEnsure the bot has both `Manage Webhooks` and `Send Messages` Perms for this channel.\nError Output: " + e,
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
+        await self.bot.clan_db.update_one({"server": ctx.guild.id}, {'$set': {"legend_log.webhook": webhook.id}})
+        await self.bot.clan_db.update_one({"server": ctx.guild.id}, {'$set': {"legend_log.thread": None}})
+
+        if isinstance(channel, disnake.Thread):
+            await self.bot.clan_db.update_one({"server": ctx.guild.id}, {'$set': {"legend_log.thread": ctx.channel.id}})
+            await webhook.send("Legend Log Success", username='ClashKing',
+                               avatar_url="https://cdn.discordapp.com/attachments/923767060977303552/1033385579091603497/2715c2864c10dc64a848f7d12d1640d0.png",
+                               thread=channel)
+
+        else:
+            await webhook.send("Legend Log Success", username='ClashKing',
+                               avatar_url="https://cdn.discordapp.com/attachments/923767060977303552/1033385579091603497/2715c2864c10dc64a848f7d12d1640d0.png")
+
+        embed = disnake.Embed(
+            description="Legend Log Successfully Created",
+            color=disnake.Color.green())
+        return await ctx.send(embed=embed)
 
     @set.sub_command(name="leadership-eval", description="Have eval assign leadership role to clan coleads & leads (on default)")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -463,7 +494,6 @@ class misc(commands.Cog, name="Settings"):
         embed = disnake.Embed(description=f"Leadership Eval turned {option}.",
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
-
 
     @set.sub_command(name="eval-nickname", description="Have linking change discord name to name | clan or name | family")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -528,7 +558,11 @@ class misc(commands.Cog, name="Settings"):
             return await ctx.send(embed=embed)
 
         if log_type == "legend_log":
-            log_type += ".channel"
+            await self.bot.clan_db.update_one({"$and": [
+                {"tag": clan.tag},
+                {"server": ctx.guild.id}
+            ]}, {'$set': {f"{log_type}.thread": None}})
+            log_type += ".webhook"
 
         await self.bot.clan_db.update_one({"$and": [
             {"tag": clan.tag},
