@@ -87,7 +87,7 @@ class CustomServer():
 class ServerClan():
     def __init__(self, clan_result, bot):
         self.clan_result = clan_result
-        self.bot = bot
+        self.bot: CustomClient = bot
 
     @property
     def name(self):
@@ -126,6 +126,22 @@ class ServerClan():
     def war_log(self):
         channel = self.clan_result.get("war_log")
         return f"<#{channel}>" if channel is not None else channel
+
+    @property
+    def legend_log(self):
+        legend_log = self.clan_result.get("legend_log")
+        if legend_log is None:
+            return legend_log
+        webhook = legend_log.get("webhook")
+        thread = legend_log.get("thread")
+        if webhook is None:
+            return webhook
+        if thread is not None:
+            return f"<#{thread}>"
+        webhook = await self.bot.fetch_webhook(webhook)
+        return webhook.channel.mention
+
+
 
     @property
     def reminders(self):

@@ -469,11 +469,20 @@ class misc(commands.Cog, name="Settings"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        await self.bot.clan_db.update_one({"server": ctx.guild.id}, {'$set': {"legend_log.webhook": webhook.id}})
-        await self.bot.clan_db.update_one({"server": ctx.guild.id}, {'$set': {"legend_log.thread": None}})
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]}, {'$set': {"legend_log.webhook": webhook.id}})
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]}, {'$set': {"legend_log.thread": None}})
 
         if isinstance(channel, disnake.Thread):
-            await self.bot.clan_db.update_one({"server": ctx.guild.id}, {'$set': {"legend_log.thread": ctx.channel.id}})
+            await self.bot.clan_db.update_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]}, {'$set': {"legend_log.thread": ctx.channel.id}})
             await webhook.send("Legend Log Success", username='ClashKing',
                                avatar_url="https://cdn.discordapp.com/attachments/923767060977303552/1033385579091603497/2715c2864c10dc64a848f7d12d1640d0.png",
                                thread=channel)
@@ -604,6 +613,7 @@ class misc(commands.Cog, name="Settings"):
             embed.add_field(name="War Log:", value=f"{clan.war_log}", inline=True)
             embed.add_field(name="Join Log:", value=f"{clan.join_log}", inline=True)
             embed.add_field(name="Clan Capital Log:", value=f"{clan.capital_log}", inline=True)
+            embed.add_field(name="Legend Log:", value=f"{clan.legend_log}", inline=True)
             embeds.append(embed)
 
         chunk_embeds = [embeds[i:i + 10] for i in range(0, len(embeds), 10)]
