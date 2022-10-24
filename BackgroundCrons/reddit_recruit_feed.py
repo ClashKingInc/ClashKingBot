@@ -83,11 +83,8 @@ class reddit_feed(commands.Cog):
                                 for r in await results.to_list(length=limit):
                                     try:
                                         channel = r.get("reddit_feed")
-                                        serv = r.get("server")
-                                        channel = self.bot.get_channel(channel)
-                                        guild = self.bot.get_guild(serv)
+                                        channel = await self.bot.fetch_channel(channel)
                                         role = r.get("reddit_role")
-                                        ranking = []
                                         embed = disnake.Embed(title=f'{submission.title}',
                                                               description=submission.selftext
                                                                           + f'\n{submission.score} points | [Link]({submission.url}) | [Comments](https://www.reddit.com/r/{subreddit}/comments/{submission.id})',

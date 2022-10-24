@@ -50,7 +50,11 @@ class Emojis():
         self.xp = EmojiType("<:xp:991965062703095938>")
         self.deny_mark = EmojiType("<:deny_mark:892770746034704384>")
         self.raid_medal = EmojiType("<:raidmedal:1032108724552224798>")
-        self.clan_games = EmojiType("<:cg:1033784719659237476>")
+        self.clan_games = EmojiType("<:cg:1033805598518677604>")
+        self.time = EmojiType("<:time:1033909938281529386>")
+        self.no_star = EmojiType("<:no_star:1033914094824198174>")
+        self.yes = EmojiType("<:yes:1033915430198333500>")
+        self.no = EmojiType("<:no:1033915481335275621>")
 
 
 

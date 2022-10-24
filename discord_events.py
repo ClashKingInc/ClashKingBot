@@ -20,33 +20,8 @@ class DiscordEvents(commands.Cog):
         await self.bot.change_presence(
             activity=disnake.Activity(name=f'{len_g} servers', type=3))  # type 3 watching type#1 - playing
 
-        '''
-        print("back")
-        tags = []
-        tracked = self.bot.clan_db.find()
-        limit = await self.bot.clan_db.count_documents(filter={})
-
-        for tClan in await tracked.to_list(length=limit):
-            tag = tClan.get("tag")
-            tags.append(tag)
-
-        self.bot.coc_client.add_clan_updates(*tags)
-
-        print("here")
-        tags = []
-        tracked = self.bot.clan_db.find({"clan_capital" : {"$ne": None}})
-        limit = await self.bot.clan_db.count_documents(filter={"clan_capital" : {"$ne": None}})
-        for tClan in await tracked.to_list(length=limit):
-            tag = tClan.get("tag")
-            tags.append(tag)
-
-        print(len(tags))
-        player_tags = []
-        async for clan in self.bot.coc_client.get_clans(tags=tags):
-            for member in clan.members:
-                player_tags.append(member.tag)
-        self.bot.coc_client.add_player_updates(*player_tags)
-        '''
+        tags = await self.bot.clan_db.distinct("tag")
+        self.bot.coc_client.add_war_updates(*tags)
 
         for g in self.bot.guilds:
             results = await self.bot.server_db.find_one({"server": g.id})
@@ -63,8 +38,7 @@ class DiscordEvents(commands.Cog):
                     "lbhour": None
                 })
 
-
-        print(f'We have logged in')
+        print('We have logged in')
 
     @commands.Cog.listener()
     async def on_message(self, message : disnake.Message):

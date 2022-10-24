@@ -14,6 +14,7 @@ from EventHub.event_websockets import player_websocket, clan_websocket
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
 
+IS_BETA = False
 discClient = Client()
 intents = disnake.Intents().none()
 intents.members = True
@@ -60,7 +61,53 @@ def check_commands():
 
     return commands.check(predicate)
 
-initial_extensions = (
+if IS_BETA:
+    initial_extensions = (
+        #"BackgroundCrons.autoboard_loop",
+        #"BackgroundCrons.voicestat_loop",
+        #"BackgroundCrons.region_lb_update",
+        #"BackgroundCrons.legends_history",
+        #"BackgroundCrons.reddit_recruit_feed",
+        #"BackgroundCrons.dm_reports",
+        #"BackgroundCrons.store_clan_capital",
+        "BackgroundCrons.reminders",
+        #"EventHub.clan_capital_events",
+        #"EventHub.join_leave_events",
+        #"EventHub.ban_events",
+        #"EventHub.war_events",
+        #"EventHub.legend_events",
+        "Family_and_Clans.bans",
+        "Family_and_Clans.clancog",
+        "Family_and_Clans.family",
+        "Legends & Trophies.family_trophy_stats",
+        "Legends & Trophies.Check.maincheck",
+        "Legends & Trophies.leaderboards",
+        "Link & Eval.link",
+        "Link & Eval.eval",
+        #"Link & Eval.link_button",
+        "Setups.addclans",
+        "Setups.autoboard",
+        "Setups.evalsetup",
+        "Setups.voice_countdowns",
+        "Setups.welcome_messages",
+        #"Setups.clan_boards",
+        "Utility.army",
+        "Utility.awards",
+        "Utility.boost",
+        "Utility.profile",
+        "War & CWL.cwl",
+        "War & CWL.war",
+        "War & CWL.war_track",
+        "discord_events",
+        "help",
+        "other",
+        "settings",
+        "owner_commands",
+        #"erikuh_comp"
+
+    )
+else:
+    initial_extensions = (
     "BackgroundCrons.autoboard_loop",
     "BackgroundCrons.voicestat_loop",
     "BackgroundCrons.region_lb_update",
@@ -95,14 +142,14 @@ initial_extensions = (
     "Utility.profile",
     "War & CWL.cwl",
     "War & CWL.war",
-   # "War & CWL.war_track",
+    "War & CWL.war_track",
     "discord_events",
     "help",
     "other",
     "settings",
     "owner_commands",
     "erikuh_comp"
-)
+    )
 
 
 if __name__ == "__main__":

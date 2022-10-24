@@ -64,6 +64,9 @@ class addClan(commands.Cog, name="Clan Setup"):
             "clanChannel" : clan_channel.id
         })
 
+        tags = await self.bot.clan_db.distinct("tag")
+        self.bot.coc_client.add_war_updates(*tags)
+
         embed = disnake.Embed(title=f"{clan.name} successfully added.",
                               description=f"Clan Tag: {clan.tag}\n"
                                           f"General Role: {general_clan_role.mention}\n"
@@ -179,7 +182,8 @@ class addClan(commands.Cog, name="Clan Setup"):
             {"server": ctx.guild.id}
         ]})
 
-
+        tags = await self.bot.clan_db.distinct("tag")
+        self.bot.coc_client.add_war_updates(*tags)
         embed = disnake.Embed(
             description=f"{clan.name} removed as a family clan.",
             color=disnake.Color.green())

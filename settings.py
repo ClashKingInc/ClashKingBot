@@ -393,7 +393,7 @@ class misc(commands.Cog, name="Settings"):
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
-    @set.sub_command(name="war-log-beta", description="Set up a war log for a clan. in beta.")
+    @set.sub_command(name="war-log", description="Set up a war log for a clan")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def warlog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: Union[disnake.TextChannel, disnake.Thread]):
         """
@@ -516,7 +516,7 @@ class misc(commands.Cog, name="Settings"):
 
     @set.sub_command(name="reddit-recruit-feed", description="Feed of searching for a clan posts on the recruiting subreddit")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def reddit_recruit(self, ctx: disnake.ApplicationCommandInteraction, role_to_ping: disnake.Role, channel: disnake.TextChannel, remove=commands.Param(default=None, choices=["Remove Feed"])):
+    async def reddit_recruit(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, role_to_ping: disnake.Role = None, remove=commands.Param(default=None, choices=["Remove Feed"])):
         """
             Parameters
             ----------
@@ -539,6 +539,7 @@ class misc(commands.Cog, name="Settings"):
         return await ctx.edit_original_message(embed=embed)
 
     @set.sub_command(name="category-order", description="Change the order family categories display on /family-clans")
+    @commands.has_permissions(manage_guild=True)
     async def family_cat_order(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
         categories = await self.bot.clan_db.distinct("category", filter={"server": ctx.guild.id})
@@ -568,7 +569,6 @@ class misc(commands.Cog, name="Settings"):
         new_order = ", ".join(res.values)
         embed= disnake.Embed(description=f"New Category Order: `{new_order}`", color=disnake.Color.green())
         await res.edit_original_message(embed=embed)
-
 
     @set.sub_command(name="remove", description="Remove a setup")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
