@@ -322,10 +322,12 @@ class clan_commands(commands.Cog):
             results = await self.bot.player_stats.find_one({"tag": tag})
             task = asyncio.ensure_future(self.bot.coc_client.get_player(player_tag=tag, cls=MyCustomPlayer, bot=self.bot, results=results))
             tasks.append(task)
-        responses = await asyncio.gather(*tasks)
+        responses = await asyncio.gather(*tasks, return_exceptions=True)
 
         donation_text = []
         for player in responses:
+            if isinstance(player, coc.errors.NotFound):
+                continue
             player: MyCustomPlayer
             for char in ["`", "*", "_", "~"]:
                 name = player.name.replace(char, "", 10)
@@ -418,8 +420,10 @@ class clan_commands(commands.Cog):
             else:
                 looted = total_looted[tag]
                 attacks = total_attacks[tag]
-
-            data.append([tag, donated_data[tag], number_donated_data[tag], looted, attacks])
+            try:
+                data.append([tag, donated_data[tag], number_donated_data[tag], looted, attacks])
+            except:
+                continue
 
         buttons = raid_buttons(self.bot, data)
 
