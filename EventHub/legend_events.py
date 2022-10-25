@@ -170,6 +170,7 @@ class LegendEvents(commands.Cog):
         except:
             pass
 
+        clan_tag = "#2YPL9CYJ8"
         if clan_tag != None:
             tracked = self.bot.clan_db.find({"$and": [{"tag": clan_tag}, {"legend_log.webhook": {"$ne" : None}}]})
             limit = await self.bot.clan_db.count_documents(filter={"$and": [{"tag": clan_tag}, {"legend_log.webhook": {"$ne" : None}}]})
