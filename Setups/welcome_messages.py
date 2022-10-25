@@ -163,7 +163,7 @@ class joinstuff(commands.Cog, name="Welcome Setup"):
 
 
     @link_button.sub_command(name="set", description="Setup the on-join link button prompt for new users")
-    async def linkmessage_set(self, ctx: disnake.ApplicationCommandInteraction, channel:disnake.TextChannel):
+    async def linkmessage_set(self, ctx: disnake.ApplicationCommandInteraction, channel:disnake.TextChannel, api_token= commands.Param(default="True", choices=["True", "False"])):
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
             embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
@@ -179,7 +179,7 @@ class joinstuff(commands.Cog, name="Welcome Setup"):
                 description=f"Missing Permissions.\nMust have `Send Messages` in the link button channel.\nTry Again. What is the channel?",
                 color=disnake.Color.red())
             return await ctx.send(embed=embed)
-
+        api_token = (api_token == "True")
         results = await self.bot.welcome.find_one({"server": ctx.guild.id})
         if results is None:
             await self.bot.welcome.insert_one({
@@ -195,7 +195,8 @@ class joinstuff(commands.Cog, name="Welcome Setup"):
                 "button1channel": None,
                 "button2channel": None,
                 "button3channel": None,
-                "link_channel": channel.id
+                "link_channel": channel.id,
+                "api_token" : api_token
             })
         else:
             await self.bot.welcome.update_one({"server": ctx.guild.id}, {'$set': {

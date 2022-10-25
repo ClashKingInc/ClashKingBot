@@ -82,10 +82,7 @@ class LinkWelcomeMessages(commands.Cog):
     async def on_button_click(self, ctx: disnake.MessageInteraction):
 
         if ctx.data.custom_id == "Start Link":
-            await ctx.response.send_modal(
-                title="Link your account",
-                custom_id="linkaccount-",
-                components=[
+            components = [
                     disnake.ui.TextInput(
                         label="Player Tag",
                         placeholder="Your player tag as found in-game.",
@@ -93,16 +90,24 @@ class LinkWelcomeMessages(commands.Cog):
                         required=True,
                         style=disnake.TextInputStyle.single_line,
                         max_length=12,
-                    ),
-                    disnake.ui.TextInput(
-                        label="Api Token",
-                        placeholder="Your Api Token as found in-game.",
-                        custom_id=f"api_token",
-                        required=True,
-                        style=disnake.TextInputStyle.single_line,
-                        max_length=12,
                     )
-                ])
+                ]
+            token_option = await self.bot.welcome.find_one({"server": ctx.guild.id})
+            token_option = token_option.get("api_token")
+            if token_option == True:
+                components.append(
+                        disnake.ui.TextInput(
+                            label="Api Token",
+                            placeholder="Your Api Token as found in-game.",
+                            custom_id=f"api_token",
+                            required=True,
+                            style=disnake.TextInputStyle.single_line,
+                            max_length=12,
+                        ))
+            await ctx.response.send_modal(
+                title="Link your account",
+                custom_id="linkaccount-",
+                components=components)
 
             def check(res):
                 return ctx.author.id == res.author.id
