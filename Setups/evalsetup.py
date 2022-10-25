@@ -567,6 +567,11 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                     {"server": ctx.guild.id}
                 ]}, {'$set': {"role": trophies_6000.id}})
 
+        embed = disnake.Embed(title="**Legend Roles that were set:**",
+                              description=roles_updated,
+                              color=disnake.Color.green())
+        return await ctx.send(embed=embed)
+
     @legend_roles.sub_command(name="remove", description="Remove legends eval roles")
     async def legend_roles_remove(self, ctx: disnake.ApplicationCommandInteraction, legend_role_type: str =
         commands.Param(choices=["legends_league", "trophies_5500", "trophies_5700", "trophies_6000"])):
