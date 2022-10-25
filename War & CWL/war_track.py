@@ -16,7 +16,7 @@ class War_Log(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        self.bot.coc_client.add_events(self.new_war, self.war_attack)
+        self.bot.coc_client.add_events(self.war_attack, self.new_war)
 
     '''
     #in case we end up needing it
