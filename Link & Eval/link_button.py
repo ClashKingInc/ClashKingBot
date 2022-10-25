@@ -94,7 +94,9 @@ class LinkWelcomeMessages(commands.Cog):
                 ]
             token_option = await self.bot.welcome.find_one({"server": ctx.guild.id})
             token_option = token_option.get("api_token")
-            if token_option == True:
+            if token_option is None:
+                token_option = False
+            if token_option is True:
                 components.append(
                         disnake.ui.TextInput(
                             label="Api Token",
