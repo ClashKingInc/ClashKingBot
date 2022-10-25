@@ -784,8 +784,6 @@ class misc(commands.Cog, name="Settings"):
 
         await ctx.send(embed=embed)
 
-
-
     @channel.autocomplete("clan")
     @role.autocomplete("clan")
     @leaderrole.autocomplete("clan")
