@@ -1,3 +1,4 @@
+import asyncio
 import coc
 import disnake
 import pytz
@@ -33,6 +34,8 @@ class War_Log(commands.Cog):
         #store old war
         #self.bot.store_war(old_war)
         #send notif that a new war started
+        #sleep so that war state messages get sent after attack messages
+        await asyncio.sleep(1)
         tracked = self.bot.clan_db.find({"tag": f"{new_war.clan.tag}"})
         limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_war.clan.tag}"})
         for cc in await tracked.to_list(length=limit):
