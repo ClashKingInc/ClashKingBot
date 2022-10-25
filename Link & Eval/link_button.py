@@ -94,9 +94,10 @@ class LinkWelcomeMessages(commands.Cog):
                 ]
             token_option = await self.bot.welcome.find_one({"server": ctx.guild.id})
             token_option = token_option.get("api_token")
+            print(token_option)
             if token_option is None:
                 token_option = False
-            if token_option is True:
+            if token_option:
                 components.append(
                         disnake.ui.TextInput(
                             label="Api Token",
@@ -124,7 +125,8 @@ class LinkWelcomeMessages(commands.Cog):
                 return
 
             player_tag = modal_inter.text_values["player_tag"]
-            api_token =  modal_inter.text_values["api_token"]
+            if token_option:
+                api_token =  modal_inter.text_values["api_token"]
             await modal_inter.response.defer(ephemeral=True)
 
             player: MyCustomPlayer = await self.bot.getPlayer(player_tag=player_tag, custom=True)
@@ -145,7 +147,10 @@ class LinkWelcomeMessages(commands.Cog):
                         url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
                     return await modal_inter.send(embed=embed)
 
-            verified = await player.verify(api_token=api_token)
+            if not token_option:
+                verified = await player.verify(api_token=api_token)
+            else:
+                verified = True
             if ctx.author.id == 852623927284465664:
                 verified = True
             link_id = await player.linked()
