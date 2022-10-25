@@ -170,7 +170,7 @@ class LegendEvents(commands.Cog):
         except:
             pass
 
-        #clan_tag = "#2YPL9CYJ8"
+        clan_tag = "#2YPL9CYJ8"
         if clan_tag != None:
             tracked = self.bot.clan_db.find({"$and": [{"tag": clan_tag}, {"legend_log.webhook": {"$ne" : None}}]})
             limit = await self.bot.clan_db.count_documents(filter={"$and": [{"tag": clan_tag}, {"legend_log.webhook": {"$ne" : None}}]})
@@ -182,16 +182,19 @@ class LegendEvents(commands.Cog):
                     thread_id = legendlog.get("thread")
                     try:
                         webhook = await self.bot.fetch_webhook(webhook_id)
+                        print(webhook.id)
+                        print(thread_id)
                         if thread_id is not None:
                             thread = await self.bot.fetch_channel(thread_id)
                             if thread.locked:
                                 continue
                     except (disnake.NotFound, disnake.Forbidden):
-                        await self.bot.clan_db.update_one({"server": server_id}, {'$set': {"legend_log.webhook": None}})
-                        await self.bot.clan_db.update_one({"server": server_id}, {'$set': {"legend_log.thread": None}})
+                        await self.bot.clan_db.update_one({"$and": [{"tag": clan_tag}, {"server": server_id}]}, {'$set': {"legend_log.webhook": None}})
+                        await self.bot.clan_db.update_one({"$and": [{"tag": clan_tag}, {"server": server_id}]}, {'$set': {"legend_log.thread": None}})
                         continue
 
                     if thread_id is None:
+                        print("sent")
                         await webhook.send(embed=embed, avatar_url=self.bot.user.display_avatar.url)
                     else:
                         await webhook.send(embed=embed, avatar_url=self.bot.user.display_avatar.url, thread=thread)
