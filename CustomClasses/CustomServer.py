@@ -138,8 +138,11 @@ class ServerClan():
             return webhook
         if thread is not None:
             return f"<#{thread}>"
-        webhook = await self.bot.fetch_webhook(webhook)
-        return webhook.channel.mention
+        try:
+            webhook = await self.bot.fetch_webhook(webhook)
+            return webhook.channel.mention
+        except:
+            return webhook
 
 
 

@@ -166,13 +166,13 @@ class LegendEvents(commands.Cog):
 
         clan_tag = None
         try:
-            clan_tag = event["new_player"]["clan"]["tag"]
+            clan_tag = player.clan.tag
         except:
             pass
 
         if clan_tag != None:
             tracked = self.bot.clan_db.find({"$and": [{"tag": clan_tag}, {"legend_log.webhook": {"$ne" : None}}]})
-            limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan_tag}"})
+            limit = await self.bot.clan_db.count_documents(filter={"$and": [{"tag": clan_tag}, {"legend_log.webhook": {"$ne" : None}}]})
             for cc in await tracked.to_list(length=limit):
                 try:
                     server_id = cc.get("server")
