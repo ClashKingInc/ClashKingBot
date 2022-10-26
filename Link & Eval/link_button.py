@@ -150,7 +150,9 @@ class LinkWelcomeMessages(commands.Cog):
 
             link_id = await player.linked()
 
-            if token_option or link_id != ctx.author.id:
+            if token_option:
+                verified = await player.verify(api_token=api_token)
+            elif link_id != ctx.author.id and link_id is not None:
                 verified = await player.verify(api_token=api_token)
             else:
                 verified = True
