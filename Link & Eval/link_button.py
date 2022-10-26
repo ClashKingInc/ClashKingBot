@@ -124,6 +124,7 @@ class LinkWelcomeMessages(commands.Cog):
 
             player_tag = modal_inter.text_values["player_tag"]
             api_token = modal_inter.text_values["api_token"]
+            print(player_tag)
             print(api_token)
             await modal_inter.response.defer(ephemeral=True)
 
