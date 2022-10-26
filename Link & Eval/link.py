@@ -295,7 +295,8 @@ class Linking(commands.Cog):
             return await ctx.send(embed=embed)
 
         if api_token is None:
-            if ctx.guild.member_count <= 250:
+            member = await self.bot.pingToMember(ctx, linked)
+            if ctx.guild.member_count <= 250 and member is None:
                 embed = disnake.Embed(description=f"[{player.name}]({player.share_link}), cannot unlink players not on this server.\n(Reach out on the support server if you have questions about this)",
                                       color=disnake.Color.red())
                 return await ctx.send(embed=embed)
