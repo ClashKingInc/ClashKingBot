@@ -96,9 +96,13 @@ class LinkWelcomeMessages(commands.Cog):
             token_option = token_option.get("api_token")
             if token_option is None:
                 token_option = True
+            if token_option:
+                token_text = "Api Token"
+            else:
+                token_text = "(Optional) Api Token"
             components.append(
                     disnake.ui.TextInput(
-                        label="Api Token",
+                        label=token_text,
                         placeholder="Your Api Token as found in-game.",
                         custom_id=f"api_token",
                         required=token_option,
@@ -187,10 +191,17 @@ class LinkWelcomeMessages(commands.Cog):
                 except:
                     pass
             elif not verified:
-                embed = disnake.Embed(
-                    description=f"The player you are looking for is [{player.name}]({player.share_link}), however it appears u may have made a mistake.\n Double check your api token again.",
-                    color=disnake.Color.red())
-                await modal_inter.send(embed=embed)
+                if token_option:
+                    embed = disnake.Embed(
+                        description=f"The player you are looking for is [{player.name}]({player.share_link}), however it appears u may have made a mistake.\n Double check your api token again.",
+                        color=disnake.Color.red())
+                    await modal_inter.send(embed=embed)
+                else:
+                    embed = disnake.Embed(
+                        description=f"[{player.name}]({player.share_link}) is already linked to another user. Please try again with an api token.",
+                        color=disnake.Color.red())
+                    await modal_inter.send(embed=embed)
+
 
         elif ctx.data.custom_id == "Link Help":
             embed = disnake.Embed(title="Finding a player tag",
