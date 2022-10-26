@@ -96,16 +96,15 @@ class LinkWelcomeMessages(commands.Cog):
             token_option = token_option.get("api_token")
             if token_option is None:
                 token_option = True
-            if token_option:
-                components.append(
-                        disnake.ui.TextInput(
-                            label="Api Token",
-                            placeholder="Your Api Token as found in-game.",
-                            custom_id=f"api_token",
-                            required=True,
-                            style=disnake.TextInputStyle.single_line,
-                            max_length=12,
-                        ))
+            components.append(
+                    disnake.ui.TextInput(
+                        label="Api Token",
+                        placeholder="Your Api Token as found in-game.",
+                        custom_id=f"api_token",
+                        required=token_option,
+                        style=disnake.TextInputStyle.single_line,
+                        max_length=12,
+                    ))
             await ctx.response.send_modal(
                 title="Link your account",
                 custom_id="linkaccount-",
@@ -124,8 +123,8 @@ class LinkWelcomeMessages(commands.Cog):
                 return
 
             player_tag = modal_inter.text_values["player_tag"]
-            if token_option:
-                api_token =  modal_inter.text_values["api_token"]
+            api_token = modal_inter.text_values["api_token"]
+            print(api_token)
             await modal_inter.response.defer(ephemeral=True)
 
             player: MyCustomPlayer = await self.bot.getPlayer(player_tag=player_tag, custom=True)
@@ -146,7 +145,7 @@ class LinkWelcomeMessages(commands.Cog):
                         url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
                     return await modal_inter.send(embed=embed)
 
-            if not token_option:
+            if token_option:
                 verified = await player.verify(api_token=api_token)
             else:
                 verified = True
