@@ -124,8 +124,6 @@ class LinkWelcomeMessages(commands.Cog):
 
             player_tag = modal_inter.text_values["player_tag"]
             api_token = modal_inter.text_values["api_token"]
-            print(player_tag)
-            print(api_token)
             await modal_inter.response.defer(ephemeral=True)
 
             player: MyCustomPlayer = await self.bot.getPlayer(player_tag=player_tag, custom=True)
@@ -146,13 +144,12 @@ class LinkWelcomeMessages(commands.Cog):
                         url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
                     return await modal_inter.send(embed=embed)
 
-            if token_option:
+            link_id = await player.linked()
+
+            if token_option or link_id != ctx.author.id:
                 verified = await player.verify(api_token=api_token)
             else:
                 verified = True
-            if ctx.author.id == 852623927284465664:
-                verified = True
-            link_id = await player.linked()
 
             if link_id == ctx.author.id:
                 evalua = self.bot.get_cog("Eval")
