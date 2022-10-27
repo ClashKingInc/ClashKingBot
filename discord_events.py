@@ -1,12 +1,10 @@
 import disnake
 import coc
-import traceback
-
+from main import scheduler
 from disnake.ext import commands
 from Dictionaries.thPicDictionary import thDictionary
 from utils.troop_methods import heros, heroPets
 
-link_open=[]
 from CustomClasses.CustomBot import CustomClient
 
 class DiscordEvents(commands.Cog):
@@ -21,7 +19,25 @@ class DiscordEvents(commands.Cog):
             activity=disnake.Activity(name=f'{len_g} servers', type=3))  # type 3 watching type#1 - playing
 
         tags = await self.bot.clan_db.distinct("tag")
+        reminder_tags = await self.bot.reminders.distinct("clan", filter={"type" : "War"})
         self.bot.coc_client.add_war_updates(*tags)
+
+        current_war_times = await self.bot.get_current_war_times(tags=reminder_tags)
+        cog = self.bot.get_cog(name="reminders")
+        for tag in current_war_times.keys():
+            war_end_time = current_war_times[tag]
+            reminder_times = await self.bot.get_reminder_times(clan_tag=tag)
+            acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times, war_end_time=war_end_time)
+            if not acceptable_times:
+                continue
+            for time in acceptable_times:
+                reminder_time = time[0] / 3600
+                if reminder_time.is_integer():
+                    reminder_time = int(reminder_time)
+                send_time = time[1]
+                scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[tag, reminder_time])
+        scheduler.print_jobs()
+
 
         for g in self.bot.guilds:
             results = await self.bot.server_db.find_one({"server": g.id})

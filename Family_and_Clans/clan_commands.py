@@ -153,7 +153,7 @@ class clan_commands(commands.Cog):
                               custom_id=f"trophies_{clan.tag}"))
         await ctx.edit_original_message(embed=embed, components=buttons)
 
-    @clan.sub_command(name="sorted-townhall", description="List of clan members, sorted by trophies")
+    @clan.sub_command(name="sorted-townhall", description="List of clan members, sorted by townhall")
     async def player_th(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters

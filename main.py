@@ -22,7 +22,7 @@ intents.guilds = True
 intents.emojis = True
 intents.guild_messages = True
 bot = CustomClient(command_prefix="<@824653933347209227> ",help_command=None, intents=intents,
-    sync_commands_debug=False, sync_permissions=True, reload=True)
+    sync_commands_debug=False, sync_permissions=True)
 
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
@@ -115,7 +115,7 @@ else:
     "BackgroundCrons.reddit_recruit_feed",
     "BackgroundCrons.dm_reports",
     "BackgroundCrons.store_clan_capital",
-    #"BackgroundCrons.reminders",
+    "BackgroundCrons.reminders",
     "EventHub.clan_capital_events",
     "EventHub.join_leave_events",
     "EventHub.ban_events",

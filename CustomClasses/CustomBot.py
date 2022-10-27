@@ -9,6 +9,7 @@ from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis
 from pyyoutube import Api
 from urllib.request import urlopen
+from utils.clash import weekend_timestamps
 
 import coc
 import motor.motor_asyncio
@@ -342,6 +343,33 @@ class CustomClient(commands.Bot):
             names.append(document.get("name") + " | " + document.get("tag"))
         return names
 
+    async def get_reminder_times(self, clan_tag):
+        all_reminders = self.reminders.find({"$and": [
+            {"clan": clan_tag},
+            {"type": "War"}
+        ]})
+        limit = await self.reminders.count_documents(filter={"$and": [
+            {"clan": clan_tag},
+            {"type": "War"}
+        ]})
+        times = set()
+        for reminder in await all_reminders.to_list(length=limit):
+            time = reminder.get("time")
+            times.add(time)
+        times = list(times)
+        return times
+
+    def get_times_in_range(self, reminder_times, war_end_time: coc.Timestamp):
+        accepted_times = []
+        for time in reminder_times:
+            time = time.replace("hr", "")
+            time = int(float(time) * 3600)
+            if war_end_time.seconds_until >= time:
+                reminder_time = war_end_time.time - timedelta(seconds=time)
+                accepted_times.append([time ,reminder_time])
+        return accepted_times
+
+
 
 
     def create_link(self, tag):
@@ -455,6 +483,21 @@ class CustomClient(commands.Bot):
                 return None
         return clan
 
+    async def get_current_war_times(self, tags: list):
+        tasks = []
+        for tag in tags:
+            task = asyncio.ensure_future(self.get_clanwar(clanTag=tag))
+            tasks.append(task)
+        responses = await asyncio.gather(*tasks)
+
+        times = {}
+        for war in responses: #type: coc.ClanWar
+            if war is None:
+                continue
+            if war.end_time is None:
+                continue
+            times[war.clan.tag] = war.end_time
+        return times
 
     async def verifyPlayer(self, playerTag:str, playerToken:str):
         verified = await self.coc_client.verify_player_token(playerTag, playerToken)
@@ -466,6 +509,22 @@ class CustomClient(commands.Bot):
             return war
         except:
             return None
+
+    async def get_raid(self, clan_tag):
+        try:
+            weekend_times = weekend_timestamps()
+            raidlog = await self.coc_client.get_raidlog(clan_tag)
+            raid_weekend = self.find_raid(raid_log=raidlog, before=weekend_times[0],after=weekend_times[1])
+            return raid_weekend
+        except:
+            return None
+
+    def find_raid(self, raid_log, after, before):
+        for raid in raid_log:
+            time_start = int(raid.start_time.time.timestamp())
+            if before > time_start > after:
+                return raid
+        return None
 
     #SERVER HELPERS
     async def open_clan_capital_reminders(self):

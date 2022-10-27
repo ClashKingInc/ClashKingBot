@@ -334,9 +334,27 @@ class Linking(commands.Cog):
                     color=disnake.Color.green())
                 await ctx.send(embed=embed)
 
+
     @commands.slash_command(name="buttons", description="Create a message that has buttons for easy eval/link actions.")
-    async def buttons(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
+    async def buttons(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Link Button"]), ping: disnake.User = None):
+        embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
+                              description=f"To link your account, press the link button below to get started.",
+                              color=disnake.Color.green())
+        stat_buttons = [disnake.ui.Button(label="Link Account", emoji="🔗", style=disnake.ButtonStyle.green,
+                                          custom_id="Start Link"),
+                        disnake.ui.Button(label="Help", emoji="❓", style=disnake.ButtonStyle.grey,
+                                          custom_id="Link Help")]
+        buttons = disnake.ui.ActionRow()
+        for button in stat_buttons:
+            buttons.append_item(button)
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+        if ping is not None:
+            content = ping.mention
+        else:
+            content = ""
+        await ctx.send(content=content, embed=embed, components=[buttons])
+
 
     @modlink.autocomplete("player_tag")
     @unlink.autocomplete("player_tag")

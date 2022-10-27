@@ -8,7 +8,7 @@ from Dictionaries.emojiDictionary import emojiDictionary
 from collections import defaultdict
 from CustomClasses.CustomBot import CustomClient
 from coc import utils
-
+from main import scheduler
 tiz = pytz.utc
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 
@@ -34,13 +34,14 @@ class War_Log(commands.Cog):
         #store old war
         #self.bot.store_war(old_war)
         #send notif that a new war started
-        #sleep so that war state messages get sent after attack messages
-        await asyncio.sleep(1)
+        #print("new_war")
+
         tracked = self.bot.clan_db.find({"tag": f"{new_war.clan.tag}"})
         limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_war.clan.tag}"})
         for cc in await tracked.to_list(length=limit):
             try:
                 warlog_channel = cc.get("war_log")
+
                 if warlog_channel is None:
                     continue
                 try:
@@ -54,6 +55,19 @@ class War_Log(commands.Cog):
                 if new_war.state == "preparation":
                     war_state = "In Prep"
                     war_pos = "Starting"
+
+                    cog = self.bot.get_cog(name="reminders")
+                    reminder_times = await self.bot.get_reminder_times(clan_tag=new_war.clan.tag)
+                    acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times,war_end_time=new_war.end_time)
+                    if not acceptable_times:
+                        continue
+                    for time in acceptable_times:
+                        reminder_time = time[0] / 3600
+                        if reminder_time.is_integer():
+                            reminder_time = int(reminder_time)
+                        send_time = time[1]
+                        scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[new_war.clan.tag, reminder_time])
+
                     war_time = new_war.start_time.time.replace(tzinfo=tiz).timestamp()
 
                     war_cog = self.bot.get_cog(name="War")
@@ -181,6 +195,7 @@ class War_Log(commands.Cog):
                 await warlog_channel.send(embed=embed)
             except:
                 continue
+
 
 
 def setup(bot: CustomClient):

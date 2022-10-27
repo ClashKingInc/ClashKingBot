@@ -235,8 +235,6 @@ class Family(commands.Cog):
             embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts\nClans: {', '.join(name_clans)}")
             await res.response.edit_message(embed=embed)
 
-
-
     @family.sub_command(name="wars", description="List of current wars by family clans")
     async def family_wars(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
