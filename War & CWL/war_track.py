@@ -196,7 +196,9 @@ class War_Log(commands.Cog):
             except:
                 continue
 
-
+    @coc.ClientEvents.war_loop_start()
+    async def thissss(self, iteration):
+        print(iteration)
 
 def setup(bot: CustomClient):
     bot.add_cog(War_Log(bot))

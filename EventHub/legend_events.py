@@ -181,8 +181,6 @@ class LegendEvents(commands.Cog):
                     thread_id = legendlog.get("thread")
                     try:
                         webhook = await self.bot.fetch_webhook(webhook_id)
-                        print(webhook.id)
-                        print(thread_id)
                         if thread_id is not None:
                             thread = await self.bot.fetch_channel(thread_id)
                             if thread.locked:
@@ -193,7 +191,7 @@ class LegendEvents(commands.Cog):
                         continue
 
                     if thread_id is None:
-                        print("sent")
+
                         await webhook.send(embed=embed, avatar_url=self.bot.user.display_avatar.url)
                     else:
                         await webhook.send(embed=embed, avatar_url=self.bot.user.display_avatar.url, thread=thread)
