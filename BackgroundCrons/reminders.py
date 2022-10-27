@@ -342,8 +342,6 @@ class reminders(commands.Cog):
             for player_tag, discord_id in links:
                 num_missing = missing[player_tag]
                 name = names[player_tag]
-                if discord_id is None:
-                    missing_text += f"{num_missing}/{war.attacks_per_member} hits- {name} | {player_tag}\n"
                 member = disnake.utils.get(server.members, id=discord_id)
                 if member is None:
                     missing_text += f"{num_missing}/{war.attacks_per_member} hits- {name} | {player_tag}\n"
