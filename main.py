@@ -70,7 +70,7 @@ if IS_BETA:
         #"BackgroundCrons.reddit_recruit_feed",
         #"BackgroundCrons.dm_reports",
         #"BackgroundCrons.store_clan_capital",
-        "BackgroundCrons.reminders",
+        #"BackgroundCrons.reminders",
         #"EventHub.clan_capital_events",
         #"EventHub.join_leave_events",
         #"EventHub.ban_events",
