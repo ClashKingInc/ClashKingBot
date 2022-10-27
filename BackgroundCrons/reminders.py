@@ -307,7 +307,7 @@ class reminders(commands.Cog):
                     missing[player.tag] = war.attacks_per_member - len(player.attacks)
                     names[player.tag] = player.name
 
-        tags= list(missing.values())
+        tags= list(missing.keys())
         if not missing:
             return
         links = await self.bot.link_client.get_links(*tags)
