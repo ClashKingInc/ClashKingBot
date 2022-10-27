@@ -346,15 +346,16 @@ class reminders(commands.Cog):
                 name = names[player_tag]
                 member = disnake.utils.get(server.members, id=discord_id)
                 if member is None:
-                    missing_text += f"{num_missing}/{war.attacks_per_member} hits- {name} | {player_tag}\n"
+                    missing_text += f"{num_missing} hits- {name} | {player_tag}\n"
                 else:
-                    missing_text += f"{num_missing}/{war.attacks_per_member} hits- {name} | {member.mention}\n"
+                    missing_text += f"{num_missing} hits- {name} | {member.mention}\n"
 
             reminder_text = f"**{reminder_time} Hours Remaining in War**\n" \
                             f"{missing_text}" \
                             f"{custom_text}"
-
-            await channel.send(content=reminder_text)
+            embed = disnake.Embed(description=f"**{war.clan.name} vs {war.opponent.name}**")
+            embed.set_thumbnail(url=war.clan.badge.url)
+            await channel.send(content=reminder_text, embed=embed)
 
     async def clan_capital_reminder(self, reminder_time):
         all_reminders = self.bot.reminders.find({"$and": [
