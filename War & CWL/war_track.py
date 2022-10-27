@@ -35,7 +35,6 @@ class War_Log(commands.Cog):
         #self.bot.store_war(old_war)
         #send notif that a new war started
         #print("new_war")
-
         tracked = self.bot.clan_db.find({"tag": f"{new_war.clan.tag}"})
         limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_war.clan.tag}"})
         for cc in await tracked.to_list(length=limit):
@@ -196,9 +195,6 @@ class War_Log(commands.Cog):
             except:
                 continue
 
-    @coc.ClientEvents.war_loop_start()
-    async def thissss(self, iteration):
-        print(iteration)
 
 def setup(bot: CustomClient):
     bot.add_cog(War_Log(bot))
