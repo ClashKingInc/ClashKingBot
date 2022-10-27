@@ -91,7 +91,7 @@ class Linking(commands.Cog):
 
             elif not verified and is_linked:
                 if linked == ctx.author.id:
-                    evalua = self.bot.get_cog("eval")
+                    evalua = self.bot.get_cog("Eval")
                     changes = await evalua.eval_member(ctx, ctx.author, False)
                     embed = disnake.Embed(
                         description=f"[{player.name}]({player.share_link}) is already linked to you {ctx.author.mention}.\n"
@@ -333,6 +333,10 @@ class Linking(commands.Cog):
                     description=f"Invalid Api Token for [{player.name}]({player.share_link}).",
                     color=disnake.Color.green())
                 await ctx.send(embed=embed)
+
+    @commands.slash_command(name="buttons", description="Create a message that has buttons for easy eval/link actions.")
+    async def buttons(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
 
     @modlink.autocomplete("player_tag")
     @unlink.autocomplete("player_tag")
