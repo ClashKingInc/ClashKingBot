@@ -307,17 +307,19 @@ class reminders(commands.Cog):
                     missing[player.tag] = war.attacks_per_member - len(player.attacks)
                     names[player.tag] = player.name
 
-        tags= list(missing.values())
+        tags= list(missing.keys())
         if not missing:
             return
         links = await self.bot.link_client.get_links(*tags)
         all_reminders = self.bot.reminders.find({"$and": [
             {"clan": clan_tag},
-            {"type": "War"}
+            {"type": "War"},
+            {"time": f"{reminder_time} hr"}
         ]})
         limit = await self.bot.reminders.count_documents(filter={"$and": [
             {"clan": clan_tag},
-            {"type": "War"}
+            {"type": "War"},
+            {"time": f"{reminder_time} hr"}
         ]})
         for reminder in await all_reminders.to_list(length=limit):
             custom_text = reminder.get("custom_text")
