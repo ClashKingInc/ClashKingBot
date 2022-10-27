@@ -210,7 +210,7 @@ class Linking(commands.Cog):
             ----------
             player_tag: player_tag as found in-game
             member: discord member to link this player to
-            greet: (optional) don't send the clan greeting for a newly linked account
+            greet: (default = yes) do(n't) send the clan greeting for a newly linked account
         """
 
         await ctx.response.defer()
@@ -228,10 +228,26 @@ class Linking(commands.Cog):
                 embed = disnake.Embed(
                     description=f"{player.name} is already linked to {member.mention}",
                     color=disnake.Color.red())
+                try:
+                    results = await self.bot.server_db.find_one({"server": ctx.guild.id})
+                    greeting = results.get("greeting")
+                    if greeting is None:
+                        greeting = ""
+
+                    results = await self.bot.clan_db.find_one({"$and": [
+                        {"tag": player.clan.tag},
+                        {"server": ctx.guild.id}
+                    ]})
+                    if results is not None:
+                        channel = results.get("clanChannel")
+                        channel = self.bot.get_channel(channel)
+                        await channel.send(f"{member.mention}, welcome to {ctx.guild.name}! {greeting}")
+                except:
+                    pass
                 return await ctx.edit_original_message(embed=embed)
             else:
                 embed = disnake.Embed(
-                    title=f"{player.name} is already linked to a discord user on another server.",
+                    title=f"{player.name} is already linked to another discord user.",
                     color=disnake.Color.red())
                 return await ctx.edit_original_message(embed=embed)
 
