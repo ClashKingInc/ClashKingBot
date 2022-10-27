@@ -63,9 +63,9 @@ class war_event(commands.Cog):
             star_str = ""
             stars = attack["stars"]
             for x in range(0, stars):
-                star_str += self.bot.emoji.war_star.emoji_string
+                star_str += self.bot.emoji.war_star
             for x in range(0, 3-stars):
-                star_str += self.bot.emoji.blank.emoji_string
+                star_str += self.bot.emoji.no_star
 
             duration = strftime("%M:%S", gmtime(attack["duration"]))
             if stars == 3:
