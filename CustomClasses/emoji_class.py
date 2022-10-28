@@ -55,6 +55,7 @@ class Emojis():
         self.no_star = EmojiType("<:no_star:1033914094824198174>")
         self.yes = EmojiType("<:yes:1033915430198333500>")
         self.no = EmojiType("<:no:1033915481335275621>")
+        self.gear = EmojiType("<:gear:1035416941646594118>")
 
 
 

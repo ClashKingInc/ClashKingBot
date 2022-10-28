@@ -6,7 +6,7 @@ from disnake.ext import commands
 from main import scheduler
 from CustomClasses.CustomBot import CustomClient
 
-class reminders(commands.Cog):
+class reminders(commands.Cog, name="Reminders"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot

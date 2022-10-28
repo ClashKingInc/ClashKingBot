@@ -1,7 +1,7 @@
 
 from disnake.ext import commands
 import disnake
-from utils.components import create_components
+from CustomClasses.CustomBot import CustomClient
 from collections import defaultdict
 
 family = ["Bans", "Clan Commands", "Family"]
@@ -9,7 +9,7 @@ war = ["War", "CWL"]
 trophies = ["Legends", "Family Trophy Stats", "Leaderboards", "DM Feed & Reports"]
 utility = ["Army", "Awards", "Super Troops", "Profile"]
 link = ["Eval", "Linking"]
-setups = ["Clan Setup", "Board Setup", "Eval Setup", "Statbar Setup", "Welcome Setup"]
+setups = ["Clan Setup", "Board Setup", "Eval Setup", "Statbar Setup", "Welcome Setup", "Reminders"]
 settings = ["Settings"]
 other = ["Other"]
 
@@ -18,7 +18,7 @@ page_names = ["Family_and_Clans", "Legends & Trophies", "War & CWL", "Utility", 
 
 class help(commands.Cog):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.slash_command(name='help', description="List of commands & descriptions for ClashKing")
@@ -51,7 +51,7 @@ class help(commands.Cog):
         x = 0
         select_options = []
         for page in pages:
-            select_options.append(disnake.SelectOption(label=page_names[x], emoji="⚙️", value=page_names[x]))
+            select_options.append(disnake.SelectOption(label=page_names[x], emoji=self.bot.emoji.gear.partial_emoji, value=page_names[x]))
             embed = disnake.Embed(title=page_names[x],
                                   color=disnake.Color.green())
             embed.set_footer(text=f"{len(command_description)} commands")
@@ -109,5 +109,5 @@ class help(commands.Cog):
 
 
 
-def setup(bot: commands.Bot):
+def setup(bot: CustomClient):
     bot.add_cog(help(bot))
