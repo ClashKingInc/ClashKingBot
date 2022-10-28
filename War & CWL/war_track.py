@@ -141,6 +141,28 @@ class War_Log(commands.Cog):
                     embed.set_thumbnail(url=new_war.clan.badge.large)
                     embed.set_footer(text=f"{new_war.type.capitalize()} War")
                     await warlog_channel.send(embed=embed)
+
+                    #calculate missed attacks
+                    one_hit_missed = []
+                    two_hit_missed = []
+                    for player in new_war.members:
+                        if player not in new_war.opponent.members:
+                            if len(player.attacks) < new_war.attacks_per_member:
+                                th_emoji = self.bot.fetch_emoji(name=player.town_hall)
+                                if new_war.attacks_per_member - len(player.attacks) == 1:
+                                    one_hit_missed.append(f"{th_emoji}{player.name}")
+                                else:
+                                    two_hit_missed.append(f"{th_emoji}{player.name}")
+
+                    embed = disnake.Embed(title=f"{new_war.clan.name} vs {new_war.opponent.name}", description="Missed Hits", color=disnake.Color.orange())
+                    if one_hit_missed:
+                        embed.add_field(name="One Hit Missed", value="\n".join(one_hit_missed))
+                    if two_hit_missed:
+                        embed.add_field(name="Two Hits Missed", value="\n".join(two_hit_missed))
+                    embed.set_thumbnail(url=new_war.clan.badge.url)
+                    if len(embed.fields) != 0:
+                        await warlog_channel.send(embed=embed)
+
             except:
                 continue
 
