@@ -99,6 +99,7 @@ class CustomClient(commands.Bot):
         self.generalfamroles = self.db_client.usafam.generalrole
         self.notfamroles = self.db_client.usafam.linkrole
         self.townhallroles = self.db_client.usafam.townhallroles
+        self.builderhallroles = self.db_client.usafam.builderhallroles
         self.legendleagueroles = self.db_client.usafam.legendleagueroles
         self.donationroles = self.db_client.usafam.donationroles
         self.welcome = self.db_client.usafam.welcome

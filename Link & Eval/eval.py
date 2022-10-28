@@ -429,6 +429,18 @@ class eval(commands.Cog, name="Eval"):
             townhall_roles[th] = r
             th_role_list.append(r)
 
+        builderhall_roles = {}
+        bh_role_list = []
+        all = self.bot.builderhallroles.find({"server": ctx.guild.id})
+        limit = await self.bot.builderhallroles.count_documents(filter={"server": ctx.guild.id})
+        for role in await all.to_list(length=limit):
+            r = role.get("role")
+            bh = role.get("bh")
+            bh = bh.replace("bh", "")
+            bh = int(bh)
+            builderhall_roles[bh] = r
+            bh_role_list.append(r)
+
         legend_roles = {}
         legend_role_list = []
         all = self.bot.legendleagueroles.find({"server": ctx.guild.id})
@@ -498,6 +510,19 @@ class eval(commands.Cog, name="Eval"):
                     ROLES_SHOULD_HAVE.add(th_role)
                     if th_role not in MASTER_ROLES:
                         ROLES_TO_ADD.add(th_role)
+                except:
+                    pass
+
+            #check if they have any builderhall roles set up
+            #try except because dict throws error if it doesnt exist
+            #also because they could have no builder hall
+            #if it exists on both ends, add the role to the role list to add
+            if bool(builderhall_roles):
+                try:
+                    bh_role = builderhall_roles[player.builder_hall]
+                    ROLES_SHOULD_HAVE.add(bh_role)
+                    if bh_role not in MASTER_ROLES:
+                        ROLES_TO_ADD.add(bh_role)
                 except:
                     pass
 
@@ -753,6 +778,18 @@ class eval(commands.Cog, name="Eval"):
             townhall_roles[th] = r
             th_role_list.append(r)
 
+        builderhall_roles = {}
+        bh_role_list = []
+        all = self.bot.builderhallroles.find({"server": ctx.guild.id})
+        limit = await self.bot.builderhallroles.count_documents(filter={"server": ctx.guild.id})
+        for role in await all.to_list(length=limit):
+            r = role.get("role")
+            bh = role.get("bh")
+            bh = bh.replace("bh", "")
+            bh = int(bh)
+            builderhall_roles[bh] = r
+            bh_role_list.append(r)
+
         legend_roles = {}
         legend_role_list = []
         all = self.bot.legendleagueroles.find({"server": ctx.guild.id})
@@ -827,6 +864,19 @@ class eval(commands.Cog, name="Eval"):
                             ROLES_SHOULD_HAVE.add(th_role)
                             if th_role not in MASTER_ROLES:
                                 ROLES_TO_ADD.add(th_role)
+                        except:
+                            pass
+
+                    # check if they have any builderhall roles set up
+                    # try except because dict throws error if it doesnt exist
+                    # also because they could have no builder hall
+                    # if it exists on both ends, add the role to the role list to add
+                    if bool(builderhall_roles):
+                        try:
+                            bh_role = builderhall_roles[player.builder_hall]
+                            ROLES_SHOULD_HAVE.add(bh_role)
+                            if bh_role not in MASTER_ROLES:
+                                ROLES_TO_ADD.add(bh_role)
                         except:
                             pass
 

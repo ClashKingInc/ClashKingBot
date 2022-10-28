@@ -1,13 +1,11 @@
-import asyncio
+
 import coc
 import disnake
 import pytz
 
 from disnake.ext import commands
 from Dictionaries.emojiDictionary import emojiDictionary
-from collections import defaultdict
 from CustomClasses.CustomBot import CustomClient
-from coc import utils
 from main import scheduler
 tiz = pytz.utc
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]

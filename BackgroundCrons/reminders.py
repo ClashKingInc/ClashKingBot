@@ -1,7 +1,7 @@
 import coc
 import disnake
-import math
 
+from main import check_commands
 from disnake.ext import commands
 from main import scheduler
 from CustomClasses.CustomBot import CustomClient
@@ -28,6 +28,7 @@ class reminders(commands.Cog):
         return clan
 
     @reminder.sub_command(name="create", description="Set a reminder for clan games, raid weekend, wars, & more")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def reminder_create(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, type:str = commands.Param(choices=["Clan Capital", "War", "Clan Games", "Inactivity"]), clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
@@ -310,8 +311,6 @@ class reminders(commands.Cog):
             emoji = await self.bot.create_new_badge_emoji(url=clan.badge.url)
             embed.add_field(name=f"{emoji}{clan.name}", value=reminder_text)
         await ctx.edit_original_message(embed=embed)
-
-
 
 
     @reminder_create.autocomplete("clan")

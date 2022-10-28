@@ -505,7 +505,7 @@ class misc(commands.Cog, name="Settings"):
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
-    @set.sub_command(name="eval-nickname", description="Have linking change discord name to name | clan or name | family")
+    @set.sub_command(name="nickname-label-type", description="Have linking change discord name to name | clan or name | family")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def auto_nickname(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Clan Abbreviations", "Family Name", "Off"])):
         server = CustomServer(guild=ctx.guild, bot=self.bot)

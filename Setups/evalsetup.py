@@ -1,6 +1,7 @@
 import disnake
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
+from main import check_commands
 
 class EvalSetup(commands.Cog, name="Eval Setup"):
 
@@ -28,15 +29,14 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
     async def legend_roles(self, ctx):
         pass
 
+    @commands.slash_command(name="builderhall-roles")
+    async def builderhall_roles(self, ctx):
+        pass
+
     ###General Family Role Section
     @general_fam_roles.sub_command(name="add", description="Add a role to be given to family members")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def general_fam_roles_add(self, ctx: disnake.ApplicationCommandInteraction, role:disnake.Role):
-
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         results = await self.bot.generalfamroles.find_one({"$and": [
             {"role": role.id},
@@ -58,13 +58,8 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
         return await ctx.send(embed=embed)
 
     @general_fam_roles.sub_command(name="remove", description="Remove a role from general family role list")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def general_fam_roles_remove(self, ctx: disnake.ApplicationCommandInteraction, role: disnake.Role):
-
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         results = await self.bot.generalfamroles.find_one({"$and": [
             {"role": role.id},
@@ -101,15 +96,14 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
         await ctx.send(embed=embed)
 
 
+
+
+
+
     ###Not Family Role Section
     @not_fam_roles.sub_command(name="add", description="Add a role to be given to non family members")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def not_fam_roles_add(self, ctx: disnake.ApplicationCommandInteraction, role:disnake.Role):
-
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         results = await self.bot.notfamroles.find_one({"$and": [
             {"role": role.id},
@@ -131,13 +125,8 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
         return await ctx.send(embed=embed)
 
     @not_fam_roles.sub_command(name="remove", description="Remove a role from non family role list")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def not_fam_roles_remove(self, ctx: disnake.ApplicationCommandInteraction, role: disnake.Role):
-
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         results = await self.bot.notfamroles.find_one({"$and": [
             {"role": role.id},
@@ -174,15 +163,14 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
         await ctx.send(embed=embed)
 
 
+
+
+
+
     ###Ignored Roles Section
     @ignored_roles.sub_command(name="add", description="Add a role to be ignored during eval for family members")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ignored_roles_add(self, ctx: disnake.ApplicationCommandInteraction, role: disnake.Role):
-
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         results = await self.bot.ignoredroles.find_one({"$and": [
             {"role": role.id},
@@ -204,13 +192,8 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
         return await ctx.send(embed=embed)
 
     @ignored_roles.sub_command(name="remove", description="Removes a role from the ignore during eval role list")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ignored_roles_remove(self, ctx: disnake.ApplicationCommandInteraction, role: disnake.Role):
-
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         results = await self.bot.ignoredroles.find_one({"$and": [
             {"role": role.id},
@@ -247,16 +230,15 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
         await ctx.send(embed=embed)
 
 
+
+
+
     ###Townhall Roles Section
     @townhall_roles.sub_command(name="set", description="Sets roles to add for townhall levels 7 and up")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def townhall_roles_set(self, ctx: disnake.ApplicationCommandInteraction, th7:disnake.Role=None, th8:disnake.Role=None, th9:disnake.Role=None,
                 th10:disnake.Role=None, th11:disnake.Role=None, th12:disnake.Role=None, th13:disnake.Role=None, th14:disnake.Role=None, th15:disnake.Role=None):
 
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         if th7 is None and th8 is None and th9 is None and th10 is None and th11 is None and th12 is None and th13 is None and th14 is None and th15 is None:
             return await ctx.send("Please provide a role for at least 1 townhall level.")
@@ -432,14 +414,9 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
         return await ctx.send(embed=embed)
 
     @townhall_roles.sub_command(name="remove", description="Remove townhall eval roles")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def townhall_roles_remove(self, ctx: disnake.ApplicationCommandInteraction, townhall: str =
         commands.Param(choices=["th7", "th8", "th9", "th10", "th11", "th12", "th13", "th14", "th15"])):
-
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         results = await self.bot.townhallroles.find_one({"$and": [
             {"th": f"{townhall}"},
@@ -480,14 +457,112 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
         await ctx.send(embed=embed)
 
 
-    ###Legend Roles Section
-    @legend_roles.sub_command(name="set", description="Sets roles to add for legends")
-    async def legend_roles_set(self, ctx: disnake.ApplicationCommandInteraction, legends_league:disnake.Role=None, trophies_5500:disnake.Role=None, trophies_5700:disnake.Role=None, trophies_6000:disnake.Role=None):
+
+
+
+    ###Builderhall Roles Section
+    @builderhall_roles.sub_command(name="set", description="Sets roles to add for builderhall levels 3 and up")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def builderhall_roles_set(self, ctx: disnake.ApplicationCommandInteraction, bh3: disnake.Role = None,
+                                 bh4: disnake.Role = None, bh5: disnake.Role = None,
+                                 bh6: disnake.Role = None, bh7: disnake.Role = None, bh8: disnake.Role = None,
+                                 bh9: disnake.Role = None):
+
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
             embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
+
+        if bh3 is None and bh4 is None and bh5 is None and bh6 is None and bh7 is None and bh8 is None and bh9 is None:
+            return await ctx.send("Please provide a role for at least 1 builderhall level.")
+
+        roles_updated = ""
+
+        spot_to_text = ["bh3", "bh4", "bh5", "bh6", "bh7", "bh8", "bh9"]
+        list_roles = [bh3, bh4, bh5, bh6, bh7, bh8, bh9]
+
+        for count, role in enumerate(list_roles):
+            if role is None:
+                continue
+            role_text = spot_to_text[count]
+            roles_updated += f"{role_text.upper()}: {role.mention}\n"
+            results = await self.bot.builderhallroles.find_one({"$and": [
+                {"role": role.id},
+                {"bh": f"{role_text}"},
+                {"server": ctx.guild.id}
+            ]})
+
+            if results is None:
+                await self.bot.builderhallroles.insert_one(
+                    {"role": role.id,
+                     "bh": f"{role_text}",
+                     "server": ctx.guild.id})
+            else:
+                await self.bot.builderhallroles.update_one({"$and": [
+                    {"bh": f"{role_text}"},
+                    {"server": ctx.guild.id}
+                ]}, {'$set': {"role": role.id}})
+
+        embed = disnake.Embed(title="**Builderhall Roles that were set:**",
+                              description=roles_updated,
+                              color=disnake.Color.green())
+        return await ctx.send(embed=embed)
+
+    @builderhall_roles.sub_command(name="remove", description="Remove builderhall eval roles")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def builderhall_roles_remove(self, ctx: disnake.ApplicationCommandInteraction, builderhall: str =
+    commands.Param(choices=["bh3", "bh4", "bh5", "bh6", "bh7", "bh8", "bh9"])):
+
+
+        results = await self.bot.builderhallroles.find_one({"$and": [
+            {"th": f"{builderhall}"},
+            {"server": ctx.guild.id}
+        ]})
+        if results is None:
+            return await ctx.send("That builderhall does not have a role assigned to it for eval currently.")
+        else:
+            mention = results.get("role")
+            await self.bot.builderhallroles.find_one_and_delete({"$and": [
+                {"th": f"{builderhall}"},
+                {"server": ctx.guild.id}
+            ]})
+
+        embed = disnake.Embed(description=f"{builderhall.upper()} eval role removed - <@&{mention}>",
+                              color=disnake.Color.green())
+        return await ctx.send(embed=embed)
+
+    @builderhall_roles.sub_command(name="list", description="List of builderhall roles for eval")
+    async def builderhall_roles_list(self, ctx: disnake.ApplicationCommandInteraction):
+        list_ths = ""
+
+        all = self.bot.builderhallroles.find({"server": ctx.guild.id})
+        all.sort('th', -1)
+        limit = await self.bot.builderhallroles.count_documents(filter={"server": ctx.guild.id})
+        for role in await all.to_list(length=limit):
+            roleid = role.get("role")
+            th = role.get("bh")
+            list_ths += f"{th}: <@&{roleid}>\n"
+
+        if list_ths == "":
+            list_ths = "No BuilderHall Roles."
+
+        embed = disnake.Embed(title=f"BuilderHall Roles",
+                              description=list_ths,
+                              color=disnake.Color.green())
+
+        await ctx.send(embed=embed)
+
+
+
+
+
+
+
+    ###Legend Roles Section
+    @legend_roles.sub_command(name="set", description="Sets roles to add for legends")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def legend_roles_set(self, ctx: disnake.ApplicationCommandInteraction, legends_league:disnake.Role=None, trophies_5500:disnake.Role=None, trophies_5700:disnake.Role=None, trophies_6000:disnake.Role=None):
 
         if legends_league is None and trophies_5500 is None and trophies_5700 is None and trophies_6000 is None:
             await ctx.send("Please select at least one role to set.")
@@ -573,14 +648,9 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
         return await ctx.send(embed=embed)
 
     @legend_roles.sub_command(name="remove", description="Remove legends eval roles")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def legend_roles_remove(self, ctx: disnake.ApplicationCommandInteraction, legend_role_type: str =
         commands.Param(choices=["legends_league", "trophies_5500", "trophies_5700", "trophies_6000"])):
-
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
         results = await self.bot.legendleagueroles.find_one({"$and": [
             {"type": f"{legend_role_type}"},
