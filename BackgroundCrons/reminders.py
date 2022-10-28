@@ -198,13 +198,20 @@ class reminders(commands.Cog):
         await self.bot.reminders.delete_many({"$and": [
             {"clan": clan.tag},
             {"server": ctx.guild.id},
-            {"type": "War"}
+            {"type": "War"},
+            {"channel" : {"$ne" : channel.id}}
         ]})
 
         if "remove" in res.values:
             embed = disnake.Embed(description=f"**All war reminders removed for {clan.name}**", color=disnake.Color.green())
             return await res.edit_original_message(embed=embed, components=[])
         for value in res.values:
+            await self.bot.reminders.delete_one({"$and": [
+                {"clan": clan.tag},
+                {"server": ctx.guild.id},
+                {"type": "War"},
+                {"time" : value}
+            ]})
             await self.bot.reminders.insert_one({
                 "server": ctx.guild.id,
                 "type": "War",
@@ -277,11 +284,35 @@ class reminders(commands.Cog):
     @reminder.sub_command(name="remove", description="Remove a reminder set up on the server")
     async def reminder_remove(self, ctx: disnake.ApplicationCommandInteraction, type:str = commands.Param(choices=["Clan Capital", "Clan Games, War", "Inactivity"]), clan: coc.Clan = commands.Param(converter=clan_converter)):
         pass
-    
+    '''
     @reminder.sub_command(name="list", description="Get the list of reminders set up on the server")
     async def reminder_list(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
-    '''
+        await ctx.response.defer()
+        embed = disnake.Embed(title=f"**{ctx.guild.name} Reminders List**")
+        all_reminders_tags = await self.bot.reminders.distinct("clan", filter={"$and": [{"server": ctx.guild.id}]})
+        for tag in all_reminders_tags:
+            clan = await self.bot.getClan(clan_tag=tag)
+            if clan is None:
+                continue
+            reminder_text = ""
+            clan_capital_reminders = self.bot.reminders.find({"$and": [{"clan": tag}, {"type": "Clan Capital"}, {"server": ctx.guild.id}]})
+            cc_reminder_text = []
+            for reminder in await clan_capital_reminders.to_list(length=100):
+                cc_reminder_text.append(reminder.get("time"))
+            if cc_reminder_text:
+                reminder_text += "Clan Capital: `" + ", ".join(cc_reminder_text) + "`\n"
+            war_reminders = self.bot.reminders.find({"$and": [{"clan": tag}, {"type": "War"}, {"server": ctx.guild.id}]})
+            war_reminder_text = []
+            for reminder in await war_reminders.to_list(length=100):
+                war_reminder_text.append(reminder.get("time"))
+            if war_reminder_text:
+                reminder_text += "War: `" + ", ".join(war_reminder_text) + "`\n"
+            emoji = await self.bot.create_new_badge_emoji(url=clan.badge.url)
+            embed.add_field(name=f"{emoji}{clan.name}", value=reminder_text)
+        await ctx.edit_original_message(embed=embed)
+
+
+
 
     @reminder_create.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
