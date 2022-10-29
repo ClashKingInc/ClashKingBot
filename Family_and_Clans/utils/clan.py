@@ -554,7 +554,7 @@ class getClans(commands.Cog, name="Clan"):
         cg_point_embed.set_footer(text=f"Total Points: {'{:,}'.format(total_points)}")
         return cg_point_embed
 
-    async def create_donations(self, clan: coc.Clan, type):
+    async def create_donations(self, clan: coc.Clan, type: str):
         date = self.bot.gen_season_date()
         tasks = []
         for member in clan.members:
@@ -587,27 +587,27 @@ class getClans(commands.Cog, name="Clan"):
             donated_text = "DON   | REC   | Name\n" + donated_text
             donation_embed = disnake.Embed(title=f"**{clan.name} Donations**", description=f"```{donated_text}```",
                                            color=disnake.Color.green())
-            donation_embed.set_footer(text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)}")
+            donation_embed.set_footer(icon_url=clan.badge.url, text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {date}")
             return donation_embed
         elif type == "received":
             received_text = sorted(received_text, key=lambda l: l[1], reverse=True)
             received_text = [line[0] for line in received_text]
             received_text = "\n".join(received_text)
             received_text = "REC   | DON   | Name\n" + received_text
-            received_embed = disnake.Embed(title=f"**{clan.name} Donations**", description=f"```{received_text}```",
+            received_embed = disnake.Embed(title=f"**{clan.name} Received**", description=f"```{received_text}```",
                                            color=disnake.Color.green())
-            received_embed.set_footer(
-                text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)}")
+            received_embed.set_footer(icon_url=clan.badge.url,
+                text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {date}")
             return received_embed
         else:
             ratio_text = sorted(ratio_text, key=lambda l: l[1], reverse=True)
             ratio_text = [line[0] for line in ratio_text]
             ratio_text = "\n".join(ratio_text)
             ratio_text = "Ratio | Name\n" + ratio_text
-            ratio_embed = disnake.Embed(title=f"**{clan.name} Donations**", description=f"```{ratio_text}```",
+            ratio_embed = disnake.Embed(title=f"**{clan.name} Ratios**", description=f"```{ratio_text}```",
                                            color=disnake.Color.green())
-            ratio_embed.set_footer(
-                text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)}")
+            ratio_embed.set_footer(icon_url=clan.badge.url,
+                text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {date}")
             return ratio_embed
 
     def response_to_line(self, response, clan):

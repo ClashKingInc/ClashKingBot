@@ -4,7 +4,7 @@ import disnake
 from CustomClasses.CustomBot import CustomClient
 from collections import defaultdict
 
-family = ["Bans", "Clan Commands", "Family"]
+family = ["Bans", "Clan Commands", "Family Commands"]
 war = ["War", "CWL"]
 trophies = ["Legends", "Family Trophy Stats", "Leaderboards", "DM Feed & Reports"]
 utility = ["Army", "Awards", "Super Troops", "Profile"]
@@ -14,7 +14,7 @@ settings = ["Settings"]
 other = ["Other"]
 
 pages = [family, trophies, war, utility, link, setups, settings, other]
-page_names = ["Family_and_Clans", "Legends & Trophies", "War & CWL", "Utility", "Link & Eval", "Setups", "Settings", "Other"]
+page_names = ["Family & Clans", "Legends & Trophies", "War & CWL", "Utility", "Link & Eval", "Setups", "Settings", "Other"]
 
 class help(commands.Cog):
 

@@ -662,14 +662,14 @@ class clan_commands(commands.Cog):
             embed: disnake.Embed = await self.create_donations(clan, type="donated")
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
-        elif "received" in str(ctx.data.custom_id):
+        elif "received_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
             embed: disnake.Embed = await self.create_donations(clan, type="received")
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
-        elif "ratio" in str(ctx.data.custom_id):
+        elif "ratio_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)

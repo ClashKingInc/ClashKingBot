@@ -8,10 +8,11 @@ from Dictionaries.emojiDictionary import emojiDictionary
 from CustomClasses.CustomBot import CustomClient
 from collections import defaultdict
 from collections import Counter
+from datetime import datetime
 
 tiz = pytz.utc
 
-class Family(commands.Cog):
+class family_commands(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
@@ -290,6 +291,45 @@ class Family(commands.Cog):
 
         await ctx.edit_original_message(embed=embed)
 
+    @family.sub_command(name="donations", description="List of top 50 donators in family")
+    async def family_donos(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        time = datetime.now().timestamp()
+        embed = await self.create_donations(guild=ctx.guild, type="donated")
+        embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
+                              custom_id=f"donationfam_"))
+        buttons.append_item(disnake.ui.Button(label="Received", emoji=self.bot.emoji.clan_castle.partial_emoji,
+                                              style=disnake.ButtonStyle.green, custom_id=f"receivedfam_"))
+        buttons.append_item(
+            disnake.ui.Button(label="Ratio", emoji=self.bot.emoji.ratio.partial_emoji, style=disnake.ButtonStyle.green,
+                              custom_id=f"ratiofam_"))
+        await ctx.edit_original_message(embed=embed, components=buttons)
+
+    @commands.Cog.listener()
+    async def on_button_click(self, ctx: disnake.MessageInteraction):
+        time = datetime.now().timestamp()
+        if "donatedfam_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            embed: disnake.Embed = await self.create_donations(ctx.guild, type="donated")
+            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+            await ctx.edit_original_message(embed=embed)
+        elif "receivedfam_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            clan = (str(ctx.data.custom_id).split("_"))[-1]
+            clan = await self.bot.getClan(clan)
+            embed: disnake.Embed = await self.create_donations(ctx.guild, type="received")
+            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+            await ctx.edit_original_message(embed=embed)
+        elif "ratiofam_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            clan = (str(ctx.data.custom_id).split("_"))[-1]
+            clan = await self.bot.getClan(clan)
+            embed: disnake.Embed = await self.create_donations(ctx.guild, type="ratio")
+            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+            await ctx.edit_original_message(embed=embed)
 
 def setup(bot: CustomClient):
-    bot.add_cog(Family(bot))
+    bot.add_cog(family_commands(bot))
