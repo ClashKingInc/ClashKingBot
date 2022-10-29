@@ -573,7 +573,7 @@ class clan_commands(commands.Cog):
     async def clan_donations(self, ctx: disnake.ApplicationCommandInteraction,clan: coc.Clan = commands.Param(converter=clan_converter)):
         await ctx.response.defer()
         time = datetime.now().timestamp()
-        embed = await self.create_donations(clan, type="ratio")
+        embed = await self.create_donations(clan, type="donated")
         embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
         buttons = disnake.ui.ActionRow()
         buttons.append_item(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,custom_id=f"donated_{clan.tag}"))
