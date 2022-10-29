@@ -5,6 +5,7 @@ import asyncio
 import aiohttp
 import calendar
 import re
+import emoji
 
 from disnake.ext import commands
 from Dictionaries.emojiDictionary import emojiDictionary
@@ -552,6 +553,62 @@ class getClans(commands.Cog, name="Clan"):
                                        color=disnake.Color.green())
         cg_point_embed.set_footer(text=f"Total Points: {'{:,}'.format(total_points)}")
         return cg_point_embed
+
+    async def create_donations(self, clan: coc.Clan, type):
+        date = self.bot.gen_season_date()
+        tasks = []
+        for member in clan.members:
+            results = await self.bot.player_stats.find_one({"tag": member.tag})
+            task = asyncio.ensure_future(
+                self.bot.coc_client.get_player(player_tag=member.tag, cls=MyCustomPlayer, bot=self.bot, results=results))
+            tasks.append(task)
+        responses = await asyncio.gather(*tasks)
+
+        donated_text = []
+        received_text = []
+        ratio_text = []
+        total_donated = sum(player.donos.donated for player in responses)
+        total_received = sum(player.donos.received for player in responses)
+
+        for player in responses:
+            player: MyCustomPlayer
+            for char in ["`", "*", "_", "~"]:
+                name = player.name.replace(char, "", 10)
+            name = emoji.replace_emoji(name, "")
+            name = name[:13]
+            donated_text.append([f"{str(player.donos.donated).ljust(5)} | {str(player.donos.received).ljust(5)} | {name}", player.donos.donated])
+            received_text.append([f"{str(player.donos.received).ljust(5)} | {str(player.donos.donated).ljust(5)} | {name}",player.donos.received])
+            ratio_text.append([f"{str(player.donation_ratio).ljust(5)} | {name}", player.donation_ratio])
+
+        if type == "donated":
+            donated_text = sorted(donated_text, key=lambda l: l[1], reverse=True)
+            donated_text = [line[0] for line in donated_text]
+            donated_text = "\n".join(donated_text)
+            donated_text = "DON   | REC   | Name\n" + donated_text
+            donation_embed = disnake.Embed(title=f"**{clan.name} Donations**", description=f"```{donated_text}```",
+                                           color=disnake.Color.green())
+            donation_embed.set_footer(text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)}")
+            return donation_embed
+        elif type == "received":
+            received_text = sorted(received_text, key=lambda l: l[1], reverse=True)
+            received_text = [line[0] for line in received_text]
+            received_text = "\n".join(received_text)
+            received_text = "REC   | DON   | Name\n" + received_text
+            received_embed = disnake.Embed(title=f"**{clan.name} Donations**", description=f"```{received_text}```",
+                                           color=disnake.Color.green())
+            received_embed.set_footer(
+                text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)}")
+            return received_embed
+        else:
+            ratio_text = sorted(ratio_text, key=lambda l: l[1], reverse=True)
+            ratio_text = [line[0] for line in ratio_text]
+            ratio_text = "\n".join(ratio_text)
+            ratio_text = "Ratio | Name\n" + ratio_text
+            ratio_embed = disnake.Embed(title=f"**{clan.name} Donations**", description=f"```{ratio_text}```",
+                                           color=disnake.Color.green())
+            ratio_embed.set_footer(
+                text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)}")
+            return ratio_embed
 
     def response_to_line(self, response, clan):
         import json

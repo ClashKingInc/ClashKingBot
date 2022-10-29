@@ -5,7 +5,7 @@ from CustomClasses.CustomBot import CustomClient
 from datetime import datetime
 from utils.discord_utils import partial_emoji_gen
 from utils.components import raid_buttons
-from utils.clash import create_weekends, create_weekend_list, weekend_timestamps
+from utils.clash import create_weekend_list, weekend_timestamps
 import asyncio
 from CustomClasses.CustomPlayer import MyCustomPlayer
 import pandas as pd
@@ -568,7 +568,19 @@ class clan_commands(commands.Cog):
             disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
                               custom_id=f"clangames_{clan.tag}"))
         await ctx.edit_original_message(embed=embed, components=buttons)
-        await ctx.edit_original_message(embed=embed)
+
+    @clan.sub_command(name="donations", description="Donations given & received by clan members")
+    async def clan_donations(self, ctx: disnake.ApplicationCommandInteraction,clan: coc.Clan = commands.Param(converter=clan_converter)):
+        await ctx.response.defer()
+        time = datetime.now().timestamp()
+        embed = await self.create_donations(clan, type="ratio")
+        embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,custom_id=f"donated_{clan.tag}"))
+        buttons.append_item(disnake.ui.Button(label="Received", emoji=self.bot.emoji.clan_castle.partial_emoji, style=disnake.ButtonStyle.green, custom_id=f"received_{clan.tag}"))
+        buttons.append_item(disnake.ui.Button(label="Ratio", emoji=self.bot.emoji.ratio.partial_emoji, style=disnake.ButtonStyle.green, custom_id=f"ratio_{clan.tag}"))
+        await ctx.edit_original_message(embed=embed, components=buttons)
+
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
@@ -643,7 +655,27 @@ class clan_commands(commands.Cog):
             embed: disnake.Embed = await self.create_clan_games(clan)
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
-
+        elif "donated_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            clan = (str(ctx.data.custom_id).split("_"))[-1]
+            clan = await self.bot.getClan(clan)
+            embed: disnake.Embed = await self.create_donations(clan, type="donated")
+            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+            await ctx.edit_original_message(embed=embed)
+        elif "received" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            clan = (str(ctx.data.custom_id).split("_"))[-1]
+            clan = await self.bot.getClan(clan)
+            embed: disnake.Embed = await self.create_donations(clan, type="received")
+            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+            await ctx.edit_original_message(embed=embed)
+        elif "ratio" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            clan = (str(ctx.data.custom_id).split("_"))[-1]
+            clan = await self.bot.getClan(clan)
+            embed: disnake.Embed = await self.create_donations(clan, type="ratio")
+            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+            await ctx.edit_original_message(embed=embed)
 
     @clan_capital_raids.autocomplete("clan")
     @linked_clans.autocomplete("clan")
@@ -658,6 +690,7 @@ class clan_commands(commands.Cog):
     @clan_compo.autocomplete("clan")
     @last_online.autocomplete("clan")
     @clan_games.autocomplete("clan")
+    @clan_donations.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
             tracked = self.bot.clan_db.find({"server": ctx.guild.id})
             limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})

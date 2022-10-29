@@ -56,6 +56,7 @@ class Emojis():
         self.yes = EmojiType("<:yes:1033915430198333500>")
         self.no = EmojiType("<:no:1033915481335275621>")
         self.gear = EmojiType("<:gear:1035416941646594118>")
+        self.ratio = EmojiType("<:winrate:932212939908337705>")
 
 
 

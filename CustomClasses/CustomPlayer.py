@@ -100,8 +100,18 @@ class MyCustomPlayer(coc.Player):
         season_stats = self.season_of_legends(season=season)
         return LegendStats(season_stats)
 
-    async def donation_ratio(self):
-        return self.donations if self.received == 0 else self.donations / self.received
+    @property
+    def donation_ratio(self):
+        donations = self.donos.donated
+        received = self.donos.received
+        if received == 0:
+            received = 1
+        if int(donations/received) >= 1000:
+            return int(donations/received)
+        elif int(donations/received) >= 100:
+            round(donations / received, 1)
+        return round(donations / received, 2)
+
 
     def clan_capital_stats(self, week=None):
         if week is None:
@@ -115,6 +125,28 @@ class MyCustomPlayer(coc.Player):
         if week_result is None:
             return ClanCapitalWeek(None)
         return ClanCapitalWeek(week_result)
+
+    @property
+    def donos(self):
+        date = self.bot.gen_season_date()
+        if self.results is None:
+            return Donations(donated=self.donations, received=self.received)
+
+        donations = self.results.get("donations")
+        if donations is None:
+            return Donations(donated=self.donations, received=self.received)
+
+        season_donos = donations.get(f"{date}")
+        if season_donos is None:
+            return Donations(donated=self.donations, received=self.received)
+
+        received = season_donos.get("received")
+        given = season_donos.get("donated")
+        if received is None:
+            received = self.received
+        if given is None:
+            given = self.donations
+        return Donations(donated=given, received=received)
 
     @property
     def last_online(self):
@@ -413,4 +445,16 @@ class CustomTownHall():
         return thDictionary(self.level)
 
 
+class Donations():
+    def __init__(self, donated, received):
+        self._donated = donated
+        self._received = received
 
+    @property
+    def donated(self):
+        return self._donated
+
+
+    @property
+    def received(self):
+        return self._received
