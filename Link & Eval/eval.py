@@ -2,6 +2,7 @@ import coc
 from disnake.ext import commands
 import disnake
 
+from main import check_commands
 from utils.components import create_components
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer
@@ -17,18 +18,9 @@ class eval(commands.Cog, name="Eval"):
         pass
 
     @eval.sub_command(name="user", description="Evaluate a user's roles")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def eval_user(self, ctx: disnake.ApplicationCommandInteraction, user:disnake.Member, test=commands.Param(default="No", choices=["Yes", "No"]), change_nick=commands.Param(default="No", choices=["Yes", "No"])):
         await ctx.response.defer()
-        perms = ctx.author.guild_permissions.manage_guild
-        if ctx.author.id == self.bot.owner.id:
-            perms = True
-
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
-
-
 
         test = (test != "No")
         if change_nick == "Yes":
@@ -44,28 +36,17 @@ class eval(commands.Cog, name="Eval"):
         await ctx.edit_original_message(embed=embed)
 
     @eval.sub_command(name="role", description="Evaluate the roles of all members in a specific role")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def eval_role(self, ctx, role:disnake.Role, test=commands.Param(default="No", choices=["Yes", "No"])):
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
         if role.id == ctx.guild.id:
             role = ctx.guild.default_role
         test = (test != "No")
         await self.eval_roles(ctx, role, test)
 
     @eval.sub_command(name="tag", description="Evaluate the role of the user connected to a tag")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def eval_tag(self, ctx: disnake.ApplicationCommandInteraction, player_tag, test=commands.Param(default="No", choices=["Yes", "No"])):
         await ctx.response.defer()
-        perms = ctx.author.guild_permissions.manage_guild
-        if ctx.author.id == self.bot.owner.id:
-            perms = True
-
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
 
         test = (test != "No")
         player = await self.bot.getPlayer(player_tag)
