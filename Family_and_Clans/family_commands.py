@@ -311,7 +311,7 @@ class family_commands(commands.Cog):
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
         time = datetime.now().timestamp()
-        if "donatedfam_" in str(ctx.data.custom_id):
+        if "donationfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             embed: disnake.Embed = await self.create_donations(ctx.guild, type="donated")
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
