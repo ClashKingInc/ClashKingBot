@@ -86,8 +86,6 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
 
             embed = disnake.Embed(title=f"**Top {limit} {ctx.guild} players**",
                                   description=rText)
-            if ctx.guild.icon is not None:
-                embed.set_thumbnail(url=ctx.guild.icon.url)
             if limit == 50:
                 embed.set_footer(text=f"Cumulative Trophies would be 🏆{cum_score}")
             embeds.append(embed)
