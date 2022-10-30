@@ -656,19 +656,19 @@ class eval(commands.Cog, name="Eval"):
                 except:
                     pass
 
-            if change_nick in ["Clan Abbreviations", "Family Name"] and not GLOBAL_IS_FAMILY:
-                results = sorted(list_accounts, key=lambda l: l[0], reverse=True)
-                top_account: coc.Player = results[0][1]
-                clan_name = ""
-                try:
-                    clan_name = f"| {top_account.clan.name}"
-                except:
-                    pass
+        if change_nick in ["Clan Abbreviations", "Family Name"] and not GLOBAL_IS_FAMILY and len(list_accounts) >= 1:
+            results = sorted(list_accounts, key=lambda l: l[0], reverse=True)
+            top_account: coc.Player = results[0][1]
+            clan_name = ""
+            try:
+                clan_name = f"| {top_account.clan.name}"
+            except:
+                pass
 
-                try:
-                    await member.edit(nick=f"{top_account.name} {clan_name}")
-                except:
-                    pass
+            try:
+                await member.edit(nick=f"{top_account.name} {clan_name}")
+            except:
+                pass
 
         if added == "":
             added = "None"
