@@ -315,13 +315,11 @@ class reminders(commands.Cog, name="Reminders"):
     @reminder.sub_command(name="queue", description="Reminders in queue to be sent")
     async def reminder_queue(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
-        all_reminders_tags = await self.bot.reminders.distinct("clan", filter={"$and": [{"server": ctx.guild.id}]})
+        all_reminders_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
         all_jobs = scheduler.get_jobs()
         job_list = ""
         clans = {}
-        print(all_jobs)
         for job in all_jobs:
-            print(job.name)
             if job.name in all_reminders_tags:
                 time = str(job.id).split("_")
                 tag = time[1]
@@ -333,7 +331,8 @@ class reminders(commands.Cog, name="Reminders"):
                 if clan is None:
                     continue
                 job_list += f"{time} - {clan.name}"
-        disnake.Embed(title=f"{ctx.guild.name} Reminder Queue", description=job_list)
+        embed = disnake.Embed(title=f"{ctx.guild.name} Reminder Queue", description=job_list)
+        await ctx.edit_original_message(embed=embed)
 
     @reminder_create.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
