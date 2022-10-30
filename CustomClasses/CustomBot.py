@@ -138,9 +138,15 @@ class CustomClient(commands.Bot):
             BADGE_GUILDS = list(guild_ids)
             guild = self.get_guild(BADGE_GUILDS[0])
 
+
         url = url.replace(".png", "")
-        emoji = await guild.create_custom_emoji(name=url[-15:].replace("-", ""), image=img)
-        return f"<:{emoji.name}:{emoji.id}>"
+        all_emojis = self.emojis
+        get_emoji = disnake.utils.get(all_emojis, name=url[-15:].replace("-", ""))
+        if get_emoji is None:
+            emoji = await guild.create_custom_emoji(name=url[-15:].replace("-", ""), image=img)
+            return f"<:{emoji.name}:{emoji.id}>"
+        else:
+            return f"<:{get_emoji.name}:{get_emoji.id}>"
 
 
     async def track_players(self, players: list):
