@@ -136,12 +136,13 @@ class Awards(commands.Cog):
                     await ctx.channel.send(embed=embed)
 
     @award.sub_command(name="remove", description="Remove a role and/or emoji from users")
-    async def award_remove(self, ctx: disnake.ApplicationCommandInteraction, role:disnake.Role, emoji: str=None):
+    async def award_remove(self, ctx: disnake.ApplicationCommandInteraction, role:disnake.Role, emoji: str=None, remove_role = commands.Param(default="True", choices=["True" , "False"])):
         """
             Parameters
             ----------
             role: role to clear the members of
             emoji: (optional) emoji to remove from members in this role
+            remove_role: default is True
         """
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
@@ -149,6 +150,7 @@ class Awards(commands.Cog):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
+        remove_role = (remove_role == "True")
         if emoji is not None:
             if not emoji_package.is_emoji(emoji):
                 return await ctx.send(
@@ -169,7 +171,8 @@ class Awards(commands.Cog):
                     new_name = curr_name.replace(f"{remove_emoji}", "")
                     new_name = emoji_package.emojize(new_name)
                     await member.edit(nick=f"{new_name}")
-                await member.remove_roles(role)
+                if remove_role:
+                    await member.remove_roles(role)
                 num += 1
                 text += f"{member.mention}\n"
                 num += 1
