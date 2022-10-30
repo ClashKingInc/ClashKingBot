@@ -309,7 +309,7 @@ class reminders(commands.Cog, name="Reminders"):
             if war_reminder_text:
                 reminder_text += "**War:** \n" + "\n".join(war_reminder_text) + "\n"
             emoji = await self.bot.create_new_badge_emoji(url=clan.badge.url)
-            embed.add_field(name=f"{emoji}{clan.name}", value=reminder_text)
+            embed.add_field(name=f"{emoji}{clan.name}", value=reminder_text, inline=False)
         await ctx.edit_original_message(embed=embed)
 
     @reminder.sub_command(name="queue", description="Reminders in queue to be sent")
