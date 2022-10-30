@@ -157,7 +157,7 @@ class DiscordEvents(commands.Cog):
         await channel.send(embed=embed)
 
 
-    '''@commands.Cog.listener()
+    @commands.Cog.listener()
     async def on_slash_command_error(self, ctx: disnake.ApplicationCommandInteraction, error):
         if isinstance(error, disnake.ext.commands.ConversionError):
             error = error.original
@@ -177,7 +177,7 @@ class DiscordEvents(commands.Cog):
         if isinstance(error, disnake.ext.commands.MissingPermissions):
             embed = disnake.Embed(description=error, color=disnake.Color.red())
             await ctx.send(embed=embed)
-'''
+
 
 def setup(bot: CustomClient):
     bot.add_cog(DiscordEvents(bot))

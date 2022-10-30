@@ -17,7 +17,7 @@ scheduler.start()
 IS_BETA = False
 discClient = Client()
 intents = disnake.Intents().none()
-intents.members = False
+intents.members = True
 intents.guilds = True
 intents.emojis = True
 intents.guild_messages = True
