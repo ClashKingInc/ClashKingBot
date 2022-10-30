@@ -175,7 +175,7 @@ class Roster():
             {"$set": {"clan_tag": new_clan.tag}})
         await self.bot.rosters.update_one(
             {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
-            {"$set": {"clan_badge": new_clan.badge}})
+            {"$set": {"clan_badge": new_clan.badge.url}})
 
     @property
     def players(self):
