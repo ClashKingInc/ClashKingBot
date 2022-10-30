@@ -405,8 +405,7 @@ class reminders(commands.Cog, name="Reminders"):
             return res.message.id == msg.id
 
         try:
-            res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
-                                                                      timeout=600)
+            res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
         except:
             return await msg.edit(components=[])
 
@@ -419,7 +418,8 @@ class reminders(commands.Cog, name="Reminders"):
                 "time": value
             })
 
-        for job in scheduler.get_jobs():
+        all_jobs = scheduler.get_jobs()
+        for job in all_jobs:
             if job.name == clan.tag:
                 time = str(job.id).split("_")
                 time = time[0]
