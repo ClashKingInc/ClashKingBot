@@ -375,7 +375,7 @@ class reminders(commands.Cog, name="Reminders"):
             color=disnake.Color.green())
         if ctx.guild.icon is not None:
             embed.set_thumbnail(url=ctx.guild.icon.url)
-        await ctx.edit_original_message(embed=embed)
+        await ctx.edit_original_message(embed=embed, components=[])
 
     async def remove_war_reminder(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan):
         war_reminders = self.bot.reminders.find({"$and": [{"clan": clan.tag}, {"type": "War"}, {"server": ctx.guild.id}]})
@@ -433,7 +433,7 @@ class reminders(commands.Cog, name="Reminders"):
             color=disnake.Color.green())
         if ctx.guild.icon is not None:
             embed.set_thumbnail(url=ctx.guild.icon.url)
-        await ctx.edit_original_message(embed=embed)
+        await ctx.edit_original_message(embed=embed, components=[])
 
 
     @reminder.sub_command(name="list", description="Get the list of reminders set up on the server")
