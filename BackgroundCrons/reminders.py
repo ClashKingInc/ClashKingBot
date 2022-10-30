@@ -567,11 +567,7 @@ class reminders(commands.Cog, name="Reminders"):
             {"type": "Clan Capital"},
             {"time" : reminder_time}
         ]})
-        limit = await self.bot.reminders.count_documents(filter={"$and": [
-            {"type": "Clan Capital"},
-            {"time": reminder_time}
-        ]})
-        for reminder in await all_reminders.to_list(length=limit):
+        for reminder in await all_reminders.to_list(length=100):
             custom_text = reminder.get("custom_text")
             if custom_text is None:
                 custom_text = ""

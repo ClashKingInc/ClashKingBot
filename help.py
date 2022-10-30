@@ -7,7 +7,7 @@ from collections import defaultdict
 family = ["Bans", "Clan Commands", "Family Commands"]
 war = ["War", "CWL"]
 trophies = ["Legends", "Family Trophy Stats", "Leaderboards", "DM Feed & Reports"]
-utility = ["Army", "Awards", "Super Troops", "Profile"]
+utility = ["Army", "Awards", "Super Troops", "Profile", "Rosters"]
 link = ["Eval", "Linking"]
 setups = ["Clan Setup", "Board Setup", "Eval Setup", "Statbar Setup", "Welcome Setup", "Reminders"]
 settings = ["Settings"]

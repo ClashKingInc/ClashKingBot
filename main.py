@@ -72,7 +72,7 @@ if IS_BETA:
         #"BackgroundCrons.reddit_recruit_feed",
         #"BackgroundCrons.dm_reports",
         #"BackgroundCrons.store_clan_capital",
-        "BackgroundCrons.reminders",
+        #"BackgroundCrons.reminders",
         #"EventHub.clan_capital_events",
         #"EventHub.join_leave_events",
         #"EventHub.ban_events",
@@ -105,7 +105,8 @@ if IS_BETA:
         "other",
         "settings",
         "owner_commands",
-        #"erikuh_comp"
+        #"erikuh_comp",
+        "Family_and_Clans.rosters"
 
     )
 else:
@@ -126,6 +127,7 @@ else:
     "Family_and_Clans.bans",
     "Family_and_Clans.clancog",
     "Family_and_Clans.familycog",
+    "Family_and_Clans.rosters",
     "Legends & Trophies.family_trophy_stats",
     "Legends & Trophies.Check.maincheck",
     "Legends & Trophies.leaderboards",

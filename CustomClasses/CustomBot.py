@@ -110,6 +110,7 @@ class CustomClient(commands.Bot):
         self.youtube_channels = self.db_client.usafam.youtube_channels
         self.reminders = self.db_client.usafam.reminders
         self.whitelist = self.db_client.usafam.whitelist
+        self.rosters = self.db_client.usafam.rosters
 
         self.coc_client = coc.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD"), client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 30, cache_max_size=50000)
 
@@ -447,9 +448,19 @@ class CustomClient(commands.Bot):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-    async def getPlayer(self, player_tag, custom=False):
+    async def getPlayer(self, player_tag, custom=False, raise_exceptions=False):
         if "|" in player_tag:
             player_tag = player_tag.split("|")[-1]
+
+        if raise_exceptions:
+            if custom is True:
+                player_tag = coc.utils.correct_tag(player_tag)
+                results = await self.player_stats.find_one({"tag": player_tag})
+                clashPlayer = await self.coc_client.get_player(player_tag=player_tag, cls=MyCustomPlayer, bot=self, results=results)
+            else:
+                clashPlayer: coc.Player = await self.coc_client.get_player(player_tag)
+            return clashPlayer
+
         try:
             if custom is True:
                 player_tag = coc.utils.correct_tag(player_tag)

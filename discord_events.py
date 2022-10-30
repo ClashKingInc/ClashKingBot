@@ -4,7 +4,7 @@ from main import scheduler
 from disnake.ext import commands
 from Dictionaries.thPicDictionary import thDictionary
 from utils.troop_methods import heros, heroPets
-
+from Exceptions import *
 from CustomClasses.CustomBot import CustomClient
 
 class DiscordEvents(commands.Cog):
@@ -162,7 +162,7 @@ class DiscordEvents(commands.Cog):
         if isinstance(error, disnake.ext.commands.ConversionError):
             error = error.original
         if isinstance(error, coc.errors.NotFound):
-            embed = disnake.Embed(description="Not a valid clan tag.", color=disnake.Color.red())
+            embed = disnake.Embed(description="Not a valid clan/player tag.", color=disnake.Color.red())
             await ctx.send(embed=embed)
 
         if isinstance(error, coc.errors.Maintenance):
@@ -177,6 +177,24 @@ class DiscordEvents(commands.Cog):
         if isinstance(error, disnake.ext.commands.MissingPermissions):
             embed = disnake.Embed(description=error, color=disnake.Color.red())
             await ctx.send(embed=embed)
+
+        if isinstance(error, RosterAliasAlreadyExists):
+            embed = disnake.Embed(description=f"Roster with this alias already exists.", color=disnake.Color.red())
+            await ctx.send(embed=embed, ephemeral=True)
+
+        if isinstance(error, RosterDoesNotExist):
+            embed = disnake.Embed(description=f"Roster with this alias does not exist. Use `/roster create`", color=disnake.Color.red())
+            await ctx.send(embed=embed, ephemeral=True)
+
+        if isinstance(error, PlayerAlreadyInRoster):
+            embed = disnake.Embed(description=f"Player has already been added to this roster.",
+                                  color=disnake.Color.red())
+            await ctx.send(embed=embed, ephemeral=True)
+
+        if isinstance(error, PlayerNotInRoster):
+            embed = disnake.Embed(description=f"Player not found in this roster.",
+                                  color=disnake.Color.red())
+            await ctx.send(embed=embed, ephemeral=True)
 
 
 def setup(bot: CustomClient):
