@@ -312,7 +312,7 @@ class reminders(commands.Cog, name="Reminders"):
             embed.add_field(name=f"{emoji}{clan.name}", value=reminder_text, inline=False)
         await ctx.edit_original_message(embed=embed)
 
-    @reminder.sub_command(name="queue", description="Reminders in queue to be sent")
+    @reminder.sub_command(name="queue", description="Reminders in queue to be sent (war only)")
     async def reminder_queue(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
         all_reminders_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
@@ -330,8 +330,8 @@ class reminders(commands.Cog, name="Reminders"):
                     clan = clans[tag]
                 if clan is None:
                     continue
-                job_list += f"{time} - {clan.name}"
-        embed = disnake.Embed(title=f"{ctx.guild.name} Reminder Queue", description=job_list)
+                job_list += f"`{time[1]} hour` - {clan.name}\n"
+        embed = disnake.Embed(title=f"{ctx.guild.name} War Reminder Queue", description=job_list)
         await ctx.edit_original_message(embed=embed)
 
     @reminder_create.autocomplete("clan")
