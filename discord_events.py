@@ -23,7 +23,7 @@ class DiscordEvents(commands.Cog):
         self.bot.coc_client.add_war_updates(*tags)
 
         current_war_times = await self.bot.get_current_war_times(tags=reminder_tags)
-        cog = self.bot.get_cog(name="reminders")
+        cog = self.bot.get_cog(name="Reminders")
         for tag in current_war_times.keys():
             war_end_time = current_war_times[tag]
             reminder_times = await self.bot.get_reminder_times(clan_tag=tag)

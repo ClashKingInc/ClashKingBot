@@ -53,7 +53,7 @@ class War_Log(commands.Cog):
                     war_state = "In Prep"
                     war_pos = "Starting"
 
-                    cog = self.bot.get_cog(name="reminders")
+                    cog = self.bot.get_cog(name="Reminders")
                     reminder_times = await self.bot.get_reminder_times(clan_tag=new_war.clan.tag)
                     acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times,war_end_time=new_war.end_time)
                     if not acceptable_times:
