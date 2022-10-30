@@ -122,6 +122,12 @@ class CustomClient(commands.Bot):
         self.FAQ_CHANNEL_ID = 1010727127806648371
 
     async def create_new_badge_emoji(self, url:str):
+        url = url.replace(".png", "")
+        all_emojis = self.emojis
+        get_emoji = disnake.utils.get(all_emojis, name=url[-15:].replace("-", ""))
+        if get_emoji is not None:
+            return f"<:{get_emoji.name}:{get_emoji.id}>"
+
         img = urlopen(url).read()
         global BADGE_GUILDS
         guild_ids = collections.deque(BADGE_GUILDS)
@@ -138,15 +144,10 @@ class CustomClient(commands.Bot):
             BADGE_GUILDS = list(guild_ids)
             guild = self.get_guild(BADGE_GUILDS[0])
 
+        emoji = await guild.create_custom_emoji(name=url[-15:].replace("-", ""), image=img)
+        return f"<:{emoji.name}:{emoji.id}>"
 
-        url = url.replace(".png", "")
-        all_emojis = self.emojis
-        get_emoji = disnake.utils.get(all_emojis, name=url[-15:].replace("-", ""))
-        if get_emoji is None:
-            emoji = await guild.create_custom_emoji(name=url[-15:].replace("-", ""), image=img)
-            return f"<:{emoji.name}:{emoji.id}>"
-        else:
-            return f"<:{get_emoji.name}:{get_emoji.id}>"
+
 
 
     async def track_players(self, players: list):
