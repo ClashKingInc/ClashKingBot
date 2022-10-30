@@ -136,7 +136,7 @@ class Awards(commands.Cog):
                     await ctx.channel.send(embed=embed)
 
     @award.sub_command(name="remove", description="Remove a role and/or emoji from users")
-    async def award_remove(self, ctx: disnake.ApplicationCommandInteraction, role:disnake.Role, emoji=None):
+    async def award_remove(self, ctx: disnake.ApplicationCommandInteraction, role:disnake.Role, emoji: str=None):
         """
             Parameters
             ----------
@@ -164,7 +164,10 @@ class Awards(commands.Cog):
             try:
                 curr_name = member.display_name
                 if emoji is not None:
-                    new_name = curr_name.replace(f"{emoji}", "")
+                    remove_emoji = emoji_package.demojize(emoji)
+                    curr_name = emoji_package.demojize(curr_name)
+                    new_name = curr_name.replace(f"{remove_emoji}", "")
+                    new_name = emoji_package.emojize(new_name)
                     await member.edit(nick=f"{new_name}")
                 await member.remove_roles(role)
                 num += 1
@@ -209,14 +212,9 @@ class Awards(commands.Cog):
             embeds.append(embed)
 
         if could_not != "":
-            if emoji is None:
-                embed = disnake.Embed(title=f"Award removal for {role.mention} complete.",
-                                      description=text,
-                                      color=disnake.Color.green())
-            else:
-                embed = disnake.Embed(title=f"Award removal for {emoji} complete.",
-                                      description=text,
-                                      color=disnake.Color.green())
+            embed = disnake.Embed(title=f"Unable to update these members:",
+                                  description=could_not,
+                                  color=disnake.Color.green())
             embeds.insert(0, embed)
 
         current_page = 0
