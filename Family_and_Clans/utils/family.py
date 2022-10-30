@@ -29,16 +29,19 @@ class getFamily(commands.Cog):
                 self.bot.coc_client.get_player(player_tag=tag, cls=MyCustomPlayer, bot=self.bot,
                                                results=results))
             tasks.append(task)
-        responses = await asyncio.gather(*tasks)
+        responses = await asyncio.gather(*tasks, return_exceptions=True)
 
         donated_text = []
         received_text = []
         ratio_text = []
-        total_donated = sum(player.donos.donated for player in responses)
-        total_received = sum(player.donos.received for player in responses)
+        total_donated = sum(player.donos.donated for player in responses if not isinstance(player, coc.errors.NotFound))
+        total_received = sum(player.donos.received for player in responses if not isinstance(player, coc.errors.NotFound))
 
         badges = {}
         for player in responses:
+            if isinstance(player, coc.errors.NotFound):
+                print()
+                continue
             player: MyCustomPlayer
             if player is None:
                 continue
