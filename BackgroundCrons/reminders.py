@@ -323,9 +323,9 @@ class reminders(commands.Cog, name="Reminders"):
             if any(tag in str(job.id) for tag in all_reminders_tags):
                 time = str(job.id).split("_")
                 tag = time[1]
-                if tag in clans.keys() is False:
+                if tag not in clans:
                     clan = await self.bot.getClan(clan_tag=tag)
-                    clans[clan.tag] = clan
+                    clans[tag] = clan
                 else:
                     clan = clans[tag]
                 if clan is None:
