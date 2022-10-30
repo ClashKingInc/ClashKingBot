@@ -314,12 +314,13 @@ class reminders(commands.Cog, name="Reminders"):
 
     @reminder.sub_command(name="queue", description="Reminders in queue to be sent")
     async def reminder_queue(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
         all_reminders_tags = await self.bot.reminders.distinct("clan", filter={"$and": [{"server": ctx.guild.id}]})
         all_jobs = scheduler.get_jobs()
         job_list = ""
         clans = {}
         for job in all_jobs:
-            if any(substring in job.id for substring in all_reminders_tags):
+            if any(tag in str(job.id) for tag in all_reminders_tags):
                 time = str(job.id).split("_")
                 tag = time[1]
                 if tag in clans.keys() is False:
