@@ -423,7 +423,7 @@ class reminders(commands.Cog, name="Reminders"):
             if job.name == clan.tag:
                 time = str(job.id).split("_")
                 time = time[0]
-                if time in res.values:
+                if f"{time} hr" in res.values:
                     job.remove()
 
         reminders_removed = ", ".join(res.values)
@@ -478,7 +478,7 @@ class reminders(commands.Cog, name="Reminders"):
                     clan = clans[tag]
                 if clan is None:
                     continue
-                job_list += f"`{time[1]} hour` - {clan.name}\n"
+                job_list += f"`{time[0]} hour` - {clan.name}\n"
         embed = disnake.Embed(title=f"{ctx.guild.name} War Reminder Queue", description=job_list)
         await ctx.edit_original_message(embed=embed)
 
