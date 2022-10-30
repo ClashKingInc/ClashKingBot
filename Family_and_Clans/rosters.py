@@ -167,9 +167,30 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
         await ctx.send(embed=embed)
 
+    @roster.sub_command(name="rename", description="Rename a roster")
+    async def roster_rename(self, ctx: disnake.ApplicationCommandInteraction, roster: str, new_name: str):
+        _roster = Roster(bot=self.bot)
+        await _roster.find_roster(guild=ctx.guild, alias=roster)
+        await _roster.rename(new_name=new_name)
+        embed = disnake.Embed(
+            description=f"Roster **{_roster.roster_result.get('alias')}** has been renamed to **{new_name}**",
+            color=disnake.Color.green())
+        embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
+        await ctx.send(embed=embed)
 
+    @roster.sub_command(name="change-link", description="Change linked clan for roster")
+    async def roster_change_link(self, ctx: disnake.ApplicationCommandInteraction, roster: str, clan: coc.Clan = commands.Param(converter=clan_converter)):
+        _roster = Roster(bot=self.bot)
+        await _roster.find_roster(guild=ctx.guild, alias=roster)
+        await _roster.change_linked_clan(new_clan=clan)
+        embed = disnake.Embed(
+            description=f"Roster **{_roster.roster_result.get('alias')}** linked clan has been changed to **{clan.name}**",
+            color=disnake.Color.green())
+        embed.set_thumbnail(url=clan.badge.url)
+        await ctx.send(embed=embed)
 
     @roster_create.autocomplete("clan")
+    @roster_change_link.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
@@ -192,6 +213,8 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster_move.autocomplete("roster")
     @roster_move.autocomplete("new_roster")
     @roster_restrict.autocomplete("roster")
+    @roster_rename.autocomplete("roster")
+    @roster_change_link.autocomplete("roster")
     async def autocomp_rosters(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         aliases = await self.bot.rosters.distinct("alias", filter={"server_id": ctx.guild.id})
         alias_list = []

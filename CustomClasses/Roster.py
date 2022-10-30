@@ -161,6 +161,22 @@ class Roster():
             {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
             {"$set": {"th_restriction": f"{min}-{max}"}})
 
+    async def rename(self, new_name):
+        await self.bot.rosters.update_one(
+            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
+            {"$set": {"alias": new_name}})
+
+    async def change_linked_clan(self, new_clan: coc.Clan):
+        await self.bot.rosters.update_one(
+            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
+            {"$set": {"clan_name": new_clan.name}})
+        await self.bot.rosters.update_one(
+            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
+            {"$set": {"clan_tag": new_clan.tag}})
+        await self.bot.rosters.update_one(
+            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
+            {"$set": {"clan_badge": new_clan.badge}})
+
     @property
     def players(self):
         return self.roster_result.get("members")
