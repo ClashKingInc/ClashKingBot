@@ -319,8 +319,10 @@ class reminders(commands.Cog, name="Reminders"):
         all_jobs = scheduler.get_jobs()
         job_list = ""
         clans = {}
+        print(all_jobs)
         for job in all_jobs:
-            if any(tag in str(job.id) for tag in all_reminders_tags):
+            print(job.name)
+            if job.name in all_reminders_tags:
                 time = str(job.id).split("_")
                 tag = time[1]
                 if tag not in clans:

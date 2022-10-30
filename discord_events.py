@@ -35,7 +35,7 @@ class DiscordEvents(commands.Cog):
                 if reminder_time.is_integer():
                     reminder_time = int(reminder_time)
                 send_time = time[1]
-                scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[tag, reminder_time], id=f"{reminder_time}_{tag}")
+                scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[tag, reminder_time], id=f"{reminder_time}_{tag}", name=f"{tag}")
         scheduler.print_jobs()
 
 
