@@ -17,7 +17,7 @@ scheduler.start()
 IS_BETA = False
 discClient = Client()
 intents = disnake.Intents().none()
-intents.members = True
+intents.members = False
 intents.guilds = True
 intents.emojis = True
 intents.guild_messages = True
@@ -70,7 +70,7 @@ if IS_BETA:
         #"BackgroundCrons.reddit_recruit_feed",
         #"BackgroundCrons.dm_reports",
         #"BackgroundCrons.store_clan_capital",
-        #"BackgroundCrons.reminders",
+        "BackgroundCrons.reminders",
         #"EventHub.clan_capital_events",
         #"EventHub.join_leave_events",
         #"EventHub.ban_events",
