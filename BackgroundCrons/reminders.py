@@ -5,6 +5,7 @@ from main import check_commands
 from disnake.ext import commands
 from main import scheduler
 from CustomClasses.CustomBot import CustomClient
+from typing import Union
 
 class reminders(commands.Cog, name="Reminders"):
 
@@ -27,9 +28,10 @@ class reminders(commands.Cog, name="Reminders"):
             raise coc.errors.NotFound
         return clan
 
+
     @reminder.sub_command(name="create", description="Set a reminder for clan games, raid weekend, wars, & more")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def reminder_create(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, type:str = commands.Param(choices=["Clan Capital", "War", "Clan Games", "Inactivity"]), clan: coc.Clan = commands.Param(converter=clan_converter)):
+    async def reminder_create(self, ctx: disnake.ApplicationCommandInteraction, channel: Union[disnake.TextChannel, disnake.Thread], type:str = commands.Param(choices=["Clan Capital", "War", "Clan Games", "Inactivity"]), clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
@@ -37,12 +39,6 @@ class reminders(commands.Cog, name="Reminders"):
             clan: Use clan tag or select an option from the autocomplete
             channel: channel to set the join/leave log to
         """
-        perms = ctx.author.guild_permissions.manage_guild
-        if not perms:
-            embed = disnake.Embed(description="Command requires you to have `Manage Server` permissions.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
-
         results = await self.bot.clan_db.find_one({"$and": [
             {"tag": clan.tag},
             {"server": ctx.guild.id}
@@ -305,11 +301,139 @@ class reminders(commands.Cog, name="Reminders"):
                         f"0/2 hits- Unlinked Player | #playertag\n{custom_text}"
         return await modal_inter.edit_original_message(content=ping_reminder)
 
-    '''
+
+
     @reminder.sub_command(name="remove", description="Remove a reminder set up on the server")
-    async def reminder_remove(self, ctx: disnake.ApplicationCommandInteraction, type:str = commands.Param(choices=["Clan Capital", "Clan Games, War", "Inactivity"]), clan: coc.Clan = commands.Param(converter=clan_converter)):
-        pass
-    '''
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def reminder_remove(self, ctx: disnake.ApplicationCommandInteraction, type:str = commands.Param(choices=["Clan Capital", "War"]), clan: coc.Clan = commands.Param(converter=clan_converter)):
+        """
+            Parameters
+            ----------
+            type: Type of reminder you would like to remove
+            clan: Use clan tag or select an option from the autocomplete
+        """
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        if results is None:
+            return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
+
+        if type == "Clan Capital":
+            await self.remove_clan_capital_reminder(ctx=ctx, clan=clan)
+        elif type == "War":
+            await self.remove_war_reminder(ctx=ctx, clan=clan)
+        else:
+            await ctx.send(content="Coming Soon :)", ephemeral=True)
+
+    async def remove_clan_capital_reminder(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan):
+        clan_capital_reminders = self.bot.reminders.find({"$and": [{"clan": clan.tag}, {"type": "Clan Capital"}, {"server": ctx.guild.id}]})
+        options = []
+        for reminder in await clan_capital_reminders.to_list(length=100):
+            options.append(disnake.SelectOption(label=f"{reminder.get('time')} reminder", emoji=self.bot.emoji.clock.partial_emoji, value=f"{reminder.get('time')}"))
+        if not options:
+            embed = disnake.Embed(description=f"**No clan capital reminders set up for {clan.name}**", color=disnake.Color.red())
+            embed.set_thumbnail(url = clan.badge.url)
+            return await ctx.send(embed)
+
+        embed = disnake.Embed(description="**Choose reminder times to remove from list**", color=disnake.Color.green())
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+
+        select = disnake.ui.Select(
+            options=options,
+            placeholder="Select Reminder Times",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=len(options),  # the maximum number of options a user can select
+        )
+        dropdown = [disnake.ui.ActionRow(select)]
+        await ctx.send(embed=embed, components=dropdown)
+
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        try:
+            res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                      timeout=600)
+        except:
+            return await msg.edit(components=[])
+
+        await res.response.defer()
+        for value in res.values:
+            await self.bot.reminders.delete_one({
+                "server": ctx.guild.id,
+                "type": "Clan Capital",
+                "clan": clan.tag,
+                "time": value
+            })
+
+        reminders_removed = ", ".join(res.values)
+        embed = disnake.Embed(
+            description=f"**`{reminders_removed}` Clan Capital Reminders removed for {ctx.guild.name}**",
+            color=disnake.Color.green())
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+
+    async def remove_war_reminder(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan):
+        war_reminders = self.bot.reminders.find({"$and": [{"clan": clan.tag}, {"type": "War"}, {"server": ctx.guild.id}]})
+        options = []
+        for reminder in await war_reminders.to_list(length=100):
+            options.append(disnake.SelectOption(label=f"{reminder.get('time')} reminder", emoji=self.bot.emoji.clock.partial_emoji, value=f"{reminder.get('time')}"))
+        if not options:
+            embed = disnake.Embed(description=f"**No war reminders set up for {clan.name}**", color=disnake.Color.red())
+            embed.set_thumbnail(url = clan.badge.url)
+            return await ctx.send(embed)
+
+        embed = disnake.Embed(description="**Choose reminder times to remove from list**", color=disnake.Color.green())
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+
+        select = disnake.ui.Select(
+            options=options,
+            placeholder="Select Reminder Times",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=len(options),  # the maximum number of options a user can select
+        )
+        dropdown = [disnake.ui.ActionRow(select)]
+        await ctx.send(embed=embed, components=dropdown)
+
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        try:
+            res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                      timeout=600)
+        except:
+            return await msg.edit(components=[])
+
+        await res.response.defer()
+        for value in res.values:
+            await self.bot.reminders.delete_one({
+                "server": ctx.guild.id,
+                "type": "War",
+                "clan": clan.tag,
+                "time": value
+            })
+
+        for job in scheduler.get_jobs():
+            if job.name == clan.tag:
+                time = str(job.id).split("_")
+                time = time[0]
+                if time in res.values:
+                    job.remove()
+
+        reminders_removed = ", ".join(res.values)
+        embed = disnake.Embed(
+            description=f"**`{reminders_removed}` War Reminders removed for {ctx.guild.name}**",
+            color=disnake.Color.green())
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+
+
     @reminder.sub_command(name="list", description="Get the list of reminders set up on the server")
     async def reminder_list(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
