@@ -26,6 +26,8 @@ bot = CustomClient(command_prefix="<@824653933347209227> ",help_command=None, in
 
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
+        if ctx.author.id == 706149153431879760:
+            return True
         db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
         whitelist = db_client.usafam.whitelist
         member = ctx.author

@@ -195,7 +195,7 @@ class reminders(commands.Cog, name="Reminders"):
             return await msg.edit(components=[])
 
         await res.response.defer()
-        # delete any previously set ones, so we don't get ones in different channels or times
+        # delete any previously set ones where channel is not equal
         await self.bot.reminders.delete_many({"$and": [
             {"clan": clan.tag},
             {"server": ctx.guild.id},
@@ -203,7 +203,17 @@ class reminders(commands.Cog, name="Reminders"):
             {"channel" : {"$ne" : channel.id}}
         ]})
 
+        jobs = scheduler.get_jobs()
+        for job in jobs:
+            if clan.tag == job.name:
+                job.remove()
+
         if "remove" in res.values:
+            await self.bot.reminders.delete_many({"$and": [
+                {"clan": clan.tag},
+                {"server": ctx.guild.id},
+                {"type": "War"}
+            ]})
             embed = disnake.Embed(description=f"**All war reminders removed for {clan.name}**", color=disnake.Color.green())
             return await res.edit_original_message(embed=embed, components=[])
         for value in res.values:
@@ -231,6 +241,20 @@ class reminders(commands.Cog, name="Reminders"):
         button = [disnake.ui.ActionRow(
             disnake.ui.Button(label="Set Custom Text", emoji="✏️", style=disnake.ButtonStyle.green,
                               custom_id="custom_text"))]
+
+        current_war_times = await self.bot.get_current_war_times(tags=[clan.tag])
+        for tag in current_war_times.keys():
+            war_end_time = current_war_times[tag]
+            reminder_times = await self.bot.get_reminder_times(clan_tag=tag)
+            acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times, war_end_time=war_end_time)
+            if not acceptable_times:
+                continue
+            for time in acceptable_times:
+                reminder_time = time[0] / 3600
+                if reminder_time.is_integer():
+                    reminder_time = int(reminder_time)
+                send_time = time[1]
+                scheduler.add_job(self.war_reminder, 'date', run_date=send_time, args=[tag, reminder_time], id=f"{reminder_time}_{tag}", name=f"{tag}")
 
         await res.edit_original_message(embed=embed, components=button)
 
