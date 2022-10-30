@@ -4,6 +4,7 @@ import coc
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.Roster import Roster
+from main import check_commands
 
 class Roster_Commands(commands.Cog, name="Rosters"):
 
@@ -26,6 +27,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
 
     @roster.sub_command(name="create", description="Create a roster")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_create(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), roster_alias: str = commands.Param(name="roster_alias"), add_members_to_roster: str = commands.Param(default="No", choices=["Yes", "No"])):
         roster = Roster(bot=self.bot)
         await roster.create_roster(guild=ctx.guild, clan=clan, alias=roster_alias, add_members=(add_members_to_roster == "Yes"))
@@ -35,6 +37,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
 
     @roster.sub_command(name="delete", description="Delete a roster")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_delete(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
         _roster = Roster(self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -46,6 +49,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
 
     @roster.sub_command(name="signup", description="Create a signup for a roster")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_create_signups(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
         _roster = Roster(self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -61,6 +65,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
 
     @roster.sub_command(name="add-player", description="Add a player to a roster")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_add(self, ctx: disnake.ApplicationCommandInteraction, roster: str, player: coc.Player = commands.Param(converter=player_convertor)):
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -71,6 +76,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
 
     @roster.sub_command(name="remove-player", description="Remove a player from a roster")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_remove(self, ctx: disnake.ApplicationCommandInteraction, roster: str, player: coc.Player = commands.Param(converter=player_convertor)):
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -81,6 +87,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
 
     @roster.sub_command(name="move-player", description="Move a player from one roster to another")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_move(self, ctx: disnake.ApplicationCommandInteraction, roster: str, player: coc.Player = commands.Param(converter=player_convertor), new_roster: str = commands.Param(name="new_roster")):
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -95,6 +102,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
 
     @roster.sub_command(name="post", description="Post a roster")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_post(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -103,6 +111,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
 
     @roster.sub_command(name="refresh", description="Refresh the data in a roster (townhall levels, hero levels)")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_refresh(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
         _roster = Roster(bot=self.bot)
         await ctx.response.defer()
@@ -116,6 +125,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
 
     @roster.sub_command(name="missing", description="Players that aren't in the clan tied to the roster")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_missing(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -157,6 +167,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
 
     @roster.sub_command(name="restrict", description="Restrict townhalls that can sign up")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_restrict(self, ctx: disnake.ApplicationCommandInteraction, roster: str, min:int = 1, max = "max"):
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -168,6 +179,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         await ctx.send(embed=embed)
 
     @roster.sub_command(name="rename", description="Rename a roster")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_rename(self, ctx: disnake.ApplicationCommandInteraction, roster: str, new_name: str):
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -179,6 +191,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         await ctx.send(embed=embed)
 
     @roster.sub_command(name="change-link", description="Change linked clan for roster")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_change_link(self, ctx: disnake.ApplicationCommandInteraction, roster: str, clan: coc.Clan = commands.Param(converter=clan_converter)):
         _roster = Roster(bot=self.bot)
         await ctx.response.defer()
