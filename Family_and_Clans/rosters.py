@@ -72,7 +72,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         await _roster.add_member(player=player)
         embed = disnake.Embed(description=f"{player.name} added to **{_roster.roster_result.get('alias')}** roster.",color=disnake.Color.green())
         embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, ephemeral=True)
 
 
     @roster.sub_command(name="remove-player", description="Remove a player from a roster")
@@ -83,7 +83,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         await _roster.remove_member(player=player)
         embed = disnake.Embed(description=f"{player.name} removed from **{_roster.roster_result.get('alias')}** roster.",color=disnake.Color.red())
         embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, ephemeral=True)
 
 
     @roster.sub_command(name="move-player", description="Move a player from one roster to another")
@@ -98,7 +98,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             description=f"{player.name} moved from **{_roster.roster_result.get('alias')}** to **{_new_roster.roster_result.get('alias')}** roster",
             color=disnake.Color.green())
         embed.set_thumbnail(url=_new_roster.roster_result.get("clan_badge"))
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, ephemeral=True)
 
 
     @roster.sub_command(name="post", description="Post a roster")
