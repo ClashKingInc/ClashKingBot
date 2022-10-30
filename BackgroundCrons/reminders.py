@@ -299,19 +299,38 @@ class reminders(commands.Cog, name="Reminders"):
             clan_capital_reminders = self.bot.reminders.find({"$and": [{"clan": tag}, {"type": "Clan Capital"}, {"server": ctx.guild.id}]})
             cc_reminder_text = []
             for reminder in await clan_capital_reminders.to_list(length=100):
-                cc_reminder_text.append(reminder.get("time"))
+                cc_reminder_text.append(f"`{reminder.get('time')}` - <#{reminder.get('channel')}>")
             if cc_reminder_text:
-                reminder_text += "Clan Capital: `" + ", ".join(cc_reminder_text) + "`\n"
+                reminder_text += "**Clan Capital:** \n" + "\n".join(cc_reminder_text) + "\n"
             war_reminders = self.bot.reminders.find({"$and": [{"clan": tag}, {"type": "War"}, {"server": ctx.guild.id}]})
             war_reminder_text = []
             for reminder in await war_reminders.to_list(length=100):
-                war_reminder_text.append(reminder.get("time"))
+                war_reminder_text.append(f"`{reminder.get('time')}` - <#{reminder.get('channel')}>")
             if war_reminder_text:
-                reminder_text += "War: `" + ", ".join(war_reminder_text) + "`\n"
+                reminder_text += "**War:** \n" + "\n".join(war_reminder_text) + "\n"
             emoji = await self.bot.create_new_badge_emoji(url=clan.badge.url)
             embed.add_field(name=f"{emoji}{clan.name}", value=reminder_text)
         await ctx.edit_original_message(embed=embed)
 
+    @reminder.sub_command(name="queue", description="Reminders in queue to be sent")
+    async def reminder_queue(self, ctx: disnake.ApplicationCommandInteraction):
+        all_reminders_tags = await self.bot.reminders.distinct("clan", filter={"$and": [{"server": ctx.guild.id}]})
+        all_jobs = scheduler.get_jobs()
+        job_list = ""
+        clans = {}
+        for job in all_jobs:
+            if any(substring in job.id for substring in all_reminders_tags):
+                time = str(job.id).split("_")
+                tag = time[1]
+                if tag in clans.keys() is False:
+                    clan = await self.bot.getClan(clan_tag=tag)
+                    clans[clan.tag] = clan
+                else:
+                    clan = clans[tag]
+                if clan is None:
+                    continue
+                job_list += f"{time} - {clan.name}"
+        disnake.Embed(title=f"{ctx.guild.name} Reminder Queue", description=job_list)
 
     @reminder_create.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
