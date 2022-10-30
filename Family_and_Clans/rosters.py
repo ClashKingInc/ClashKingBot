@@ -181,13 +181,14 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster.sub_command(name="change-link", description="Change linked clan for roster")
     async def roster_change_link(self, ctx: disnake.ApplicationCommandInteraction, roster: str, clan: coc.Clan = commands.Param(converter=clan_converter)):
         _roster = Roster(bot=self.bot)
+        await ctx.response.defer()
         await _roster.find_roster(guild=ctx.guild, alias=roster)
         await _roster.change_linked_clan(new_clan=clan)
         embed = disnake.Embed(
             description=f"Roster **{_roster.roster_result.get('alias')}** linked clan has been changed to **{clan.name}**",
             color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.url)
-        await ctx.send(embed=embed)
+        await ctx.edit_original_message(embed=embed)
 
     @roster_create.autocomplete("clan")
     @roster_change_link.autocomplete("clan")
