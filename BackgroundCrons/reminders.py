@@ -1,3 +1,5 @@
+import datetime
+
 import coc
 import disnake
 
@@ -480,7 +482,8 @@ class reminders(commands.Cog, name="Reminders"):
                     clan = clans[tag]
                 if clan is None:
                     continue
-                job_list += f"`{time[0]} hour` - {clan.name}\n"
+                run_time = job.next_run_time.timestamp()
+                job_list += f"<t:{int(run_time)}:R> - {clan.name}\n"
         embed = disnake.Embed(title=f"{ctx.guild.name} War Reminder Queue", description=job_list)
         await ctx.edit_original_message(embed=embed)
 
