@@ -69,7 +69,7 @@ class autoB(commands.Cog, name="Board Setup"):
                 if res.author.id != ctx.author.id:
                     await res.send(content="You must run the command to interact with components.", ephemeral=True)
                     continue
-
+                await res.response.defer()
                 country = str(res.values[0])
                 await res.edit_original_message(components=[])
 
@@ -91,7 +91,6 @@ class autoB(commands.Cog, name="Board Setup"):
                                           f"Type: {autoboard_type}{tex}",
                               color=disnake.Color.green())
         await msg.edit(embed=embed)
-
 
     @autoboard.sub_command(name="remove", description="Remove a server autoboard")
     async def removeboard(self, ctx: disnake.ApplicationCommandInteraction, autoboard_type: str = commands.Param(choices=["Player Leaderboard", "Clan Leaderboard"])):
