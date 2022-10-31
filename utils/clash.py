@@ -55,8 +55,8 @@ def create_weekend_list(option):
 
 def weekend_timestamps():
     weekends = []
-    for x in range(-1, 8):
-        now = datetime.utcnow().replace(tzinfo=utc)
+    for x in range(0, 8):
+        now = datetime.utcnow()
         now = now - timedelta(x * 7)
         year = now.year
         month = now.month
