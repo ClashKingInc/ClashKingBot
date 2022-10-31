@@ -412,8 +412,6 @@ class clan_commands(commands.Cog):
         data = []
         index = []
         for tag in member_tags:
-            name = coc.utils.get(clan.members, tag=tag)
-            index.append(name.name)
             if not raid_weekends:
                 looted = 0
                 attacks = 0
@@ -424,6 +422,8 @@ class clan_commands(commands.Cog):
                 data.append([tag, donated_data[tag], number_donated_data[tag], looted, attacks])
             except:
                 continue
+            name = coc.utils.get(clan.members, tag=tag)
+            index.append(name.name)
 
         buttons = raid_buttons(self.bot, data)
 
