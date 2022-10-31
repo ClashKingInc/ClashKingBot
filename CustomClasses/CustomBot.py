@@ -191,16 +191,8 @@ class CustomClient(commands.Bot):
             return str(raidDate)
 
     def gen_season_date(self):
-        start = utils.get_season_start().replace(tzinfo=utc).date()
-        year_add = 0
-        if start == 12:
-            start = 0
-            year_add += 1
-        month = start.month + 1
-        if month <= 9:
-            month = f"0{month}"
-        year = start.year + year_add
-        return f"{year}-{month}"
+        end = coc.utils.get_season_end().replace(tzinfo=utc).date()
+        return f"{end.year}-{end.month}"
 
     def gen_legend_date(self):
         now = datetime.utcnow()
@@ -377,8 +369,6 @@ class CustomClient(commands.Bot):
                 reminder_time = war_end_time.time - timedelta(seconds=time)
                 accepted_times.append([time ,reminder_time])
         return accepted_times
-
-
 
 
     def create_link(self, tag):
