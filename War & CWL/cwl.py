@@ -1,4 +1,5 @@
 import json
+import os
 
 import coc
 import disnake
@@ -44,6 +45,20 @@ class Cwl(commands.Cog, name="CWL"):
         next_war = None
         try:
             group = await self.bot.coc_client.get_league_group(clan.tag)
+            members = []
+            key = os.getenv("API_TOKEN")
+            headers = {
+                "Accept": "application/json",
+                "authorization": f"{key}"
+            }
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                        f"https://cocproxy.royaleapi.dev/v1/clans/%23{clan.tag.replace('#', '')}/currentwar/leaguegroup", headers=headers) as response:
+                    response = await response.json()
+                    clans = response["clans"]
+                    our_clan = [c for c in clans if c["tag"] == clan.tag]
+                    members = our_clan[0]["members"]
+                await session.close()
             rounds = group.number_of_rounds
             league_wars = []
             async for w in group.get_wars_for_clan(clan.tag):
@@ -78,11 +93,11 @@ class Cwl(commands.Cog, name="CWL"):
                 disnake.SelectOption(label="Star Leaderboard", emoji=star, value="stars"),
                 disnake.SelectOption(label="Clan Rankings", emoji=up, value="rankings"),
                 disnake.SelectOption(label="All Rounds", emoji=map, value="allrounds"),
+                disnake.SelectOption(label="All Members", emoji=self.bot.emoji.alphabet.partial_emoji, value="all_members")
             ]
 
         #on first round - only next round
         #on last round - only current round
-
         if war is None:
             options.insert(0, disnake.SelectOption(label="Next Round", emoji='📍', value="nextround"))
             options.insert(1, disnake.SelectOption(label="Next Round Lineup", emoji=troop, value="lineup"))
@@ -138,6 +153,10 @@ class Cwl(commands.Cog, name="CWL"):
             elif res.values[0] == "allrounds":
                 embed = await self.all_rounds(league_wars, clan)
                 await res.response.edit_message(embed=embed)
+            elif res.values[0] == "all_members":
+                embed = await self.all_members(members, clan)
+                await res.response.edit_message(embed=embed)
+
 
     @cwl.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
@@ -197,6 +216,32 @@ class Cwl(commands.Cog, name="CWL"):
         embed.add_field(name="War Composition", value=f"{war.clan.name}\n{th_comps[0]}\n"
                                                       f"{war.opponent.name}\n{th_comps[1]}", inline=False)
 
+        embed.set_thumbnail(url=clan.badge.large)
+        return embed
+
+    async def all_members(self, members: list, clan: coc.Clan):
+        roster = ""
+        tags = [member["tag"] for member in members]
+
+        x = 1
+        async for player in self.bot.coc_client.get_players(tags):
+            th = player.town_hall
+            th_emoji = emojiDictionary(th)
+            place = str(x) + "."
+            place = place.ljust(3)
+            hero_total = 0
+            hero_names = ["Barbarian King", "Archer Queen", "Royal Champion", "Grand Warden"]
+            heros = player.heroes
+            for hero in heros:
+                if hero.name in hero_names:
+                    hero_total += hero.level
+            if hero_total == 0:
+                hero_total = ""
+            roster += f"\u200e`{place}` {th_emoji} \u200e{player.name}\u200e | {hero_total}\n"
+            x += 1
+
+        embed = disnake.Embed(title=f"{clan.name} CWL Members", description=roster,
+                              color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
         return embed
 
