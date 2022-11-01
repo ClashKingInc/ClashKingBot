@@ -12,7 +12,7 @@ class DiscordEvents(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    '''
+
     @commands.Cog.listener()
     async def on_ready(self):
         len_g = len(self.bot.guilds)
@@ -56,7 +56,7 @@ class DiscordEvents(commands.Cog):
                 })
 
         print('We have logged in')
-    '''
+
 
     @commands.Cog.listener()
     async def on_message(self, message : disnake.Message):
