@@ -67,8 +67,7 @@ class Cwl(commands.Cog, name="CWL"):
                     war = w
                 if str(w.state) == "preparation":
                     next_war = w
-        except Exception as e:
-            print(e)
+        except:
             embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) is not in CWL.",
                                   color=disnake.Color.green())
             embed.set_thumbnail(url=clan.badge.large)
