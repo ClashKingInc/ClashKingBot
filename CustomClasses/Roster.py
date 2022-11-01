@@ -113,7 +113,7 @@ class Roster():
             missing_text += f"{self.bot.fetch_emoji(name=member.get('townhall'))}`{name} {tag}  {member.get('hero_lvs')}`\n"
 
         tag = "TAG".ljust(longest_tag)
-        missing_text = f"{self.missing_text}`TH NAME         {tag} HERO`\n{missing_text}"
+        missing_text = f"`TH NAME         {tag} HERO`\n{missing_text}"
 
         embed = disnake.Embed(title=f"**{self.roster_result.get('alias')} Roster Missing Members**", description=missing_text)
         embed.set_footer(text=f"Linked to {self.roster_result.get('clan_name')}", icon_url=self.roster_result.get("clan_badge"))
@@ -297,7 +297,7 @@ class Roster():
     def missing_text(self):
         if self.roster_result.get("missing_text") is None:
             return ""
-        return self.roster_result.get("missing_text") + "\n"
+        return f"**{self.roster_result.get('missing_text')}**" + "\n\n"
 
     async def refresh_roster(self):
         pass

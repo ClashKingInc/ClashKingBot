@@ -337,7 +337,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     async def roster_missing(self, ctx: disnake.ApplicationCommandInteraction, roster: str, message:str =""):
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
-        embed = await _roster.missing_embed(text=message)
+        embed = await _roster.missing_embed()
         ping_buttons = [
             disnake.ui.Button(label="Ping Missing", emoji=self.bot.emoji.pin.partial_emoji, style=disnake.ButtonStyle.green,
                               custom_id=f"ping")
@@ -370,8 +370,10 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                 missing_text += f"{name} | {player_tag}\n"
             else:
                 missing_text += f"{name} | {member.mention}\n"
+        if message != "":
+            await _roster.set_missing_text(text=message)
         await msg.edit(components=[])
-        await res.send(content=missing_text)
+        await res.send(content=f"{_roster.missing_text}{missing_text}")
 
 
     @roster.sub_command(name="restrict", description="Restrict townhalls that can sign up")
