@@ -12,6 +12,7 @@ class DiscordEvents(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
+    '''
     @commands.Cog.listener()
     async def on_ready(self):
         len_g = len(self.bot.guilds)
@@ -55,6 +56,7 @@ class DiscordEvents(commands.Cog):
                 })
 
         print('We have logged in')
+    '''
 
     @commands.Cog.listener()
     async def on_message(self, message : disnake.Message):
@@ -159,7 +161,10 @@ class DiscordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_slash_command_error(self, ctx: disnake.ApplicationCommandInteraction, error):
+
         if isinstance(error, disnake.ext.commands.ConversionError):
+            error = error.original
+        if isinstance(error, disnake.ext.commands.CommandError):
             error = error.original
         if isinstance(error, coc.errors.NotFound):
             embed = disnake.Embed(description="Not a valid clan/player tag.", color=disnake.Color.red())

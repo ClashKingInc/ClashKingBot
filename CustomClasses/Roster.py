@@ -40,10 +40,15 @@ class Roster():
             raise RosterDoesNotExist
         self.roster_result = roster_result
 
+    async def clear_roster(self):
+        await self.bot.rosters.update_one(
+            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
+            {"$set": {"members": []}})
+
     async def delete(self):
         await self.bot.rosters.delete_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]})
 
-    async def embed(self):
+    async def embed(self, move_text: str = ""):
         members = self.roster_result.get("members")
         if not members:
             embed = disnake.Embed(title=f"__{self.roster_result.get('alias')} Roster__", description="No roster members.")
@@ -58,7 +63,8 @@ class Roster():
                 longest_tag = len(tag)
 
         thcount = defaultdict(int)
-        for member in members:
+        for count, member in enumerate(members):
+            count = f"{count + 1}".ljust(2)
             name = member.get('name')
             for char in ["`", "*", "_", "~", "ッ"]:
                 name = name.replace(char, "", 10)
@@ -66,16 +72,23 @@ class Roster():
             name = name[:12]
             name = name.ljust(12)
             tag = str(member.get('tag')).ljust(longest_tag)
-            roster_text += f"{self.bot.fetch_emoji(name=member.get('townhall'))}`{name} {tag}  {member.get('hero_lvs')}`\n"
+            roster_text += f"`{count}`{self.bot.fetch_emoji(name=member.get('townhall'))}`{name} {tag}  {member.get('hero_lvs')}`\n"
             thcount[member.get('townhall')] += 1
 
         tag = str("TAG").ljust(longest_tag)
-        roster_text = f"`TH NAME         {tag} HERO`\n" + roster_text
+        roster_text = f"`  TH NAME         {tag} HERO`\n" + roster_text
 
         embed = disnake.Embed(title=f"__{self.roster_result.get('alias')} Roster__", description=roster_text)
         footer_text = "".join(f"Th{index}: {th} " for index, th in sorted(thcount.items(), reverse=True) if th != 0)
-        embed.set_footer(text=f"{footer_text}\nLinked to {self.roster_result.get('clan_name')}\nTh{self.th_min}-Th{self.th_max}", icon_url=self.roster_result.get("clan_badge"))
+        embed.set_footer(text=f"{footer_text}\nLinked to {self.roster_result.get('clan_name')}\nTh{self.th_min}-Th{self.th_max}\n{move_text}", icon_url=self.roster_result.get("clan_badge"))
         return embed
+
+    async def set_missing_text(self, text: str):
+        await self.bot.rosters.update_one(
+            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
+            {"$set": {"missing_text": text}})
+        roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]})
+        self.roster_result = roster_result
 
     async def missing_embed(self):
         missing = await self.missing_list()
@@ -99,8 +112,8 @@ class Roster():
             tag = str(member.get('tag')).ljust(longest_tag)
             missing_text += f"{self.bot.fetch_emoji(name=member.get('townhall'))}`{name} {tag}  {member.get('hero_lvs')}`\n"
 
-        tag = str("TAG").ljust(longest_tag)
-        missing_text = f"`TH NAME         {tag} HERO`\n" + missing_text
+        tag = "TAG".ljust(longest_tag)
+        missing_text = f"{self.missing_text}`TH NAME         {tag} HERO`\n{missing_text}"
 
         embed = disnake.Embed(title=f"**{self.roster_result.get('alias')} Roster Missing Members**", description=missing_text)
         embed.set_footer(text=f"Linked to {self.roster_result.get('clan_name')}", icon_url=self.roster_result.get("clan_badge"))
@@ -123,8 +136,14 @@ class Roster():
         if player.tag in roster_member_tags:
             raise PlayerAlreadyInRoster
         hero_lvs = sum(hero.level for hero in player.heroes)
+        current_clan = "No Clan"
+        if player.clan is not None:
+            current_clan = player.clan.name
+        war_pref = player.war_opted_in
+        if war_pref is None:
+            war_pref = False
         await self.bot.rosters.update_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
-                                          {"$push" : {"members" : {"name" : player.name, "tag" : player.tag, "townhall" : player.town_hall, "hero_lvs" : hero_lvs}}})
+                                          {"$push" : {"members" : {"name" : player.name, "tag" : player.tag, "townhall" : player.town_hall, "hero_lvs" : hero_lvs, "current_clan": current_clan, "war_pref" : war_pref}}})
         roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]})
         self.roster_result = roster_result
 
@@ -177,6 +196,82 @@ class Roster():
             {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
             {"$set": {"clan_badge": new_clan.badge.url}})
 
+    async def other_rosters(self):
+        guild = self.roster_result.get("server_id")
+        aliases: list = await self.bot.rosters.distinct("alias", filter={"server_id": guild})
+        aliases.remove(self.roster_result.get("alias"))
+        return aliases
+
+    async def mode_components(self, mode: str, player_page: 0):
+        other_rosters = await self.other_rosters()
+        roster_options = []
+        for roster in other_rosters:
+            roster_options.append(disnake.SelectOption(label=f"{roster}", emoji=self.bot.emoji.troop.partial_emoji, value=f"roster_{roster}"))
+        roster_select = disnake.ui.Select(
+            options=roster_options,
+            placeholder="Roster to Edit",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=1,  # the maximum number of options a user can select
+        )
+        if mode == "move":
+            button_text = "Remove Player Mode"
+            mode_text = "mode_remove"
+            color = disnake.ButtonStyle.red
+        elif mode == "remove":
+            button_text = "Move Player Mode"
+            mode_text = "mode_move"
+            color = disnake.ButtonStyle.green
+
+        mode_buttons = [
+            disnake.ui.Button(label=button_text, emoji=self.bot.emoji.gear.partial_emoji,
+                              style=color,
+                              custom_id=mode_text)
+        ]
+        buttons = disnake.ui.ActionRow()
+        for button in mode_buttons:
+            buttons.append_item(button)
+
+        player_options = []
+        length = 24
+        if player_page >= 1:
+            length = length - 1
+        players = self.players[(length*player_page):(length*player_page) + length]
+        if player_page >= 1:
+            player_options.append(disnake.SelectOption(label=f"Previous 25 Players", emoji=self.bot.emoji.back.partial_emoji, value=f"players_{player_page - 1}"))
+        for count, player in enumerate(players):
+            player_options.append(disnake.SelectOption(label=f"{player.get('name')}",
+                                                       emoji=self.bot.partial_emoji_gen(emoji_string=self.bot.fetch_emoji(name=player.get('townhall'))),
+                                                       value=f"edit_{player.get('tag')}"))
+        if len(players) == length and (len(self.players) > (length * player_page) + length):
+            player_options.append(disnake.SelectOption(label=f"Next 25 Players", emoji=self.bot.emoji.forward.partial_emoji, value=f"players_{player_page + 1}"))
+
+        player_select = disnake.ui.Select(
+            options=player_options,
+            placeholder=f"Select Player(s) to {mode}",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=len(players),  # the maximum number of options a user can select
+        )
+
+        dropdown = [disnake.ui.ActionRow(roster_select), disnake.ui.ActionRow(player_select)]
+        if mode == "move":
+            roster_options = []
+            for roster in other_rosters:
+                roster_options.append(disnake.SelectOption(label=f"{roster}", emoji=self.bot.emoji.troop.partial_emoji,
+                                                           value=f"rostermove_{roster}"))
+            roster_select = disnake.ui.Select(
+                options=roster_options,
+                placeholder="Select Roster To Move To",  # the placeholder text to show when no options have been chosen
+                min_values=1,  # the minimum number of options a user must select
+                max_values=1,  # the maximum number of options a user can select
+            )
+            dropdown.append(disnake.ui.ActionRow(roster_select))
+
+        dropdown.append(buttons)
+        if not self.players:
+            dropdown = [dropdown[0], dropdown[-1]]
+        return dropdown
+
+
     @property
     def players(self):
         return self.roster_result.get("members")
@@ -197,6 +292,12 @@ class Roster():
             max = int(restriction[1])
 
         return max
+
+    @property
+    def missing_text(self):
+        if self.roster_result.get("missing_text") is None:
+            return ""
+        return self.roster_result.get("missing_text") + "\n"
 
     async def refresh_roster(self):
         pass

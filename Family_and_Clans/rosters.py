@@ -5,6 +5,7 @@ from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.Roster import Roster
 from main import check_commands
+from Exceptions import *
 
 class Roster_Commands(commands.Cog, name="Rosters"):
 
@@ -47,6 +48,16 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             color=disnake.Color.red())
         await ctx.send(embed=embed)
 
+    @roster.sub_command(name="clear", description="Clear a roster")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def roster_clear(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+        _roster = Roster(self.bot)
+        await _roster.find_roster(guild=ctx.guild, alias=roster)
+        await _roster.clear_roster()
+        embed = disnake.Embed(
+            description=f"Roster - **{_roster.roster_result.get('alias')}** that was tied to {_roster.roster_result.get('clan_name')} has been **cleared**.",
+            color=disnake.Color.red())
+        await ctx.send(embed=embed)
 
     @roster.sub_command(name="signup", description="Create a signup for a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -77,20 +88,218 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="remove-player", description="Remove a player from a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_remove(self, ctx: disnake.ApplicationCommandInteraction, roster: str, player: coc.Player = commands.Param(converter=player_convertor)):
+    async def roster_remove(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+        await ctx.response.defer()
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
-        await _roster.remove_member(player=player)
-        embed = disnake.Embed(description=f"{player.name} removed from **{_roster.roster_result.get('alias')}** roster.",color=disnake.Color.red())
-        embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
-        await ctx.send(embed=embed, ephemeral=True)
+        embed = await _roster.embed(move_text="Mode: remove")
+        components = await _roster.mode_components(mode="remove", player_page=0)
+        await ctx.edit_original_message(embed=embed, components=components)
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        _new_roster = Roster(bot=self.bot)
+        await _new_roster.find_roster(guild=ctx.guild, alias=roster)
+        new_roster = roster
+        mode = "remove"
+        while True:
+            try:
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
+            except:
+                await msg.edit(components=[])
+                break
+
+            if res.author.id != ctx.author.id:
+                await res.send(content="Must run the command to interact with components.", ephemeral=True)
+                continue
+            await res.response.defer()
+            try:
+                if "button" in str(res.data.component_type):
+                    button_value = res.data.custom_id
+                    button_value = button_value.split("_")[1]
+                    mode = button_value
+                    if button_value == "move":
+                        embed = await _roster.embed(move_text=f"Mode: {button_value} | Moving to {new_roster}")
+                    else:
+                        embed = await _roster.embed(move_text=f"Mode: {button_value}")
+                    components = await _roster.mode_components(mode=button_value, player_page=0)
+                    await res.edit_original_message(embed=embed, components=components)
+                else:
+                    if "players_1" in res.values or "players_2" in res.values or "players_0" in res.values:
+                        for value in res.values:
+                            if "players" in value:
+                                page = value.split("_")[1]
+                                components = await _roster.mode_components(mode=mode, player_page=int(page))
+                                await res.edit_original_message(embed=embed, components=components)
+                                break
+                    elif any("edit_" in value for value in res.values):
+                        players = await self.bot.get_players(tags=[value.split("_")[1] for value in res.values])
+                        for player in players:
+                            if isinstance(player, coc.errors.NotFound):
+                                continue
+                            if mode == "move":
+                                await _roster.move_member(player=player, new_roster=_new_roster)
+                            else:
+                                await _roster.remove_member(player=player)
+                        embed = disnake.Embed(
+                            description=f"{', '.join([player.name for player in players if not isinstance(player, coc.errors.NotFound)])} moved from **{_roster.roster_result.get('alias')}** to **{_new_roster.roster_result.get('alias')}** roster",
+                            color=disnake.Color.green())
+                        embed.set_thumbnail(url=_new_roster.roster_result.get("clan_badge"))
+                        # await res.followup.send(embed=embed, ephemeral=True)
+                        await _new_roster.find_roster(guild=ctx.guild, alias=_new_roster.roster_result.get("alias"))
+                        await _roster.find_roster(guild=ctx.guild, alias=_roster.roster_result.get("alias"))
+                        if mode == "move":
+                            embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}")
+                        else:
+                            embed = await _roster.embed(move_text=f"Mode: {mode}")
+                        components = await _roster.mode_components(mode=mode, player_page=0)
+                        await res.edit_original_message(embed=embed, components=components)
+                    elif "roster_" in res.values[0]:
+                        alias = res.values[0].split("_")[1]
+                        await _roster.find_roster(guild=ctx.guild, alias=alias)
+                        if mode == "move":
+                            embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}")
+                        else:
+                            embed = await _roster.embed(move_text=f"Mode: {mode}")
+                        components = await _roster.mode_components(mode=mode, player_page=0)
+                        await res.edit_original_message(embed=embed, components=components)
+                    elif "rostermove_" in res.values[0]:
+                        alias = res.values[0].split("_")[1]
+                        new_roster = alias
+                        await _new_roster.find_roster(guild=ctx.guild, alias=new_roster)
+                        embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}")
+                        await res.edit_original_message(embed=embed)
+            except Exception as error:
+                if isinstance(error, RosterAliasAlreadyExists):
+                    embed = disnake.Embed(description=f"Roster with this alias already exists.",
+                                          color=disnake.Color.red())
+                    await res.send(embed=embed, ephemeral=True)
+
+                if isinstance(error, RosterDoesNotExist):
+                    embed = disnake.Embed(description=f"Roster with this alias does not exist. Use `/roster create`",
+                                          color=disnake.Color.red())
+                    await res.send(embed=embed, ephemeral=True)
+
+                if isinstance(error, PlayerAlreadyInRoster):
+                    embed = disnake.Embed(description=f"Player has already been added to this roster.",
+                                          color=disnake.Color.red())
+                    await res.send(embed=embed, ephemeral=True)
+
+                if isinstance(error, PlayerNotInRoster):
+                    embed = disnake.Embed(description=f"Player not found in this roster.",
+                                          color=disnake.Color.red())
+                    await res.send(embed=embed, ephemeral=True)
 
 
     @roster.sub_command(name="move-player", description="Move a player from one roster to another")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_move(self, ctx: disnake.ApplicationCommandInteraction, roster: str, player: coc.Player = commands.Param(converter=player_convertor), new_roster: str = commands.Param(name="new_roster")):
+    async def roster_move(self, ctx: disnake.ApplicationCommandInteraction, roster: str, new_roster: str = commands.Param(name="new_roster")):
+
+        await ctx.response.defer()
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
+        embed = await _roster.embed(move_text=f"Mode: Move | Moving to {new_roster}")
+        components = await _roster.mode_components(mode="move", player_page=0)
+        await ctx.edit_original_message(embed=embed, components=components)
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        _new_roster = Roster(bot=self.bot)
+        await _new_roster.find_roster(guild=ctx.guild, alias=new_roster)
+        mode = "move"
+        while True:
+            try:
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
+            except:
+                await msg.edit(components=[])
+                break
+
+            if res.author.id != ctx.author.id:
+                await res.send(content="Must run the command to interact with components.", ephemeral=True)
+                continue
+            await res.response.defer()
+            try:
+                if "button" in str(res.data.component_type):
+                    button_value = res.data.custom_id
+                    button_value = button_value.split("_")[1]
+                    mode = button_value
+                    if button_value == "move":
+                        embed = await _roster.embed(move_text=f"Mode: {button_value} | Moving to {new_roster}")
+                    else:
+                        embed = await _roster.embed(move_text=f"Mode: {button_value}")
+                    components = await _roster.mode_components(mode=button_value, player_page=0)
+                    await res.edit_original_message(embed=embed, components=components)
+                else:
+                    if "players_1" in res.values or "players_2" in res.values or "players_0" in res.values:
+                        for value in res.values:
+                            if "players" in value:
+                                page = value.split("_")[1]
+                                components = await _roster.mode_components(mode=mode, player_page=int(page))
+                                await res.edit_original_message(embed=embed, components=components)
+                                break
+                    elif any("edit_" in value for value in res.values):
+                        players = await self.bot.get_players(tags = [value.split("_")[1] for value in res.values])
+                        for player in players:
+                            if isinstance(player, coc.errors.NotFound):
+                                continue
+                            await _roster.move_member(player=player, new_roster=_new_roster)
+                        embed = disnake.Embed(
+                            description=f"{', '.join([player.name for player in players if not isinstance(player, coc.errors.NotFound)])} moved from **{_roster.roster_result.get('alias')}** to **{_new_roster.roster_result.get('alias')}** roster",
+                            color=disnake.Color.green())
+                        embed.set_thumbnail(url=_new_roster.roster_result.get("clan_badge"))
+                        #await res.followup.send(embed=embed, ephemeral=True)
+                        await _new_roster.find_roster(guild=ctx.guild, alias=_new_roster.roster_result.get("alias"))
+                        await _roster.find_roster(guild=ctx.guild, alias=_roster.roster_result.get("alias"))
+                        if mode == "move":
+                            embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}")
+                        else:
+                            embed = await _roster.embed(move_text=f"Mode: {mode}")
+                        components = await _roster.mode_components(mode=mode, player_page=0)
+                        await res.edit_original_message(embed=embed, components=components)
+                    elif "roster_" in res.values[0]:
+                        alias = res.values[0].split("_")[1]
+                        await _roster.find_roster(guild=ctx.guild, alias=alias)
+                        if mode == "move":
+                            embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}")
+                        else:
+                            embed = await _roster.embed(move_text=f"Mode: {mode}")
+                        components = await _roster.mode_components(mode=mode, player_page=0)
+                        await res.edit_original_message(embed=embed, components=components)
+                    elif "rostermove_" in res.values[0]:
+                        alias = res.values[0].split("_")[1]
+                        new_roster = alias
+                        await _new_roster.find_roster(guild=ctx.guild, alias=new_roster)
+                        embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}")
+                        await res.edit_original_message(embed=embed)
+            except Exception as error:
+                if isinstance(error, RosterAliasAlreadyExists):
+                    embed = disnake.Embed(description=f"Roster with this alias already exists.",
+                                          color=disnake.Color.red())
+                    await res.send(embed=embed, ephemeral=True)
+
+                if isinstance(error, RosterDoesNotExist):
+                    embed = disnake.Embed(description=f"Roster with this alias does not exist. Use `/roster create`",
+                                          color=disnake.Color.red())
+                    await res.send(embed=embed, ephemeral=True)
+
+                if isinstance(error, PlayerAlreadyInRoster):
+                    embed = disnake.Embed(description=f"Player has already been added to this roster.",
+                                          color=disnake.Color.red())
+                    await res.send(embed=embed, ephemeral=True)
+
+                if isinstance(error, PlayerNotInRoster):
+                    embed = disnake.Embed(description=f"Player not found in this roster.",
+                                          color=disnake.Color.red())
+                    await res.send(embed=embed, ephemeral=True)
+
+
+
+
         _new_roster = Roster(bot=self.bot)
         await _new_roster.find_roster(guild=ctx.guild, alias=new_roster)
         await _roster.move_member(player=player, new_roster=_new_roster)
@@ -98,7 +307,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             description=f"{player.name} moved from **{_roster.roster_result.get('alias')}** to **{_new_roster.roster_result.get('alias')}** roster",
             color=disnake.Color.green())
         embed.set_thumbnail(url=_new_roster.roster_result.get("clan_badge"))
-        await ctx.send(embed=embed, ephemeral=True)
 
 
     @roster.sub_command(name="post", description="Post a roster")
@@ -126,10 +334,10 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="missing", description="Players that aren't in the clan tied to the roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_missing(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+    async def roster_missing(self, ctx: disnake.ApplicationCommandInteraction, roster: str, message:str =""):
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
-        embed = await _roster.missing_embed()
+        embed = await _roster.missing_embed(text=message)
         ping_buttons = [
             disnake.ui.Button(label="Ping Missing", emoji=self.bot.emoji.pin.partial_emoji, style=disnake.ButtonStyle.green,
                               custom_id=f"ping")
@@ -178,6 +386,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
         await ctx.send(embed=embed)
 
+
     @roster.sub_command(name="rename", description="Rename a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_rename(self, ctx: disnake.ApplicationCommandInteraction, roster: str, new_name: str):
@@ -189,6 +398,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             color=disnake.Color.green())
         embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
         await ctx.send(embed=embed)
+
 
     @roster.sub_command(name="change-link", description="Change linked clan for roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -220,7 +430,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster_create_signups.autocomplete("roster")
     @roster_post.autocomplete("roster")
     @roster_refresh.autocomplete("roster")
-    @roster_create.autocomplete("roster_alias")
     @roster_missing.autocomplete("roster")
     @roster_add.autocomplete("roster")
     @roster_remove.autocomplete("roster")
@@ -229,6 +438,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster_restrict.autocomplete("roster")
     @roster_rename.autocomplete("roster")
     @roster_change_link.autocomplete("roster")
+    @roster_clear.autocomplete("roster")
     async def autocomp_rosters(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         aliases = await self.bot.rosters.distinct("alias", filter={"server_id": ctx.guild.id})
         alias_list = []
@@ -241,20 +451,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         names = await self.bot.family_names(query=query, guild=ctx.guild)
         return names
-
-    @roster_remove.autocomplete("player")
-    @roster_move.autocomplete("player")
-    async def roster_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        filled_options = ctx.filled_options
-        if filled_options["roster"] == "":
-            return []
-        roster = Roster(bot=self.bot)
-        await roster.find_roster(guild=ctx.guild, alias=filled_options["roster"])
-        remove_players = []
-        for player in roster.players:
-            if query.lower() in player.get("name").lower():
-                remove_players.append(f"{player.get('name')} | {player.get('tag')}")
-        return remove_players[:25]
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
