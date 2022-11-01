@@ -346,7 +346,9 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         for button in ping_buttons:
             buttons.append_item(button)
         await ctx.send(embed=embed, components=[buttons])
-        msg = await ctx.original_message()
+        msg = await ctx.original_message()         
+        if message != "":
+            await _roster.set_missing_text(text=message)
         def check(res: disnake.MessageInteraction):
             return (res.message.id == msg.id) and (res.author.guild_permissions.manage_guild) and (res.user == ctx.user)
 
@@ -370,8 +372,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                 missing_text += f"{name} | {player_tag}\n"
             else:
                 missing_text += f"{name} | {member.mention}\n"
-        if message != "":
-            await _roster.set_missing_text(text=message)
         await msg.edit(components=[])
         await res.send(content=f"{_roster.missing_text}{missing_text}")
 
