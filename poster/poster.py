@@ -89,7 +89,7 @@ class Poster(commands.Cog):
                 season = f"{start.year}-{mon}"
                 if str(id) != f"{start.year}-{mon}":
                     embed = disnake.Embed(
-                        description="No statistics for last season (if new season jsut started allow api time to add new season data)",
+                        description="No statistics for last season (if new season just started allow api time to add new season data)",
                         color=disnake.Color.red())
                     return await ctx.edit_original_message(embed=embed)
             except:
