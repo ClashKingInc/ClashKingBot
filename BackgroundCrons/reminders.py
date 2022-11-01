@@ -531,7 +531,7 @@ class reminders(commands.Cog, name="Reminders"):
             if custom_text is None:
                 custom_text = ""
             else:
-                custom_text += "\n"
+                custom_text = "\n\n" + custom_text
             channel = reminder.get("channel")
             try:
                 channel = await self.bot.fetch_channel(channel)
@@ -554,13 +554,12 @@ class reminders(commands.Cog, name="Reminders"):
                     missing_text += f"{num_missing} hits- {name} | {player_tag}\n"
                 else:
                     missing_text += f"{num_missing} hits- {name} | {member.mention}\n"
-
+            badge = await self.bot.create_new_badge_emoji(url=war.clan.badge.url)
             reminder_text = f"**{reminder_time} Hours Remaining in War**\n" \
+                            f"**{badge}{war.clan.name} vs {war.opponent.name}**\n\n" \
                             f"{missing_text}" \
                             f"{custom_text}"
-            embed = disnake.Embed(description=f"**{war.clan.name} vs {war.opponent.name}**")
-            embed.set_thumbnail(url=war.clan.badge.url)
-            await channel.send(content=reminder_text, embed=embed)
+            await channel.send(content=reminder_text)
 
     async def clan_capital_reminder(self, reminder_time):
         all_reminders = self.bot.reminders.find({"$and": [

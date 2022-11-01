@@ -395,12 +395,13 @@ class misc(commands.Cog, name="Settings"):
 
     @set.sub_command(name="war-log", description="Set up a war log for a clan")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def warlog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: Union[disnake.TextChannel, disnake.Thread]):
+    async def warlog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: Union[disnake.TextChannel, disnake.Thread], attack_feed = commands.Param(default="On", choices=["On", "Off"])):
         """
             Parameters
             ----------
             clan: Use clan tag or select an option from the autocomplete
             channel: channel to set the war log to
+            attack_feed: (Default ON) option to turn the attack feed off/on
         """
 
         clan = await self.bot.getClan(clan)
@@ -418,7 +419,7 @@ class misc(commands.Cog, name="Settings"):
         await self.bot.clan_db.update_one({"$and": [
             {"tag": clan.tag},
             {"server": ctx.guild.id}
-        ]}, {'$set': {"war_log": channel.id}})
+        ]}, {'$set': {"war_log": channel.id, "attack_feed" : (attack_feed == "On")}})
 
         embed = disnake.Embed(description=f"War Log set in {channel.mention} for {clan.name}",
                               color=disnake.Color.green())

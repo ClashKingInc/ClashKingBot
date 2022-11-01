@@ -48,7 +48,7 @@ class clan_commands(commands.Cog):
         clan_e = partial_emoji_gen(self.bot, "<:clan_castle:855688168816377857>")
         opt = partial_emoji_gen(self.bot, "<:opt_in:944905885367537685>")
         stroop = partial_emoji_gen(self.bot, "<:stroop:961818095930978314>")
-        cwl_emoji = partial_emoji_gen(self.bot, "<:cwlmedal:793561011801948160>")
+        cwl_emoji = partial_emoji_gen(self.bot, "<:cwlmedal:1037126610962362370>")
 
         main = embed
         options = [  # the options in your dropdown

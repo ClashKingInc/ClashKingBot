@@ -164,42 +164,44 @@ class DiscordEvents(commands.Cog):
 
         if isinstance(error, disnake.ext.commands.ConversionError):
             error = error.original
-        if isinstance(error, disnake.ext.commands.CommandError):
-            error = error.original
+
         if isinstance(error, coc.errors.NotFound):
             embed = disnake.Embed(description="Not a valid clan/player tag.", color=disnake.Color.red())
-            await ctx.send(embed=embed)
+            return await ctx.send(embed=embed)
 
         if isinstance(error, coc.errors.Maintenance):
             embed = disnake.Embed(description=f"Game is currently in Maintenance.", color=disnake.Color.red())
-            await ctx.send(embed=embed)
+            return await ctx.send(embed=embed)
 
         if isinstance(error, disnake.ext.commands.CheckAnyFailure):
             if isinstance(error.errors[0], disnake.ext.commands.MissingPermissions):
                 embed = disnake.Embed(description=error.errors[0], color=disnake.Color.red())
-                await ctx.send(embed=embed)
+                return await ctx.send(embed=embed)
 
         if isinstance(error, disnake.ext.commands.MissingPermissions):
             embed = disnake.Embed(description=error, color=disnake.Color.red())
-            await ctx.send(embed=embed)
+            return await ctx.send(embed=embed)
+
+        if isinstance(error, disnake.ext.commands.CommandError):
+            error = error.original
 
         if isinstance(error, RosterAliasAlreadyExists):
             embed = disnake.Embed(description=f"Roster with this alias already exists.", color=disnake.Color.red())
-            await ctx.send(embed=embed, ephemeral=True)
+            return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, RosterDoesNotExist):
             embed = disnake.Embed(description=f"Roster with this alias does not exist. Use `/roster create`", color=disnake.Color.red())
-            await ctx.send(embed=embed, ephemeral=True)
+            return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, PlayerAlreadyInRoster):
             embed = disnake.Embed(description=f"Player has already been added to this roster.",
                                   color=disnake.Color.red())
-            await ctx.send(embed=embed, ephemeral=True)
+            return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, PlayerNotInRoster):
             embed = disnake.Embed(description=f"Player not found in this roster.",
                                   color=disnake.Color.red())
-            await ctx.send(embed=embed, ephemeral=True)
+            return await ctx.send(embed=embed, ephemeral=True)
 
 
 def setup(bot: CustomClient):

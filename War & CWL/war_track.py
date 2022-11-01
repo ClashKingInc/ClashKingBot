@@ -174,6 +174,9 @@ class War_Log(commands.Cog):
                 warlog_channel = cc.get("war_log")
                 if warlog_channel is None:
                     continue
+                attack_feed = cc.get("attack_feed")
+                if attack_feed is None or attack_feed is False:
+                    continue
                 try:
                     warlog_channel = await self.bot.fetch_channel(warlog_channel)
                     if warlog_channel is None:

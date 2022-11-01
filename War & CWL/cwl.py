@@ -441,40 +441,23 @@ class Cwl(commands.Cog, name="CWL"):
         return [stars, avg_destr, opp_stars, avg_destr_opp]
 
     async def war_th_comps(self, war: coc.ClanWar):
-        thcount = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        opp_thcount = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        thcount = defaultdict(int)
+        opp_thcount = defaultdict(int)
 
         for player in war.members:
-            th = player.town_hall
-
             if player not in war.opponent.members:
-                count = thcount[th - 1]
-                thcount[th - 1] = count + 1
+                thcount[player.town_hall] += 1
             else:
-                count = opp_thcount[th - 1]
-                opp_thcount[th - 1] = count + 1
+                opp_thcount[player.town_hall] += 1
 
         stats = ""
-        for x in reversed(range(len(thcount))):
-            count = thcount[x]
-            if count != 0:
-                if (x + 1) <= 9:
-                    th_emoji = emojiDictionary(x + 1)
-                    stats += f"{th_emoji}`{count} `"
-                else:
-                    th_emoji = emojiDictionary(x + 1)
-                    stats += f"{th_emoji}`{count} `"
-
+        for th_level, th_count in sorted(thcount.items(), reverse=True):
+            th_emoji = self.bot.fetch_emoji(th_level)
+            stats += f"{th_emoji}`{th_count}` "
         opp_stats = ""
-        for x in reversed(range(len(opp_thcount))):
-            count = opp_thcount[x]
-            if count != 0:
-                if (x + 1) <= 9:
-                    th_emoji = emojiDictionary(x + 1)
-                    opp_stats += f"{th_emoji}`{count} `"
-                else:
-                    th_emoji = emojiDictionary(x + 1)
-                    opp_stats += f"{th_emoji}`{count} `"
+        for th_level, th_count in sorted(opp_thcount.items(), reverse=True):
+            th_emoji = self.bot.fetch_emoji(th_level)
+            opp_stats += f"{th_emoji}`{th_count}` "
 
         return [stats, opp_stats]
 

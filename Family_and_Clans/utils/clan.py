@@ -106,19 +106,15 @@ class getClans(commands.Cog, name="Clan"):
         return embed
 
     async def war_th_comps(self, clan: coc.Clan):
-        thcount = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
         stroops = {"Super Barbarian" : 0, "Super Archer": 0, "Super Giant": 0, "Sneaky Goblin": 0, "Super Wall Breaker": 0, "Rocket Balloon": 0, "Super Wizard": 0, "Inferno Dragon": 0,
                 "Super Minion": 0, "Super Valkyrie": 0, "Super Witch": 0, "Ice Hound": 0, "Super Bowler": 0, "Super Dragon": 0}
 
+        thcount = defaultdict(int)
+
         async for player in clan.get_detailed_members():
-            th = player.town_hall
-            count = thcount[th - 1]
-            thcount[th - 1] = count + 1
-
-            troops = player.troop_cls
+            thcount[player.town_hall] += 1
             troops = player.troops
-
             for x in range(len(troops)):
                 troop = troops[x]
                 if (troop.is_active):
@@ -127,16 +123,11 @@ class getClans(commands.Cog, name="Clan"):
                     except:
                         pass
 
+
         stats = ""
-        for x in reversed(range(len(thcount))):
-            count = thcount[x]
-            if count != 0:
-                if (x + 1) <= 9:
-                    th_emoji = emojiDictionary(x + 1)
-                    stats += f"{th_emoji}`{count} `"
-                else:
-                    th_emoji = emojiDictionary(x + 1)
-                    stats += f"{th_emoji}`{count} `"
+        for th_level, th_count in sorted(thcount.items(), reverse=True):
+            th_emoji = self.bot.fetch_emoji(th_level)
+            stats += f"{th_emoji}`{th_count}` "
 
         stext = ""
 

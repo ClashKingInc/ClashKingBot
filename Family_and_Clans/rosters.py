@@ -310,7 +310,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
 
     @roster.sub_command(name="post", description="Post a roster")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_post(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -414,6 +413,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.url)
         await ctx.edit_original_message(embed=embed)
+
 
     @roster_create.autocomplete("clan")
     @roster_change_link.autocomplete("clan")
