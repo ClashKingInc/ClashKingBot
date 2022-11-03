@@ -796,7 +796,7 @@ class eval(commands.Cog, name="Eval"):
                         try:
                             if not test:
                                 await member.edit(nick=f"{top_account.name} {clan_name}")
-                            name_changes = f"`{top_account.name} | {clan_name}`"
+                            name_changes = f"`{top_account.name} {clan_name}`"
                         except:
                             name_changes = "`Could not change name`"
                             pass
@@ -811,7 +811,6 @@ class eval(commands.Cog, name="Eval"):
                     return changes
             except:
                 continue
-
             if ((changes[0] != "None") or (changes[1] != "None") or (changes[2] != "None")) or len(members_to_eval) > 1:
                 text += f"**{member.display_name}** | {member.mention}\nAdded: {changes[0]}\nRemoved: {changes[1]}"
                 if changes[2] != "None":
