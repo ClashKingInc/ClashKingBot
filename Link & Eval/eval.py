@@ -54,7 +54,7 @@ class eval(commands.Cog, name="Eval"):
             )
             dropdown = [disnake.ui.ActionRow(select)]
             embed =disnake.Embed(description="**Choose which role types you would like to eval:**", color=disnake.Color.green())
-            msg = await ctx.followup.send(embed=embed, components=dropdown, ephemeral=True)
+            msg = await ctx.edit_original_message(embed=embed, components=dropdown)
             try:
                 res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", timeout=600)
             except:
