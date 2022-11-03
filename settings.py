@@ -96,24 +96,7 @@ class misc(commands.Cog, name="Settings"):
             role: New role to switch to
         """
 
-        clan_search = clan.lower()
-        first_clan = clan
-        results = await self.bot.clan_db.find_one({"$and": [
-            {"alias": clan_search},
-            {"server": ctx.guild.id}
-        ]})
-
-        if results is not None:
-            tag = results.get("tag")
-            clan = await self.bot.getClan(tag)
-        else:
-            clan = await self.bot.getClan(clan)
-
-        if clan is None:
-            if "|" in first_clan:
-                search = first_clan.split("|")
-                tag = search[1]
-                clan = await self.bot.getClan(tag)
+        clan = await self.bot.getClan(clan_tag=clan)
 
         if clan is None:
             return await ctx.send("Not a valid clan tag or alias.")
@@ -132,6 +115,31 @@ class misc(commands.Cog, name="Settings"):
 
         embed = disnake.Embed(
             description=f"General role switched to {role.mention}",
+            color=disnake.Color.green())
+        await ctx.send(embed=embed)
+
+    @set.sub_command(name="category-role", description="Set a new category role for a server")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def category_role(self, ctx: disnake.ApplicationCommandInteraction, category: str, role: disnake.Role):
+        """
+            Parameters
+            ----------
+            category: category to set role for
+            role: New role to switch to
+        """
+
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"category": category},
+            {"server": ctx.guild.id}
+        ]})
+
+        if results is None:
+            return await ctx.send(f"No category - **{category}** - on this server")
+
+        await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {f"category_roles.{category}": role.id}})
+
+        embed = disnake.Embed(
+            description=f"Category role set to {role.mention}",
             color=disnake.Color.green())
         await ctx.send(embed=embed)
 
@@ -819,6 +827,7 @@ class misc(commands.Cog, name="Settings"):
         return clan_list[:25]
 
     @category.autocomplete("new_category")
+    @category_role.autocomplete("category")
     async def autocomp_category(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})

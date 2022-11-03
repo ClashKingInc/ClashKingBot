@@ -9,3 +9,6 @@ class PlayerAlreadyInRoster(Exception):
 
 class PlayerNotInRoster(Exception):
     pass
+
+class RosterSizeLimit(Exception):
+    pass

@@ -203,6 +203,11 @@ class DiscordEvents(commands.Cog):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed, ephemeral=True)
 
+        if isinstance(error, RosterSizeLimit):
+            embed = disnake.Embed(description=f"Roster has hit max size limit",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed, ephemeral=True)
+
 
 def setup(bot: CustomClient):
     bot.add_cog(DiscordEvents(bot))

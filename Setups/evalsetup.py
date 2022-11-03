@@ -25,8 +25,8 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
     async def townhall_roles(self, ctx):
         pass
 
-    @commands.slash_command(name="legend-roles")
-    async def legend_roles(self, ctx):
+    @commands.slash_command(name="league-roles")
+    async def league_roles(self, ctx):
         pass
 
     @commands.slash_command(name="builderhall-roles")
@@ -556,100 +556,52 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
 
 
 
-
-
-
-    ###Legend Roles Section
-    @legend_roles.sub_command(name="set", description="Sets roles to add for legends")
+    ###League Roles Section
+    @league_roles.sub_command(name="set", description="Sets roles to add for leagues")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def legend_roles_set(self, ctx: disnake.ApplicationCommandInteraction, legends_league:disnake.Role=None, trophies_5500:disnake.Role=None, trophies_5700:disnake.Role=None, trophies_6000:disnake.Role=None):
+    async def league_roles_set(self, ctx: disnake.ApplicationCommandInteraction, bronze_league:disnake.Role=None, silver_league:disnake.Role=None, gold_league:disnake.Role=None,
+                               crystal_league:disnake.Role=None, master_league:disnake.Role=None, champion_league:disnake.Role=None, titan_league:disnake.Role=None,
+                               legends_league:disnake.Role=None, trophies_5500:disnake.Role=None, trophies_5700:disnake.Role=None, trophies_6000:disnake.Role=None):
 
-        if legends_league is None and trophies_5500 is None and trophies_5700 is None and trophies_6000 is None:
+        list_roles = [bronze_league, silver_league, gold_league, crystal_league, master_league, champion_league, titan_league, legends_league, trophies_5500, trophies_5700, trophies_6000]
+
+        if len(set(list_roles)) == 1:
             await ctx.send("Please select at least one role to set.")
 
+        spot_to_text = ["bronze_league", "silver_league", "gold_league", "crystal_league", "master_league", "champion_league",
+                        "titan_league", "legends_league", "trophies_5500", "trophies_5700", "trophies_6000"]
+
         roles_updated = ""
-
-        if legends_league is not None:
-            roles_updated+=f"Legend League: {legends_league.mention}\n"
+        for count, role in enumerate(list_roles):
+            if role is None:
+                continue
+            role_text = spot_to_text[count]
+            roles_updated += f"{role_text}: {role.mention}\n"
             results = await self.bot.legendleagueroles.find_one({"$and": [
-                {"role": legends_league.id},
-                {"type" : "legends_league"},
+                {"role": role.id},
+                {"type": role_text},
                 {"server": ctx.guild.id}
             ]})
 
             if results is None:
                 await self.bot.legendleagueroles.insert_one(
-                    {"role": legends_league.id,
-                    "type": "legends_league",
-                    "server": ctx.guild.id})
+                    {"role": role.id,
+                     "type": role_text,
+                     "server": ctx.guild.id})
             else:
                 await self.bot.legendleagueroles.update_one({"$and": [
-                    {"type": "legends_league"},
+                    {"type": role_text},
                     {"server": ctx.guild.id}
-                ]}, {'$set': {"role": legends_league.id}})
-        if trophies_5500 is not None:
-            roles_updated+=f"5500+ Trophies: {trophies_5500.mention}\n"
-            results = await self.bot.legendleagueroles.find_one({"$and": [
-                {"role": trophies_5500.id},
-                {"type" : "trophies_5500"},
-                {"server": ctx.guild.id}
-            ]})
+                ]}, {'$set': {"role": role.id}})
 
-            if results is None:
-                await self.bot.legendleagueroles.insert_one(
-                    {"role": trophies_5500.id,
-                    "type": "trophies_5500",
-                    "server": ctx.guild.id})
-            else:
-                await self.bot.legendleagueroles.update_one({"$and": [
-                    {"type": "trophies_5500"},
-                    {"server": ctx.guild.id}
-                ]}, {'$set': {"role": trophies_5500.id}})
-        if trophies_5700 is not None:
-            roles_updated+=f"5700+ Trophies: {trophies_5700.mention}\n"
-            results = await self.bot.legendleagueroles.find_one({"$and": [
-                {"role": trophies_5700.id},
-                {"type" : "trophies_5700"},
-                {"server": ctx.guild.id}
-            ]})
-
-            if results is None:
-                await self.bot.legendleagueroles.insert_one(
-                    {"role": trophies_5700.id,
-                    "type": "trophies_5700",
-                    "server": ctx.guild.id})
-            else:
-                await self.bot.legendleagueroles.update_one({"$and": [
-                    {"type": "trophies_5700"},
-                    {"server": ctx.guild.id}
-                ]}, {'$set': {"role": trophies_5700.id}})
-        if trophies_6000 is not None:
-            roles_updated+=f"6000+ Trophies: {trophies_6000.mention}\n"
-            results = await self.bot.legendleagueroles.find_one({"$and": [
-                {"role": trophies_6000.id},
-                {"type" : "trophies_6000"},
-                {"server": ctx.guild.id}
-            ]})
-
-            if results is None:
-                await self.bot.legendleagueroles.insert_one(
-                    {"role": trophies_6000.id,
-                    "type": "trophies_6000",
-                    "server": ctx.guild.id})
-            else:
-                await self.bot.legendleagueroles.update_one({"$and": [
-                    {"type": "trophies_6000"},
-                    {"server": ctx.guild.id}
-                ]}, {'$set': {"role": trophies_6000.id}})
-
-        embed = disnake.Embed(title="**Legend Roles that were set:**",
+        embed = disnake.Embed(title="**League Roles that were set:**",
                               description=roles_updated,
                               color=disnake.Color.green())
         return await ctx.send(embed=embed)
 
-    @legend_roles.sub_command(name="remove", description="Remove legends eval roles")
+    @league_roles.sub_command(name="remove", description="Remove league eval roles")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def legend_roles_remove(self, ctx: disnake.ApplicationCommandInteraction, legend_role_type: str =
+    async def league_roles_remove(self, ctx: disnake.ApplicationCommandInteraction, league_role_type: str =
         commands.Param(choices=["legends_league", "trophies_5500", "trophies_5700", "trophies_6000"])):
 
         results = await self.bot.legendleagueroles.find_one({"$and": [
@@ -669,8 +621,8 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
                               color=disnake.Color.green())
         return await ctx.send(embed=embed)
 
-    @legend_roles.sub_command(name="list", description="List of legend roles for eval")
-    async def legend_roles_list(self, ctx: disnake.ApplicationCommandInteraction):
+    @league_roles.sub_command(name="list", description="List of league roles for eval")
+    async def league_roles_list(self, ctx: disnake.ApplicationCommandInteraction):
         list = ""
         all = self.bot.legendleagueroles.find({"server": ctx.guild.id})
         limit = await self.bot.legendleagueroles.count_documents(filter={"server": ctx.guild.id})

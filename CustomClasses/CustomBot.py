@@ -123,9 +123,9 @@ class CustomClient(commands.Bot):
         self.FAQ_CHANNEL_ID = 1010727127806648371
 
     async def create_new_badge_emoji(self, url:str):
-        url = url.replace(".png", "")
+        new_url = url.replace(".png", "")
         all_emojis = self.emojis
-        get_emoji = disnake.utils.get(all_emojis, name=url[-15:].replace("-", ""))
+        get_emoji = disnake.utils.get(all_emojis, name=new_url[-15:].replace("-", ""))
         if get_emoji is not None:
             return f"<:{get_emoji.name}:{get_emoji.id}>"
 
@@ -145,7 +145,7 @@ class CustomClient(commands.Bot):
             BADGE_GUILDS = list(guild_ids)
             guild = self.get_guild(BADGE_GUILDS[0])
 
-        emoji = await guild.create_custom_emoji(name=url[-15:].replace("-", ""), image=img)
+        emoji = await guild.create_custom_emoji(name=new_url[-15:].replace("-", ""), image=img)
         return f"<:{emoji.name}:{emoji.id}>"
 
 
@@ -514,7 +514,7 @@ class CustomClient(commands.Bot):
 
     async def get_clanwar(self, clanTag):
         try:
-            war = await self.coc_client.get_clan_war(clanTag)
+            war = await self.coc_client.get_current_war(clanTag)
             return war
         except:
             return None

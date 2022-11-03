@@ -357,9 +357,9 @@ class getClans(commands.Cog, name="Clan"):
         return emoji
 
     async def war_log(self, clan: coc.Clan):
-        warlog = await self.bot.coc_client.get_warlog(clan.tag)
+        warlog = await self.bot.coc_client.get_warlog(clan.tag, limit=25)
         text = ""
-        for war in warlog[0:25]:
+        for war in warlog:
             if war.is_league_entry:
                 continue
 

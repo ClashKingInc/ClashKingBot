@@ -63,7 +63,10 @@ class Roster():
                 longest_tag = len(tag)
 
         thcount = defaultdict(int)
+        sub_text = ""
+        subs = 0
         for count, member in enumerate(members):
+            count -= subs
             count = f"{count + 1}".ljust(2)
             name = member.get('name')
             for char in ["`", "*", "_", "~", "ッ"]:
@@ -72,15 +75,21 @@ class Roster():
             name = name[:12]
             name = name.ljust(12)
             tag = str(member.get('tag')).ljust(longest_tag)
-            roster_text += f"`{count}`{self.bot.fetch_emoji(name=member.get('townhall'))}`{name} {tag}  {member.get('hero_lvs')}`\n"
+            if member.get("sub") is True:
+                subs += 1
+                sub_text += f"`{subs}`{self.bot.fetch_emoji(name=member.get('townhall'))}`{name} {tag}  {member.get('hero_lvs')}`\n"
+            else:
+                roster_text += f"`{count}`{self.bot.fetch_emoji(name=member.get('townhall'))}`{name} {tag}  {member.get('hero_lvs')}`\n"
             thcount[member.get('townhall')] += 1
 
         tag = str("TAG").ljust(longest_tag)
         roster_text = f"`  TH NAME         {tag} HERO`\n" + roster_text
+        if sub_text != "":
+            roster_text = f"{roster_text}\n**SUBS**\n{sub_text}"
 
         embed = disnake.Embed(title=f"__{self.roster_result.get('alias')} Roster__", description=roster_text)
         footer_text = "".join(f"Th{index}: {th} " for index, th in sorted(thcount.items(), reverse=True) if th != 0)
-        embed.set_footer(text=f"{footer_text}\nLinked to {self.roster_result.get('clan_name')}\nTh{self.th_min}-Th{self.th_max}\n{move_text}", icon_url=self.roster_result.get("clan_badge"))
+        embed.set_footer(text=f"{footer_text}\nLinked to {self.roster_result.get('clan_name')}\nTh{self.th_min}-Th{self.th_max} | {self.roster_size} Account Limit\n{move_text}", icon_url=self.roster_result.get("clan_badge"))
         return embed
 
     async def set_missing_text(self, text: str):
@@ -130,9 +139,11 @@ class Roster():
             await self.remove_member(player)
             await self.add_member(player)
 
-    async def add_member(self, player: coc.Player):
+    async def add_member(self, player: coc.Player, sub=False):
         roster_members = self.roster_result.get("members")
         roster_member_tags = [member.get("tag") for member in roster_members]
+        if len(roster_member_tags) == self.roster_size:
+            raise RosterSizeLimit
         if player.tag in roster_member_tags:
             raise PlayerAlreadyInRoster
         hero_lvs = sum(hero.level for hero in player.heroes)
@@ -142,8 +153,15 @@ class Roster():
         war_pref = player.war_opted_in
         if war_pref is None:
             war_pref = False
-        await self.bot.rosters.update_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
-                                          {"$push" : {"members" : {"name" : player.name, "tag" : player.tag, "townhall" : player.town_hall, "hero_lvs" : hero_lvs, "current_clan": current_clan, "war_pref" : war_pref}}})
+        if not sub:
+            await self.bot.rosters.update_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
+                                              {"$push" : {"members" : {"name" : player.name, "tag" : player.tag, "townhall" : player.town_hall, "hero_lvs" : hero_lvs, "current_clan": current_clan, "war_pref" : war_pref}}})
+        else:
+            await self.bot.rosters.update_one({"$and": [{"server_id": self.roster_result.get("server_id")},{"alias": self.roster_result.get("alias")}]},
+                                              {"$push": {"members": {"name": player.name, "tag": player.tag,
+                                                                     "townhall": player.town_hall, "hero_lvs": hero_lvs,
+                                                                     "current_clan": current_clan,
+                                                                     "war_pref": war_pref, "sub" : sub}}})
         roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]})
         self.roster_result = roster_result
 
@@ -179,6 +197,11 @@ class Roster():
         await self.bot.rosters.update_one(
             {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
             {"$set": {"th_restriction": f"{min}-{max}"}})
+
+    async def restrict_size(self, roster_size: int):
+        await self.bot.rosters.update_one(
+            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
+            {"$set": {"roster_size": roster_size}})
 
     async def rename(self, new_name):
         await self.bot.rosters.update_one(
@@ -292,6 +315,12 @@ class Roster():
             max = int(restriction[1])
 
         return max
+
+    @property
+    def roster_size(self):
+        if self.roster_result.get("roster_size") is None:
+            return 50
+        return self.roster_result.get('roster_size')
 
     @property
     def missing_text(self):

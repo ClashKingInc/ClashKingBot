@@ -3,6 +3,7 @@ import disnake
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from disnake.ext import commands
+from CustomClasses.CustomServer import CustomServer
 
 class LinkWelcomeMessages(commands.Cog):
 
@@ -132,6 +133,8 @@ class LinkWelcomeMessages(commands.Cog):
             player_tag = modal_inter.text_values["player_tag"]
             api_token = modal_inter.text_values["api_token"]
             await modal_inter.response.defer(ephemeral=True)
+            server = CustomServer(guild=ctx.guild, bot=self.bot)
+            change_nickname = await server.nickname_choice
 
             player: MyCustomPlayer = await self.bot.getPlayer(player_tag=player_tag, custom=True)
             if player is None:
@@ -162,7 +165,11 @@ class LinkWelcomeMessages(commands.Cog):
 
             if link_id == ctx.author.id:
                 evalua = self.bot.get_cog("Eval")
-                changes = await evalua.eval_member(ctx, ctx.author, False)
+                default_eval = ["family" , "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "nicknames"]
+                changes = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                                                test=False,
+                                                change_nick=change_nickname, role_types_to_eval=default_eval,
+                                                return_array=True)
                 embed = disnake.Embed(
                     description=f"You're already linked {ctx.author.mention}! Updating your roles.\n"
                                 f"Added: {changes[0]}\n"
@@ -171,7 +178,11 @@ class LinkWelcomeMessages(commands.Cog):
             elif verified:
                 await player.add_link(ctx.author)
                 evalua = self.bot.get_cog("Eval")
-                changes = await evalua.eval_member(ctx, ctx.author, False)
+                default_eval = ["family" , "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "nicknames"]
+                changes = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                                                test=False,
+                                                change_nick=change_nickname, role_types_to_eval=default_eval,
+                                                return_array=True)
                 embed = disnake.Embed(
                     description=f"[{player.name}]({player.share_link}) successfully linked to {ctx.author.mention}.\n"
                                 f"Added: {changes[0]}\n"

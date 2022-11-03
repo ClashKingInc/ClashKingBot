@@ -52,7 +52,9 @@ class Linking(commands.Cog):
             if verified and is_linked:
                 if linked == ctx.author.id:
                     evalua = self.bot.get_cog("Eval")
-                    changes = await evalua.eval_member(ctx, ctx.author, False)
+                    default_eval = ["family" , "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "nicknames"]
+                    changes = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author, test=False,
+                                        change_nick=change_nickname, role_types_to_eval=default_eval, return_array=True)
                     embed = disnake.Embed(
                         description=f"[{player.name}]({player.share_link}) is already linked to you {ctx.author.mention}.\n"
                                     f"Added: {changes[0]}\n"
@@ -66,7 +68,11 @@ class Linking(commands.Cog):
             elif verified and not is_linked:
                 await self.bot.link_client.add_link(player.tag, ctx.author.id)
                 evalua = self.bot.get_cog("Eval")
-                changes = await evalua.eval_member(ctx, ctx.author, False, change_nickname)
+                default_eval = ["family" , "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "nicknames"]
+                changes = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                                                test=False,
+                                                change_nick=change_nickname, role_types_to_eval=default_eval,
+                                                return_array=True)
                 embed = disnake.Embed(
                     description=f"[{player.name}]({player.share_link}) is successfully linked to {ctx.author.mention}.\n"
                                 f"Added: {changes[0]}\n"
@@ -92,7 +98,11 @@ class Linking(commands.Cog):
             elif not verified and is_linked:
                 if linked == ctx.author.id:
                     evalua = self.bot.get_cog("Eval")
-                    changes = await evalua.eval_member(ctx, ctx.author, False)
+                    default_eval = ["family" , "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "nicknames"]
+                    changes = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                                                    test=False,
+                                                    change_nick=change_nickname, role_types_to_eval=default_eval,
+                                                    return_array=True)
                     embed = disnake.Embed(
                         description=f"[{player.name}]({player.share_link}) is already linked to you {ctx.author.mention}.\n"
                                     f"Added: {changes[0]}\n"
@@ -145,7 +155,11 @@ class Linking(commands.Cog):
             if is_linked:
                 if linked == ctx.author.id:
                     evalua = self.bot.get_cog("Eval")
-                    changes = await evalua.eval_member(ctx, ctx.author, False)
+                    default_eval = ["family" , "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "nicknames"]
+                    changes = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                                                    test=False,
+                                                    change_nick=change_nickname, role_types_to_eval=default_eval,
+                                                    return_array=True)
                     embed = disnake.Embed(
                         description=f"[{player.name}]({player.share_link}) is already linked to you {ctx.author.mention}.\n"
                                     f"Added: {changes[0]}\n"
@@ -160,7 +174,11 @@ class Linking(commands.Cog):
             elif not is_linked:
                 await self.bot.link_client.add_link(player.tag, ctx.author.id)
                 evalua = self.bot.get_cog("Eval")
-                changes = await evalua.eval_member(ctx, ctx.author, False, change_nickname)
+                default_eval = ["family" , "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "nicknames"]
+                changes = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                                                test=False,
+                                                change_nick=change_nickname, role_types_to_eval=default_eval,
+                                                return_array=True)
                 embed = disnake.Embed(
                     description=f"[{player.name}]({player.share_link}) is successfully linked to {ctx.author.mention}.\n"
                                 f"Added: {changes[0]}\n"
@@ -255,7 +273,9 @@ class Linking(commands.Cog):
         await self.bot.link_client.add_link(player.tag, member.id)
 
         evalua = self.bot.get_cog("Eval")
-        changes = await evalua.eval_member(ctx, member, False, change_nickname)
+        default_eval = ["family" , "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "nicknames"]
+        changes = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author, test=False,
+                                        change_nick=change_nickname, role_types_to_eval=default_eval, return_array=True)
 
         embed = disnake.Embed(description=f"[{player.name}]({player.share_link}) has been linked to {member.mention}.\n"
                                           f"Added: {changes[0]}\n"
@@ -281,22 +301,12 @@ class Linking(commands.Cog):
                 pass
 
     @commands.slash_command(name="unlink", description="Unlinks a clash account from discord")
-    async def unlink(self, ctx: disnake.ApplicationCommandInteraction, player_tag, api_token=None):
+    async def unlink(self, ctx: disnake.ApplicationCommandInteraction, player_tag):
         """
             Parameters
             ----------
             player_tag: player_tag as found in-game
-            api_token: required if no Manage Server perms
         """
-
-        if api_token is None:
-            perms = ctx.author.guild_permissions.manage_guild
-            if ctx.author.id == self.bot.owner.id:
-                perms = True
-            if not perms:
-                embed = disnake.Embed(description="Must have `Manage Server` permissions to use command without `api_token`.",
-                                      color=disnake.Color.red())
-                return await ctx.send(embed=embed)
 
         player = await self.bot.getPlayer(player_tag)
         if player is None:
@@ -310,29 +320,27 @@ class Linking(commands.Cog):
                 color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        if api_token is None:
+        perms = ctx.author.guild_permissions.manage_guild
+        if ctx.author.id == self.bot.owner.id:
+            perms = True
+
+        if linked != ctx.author.id and not perms:
+            if not perms:
+                embed = disnake.Embed(
+                    description="Must have `Manage Server` permissions to unlink commands that aren't yours.",
+                    color=disnake.Color.red())
+                return await ctx.send(embed=embed)
+
+        if perms:
             member = await self.bot.pingToMember(ctx, linked)
-            if ctx.guild.member_count <= 250 and member is None:
-                embed = disnake.Embed(description=f"[{player.name}]({player.share_link}), cannot unlink players not on this server.\n(Reach out on the support server if you have questions about this)",
+            if ctx.guild.member_count <= 99 and member is None:
+                embed = disnake.Embed(description=f"[{player.name}]({player.share_link}), cannot unlink players on servers with less than 100 members.\n(Reach out on the support server if you have questions about this)",
                                       color=disnake.Color.red())
                 return await ctx.send(embed=embed)
-            await self.bot.link_client.delete_link(player.tag)
-            embed = disnake.Embed(description=f"[{player.name}]({player.share_link}) has been unlinked from discord.",
-                                  color=disnake.Color.green())
-            await ctx.send(embed=embed)
-        else:
-            verified = await self.bot.verifyPlayer(playerTag=player.tag, playerToken=api_token)
-            if verified:
-                await self.bot.link_client.delete_link(player.tag)
-                embed = disnake.Embed(
-                    description=f"[{player.name}]({player.share_link}) has been unlinked from discord.",
-                    color=disnake.Color.green())
-                await ctx.send(embed=embed)
-            else:
-                embed = disnake.Embed(
-                    description=f"Invalid Api Token for [{player.name}]({player.share_link}).",
-                    color=disnake.Color.green())
-                await ctx.send(embed=embed)
+        await self.bot.link_client.delete_link(player.tag)
+        embed = disnake.Embed(description=f"[{player.name}]({player.share_link}) has been unlinked from discord.",
+                              color=disnake.Color.green())
+        await ctx.send(embed=embed)
 
 
     @commands.slash_command(name="buttons", description="Create a message that has buttons for easy eval/link actions.")
@@ -362,6 +370,7 @@ class Linking(commands.Cog):
     async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         names = await self.bot.family_names(query=query, guild=ctx.guild)
         return names
+
 
 
 def setup(bot: CustomClient):
