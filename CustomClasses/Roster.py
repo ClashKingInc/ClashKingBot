@@ -272,7 +272,7 @@ class Roster():
             options=player_options,
             placeholder=f"Select Player(s) to {mode}",  # the placeholder text to show when no options have been chosen
             min_values=1,  # the minimum number of options a user must select
-            max_values=1,  # the maximum number of options a user can select
+            max_values=len(players),  # the maximum number of options a user can select
         )
 
         dropdown = [disnake.ui.ActionRow(roster_select), disnake.ui.ActionRow(player_select)]
