@@ -669,17 +669,17 @@ class eval(commands.Cog, name="Eval"):
                 ###"Global" roles - family/not family now
                 # leadership roles only get removed if a complete absense from family, so add any to the remove list
                 ROLES_TO_REMOVE = set()
-                if GLOBAL_IS_FAMILY:
+                if GLOBAL_IS_FAMILY and "family" in role_types_to_eval:
                     for role in family_roles:
                         ROLES_SHOULD_HAVE.add(role)
                         if role not in MASTER_ROLES:
                             ROLES_TO_ADD.add(role)
                 else:
-                    for role in not_fam_roles:
+                    for role in not_fam_roles and "not_family" in role_types_to_eval:
                         ROLES_SHOULD_HAVE.add(role)
                         if role not in MASTER_ROLES:
                             ROLES_TO_ADD.add(role)
-                    if not leadership_eval:
+                    if not leadership_eval and "leadership" in role_types_to_eval:
                         for role in leadership_roles:
                             if role in MASTER_ROLES:
                                 ROLES_TO_REMOVE.add(role)
