@@ -760,7 +760,8 @@ class eval(commands.Cog, name="Eval"):
                                 else:
                                     new_name = f"{top_account.name} {abbreviations}"
                             try:
-                                await member.edit(nick=new_name)
+                                if not test:
+                                    await member.edit(nick=new_name)
                                 name_changes = f"`{new_name}`"
                             except:
                                 name_changes = "Could not change name"
@@ -771,10 +772,12 @@ class eval(commands.Cog, name="Eval"):
                             top_account: coc.Player = results[0][1]
                             try:
                                 if family_label == "":
-                                    await member.edit(nick=f"{top_account.name}")
+                                    if not test:
+                                        await member.edit(nick=f"{top_account.name}")
                                     name_changes = f"`{top_account.name}`"
                                 else:
-                                    await member.edit(nick=f"{top_account.name} | {family_label}")
+                                    if not test:
+                                        await member.edit(nick=f"{top_account.name} | {family_label}")
                                     name_changes = f"`{top_account.name} | {family_label}`"
                             except:
                                 name_changes = "Could not change name"
@@ -791,7 +794,8 @@ class eval(commands.Cog, name="Eval"):
                             pass
 
                         try:
-                            await member.edit(nick=f"{top_account.name} {clan_name}")
+                            if not test:
+                                await member.edit(nick=f"{top_account.name} {clan_name}")
                             name_changes = f"`{top_account.name} | {clan_name}`"
                         except:
                             name_changes = "`Could not change name`"
