@@ -12,10 +12,17 @@ class Linking(commands.Cog):
     @commands.slash_command(name="refresh", description="Self evaluate & refresh your server roles")
     async def refresh(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
+        server = CustomServer(guild=ctx.guild, bot=self.bot)
+        change_nickname = await server.nickname_choice
         tags = await self.bot.get_tags(str(ctx.author.id))
         if tags != []:
             evalua = self.bot.get_cog("Eval")
-            changes = await evalua.eval_member(ctx, ctx.author, False)
+            default_eval = ["family", "not_family", "clan", "leadership", "townhall", "builderhall", "category",
+                            "league", "nicknames"]
+            changes = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                                              test=False,
+                                              change_nick=change_nickname, role_types_to_eval=default_eval,
+                                              return_array=True)
             embed = disnake.Embed(
                 description=f"Refreshed your roles {ctx.author.mention}.\n"
                             f"Added: {changes[0]}\n"
