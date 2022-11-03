@@ -515,7 +515,7 @@ class eval(commands.Cog, name="Eval"):
             ignored_roles += category_role_list
 
         ALL_CLASH_ROLES = family_roles + clan_roles + not_fam_roles + league_role_list + th_role_list + category_role_list
-        if leadership_eval and "leadership" in role_types_to_eval:
+        if leadership_eval or ("leadership" in role_types_to_eval):
             ALL_CLASH_ROLES += leadership_roles
 
 
@@ -675,11 +675,13 @@ class eval(commands.Cog, name="Eval"):
                         if role not in MASTER_ROLES:
                             ROLES_TO_ADD.add(role)
                 else:
-                    for role in not_fam_roles and "not_family" in role_types_to_eval:
+                    for role in not_fam_roles:
+                        if "not_family" not in role_types_to_eval:
+                            continue
                         ROLES_SHOULD_HAVE.add(role)
                         if role not in MASTER_ROLES:
                             ROLES_TO_ADD.add(role)
-                    if not leadership_eval and "leadership" in role_types_to_eval:
+                    if not leadership_eval or "leadership" in role_types_to_eval:
                         for role in leadership_roles:
                             if role in MASTER_ROLES:
                                 ROLES_TO_REMOVE.add(role)
