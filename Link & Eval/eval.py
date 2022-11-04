@@ -24,8 +24,7 @@ class eval(commands.Cog, name="Eval"):
         test = (test != "No")
         server = CustomServer(guild=ctx.guild, bot=self.bot)
         change_nick = await server.nickname_choice
-        default_eval = ["family" , "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "nicknames"]
-        changes = await self.eval_logic(ctx=ctx, members_to_eval=[user], role_or_user=user, test=test, change_nick=change_nick, role_types_to_eval=default_eval)
+        changes = await self.eval_logic(ctx=ctx, members_to_eval=[user], role_or_user=user, test=test, change_nick=change_nick)
 
     @eval.sub_command(name="role", description="Evaluate the roles of all members in a specific role")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -61,7 +60,8 @@ class eval(commands.Cog, name="Eval"):
                 return
             default_eval = res.values
             await msg.edit(components = [])
-
+        else:
+            default_eval = None
         server = CustomServer(guild=ctx.guild, bot=self.bot)
         change_nick = await server.nickname_choice
         members = role.members
@@ -104,9 +104,8 @@ class eval(commands.Cog, name="Eval"):
 
         server = CustomServer(guild=ctx.guild, bot=self.bot)
         change_nick = await server.nickname_choice
-        default_eval = ["family" , "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "nicknames"]
         await self.eval_logic(ctx=ctx, members_to_eval=[user], role_or_user=user, test=test,
-                                        change_nick=change_nick, role_types_to_eval=default_eval)
+                                        change_nick=change_nick)
 
     @commands.user_command(name="Nickname", description="Change nickname of a user")
     async def auto_nick(self, ctx: disnake.ApplicationCommandInteraction, user: disnake.User):
@@ -382,14 +381,11 @@ class eval(commands.Cog, name="Eval"):
                 except:
                     await res.send(content=f"Could not edit {member.mention} name. Permissions error or user is above or equal to the bot's highest role.", ephemeral=True)
 
-    async def eval_logic(self, ctx: disnake.ApplicationCommandInteraction, role_or_user, members_to_eval, test, change_nick, role_types_to_eval, return_array=False):
-
+    async def eval_logic(self, ctx: disnake.ApplicationCommandInteraction, role_or_user, members_to_eval, test, change_nick, role_types_to_eval = None, return_array=False, return_embed=None):
+        if role_types_to_eval is None:
+            role_types_to_eval = ["family" , "not_family", "clan", "townhall", "builderhall", "category", "league", "nicknames"]
         server = CustomServer(guild=ctx.guild, bot=self.bot)
         leadership_eval = await server.leadership_eval_choice
-        embed = disnake.Embed(
-            description="<a:loading:884400064313819146> Evaluating...",
-            color=disnake.Color.green())
-        await ctx.edit_original_message(embed=embed)
 
         ignored_roles = []
         all = self.bot.ignoredroles.find({"server": ctx.guild.id})
@@ -539,7 +535,6 @@ class eval(commands.Cog, name="Eval"):
                 ROLES_SHOULD_HAVE = set()
                 account_tags = await self.bot.get_tags(str(member.id))
                 GLOBAL_IS_FAMILY = False
-
                 list_accounts = []
                 family_accounts = []
                 abbreviations_to_have = []
@@ -559,7 +554,6 @@ class eval(commands.Cog, name="Eval"):
                     # fetch clan role using dict
                     # if the user doesnt have it in their master list - add to roles they should have
                     # set doesnt allow duplicates, so no check needed
-
                     if "clan" in role_types_to_eval:
                         clan_role = clan_role_dict[player.clan.tag]
                         if abbreviations[player.clan.tag] is not None:
@@ -747,26 +741,26 @@ class eval(commands.Cog, name="Eval"):
                             results = sorted(family_accounts, key=lambda l: l[0], reverse=True)
                             abbreviations_to_have = list(set(abbreviations_to_have))
                             top_account: coc.Player = results[0][1]
-                            abbreviations = ", ".join(abbreviations_to_have)
-                            abbreviations = "| " + abbreviations
+                            _abbreviations = ", ".join(abbreviations_to_have)
+                            _abbreviations = "| " + _abbreviations
                             if len(abbreviations_to_have) == 0:
                                 new_name = f"{top_account.name}"
                             else:
-                                new_name = f"{top_account.name} {abbreviations}"
+                                new_name = f"{top_account.name} {_abbreviations}"
                             while len(new_name) > 31:
                                 abbreviations_to_have = abbreviations_to_have.pop()
-                                abbreviations = ", ".join(abbreviations_to_have)
-                                abbreviations = "| " + abbreviations
+                                _abbreviations = ", ".join(abbreviations_to_have)
+                                _abbreviations = "| " + _abbreviations
                                 if len(abbreviations_to_have) == 0:
                                     new_name = f"{top_account.name}"
                                 else:
-                                    new_name = f"{top_account.name} {abbreviations}"
+                                    new_name = f"{top_account.name} {_abbreviations}"
                             try:
                                 if not test:
                                     await member.edit(nick=new_name)
                                 name_changes = f"`{new_name}`"
                             except:
-                                name_changes = "Could not change name"
+                                name_changes = "`Cannot Change`"
                                 pass
                         elif change_nick == "Family Name":
                             results = sorted(family_accounts, key=lambda l: l[0], reverse=True)
@@ -782,7 +776,7 @@ class eval(commands.Cog, name="Eval"):
                                         await member.edit(nick=f"{top_account.name} | {family_label}")
                                     name_changes = f"`{top_account.name} | {family_label}`"
                             except:
-                                name_changes = "Could not change name"
+                                name_changes = "`Cannot Change`"
                                 pass
 
                     if change_nick in ["Clan Abbreviations", "Family Name"] and not GLOBAL_IS_FAMILY and len(
@@ -800,7 +794,7 @@ class eval(commands.Cog, name="Eval"):
                                 await member.edit(nick=f"{top_account.name} {clan_name}")
                             name_changes = f"`{top_account.name} {clan_name}`"
                         except:
-                            name_changes = "`Could not change name`"
+                            name_changes = "`Cannot Change`"
                             pass
 
                 if added == "":
@@ -816,8 +810,8 @@ class eval(commands.Cog, name="Eval"):
             if ((changes[0] != "None") or (changes[1] != "None") or (changes[2] != "None")) or len(members_to_eval) > 1:
                 text += f"**{member.display_name}** | {member.mention}\nAdded: {changes[0]}\nRemoved: {changes[1]}"
                 if changes[2] != "None":
-                    text += f"\nNickname Change: {changes[2]}"
-                if len(members_to_eval) >= 2:
+                    text += f"\nNick Change: {changes[2]}"
+                if len(members_to_eval) >= 2 and num != 9:
                     text += f"\n<:blanke:838574915095101470>\n"
                 num += 1
             if num == 10 or len(members_to_eval) == 1:
@@ -829,6 +823,7 @@ class eval(commands.Cog, name="Eval"):
                 num = 0
 
         if text != "":
+            text = text[:-30]
             embed = disnake.Embed(title=f"Eval Complete for {role_or_user.name}",
                                   description=text,
                                   color=disnake.Color.green())
@@ -840,6 +835,9 @@ class eval(commands.Cog, name="Eval"):
                                   description=text,
                                   color=disnake.Color.green())
             embeds.append(embed)
+
+        if return_embed:
+            return embeds[0]
 
         current_page = 0
         await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))

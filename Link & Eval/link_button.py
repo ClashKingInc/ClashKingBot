@@ -165,28 +165,18 @@ class LinkWelcomeMessages(commands.Cog):
 
             if link_id == ctx.author.id:
                 evalua = self.bot.get_cog("Eval")
-                default_eval = ["family" , "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "nicknames"]
-                changes = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                                 test=False,
-                                                change_nick=change_nickname, role_types_to_eval=default_eval,
-                                                return_array=True)
-                embed = disnake.Embed(
-                    description=f"You're already linked {ctx.author.mention}! Updating your roles.\n"
-                                f"Added: {changes[0]}\n"
-                                f"Removed: {changes[1]}", color=disnake.Color.green())
+                                                change_nick=change_nickname,
+                                                return_embed=True)
                 return await modal_inter.send(embed=embed)
             elif verified:
                 await player.add_link(ctx.author)
                 evalua = self.bot.get_cog("Eval")
-                default_eval = ["family" , "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "nicknames"]
-                changes = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                                 test=False,
-                                                change_nick=change_nickname, role_types_to_eval=default_eval,
-                                                return_array=True)
-                embed = disnake.Embed(
-                    description=f"[{player.name}]({player.share_link}) successfully linked to {ctx.author.mention}.\n"
-                                f"Added: {changes[0]}\n"
-                                f"Removed: {changes[1]}", color=disnake.Color.green())
+                                                change_nick=change_nickname,
+                                                return_embed=True)
                 await modal_inter.send(embed=embed)
                 try:
                     results = await self.bot.server_db.find_one({"server": ctx.guild.id})

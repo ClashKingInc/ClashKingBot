@@ -69,7 +69,7 @@ class CustomServer():
     @property
     def leadership_eval(self):
         eval = self.server.get("leadership_eval")
-        return "Off" if eval is None or eval is False else "On"
+        return "Off" if eval is False else "On"
 
     @property
     def reddit_feed(self):
