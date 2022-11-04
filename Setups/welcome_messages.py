@@ -200,7 +200,8 @@ class joinstuff(commands.Cog, name="Welcome Setup"):
             })
         else:
             await self.bot.welcome.update_one({"server": ctx.guild.id}, {'$set': {
-                "link_channel": channel.id
+                "link_channel": channel.id,
+                "api_token" : api_token
             }})
 
         embed = disnake.Embed(description=f"Link Button Channel Successfully Setup!",

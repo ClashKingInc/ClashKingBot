@@ -173,10 +173,11 @@ class LinkWelcomeMessages(commands.Cog):
             elif verified:
                 await player.add_link(ctx.author)
                 evalua = self.bot.get_cog("Eval")
-                embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                embed: disnake.Embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                                 test=False,
                                                 change_nick=change_nickname,
                                                 return_embed=True)
+                embed.description = f"**{player.name} successfully linked to you**"
                 await modal_inter.send(embed=embed)
                 try:
                     results = await self.bot.server_db.find_one({"server": ctx.guild.id})
