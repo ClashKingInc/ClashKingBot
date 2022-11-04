@@ -132,7 +132,7 @@ class LinkWelcomeMessages(commands.Cog):
 
             player_tag = modal_inter.text_values["player_tag"]
             api_token = modal_inter.text_values["api_token"]
-            await modal_inter.response.defer(ephemeral=True)
+            #await modal_inter.response.defer(ephemeral=True)
             server = CustomServer(guild=ctx.guild, bot=self.bot)
             change_nickname = await server.nickname_choice
 
@@ -145,7 +145,7 @@ class LinkWelcomeMessages(commands.Cog):
                         color=disnake.Color.red())
                     embed.set_image(
                         url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
-                    return await modal_inter.edit_original_message(embed=embed)
+                    return await modal_inter.send(embed=embed)
                 else:
                     embed = disnake.Embed(
                         description=f"**Sorry, `{player_tag}` is an invalid player tag** :( \nUse the image below to help find your player tag.",
