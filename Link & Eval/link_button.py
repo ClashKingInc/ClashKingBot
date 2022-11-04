@@ -145,14 +145,14 @@ class LinkWelcomeMessages(commands.Cog):
                         color=disnake.Color.red())
                     embed.set_image(
                         url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
-                    return await modal_inter.send(embed=embed)
+                    return await modal_inter.send(embed=embed, ephemeral=True)
                 else:
                     embed = disnake.Embed(
                         description=f"**Sorry, `{player_tag}` is an invalid player tag** :( \nUse the image below to help find your player tag.",
                         color=disnake.Color.red())
                     embed.set_image(
                         url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
-                    return await modal_inter.send(embed=embed)
+                    return await modal_inter.send(embed=embed, ephemeral=True)
 
             link_id = await player.linked()
 
@@ -169,7 +169,7 @@ class LinkWelcomeMessages(commands.Cog):
                                                 test=False,
                                                 change_nick=change_nickname,
                                                 return_embed=True)
-                return await modal_inter.send(embed=embed)
+                return await modal_inter.send(embed=embed, ephemeral=True)
             elif verified:
                 await player.add_link(ctx.author)
                 evalua = self.bot.get_cog("Eval")
@@ -177,8 +177,8 @@ class LinkWelcomeMessages(commands.Cog):
                                                 test=False,
                                                 change_nick=change_nickname,
                                                 return_embed=True)
-                embed.description = f"**{player.name} successfully linked to you**"
-                await modal_inter.send(embed=embed)
+                embed.title = f"**{player.name} successfully linked**"
+                await modal_inter.send(embed=embed, ephemeral=True)
                 try:
                     results = await self.bot.server_db.find_one({"server": ctx.guild.id})
                     greeting = results.get("greeting")
@@ -202,12 +202,12 @@ class LinkWelcomeMessages(commands.Cog):
                     embed = disnake.Embed(
                         description=f"The player you are looking for is [{player.name}]({player.share_link}), however it appears u may have made a mistake.\n Double check your api token again.",
                         color=disnake.Color.red())
-                    await modal_inter.send(embed=embed)
+                    await modal_inter.send(embed=embed, ephemeral=True)
                 else:
                     embed = disnake.Embed(
                         description=f"[{player.name}]({player.share_link}) is already linked to another user. Please try again with an api token.",
                         color=disnake.Color.red())
-                    await modal_inter.send(embed=embed)
+                    await modal_inter.send(embed=embed, ephemeral=True)
 
 
         elif ctx.data.custom_id == "Link Help":
