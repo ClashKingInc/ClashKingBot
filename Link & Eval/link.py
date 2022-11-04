@@ -251,7 +251,7 @@ class Linking(commands.Cog):
         await self.bot.link_client.add_link(player.tag, member.id)
 
         evalua = self.bot.get_cog("Eval")
-        embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+        embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[member], role_or_user=member,
                                         test=False,
                                         change_nick=change_nickname,
                                         return_embed=True)
