@@ -59,7 +59,7 @@ class eval(commands.Cog, name="Eval"):
             except:
                 return
             default_eval = res.values
-            await msg.edit(components = [])
+            await res.response.edit_message(components = [])
         else:
             default_eval = None
         server = CustomServer(guild=ctx.guild, bot=self.bot)
@@ -668,7 +668,7 @@ class eval(commands.Cog, name="Eval"):
                         ROLES_SHOULD_HAVE.add(role)
                         if role not in MASTER_ROLES:
                             ROLES_TO_ADD.add(role)
-                else:
+                elif not GLOBAL_IS_FAMILY:
                     for role in not_fam_roles:
                         if "not_family" not in role_types_to_eval:
                             continue
@@ -808,12 +808,15 @@ class eval(commands.Cog, name="Eval"):
             except:
                 continue
             if ((changes[0] != "None") or (changes[1] != "None") or (changes[2] != "None")) or len(members_to_eval) > 1:
-                text += f"**{member.display_name}** | {member.mention}\nAdded: {changes[0]}\nRemoved: {changes[1]}"
-                if changes[2] != "None":
-                    text += f"\nNick Change: {changes[2]}"
-                if len(members_to_eval) >= 2 and num != 9:
-                    text += f"\n<:blanke:838574915095101470>\n"
-                num += 1
+                if changes[0] == "None" and changes[1] == "None" and "nicknames" not in role_types_to_eval:
+                    pass
+                else:
+                    text += f"**{member.display_name}** | {member.mention}\nAdded: {changes[0]}\nRemoved: {changes[1]}"
+                    if changes[2] != "None":
+                        text += f"\nNick Change: {changes[2]}"
+                    if len(members_to_eval) >= 2 and num != 9:
+                        text += f"\n<:blanke:838574915095101470>\n"
+                    num += 1
             if num == 10 or len(members_to_eval) == 1:
                 embed = disnake.Embed(title=f"Eval Complete",
                                       description=text,

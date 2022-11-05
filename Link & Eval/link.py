@@ -70,6 +70,7 @@ class Linking(commands.Cog):
                                                 test=False,
                                                 change_nick=change_nickname,
                                                 return_embed=True)
+                embed.title = f"**{player.name} successfully linked to {str(ctx.author)}**"
                 await ctx.edit_original_message(embed=embed)
                 try:
                     results = await self.bot.server_db.find_one({"server": ctx.guild.id})
@@ -161,6 +162,7 @@ class Linking(commands.Cog):
                                                 test=False,
                                                 change_nick=change_nickname,
                                                 return_embed=True)
+                embed.title = f"**{player.name} successfully linked to {str(ctx.author)}**"
                 await ctx.send(embed=embed)
                 try:
                     results = await self.bot.server_db.find_one({"server": ctx.guild.id})
@@ -255,6 +257,7 @@ class Linking(commands.Cog):
                                         test=False,
                                         change_nick=change_nickname,
                                         return_embed=True)
+        embed.title = f"**{player.name} successfully linked to {str(member)}**"
         await ctx.edit_original_message(embed=embed)
 
         if greet != "No":
