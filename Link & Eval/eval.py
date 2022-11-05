@@ -748,7 +748,8 @@ class eval(commands.Cog, name="Eval"):
                             else:
                                 new_name = f"{top_account.name} {_abbreviations}"
                             while len(new_name) > 31:
-                                abbreviations_to_have = abbreviations_to_have.pop()
+                                to_remove = max(abbreviations_to_have, key=len)
+                                abbreviations_to_have.remove(to_remove)
                                 _abbreviations = ", ".join(abbreviations_to_have)
                                 _abbreviations = "| " + _abbreviations
                                 if len(abbreviations_to_have) == 0:
