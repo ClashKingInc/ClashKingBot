@@ -301,7 +301,9 @@ class clan_commands(commands.Cog):
         await ctx.edit_original_message(embed=embed)
 
     @clan.sub_command(name="capital-stats", description="Get stats on raids & donations during selected time period")
-    async def clan_capital_stats(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), weekend=commands.Param(default="Current Week", choices=["Current Week", "Last Week", "Last 4 Weeks (all)"])):
+    async def clan_capital_stats(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+        #weekend = commands.Param(default="Current Week", choices=["Current Week", "Last Week", "Last 4 Weeks (all)"])
+        weekend = "Current Week"
         await ctx.response.defer()
         raidlog = await self.bot.coc_client.get_raidlog(clan.tag)
         choice_to_date = {"Current Week": [0], "Last Week": [1], "Last 4 Weeks (all)": [0, 1, 2, 3]}
