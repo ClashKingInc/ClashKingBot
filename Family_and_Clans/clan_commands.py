@@ -10,6 +10,8 @@ import asyncio
 from CustomClasses.CustomPlayer import MyCustomPlayer
 import pandas as pd
 from collections import defaultdict
+import pytz
+tiz = pytz.utc
 
 class clan_commands(commands.Cog):
 
