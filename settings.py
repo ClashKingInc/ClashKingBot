@@ -403,13 +403,13 @@ class misc(commands.Cog, name="Settings"):
 
     @set.sub_command(name="war-log", description="Set up a war log for a clan")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def warlog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: Union[disnake.TextChannel, disnake.Thread], log_type = commands.Param(choices=["Continuous Feed", "Update Feed"])):
+    async def warlog(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: Union[disnake.TextChannel, disnake.Thread], log_type = commands.Param(choices=["Continuous Feed", "Update Panel"])):
         """
             Parameters
             ----------
             clan: Use clan tag or select an option from the autocomplete
             channel: channel to set the war log to
-            attack_feed: Continuous - log of every attack, Update - silently update the new war message
+            attack_feed: Continuous - log of every attack, Update - silently update the war panel
         """
 
         clan = await self.bot.getClan(clan)
@@ -424,6 +424,9 @@ class misc(commands.Cog, name="Settings"):
         if results is None:
             return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
 
+        #legacy naming
+        if log_type == "Update Panel":
+            log_type = "Update Feed"
         await self.bot.clan_db.update_one({"$and": [
             {"tag": clan.tag},
             {"server": ctx.guild.id}
