@@ -194,6 +194,57 @@ class War_Log(commands.Cog):
                 war_message = cc.get("war_message")
 
                 if new_war.state == "preparation":
+
+                    #if we skipped from one war to next, update the old one
+                    if old_war.state == "inWar":
+                        if attack_feed is None:
+                            attack_feed = "Continuous Feed"
+                        if attack_feed == "Continuous Feed":
+                            war_state = "Ended"
+                            war_pos = "War Over"
+                            war_time = old_war.end_time.time.replace(tzinfo=tiz).timestamp()
+
+                            war_cog = self.bot.get_cog(name="War")
+                            stats = await war_cog.calculate_stars_percent(old_war)
+                            if stats[2] > stats[0]:
+                                result = "War Won"
+                            elif stats[2] == stats[0]:
+                                if stats[3] > stats[1]:
+                                    result = "War Won"
+                                else:
+                                    result = "War Lost"
+                            else:
+                                result = "War Lost"
+                            team_stars = str(stats[2]).ljust(7)
+                            opp_stars = str(stats[0]).rjust(7)
+                            team_per = (str(stats[3]) + "%").ljust(7)
+                            opp_per = (str(stats[1]) + "%").rjust(7)
+                            team_hits = f"{len(old_war.attacks) - len(old_war.opponent.attacks)}/{old_war.team_size * old_war.attacks_per_member}".ljust(
+                                7)
+                            opp_hits = f"{len(old_war.opponent.attacks)}/{old_war.team_size * old_war.attacks_per_member}".rjust(
+                                7)
+
+                            embed = disnake.Embed(description=f"[**{old_war.clan.name}**]({old_war.clan.share_link})",
+                                                  color=disnake.Color.red())
+                            embed.add_field(name=f"**War Against**",
+                                            value=f"[**{old_war.opponent.name}**]({old_war.opponent.share_link})\n­\n",
+                                            inline=False)
+                            embed.add_field(name=f"**{result}**",
+                                            value=f"{war_state} ({old_war.team_size} vs {old_war.team_size})\n"
+                                                  f"{war_pos}: <t:{int(war_time)}:R>\n­\n", inline=False)
+                            embed.add_field(name="**War Stats**",
+                                            value=f"`{team_hits}`<a:swords:944894455633297418>`{opp_hits}`\n"
+                                                  f"`{team_stars}`<:star:825571962699907152>`{opp_stars}`\n"
+                                                  f"`{team_per}`<:broken_sword:944896241429540915>`{opp_per}`\n­"
+                                            , inline=False)
+
+                            embed.set_thumbnail(url=old_war.clan.badge.large)
+                            embed.set_footer(text=f"{old_war.type.capitalize()} War")
+                            await warlog_channel.send(embed=embed)
+                        else:
+                            await self.update_war_message(war=old_war, warlog_channel=warlog_channel,
+                                                          message_id=war_message, server=cc.get("server"))
+
                     cog = self.bot.get_cog(name="Reminders")
                     reminder_times = await self.bot.get_reminder_times(clan_tag=new_war.clan.tag)
                     acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times,war_end_time=new_war.end_time)
@@ -391,6 +442,22 @@ class War_Log(commands.Cog):
             message = await warlog_channel.send(embed=embed, components=button)
             await self.bot.clan_db.update_one({"$and": [{"tag": war.clan.tag},{"server": server}]}, {'$set': {"war_message": message.id}})
 
+    @commands.Cog.listener()
+    async def on_button_click(self, ctx: disnake.MessageInteraction):
+        if "listwarattacks_" in str(ctx.data.custom_id):
+            await ctx.response.defer(ephemeral=True)
+            clan = (str(ctx.data.custom_id).split("_"))[-1]
+            war = await self.bot.get_clanwar(clan)
+            war_cog = self.bot.get_cog(name="War")
+            attack_embed = await war_cog.attacks_embed(war)
+            await ctx.send(embed=attack_embed, ephemeral=True)
+        elif "listwardefenses_" in str(ctx.data.custom_id):
+            await ctx.response.defer(ephemeral=True)
+            clan = (str(ctx.data.custom_id).split("_"))[-1]
+            war = await self.bot.get_clanwar(clan)
+            war_cog = self.bot.get_cog(name="War")
+            attack_embed = await war_cog.defenses_embed(war)
+            await ctx.send(embed=attack_embed, ephemeral=True)
 
 def setup(bot: CustomClient):
     bot.add_cog(War_Log(bot))
