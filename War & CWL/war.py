@@ -125,7 +125,7 @@ class War(commands.Cog):
                 embed = await self.opp_defenses_embed(war)
                 await res.response.edit_message(embed=embed)
 
-    async def main_war_page(self, war: coc.ClanWar, clan: coc.Clan):
+    async def main_war_page(self, war: coc.ClanWar, clan: coc.Clan = None):
         war_time = war.start_time.seconds_until
         war_state = "In Prep"
         war_pos = "Starting"
@@ -154,8 +154,10 @@ class War(commands.Cog):
 
         if war_pos == "Ended":
             color = disnake.Color.red()
+        elif war_pos == "Starting":
+            color = disnake.Color.yellow()
         else:
-            color = disnake.Color.green()
+            war_pos = disnake.Color.green()
 
         embed = disnake.Embed(description=f"[**{war.clan.name}**]({war.clan.share_link})",
                               color=color)
@@ -202,9 +204,6 @@ class War(commands.Cog):
         embed.set_thumbnail(url=war.clan.badge.large)
         embed.set_footer(text=f"{war.type.capitalize()} War")
         return embed
-
-
-
 
     async def roster_embed(self, war: coc.ClanWar):
         roster = ""
