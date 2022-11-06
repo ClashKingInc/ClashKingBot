@@ -371,7 +371,9 @@ class War_Log(commands.Cog):
 
 
     async def update_war_message(self, war: coc.ClanWar, warlog_channel, message_id, server):
-        clan = await self.bot.getClan(war.clan.tag)
+        clan = None
+        if war.type == "cwl":
+            clan = await self.bot.getClan(war.clan.tag)
         warlog_channel: disnake.TextChannel
         war_cog = self.bot.get_cog(name="War")
         embed = await war_cog.main_war_page(war=war, clan=clan)
