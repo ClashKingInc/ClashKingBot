@@ -7,6 +7,7 @@ from Dictionaries.emojiDictionary import emojiDictionary
 from collections import defaultdict
 from CustomClasses.CustomBot import CustomClient
 from coc import utils
+from utils.troop_methods import cwl_league_emojis
 
 tiz = pytz.utc
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
@@ -23,23 +24,13 @@ class War(commands.Cog):
         if clan is None:
             return await ctx.send("Not a valid clan tag.")
 
-        war = None
-        try:
-            group = await self.bot.coc_client.get_league_group(clan.tag)
-            rounds = group.number_of_rounds
-            league_wars = []
-            async for w in group.get_wars_for_clan(clan.tag):
-                league_wars.append(w)
-                if str(w.state) == "inWar":
-                    war = w
-        except:
-            try:
-                war = await self.bot.coc_client.get_clan_war(clan.tag)
-            except coc.PrivateWarLog:
-                embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) has a private war log.",
-                                      color=disnake.Color.green())
-                embed.set_thumbnail(url=clan.badge.large)
-                return await ctx.send(embed=embed)
+        if not clan.public_war_log:
+            embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) has a private war log.",
+                                  color=disnake.Color.green())
+            embed.set_thumbnail(url=clan.badge.large)
+            return await ctx.send(embed=embed)
+
+        war = await self.bot.get_clanwar(clan.tag)
 
         if war is None or war.start_time is None:
             embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) is not in War.",
@@ -47,49 +38,6 @@ class War(commands.Cog):
             embed.set_thumbnail(url=clan.badge.large)
             return await ctx.send(embed=embed)
 
-        war_time = war.start_time.seconds_until
-        war_state = "In Prep"
-        war_pos = "Starting"
-        if war_time >= 0:
-            war_time = war.start_time.time.replace(tzinfo=tiz).timestamp()
-        else:
-            war_time = war.end_time.seconds_until
-            if war_time <= 0:
-                war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
-                war_pos = "Ended"
-                war_state = "War Over"
-            else:
-                war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
-                war_pos = "Ending"
-                war_state = "In War"
-
-        stats = await self.calculate_stars_percent(war)
-        team_stars = str(stats[2]).ljust(7)
-        opp_stars = str(stats[0]).rjust(7)
-        team_per = (str(stats[3])+ "%").ljust(7)
-        opp_per = (str(stats[1])+ "%").rjust(7)
-        team_hits = f"{len(war.attacks) - len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".ljust(7)
-        opp_hits = f"{len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".rjust(7)
-
-        th_comps = await self.war_th_comps(war)
-
-        embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link})",
-                              color=disnake.Color.green())
-        embed.add_field(name=f"**War Against**", value=f"[**{war.opponent.name}**]({war.opponent.share_link})\n­\n", inline=False)
-        embed.add_field(name=f"**War State**",
-                        value=f"{war_state} ({war.team_size} vs {war.team_size})\n"
-                              f"{war_pos}: <t:{int(war_time)}:R>\n­\n", inline=False)
-        embed.add_field(name="**War Stats**",
-                        value=f"`{team_hits}`<a:swords:944894455633297418>`{opp_hits}`\n"
-                              f"`{team_stars}`<:star:825571962699907152>`{opp_stars}`\n"
-                              f"`{team_per}`<:broken_sword:944896241429540915>`{opp_per}`\n­\n"
-                              , inline=False)
-
-        embed.add_field(name="War Composition", value=f"{war.clan.name}\n{th_comps[0]}\n"
-                                                     f"{war.opponent.name}\n{th_comps[1]}", inline=False)
-
-        embed.set_thumbnail(url=clan.badge.large)
-        main = embed
 
         disc = "<:map:944913638500761600>"
         emoji = ''.join(filter(str.isdigit, disc))
@@ -121,6 +69,8 @@ class War(commands.Cog):
         surr = ''.join(filter(str.isdigit, surr))
         surr = self.bot.get_emoji(int(surr))
         surr = disnake.PartialEmoji(name=surr.name, id=surr.id)
+
+        embed = await self.main_war_page(war=war, clan=clan)
 
         main = embed
 
@@ -175,28 +125,85 @@ class War(commands.Cog):
                 embed = await self.opp_defenses_embed(war)
                 await res.response.edit_message(embed=embed)
 
-    @clan_war.autocomplete("clan")
-    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
-        clan_list = []
-        for tClan in await tracked.to_list(length=limit):
-            name = tClan.get("name")
-            tag = tClan.get("tag")
-            if query.lower() in name.lower():
-                clan_list.append(f"{name} | {tag}")
-
-        if clan_list == [] and len(query) >= 3:
-            clan = await self.bot.getClan(query)
-            if clan is None:
-                results = await self.bot.coc_client.search_clans(name=query, limit=25)
-                for clan in results:
-                    clan_list.append(
-                        f"{clan.name} | {clan.member_count}/50 | LV{clan.level} | {clan.war_league} | {clan.tag}")
+    async def main_war_page(self, war: coc.ClanWar, clan: coc.Clan):
+        war_time = war.start_time.seconds_until
+        war_state = "In Prep"
+        war_pos = "Starting"
+        if war_time >= 0:
+            war_time = war.start_time.time.replace(tzinfo=tiz).timestamp()
+        else:
+            war_time = war.end_time.seconds_until
+            if war_time <= 0:
+                war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
+                war_pos = "Ended"
+                war_state = "War Over"
             else:
-                clan_list.append(f"{clan.name} | {clan.tag}")
-                return clan_list
-        return clan_list[0:25]
+                war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
+                war_pos = "Ending"
+                war_state = "In War"
+
+        stats = await self.calculate_stars_percent(war)
+        team_stars = str(stats[2]).ljust(7)
+        opp_stars = str(stats[0]).rjust(7)
+        team_per = (str(stats[3]) + "%").ljust(7)
+        opp_per = (str(stats[1]) + "%").rjust(7)
+        team_hits = f"{len(war.attacks) - len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".ljust(7)
+        opp_hits = f"{len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".rjust(7)
+
+        th_comps = await self.war_th_comps(war)
+
+        if war_pos == "Ended":
+            color = disnake.Color.red()
+        else:
+            color = disnake.Color.green()
+
+        embed = disnake.Embed(description=f"[**{war.clan.name}**]({war.clan.share_link})",
+                              color=color)
+        embed.add_field(name=f"**War Against**", value=f"[**{war.opponent.name}**]({war.opponent.share_link})\n­\n",
+                        inline=False)
+        if war.type == "cwl":
+            embed.add_field(name=f"**War State**",
+                            value=f"{cwl_league_emojis(str(clan.war_league))}{str(clan.war_league)}\n"
+                                  f"{war_state} ({war.team_size} vs {war.team_size})\n"
+                                  f"{war_pos}: <t:{int(war_time)}:R>\n­\n", inline=False)
+        else:
+            embed.add_field(name=f"**War State**",
+                            value=f"{war_state} ({war.team_size} vs {war.team_size})\n"
+                                  f"{war_pos}: <t:{int(war_time)}:R>\n­\n", inline=False)
+        embed.add_field(name="**War Stats**",
+                        value=f"`{team_hits}`<a:swords:944894455633297418>`{opp_hits}`\n"
+                              f"`{team_stars}`<:star:825571962699907152>`{opp_stars}`\n"
+                              f"`{team_per}`<:broken_sword:944896241429540915>`{opp_per}`\n­\n"
+                        , inline=False)
+
+        embed.add_field(name="War Composition", value=f"{war.clan.name}\n{th_comps[0]}\n"
+                                                      f"{war.opponent.name}\n{th_comps[1]}", inline=False)
+
+        if war.attacks:
+            text = ""
+            for attack in war.attacks[:5]:
+                star_str = ""
+                stars = attack.stars
+                for x in range(0, stars):
+                    star_str += self.bot.emoji.war_star.emoji_string
+                for x in range(0, 3 - stars):
+                    star_str += self.bot.emoji.no_star.emoji_string
+                if attack.attacker.clan != war.clan:
+                    emoji = self.bot.emoji.shield
+                    name = attack.defender.name
+                else:
+                    emoji = self.bot.emoji.sword
+                    name = attack.attacker.name
+                destruction = f"{attack.destruction}".rjust(3)
+                text += f"{emoji}`{destruction}%`{star_str}`{name}`\n"
+            embed.add_field(name="­\nLast 5 attacks/defenses",
+                            value=text)
+
+        embed.set_thumbnail(url=war.clan.badge.large)
+        embed.set_footer(text=f"{war.type.capitalize()} War")
+        return embed
+
+
 
 
     async def roster_embed(self, war: coc.ClanWar):
@@ -265,26 +272,21 @@ class War(commands.Cog):
         missing_attacks = ""
         for player in war.members:
             if player not in war.opponent.members:
-                name = player.name
-                rank = player.map_position
-                rank = str(rank) + "."
-                rank = rank.ljust(3)
-                attack = f"**`{rank}` {name}**"
                 if player.attacks == []:
-                    missing_attacks += f"➼ {rank} {player.name}\n"
+                    missing_attacks += f"➼ {self.bot.fetch_emoji(name=player.town_hall)}{player.name}\n"
                     continue
+                name = player.name
+                attacks += f"\n{self.bot.fetch_emoji(name=player.town_hall)}**{name}**"
                 for a in player.attacks:
-                    if a == player.attacks[0]:
-                        attack += "\n➼ "
-                    if a != player.attacks[-1]:
-                        base = await self.create_superscript(a.defender.map_position)
-                        attack += f"{a.stars}★ {a.destruction}%{base}, "
-                    else:
-                        base = await self.create_superscript(a.defender.map_position)
-                        attack += f"{a.stars}★ {a.destruction}%{base}"
+                    star_str = ""
+                    stars = a.stars
+                    for x in range(0, stars):
+                        star_str += "★"
+                    for x in range(0, 3 - stars):
+                        star_str += "☆"
 
-                attacks += f"{attack}\n"
-
+                    base = await self.create_superscript(a.defender.map_position)
+                    attacks += f"\n➼ {a.destruction}%{star_str}{base}"
 
         embed = disnake.Embed(title=f"{war.clan.name} War Attacks", description=attacks,
                               color=disnake.Color.green())
@@ -298,21 +300,23 @@ class War(commands.Cog):
         missing_defenses = ""
         for player in war.members:
             if player not in war.opponent.members:
-                name = player.name
-                defense = f"**{name}**"
                 if player.defenses == []:
-                    missing_defenses += f"➼ {player.name}\n"
+                    missing_defenses += f"➼ {self.bot.fetch_emoji(name=player.town_hall)}{player.name}\n"
                     continue
-                for d in player.defenses:
-                    if d == player.defenses[0]:
-                        defense += "\n➼ "
-                    if d != player.defenses[-1]:
-                        defense += f"{d.stars}★ {d.destruction}%, "
-                    else:
-                        defense += f"{d.stars}★ {d.destruction}%"
+                name = player.name
+                defenses += f"\n{self.bot.fetch_emoji(name=player.town_hall)}**{name}**"
+                print(player.name)
+                print(player.defenses)
+                for a in player.defenses:
+                    star_str = ""
+                    stars = a.stars
+                    for x in range(0, stars):
+                        star_str += "★"
+                    for x in range(0, 3 - stars):
+                        star_str += "☆"
 
-                defenses += f"{defense}\n"
-
+                    base = await self.create_superscript(a.defender.map_position)
+                    defenses += f"\n➼ {a.destruction}%{star_str}{base}"
 
         embed = disnake.Embed(title=f"{war.clan.name} Defenses Taken", description=defenses,
                               color=disnake.Color.green())
@@ -435,7 +439,6 @@ class War(commands.Cog):
         avg_destr_opp = round(opp_destr / opp_num_def, 2)
         return [stars, avg_destr, opp_stars, avg_destr_opp]
 
-
     async def war_th_comps(self, war: coc.ClanWar):
         thcount = defaultdict(int)
         opp_thcount = defaultdict(int)
@@ -509,6 +512,28 @@ class War(commands.Cog):
 
         return emoji
 
+    @clan_war.autocomplete("clan")
+    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
+        clan_list = []
+        for tClan in await tracked.to_list(length=limit):
+            name = tClan.get("name")
+            tag = tClan.get("tag")
+            if query.lower() in name.lower():
+                clan_list.append(f"{name} | {tag}")
+
+        if clan_list == [] and len(query) >= 3:
+            clan = await self.bot.getClan(query)
+            if clan is None:
+                results = await self.bot.coc_client.search_clans(name=query, limit=25)
+                for clan in results:
+                    clan_list.append(
+                        f"{clan.name} | {clan.member_count}/50 | LV{clan.level} | {clan.war_league} | {clan.tag}")
+            else:
+                clan_list.append(f"{clan.name} | {clan.tag}")
+                return clan_list
+        return clan_list[0:25]
 
 def setup(bot: CustomClient):
     bot.add_cog(War(bot))

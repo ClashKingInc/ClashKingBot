@@ -512,12 +512,19 @@ class CustomClient(commands.Bot):
         verified = await self.coc_client.verify_player_token(playerTag, playerToken)
         return verified
 
-    async def get_clanwar(self, clanTag):
-        try:
-            war = await self.coc_client.get_current_war(clanTag)
-            return war
-        except:
-            return None
+    async def get_clanwar(self, clanTag, next_war = False):
+        if not next_war:
+            try:
+                war = await self.coc_client.get_current_war(clanTag)
+                return war
+            except:
+                return None
+        else:
+            try:
+                war = await self.coc_client.get_current_war(clanTag, cwl_round=coc.WarRound.current_preparation)
+                return war
+            except:
+                return None
 
     async def get_raid(self, clan_tag):
         try:

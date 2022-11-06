@@ -8,12 +8,10 @@ from datetime import datetime
 from utils.troop_methods import cwl_league_emojis
 from utils.discord_utils import partial_emoji_gen
 from Dictionaries.emojiDictionary import emojiDictionary
-from Dictionaries.levelEmojis import levelEmojis
 from collections import defaultdict
 import operator
 import aiohttp
-from bs4 import BeautifulSoup
-import asyncio
+
 
 from CustomClasses.CustomBot import CustomClient
 
@@ -83,41 +81,11 @@ class Cwl(commands.Cog, name="CWL"):
             embed.set_thumbnail(url=clan.badge.large)
             return await ctx.send(embed=embed)
 
-        map = partial_emoji_gen(self.bot, "<:map:944913638500761600>")
-        swords = partial_emoji_gen(self.bot, "<a:swords:944894455633297418>", animated=True)
-        star = partial_emoji_gen(self.bot, "<:star:825571962699907152>")
-        troop = partial_emoji_gen(self.bot, "<:troop:861797310224400434>")
-        up = partial_emoji_gen(self.bot, "<:warwon:932212939899949176>")
-
-        options= [  # the options in your dropdown
-                disnake.SelectOption(label="Star Leaderboard", emoji=star, value="stars"),
-                disnake.SelectOption(label="Clan Rankings", emoji=up, value="rankings"),
-                disnake.SelectOption(label="All Rounds", emoji=map, value="allrounds"),
-                disnake.SelectOption(label="All Members", emoji=self.bot.emoji.alphabet.partial_emoji, value="all_members")
-            ]
-
-        #on first round - only next round
-        #on last round - only current round
-        if war is None:
-            options.insert(0, disnake.SelectOption(label="Next Round", emoji='📍', value="nextround"))
-            options.insert(1, disnake.SelectOption(label="Next Round Lineup", emoji=troop, value="lineup"))
-        elif next_war is None:
-            options.insert(0, disnake.SelectOption(label="Current Round", emoji=swords, value="round"))
-        else:
-            options.insert(0, disnake.SelectOption(label="Current Round", emoji=swords, value="round"))
-            options.insert(1, disnake.SelectOption(label="Next Round", emoji="📍", value="nextround"))
-            options.insert(2, disnake.SelectOption(label="Next Round Lineup", emoji=troop, value="lineup"))
-
-
-        select = disnake.ui.Select(
-            options=options,
-            placeholder="Choose a page",  # the placeholder text to show when no options have been chosen
-            min_values=1,  # the minimum number of options a user must select
-            max_values=1,  # the maximum number of options a user can select
-        )
-        dropdown = [disnake.ui.ActionRow(select)]
-
-        main = await self.war_embed(war, clan)
+        stat_dropdown = await self.stat_components(war=war, next_war=next_war)
+        clan_dropdown = await self.clan_components(group=group)
+        dropdown = [stat_dropdown, clan_dropdown]
+        war_cog = self.bot.get_cog(name="War")
+        main = await war_cog.main_war_page(war=war, clan=clan)
         await ctx.send(embed=main, components=dropdown)
         msg = await ctx.original_message()
 
@@ -135,7 +103,37 @@ class Cwl(commands.Cog, name="CWL"):
                     pass
                 break
 
-            if res.values[0] == "round":
+            if "cwlchoose_" in res.values[0]:
+                await res.response.defer()
+                clan_tag = (str(res.values[0]).split("_"))[-1]
+                clan = await self.bot.getClan(clan_tag)
+                war = await self.bot.get_clanwar(clan_tag)
+                next_war = await self.bot.get_clanwar(clan_tag, next_war=True)
+                key = os.getenv("API_TOKEN")
+                headers = {
+                    "Accept": "application/json",
+                    "authorization": f"{key}"
+                }
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                            f"https://cocproxy.royaleapi.dev/v1/clans/%23{clan.tag.replace('#', '')}/currentwar/leaguegroup",
+                            headers=headers) as response:
+                        response = await response.json()
+                        clans = response["clans"]
+                        our_clan = [c for c in clans if c["tag"] == clan.tag]
+                        members = our_clan[0]["members"]
+                    await session.close()
+                main = await war_cog.main_war_page(war=war, clan=clan)
+                await res.edit_original_message(embed=main)
+                group = await self.bot.coc_client.get_league_group(clan.tag)
+                league_wars = []
+                async for w in group.get_wars_for_clan(clan.tag):
+                    league_wars.append(w)
+                    if str(w.state) == "inWar":
+                        war = w
+                    if str(w.state) == "preparation":
+                        next_war = w
+            elif res.values[0] == "round":
                 await res.response.edit_message(embed=main)
             elif res.values[0] == "nextround":
                 embed = await self.war_embed(next_war, clan)
@@ -156,19 +154,61 @@ class Cwl(commands.Cog, name="CWL"):
             elif res.values[0] == "all_members":
                 embed = await self.all_members(members, clan)
                 await res.response.edit_message(embed=embed)
+            elif res.values[0] == "current_lineup":
+                embed1 = await self.roster_embed(war)
+                embed2 = await self.opp_roster_embed(war)
+                await res.response.edit_message(embeds=[embed1, embed2])
 
+    async def stat_components(self, war: coc.ClanWar, next_war: coc.ClanWar):
+        map = partial_emoji_gen(self.bot, "<:map:944913638500761600>")
+        swords = partial_emoji_gen(self.bot, "<a:swords:944894455633297418>", animated=True)
+        star = partial_emoji_gen(self.bot, "<:star:825571962699907152>")
+        troop = partial_emoji_gen(self.bot, "<:troop:861797310224400434>")
+        up = partial_emoji_gen(self.bot, "<:warwon:932212939899949176>")
 
-    @cwl.autocomplete("clan")
-    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
-        clan_list = []
-        for tClan in await tracked.to_list(length=limit):
-            name = tClan.get("name")
-            tag = tClan.get("tag")
-            if query.lower() in name.lower():
-                clan_list.append(f"{name} | {tag}")
-        return clan_list[0:25]
+        options = [  # the options in your dropdown
+            disnake.SelectOption(label="Star Leaderboard", emoji=star, value="stars"),
+            disnake.SelectOption(label="Clan Rankings", emoji=up, value="rankings"),
+            disnake.SelectOption(label="All Rounds", emoji=map, value="allrounds"),
+            disnake.SelectOption(label="All Members", emoji=self.bot.emoji.alphabet.partial_emoji, value="all_members")
+        ]
+
+        # on first round - only next round
+        # on last round - only current round
+        if war is None:
+            options.insert(0, disnake.SelectOption(label="Next Round", emoji='📍', value="nextround"))
+            options.insert(1, disnake.SelectOption(label="Next Round Lineup", emoji=troop, value="lineup"))
+        elif next_war is None:
+            options.insert(0, disnake.SelectOption(label="Current Round", emoji=swords, value="round"))
+            options.insert(1, disnake.SelectOption(label="Current Lineup", emoji=troop, value="current_lineup"))
+        else:
+            options.insert(0, disnake.SelectOption(label="Current Round", emoji=swords, value="round"))
+            options.insert(1, disnake.SelectOption(label="Current Lineup", emoji=troop, value="current_lineup"))
+            options.insert(2, disnake.SelectOption(label="Next Round", emoji="📍", value="nextround"))
+            options.insert(3, disnake.SelectOption(label="Next Round Lineup", emoji=troop, value="lineup"))
+
+        select = disnake.ui.Select(
+            options=options,
+            placeholder="CWL Stat Pages",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=1,  # the maximum number of options a user can select
+        )
+        return disnake.ui.ActionRow(select)
+
+    async def clan_components(self, group: coc.ClanWarLeagueGroup):
+        options = []
+        for clan in group.clans:
+            emoji = await self.bot.create_new_badge_emoji(url=clan.badge.url)
+            options.append(disnake.SelectOption(label=f"{clan.name}", emoji=self.bot.partial_emoji_gen(emoji_string=emoji), value=f"cwlchoose_{clan.tag}"))
+
+        select = disnake.ui.Select(
+            options=options,
+            placeholder="Choose a clan",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=1,  # the maximum number of options a user can select
+        )
+        return disnake.ui.ActionRow(select)
+
 
     async def war_embed(self, war: coc.ClanWar, clan: coc.Clan):
 
@@ -556,6 +596,18 @@ class Cwl(commands.Cog, name="CWL"):
             emoji = "<:Unranked:601618883853680653>"
 
         return emoji
+
+    @cwl.autocomplete("clan")
+    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
+        clan_list = []
+        for tClan in await tracked.to_list(length=limit):
+            name = tClan.get("name")
+            tag = tClan.get("tag")
+            if query.lower() in name.lower():
+                clan_list.append(f"{name} | {tag}")
+        return clan_list[0:25]
 
     @commands.slash_command(name="cwl-leagues", description="List of clans in family, sorted by cwl league")
     async def cwl_co(self, ctx: disnake.ApplicationCommandInteraction):
