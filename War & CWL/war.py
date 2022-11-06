@@ -305,8 +305,6 @@ class War(commands.Cog):
                     continue
                 name = player.name
                 defenses += f"\n{self.bot.fetch_emoji(name=player.town_hall)}**{name}**"
-                print(player.name)
-                print(player.defenses)
                 for a in player.defenses:
                     star_str = ""
                     stars = a.stars

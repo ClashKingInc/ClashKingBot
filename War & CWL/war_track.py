@@ -14,7 +14,8 @@ class War_Log(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        self.bot.coc_client.add_events(self.war_attack, self.new_war)
+        self.bot.coc_client.add_events(self.new_war_same_state, self.new_war, self.war_attack)
+
 
     @coc.WarEvents.start_time()
     async def new_war_same_state(self, old_war: coc.ClanWar, new_war: coc.ClanWar):
@@ -309,6 +310,7 @@ class War_Log(commands.Cog):
             except:
                 continue
 
+
     @coc.WarEvents.war_attack()
     async def war_attack(self, attack: coc.WarAttack, war: coc.ClanWar):
         #is an attack
@@ -319,20 +321,19 @@ class War_Log(commands.Cog):
                 warlog_channel = cc.get("war_log")
                 if warlog_channel is None:
                     continue
+                try:
+                    warlog_channel = await self.bot.fetch_channel(warlog_channel)
+                    if warlog_channel is None:
+                        continue
+                except (disnake.NotFound, disnake.Forbidden):
+                    await self.bot.clan_db.update_one({"server": cc.get("server")}, {'$set': {"war_log": None}})
+                    continue
                 attack_feed = cc.get("attack_feed")
                 war_message = cc.get("war_message")
 
                 if attack_feed is None:
-                    attack_feed = "Continuous Feed"
+                    attack_feed = "Update Feed"
                 if attack_feed == "Continuous Feed":
-                    try:
-                        warlog_channel = await self.bot.fetch_channel(warlog_channel)
-                        if warlog_channel is None:
-                            continue
-                    except (disnake.NotFound, disnake.Forbidden):
-                        await self.bot.clan_db.update_one({"server": cc.get("server")}, {'$set': {"war_log": None}})
-                        continue
-
                     star_str = ""
                     stars = attack.stars
                     for x in range(0, stars):
@@ -378,7 +379,14 @@ class War_Log(commands.Cog):
             message = await warlog_channel.fetch_message(message_id)
             await message.edit(embed=embed)
         except:
-            message = await warlog_channel.send(embed=embed)
+            button = [disnake.ui.ActionRow(
+                disnake.ui.Button(label="Attacks", emoji=self.bot.emoji.sword_clash.partial_emoji,
+                                  style=disnake.ButtonStyle.grey,
+                                  custom_id=f"listwarattacks_{war.clan.tag}"),
+                disnake.ui.Button(label="Defenses", emoji=self.bot.emoji.shield.partial_emoji,
+                                  style=disnake.ButtonStyle.grey,
+                                  custom_id=f"listwardefenses_{war.clan.tag}"))]
+            message = await warlog_channel.send(embed=embed, components=button)
             await self.bot.clan_db.update_one({"$and": [{"tag": war.clan.tag},{"server": server}]}, {'$set': {"war_message": message.id}})
 
 
