@@ -157,7 +157,7 @@ class War(commands.Cog):
         elif war_pos == "Starting":
             color = disnake.Color.yellow()
         else:
-            war_pos = disnake.Color.green()
+            color = disnake.Color.green()
 
         embed = disnake.Embed(description=f"[**{war.clan.name}**]({war.clan.share_link})",
                               color=color)
