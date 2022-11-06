@@ -332,7 +332,7 @@ class War_Log(commands.Cog):
                 war_message = cc.get("war_message")
 
                 if attack_feed is None:
-                    attack_feed = "Update Feed"
+                    attack_feed = "Continuous Feed"
                 if attack_feed == "Continuous Feed":
                     star_str = ""
                     stars = attack.stars
