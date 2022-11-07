@@ -275,6 +275,7 @@ class War_Log(commands.Cog):
                     await self.bot.clan_db.update_one({"$and": [{"tag": new_war.clan.tag},{"server": cc.get("server")}]}, {'$set': {"war_message": message.id}})
 
                 if new_war.state == "inWar":
+
                     if attack_feed is None:
                         attack_feed = "Continuous Feed"
                     if attack_feed == "Continuous Feed":
@@ -287,7 +288,27 @@ class War_Log(commands.Cog):
                         embed.set_footer(text=f"{new_war.type.capitalize()} War")
                         await warlog_channel.send(embed=embed)
                     else:
-                        await self.update_war_message(war=new_war, warlog_channel=warlog_channel, message_id=war_message, server=cc.get("server"))
+                        if old_war.state == "warEnded":
+                            clan = await self.bot.getClan(new_war.clan.tag)
+                            war_cog = self.bot.get_cog(name="War")
+                            embed = await war_cog.main_war_page(war=new_war, clan=clan)
+                            embed.set_footer(text=f"{new_war.type.capitalize()} War")
+
+                            button = []
+                            if attack_feed == "Update Feed":
+                                button = [disnake.ui.ActionRow(
+                                    disnake.ui.Button(label="Attacks", emoji=self.bot.emoji.sword_clash.partial_emoji,
+                                                      style=disnake.ButtonStyle.grey,
+                                                      custom_id=f"listwarattacks_{new_war.clan.tag}"),
+                                    disnake.ui.Button(label="Defenses", emoji=self.bot.emoji.shield.partial_emoji,
+                                                      style=disnake.ButtonStyle.grey,
+                                                      custom_id=f"listwardefenses_{new_war.clan.tag}"))]
+                            message = await warlog_channel.send(embed=embed, components=button)
+                            await self.bot.clan_db.update_one(
+                                {"$and": [{"tag": new_war.clan.tag}, {"server": cc.get("server")}]},
+                                {'$set': {"war_message": message.id}})
+                        else:
+                            await self.update_war_message(war=new_war, warlog_channel=warlog_channel, message_id=war_message, server=cc.get("server"))
 
                 if new_war.state == "warEnded":
                     if attack_feed is None:
