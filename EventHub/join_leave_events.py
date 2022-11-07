@@ -44,7 +44,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                     received[member["tag"]] = change_rec
 
         clan_share_link = f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{event['new_clan']['tag'].strip('#')}"
-        embed = disnake.Embed(description=f"[**{event['new_clan']['name']}** ({event['new_clan']['tag']})]({clan_share_link})")
+        embed = disnake.Embed(description=f"[**{event['new_clan']['name']}**]({clan_share_link})")
         embed.set_thumbnail(url=event['new_clan']["badgeUrls"]["large"])
 
         donation_text = ""
@@ -53,7 +53,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
             donation_text += f"<:warwon:932212939899949176>`{donation}` | [**{tag_to_name[tag]}**]({tag_to_share_link[tag]})\n"
 
         if donation_text != "":
-            embed.add_field(name="Donated", value=donation_text)
+            embed.add_field(name="Donated", value=donation_text, inline=False)
 
         received_text = ""
         for tag, donation in received.items():
@@ -61,7 +61,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
             received_text += f"<:warlost:932212154164183081>`{donation}` | [**{tag_to_name[tag]}**]({tag_to_share_link[tag]})\n"
 
         if received_text != "":
-            embed.add_field(name="Received", value=received_text)
+            embed.add_field(name="Received", value=received_text, inline=False)
 
         if donation_text != "" or received_text != "":
             tracked = self.bot.clan_db.find({"tag": f"{clan_tag}"})
@@ -72,7 +72,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                 if donolog_channel is None:
                     continue
                 try:
-                    donolog_channel = await self.bot.fetch_channel(donolog_channel)
+                    donolog_channel = await self.bot.fetch_channel(923767060977303552)
                 except (disnake.Forbidden, disnake.NotFound):
                     await self.bot.clan_db.update_one({"$and": [
                         {"tag": clan_tag},
@@ -86,7 +86,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                     await donolog_channel.send(embed=embed)
                 except:
                     continue
-
+        return
 
         new_tags = list(set(curr_tags).difference(prev_tag))
         left_tags = list(set(prev_tag).difference(curr_tags))
