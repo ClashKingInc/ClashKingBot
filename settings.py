@@ -616,8 +616,8 @@ class misc(commands.Cog, name="Settings"):
     @set.sub_command(name="remove", description="Remove a setup")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def remove_setup(self, ctx: disnake.ApplicationCommandInteraction, clan: str,
-                           log_to_remove=commands.Param(choices=["Clan Capital Log", "Join Log", "War Log", "Legend Log"])):
-        type_dict = {"Clan Capital Log": "clan_capital", "Join Log": "joinlog", "War Log": "war_log", "Legend Log" : "legend_log"}
+                           log_to_remove=commands.Param(choices=["Clan Capital Log", "Join Log", "War Log", "Legend Log", "Donation Log"])):
+        type_dict = {"Clan Capital Log": "clan_capital", "Join Log": "joinlog", "War Log": "war_log", "Legend Log" : "legend_log",  "Donation Log" : "donolog"}
         log_type = type_dict[log_to_remove]
 
         clan = await self.bot.getClan(clan)
