@@ -162,12 +162,13 @@ class getClans(commands.Cog, name="Clan"):
                 continue
 
             ol_name = name
-            name = re.split("[^A-Za-z0-9!@#$%^&*()+=~:;<>åæ.]", name)
-            name = "".join(name)
-            name = name[0:15]
+            for char in ["`", "*", "_", "~", "ッ"]:
+                name = name.replace(char, "", 10)
+            name = emoji.replace_emoji(name, "")
+            name = name[:14]
             if len(name) <= 2:
                 name = ol_name
-            for x in range(15 - len(name)):
+            for x in range(14 - len(name)):
                 name += " "
 
             member = ""
@@ -210,12 +211,13 @@ class getClans(commands.Cog, name="Clan"):
                 continue
 
             ol_name = name
-            name = re.split("[^A-Za-z0-9!@#$%^&*()+=~:;<>åæ.]", name)
-            name = "".join(name)
-            name = name[0:15]
+            for char in ["`", "*", "_", "~", "ッ"]:
+                name = name.replace(char, "", 10)
+            name = emoji.replace_emoji(name, "")
+            name = name[:14]
             if len(name) <= 2:
                 name = ol_name
-            for x in range(15 - len(name)):
+            for x in range(14 - len(name)):
                 name += " "
 
             member = ""
