@@ -3,6 +3,7 @@ import coc
 import pytz
 import operator
 import json
+import asyncio
 
 from disnake.ext import commands
 from coc import utils
@@ -327,8 +328,15 @@ class family_commands(commands.Cog):
 
         clans =await self.bot.get_clans(tags=clan_tags)
         cwl_list = []
+        tasks = []
         for clan in clans:
             cwl_list.append([clan.name, clan.tag, clan.war_league.name, clan])
+            task = asyncio.ensure_future(self.cwl_ranking_create(clan))
+            tasks.append(task)
+        rankings = await asyncio.gather(*tasks)
+        new_rankings = {}
+        for item in rankings:
+            new_rankings[list(item.keys())[0]] = list(item.values())[0]
 
         clans_list = sorted(cwl_list, key=lambda l: l[2], reverse=False)
 
@@ -345,9 +353,12 @@ class family_commands(commands.Cog):
                 # print(clan)
                 if clan[2] == league:
                     tag = clan[1]
-                    placement = await self.cwl_ranking_create(clan[3])
+                    placement = new_rankings[tag]
                     if placement is None:
                         continue
+                    if len(text) + len(f"{placement}{clan[0]}\n") >= 1020:
+                        main_embed.add_field(name=f"**{league}**", value=text, inline=False)
+                        text = ""
                     text += f"{placement}{clan[0]}\n"
                 if (clan[0] == clans_list[len(clans_list) - 1][0]) and (text != ""):
                     leagues_present.append(league)
@@ -365,7 +376,7 @@ class family_commands(commands.Cog):
         try:
             group = await self.bot.coc_client.get_league_group(clan.tag)
         except:
-            return None
+            return {clan.tag: None}
 
         star_dict = defaultdict(int)
         dest_dict = defaultdict(int)
@@ -420,7 +431,7 @@ class family_commands(commands.Cog):
                 rank = f"{place}th"
             if tag == clan.tag:
                 tier = str(clan.war_league.name).count("I")
-                return f"{emoji}`{rank}` {self.leagueAndTrophies(clan.war_league.name)}{SUPER_SCRIPTS[tier]}"
+                return {clan.tag : f"{emoji}`{rank}` {self.leagueAndTrophies(clan.war_league.name)}{SUPER_SCRIPTS[tier]}"}
             place += 1
 
     def leagueAndTrophies(self, league):
