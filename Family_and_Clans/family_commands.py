@@ -1,6 +1,8 @@
 import disnake
 import coc
 import pytz
+import operator
+import json
 
 from disnake.ext import commands
 from coc import utils
@@ -10,7 +12,14 @@ from collections import defaultdict
 from collections import Counter
 from datetime import datetime
 
+SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 tiz = pytz.utc
+leagues = ["Champion League I", "Champion League II", "Champion League III",
+                   "Master League I", "Master League II", "Master League III",
+                   "Crystal League I","Crystal League II", "Crystal League III",
+                   "Gold League I","Gold League II", "Gold League III",
+                   "Silver League I","Silver League II","Silver League III",
+                   "Bronze League I", "Bronze League II", "Bronze League III", "Unranked"]
 
 class family_commands(commands.Cog):
 
@@ -283,6 +292,7 @@ class family_commands(commands.Cog):
             team_per = (str(stars_percent[3]) + "%").ljust(7)
             opp_per = (str(stars_percent[1]) + "%").rjust(7)
 
+
             embed.add_field(name=f"{emoji}{war.clan.name} vs {war.opponent.name}",
                             value=f"> `{team_hits}`<a:swords:944894455633297418>`{opp_hits}`\n"
                                   f"> `{team_stars}`<:star:825571962699907152>`{opp_stars}`\n"
@@ -307,6 +317,163 @@ class family_commands(commands.Cog):
             disnake.ui.Button(label="Ratio", emoji=self.bot.emoji.ratio.partial_emoji, style=disnake.ButtonStyle.green,
                               custom_id=f"ratiofam_"))
         await ctx.edit_original_message(embed=embed, components=buttons)
+
+    @family.sub_command(name="cwl-rankings", description="Get rankings of family clans in current cwl")
+    async def cwl_rankings(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
+        if len(clan_tags) == 0:
+            return await ctx.send("No clans linked to this server.")
+
+        clans =await self.bot.get_clans(tags=clan_tags)
+        cwl_list = []
+        for clan in clans:
+            cwl_list.append([clan.name, clan.tag, clan.war_league.name, clan])
+
+        clans_list = sorted(cwl_list, key=lambda l: l[2], reverse=False)
+
+        main_embed = disnake.Embed(title=f"__**{ctx.guild.name} CWL Rankings**__",
+                                   color=disnake.Color.green())
+        if ctx.guild.icon is not None:
+            main_embed.set_thumbnail(url=ctx.guild.icon.url)
+
+        embeds = []
+        leagues_present = ["All"]
+        for league in leagues:
+            text = ""
+            for clan in clans_list:
+                # print(clan)
+                if clan[2] == league:
+                    tag = clan[1]
+                    placement = await self.cwl_ranking_create(clan[3])
+                    if placement is None:
+                        continue
+                    text += f"{placement}{clan[0]}\n"
+                if (clan[0] == clans_list[len(clans_list) - 1][0]) and (text != ""):
+                    leagues_present.append(league)
+                    main_embed.add_field(name=f"**{league}**", value=text, inline=False)
+                    embed = disnake.Embed(title=f"__**{ctx.guild.name} {league} Clans**__", description=text,
+                                          color=disnake.Color.green())
+                    if ctx.guild.icon is not None:
+                        embed.set_thumbnail(url=ctx.guild.icon.url)
+                    embeds.append(embed)
+
+        embeds.append(main_embed)
+        await ctx.send(embed=main_embed)
+
+    async def cwl_ranking_create(self, clan: coc.Clan):
+        try:
+            group = await self.bot.coc_client.get_league_group(clan.tag)
+        except:
+            return None
+
+        star_dict = defaultdict(int)
+        dest_dict = defaultdict(int)
+        tag_to_name = defaultdict(str)
+
+        rounds = group.rounds
+        for round in rounds:
+            for war_tag in round:
+                war = await self.bot.coc_client.get_league_war(war_tag)
+                if str(war.status) == "won":
+                    star_dict[war.clan.tag] += 10
+                elif str(war.status) == "lost":
+                    star_dict[war.opponent.tag] += 10
+                tag_to_name[war.clan.tag] = war.clan.name
+                tag_to_name[war.opponent.tag] = war.opponent.name
+                for player in war.members:
+                    attacks = player.attacks
+                    for attack in attacks:
+                        star_dict[player.clan.tag] += attack.stars
+                        dest_dict[player.clan.tag] += attack.destruction
+
+        star_list = []
+        for tag, stars in star_dict.items():
+            destruction = dest_dict[tag]
+            name = tag_to_name[tag]
+            star_list.append([tag, stars, destruction])
+
+        sorted_list = sorted(star_list, key=operator.itemgetter(1, 2), reverse=True)
+
+        place= 1
+        for item in sorted_list:
+            war_leagues = open(f"Dictionaries/war_leagues.json")
+            war_leagues = json.load(war_leagues)
+            promo = [x["promo"] for x in war_leagues["items"] if x["name"] == clan.war_league.name][0]
+            demo = [x["demote"] for x in war_leagues["items"] if x["name"] == clan.war_league.name][0]
+            if place <= promo:
+                emoji = "<:warwon:932212939899949176>"
+            elif place >= demo:
+                emoji = "<:warlost:932212154164183081>"
+            else:
+                emoji = "<:dash:933150462818021437>"
+            tag = item[0]
+            stars = str(item[1])
+            dest = str(item[2])
+            if place == 1:
+                rank = f"{place}st"
+            elif place == 2:
+                rank = f"{place}nd"
+            elif place == 3:
+                rank = f"{place}rd"
+            else:
+                rank = f"{place}th"
+            if tag == clan.tag:
+                tier = str(clan.war_league.name).count("I")
+                return f"{emoji}`{rank}` {self.leagueAndTrophies(clan.war_league.name)}{SUPER_SCRIPTS[tier]}"
+            place += 1
+
+    def leagueAndTrophies(self, league):
+
+        if (league == "Bronze League III"):
+            emoji = "<:BronzeLeagueIII:601611929311510528>"
+        elif (league == "Bronze League II"):
+            emoji = "<:BronzeLeagueII:601611942850986014>"
+        elif (league == "Bronze League I"):
+            emoji = "<:BronzeLeagueI:601611950228635648>"
+        elif (league == "Silver League III"):
+            emoji = "<:SilverLeagueIII:601611958067920906>"
+        elif (league == "Silver League II"):
+            emoji = "<:SilverLeagueII:601611965550428160>"
+        elif (league == "Silver League I"):
+            emoji = "<:SilverLeagueI:601611974849331222>"
+        elif (league == "Gold League III"):
+            emoji = "<:GoldLeagueIII:601611988992262144>"
+        elif (league == "Gold League II"):
+            emoji = "<:GoldLeagueII:601611996290613249>"
+        elif (league == "Gold League I"):
+            emoji = "<:GoldLeagueI:601612010492526592>"
+        elif (league == "Crystal League III"):
+            emoji = "<:CrystalLeagueIII:601612021472952330>"
+        elif (league == "Crystal League II"):
+            emoji = "<:CrystalLeagueII:601612033976434698>"
+        elif (league == "Crystal League I"):
+            emoji = "<:CrystalLeagueI:601612045359775746>"
+        elif (league == "Master League III"):
+            emoji = "<:MasterLeagueIII:601612064913621002>"
+        elif (league == "Master League II"):
+            emoji = "<:MasterLeagueII:601612075474616399>"
+        elif (league == "Master League I"):
+            emoji = "<:MasterLeagueI:601612085327036436>"
+        elif (league == "Champion League III"):
+            emoji = "<:ChampionLeagueIII:601612099226959892>"
+        elif (league == "Champion League II"):
+            emoji = "<:ChampionLeagueII:601612113345249290>"
+        elif (league == "Champion League I"):
+            emoji = "<:ChampionLeagueI:601612124447440912>"
+        elif (league == "Titan League III"):
+            emoji = "<:TitanLeagueIII:601612137491726374>"
+        elif (league == "Titan League II"):
+            emoji = "<:TitanLeagueII:601612148325744640>"
+        elif (league == "Titan League I"):
+            emoji = "<:TitanLeagueI:601612159327141888>"
+        elif (league == "Legend League"):
+            emoji = "<:LegendLeague:601612163169255436>"
+        else:
+            emoji = "<:Unranked:601618883853680653>"
+
+        return emoji
+
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):

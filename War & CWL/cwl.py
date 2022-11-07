@@ -758,11 +758,10 @@ class Cwl(commands.Cog, name="CWL"):
 
         main_embed = disnake.Embed(title=f"__**{ctx.guild.name} CWL Status**__",
                                    color=disnake.Color.green())
-        if ctx.guild.icon is not None:
-            main_embed.set_thumbnail(url=ctx.guild.icon.url)
 
         embeds = []
         leagues_present = ["All"]
+        #name, league, clan, status emoji, order
         for league in leagues:
             text = ""
             for clan in clans_list:

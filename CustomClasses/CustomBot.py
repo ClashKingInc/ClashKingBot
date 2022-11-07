@@ -471,6 +471,14 @@ class CustomClient(commands.Bot):
         responses = await asyncio.gather(*tasks)
         return responses
 
+    async def get_clans(self, tags: list):
+        tasks = []
+        for tag in tags:
+            task = asyncio.ensure_future(self.getClan(clan_tag=tag))
+            tasks.append(task)
+        responses = await asyncio.gather(*tasks)
+        return responses
+
     async def getClan(self, clan_tag, raise_exceptions=False):
         try:
             if "|" in clan_tag:
