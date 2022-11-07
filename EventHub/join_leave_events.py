@@ -86,7 +86,6 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                     await donolog_channel.send(embed=embed)
                 except:
                     continue
-        return
 
         new_tags = list(set(curr_tags).difference(prev_tag))
         left_tags = list(set(prev_tag).difference(curr_tags))
