@@ -6,6 +6,7 @@ import pytz
 from disnake.ext import commands
 from Dictionaries.emojiDictionary import emojiDictionary
 from CustomClasses.CustomBot import CustomClient
+from datetime import datetime
 from main import scheduler
 tiz = pytz.utc
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
@@ -402,6 +403,15 @@ class War_Log(commands.Cog):
                     continue
                 attack_feed = cc.get("attack_feed")
                 war_message = cc.get("war_message")
+
+                #only update last online if its an attack (is on the war clan side)
+                if attack.attacker.clan.tag == war.clan.tag:
+                    find_result = await self.bot.player_stats.find_one({"tag" : attack.attacker.tag})
+                    if find_result is not None:
+                        season = self.bot.gen_season_date()
+                        _time = int(datetime.now().timestamp())
+                        await self.bot.player_stats.update_one({"tag": attack.attacker.tag}, {"$set": {"last_online": _time}})
+                        await self.bot.player_stats.update_one({"tag": attack.attacker.tag}, {"$push": {f"last_online_times.{season}": _time}}, upsert=True)
 
                 if attack_feed is None:
                     attack_feed = "Continuous Feed"
