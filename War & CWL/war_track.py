@@ -447,8 +447,10 @@ class War_Log(commands.Cog):
                     await warlog_channel.send(embed=embed)
                 else:
                     await self.update_war_message(war=war, warlog_channel=warlog_channel, message_id=war_message, server=cc.get("server"))
-            except:
-                continue
+            except Exception as e:
+                e = e[0:2000]
+                channel = await self.bot.fetch_channel(923767060977303552)
+                await channel.send(content= e)
 
 
     async def update_war_message(self, war: coc.ClanWar, warlog_channel, message_id, server):
