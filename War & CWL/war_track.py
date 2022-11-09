@@ -195,7 +195,6 @@ class War_Log(commands.Cog):
                 war_message = cc.get("war_message")
 
                 if new_war.state == "preparation":
-
                     #if we skipped from one war to next, update the old one
                     if old_war.state == "inWar":
                         if attack_feed is None:
@@ -411,7 +410,7 @@ class War_Log(commands.Cog):
                         season = self.bot.gen_season_date()
                         _time = int(datetime.now().timestamp())
                         await self.bot.player_stats.update_one({"tag": attack.attacker.tag}, {"$set": {"last_online": _time}})
-                        await self.bot.player_stats.update_one({"tag": attack.attacker.tag}, {"$push": {f"last_online_times.{season}": _time}}, upsert=True)
+                        await self.bot.player_stats.update_one({"tag": attack.attacker.tag}, {"$push": {f"last_online_times.{season}": _time}})
 
                 if attack_feed is None:
                     attack_feed = "Continuous Feed"
