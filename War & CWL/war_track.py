@@ -45,6 +45,8 @@ class War_Log(commands.Cog):
                         continue
                     attack_feed = cc.get("attack_feed")
                     war_message = cc.get("war_message")
+                    war_id = cc.get("war_id")
+
                     if attack_feed is None:
                         attack_feed = "Continuous Feed"
 
@@ -91,7 +93,7 @@ class War_Log(commands.Cog):
                         embed.set_footer(text=f"{old_war.type.capitalize()} War")
                         await warlog_channel.send(embed=embed)
                     else:
-                        await self.update_war_message(war=new_war, warlog_channel=warlog_channel, message_id=war_message)
+                        await self.update_war_message(war=new_war, warlog_channel=warlog_channel, server=cc.get("server"), message_id=war_message, war_id=war_id)
 
                     # calculate missed attacks
                     one_hit_missed = []
@@ -163,7 +165,7 @@ class War_Log(commands.Cog):
                         embed.set_footer(text=f"{new_war.type.capitalize()} War")
                         await warlog_channel.send(embed=embed)
                     else:
-                        await self.update_war_message(war=new_war, warlog_channel=warlog_channel, message_id=war_message, server=cc.get("server"))
+                        await self.update_war_message(war=new_war, warlog_channel=warlog_channel, message_id=war_message, server=cc.get("server"), war_id=war_id)
 
                 except:
                     continue
@@ -193,6 +195,7 @@ class War_Log(commands.Cog):
                     continue
                 attack_feed = cc.get("attack_feed")
                 war_message = cc.get("war_message")
+                war_id = cc.get("war_id")
 
                 if new_war.state == "preparation":
                     #if we skipped from one war to next, update the old one
@@ -272,7 +275,8 @@ class War_Log(commands.Cog):
                                               custom_id=f"listwardefenses_{new_war.clan.tag}"))]
 
                     message = await warlog_channel.send(embed=embed, components=button)
-                    await self.bot.clan_db.update_one({"$and": [{"tag": new_war.clan.tag},{"server": cc.get("server")}]}, {'$set': {"war_message": message.id}})
+                    war_id = f"{new_war.clan.tag}v{new_war.opponent.tag}-{int(new_war.start_time.time.timestamp())}"
+                    await self.bot.clan_db.update_one({"$and": [{"tag": new_war.clan.tag},{"server": cc.get("server")}]}, {'$set': {"war_message": message.id, "war_id" : war_id}})
 
                 if new_war.state == "inWar":
 
@@ -304,11 +308,8 @@ class War_Log(commands.Cog):
                                                       style=disnake.ButtonStyle.grey,
                                                       custom_id=f"listwardefenses_{new_war.clan.tag}"))]
                             message = await warlog_channel.send(embed=embed, components=button)
-                            await self.bot.clan_db.update_one(
-                                {"$and": [{"tag": new_war.clan.tag}, {"server": cc.get("server")}]},
-                                {'$set': {"war_message": message.id}})
                         else:
-                            await self.update_war_message(war=new_war, warlog_channel=warlog_channel, message_id=war_message, server=cc.get("server"))
+                            await self.update_war_message(war=new_war, warlog_channel=warlog_channel, message_id=war_message, server=cc.get("server"), war_id=war_id)
 
                 if new_war.state == "warEnded":
                     if attack_feed is None:
@@ -356,7 +357,7 @@ class War_Log(commands.Cog):
                         embed.set_footer(text=f"{new_war.type.capitalize()} War")
                         await warlog_channel.send(embed=embed)
                     else:
-                        await self.update_war_message(war=new_war, warlog_channel=warlog_channel, message_id=war_message, server=cc.get("server"))
+                        await self.update_war_message(war=new_war, warlog_channel=warlog_channel, message_id=war_message, server=cc.get("server"), war_id=war_id)
 
                     #calculate missed attacks
                     one_hit_missed = []
@@ -402,6 +403,7 @@ class War_Log(commands.Cog):
                     continue
                 attack_feed = cc.get("attack_feed")
                 war_message = cc.get("war_message")
+                war_id = cc.get("war_id")
 
                 #only update last online if its an attack (is on the war clan side)
                 if attack.attacker.clan.tag == war.clan.tag:
@@ -446,14 +448,16 @@ class War_Log(commands.Cog):
                         embed.set_footer(text=f"{war.opponent.name} {stats[0]}-{stats[2]}", icon_url=war.clan.badge.url)
                     await warlog_channel.send(embed=embed)
                 else:
-                    await self.update_war_message(war=war, warlog_channel=warlog_channel, message_id=war_message, server=cc.get("server"))
+                    await self.update_war_message(war=war, warlog_channel=warlog_channel, message_id=war_message, server=cc.get("server"), war_id=war_id)
             except Exception as e:
                 e = e[0:2000]
                 channel = await self.bot.fetch_channel(923767060977303552)
                 await channel.send(content= e)
 
 
-    async def update_war_message(self, war: coc.ClanWar, warlog_channel, message_id, server):
+    async def update_war_message(self, war: coc.ClanWar, warlog_channel, message_id, server, war_id):
+        if war_id != f"{war.clan.tag}v{war.opponent.tag}-{int(war.start_time.time.timestamp())}":
+            message_id = None
         clan = None
         if war.type == "cwl":
             clan = await self.bot.getClan(war.clan.tag)
@@ -472,7 +476,8 @@ class War_Log(commands.Cog):
                                   style=disnake.ButtonStyle.grey,
                                   custom_id=f"listwardefenses_{war.clan.tag}"))]
             message = await warlog_channel.send(embed=embed, components=button)
-            await self.bot.clan_db.update_one({"$and": [{"tag": war.clan.tag},{"server": server}]}, {'$set': {"war_message": message.id}})
+            war_id = f"{war.clan.tag}v{war.opponent.tag}-{int(war.start_time.time.timestamp())}"
+            await self.bot.clan_db.update_one({"$and": [{"tag": war.clan.tag},{"server": server}]}, {'$set': {"war_message": message.id, "war_id": war_id}})
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
