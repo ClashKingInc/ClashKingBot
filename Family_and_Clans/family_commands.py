@@ -372,6 +372,19 @@ class family_commands(commands.Cog):
         embeds.append(main_embed)
         await ctx.send(embed=main_embed)
 
+
+    @family.sub_command(name="last-online", description="Last 50 online in family")
+    async def last_online(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        time = datetime.now().timestamp()
+        embed = await self.create_last_online(guild=ctx.guild)
+        embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
+                              custom_id=f"lastonlinefam_"))
+        await ctx.edit_original_message(embed=embed, components=buttons)
+
     async def cwl_ranking_create(self, clan: coc.Clan):
         try:
             group = await self.bot.coc_client.get_league_group(clan.tag)
@@ -496,16 +509,17 @@ class family_commands(commands.Cog):
             await ctx.edit_original_message(embed=embed)
         elif "receivedfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
-            clan = (str(ctx.data.custom_id).split("_"))[-1]
-            clan = await self.bot.getClan(clan)
             embed: disnake.Embed = await self.create_donations(ctx.guild, type="received")
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
         elif "ratiofam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
-            clan = (str(ctx.data.custom_id).split("_"))[-1]
-            clan = await self.bot.getClan(clan)
             embed: disnake.Embed = await self.create_donations(ctx.guild, type="ratio")
+            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+            await ctx.edit_original_message(embed=embed)
+        elif "lastonlinefam_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            embed: disnake.Embed = await self.create_last_online(ctx.guild)
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
 

@@ -3,6 +3,7 @@ import coc
 import pytz
 import emoji
 import asyncio
+import statistics
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
@@ -108,7 +109,40 @@ class getFamily(commands.Cog):
                                    text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {date}")
             return ratio_embed
 
+    async def create_last_online(self, guild: disnake.Guild):
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+        clans = await self.bot.get_clans(tags=clan_tags)
+        member_tags = []
+        for clan in clans:
+            member_tags.extend(member.tag for member in clan.members)
 
+        players = await self.bot.get_players(tags=member_tags, custom=True)
+        text = []
+        avg_time = []
+        for member in players:
+            last_online = member.last_online
+            last_online_sort = last_online
+            if last_online is None:
+                last_online_sort = 0
+                text.append([f"Not Seen `{member.name}`", last_online_sort])
+            else:
+                avg_time.append(last_online)
+                text.append([f"<t:{last_online}:R> `{member.name}`", last_online_sort])
+
+        text = sorted(text, key=lambda l: l[1], reverse=True)
+        text = text[0:50]
+        text = [line[0] for line in text]
+        text = "\n".join(text)
+        if avg_time != []:
+            avg_time.sort()
+            avg_time = statistics.median(avg_time)
+            avg_time = f"\n\n**Median L.O.** <t:{int(avg_time)}:R>"
+        else:
+            avg_time = ""
+        embed = disnake.Embed(title=f"**{guild.name} Last 50 Online**",
+                              description=text + avg_time,
+                              color=disnake.Color.green())
+        return embed
 
 def setup(bot: CustomClient):
     bot.add_cog(getFamily(bot))

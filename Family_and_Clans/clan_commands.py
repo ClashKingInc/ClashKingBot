@@ -3,6 +3,7 @@ import disnake
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from datetime import datetime
+import datetime as dt
 from utils.discord_utils import partial_emoji_gen
 from utils.components import raid_buttons
 from utils.clash import create_weekend_list, weekend_timestamps
@@ -586,6 +587,43 @@ class clan_commands(commands.Cog):
         await ctx.edit_original_message(embed=embed, components=buttons)
 
 
+    @commands.slash_command(name='lastonline-graph-beta')
+    async def last_online_graph(self, ctx: disnake.ApplicationCommandInteraction,clan: coc.Clan = commands.Param(converter=clan_converter)):
+        player_tags = [member.tag for member in clan.members]
+        players = await self.bot.get_players(tags=player_tags, custom=True)
+        times_by_hour = defaultdict(int)
+        for player in players: #type: MyCustomPlayer
+            times = player.season_last_online(season_date="2022-10")
+            for time in times:
+                time = dt.datetime.fromtimestamp(time)
+                times_by_hour[time.hour] += 1
+        import matplotlib.pyplot as plt
+        dates = []
+        activity_list = []
+        for date, activities in sorted(times_by_hour.items(), reverse=False):
+            #time = datetime.datetime.fromtimestamp(date)
+            dates.append(f"{date}:00")
+            activity_list.append(activities)
+
+        fig, ax = plt.subplots(figsize=(15, 10))
+        ax.plot(dates, activity_list)
+
+        ax.yaxis.grid(color='gray', linestyle='dashed')
+        ax.xaxis.grid(color='gray', linestyle='dashed')
+
+        plt.style.use('seaborn-darkgrid')
+        plt.title("Activity This Season", loc='left', fontsize=12, fontweight=0, color='blue')
+        plt.xlabel("Time")
+        plt.ylabel("Activities")
+        import io
+        temp = io.BytesIO()
+        plt.tight_layout()
+        plt.savefig(temp, format="png")
+        temp.seek(0)
+        file = disnake.File(fp=temp, filename="filename.png")
+        await ctx.send(file=file)
+
+
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
         time = datetime.now().timestamp()
@@ -695,6 +733,7 @@ class clan_commands(commands.Cog):
     @last_online.autocomplete("clan")
     @clan_games.autocomplete("clan")
     @clan_donations.autocomplete("clan")
+    @last_online_graph.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
             tracked = self.bot.clan_db.find({"server": ctx.guild.id})
             limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})

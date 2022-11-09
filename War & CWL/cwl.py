@@ -144,7 +144,8 @@ class Cwl(commands.Cog, name="CWL"):
                 await res.response.edit_message(embeds=[embed1, embed2])
             elif res.values[0] == "stars":
                 embed = await self.star_lb(league_wars, clan)
-                await res.response.edit_message(embed=embed)
+                embed2 = await self.star_lb(league_wars, clan, defense=True)
+                await res.response.edit_message(embeds=[embed, embed2])
             elif res.values[0] == "rankings":
                 embed = await self.ranking_lb(group, clan)
                 await res.response.edit_message(embed=embed)
@@ -350,45 +351,72 @@ class Cwl(commands.Cog, name="CWL"):
         embed.set_thumbnail(url=war.opponent.badge.large)
         return embed
 
-    async def star_lb(self, league_wars, clan):
+    async def star_lb(self, league_wars, clan, defense=False):
         star_dict = defaultdict(int)
         dest_dict = defaultdict(int)
         tag_to_name = defaultdict(str)
+        num_attacks_done = defaultdict(int)
+        num_wars_in = defaultdict(int)
         for war in league_wars:
             war: coc.ClanWar
+            if str(war.state) == "preparation":
+                continue
             for player in war.members:
+                num_wars_in[player.tag] += 1
+                tag_to_name[player.tag] = player.name
                 if player not in war.opponent.members:
-                    attacks = player.attacks
-                    tag_to_name[player.tag] = player.name
-                    for attack in attacks:
-                        stars = attack.stars
-                        destruction = attack.destruction
-                        star_dict[player.tag] += stars
-                        dest_dict[player.tag] += destruction
+                    if defense:
+                        if player.defenses:
+                            num_attacks_done[player.tag] += 1
+                            defenses = player.defenses
+                            top_defense = defenses[0]
+                            for defense in defenses:
+                                if defense.destruction > top_defense.destruction:
+                                    top_defense = defense
+                            stars = top_defense.stars
+                            destruction = top_defense.destruction
+                            star_dict[player.tag] += stars
+                            dest_dict[player.tag] += destruction
+                    else:
+                        attacks = player.attacks
+                        for attack in attacks:
+                            num_attacks_done[player.tag] += 1
+                            stars = attack.stars
+                            destruction = attack.destruction
+                            star_dict[player.tag] += stars
+                            dest_dict[player.tag] += destruction
 
         star_list = []
         for tag, stars in star_dict.items():
             destruction = dest_dict[tag]
             name = tag_to_name[tag]
-            star_list.append([name, stars, destruction])
+            hits_done = num_attacks_done[tag]
+            num_wars = num_wars_in[tag]
+            star_list.append([name, stars, destruction, f"{hits_done}/{num_wars}"])
 
         sorted_list = sorted(star_list, key=operator.itemgetter(1, 2), reverse=True)
         text = ""
-        text += f"` # ST DSTR NAME           `\n"
+        text += f"` # HIT ST DSTR NAME           `\n"
         x = 1
         for item in sorted_list:
             name = item[0]
             stars = str(item[1])
             dest = str(item[2])
+            hits_done = item[3]
             rank = str(x)
             rank = rank.rjust(2)
             stars = stars.rjust(2)
             name = name.ljust(15)
             dest = dest.rjust(3) + "%"
-            text += f"`\u200e{rank} {stars} {dest} \u200e{name}`\n"
+            text += f"`\u200e{rank} {hits_done} {stars} {dest} \u200e{name}`\n"
             x+=1
 
-        embed = disnake.Embed(title=f"{clan.name} Star Leaderboard", description=text,
+        if defense:
+            ty = "Defense"
+        else:
+            ty = "Offense"
+
+        embed = disnake.Embed(title=f"{clan.name} {ty} Leaderboard", description=text,
                               color=disnake.Color.green())
         return embed
 

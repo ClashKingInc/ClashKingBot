@@ -4,8 +4,8 @@ import pytz
 import asyncio
 import aiohttp
 import calendar
-import re
 import emoji
+import statistics
 
 from disnake.ext import commands
 from Dictionaries.emojiDictionary import emojiDictionary
@@ -502,8 +502,9 @@ class getClans(commands.Cog, name="Clan"):
         text = [line[0] for line in text]
         text = "\n".join(text)
         if avg_time != []:
-            avg_time = round((sum(avg_time) / len(avg_time)), 2)
-            avg_time = f"\n\n**Average L.O.** <t:{int(avg_time)}:R>"
+            avg_time.sort()
+            avg_time = statistics.median(avg_time)
+            avg_time = f"\n\n**Median L.O.** <t:{int(avg_time)}:R>"
         else:
             avg_time = ""
         embed = disnake.Embed(title=f"**{clan.name} Last Online**",

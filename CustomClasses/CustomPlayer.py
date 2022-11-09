@@ -152,6 +152,18 @@ class MyCustomPlayer(coc.Player):
     def last_online(self):
         return None if self.results is None else self.results.get("last_online")
 
+    def season_last_online(self, season_date = None):
+        if season_date is None:
+            season_date = self.bot.gen_season_date()
+        if self.results is None:
+            return []
+        l_results = self.results.get("last_online_times")
+        if l_results is None:
+            return []
+        if l_results.get(season_date) is None:
+            return []
+        return l_results.get(season_date)
+
     @property
     def clan_games(self):
         date = self.bot.gen_season_date()
