@@ -611,10 +611,10 @@ class clan_commands(commands.Cog):
         await ctx.edit_original_message(embed=embed, components=buttons)
 
 
-    @clan.sub_command(name='lastonline-graph')
-    async def last_online_graph(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+    @clan.sub_command(name='lastonline-graph', description="Get a graph showing average clan members on per an hour")
+    async def last_online_graph(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), timezone = commands.Param(name="timezone")):
         await ctx.response.defer()
-        file = await self.create_graph([clan])
+        file = await self.create_graph([clan], timezone = pytz.timezone(timezone))
 
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
         dropdown = []
@@ -654,7 +654,7 @@ class clan_commands(commands.Cog):
             await res.response.defer()
 
             selected_clans = [clan_dict[value] for value in res.values]
-            file = await self.create_graph(selected_clans)
+            file = await self.create_graph(selected_clans, timezone = pytz.timezone(timezone))
             await res.edit_original_message(file=file, attachments=[])
 
 
@@ -789,3 +789,12 @@ class clan_commands(commands.Cog):
                     clan_list.append(f"{clan.name} | {clan.tag}")
                     return clan_list
             return clan_list[0:25]
+
+    @last_online_graph.autocomplete("timezone")
+    async def timezone_autocomplete(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        all_tz = pytz.common_timezones
+        return_list = []
+        for tz in all_tz:
+            if query.lower() in tz.lower():
+                return_list.append(tz)
+        return return_list[:25]

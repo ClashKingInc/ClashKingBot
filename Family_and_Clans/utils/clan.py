@@ -675,7 +675,7 @@ class getClans(commands.Cog, name="Clan"):
 
         return [f"{emoji} {self.leagueAndTrophies(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n", year]
 
-    async def create_graph(self, clans: list):
+    async def create_graph(self, clans: list, timezone):
         fig, ax = plt.subplots(figsize=(15, 10))
         biggest = 0
         for clan in clans:
@@ -683,10 +683,10 @@ class getClans(commands.Cog, name="Clan"):
             players = await self.bot.get_players(tags=player_tags, custom=True)
             times_by_day = {}
             for player in players:  # type: MyCustomPlayer
-                times = player.season_last_online(season_date="2022-10")
+                times = player.season_last_online()
+                previous_time = None
                 for time in times:
-                    previous_time = None
-                    time = dt.datetime.fromtimestamp(time)
+                    time = dt.datetime.fromtimestamp(time, tz=timezone)
                     if f"{time.hour}-{time.day}" != previous_time:
                         previous_time = f"{time.hour}-{time.day}"
                         if f"{time.day}-{time.month}" not in list(times_by_day.keys()):
@@ -694,8 +694,10 @@ class getClans(commands.Cog, name="Clan"):
                         times_by_day[f"{time.day}-{time.month}"][time.hour] += 1
 
             hour_totals = defaultdict(int)
+            hour_days = defaultdict(int)
             for day, day_details in times_by_day.items():
                 for hour, members_online in sorted(day_details.items(), reverse=False):
+                    hour_days[hour] += 1
                     hour_totals[hour] += members_online
 
             for x in range(24):
@@ -706,11 +708,13 @@ class getClans(commands.Cog, name="Clan"):
             activity_list = []
             for hour, members_online in sorted(hour_totals.items(), reverse=False):
                 dates.append(hour)
-                if int(round((members_online / len(times_by_day.keys())))) > biggest:
-                    biggest = int(round((members_online / len(times_by_day.keys()))))
-                activity_list.append(int(round((members_online / len(times_by_day.keys())))))
+                if hour_days[hour] == 0:
+                    activity_list.append(0)
+                    continue
+                if int(round((members_online / hour_days[hour]))) > biggest:
+                    biggest = int(round((members_online / hour_days[hour])))
+                activity_list.append(int(round((members_online / hour_days[hour]))))
 
-            print(activity_list)
             dates = np.array(dates)
             activity_list = np.array(activity_list)
             X_Y_Spline = make_interp_spline(dates, activity_list)
@@ -723,8 +727,8 @@ class getClans(commands.Cog, name="Clan"):
             ax.xaxis.grid(color='gray', linestyle='dashed')
 
         x_ticks = [f"{x}:00" for x in range(24)]
-        plt.style.use('seaborn-darkgrid')
-        plt.title("Activity This Season", loc='left', fontsize=12, fontweight=0, color='blue')
+        #plt.style.use('seaborn-darkgrid')
+        plt.title(f"Average People on Per an Hour | Timezone: {timezone}", loc='center', fontsize=20, fontweight=0, color='black')
         plt.xlabel("Time")
         plt.legend(loc="upper left")
         plt.yticks(range(0, biggest + 5, 5))
