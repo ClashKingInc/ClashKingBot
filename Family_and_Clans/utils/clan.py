@@ -731,7 +731,7 @@ class getClans(commands.Cog, name="Clan"):
         plt.title(f"Average People on Per an Hour | Timezone: {timezone}", loc='center', fontsize=20, fontweight=0, color='black')
         plt.xlabel("Time")
         plt.legend(loc="upper left")
-        plt.yticks(range(0, biggest + 5, 5))
+        plt.yticks(range(0, biggest + 5, 2))
         plt.xticks(ticks=range(24), labels=x_ticks)
         plt.ylabel("Avg People On Per Hour")
         import io
