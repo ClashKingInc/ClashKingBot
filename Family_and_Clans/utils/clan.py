@@ -6,7 +6,11 @@ import aiohttp
 import calendar
 import emoji
 import statistics
+import matplotlib.pyplot as plt
+import datetime as dt
+import numpy as np
 
+from scipy.interpolate import make_interp_spline
 from disnake.ext import commands
 from Dictionaries.emojiDictionary import emojiDictionary
 from collections import defaultdict
@@ -85,6 +89,7 @@ class getClans(commands.Cog, name="Clan"):
         embed = disnake.Embed(title=f"**{clan.name}**", description=f"Tag: [{clan.tag}]({clan.share_link})\n"
                                                                     f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.versus_points}\n"
                                                                     f"Required Trophies: <:trophy:825563829705637889> {clan.required_trophies}\n"
+                                                                    f"Required Townhall: {clan.required_townhall}\n"
                                                                     f"Location: {flag} {location_name}\n"
                                                                     f"Type: {clan.type}\n"
                                                                     f"{category}"
@@ -670,3 +675,65 @@ class getClans(commands.Cog, name="Clan"):
 
         return [f"{emoji} {self.leagueAndTrophies(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n", year]
 
+    async def create_graph(self, clans: list):
+        fig, ax = plt.subplots(figsize=(15, 10))
+        biggest = 0
+        for clan in clans:
+            player_tags = [member.tag for member in clan.members]
+            players = await self.bot.get_players(tags=player_tags, custom=True)
+            times_by_day = {}
+            for player in players:  # type: MyCustomPlayer
+                times = player.season_last_online(season_date="2022-10")
+                for time in times:
+                    previous_time = None
+                    time = dt.datetime.fromtimestamp(time)
+                    if f"{time.hour}-{time.day}" != previous_time:
+                        previous_time = f"{time.hour}-{time.day}"
+                        if f"{time.day}-{time.month}" not in list(times_by_day.keys()):
+                            times_by_day[f"{time.day}-{time.month}"] = defaultdict(int)
+                        times_by_day[f"{time.day}-{time.month}"][time.hour] += 1
+
+            hour_totals = defaultdict(int)
+            for day, day_details in times_by_day.items():
+                for hour, members_online in sorted(day_details.items(), reverse=False):
+                    hour_totals[hour] += members_online
+
+            for x in range(24):
+                if x not in list(hour_totals.keys()):
+                    hour_totals[x] = 0
+
+            dates = []
+            activity_list = []
+            for hour, members_online in sorted(hour_totals.items(), reverse=False):
+                dates.append(hour)
+                if int(round((members_online / len(times_by_day.keys())))) > biggest:
+                    biggest = int(round((members_online / len(times_by_day.keys()))))
+                activity_list.append(int(round((members_online / len(times_by_day.keys())))))
+
+            print(activity_list)
+            dates = np.array(dates)
+            activity_list = np.array(activity_list)
+            X_Y_Spline = make_interp_spline(dates, activity_list)
+            X_ = np.linspace(dates.min(initial=0), dates.max(initial=0), 500)
+            Y_ = X_Y_Spline(X_)
+
+            ax.plot(X_, Y_, label=clan.name)
+
+            ax.yaxis.grid(color='gray', linestyle='dashed')
+            ax.xaxis.grid(color='gray', linestyle='dashed')
+
+        x_ticks = [f"{x}:00" for x in range(24)]
+        plt.style.use('seaborn-darkgrid')
+        plt.title("Activity This Season", loc='left', fontsize=12, fontweight=0, color='blue')
+        plt.xlabel("Time")
+        plt.legend(loc="upper left")
+        plt.yticks(range(0, biggest + 5, 5))
+        plt.xticks(ticks=range(24), labels=x_ticks)
+        plt.ylabel("Avg People On Per Hour")
+        import io
+        temp = io.BytesIO()
+        plt.tight_layout()
+        plt.savefig(temp, format="png")
+        temp.seek(0)
+        file = disnake.File(fp=temp, filename="filename.png")
+        return file

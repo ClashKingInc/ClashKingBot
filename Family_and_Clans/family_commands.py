@@ -153,7 +153,6 @@ class family_commands(commands.Cog):
         select_menu_options = []
         names = {}
         for count, clan in enumerate(clan_list):
-            clan = await self.bot.getClan(clan.tag)
             names[clan.tag] = clan.name
             clan_members += [member.tag for member in clan.members]
             url = clan.badge.url.replace(".png", "")

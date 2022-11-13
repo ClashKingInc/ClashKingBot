@@ -1,18 +1,20 @@
+import math
 import coc
 import disnake
+import asyncio
+import pandas as pd
+import pytz
+tiz = pytz.utc
+
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from datetime import datetime
-import datetime as dt
+from CustomClasses.CustomPlayer import MyCustomPlayer
 from utils.discord_utils import partial_emoji_gen
 from utils.components import raid_buttons
 from utils.clash import create_weekend_list, weekend_timestamps
-import asyncio
-from CustomClasses.CustomPlayer import MyCustomPlayer
-import pandas as pd
 from collections import defaultdict
-import pytz
-tiz = pytz.utc
+
 
 class clan_commands(commands.Cog):
 
@@ -368,6 +370,7 @@ class clan_commands(commands.Cog):
             if raid_weekend is not None:
                 raid_weekends.append(raid_weekend)
 
+        total_medals = 0
         if not raid_weekends:
             raid_embed = disnake.Embed(title=f"**{clan.name} Raid Totals**", description="No raids", color=disnake.Color.green())
             embeds["raids"] = raid_embed
@@ -382,6 +385,25 @@ class clan_commands(commands.Cog):
                     attack_limit[member.tag] += (member.attack_limit + member.bonus_attack_limit)
                     if len(raid_weekends) == 1 and member.tag in members_not_looted:
                         members_not_looted.remove(member.tag)
+
+            district_dict = {1: 135, 2: 225, 3: 350, 4: 405, 5: 460}
+            capital_dict = {2: 180, 3: 360, 4: 585, 5: 810, 6: 1115, 7: 1240, 8: 1260, 9: 1375, 10: 1450}
+            attacks_done = sum(list(total_attacks.values()))
+            raids = raid_weekends[0].attack_log
+            for raid_clan in raids:
+                for district in raid_clan.districts:
+                    if int(district.destruction) == 100:
+                        if district.id == 70000000:
+                            total_medals += capital_dict[int(district.hall_level)]
+                        else:
+                            total_medals += district_dict[int(district.hall_level)]
+                    else:
+                        #attacks_done -= len(district.attacks)
+                        pass
+
+            print(total_medals)
+            print(attacks_done)
+            total_medals = math.ceil(total_medals/attacks_done) * 6
 
             raid_text = []
             for tag, amount in total_looted.items():
@@ -407,6 +429,8 @@ class clan_commands(commands.Cog):
             if len(raid_weekends) == 1:
                 rw = raid_weekends[0]
                 offensive_reward = rw.offensive_reward * 6
+                if total_medals > offensive_reward:
+                    offensive_reward = total_medals
                 defensive_reward = rw.defensive_reward
                 raid_text += f"\n\n{self.bot.emoji.raid_medal}{offensive_reward} + {self.bot.emoji.raid_medal}{defensive_reward} = {self.bot.emoji.raid_medal}{offensive_reward + defensive_reward}"
                 raid_text += "\n`Offense + Defense = Total`"
@@ -587,41 +611,51 @@ class clan_commands(commands.Cog):
         await ctx.edit_original_message(embed=embed, components=buttons)
 
 
-    @commands.slash_command(name='lastonline-graph-beta')
-    async def last_online_graph(self, ctx: disnake.ApplicationCommandInteraction,clan: coc.Clan = commands.Param(converter=clan_converter)):
-        player_tags = [member.tag for member in clan.members]
-        players = await self.bot.get_players(tags=player_tags, custom=True)
-        times_by_hour = defaultdict(int)
-        for player in players: #type: MyCustomPlayer
-            times = player.season_last_online(season_date="2022-10")
-            for time in times:
-                time = dt.datetime.fromtimestamp(time)
-                times_by_hour[time.hour] += 1
-        import matplotlib.pyplot as plt
-        dates = []
-        activity_list = []
-        for date, activities in sorted(times_by_hour.items(), reverse=False):
-            #time = datetime.datetime.fromtimestamp(date)
-            dates.append(f"{date}:00")
-            activity_list.append(activities)
+    @clan.sub_command(name='lastonline-graph')
+    async def last_online_graph(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+        await ctx.response.defer()
+        file = await self.create_graph([clan])
 
-        fig, ax = plt.subplots(figsize=(15, 10))
-        ax.plot(dates, activity_list)
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
+        dropdown = []
+        clan_dict = {}
+        if clan_tags:
+            clans = await self.bot.get_clans(tags=clan_tags)
+            select_menu_options = []
+            for count, clan in enumerate(clans):
+                clan_dict[clan.tag] = clan
+                emoji = await self.bot.create_new_badge_emoji(url=clan.badge.url)
+                if count < 25:
+                    select_menu_options.append(
+                        disnake.SelectOption(label=clan.name, emoji=self.bot.partial_emoji_gen(emoji_string=emoji),
+                                             value=clan.tag))
+            select = disnake.ui.Select(
+                options=select_menu_options,
+                placeholder="Mix & Match Clans",  # the placeholder text to show when no options have been chosen
+                min_values=1,  # the minimum number of options a user must select
+                max_values=len(select_menu_options),  # the maximum number of options a user can select
+            )
+            dropdown = [disnake.ui.ActionRow(select)]
+        await ctx.edit_original_message(file=file, components=dropdown)
 
-        ax.yaxis.grid(color='gray', linestyle='dashed')
-        ax.xaxis.grid(color='gray', linestyle='dashed')
+        msg = await ctx.original_message()
 
-        plt.style.use('seaborn-darkgrid')
-        plt.title("Activity This Season", loc='left', fontsize=12, fontweight=0, color='blue')
-        plt.xlabel("Time")
-        plt.ylabel("Activities")
-        import io
-        temp = io.BytesIO()
-        plt.tight_layout()
-        plt.savefig(temp, format="png")
-        temp.seek(0)
-        file = disnake.File(fp=temp, filename="filename.png")
-        await ctx.send(file=file)
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        while True:
+            try:
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
+            except:
+                await msg.edit(components=[])
+                break
+
+            await res.response.defer()
+
+            selected_clans = [clan_dict[value] for value in res.values]
+            file = await self.create_graph(selected_clans)
+            await res.edit_original_message(file=file, attachments=[])
 
 
     @commands.Cog.listener()
