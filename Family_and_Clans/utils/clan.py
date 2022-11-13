@@ -721,7 +721,7 @@ class getClans(commands.Cog, name="Clan"):
             X_ = np.linspace(dates.min(initial=0), dates.max(initial=0), 500)
             Y_ = X_Y_Spline(X_)
 
-            ax.plot(X_, Y_, label=clan.name)
+            ax.plot(X_, Y_, label=clan.name, linewidth=5)
 
             ax.yaxis.grid(color='gray', linestyle='dashed')
             ax.xaxis.grid(color='gray', linestyle='dashed')
