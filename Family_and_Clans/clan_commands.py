@@ -614,6 +614,8 @@ class clan_commands(commands.Cog):
     @clan.sub_command(name='lastonline-graph', description="Get a graph showing average clan members on per an hour")
     async def last_online_graph(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), timezone = commands.Param(name="timezone")):
         await ctx.response.defer()
+        if timezone not in pytz.common_timezones:
+            return await ctx.edit_original_message(content="Not a valid timezone, please choose one of the 300+ options in the autocomplete")
         file = await self.create_graph([clan], timezone = pytz.timezone(timezone))
 
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
@@ -622,6 +624,7 @@ class clan_commands(commands.Cog):
         if clan_tags:
             clans = await self.bot.get_clans(tags=clan_tags)
             select_menu_options = []
+            clans = sorted(clans, key=lambda x: x.member_count, reverse=True)
             for count, clan in enumerate(clans):
                 clan_dict[clan.tag] = clan
                 emoji = await self.bot.create_new_badge_emoji(url=clan.badge.url)
