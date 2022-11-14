@@ -386,6 +386,25 @@ class War_Log(commands.Cog):
 
     @coc.WarEvents.war_attack()
     async def war_attack(self, attack: coc.WarAttack, war: coc.ClanWar):
+        current_time = int(datetime.now().timestamp())
+        await self.bot.warhits.insert_one({
+            "tag" : attack.attacker.tag,
+            "name" : attack.attacker.name,
+            "townhall" : attack.attacker.town_hall,
+            "_time" : current_time,
+            "destruction" : attack.destruction,
+            "stars" : attack.stars,
+            "fresh" : attack.is_fresh_attack,
+            "war_start" : int(war.preparation_start_time.time.timestamp()),
+            "defender_tag" : attack.defender.tag,
+            "defender_name" : attack.defender.name,
+            "defender_townhall" : attack.defender.town_hall,
+            "war_type" : str(war.type),
+            "war_status" : str(war.status),
+            "attack_order" : attack.order,
+            "map_position" : attack.attacker.map_position
+        })
+
         #is an attack
         tracked = self.bot.clan_db.find({"tag": f"{war.clan.tag}"})
         limit = await self.bot.clan_db.count_documents(filter={"tag": f"{war.clan.tag}"})
