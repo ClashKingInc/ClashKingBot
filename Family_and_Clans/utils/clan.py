@@ -282,19 +282,19 @@ class getClans(commands.Cog, name="Clan"):
         async for player in clan.get_detailed_members():
             if player.war_opted_in:
                 th_emoji = emojiDictionary(player.town_hall)
-                opted_in.append([player.town_hall, f"<:opt_in:944905885367537685>{th_emoji}\u200e{player.name}\n"])
+                opted_in.append([player.town_hall, f"<:opt_in:944905885367537685>{th_emoji}\u200e{player.name}\n", player.name])
                 thcount[player.town_hall] += 1
                 num_in += 1
             else:
                 th_emoji = emojiDictionary(player.town_hall)
-                opted_out.append([player.town_hall, f"<:opt_out:944905931265810432>{th_emoji}\u200e{player.name}\n"])
+                opted_out.append([player.town_hall, f"<:opt_out:944905931265810432>{th_emoji}\u200e{player.name}\n", player.name])
                 out_thcount[player.town_hall] += 1
                 num_out += 1
 
 
 
-        opted_out = sorted(opted_out, key=lambda l: l[0], reverse=True)
-        opted_in = sorted(opted_in, key=lambda l: l[0], reverse=True)
+        opted_out = sorted(opted_out, key=lambda l: (-l[0], l[2]), reverse=False)
+        opted_in = sorted(opted_in, key=lambda l: (-l[0], l[2]), reverse=False)
         opted_out = "".join([i[1] for i in opted_out])
         opted_in = "".join([i[1] for i in opted_in])
 
