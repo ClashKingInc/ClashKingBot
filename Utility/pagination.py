@@ -31,7 +31,10 @@ async def button_pagination(bot, ctx: disnake.ApplicationCommandInteraction, msg
             current_stat = profile_pages.index(res.values[0])
             try:
                 embed = await display_embed(results, profile_pages[current_stat], current_page, ctx, history_cache_embed, bot)
-                await res.edit_original_message(embed=embed)
+                if profile_pages[current_stat] == "Upgrades":
+                    await res.edit_original_message(embeds= embed)
+                else:
+                    await res.edit_original_message(embed=embed)
             except:
                 if profile_pages[current_stat] == "History":
                     embed = disnake.Embed(description="This player has made their clash of stats history private.",
@@ -43,7 +46,10 @@ async def button_pagination(bot, ctx: disnake.ApplicationCommandInteraction, msg
             current_page = int(res.values[0])
             embed = await display_embed(results, profile_pages[current_stat], current_page, ctx, history_cache_embed,
                                         bot)
-            await res.edit_original_message(embed=embed)
+            if profile_pages[current_stat] == "Upgrades":
+                await res.edit_original_message(embeds=embed)
+            else:
+                await res.edit_original_message(embed=embed)
 
 
 async def display_embed(results, stat_type, current_page, ctx, history_cache_embed, bot):

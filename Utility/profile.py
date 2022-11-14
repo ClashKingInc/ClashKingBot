@@ -136,7 +136,7 @@ class profiles(commands.Cog, name="Profile"):
             st2 = disnake.ui.ActionRow()
             st2.append_item(profile_select)
             components = [st2]
-        await ctx.send(embed=embed, components=components)
+        await ctx.send(embeds=embed, components=components)
         msg = await ctx.original_message()
 
         def check(res: disnake.MessageInteraction):
@@ -156,7 +156,7 @@ class profiles(commands.Cog, name="Profile"):
             await res.response.defer()
             current_page = int(res.values[0])
             embed = upgrade_embed(self.bot, results[current_page])
-            await res.edit_original_message(embed=embed)
+            await res.edit_original_message(embeds=embed)
 
 
 
