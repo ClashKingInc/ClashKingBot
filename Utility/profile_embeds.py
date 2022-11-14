@@ -382,5 +382,5 @@ def upgrade_embed(bot, player: coc.Player):
 
     full_text += "✓ = rushed for th level"
 
-    embed = disnake.Embed(title=f"{player.name}", description=full_text, colour=disnake.Color.green())
+    embed = disnake.Embed(title=f"{player.name} | TH{player.town_hall}", description=full_text, colour=disnake.Color.green())
     return embed
