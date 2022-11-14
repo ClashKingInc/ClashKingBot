@@ -336,8 +336,8 @@ class clan_commands(commands.Cog):
             if isinstance(player, coc.errors.NotFound):
                 continue
             player: MyCustomPlayer
-            for char in ["`", "*", "_", "~"]:
-                name = player.name.replace(char, "", 10)
+            for char in ["`", "*", "_", "~", "´", "`"]:
+                name = player.name.replace(char, "")
             sum_donated = 0
             len_donated = 0
             for week in weekend_dates:

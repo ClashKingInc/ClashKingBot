@@ -1,19 +1,24 @@
 import datetime
-
+import asyncio
 import coc
 import disnake
+import math
 
 from main import check_commands
 from disnake.ext import commands
 from main import scheduler
 from CustomClasses.CustomBot import CustomClient
+from CustomClasses.CustomPlayer import MyCustomPlayer
 from typing import Union
+from collections import defaultdict
+from utils.clash import create_weekend_list, weekend_timestamps
 
 class reminders(commands.Cog, name="Reminders"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
         #ends at 7 am monday
+        scheduler.add_job(self.send_boards, "cron", day_of_week="mon", hour=6, minute=55)
         scheduler.add_job(self.clan_capital_reminder, "cron", args=["1 hr"], day_of_week="mon", hour=6)
         scheduler.add_job(self.clan_capital_reminder, "cron", args=["6 hr"], day_of_week="mon", hour=1)
         scheduler.add_job(self.clan_capital_reminder, "cron", args=["12 hr"], day_of_week="sun", hour=19)
@@ -623,7 +628,168 @@ class reminders(commands.Cog, name="Reminders"):
             except:
                 continue
 
+    async def send_boards(self):
+        tracked = self.bot.clan_db.find()
+        limit = await self.bot.clan_db.count_documents(filter={})
+        for cc in await tracked.to_list(length=limit):
+            try:
+                server = cc.get("server")
+                if server != 923764211845312533:
+                    continue
+                clancapital_channel = cc.get("clan_capital")
+                if clancapital_channel is None:
+                    continue
+                try:
+                    clancapital_channel = await self.bot.fetch_channel(clancapital_channel)
+                    if clancapital_channel is None:
+                        continue
+                except:
+                    continue
+                clan_tag = cc.get("tag")
+                clan = await self.bot.getClan(clan_tag=clan_tag)
+                if clan is None:
+                    continue
+                weekend = "Current Week"
+                choice_to_date = {"Current Week": [0], "Last Week": [1], "Last 4 Weeks (all)": [0, 1, 2, 3]}
+                weekend_dates = create_weekend_list(option=weekend)
+                member_tags = [member.tag for member in clan.members]
 
+                embeds = {}
+                other_tags = []
+                donated_data = {}
+                number_donated_data = {}
+
+                for week in weekend_dates:
+                    tags = await self.bot.player_stats.distinct("tag",
+                                                                filter={f"capital_gold.{week}.raided_clan": clan.tag})
+                    other_tags += tags
+                all_tags = list(set(member_tags + other_tags))
+                tasks = []
+                for tag in all_tags:
+                    results = await self.bot.player_stats.find_one({"tag": tag})
+                    task = asyncio.ensure_future(
+                        self.bot.coc_client.get_player(player_tag=tag, cls=MyCustomPlayer, bot=self.bot, results=results))
+                    tasks.append(task)
+                responses = await asyncio.gather(*tasks, return_exceptions=True)
+
+                donation_text = []
+                for player in responses:
+                    if isinstance(player, coc.errors.NotFound):
+                        continue
+                    player: MyCustomPlayer
+                    for char in ["`", "*", "_", "~", "´", "`"]:
+                        name = player.name.replace(char, "")
+                    sum_donated = 0
+                    len_donated = 0
+                    for week in weekend_dates:
+                        cc_stats = player.clan_capital_stats(week=week)
+                        sum_donated += sum(cc_stats.donated)
+                        len_donated += len(cc_stats.donated)
+                    donation = f"{sum_donated}".ljust(6)
+
+                    donated_data[player.tag] = sum_donated
+                    number_donated_data[player.tag] = len_donated
+
+                    if sum_donated == 0 and len(weekend_dates) > 1:
+                        continue
+                    if player.tag in member_tags:
+                        donation_text.append([f"{self.bot.emoji.capital_gold}`{donation}`: {name}", sum_donated])
+                    else:
+                        donation_text.append([f"{self.bot.emoji.deny_mark}`{donation}`: {name}", sum_donated])
+
+                donation_text = sorted(donation_text, key=lambda l: l[1], reverse=True)
+                donation_text = [line[0] for line in donation_text]
+                donation_text = "\n".join(donation_text)
+                donation_embed = disnake.Embed(title=f"**{clan.name} Donation Totals**", description=donation_text,
+                                               color=disnake.Color.green())
+                donation_embed.set_footer(text=f"Donated: {'{:,}'.format(sum(donated_data.values()))}")
+                embeds["donations"] = donation_embed
+
+                raid_weekends = []
+                raid_weekend = await self.bot.get_raid(clan_tag=clan.tag)
+                raid_weekends.append(raid_weekend)
+
+                total_medals = 0
+                if not raid_weekends:
+                    raid_embed = disnake.Embed(title=f"**{clan.name} Raid Totals**", description="No raids",
+                                               color=disnake.Color.green())
+                    embeds["raids"] = raid_embed
+                else:
+                    total_attacks = defaultdict(int);
+                    total_looted = defaultdict(int);
+                    attack_limit = defaultdict(int);
+                    name_list = {}
+                    members_not_looted = member_tags.copy()
+                    for raid_weekend in raid_weekends:
+                        for member in raid_weekend.members:
+                            name_list[member.tag] = member.name
+                            total_attacks[member.tag] += member.attack_count
+                            total_looted[member.tag] += member.capital_resources_looted
+                            attack_limit[member.tag] += (member.attack_limit + member.bonus_attack_limit)
+                            if len(raid_weekends) == 1 and member.tag in members_not_looted:
+                                members_not_looted.remove(member.tag)
+
+                    district_dict = {1: 135, 2: 225, 3: 350, 4: 405, 5: 460}
+                    capital_dict = {2: 180, 3: 360, 4: 585, 5: 810, 6: 1115, 7: 1240, 8: 1260, 9: 1375, 10: 1450}
+                    attacks_done = sum(list(total_attacks.values()))
+                    raids = raid_weekends[0].attack_log
+                    for raid_clan in raids:
+                        for district in raid_clan.districts:
+                            if int(district.destruction) == 100:
+                                if district.id == 70000000:
+                                    total_medals += capital_dict[int(district.hall_level)]
+                                else:
+                                    total_medals += district_dict[int(district.hall_level)]
+                            else:
+                                # attacks_done -= len(district.attacks)
+                                pass
+
+                    total_medals = math.ceil(total_medals / attacks_done) * 6
+
+                    raid_text = []
+                    for tag, amount in total_looted.items():
+                        raided_amount = f"{amount}".ljust(6)
+                        name = name_list[tag]
+                        for char in ["`", "*", "_", "~", "´"]:
+                            name = name.replace(char, "")
+                        # print(tag)
+                        # print(member_tags)
+                        if tag in member_tags:
+                            raid_text.append([
+                                                 f"\u200e{self.bot.emoji.capital_gold}`{total_attacks[tag]}/{attack_limit[tag]} {raided_amount}`: \u200e{name}",
+                                                 amount])
+                        else:
+                            raid_text.append([
+                                                 f"\u200e{self.bot.emoji.deny_mark}`{total_attacks[tag]}/{attack_limit[tag]} {raided_amount}`: \u200e{name}",
+                                                 amount])
+
+                    if len(raid_weekends) == 1:
+                        for member in members_not_looted:
+                            name = coc.utils.get(clan.members, tag=member)
+                            raid_text.append(
+                                [f"{self.bot.emoji.capital_gold}`{0}/{6 * len(raid_weekends)} {0}`: {name.name}", 0])
+
+                    raid_text = sorted(raid_text, key=lambda l: l[1], reverse=True)
+                    raid_text = [line[0] for line in raid_text]
+                    raid_text = "\n".join(raid_text)
+                    if len(raid_weekends) == 1:
+                        rw = raid_weekends[0]
+                        offensive_reward = rw.offensive_reward * 6
+                        if total_medals > offensive_reward:
+                            offensive_reward = total_medals
+                        defensive_reward = rw.defensive_reward
+                        raid_text += f"\n\n{self.bot.emoji.raid_medal}{offensive_reward} + {self.bot.emoji.raid_medal}{defensive_reward} = {self.bot.emoji.raid_medal}{offensive_reward + defensive_reward}"
+                        raid_text += "\n`Offense + Defense = Total`"
+                    raid_embed = disnake.Embed(title=f"**{clan.name} Raid Totals**", description=raid_text,
+                                               color=disnake.Color.green())
+                    raid_embed.set_footer(
+                        text=f"Spots: {len(total_attacks.values())}/50 | Attacks: {sum(total_attacks.values())}/300 | Looted: {'{:,}'.format(sum(total_looted.values()))}")
+                    embeds["raids"] = raid_embed
+
+                    await clancapital_channel.send(embed=raid_embed)
+                    await clancapital_channel.send(embed=donation_embed)
+            except:
+                continue
 
 def setup(bot: CustomClient):
     bot.add_cog(reminders(bot))
