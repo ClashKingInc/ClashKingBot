@@ -564,9 +564,9 @@ class reminders(commands.Cog, name="Reminders"):
     async def clan_capital_reminder(self, reminder_time):
         all_reminders = self.bot.reminders.find({"$and": [
             {"type": "Clan Capital"},
-            {"time" : reminder_time}
+            {"time": reminder_time}
         ]})
-        for reminder in await all_reminders.to_list(length=100):
+        for reminder in await all_reminders.to_list(length=10000):
             custom_text = reminder.get("custom_text")
             if custom_text is None:
                 custom_text = ""
@@ -585,8 +585,8 @@ class reminders(commands.Cog, name="Reminders"):
             server = self.bot.get_guild(reminder.get("server"))
             if server is None:
                 continue
-
             raid_weekend = await self.bot.get_raid(clan_tag=reminder.get("clan"))
+
             if raid_weekend is None:
                 continue
             missing = {}
@@ -598,7 +598,7 @@ class reminders(commands.Cog, name="Reminders"):
                     missing[member.tag] = (member.attack_limit + member.bonus_attack_limit) - member.attack_count
                     max[member.tag] = (member.attack_limit + member.bonus_attack_limit)
 
-            tags = list(missing.values())
+            tags = list(missing.keys())
             if not missing:
                 return
             links = await self.bot.link_client.get_links(*tags)
@@ -607,18 +607,21 @@ class reminders(commands.Cog, name="Reminders"):
                 num_missing = missing[player_tag]
                 max_do = max[player_tag]
                 name = names[player_tag]
-                if discord_id is None:
-                    missing_text += f"{num_missing}/{max_do} raids- {name} | {player_tag}\n"
                 member = disnake.utils.get(server.members, id=discord_id)
                 if member is None:
-                    missing_text += f"{num_missing}/{max_do} raids- {name} | {player_tag}\n"
+                    missing_text += f"{num_missing} raids- {name} | {player_tag}\n"
                 else:
-                    missing_text += f"{num_missing}/{max_do} raids- {name} | {member.mention}\n"
+                    missing_text += f"{num_missing} raids- {name} | {member.mention}\n"
             time = str(reminder_time).replace("hr", "")
-            reminder_text = f"**{time} Hours Remaining in Raid Weekend**\n" \
+            clan = await self.bot.getClan(clan_tag=reminder.get("clan"))
+            badge = await self.bot.create_new_badge_emoji(url=clan.badge.url)
+            reminder_text = f"**{badge}{clan.name}\n{time} Hours Remaining in Raid Weekend**\n" \
                             f"{missing_text}" \
                             f"{custom_text}"
-            await channel.send(content=reminder_text)
+            try:
+                await channel.send(content=reminder_text)
+            except:
+                continue
 
 
 

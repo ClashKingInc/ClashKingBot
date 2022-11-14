@@ -448,6 +448,8 @@ def upgrade_embed(bot: CustomClient, player: coc.Player):
     else:
         hero_levels_missing = f"{round((hero_levels_missing/(hero_levels+hero_levels_missing)) * 100, 2)}%"
 
+    print(spell_levels)
+    print(spell_levels_missing)
     if troop_levels_missing == 0:
         troop_levels_missing = "0.00%"
     else:

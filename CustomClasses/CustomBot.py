@@ -539,6 +539,7 @@ class CustomClient(commands.Bot):
         try:
             weekend_times = weekend_timestamps()
             raidlog = await self.coc_client.get_raidlog(clan_tag)
+            time_start = int(raidlog[0].start_time.time.timestamp())
             raid_weekend = self.find_raid(raid_log=raidlog, before=weekend_times[0],after=weekend_times[1])
             return raid_weekend
         except:
