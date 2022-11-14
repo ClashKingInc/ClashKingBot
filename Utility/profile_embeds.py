@@ -264,7 +264,6 @@ def upgrade_embed(bot: CustomClient, player: coc.Player):
     for troop in player.troops:
         if troop.is_super_troop:
             continue
-        troop_levels += troop.level
         troops_found.append(troop.name)
         troop_emoji = bot.fetch_emoji(name=troop.name)
 
@@ -273,6 +272,7 @@ def upgrade_embed(bot: CustomClient, player: coc.Player):
             prev_level_max = troop.level
 
         th_max = troop.get_max_level_for_townhall(player.town_hall)
+        troop_levels += th_max
         troop_levels_missing += (th_max - troop.level)
         th_max = f"{th_max}".ljust(2)
         level = f"{troop.level}".rjust(2)
@@ -310,6 +310,7 @@ def upgrade_embed(bot: CustomClient, player: coc.Player):
             convert_lab = troop.lab_to_townhall
             troop_unlock = convert_lab[troop_unlock]
             if player.town_hall >= troop_unlock:
+                troop_levels += th_max
                 troop_levels_missing += (th_max)
                 th_max = f"{th_max}".ljust(2)
                 level = f"0".rjust(2)
@@ -331,9 +332,10 @@ def upgrade_embed(bot: CustomClient, player: coc.Player):
         prev_level_max = spell.get_max_level_for_townhall(player.town_hall - 1)
         if prev_level_max is None:
             prev_level_max = spell.level
-        spell_levels += spell.level
+
 
         th_max = spell.get_max_level_for_townhall(player.town_hall)
+        spell_levels += th_max
         spell_levels_missing += (th_max - spell.level)
         th_max = f"{th_max}".ljust(2)
         level = f"{spell.level}".rjust(2)
@@ -360,6 +362,7 @@ def upgrade_embed(bot: CustomClient, player: coc.Player):
             th_max = spell.get_max_level_for_townhall(player.town_hall)
             if th_max is None:
                 continue
+            spell_levels += th_max
             spell_levels_missing += (th_max)
             troop_unlock = spell.lab_level[2]
             convert_lab = spell.lab_to_townhall
@@ -448,12 +451,12 @@ def upgrade_embed(bot: CustomClient, player: coc.Player):
     if troop_levels_missing == 0:
         troop_levels_missing = "0.00%"
     else:
-        troop_levels_missing = f"{round((troop_levels_missing / (troop_levels + troop_levels_missing)) * 100, 2)}%"
+        troop_levels_missing = f"{round((troop_levels_missing / (troop_levels)) * 100, 2)}%"
 
     if spell_levels_missing == 0:
         spell_levels_missing = "0.00%"
     else:
-        spell_levels_missing = f"{round((spell_levels_missing / (spell_levels + spell_levels_missing)) * 100, 2)}%"
+        spell_levels_missing = f"{round((spell_levels_missing / (spell_levels)) * 100, 2)}%"
 
     #print(full_text)
     embed = disnake.Embed(title=f"{player.name} | TH{player.town_hall}", description=full_text, colour=disnake.Color.green())
