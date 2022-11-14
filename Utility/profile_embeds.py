@@ -325,9 +325,13 @@ def upgrade_embed(bot, player: coc.Player):
     for hero in player.heroes:
         troop_emoji = bot.fetch_emoji(name=hero.name)
 
-        prev_level_max = hero.get_max_level_for_townhall(player.town_hall - 1)
+        if hero.required_th_level == player.town_hall:
+            prev_level_max = None
+        else:
+            prev_level_max = hero.get_max_level_for_townhall(player.town_hall - 1)
         if prev_level_max is None:
             prev_level_max = hero.level
+
 
         th_max = hero.get_max_level_for_townhall(player.town_hall)
         th_max = f"{th_max}".ljust(2)
