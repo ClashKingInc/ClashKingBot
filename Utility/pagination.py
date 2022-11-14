@@ -4,7 +4,7 @@ from CustomClasses.CustomPlayer import MyCustomPlayer
 
 async def button_pagination(bot, ctx: disnake.ApplicationCommandInteraction, msg, results):
     # statTypes
-    profile_pages = ["Info", "Troops", "History"]
+    profile_pages = ["Info", "Troops", "Upgrades", "History"]
     current_stat = 0
     current_page = 0
     history_cache_embed = {}
@@ -51,6 +51,8 @@ async def display_embed(results, stat_type, current_page, ctx, history_cache_emb
         return await create_profile_stats(bot, ctx, results[current_page])
     elif stat_type == "Troops":
         return await create_profile_troops(bot, results[current_page])
+    elif stat_type == "Upgrades":
+        return upgrade_embed(bot, results[current_page])
     elif stat_type == "History":
         player = results[current_page]
         keys = history_cache_embed.keys()
@@ -65,6 +67,7 @@ def create_components(bot: CustomClient, results):
     options = [  # the options in your dropdown
         disnake.SelectOption(label="Overview", emoji=bot.emoji.xp.partial_emoji, value="Info"),
         disnake.SelectOption(label="Troops", emoji=bot.emoji.troop.partial_emoji, value="Troops"),
+        disnake.SelectOption(label="Upgrades/Rushed", emoji=bot.emoji.clock.partial_emoji, value="Upgrades"),
         disnake.SelectOption(label="Clan History", emoji=bot.emoji.clan_castle.partial_emoji, value="History"),
     ]
 

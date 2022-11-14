@@ -105,7 +105,17 @@ def emojiDictionary(emojiName):
         "Capital_Hall3": "<:CH3:1029590585864093726>",
         "Capital_Hall2": "<:CH2:1029590586795229264>",
         "Capital_Hall1": "<:CH1:1029590587298557995>",
-
+        "Bomber" : "<:Bomber:701625279562383410>",
+        "Hog Glider" : "<:HogGlider:701625283354296331>",
+        "Cannon Cart" : "<:CannonCart:701625284847206400>",
+        "Super P.E.K.K.A" : "<:SuperPEKKA:701625285031886941>",
+        "Boxer Giant" : "<:BoxerGiant:701625285061115915>",
+        "Drop Ship" : "<:DropShip:701625285061115955>",
+        "Beta Minion" : "<:BetaMinion:701625285069504562>",
+        "Raged Barbarian" : "<:RagedBarbarian:701625285107515462>",
+        "Night Witch" : "<:NightWitch:701625285161910372>",
+        "Sneaky Archer" : "<:SneakyArcher:701625285279219765>",
+        "Battle Machine" : "<:bm:1041499330240053352>"
     }
 
     return switcher.get(emojiName)

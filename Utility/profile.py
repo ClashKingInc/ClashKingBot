@@ -1,5 +1,8 @@
-from disnake.ext import commands
+import coc
 import disnake
+
+from disnake.ext import commands
+from Utility.profile_embeds import *
 from Dictionaries.emojiDictionary import emojiDictionary
 from Utility.pagination import button_pagination
 from utils.search import search_results
@@ -110,8 +113,57 @@ class profiles(commands.Cog, name="Profile"):
 
         await ctx.send(embed=embed)
 
+    @commands.slash_command(name="upgrades", description="Show upgrades needed for an account")
+    async def upgrades(self, ctx: disnake.ApplicationCommandInteraction, player_tag: str=None, discord_user:disnake.Member=None):
+        if player_tag is None and discord_user is None:
+            search_query = str(ctx.author.id)
+        elif player_tag is not None:
+            search_query = player_tag
+        else:
+            search_query = str(discord_user.id)
+
+        await ctx.response.defer()
+        results = await search_results(self.bot, search_query)
+        embed = upgrade_embed(self.bot, results[0])
+        components = []
+        if len(results) > 1:
+            player_results = []
+            for count, player in enumerate(results):
+                player_results.append(
+                    disnake.SelectOption(label=f"{player.name}", emoji=player.town_hall_cls.emoji.partial_emoji,
+                                         value=f"{count}"))
+            profile_select = disnake.ui.Select(options=player_results, placeholder="Accounts", max_values=1)
+            st2 = disnake.ui.ActionRow()
+            st2.append_item(profile_select)
+            components = [st2]
+        await ctx.send(embed=embed, components=components)
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        while True:
+            try:
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                     timeout=600)
+            except:
+                try:
+                    await ctx.edit_original_message(components=[])
+                except:
+                    pass
+                break
+
+            await res.response.defer()
+            current_page = int(res.values[0])
+            embed = upgrade_embed(self.bot, results[current_page])
+            await res.edit_original_message(embed=embed)
+
+
+
+
     @invite.autocomplete("player_tag")
     @lookup.autocomplete("tag")
+    @upgrades.autocomplete("player_tag")
     async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         names = await self.bot.family_names(query=query, guild=ctx.guild)
         return names
