@@ -373,9 +373,13 @@ class getClans(commands.Cog, name="Clan"):
             t1 = war.clan.attacks_used
             t2 = war.opponent.attacks_used
 
+
             if war.result == "win":
                 status = "<:warwon:932212939899949176>"
                 op_status = "Win"
+            elif (war.opponent.stars == war.clan.stars) and (war.clan.destruction == war.opponent.destruction):
+                status = "<:dash:933150462818021437>"
+                op_status = "Draw"
             else:
                 status = "<:warlost:932212154164183081>"
                 op_status = "Loss"
