@@ -4,7 +4,7 @@ async def search_results(bot, query):
 
     tags = []
     #if search is a player tag, pull stats of the player tag
-    player = await bot.getPlayer(query)
+    player = await bot.getPlayer(query, custom=True)
     if player is not None:
         tags.append(player)
         return tags
