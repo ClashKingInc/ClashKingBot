@@ -2,17 +2,21 @@
 
 def thDictionary(thLevel):
     switcher = {
-        5: "https://cdn.discordapp.com/attachments/842820614163398698/861379024420601866/5.png",
-        6: "https://cdn.discordapp.com/attachments/842820614163398698/861379445498970122/6.png",
-        7: "https://cdn.discordapp.com/attachments/842820614163398698/861379443053035530/7.png",
-        8: "https://cdn.discordapp.com/attachments/842820614163398698/861379439903768586/8.png",
-        9: "https://cdn.discordapp.com/attachments/842820614163398698/861379437843972106/9.png",
-        10: "https://cdn.discordapp.com/attachments/842820614163398698/861379434543710248/10.png",
-        11: "https://cdn.discordapp.com/attachments/842820614163398698/861379432995094538/11.png",
-        12: "https://cdn.discordapp.com/attachments/842820614163398698/861379431415283732/12.5.png",
-        13: "https://cdn.discordapp.com/attachments/886889518890885141/911184958293430282/786299624725545010.png",
-        14: "https://cdn.discordapp.com/attachments/886889518890885141/911184447628513280/1_14_5.png",
-        15: "https://media.discordapp.net/attachments/830882773367259196/1029644701852250163/1410_0.png"
+        1: "https://github.com/MagicTheDev/ClashKing/blob/master/Assets/th_pics/town-hall-1.png?raw=true",
+        2: "https://github.com/MagicTheDev/ClashKing/blob/master/Assets/th_pics/town-hall-2.png?raw=true",
+        3: "https://github.com/MagicTheDev/ClashKing/blob/master/Assets/th_pics/town-hall-3.png?raw=true",
+        4: "https://github.com/MagicTheDev/ClashKing/blob/master/Assets/th_pics/town-hall-4.png?raw=true",
+        5: "https://github.com/MagicTheDev/ClashKing/blob/master/Assets/th_pics/town-hall-5.png?raw=true",
+        6: f"https://github.com/MagicTheDev/ClashKing/blob/master/Assets/th_pics/town-hall-{thLevel}.png?raw=true",
+        7: f"https://github.com/MagicTheDev/ClashKing/blob/master/Assets/th_pics/town-hall-{thLevel}.png?raw=true",
+        8: f"https://github.com/MagicTheDev/ClashKing/blob/master/Assets/th_pics/town-hall-{thLevel}.png?raw=true",
+        9: f"https://github.com/MagicTheDev/ClashKing/blob/master/Assets/th_pics/town-hall-{thLevel}.png?raw=true",
+        10: f"https://github.com/MagicTheDev/ClashKing/blob/master/Assets/th_pics/town-hall-{thLevel}.png?raw=true",
+        11: f"https://github.com/MagicTheDev/ClashKing/blob/master/Assets/th_pics/town-hall-{thLevel}.png?raw=true",
+        12: f"https://github.com/MagicTheDev/ClashKing/blob/master/Assets/th_pics/town-hall-{thLevel}.png?raw=true",
+        13: f"https://github.com/MagicTheDev/ClashKing/blob/master/Assets/th_pics/town-hall-{thLevel}-2.png?raw=true",
+        14: f"https://github.com/MagicTheDev/ClashKing/blob/master/Assets/th_pics/town-hall-{thLevel}-2.png?raw=true",
+        15: "https://github.com/MagicTheDev/ClashKing/blob/master/Assets/th_pics/town-hall-15-2.png?raw=true"
     }
 
     return switcher.get(thLevel, "No Picture Found")
