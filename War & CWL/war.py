@@ -1,6 +1,7 @@
 import coc
 import disnake
 import pytz
+import asyncio
 
 from utils.search import search_results
 from disnake.ext import commands
@@ -178,20 +179,32 @@ class War(commands.Cog):
         await ctx.response.defer()
         players = await self.bot.get_players(tags=members, custom=True)
 
-        text = ""
-        for player in players: #type: MyCustomPlayer
+        ranked = []
+        tasks = []
+        async def fetch_n_rank(player):
             hitrate = await player.hit_rate()
             hr = hitrate[0]
             if hr.num_attacks == 0:
-                continue
-            hr_type = f"{hr.type}".ljust(5)
-            hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+                return None
+            hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(7)
             name = str(player.name)[0:12]
             name = f"{name}".ljust(12)
-            text += f"`{name}` | `{hr_nums}` | {round(hr.average_triples * 100, 3)}%\n"
+            return [f"{player.town_hall_cls.emoji}`{hr_nums} {round(hr.average_triples * 100, 1)}% {name}`\n",
+                    round(hr.average_triples * 100, 3), name, hr.num_attacks, player.town_hall]
+        for player in players: #type: MyCustomPlayer
+            task = asyncio.ensure_future(fetch_n_rank(player=player))
+            tasks.append(task)
 
+        responses = await asyncio.gather(*tasks)
+        ranked = [response for response in responses if response is not None]
+
+        ranked = sorted(ranked, key=lambda l: (-l[-1], -l[1], -l[-2], l[2]), reverse=False)
+        text = "`# TH  NUM    HR%    NAME       `\n"
+        for count, rank in enumerate(ranked, 1):
+            spot_emoji = self.bot.get_number_emoji(color="gold", number=count)
+            text += f"{spot_emoji}{rank[0]}"
         embed = disnake.Embed(title=f"{clan.name} Hit Rates", description=text, colour=disnake.Color.green())
-        embed.set_thumbnail(url=clan.badge.url)
+        embed.set_footer(icon_url=clan.badge.url, text=f"{clan.name}")
         await ctx.edit_original_message(embed=embed)
 
 
