@@ -8,7 +8,7 @@ from disnake.ext import commands
 from dotenv import load_dotenv
 from Assets.emojiDictionary import emojiDictionary, legend_emojis
 from CustomClasses.CustomPlayer import MyCustomPlayer
-from CustomClasses.emoji_class import Emojis
+from CustomClasses.emoji_class import Emojis, EmojiType
 from pyyoutube import Api
 from urllib.request import urlopen
 from utils.clash import weekend_timestamps
@@ -88,6 +88,7 @@ class CustomClient(commands.Bot):
         self.leaderboard_db = self.new_looper.leaderboard_db
         self.clan_leaderboard_db = self.new_looper.clan_leaderboard_db
         self.history_db = self.looper_db.legend_history
+        self.warhits = self.new_looper.warhits
         self.user_name = "admin"
 
         self.link_client = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
@@ -113,7 +114,6 @@ class CustomClient(commands.Bot):
         self.reminders = self.db_client.usafam.reminders
         self.whitelist = self.db_client.usafam.whitelist
         self.rosters = self.db_client.usafam.rosters
-        self.warhits = self.db_client.usafam.warhits
 
         self.coc_client = coc.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD"), client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 30,
                                     cache_max_size=50000, load_game_data=coc.LoadGameData(always=True))
@@ -154,7 +154,25 @@ class CustomClient(commands.Bot):
         emoji = await guild.create_custom_emoji(name=new_url[-15:].replace("-", ""), image=img)
         return f"<:{emoji.name}:{emoji.id}>"
 
-
+    def get_number_emoji(self, color: str, number: int):
+        guild = None
+        if number <= 50:
+            if color == "white":
+                guild = self.get_guild(1042301258167484426)
+            elif color == "blue":
+                guild = self.get_guild(1042222078302109779)
+            elif color == "gold":
+                guild = self.get_guild(1042301195240357958)
+        elif number >= 51:
+            if color == "white":
+                guild = self.get_guild(1042635651562086430)
+            elif color == "blue":
+                guild = self.get_guild(1042301258167484426)
+            elif color == "gold":
+                guild = self.get_guild(1042635608088125491)
+        all_emojis = guild.emojis
+        emoji = disnake.utils.get(all_emojis, name=f"{number}_")
+        return EmojiType(emoji_string=f"<:{emoji.name}:{emoji.id}>")
 
 
     async def track_players(self, players: list):
