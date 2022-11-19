@@ -3,7 +3,7 @@ from datetime import timedelta
 from coc import utils
 from coc.ext import discordlinks
 from coc.fullwar_api import FullWarClient
-from coc.ext import fullwar_api
+from coc import fullwar_api
 from disnake.ext import commands
 from dotenv import load_dotenv
 from Assets.emojiDictionary import emojiDictionary, legend_emojis
