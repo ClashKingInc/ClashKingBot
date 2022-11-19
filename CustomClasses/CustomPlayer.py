@@ -2,11 +2,12 @@
 import coc
 import pytz
 from coc import utils
-from Dictionaries.emojiDictionary import emojiDictionary
-from Dictionaries.thPicDictionary import thDictionary
+from Assets.emojiDictionary import emojiDictionary
+from Assets.thPicDictionary import thDictionary
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 from CustomClasses.emoji_class import EmojiType
+from collections import defaultdict
 
 sync_client = MongoClient("mongodb://localhost:27017")
 new_looper = sync_client.new_looper
@@ -163,6 +164,119 @@ class MyCustomPlayer(coc.Player):
         if l_results.get(season_date) is None:
             return []
         return l_results.get(season_date)
+
+
+    async def hit_rate(self, townhall_level:list = [], fresh_type: list = [False, True], start_timestamp:int = 0, end_timestamp: int = 9999999999,
+                       war_types: list= ["random", "cwl", "friendly"], war_statuses = ["lost", "losing", "winning", "won"]):
+        if townhall_level is None:
+            townhall_level = self.town_hall
+        if townhall_level == []:
+            townhall_level = list(range(1, self.town_hall + 1))
+
+        results = self.bot.warhits.find({"tag": self.tag})
+        count = await self.bot.warhits.count_documents({"tag": self.tag})
+        hit_rate_default = {"num_hits" : 0, "total_stars" : 0, "total_destruction" : 0, "total_triples" : 0, "two_stars" : 0, "one_stars" : 0, "zero_stars" : 0}
+        if count == 0:
+            return [HitRate(hitrate_dict=hit_rate_default, type="All")]
+        prev_ = []
+        hit_rates = defaultdict(lambda: defaultdict(int))
+        async for result in results:
+            townhall = result.get("townhall")
+            fresh = result.get("fresh")
+            time = result.get("_time")
+            type = result.get("war_type")
+            status = result.get("war_status")
+            if f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}" in prev_:
+                continue
+            prev_.append(f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}")
+            if (townhall in townhall_level) and (fresh in fresh_type) and (time >= start_timestamp) and (time <= end_timestamp) and (type in war_types) and (status in war_statuses):
+                hr_type = f"{townhall}v{result.get('defender_townhall')}"
+                hit_rates["All"]["num_hits"] += 1
+                hit_rates[hr_type]["num_hits"] += 1
+
+                hit_rates["All"]["total_stars"] += result.get("stars")
+                hit_rates[hr_type]["total_stars"] += result.get("stars")
+
+                hit_rates["All"]["total_destruction"] += result.get("destruction")
+                hit_rates[hr_type]["total_destruction"] += result.get("destruction")
+
+                if result.get("stars") == 3:
+                    hit_rates["All"]["total_triples"] += 1
+                    hit_rates[hr_type]["total_triples"] += 1
+                elif result.get("stars") == 2:
+                    hit_rates["All"]["two_stars"] += 1
+                    hit_rates[hr_type]["two_stars"] += 1
+                elif result.get("stars") == 1:
+                    hit_rates["All"]["one_stars"] += 1
+                    hit_rates[hr_type]["one_stars"] += 1
+                elif result.get("stars") == 0:
+                    hit_rates["All"]["zero_stars"] += 1
+                    hit_rates[hr_type]["zero_stars"] += 1
+
+        list_hr = []
+        for type, hitrate in hit_rates.items():
+            list_hr.append(HitRate(hitrate_dict=hitrate, type=type))
+        if list_hr == []:
+            list_hr.append(HitRate(hitrate_dict=hit_rate_default, type="All"))
+
+        return list_hr
+
+
+    async def defense_rate(self, townhall_level: list = [], fresh_type: list = [False, True], start_timestamp: int = 0,
+                       end_timestamp: int = 9999999999,
+                       war_types: list = ["random", "cwl", "friendly"],
+                       war_statuses=["lost", "losing", "winning", "won"]):
+        if townhall_level is None:
+            townhall_level = self.town_hall
+
+        if townhall_level == []:
+            townhall_level = list(range(1, self.town_hall + 1))
+
+        results = self.bot.warhits.find({"defender_tag": self.tag})
+        count = await self.bot.warhits.count_documents({"defender_tag": self.tag})
+        if count == 0:
+            return []
+        prev_ = []
+        hit_rates = defaultdict(lambda: defaultdict(int))
+        async for result in results:
+            townhall = result.get("townhall")
+            fresh = result.get("fresh")
+            time = result.get("_time")
+            type = result.get("war_type")
+            status = result.get("war_status")
+            if f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}" in prev_:
+                continue
+            prev_.append(f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}")
+            if (townhall in townhall_level) and (fresh in fresh_type) and (time >= start_timestamp) and (
+                    time <= end_timestamp) and (type in war_types) and (status in war_statuses):
+                hr_type = f"{townhall}v{result.get('defender_townhall')}"
+                hit_rates["All"]["num_hits"] += 1
+                hit_rates[hr_type]["num_hits"] += 1
+
+                hit_rates["All"]["total_stars"] += result.get("stars")
+                hit_rates[hr_type]["total_stars"] += result.get("stars")
+
+                hit_rates["All"]["total_destruction"] += result.get("destruction")
+                hit_rates[hr_type]["total_destruction"] += result.get("destruction")
+
+                if result.get("stars") == 3:
+                    hit_rates["All"]["total_triples"] += 1
+                    hit_rates[hr_type]["total_triples"] += 1
+                elif result.get("stars") == 2:
+                    hit_rates["All"]["two_stars"] += 1
+                    hit_rates[hr_type]["two_stars"] += 1
+                elif result.get("stars") == 1:
+                    hit_rates["All"]["one_stars"] += 1
+                    hit_rates[hr_type]["one_stars"] += 1
+                elif result.get("stars") == 0:
+                    hit_rates["All"]["zero_stars"] += 1
+                    hit_rates[hr_type]["zero_stars"] += 1
+
+        list_hr = []
+        for type, hitrate in hit_rates.items():
+            list_hr.append(DefenseRate(hitrate_dict=hitrate, type=type))
+        return list_hr
+
 
     @property
     def clan_games(self):
@@ -456,6 +570,8 @@ class CustomTownHall():
 
     @property
     def image_url(self):
+        if self.level <= 4:
+            self.level = 5
         return thDictionary(self.level)
 
 
@@ -472,3 +588,163 @@ class Donations():
     @property
     def received(self):
         return self._received
+
+
+class HitRate():
+    def __init__(self, hitrate_dict, type):
+        self.hitrate_dict = hitrate_dict
+        self.type = type
+
+    #{"num_hits" : 0, "total_stars" : 0, "total_destruction" : 0, "total_triples" : 0, "two_stars" : 0, "one_stars" : 0, "zero_stars" : 0}
+
+    @property
+    def num_attacks(self):
+        return self.hitrate_dict["num_hits"]
+
+    @property
+    def average_stars(self):
+        try:
+            return self.hitrate_dict["total_stars"] / self.hitrate_dict["num_hits"]
+        except:
+            return 0.00
+
+    @property
+    def total_stars(self):
+        return self.hitrate_dict["total_stars"]
+
+    @property
+    def total_destruction(self):
+        return self.hitrate_dict["total_destruction"]
+
+    @property
+    def average_destruction(self):
+        try:
+            return self.hitrate_dict["total_destruction"] / self.hitrate_dict["num_hits"]
+        except:
+            return 0.00
+
+    @property
+    def total_triples(self):
+        return self.hitrate_dict["total_triples"]
+
+    @property
+    def average_triples(self):
+        try:
+            return self.hitrate_dict["total_triples"] / self.hitrate_dict["num_hits"]
+        except:
+            return 0.00
+
+    @property
+    def total_twos(self):
+        return self.hitrate_dict["two_stars"]
+
+    @property
+    def average_twos(self):
+        try:
+            return self.hitrate_dict["two_stars"] / self.hitrate_dict["num_hits"]
+        except:
+            return 0.00
+
+    @property
+    def total_ones(self):
+        return self.hitrate_dict["one_stars"]
+
+    @property
+    def average_ones(self):
+        try:
+            return self.hitrate_dict["one_stars"] / self.hitrate_dict["num_hits"]
+        except:
+            return 0.00
+
+    @property
+    def total_zeros(self):
+        return self.hitrate_dict["zero_stars"]
+
+    @property
+    def average_zeros(self):
+        try:
+            return self.hitrate_dict["zero_stars"] / self.hitrate_dict["num_hits"]
+        except:
+            return 0.00
+
+
+class DefenseRate():
+    def __init__(self, hitrate_dict, type):
+        self.hitrate_dict = hitrate_dict
+        self.type = type
+
+    #{"num_hits" : 0, "total_stars" : 0, "total_destruction" : 0, "total_triples" : 0, "two_stars" : 0, "one_stars" : 0, "zero_stars" : 0}
+
+    @property
+    def num_attacks(self):
+        return self.hitrate_dict["num_hits"]
+
+    @property
+    def average_stars(self):
+        try:
+            return 1 - self.hitrate_dict["total_stars"] / self.hitrate_dict["num_hits"]
+        except:
+            return 1 - 0.00
+
+    @property
+    def total_stars(self):
+        return self.hitrate_dict["total_stars"]
+
+    @property
+    def total_destruction(self):
+        return self.hitrate_dict["total_destruction"]
+
+    @property
+    def average_destruction(self):
+        try:
+            return 1 - self.hitrate_dict["total_destruction"] / self.hitrate_dict["num_hits"]
+        except:
+            return 1 - 0.00
+
+    @property
+    def total_triples(self):
+        return self.hitrate_dict["total_triples"]
+
+    @property
+    def average_triples(self):
+        try:
+            return 1 - self.hitrate_dict["total_triples"] / self.hitrate_dict["num_hits"]
+        except:
+            return 1 - 0.00
+
+    @property
+    def total_twos(self):
+        return self.hitrate_dict["two_stars"]
+
+    @property
+    def average_twos(self):
+        try:
+            return 1 - self.hitrate_dict["two_stars"] / self.hitrate_dict["num_hits"]
+        except:
+            return 1 - 0.00
+
+    @property
+    def total_ones(self):
+        return self.hitrate_dict["one_stars"]
+
+    @property
+    def average_ones(self):
+        try:
+            return 1 - self.hitrate_dict["one_stars"] / self.hitrate_dict["num_hits"]
+        except:
+            return 1 - 0.00
+
+    @property
+    def total_zeros(self):
+        return self.hitrate_dict["zero_stars"]
+
+    @property
+    def average_zeros(self):
+        try:
+            return 1 - self.hitrate_dict["zero_stars"] / self.hitrate_dict["num_hits"]
+        except:
+            return 1 - 0.00
+
+
+
+

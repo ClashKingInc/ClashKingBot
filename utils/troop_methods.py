@@ -1,7 +1,7 @@
 import coc
 
-from Dictionaries.emojiDictionary import emojiDictionary
-from Dictionaries.levelEmojis import levelEmojis, maxLevelEmojis
+from Assets.emojiDictionary import emojiDictionary
+from Assets.levelEmojis import levelEmojis, maxLevelEmojis
 
 DARK_ELIXIR = ["Minion", "Hog Rider", "Valkyrie", "Golem", "Witch", "Lava Hound", "Bowler", "Ice Golem", "Headhunter"]
 SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker", "Rocket Balloon", "Super Wizard", "Inferno Dragon",

@@ -7,7 +7,7 @@ from disnake.ext import commands, tasks
 from datetime import datetime
 from utils.troop_methods import cwl_league_emojis
 from utils.discord_utils import partial_emoji_gen
-from Dictionaries.emojiDictionary import emojiDictionary
+from Assets.emojiDictionary import emojiDictionary
 from collections import defaultdict
 import operator
 import aiohttp

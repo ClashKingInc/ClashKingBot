@@ -1,7 +1,7 @@
 from disnake.ext import commands
 import re
-from Dictionaries.army_ids import troop_ids, spell_ids, size
-from Dictionaries.emojiDictionary import emojiDictionary
+from Assets.army_ids import troop_ids, spell_ids, size
+from Assets.emojiDictionary import emojiDictionary
 import coc
 from CustomClasses.CustomBot import CustomClient
 import disnake

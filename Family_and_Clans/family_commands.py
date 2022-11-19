@@ -7,7 +7,7 @@ import asyncio
 
 from disnake.ext import commands
 from coc import utils
-from Dictionaries.emojiDictionary import emojiDictionary
+from Assets.emojiDictionary import emojiDictionary
 from CustomClasses.CustomBot import CustomClient
 from collections import defaultdict
 from collections import Counter

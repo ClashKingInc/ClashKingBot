@@ -141,6 +141,10 @@ class misc(commands.Cog, name="Other"):
     async def faq(self, ctx: disnake.ApplicationCommandInteraction, question=None):
         await ctx.response.defer()
         q_n_a = await self.parse_faq()
+        if question not in q_n_a:
+            embed = disnake.Embed(description="Question not found",
+                                  color=disnake.Color.red())
+            await ctx.edit_original_message(embed=embed)
         if question is not None:
             embed = disnake.Embed(title=f"**{question}**", description=q_n_a[question],
                                   color=disnake.Color.green())
@@ -177,6 +181,13 @@ class misc(commands.Cog, name="Other"):
 
                 await res.response.defer()
                 await res.edit_original_message(embed=embeds[int(res.values[0])])
+
+    @commands.slash_command(name="clash-assets", description="List of clash assets, with option to add as emoji to server")
+    async def clash_assets(self, ctx: disnake.ApplicationCommandInteraction, asset):
+        pass
+
+
+
 
 
     async def parse_faq(self):

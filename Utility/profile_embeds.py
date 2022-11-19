@@ -2,8 +2,8 @@ import disnake
 import coc
 import aiohttp
 
-from Dictionaries.emojiDictionary import emojiDictionary
-from Dictionaries.thPicDictionary import thDictionary
+from Assets.emojiDictionary import emojiDictionary
+from Assets.thPicDictionary import thDictionary
 from utils.troop_methods import profileSuperTroops, leagueAndTrophies
 from utils.troop_methods import heros, heroPets, troops, deTroops, siegeMachines, spells
 from bs4 import BeautifulSoup

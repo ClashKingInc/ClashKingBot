@@ -21,12 +21,15 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
             ----------
             limit: number of players to show
         """
+        await ctx.response.defer()
         rankings = []
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         l = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         for clan in await tracked.to_list(length=l):
             tag = clan.get("tag")
             clan = await self.bot.getClan(tag)
+            if clan is None:
+                continue
             for player in clan.members:
                 try:
                     playerStats = []
@@ -90,7 +93,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                 embed.set_footer(text=f"Cumulative Trophies would be 🏆{cum_score}")
             embeds.append(embed)
 
-        await ctx.send(embed=embeds[0], components=create_components(current_page, embeds, True))
+        await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))
         msg = await ctx.original_message()
 
         def check(res: disnake.MessageInteraction):

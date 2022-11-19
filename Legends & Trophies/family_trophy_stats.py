@@ -5,7 +5,7 @@ from utils.components import create_components
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import LegendRanking
 import math
-from Dictionaries.thPicDictionary import thDictionary
+from Assets.thPicDictionary import thDictionary
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹" ]
 
 

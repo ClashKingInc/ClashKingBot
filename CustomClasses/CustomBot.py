@@ -2,9 +2,11 @@ from datetime import datetime
 from datetime import timedelta
 from coc import utils
 from coc.ext import discordlinks
+from coc.ext.fullwar_api import FullWarClient
+from coc.ext import fullwar_api
 from disnake.ext import commands
 from dotenv import load_dotenv
-from Dictionaries.emojiDictionary import emojiDictionary, legend_emojis
+from Assets.emojiDictionary import emojiDictionary, legend_emojis
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis
 from pyyoutube import Api
@@ -115,6 +117,8 @@ class CustomClient(commands.Bot):
 
         self.coc_client = coc.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD"), client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 30,
                                     cache_max_size=50000, load_game_data=coc.LoadGameData(always=True))
+
+        self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwar_api.login(username="hello_world", password="test1234", clash_client=self.coc_client))
 
         self.emoji = emoji_class
         self.locations = locations

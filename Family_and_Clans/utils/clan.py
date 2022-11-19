@@ -12,7 +12,7 @@ import numpy as np
 
 from scipy.interpolate import make_interp_spline
 from disnake.ext import commands
-from Dictionaries.emojiDictionary import emojiDictionary
+from Assets.emojiDictionary import emojiDictionary
 from collections import defaultdict
 from coc import utils
 from CustomClasses.CustomPlayer import MyCustomPlayer

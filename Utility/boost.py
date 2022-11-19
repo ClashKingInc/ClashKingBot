@@ -2,7 +2,7 @@
 import disnake
 from disnake.ext import commands
 from utils.components import create_components
-from Dictionaries.emojiDictionary import emojiDictionary
+from Assets.emojiDictionary import emojiDictionary
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer
 from datetime import datetime

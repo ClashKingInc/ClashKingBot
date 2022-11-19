@@ -4,7 +4,7 @@ import disnake
 import pytz
 
 from disnake.ext import commands
-from Dictionaries.emojiDictionary import emojiDictionary
+from Assets.emojiDictionary import emojiDictionary
 from CustomClasses.CustomBot import CustomClient
 from datetime import datetime
 from main import scheduler

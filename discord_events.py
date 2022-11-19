@@ -2,7 +2,7 @@ import disnake
 import coc
 from main import scheduler
 from disnake.ext import commands
-from Dictionaries.thPicDictionary import thDictionary
+from Assets.thPicDictionary import thDictionary
 from utils.troop_methods import heros, heroPets
 from Exceptions import *
 from CustomClasses.CustomBot import CustomClient
@@ -23,6 +23,7 @@ class DiscordEvents(commands.Cog):
         reminder_tags = await self.bot.reminders.distinct("clan", filter={"type" : "War"})
         self.bot.coc_client.add_war_updates(*tags)
 
+        '''
         current_war_times = await self.bot.get_current_war_times(tags=reminder_tags)
         cog = self.bot.get_cog(name="Reminders")
         for tag in current_war_times.keys():
@@ -54,7 +55,7 @@ class DiscordEvents(commands.Cog):
                     "lbboardChannel": None,
                     "lbhour": None
                 })
-
+        '''
         print('We have logged in')
 
 

@@ -3,11 +3,11 @@ import disnake
 
 from disnake.ext import commands
 from Utility.profile_embeds import *
-from Dictionaries.emojiDictionary import emojiDictionary
+from Assets.emojiDictionary import emojiDictionary
 from Utility.pagination import button_pagination
 from utils.search import search_results
 from utils.troop_methods import heros, heroPets
-from Dictionaries.thPicDictionary import thDictionary
+from Assets.thPicDictionary import thDictionary
 from CustomClasses.CustomBot import CustomClient
 
 class profiles(commands.Cog, name="Profile"):

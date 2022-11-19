@@ -2,7 +2,7 @@ from disnake.ext import commands
 import disnake
 from utils.components import create_components
 from datetime import datetime
-from Dictionaries.emojiDictionary import emojiDictionary
+from Assets.emojiDictionary import emojiDictionary
 from CustomClasses.CustomBot import CustomClient
 from main import check_commands
 
