@@ -860,7 +860,7 @@ class clan_commands(commands.Cog):
     @clan_games.autocomplete("clan")
     @clan_donations.autocomplete("clan")
     @last_online_graph.autocomplete("clan")
-    @war_stats_clan.autcomplete("clan")
+    @war_stats_clan.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
             tracked = self.bot.clan_db.find({"server": ctx.guild.id})
             limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
