@@ -1,6 +1,7 @@
 import coc
 import disnake
 
+from datetime import date, timedelta, datetime
 from disnake.ext import commands
 from Utility.profile_embeds import *
 from Assets.emojiDictionary import emojiDictionary
@@ -9,13 +10,18 @@ from utils.search import search_results
 from utils.troop_methods import heros, heroPets
 from Assets.thPicDictionary import thDictionary
 from CustomClasses.CustomBot import CustomClient
+from CustomClasses.CustomPlayer import MyCustomPlayer
+from typing import List
 
 class profiles(commands.Cog, name="Profile"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
+    @commands.slash_command(name="player")
+    async def player(self, ctx):
+        pass
 
-    @commands.slash_command(name="lookup", description="Lookup players or discord users")
+    @player.sub_command(name="lookup", description="Lookup players or discord users")
     async def lookup(self, ctx: disnake.ApplicationCommandInteraction, tag: str=None, discord_user:disnake.Member=None):
         """
             Parameters
@@ -41,7 +47,7 @@ class profiles(commands.Cog, name="Profile"):
         await button_pagination(self.bot, ctx, msg, results)
 
 
-    @commands.slash_command(name="list", description="List of accounts a user has & average th compo")
+    @player.sub_command(name="account-list", description="List of accounts a user has & average th compo")
     async def list(self, ctx: disnake.ApplicationCommandInteraction, discord_user:disnake.Member=None):
         if discord_user is None:
             search_query = str(ctx.author.id)
@@ -74,7 +80,7 @@ class profiles(commands.Cog, name="Profile"):
         await ctx.edit_original_message(embed=embed)
 
 
-    @commands.slash_command(name="invite", description="Embed with basic info & link for a player to be invited")
+    @player.sub_command(name="invite", description="Embed with basic info & link for a player to be invited")
     async def invite(self, ctx, player_tag):
         player = await self.bot.getPlayer(player_tag)
         if player is None:
@@ -113,7 +119,7 @@ class profiles(commands.Cog, name="Profile"):
 
         await ctx.send(embed=embed)
 
-    @commands.slash_command(name="upgrades", description="Show upgrades needed for an account")
+    @player.sub_command(name="upgrades", description="Show upgrades needed for an account")
     async def upgrades(self, ctx: disnake.ApplicationCommandInteraction, player_tag: str=None, discord_user:disnake.Member=None):
         if player_tag is None and discord_user is None:
             search_query = str(ctx.author.id)
@@ -158,7 +164,228 @@ class profiles(commands.Cog, name="Profile"):
             embed = upgrade_embed(self.bot, results[current_page])
             await res.edit_original_message(embeds=embed)
 
+    @player.sub_command(name="war-stats", description="War stats of a player/discord user")
+    async def war_stats_player(self, ctx: disnake.ApplicationCommandInteraction, tag_or_user = None, start_date = 0, end_date = 9999999999):
+        """
+            Parameters
+            ----------
+            tag_or_user: player or discord user to view war stats on
+            start_date: filter stats by date, default is to view this season
+            end_date: filter stats by date, default is to view this season
+        """
+        await ctx.response.defer()
+        if start_date != 0 and end_date != 9999999999:
+            start_date = int(datetime.strptime(start_date, "%d %B %Y").timestamp())
+            end_date = int(datetime.strptime(end_date, "%d %B %Y").timestamp())
+        else:
+            start_date = int(coc.utils.get_season_start().timestamp())
+            end_date = int(coc.utils.get_season_end().timestamp())
 
+        if tag_or_user is None:
+            search_query = str(ctx.author.id)
+        elif coc.utils.is_valid_tag(str(tag_or_user)):
+            search_query = tag_or_user
+        else:
+            search_query = await self.bot.pingToMember(ctx=ctx, ping=tag_or_user, no_fetch=True)
+
+        players = await search_results(self.bot, search_query)
+        if players == []:
+            embed = disnake.Embed(description="**No matching player/discord user found**", colour=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+        embed = await self.create_player_hr(player=players[0], start_date=start_date, end_date=end_date)
+        await ctx.edit_original_message(embed=embed, components=self.player_components(players))
+        if len(players) == 1:
+            return
+        msg = await ctx.original_message()
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        while True:
+            try:
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
+            except:
+                try:
+                    await ctx.edit_original_message(components=[])
+                except:
+                    pass
+                break
+            await res.response.defer()
+            page = int(res.values[0])
+            embed = await self.create_player_hr(player=players[page], start_date=start_date, end_date=end_date)
+            await res.edit_original_message(embed=embed)
+
+    # UTILS
+    async def create_player_hr(self, player: MyCustomPlayer, start_date, end_date):
+        embed = disnake.Embed(title=f"{player.name} War Stats", colour=disnake.Color.green())
+        time_range = f"{datetime.fromtimestamp(start_date).strftime('%m/%d/%y')} - {datetime.fromtimestamp(end_date).strftime('%m/%d/%y')}"
+        embed.set_footer(icon_url=player.town_hall_cls.image_url, text=time_range)
+        hitrate = await player.hit_rate(start_timestamp=start_date, end_timestamp=end_date)
+        hr_text = ""
+        for hr in hitrate:
+            hr_type = f"{hr.type}".ljust(5)
+            hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+            hr_text += f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
+        if hr_text == "":
+            hr_text = "No war hits tracked.\n"
+        embed.add_field(name="**Triple Hit Rate**", value=hr_text + "­\n", inline=False)
+
+        defrate = await player.defense_rate(start_timestamp=start_date, end_timestamp=end_date)
+        def_text = ""
+        for hr in defrate:
+            hr_type = f"{hr.type}".ljust(5)
+            hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+            def_text += f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
+        if def_text == "":
+            def_text = "No war defenses tracked.\n"
+        embed.add_field(name="**Triple Defense Rate**", value=def_text + "­\n", inline=False)
+
+        text = ""
+        hr = hitrate[0]
+        footer_text = f"Avg. Off Stars: `{round(hr.average_stars, 2)}`"
+        if hr.total_zeros != 0:
+            hr_nums = f"{hr.total_zeros}/{hr.num_attacks}".center(5)
+            text += f"`Off 0 Stars` | `{hr_nums}` | {round(hr.average_zeros * 100, 1)}%\n"
+        if hr.total_ones != 0:
+            hr_nums = f"{hr.total_ones}/{hr.num_attacks}".center(5)
+            text += f"`Off 1 Stars` | `{hr_nums}` | {round(hr.average_ones * 100, 1)}%\n"
+        if hr.total_twos != 0:
+            hr_nums = f"{hr.total_twos}/{hr.num_attacks}".center(5)
+            text += f"`Off 2 Stars` | `{hr_nums}` | {round(hr.average_twos * 100, 1)}%\n"
+        if hr.total_triples != 0:
+            hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+            text += f"`Off 3 Stars` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
+
+        hr = defrate[0]
+        footer_text += f"\nAvg. Def Stars: `{round(hr.average_stars, 2)}`"
+        if hr.total_zeros != 0:
+            hr_nums = f"{hr.total_zeros}/{hr.num_attacks}".center(5)
+            text += f"`Def 0 Stars` | `{hr_nums}` | {round(hr.average_zeros + 1 * 100, 1)}%\n"
+        if hr.total_ones != 0:
+            hr_nums = f"{hr.total_ones}/{hr.num_attacks}".center(5)
+            text += f"`Def 1 Stars` | `{hr_nums}` | {round(hr.average_ones + 1 * 100, 1)}%\n"
+        if hr.total_twos != 0:
+            hr_nums = f"{hr.total_twos}/{hr.num_attacks}".center(5)
+            text += f"`Def 2 Stars` | `{hr_nums}` | {round(hr.average_twos + 1 * 100, 1)}%\n"
+        if hr.total_triples != 0:
+            hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+            text += f"`Def 3 Stars` | `{hr_nums}` | {round(hr.average_triples + 1 * 100, 1)}%\n"
+
+        if text == "":
+            text = "No attacks/defenses yet.\n"
+        embed.add_field(name="**Star Count %'s**", value=text + "­\n", inline=False)
+
+        fresh_hr = await player.hit_rate(fresh_type=[True], start_timestamp=start_date, end_timestamp=end_date)
+        nonfresh_hr = await player.hit_rate(fresh_type=[False], start_timestamp=start_date, end_timestamp=end_date)
+        fresh_dr = await player.hit_rate(fresh_type=[True], start_timestamp=start_date, end_timestamp=end_date)
+        nonfresh_dr = await player.defense_rate(fresh_type=[False], start_timestamp=start_date,
+                                                end_timestamp=end_date)
+        hitrates = [fresh_hr, nonfresh_hr, fresh_dr, nonfresh_dr]
+        names = ["Fresh HR", "Non-Fresh HR", "Fresh DR", "Non-Fresh DR"]
+        text = ""
+        for count, hr in enumerate(hitrates):
+            hr = hr[0]
+            if hr.num_attacks == 0:
+                continue
+            hr_type = f"{names[count]}".ljust(12)
+            hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+            text += f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
+        if text == "":
+            text = "No attacks/defenses yet.\n"
+        embed.add_field(name="**Fresh/Not Fresh**", value=text + "­\n", inline=False)
+
+        random = await player.hit_rate(war_types=["random"], start_timestamp=start_date, end_timestamp=end_date)
+        cwl = await player.hit_rate(war_types=["cwl"], start_timestamp=start_date, end_timestamp=end_date)
+        friendly = await player.hit_rate(war_types=["friendly"], start_timestamp=start_date, end_timestamp=end_date)
+        random_dr = await player.defense_rate(war_types=["random"], start_timestamp=start_date,
+                                              end_timestamp=end_date)
+        cwl_dr = await player.defense_rate(war_types=["cwl"], start_timestamp=start_date, end_timestamp=end_date)
+        friendly_dr = await player.defense_rate(war_types=["friendly"], start_timestamp=start_date,
+                                                end_timestamp=end_date)
+        hitrates = [random, cwl, friendly, random_dr, cwl_dr, friendly_dr]
+        names = ["War HR", "CWL HR", "Friendly HR", "War DR", "CWL DR", "Friendly DR"]
+        text = ""
+        for count, hr in enumerate(hitrates):
+            hr = hr[0]
+            if hr.num_attacks == 0:
+                continue
+            hr_type = f"{names[count]}".ljust(11)
+            hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+            text += f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
+        if text == "":
+            text = "No attacks/defenses yet.\n"
+        embed.add_field(name="**War Type**", value=text + "­\n", inline=False)
+
+        war_sizes = list(range(5, 55, 5))
+        hitrates = []
+        for size in war_sizes:
+            hr = await player.hit_rate(war_sizes=[size], start_timestamp=start_date, end_timestamp=end_date)
+            hitrates.append(hr)
+        for size in war_sizes:
+            hr = await player.defense_rate(war_sizes=[size], start_timestamp=start_date, end_timestamp=end_date)
+            hitrates.append(hr)
+
+        text = ""
+        names = [f"{size}v{size} HR" for size in war_sizes] + [f"{size}v{size} DR" for size in war_sizes]
+        for count, hr in enumerate(hitrates):
+            hr = hr[0]
+            if hr.num_attacks == 0:
+                continue
+            hr_type = f"{names[count]}".ljust(8)
+            hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+            text += f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
+        if text == "":
+            text = "No attacks/defenses yet.\n"
+        embed.add_field(name="**War Size**", value=text + "­\n", inline=False)
+
+        lost_hr = await player.hit_rate(war_statuses=["lost", "losing"], start_timestamp=start_date,
+                                        end_timestamp=end_date)
+        win_hr = await player.hit_rate(war_statuses=["winning", "won"], start_timestamp=start_date,
+                                       end_timestamp=end_date)
+        lost_dr = await player.defense_rate(war_statuses=["lost", "losing"], start_timestamp=start_date,
+                                            end_timestamp=end_date)
+        win_dr = await player.defense_rate(war_statuses=["winning", "won"], start_timestamp=start_date,
+                                           end_timestamp=end_date)
+        hitrates = [lost_hr, win_hr, lost_dr, win_dr]
+        names = ["Losing HR", "Winning HR", "Losing DR", "Winning DR"]
+        text = ""
+        for count, hr in enumerate(hitrates):
+            hr = hr[0]
+            if hr.num_attacks == 0:
+                continue
+            hr_type = f"{names[count]}".ljust(11)
+            hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+            text += f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
+        if text == "":
+            text = "No attacks/defenses yet.\n"
+        embed.add_field(name="**War Status**", value=text + "­\n", inline=False)
+        embed.description = footer_text
+
+        return embed
+
+    def player_components(self, players: List[MyCustomPlayer]):
+        player_results = []
+        if len(players) == 1:
+            return player_results
+        for count, player in enumerate(players):
+            player_results.append(
+                disnake.SelectOption(label=f"{player.name}", emoji=player.town_hall_cls.emoji.partial_emoji,
+                                     value=f"{count}"))
+        profile_select = disnake.ui.Select(options=player_results, placeholder="Accounts", max_values=1)
+
+        st2 = disnake.ui.ActionRow()
+        st2.append_item(profile_select)
+
+        return [st2]
+
+
+    # AUTOCOMPLETES
+    @war_stats_player.autocomplete("start_date")
+    @war_stats_player.autocomplete("end_date")
+    async def date_autocomp(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        today = date.today()
+        date_list = [today - timedelta(days=day) for day in range(365)]
+        return [dt.strftime("%d %B %Y") for dt in date_list if
+                query.lower() in str(dt.strftime("%d %B, %Y")).lower()][:25]
 
 
     @invite.autocomplete("player_tag")
