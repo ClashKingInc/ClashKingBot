@@ -167,14 +167,18 @@ class MyCustomPlayer(coc.Player):
 
 
     async def hit_rate(self, townhall_level:list = [], fresh_type: list = [False, True], start_timestamp:int = 0, end_timestamp: int = 9999999999,
-                       war_types: list= ["random", "cwl", "friendly"], war_statuses = ["lost", "losing", "winning", "won"]):
+                       war_types: list= ["random", "cwl", "friendly"], war_statuses = ["lost", "losing", "winning", "won"], war_sizes=[]):
         if townhall_level is None:
             townhall_level = self.town_hall
         if townhall_level == []:
             townhall_level = list(range(1, self.town_hall + 1))
 
+        if war_sizes == []:
+            war_sizes = [x for x in range(5, 55, 5)]
+
         results = self.bot.warhits.find({"tag": self.tag})
         count = await self.bot.warhits.count_documents({"tag": self.tag})
+
         hit_rate_default = {"num_hits" : 0, "total_stars" : 0, "total_destruction" : 0, "total_triples" : 0, "two_stars" : 0, "one_stars" : 0, "zero_stars" : 0}
         if count == 0:
             return [HitRate(hitrate_dict=hit_rate_default, type="All")]
@@ -186,10 +190,13 @@ class MyCustomPlayer(coc.Player):
             time = result.get("_time")
             type = result.get("war_type")
             status = result.get("war_status")
+            war_size = result.get("war_size")
             if f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}" in prev_:
                 continue
             prev_.append(f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}")
             if (townhall in townhall_level) and (fresh in fresh_type) and (time >= start_timestamp) and (time <= end_timestamp) and (type in war_types) and (status in war_statuses):
+                if len(war_sizes) == 1 and war_size not in war_sizes:
+                    continue
                 hr_type = f"{townhall}v{result.get('defender_townhall')}"
                 hit_rates["All"]["num_hits"] += 1
                 hit_rates[hr_type]["num_hits"] += 1
@@ -225,15 +232,19 @@ class MyCustomPlayer(coc.Player):
     async def defense_rate(self, townhall_level: list = [], fresh_type: list = [False, True], start_timestamp: int = 0,
                        end_timestamp: int = 9999999999,
                        war_types: list = ["random", "cwl", "friendly"],
-                       war_statuses=["lost", "losing", "winning", "won"]):
+                       war_statuses=["lost", "losing", "winning", "won"], war_sizes = []):
         if townhall_level is None:
             townhall_level = self.town_hall
 
         if townhall_level == []:
             townhall_level = list(range(1, self.town_hall + 1))
 
+        if war_sizes == []:
+            war_sizes = [x for x in range(5, 55, 5)]
+
         results = self.bot.warhits.find({"defender_tag": self.tag})
         count = await self.bot.warhits.count_documents({"defender_tag": self.tag})
+
         hit_rate_default = {"num_hits" : 0, "total_stars" : 0, "total_destruction" : 0, "total_triples" : 0, "two_stars" : 0, "one_stars" : 0, "zero_stars" : 0}
         if count == 0:
             return [DefenseRate(hitrate_dict=hit_rate_default, type="All")]
@@ -245,11 +256,14 @@ class MyCustomPlayer(coc.Player):
             time = result.get("_time")
             type = result.get("war_type")
             status = result.get("war_status")
+            war_size = result.get("war_size")
             if f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}" in prev_:
                 continue
             prev_.append(f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}")
             if (townhall in townhall_level) and (fresh in fresh_type) and (time >= start_timestamp) and (
                     time <= end_timestamp) and (type in war_types) and (status in war_statuses):
+                if len(war_sizes) == 1 and war_size not in war_sizes:
+                    continue
                 hr_type = f"{townhall}v{result.get('defender_townhall')}"
                 hit_rates["All"]["num_hits"] += 1
                 hit_rates[hr_type]["num_hits"] += 1
@@ -685,9 +699,9 @@ class DefenseRate():
     @property
     def average_stars(self):
         try:
-            return 1 - self.hitrate_dict["total_stars"] / self.hitrate_dict["num_hits"]
+            return self.hitrate_dict["total_stars"] / self.hitrate_dict["num_hits"]
         except:
-            return 1 - 0.00
+            return 0.00
 
     @property
     def total_stars(self):

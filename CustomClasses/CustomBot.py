@@ -422,14 +422,15 @@ class CustomClient(commands.Bot):
             emoji = legend_emojis(name)
         return emoji
 
-    async def pingToMember(self, ctx, ping):
+    async def pingToMember(self, ctx, ping, no_fetch=False):
         ping = str(ping)
         if (ping.startswith('<@') and ping.endswith('>')):
             ping = ping[2:len(ping) - 1]
 
         if (ping.startswith('!')):
             ping = ping[1:len(ping)]
-
+        if no_fetch:
+            return ping
         try:
             member = await ctx.guild.fetch_member(ping)
             return member
