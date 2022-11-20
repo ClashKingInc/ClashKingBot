@@ -19,11 +19,13 @@ class DiscordEvents(commands.Cog):
         await self.bot.change_presence(
             activity=disnake.Activity(name=f'{len_g} servers', type=3))  # type 3 watching type#1 - playing
 
+    @commands.Cog.listener()
+    async def on_connect(self):
         tags = await self.bot.clan_db.distinct("tag")
         reminder_tags = await self.bot.reminders.distinct("clan", filter={"type" : "War"})
         self.bot.coc_client.add_war_updates(*tags)
 
-        '''
+
         current_war_times = await self.bot.get_current_war_times(tags=reminder_tags)
         cog = self.bot.get_cog(name="Reminders")
         for tag in current_war_times.keys():
@@ -55,7 +57,7 @@ class DiscordEvents(commands.Cog):
                     "lbboardChannel": None,
                     "lbhour": None
                 })
-        '''
+
         print('We have logged in')
 
 

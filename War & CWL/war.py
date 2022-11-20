@@ -134,84 +134,6 @@ class War(commands.Cog):
                 embed = await self.opp_defenses_embed(war)
                 await res.response.edit_message(embed=embed)
 
-    @commands.slash_command(name="war-stats", description="Attack statistics")
-    async def war_stats(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
-
-    @war_stats.sub_command(name="player", description="Get attack statistics for a player or discord user")
-    async def war_stats_player(self, ctx: disnake.ApplicationCommandInteraction, player_tag: str=None, discord_user:disnake.Member=None):
-        if player_tag is None and discord_user is None:
-            search_query = str(ctx.author.id)
-        elif player_tag is not None:
-            search_query = player_tag
-        else:
-            search_query = str(discord_user.id)
-
-        await ctx.response.defer()
-        players = await search_results(self.bot, search_query)
-        player: MyCustomPlayer = players[3]
-        embed = disnake.Embed(title=f"{player.name} Hit & Defensive Rates", colour=disnake.Color.green())
-        embed.set_thumbnail(url=player.town_hall_cls.image_url)
-        hitrate = await player.hit_rate()
-        hr_text = ""
-        for hr in hitrate:
-            hr_type = f"{hr.type}".ljust(5)
-            hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
-            hr_text +=f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 3)}%\n"
-        if hr_text == "":
-            hr_text = "No war hits tracked."
-        embed.add_field(name="**Hit Rate**", value=hr_text, inline=False)
-
-        hitrate = await player.defense_rate()
-        def_text = ""
-        for hr in hitrate:
-            hr_type = f"{hr.type}".ljust(5)
-            hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
-            def_text += f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 3)}%\n"
-        if def_text == "":
-            def_text = "No war defenses tracked."
-        embed.add_field(name="**Defense Rate**", value=def_text, inline=False)
-        await ctx.send(embed=embed)
-
-    @war_stats.sub_command(name="clan", description="Get attack statistics for clan members")
-    async def war_stats_clan(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
-        members = [member.tag for member in clan.members]
-        await ctx.response.defer()
-        players = await self.bot.get_players(tags=members, custom=True)
-
-        ranked = []
-        tasks = []
-        async def fetch_n_rank(player):
-            hitrate = await player.hit_rate()
-            hr = hitrate[0]
-            if hr.num_attacks == 0:
-                return None
-            hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(7)
-            name = str(player.name)[0:12]
-            name = f"{name}".ljust(12)
-            return [f"{player.town_hall_cls.emoji}`{hr_nums} {round(hr.average_triples * 100, 1)}% {name}`\n",
-                    round(hr.average_triples * 100, 3), name, hr.num_attacks, player.town_hall]
-        for player in players: #type: MyCustomPlayer
-            task = asyncio.ensure_future(fetch_n_rank(player=player))
-            tasks.append(task)
-
-        responses = await asyncio.gather(*tasks)
-        ranked = [response for response in responses if response is not None]
-
-        ranked = sorted(ranked, key=lambda l: (-l[-1], -l[1], -l[-2], l[2]), reverse=False)
-        text = "`# TH  NUM    HR%    NAME       `\n"
-        for count, rank in enumerate(ranked, 1):
-            spot_emoji = self.bot.get_number_emoji(color="gold", number=count)
-            text += f"{spot_emoji}{rank[0]}"
-        embed = disnake.Embed(title=f"{clan.name} Hit Rates", description=text, colour=disnake.Color.green())
-        embed.set_footer(icon_url=clan.badge.url, text=f"{clan.name}")
-        await ctx.edit_original_message(embed=embed)
-
-
-    @war_stats.sub_command(name="leaderboard", description="The best attack stats across the bot")
-    async def attack_stats_leaderboard(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
-
     async def main_war_page(self, war: coc.ClanWar, clan: coc.Clan = None):
         war_time = war.start_time.seconds_until
         war_state = "In Prep"
@@ -701,7 +623,6 @@ class War(commands.Cog):
 
     @clan_war.autocomplete("clan")
     @test_this.autocomplete("clan")
-    @war_stats_clan.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
