@@ -172,16 +172,17 @@ class reminders(commands.Cog, name="Reminders"):
             embed.set_thumbnail(url=ctx.guild.icon.url)
 
         options = []
-        nums = [x * 0.5 for x in range(1, 25)] + [24]
+        nums = [x * 0.5 for x in range(1, 25)]
         for num in nums:
             if num.is_integer():
                 num = int(num)
             options.append(disnake.SelectOption(label=f"{num} hours remaining", emoji=self.bot.emoji.clock.partial_emoji, value=f"{num} hr"))
+        options.append(disnake.SelectOption(label=f"24 hours remaining", emoji=self.bot.emoji.clock.partial_emoji, value=f"24 hr"))
         select = disnake.ui.Select(
             options=options,
             placeholder="Select Reminder Times",  # the placeholder text to show when no options have been chosen
             min_values=1,  # the minimum number of options a user must select
-            max_values=len(nums),  # the maximum number of options a user can select
+            max_values=25,  # the maximum number of options a user can select
         )
         dropdown = [disnake.ui.ActionRow(select)]
         await ctx.send(embed=embed, components=dropdown)
