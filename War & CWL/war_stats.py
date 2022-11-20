@@ -265,10 +265,18 @@ class WarStats(commands.Cog):
             text += f"{spot_emoji}{rank[0]}"
         embed = disnake.Embed(title=f"Defensive Rates", description=text, colour=disnake.Color.green())
 
+        filter_types = []
+        if True in fresh_type:
+            filter_types.append("Fresh")
+        if False in fresh_type:
+            filter_types.append("Non-Fresh")
+        for type in war_types:
+            filter_types.append(str(type).capitalize())
+        filter_types = ", ".join(filter_types)
         time_range = "This Season"
         if start_timestamp != 0 and end_timestamp != 9999999999:
             time_range = f"{datetime.fromtimestamp(start_timestamp).strftime('%m/%d/%y')} - {datetime.fromtimestamp(end_timestamp).strftime('%m/%d/%y')}"
-        embed.set_footer(icon_url=clan.badge.url, text=f"{clan.name} | {time_range}")
+        embed.set_footer(icon_url=clan.badge.url, text=f"{clan.name} | {time_range}\nFilters: {filter_types}")
         return embed
 
 
