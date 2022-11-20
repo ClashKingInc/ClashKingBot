@@ -21,10 +21,10 @@ class DiscordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_connect(self):
+        print("connected")
         tags = await self.bot.clan_db.distinct("tag")
         reminder_tags = await self.bot.reminders.distinct("clan", filter={"type" : "War"})
         self.bot.coc_client.add_war_updates(*tags)
-
 
         current_war_times = await self.bot.get_current_war_times(tags=reminder_tags)
         cog = self.bot.get_cog(name="Reminders")
