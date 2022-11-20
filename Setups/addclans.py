@@ -41,6 +41,7 @@ class addClan(commands.Cog, name="Clan Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
+        await ctx.response.defer()
         #check if clan is already linked
         clan = await self.bot.getClan(clan_tag)
         if clan is None:
@@ -52,7 +53,7 @@ class addClan(commands.Cog, name="Clan Setup"):
         if results is not None:
             embed = disnake.Embed(description=f"{clan.name} is already linked to this server.",
                                   color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            return await ctx.edit_original_message(embed=embed)
 
         await self.bot.clan_db.insert_one({
             "name" : clan.name,
@@ -75,7 +76,7 @@ class addClan(commands.Cog, name="Clan Setup"):
                                           f"Category: {category}",
                               color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
-        await ctx.send(embed=embed)
+        await ctx.edit_original_message(embed=embed)
 
     @addClan.autocomplete("category")
     async def autocomp_names(self, ctx: disnake.ApplicationCommandInteraction, query: str):
@@ -104,6 +105,7 @@ class addClan(commands.Cog, name="Clan Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
+        await ctx.response.defer()
         clan_search = clan.lower()
         first_clan = clan
         results = await self.bot.clan_db.find_one({"$and": [
@@ -133,7 +135,7 @@ class addClan(commands.Cog, name="Clan Setup"):
         if results is None:
             embed = disnake.Embed(description=f"{clan.name} is not currently set-up as a family clan.",
                                   color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            return await ctx.edit_original_message(embed=embed)
 
         embed = disnake.Embed(description=f"Are you sure you want to remove {clan.name} [{clan.tag}]?",
                               color=disnake.Color.red())
@@ -149,7 +151,7 @@ class addClan(commands.Cog, name="Clan Setup"):
         for button in page_buttons:
             buttons.append_item(button)
 
-        await ctx.send(embed=embed, components=[buttons])
+        await ctx.edit_original_message(embed=embed, components=[buttons])
         msg = await ctx.original_message()
 
         def check(res: disnake.MessageInteraction):
