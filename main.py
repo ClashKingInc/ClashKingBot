@@ -21,8 +21,9 @@ intents.members = True
 intents.guilds = True
 intents.emojis = True
 intents.guild_messages = True
+intents.messages = True
 bot = CustomClient(command_prefix="<@824653933347209227> ",help_command=None, intents=intents,
-    sync_commands_debug=False, sync_permissions=True)
+    sync_commands_debug=False, sync_permissions=True, reload=True)
 
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
@@ -99,6 +100,7 @@ if IS_BETA:
         "Utility.profile",
         "War & CWL.cwl",
         "War & CWL.war",
+        "War & CWL.war_stats",
         #"War & CWL.war_track",
         #"discord_events",
         "help",
@@ -146,6 +148,7 @@ else:
     "Utility.profile",
     "War & CWL.cwl",
     "War & CWL.war",
+    "War & CWL.war_stats",
     "War & CWL.war_track",
     "discord_events",
     "help",
