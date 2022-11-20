@@ -415,7 +415,7 @@ def upgrade_embed(bot: CustomClient, player: coc.Player):
         hours = f"{(int(pet.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
         time = f"{days}D {hours}"
         cost = f"{numerize.numerize(pet.upgrade_cost)}".ljust(5)
-        if pet.level < 10 and pet.name not in new_pets:  # rushed
+        if pet.level < 10 and pet.name not in new_pets and player.town_hall == 15:  # rushed
             pet_text += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`✗\n"
         elif pet.level < 10:  # not max
             pet_text += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`\n"
