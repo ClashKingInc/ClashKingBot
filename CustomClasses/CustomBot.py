@@ -12,6 +12,7 @@ from CustomClasses.emoji_class import Emojis, EmojiType
 from pyyoutube import Api
 from urllib.request import urlopen
 from utils.clash import weekend_timestamps
+import dateutil.relativedelta
 
 import coc
 import motor.motor_asyncio
@@ -22,6 +23,7 @@ import re
 import asyncio
 import collections
 import random
+import calendar
 
 utc = pytz.utc
 load_dotenv()
@@ -214,9 +216,16 @@ class CustomClient(commands.Bot):
             raidDate = (now + timedelta(forward)).date()
             return str(raidDate)
 
-    def gen_season_date(self):
-        end = coc.utils.get_season_end().replace(tzinfo=utc).date()
-        return f"{end.year}-{end.month}"
+    def gen_season_date(self, seasons_ago = None):
+        if seasons_ago is None:
+            end = coc.utils.get_season_end().replace(tzinfo=utc).date()
+            return f"{end.year}-{end.month}"
+        else:
+            dates = []
+            for x in range(0, seasons_ago + 1):
+                end = coc.utils.get_season_end().replace(tzinfo=utc) - dateutil.relativedelta.relativedelta(months=x)
+                dates.append(f"{calendar.month_name[end.date().month]} {end.date().year}")
+            return dates
 
     def gen_legend_date(self):
         now = datetime.utcnow()

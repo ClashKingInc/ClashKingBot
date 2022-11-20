@@ -234,12 +234,13 @@ class MyCustomPlayer(coc.Player):
 
         results = self.bot.warhits.find({"defender_tag": self.tag})
         count = await self.bot.warhits.count_documents({"defender_tag": self.tag})
+        hit_rate_default = {"num_hits" : 0, "total_stars" : 0, "total_destruction" : 0, "total_triples" : 0, "two_stars" : 0, "one_stars" : 0, "zero_stars" : 0}
         if count == 0:
-            return []
+            return [DefenseRate(hitrate_dict=hit_rate_default, type="All")]
         prev_ = []
         hit_rates = defaultdict(lambda: defaultdict(int))
         async for result in results:
-            townhall = result.get("townhall")
+            townhall = result.get("defender_townhall")
             fresh = result.get("fresh")
             time = result.get("_time")
             type = result.get("war_type")
@@ -275,6 +276,8 @@ class MyCustomPlayer(coc.Player):
         list_hr = []
         for type, hitrate in hit_rates.items():
             list_hr.append(DefenseRate(hitrate_dict=hitrate, type=type))
+        if list_hr == []:
+            list_hr.append(DefenseRate(hitrate_dict=hit_rate_default, type="All"))
         return list_hr
 
 
