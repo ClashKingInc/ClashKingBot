@@ -5,7 +5,7 @@ import time
 from CustomClasses.CustomBot import CustomClient
 import io
 from PIL import Image, ImageDraw, ImageFont
-
+import chat_exporter
 from utils.components import create_components
 
 class misc(commands.Cog, name="Other"):
@@ -182,10 +182,25 @@ class misc(commands.Cog, name="Other"):
                 await res.response.defer()
                 await res.edit_original_message(embed=embeds[int(res.values[0])])
 
-    @commands.slash_command(name="clash-assets", description="List of clash assets, with option to add as emoji to server")
-    async def clash_assets(self, ctx: disnake.ApplicationCommandInteraction, asset):
-        pass
+    '''
+    @commands.slash_command(name="transcript", description="Get a transcript of a channel")
+    async def transcript(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        transcript = await chat_exporter.export(ctx.channel)
 
+        if transcript is None:
+            return
+
+        transcript_file = disnake.File(
+            io.BytesIO(transcript.encode()),
+            filename=f"transcript-{ctx.channel.name}.html",
+        )
+
+        message = await ctx.edit_original_message(file=transcript_file)
+        link = await chat_exporter.link(message)
+
+        await ctx.edit_original_message(content=f"Click this link to view the transcript online: {link}")
+    '''
 
 
 

@@ -56,13 +56,20 @@ def create_weekend_list(option):
 def weekend_timestamps():
     weekends = []
     for x in range(-1, 8):
-        now = datetime.now(tz=pytz.timezone("US/Central"))
+        now = datetime.utcnow()
         now = now - timedelta(x * 7)
         year = now.year
         month = now.month
         day = now.day
         hour = now.hour
         current_dayofweek = now.weekday()
+        if current_dayofweek == 0 and hour < 7:
+            now = now - timedelta(days=1)
+            year = now.year
+            month = now.month
+            day = now.day
+            hour = now.hour
+            current_dayofweek = now.weekday()
         #end = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days=(7 - current_dayofweek))
         first = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days=(4 - current_dayofweek))
         weekends.append(int(first.timestamp()))
