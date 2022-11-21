@@ -960,6 +960,8 @@ class clan_commands(commands.Cog):
         for count, rank in enumerate(ranked, 1):
             spot_emoji = self.bot.get_number_emoji(color="gold", number=count)
             text += f"{spot_emoji}{rank[0]}"
+        if len(ranked) == 0:
+            text = "No War Attacks Tracked Yet."
         embed = disnake.Embed(title=f"Offensive Hit Rates", description=text, colour=disnake.Color.green())
 
         filter_types = []
@@ -1008,6 +1010,8 @@ class clan_commands(commands.Cog):
         for count, rank in enumerate(ranked, 1):
             spot_emoji = self.bot.get_number_emoji(color="gold", number=count)
             text += f"{spot_emoji}{rank[0]}"
+        if len(ranked) == 0:
+            text = "No War Attacks Tracked Yet."
         embed = disnake.Embed(title=f"Defensive Rates", description=text, colour=disnake.Color.green())
 
         filter_types = []
@@ -1057,6 +1061,8 @@ class clan_commands(commands.Cog):
             count = f"{count}.".ljust(3)
             text += f"{count} {rank[0]}"
         text += "```"
+        if len(ranked) == 0:
+            text = "No War Attacks Tracked Yet."
         embed = disnake.Embed(title=f"Star Leaderboard", description=text, colour=disnake.Color.green())
 
         filter_types = []
