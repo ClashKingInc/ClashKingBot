@@ -204,9 +204,6 @@ class OwnerCommands(commands.Cog):
             {"time" : reminder_time}
         ]})
         for reminder in await all_reminders.to_list(length=10000):
-            print("here")
-            if reminder.get("server") != 923764211845312533:
-                continue
             custom_text = reminder.get("custom_text")
             if custom_text is None:
                 custom_text = ""
