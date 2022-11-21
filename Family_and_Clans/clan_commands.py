@@ -669,8 +669,8 @@ class clan_commands(commands.Cog):
         if season is not None:
             month = list(calendar.month_name).index(season.split(" ")[0])
             year = season.split(" ")[1]
-            start_date = int(coc.utils.get_season_start(month=int(month), year=int(year)).timestamp())
-            end_date = int(coc.utils.get_season_end(month=int(month), year=int(year)).timestamp())
+            start_date = int(coc.utils.get_season_start(month=int(month-1), year=int(year)).timestamp())
+            end_date = int(coc.utils.get_season_end(month=int(month-1), year=int(year)).timestamp())
         else:
             start_date = int(coc.utils.get_season_start().timestamp())
             end_date = int(coc.utils.get_season_end().timestamp())
@@ -842,7 +842,7 @@ class clan_commands(commands.Cog):
 
     @war_stats_clan.autocomplete("season")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        seasons = self.bot.gen_season_date(seasons_ago=13)[1:]
+        seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
         return [season for season in seasons if query.lower() in season.lower()]
 
     @clan_capital_raids.autocomplete("clan")
