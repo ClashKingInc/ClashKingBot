@@ -633,9 +633,6 @@ class reminders(commands.Cog, name="Reminders"):
         limit = await self.bot.clan_db.count_documents(filter={})
         for cc in await tracked.to_list(length=limit):
             try:
-                server = cc.get("server")
-                if server != 923764211845312533:
-                    continue
                 clancapital_channel = cc.get("clan_capital")
                 if clancapital_channel is None:
                     continue
