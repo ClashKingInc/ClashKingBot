@@ -164,14 +164,15 @@ class profiles(commands.Cog, name="Profile"):
             embed = upgrade_embed(self.bot, results[current_page])
             await res.edit_original_message(embeds=embed)
 
-    @player.sub_command(name="war-stats", description="War stats of a player/discord user")
-    async def war_stats_player(self, ctx: disnake.ApplicationCommandInteraction, tag_or_user = None, start_date = 0, end_date = 9999999999):
+    @player.sub_command(name="war-stats", description="War stats of a player or discord user")
+    async def war_stats_player(self, ctx: disnake.ApplicationCommandInteraction, player_tag: str=None, discord_user:disnake.Member=None, start_date = 0, end_date = 9999999999):
         """
             Parameters
             ----------
-            tag_or_user: player or discord user to view war stats on
-            start_date: filter stats by date, default is to view this season
-            end_date: filter stats by date, default is to view this season
+            player_tag: (optional) player to view war stats on
+            discord_user: (optional) discord user's accounts to view war stats of
+            start_date: (optional) filter stats by date, default is to view this season
+            end_date: (optional) filter stats by date, default is to view this season
         """
         await ctx.response.defer()
         if start_date != 0 and end_date != 9999999999:
@@ -181,12 +182,12 @@ class profiles(commands.Cog, name="Profile"):
             start_date = int(coc.utils.get_season_start().timestamp())
             end_date = int(coc.utils.get_season_end().timestamp())
 
-        if tag_or_user is None:
+        if player_tag is None and discord_user is None:
             search_query = str(ctx.author.id)
-        elif coc.utils.is_valid_tag(str(tag_or_user)):
-            search_query = tag_or_user
+        elif player_tag is not None:
+            search_query = player_tag
         else:
-            search_query = await self.bot.pingToMember(ctx=ctx, ping=tag_or_user, no_fetch=True)
+            search_query = str(discord_user.id)
 
         players = await search_results(self.bot, search_query)
         if players == []:
@@ -259,16 +260,16 @@ class profiles(commands.Cog, name="Profile"):
         footer_text += f"\nAvg. Def Stars: `{round(hr.average_stars, 2)}`"
         if hr.total_zeros != 0:
             hr_nums = f"{hr.total_zeros}/{hr.num_attacks}".center(5)
-            text += f"`Def 0 Stars` | `{hr_nums}` | {round(hr.average_zeros + 1 * 100, 1)}%\n"
+            text += f"`Def 0 Stars` | `{hr_nums}` | {round(100 - (hr.average_zeros * 100), 1)}%\n"
         if hr.total_ones != 0:
             hr_nums = f"{hr.total_ones}/{hr.num_attacks}".center(5)
-            text += f"`Def 1 Stars` | `{hr_nums}` | {round(hr.average_ones + 1 * 100, 1)}%\n"
+            text += f"`Def 1 Stars` | `{hr_nums}` | {round(100 - (hr.average_ones * 100), 1)}%\n"
         if hr.total_twos != 0:
             hr_nums = f"{hr.total_twos}/{hr.num_attacks}".center(5)
-            text += f"`Def 2 Stars` | `{hr_nums}` | {round(hr.average_twos + 1 * 100, 1)}%\n"
+            text += f"`Def 2 Stars` | `{hr_nums}` | {round(100 - (hr.average_twos * 100), 1)}%\n"
         if hr.total_triples != 0:
             hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
-            text += f"`Def 3 Stars` | `{hr_nums}` | {round(hr.average_triples + 1 * 100, 1)}%\n"
+            text += f"`Def 3 Stars` | `{hr_nums}` | {round(100 - (hr.average_triples * 100), 1)}%\n"
 
         if text == "":
             text = "No attacks/defenses yet.\n"
@@ -391,6 +392,7 @@ class profiles(commands.Cog, name="Profile"):
     @invite.autocomplete("player_tag")
     @lookup.autocomplete("tag")
     @upgrades.autocomplete("player_tag")
+    @war_stats_player.autocomplete("player_tag")
     async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         names = await self.bot.family_names(query=query, guild=ctx.guild)
         return names
