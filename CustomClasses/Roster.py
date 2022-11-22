@@ -230,12 +230,13 @@ class Roster():
         roster_options = []
         for roster in other_rosters:
             roster_options.append(disnake.SelectOption(label=f"{roster}", emoji=self.bot.emoji.troop.partial_emoji, value=f"roster_{roster}"))
-        roster_select = disnake.ui.Select(
-            options=roster_options,
-            placeholder="Roster to Edit",  # the placeholder text to show when no options have been chosen
-            min_values=1,  # the minimum number of options a user must select
-            max_values=1,  # the maximum number of options a user can select
-        )
+        if roster_options != []:
+            roster_select = disnake.ui.Select(
+                options=roster_options,
+                placeholder="Roster to Edit",  # the placeholder text to show when no options have been chosen
+                min_values=1,  # the minimum number of options a user must select
+                max_values=1,  # the maximum number of options a user can select
+            )
         if mode == "move":
             button_text = "Remove Player Mode"
             mode_text = "mode_remove"
@@ -275,7 +276,11 @@ class Roster():
             max_values=len(players),  # the maximum number of options a user can select
         )
 
-        dropdown = [disnake.ui.ActionRow(roster_select), disnake.ui.ActionRow(player_select)]
+        if len(roster_options) > 0:
+            dropdown = [disnake.ui.ActionRow(roster_select), disnake.ui.ActionRow(player_select)]
+        else:
+            dropdown = [disnake.ui.ActionRow(player_select)]
+
         if mode == "move":
             roster_options = []
             for roster in other_rosters:
