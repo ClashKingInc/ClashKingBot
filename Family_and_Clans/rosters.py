@@ -444,6 +444,8 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         embed.set_thumbnail(url=clan.badge.url)
         await ctx.edit_original_message(embed=embed)
 
+    @roster.sub_command()
+
 
     @roster_create.autocomplete("clan")
     @roster_change_link.autocomplete("clan")
