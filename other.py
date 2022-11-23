@@ -208,7 +208,7 @@ class misc(commands.Cog, name="Other"):
             return await ctx.send("Must be a titan or legend tier bot supporter.")
 
         await ctx.send(content=f"Creating your custom bot!")
-        instance, password = self.bot.linode_client.linode.instance_create(ltype="g6-nanode-1", region="us-central", image="private/18030744")
+        instance, password = self.bot.linode_client.linode.instance_create(ltype="g6-nanode-1", region="us-central", image="private/18031365")
         ip = instance.ipv4[0]
         server_id = ctx.guild.id
 
