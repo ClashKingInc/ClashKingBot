@@ -221,7 +221,7 @@ class misc(commands.Cog, name="Other"):
             "password" : password
         })
 
-        await asyncio.sleep(120)
+        await asyncio.sleep(360)
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((ip, 22))
 
