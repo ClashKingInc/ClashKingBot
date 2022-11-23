@@ -186,8 +186,6 @@ class misc(commands.Cog, name="Other"):
 
     @commands.slash_command(name="custom-bot", description="Create your custom bot")
     async def custom_bot(self, ctx: disnake.ApplicationCommandInteraction, bot_token: str, bot_name: str, profile_picture: disnake.Attachment):
-        if self.bot.custom_bot:
-            return await ctx.send(content="Please use ClashKing")
         r = await self.bot.credentials.find_one({"user" : ctx.author.id})
         if r is not None:
             return await ctx.send("You have already created a custom bot.")
