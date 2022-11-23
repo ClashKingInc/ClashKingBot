@@ -7,6 +7,8 @@ from CustomClasses.CustomBot import CustomClient
 import io
 from PIL import Image, ImageDraw, ImageFont
 from utils.components import create_components
+import socket
+from ssh2.session import Session
 
 class misc(commands.Cog, name="Other"):
 
@@ -221,8 +223,6 @@ class misc(commands.Cog, name="Other"):
             "password" : password
         })
 
-        import socket
-        from ssh2.session import Session
         await asyncio.sleep(120)
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((ip, 22))
