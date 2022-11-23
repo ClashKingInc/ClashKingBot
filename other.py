@@ -184,6 +184,7 @@ class misc(commands.Cog, name="Other"):
                 await res.response.defer()
                 await res.edit_original_message(embed=embeds[int(res.values[0])])
 
+    '''
     @commands.slash_command(name="custom-bot", description="Create your custom bot")
     async def custom_bot(self, ctx: disnake.ApplicationCommandInteraction, bot_token: str, bot_name: str, profile_picture: disnake.Attachment):
         r = await self.bot.credentials.find_one({"user" : ctx.author.id})
@@ -232,26 +233,8 @@ class misc(commands.Cog, name="Other"):
         channel = session.open_session()
         channel.execute('cd MagicBot')
         channel.execute('pm2 start main.py --interpreter=/usr/bin/python3')
-
     '''
-    @commands.slash_command(name="transcript", description="Get a transcript of a channel")
-    async def transcript(self, ctx: disnake.ApplicationCommandInteraction):
-        await ctx.response.defer()
-        transcript = await chat_exporter.export(ctx.channel)
 
-        if transcript is None:
-            return
-
-        transcript_file = disnake.File(
-            io.BytesIO(transcript.encode()),
-            filename=f"transcript-{ctx.channel.name}.html",
-        )
-
-        message = await ctx.edit_original_message(file=transcript_file)
-        link = await chat_exporter.link(message)
-
-        await ctx.edit_original_message(content=f"Click this link to view the transcript online: {link}")
-    '''
 
 
 
