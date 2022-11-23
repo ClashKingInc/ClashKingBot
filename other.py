@@ -5,8 +5,8 @@ import time
 from CustomClasses.CustomBot import CustomClient
 import io
 from PIL import Image, ImageDraw, ImageFont
-import chat_exporter
 from utils.components import create_components
+
 
 class misc(commands.Cog, name="Other"):
 
@@ -181,6 +181,44 @@ class misc(commands.Cog, name="Other"):
 
                 await res.response.defer()
                 await res.edit_original_message(embed=embeds[int(res.values[0])])
+
+    @commands.slash_command(name="custom-bot", description="Create your custom bot")
+    async def custom_bot(self, ctx: disnake.ApplicationCommandInteraction, bot_token: str, bot_name: str, profile_picture: disnake.Attachment):
+        if self.bot.custom_bot:
+            return await ctx.send(content="Please use ClashKing")
+        r = await self.bot.credentials.find_one({"user" : ctx.author.id})
+        if r is not None:
+            return await ctx.send("You have already created a custom bot.")
+        server = await self.bot.fetch_guild(923764211845312533)
+        try:
+            server_member = await server.fetch_member(ctx.author.id)
+        except:
+            if ctx.author.id != self.bot.owner.id:
+                return await ctx.send("Must be a part of the support server")
+            else:
+                server_member = await server.fetch_member(self.bot.owner.id)
+        has_legend = disnake.utils.get(server_member.roles, id=1035067240149684308)
+        has_titan = disnake.utils.get(server_member.roles, id=1035066857109061646)
+
+        if ctx.author.id == self.bot.owner.id:
+            has_legend = True
+        if has_legend is None and has_titan is None:
+            return await ctx.send("Must be a titan or legend tier bot supporter.")
+
+        await ctx.send(content=f"Creating your custom bot!")
+        instance, password = self.bot.linode_client.linode.instance_create(ltype="g6-nanode-1", region="us-central", image="private/18030744")
+        ip = instance.ipv4[0]
+        server_id = ctx.guild.id
+
+        await self.bot.credentials.insert_one({
+            "bot_name" : bot_name,
+            "bot_token" : bot_token,
+            "bot_status" : "",
+            "bot_profile_pic" : profile_picture.url,
+            "ip_address" : ip,
+            "server" : server_id,
+            "user" : ctx.author.id
+        })
 
     '''
     @commands.slash_command(name="transcript", description="Get a transcript of a channel")
