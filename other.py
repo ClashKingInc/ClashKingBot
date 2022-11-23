@@ -1,3 +1,4 @@
+import asyncio
 import contextlib
 import disnake
 from disnake.ext import commands
@@ -6,7 +7,6 @@ from CustomClasses.CustomBot import CustomClient
 import io
 from PIL import Image, ImageDraw, ImageFont
 from utils.components import create_components
-
 
 class misc(commands.Cog, name="Other"):
 
@@ -217,8 +217,23 @@ class misc(commands.Cog, name="Other"):
             "bot_profile_pic" : profile_picture.url,
             "ip_address" : ip,
             "server" : server_id,
-            "user" : ctx.author.id
+            "user" : ctx.author.id,
+            "password" : password
         })
+
+        import socket
+        from ssh2.session import Session
+        await asyncio.sleep(120)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((ip, 22))
+
+        session = Session()
+        session.handshake(sock)
+        session.userauth_password('root', password)
+
+        channel = session.open_session()
+        channel.execute('cd MagicBot')
+        channel.execute('pm2 start main.py --interpreter=/usr/bin/python3')
 
     '''
     @commands.slash_command(name="transcript", description="Get a transcript of a channel")
