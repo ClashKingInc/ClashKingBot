@@ -14,7 +14,7 @@ from EventHub.event_websockets import player_websocket, clan_websocket
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
 
-IS_BETA = True
+IS_BETA = False
 discClient = Client()
 intents = disnake.Intents().none()
 intents.members = True
