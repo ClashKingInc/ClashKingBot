@@ -314,7 +314,7 @@ class Roster():
                                           {"$push": {"members": {"name": player.name, "tag": player.tag,
                                                                  "townhall": player.town_hall, "hero_lvs": hero_lvs,
                                                                  "current_clan": current_clan,
-                                                                 "war_pref": war_pref, "sub" : sub}}})
+                                                                 "war_pref": war_pref, "sub" : sub, "trophies": player.trophies}}})
         roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]})
         self.roster_result = roster_result
 
