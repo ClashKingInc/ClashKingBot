@@ -457,7 +457,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         select = disnake.ui.Select(
             options=select_options,
             placeholder="Categories",  # the placeholder text to show when no options have been chosen
-            min_values=4,  # the minimum number of options a user must select
+            min_values=1,  # the minimum number of options a user must select
             max_values=4,  # the maximum number of options a user can select
         )
         dropdown = [disnake.ui.ActionRow(select)]

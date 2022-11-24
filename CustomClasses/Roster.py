@@ -290,7 +290,7 @@ class Roster():
             for member in members:
                 member: MyCustomPlayer
                 hr = await member.hit_rate(start_timestamp=int((datetime.utcnow() - timedelta(days=30)).timestamp()), end_timestamp=int(datetime.utcnow().timestamp()))
-                await self.update_member(player=member, field="hitrate", field_value=round((hr[0].average_triples * 100), 1))
+                await self.update_member(player=member, field="hitrate", field_value=round(((hr[0].average_triples) * 100), 1))
 
         if has_ran is False:
             for player in members:
