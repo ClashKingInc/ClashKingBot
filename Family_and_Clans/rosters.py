@@ -450,7 +450,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         _roster = Roster(bot=self.bot)
         await ctx.response.defer()
         await _roster.find_roster(guild=ctx.guild, alias=roster)
-        column_choices = _roster.columns
+        column_choices = ["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "War Opt Status", "Trophies"]
         select_options = []
         for category in column_choices:
             select_options.append(disnake.SelectOption(label=category, value=category))
