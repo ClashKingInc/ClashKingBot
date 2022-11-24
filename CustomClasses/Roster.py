@@ -89,15 +89,8 @@ class Roster():
                     text += "`"
 
             if member.get("sub") is True:
-                subs += 1
-                if columns[0] not in emojis_columns:
-                    subs = f"`{subs} "
-                    text = text[1:]
-                else:
-                    subs = f"`{subs}`"
                 sub_text.append([f"{text}\n"] + all_fields)
             else:
-
                 roster_text.append([f"{text}\n"] + all_fields)
             thcount[member.get('townhall')] += 1
 
@@ -415,6 +408,11 @@ class Roster():
             {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
             {"$set": {"columns": columns}})
 
+    async def set_role(self, role: disnake.Role):
+        await self.bot.rosters.update_one(
+            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
+            {"$set": {"role": role.id}})
+
     async def set_sort(self, columns: list):
         await self.bot.rosters.update_one(
             {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
@@ -552,6 +550,9 @@ class Roster():
             return None
         return self.roster_result.get('image')
 
+    @property
+    def role(self):
+        return self.roster_result.get("role")
 
     async def missing_list(self):
         roster_members = self.roster_result.get("members")

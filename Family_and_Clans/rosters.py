@@ -69,6 +69,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             disnake.ui.Button(label="Add", emoji=self.bot.emoji.yes.partial_emoji, style=disnake.ButtonStyle.green, custom_id=f"Signup_{roster}"),
             disnake.ui.Button(label="Remove", emoji=self.bot.emoji.no.partial_emoji, style=disnake.ButtonStyle.red,custom_id=f"RemoveMe_{roster}"),
             disnake.ui.Button(label="Sub", emoji=self.bot.emoji.switch.partial_emoji, style=disnake.ButtonStyle.blurple, custom_id=f"SubMe_{roster}"),
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,custom_id=f"Refresh_{roster}"),
             disnake.ui.Button(label="", emoji=self.bot.emoji.menu.partial_emoji, style=disnake.ButtonStyle.grey,custom_id=f"Menu_{roster}")
         ]
         buttons = disnake.ui.ActionRow()
@@ -310,13 +311,31 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             color=disnake.Color.green())
         embed.set_thumbnail(url=_new_roster.roster_result.get("clan_badge"))
 
+    @roster.sub_command(name="sub-set", description="Set a player as a sub")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def roster_sub(self, ctx: disnake.ApplicationCommandInteraction, roster: str, player: coc.Player = commands.Param(converter=player_convertor)):
+        await ctx.response.defer()
+        _roster = Roster(bot=self.bot)
+        await _roster.find_roster(guild=ctx.guild, alias=roster)
+        await _roster.remove_member(player)
+        await _roster.add_member(player, sub=True)
+        embed= disnake.Embed(description=f"**{player.name} set as sub in {roster} Roster**", color=disnake.Color.green())
+        await ctx.edit_original_message(embed=embed)
+
 
     @roster.sub_command(name="post", description="Post a roster")
     async def roster_post(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
         embed = await _roster.embed()
-        await ctx.send(embed=embed)
+        signup_buttons = [
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
+                              custom_id=f"Refresh_{roster}")
+        ]
+        buttons = disnake.ui.ActionRow()
+        for button in signup_buttons:
+            buttons.append_item(button)
+        await ctx.send(embed=embed, components=[buttons])
 
 
     @roster.sub_command(name="refresh", description="Refresh the data in a roster (townhall levels, hero levels)")
@@ -479,7 +498,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         await res.response.defer()
         await _roster.set_sort(columns=res.values)
         embed = disnake.Embed(
-            description=f"{roster} roster columns set to : `{', '.join(res.values)}`",
+            description=f"{roster} roster sort by : `{', '.join(res.values)}`",
             color=disnake.Color.green())
         await res.edit_original_message(embed=embed, components=[])
 
@@ -538,6 +557,76 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         embed.set_image(image.url)
         await ctx.edit_original_message(embed=embed)
 
+    @roster.sub_command(name="list", description="List of rosters on this server")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def roster_list(self, ctx: disnake.ApplicationCommandInteraction):
+        result = self.bot.rosters.find({"$and": [{"server_id": ctx.guild.id}]})
+        count = await self.bot.rosters.count_documents({"$and": [{"server_id": ctx.guild.id}]})
+        if count == 0:
+            embed =disnake.Embed(description="**No rosters on this server. Use `/roster create` to get started.**", colour=disnake.Color.red())
+            return await ctx.send(embed=embed)
+        await ctx.response.defer()
+        text = ""
+        for roster in await result.to_list(length=count):
+            _roster = Roster(bot=self.bot)
+            await _roster.find_roster(guild=ctx.guild, alias=roster.get("alias"))
+            text += f"- {_roster.roster_result.get('alias')} | {_roster.roster_result.get('clan_name')} | {len(_roster.roster_result.get('members'))}/{_roster.roster_size}"
+            if _roster.role is not None:
+                text += f" | <@&{_roster.role}>\n"
+            else:
+                text += "\n"
+
+        embed = disnake.Embed(title=f"{ctx.guild.name} Roster List",
+            description=text,colour=disnake.Color.green())
+        await ctx.edit_original_message(embed=embed)
+
+    @roster.sub_command(name="role", description="Set a role that will be added when a person signs up & vice versa")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def roster_role(self, ctx: disnake.ApplicationCommandInteraction, roster: str, role: disnake.Role):
+        _roster = Roster(bot=self.bot)
+        await ctx.response.defer()
+        await _roster.find_roster(guild=ctx.guild, alias=roster)
+        await _roster.set_role(role=role)
+        embed = disnake.Embed(description=f"{roster} role set to {role.mention}", colour=disnake.Color.green())
+        await ctx.edit_original_message(embed=embed)
+
+    @roster.sub_command(name="role-refresh", description="Refresh the roles of those signed up to this roster")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def roster_role_refresh(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+        _roster = Roster(bot=self.bot)
+        await ctx.response.defer()
+        await _roster.find_roster(guild=ctx.guild, alias=roster)
+        if _roster.role is None:
+            embed = disnake.Embed(description="**No role set up for this roster. Use `/roster role` to get started.**",
+                                  colour=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+
+        tags = [player.get("tag") for player in _roster.players]
+        tag_to_id = await self.bot.link_client.get_links(*tags)
+        tag_to_id = dict(tag_to_id)
+        role = ctx.guild.get_role(_roster.role)
+        ids = []
+        for member in role.members:
+            if member.id not in list(tag_to_id.values()):
+                try:
+                    await member.remove_roles(*[role])
+                except:
+                    pass
+            else:
+                ids.append(member.id)
+
+        for mem_id in list(tag_to_id.values()):
+            if mem_id not in ids:
+                member = await ctx.guild.get_or_fetch_member(mem_id)
+                try:
+                    await member.add_roles(*[role])
+                except:
+                    pass
+
+        embed = disnake.Embed(description=f"**Roles updated for {roster} Roster**",
+                              colour=disnake.Color.green())
+        return await ctx.edit_original_message(embed=embed)
+
 
     @roster_create.autocomplete("clan")
     @roster_change_link.autocomplete("clan")
@@ -568,6 +657,9 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster_sort.autocomplete("roster")
     @roster_columns.autocomplete("roster")
     @roster_image.autocomplete("roster")
+    @roster_role.autocomplete("roster")
+    @roster_role_refresh.autocomplete("roster")
+    @roster_sub.autocomplete("roster")
     async def autocomp_rosters(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         aliases = await self.bot.rosters.distinct("alias", filter={"server_id": ctx.guild.id})
         alias_list = []
@@ -581,14 +673,43 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         names = await self.bot.family_names(query=query, guild=ctx.guild)
         return names
 
+    @roster_sub.autocomplete("player")
+    async def sub_ (self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        options = ctx.filled_options
+        roster = options["roster"]
+        mem_list = []
+        if roster != "":
+            try:
+                _roster = Roster(bot=self.bot)
+                await _roster.find_roster(guild=ctx.guild, alias=roster)
+                for player in _roster.players:
+                    if query.lower() in player.get("name").lower():
+                        mem_list.append(f"{player.get('name')} | {player.get('tag')}")
+            except:
+                return mem_list
+
+        return mem_list[:25]
+
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
-        if "Menu_" in str(ctx.data.custom_id):
+        if "Refresh_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            alias = str(ctx.data.custom_id).split("_")[1]
+            roster = Roster(bot=self.bot)
+            await roster.find_roster(guild=ctx.guild, alias=alias)
+            embed = await roster.embed()
+            await ctx.edit_original_message(embed=embed)
+
+        elif "Menu_" in str(ctx.data.custom_id):
+            roster = str(ctx.data.custom_id).split("_")[1]
             message = ctx.message
             perms = ctx.permissions.manage_guild
+            if ctx.author.id == self.bot.owner.id:
+                perms = True
             if not perms:
                 return await ctx.send(content="Must have `Manage Guild` perms to use the menu", ephemeral=True)
-            options = [disnake.SelectOption(label="Remove Signup Buttons", value="remove_buttons")]
+            options = [disnake.SelectOption(label="Remove Signup Buttons", value="remove_buttons"),
+                       disnake.SelectOption(label="Refresh Components", value="re_comp")]
             select = disnake.ui.Select(
                 options=options,
                 placeholder="Menu Options",
@@ -607,6 +728,25 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             if res.values[0] == "remove_buttons":
                 await message.edit(components=[])
                 await res.send(content="Components Removed", ephemeral=True)
+            if res.values[0] == "re_comp":
+                await res.response.defer()
+                signup_buttons = [
+                    disnake.ui.Button(label="Add", emoji=self.bot.emoji.yes.partial_emoji,
+                                      style=disnake.ButtonStyle.green, custom_id=f"Signup_{roster}"),
+                    disnake.ui.Button(label="Remove", emoji=self.bot.emoji.no.partial_emoji,
+                                      style=disnake.ButtonStyle.red, custom_id=f"RemoveMe_{roster}"),
+                    disnake.ui.Button(label="Sub", emoji=self.bot.emoji.switch.partial_emoji,
+                                      style=disnake.ButtonStyle.blurple, custom_id=f"SubMe_{roster}"),
+                    disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji,
+                                      style=disnake.ButtonStyle.grey, custom_id=f"Refresh_{roster}"),
+                    disnake.ui.Button(label="", emoji=self.bot.emoji.menu.partial_emoji, style=disnake.ButtonStyle.grey,
+                                      custom_id=f"Menu_{roster}")
+                ]
+                buttons = disnake.ui.ActionRow()
+                for button in signup_buttons:
+                    buttons.append_item(button)
+                await message.edit(components=[buttons])
+                await res.send(content="Components Refreshed", ephemeral=True)
 
         elif "Signup_" in str(ctx.data.custom_id):
             alias = str(ctx.data.custom_id).split("_")[1]
@@ -657,6 +797,13 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             for account in accounts_to_add:
                 added.append(player_dict[account].name)
                 await roster.add_member(player_dict[account])
+
+            if roster.role is not None:
+                try:
+                    role = ctx.guild.get_role(roster.role)
+                    await res.user.add_roles(*[role])
+                except:
+                    pass
 
             await res.edit_original_message(content=f"Added {', '.join(added)}", components=[])
             embed = await roster.embed()
@@ -715,7 +862,12 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             for account in accounts_to_add:
                 added.append(player_dict[account].name)
                 await roster.remove_member(player_dict[account])
-
+            if roster.role is not None:
+                try:
+                    role = ctx.guild.get_role(roster.role)
+                    await res.user.remove_roles(*[role])
+                except:
+                    pass
             await res.edit_original_message(content=f"Removed {', '.join(added)}", components=[])
             embed = await roster.embed()
             await main_message.edit(embed=embed)
