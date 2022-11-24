@@ -19,7 +19,7 @@ from collections import defaultdict
 from typing import List
 
 
-class clan_commands(commands.Cog):
+class clan_commands(commands.Cog, name="Clan Commands"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot

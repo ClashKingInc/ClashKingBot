@@ -4,7 +4,7 @@ import disnake
 from CustomClasses.CustomBot import CustomClient
 from collections import defaultdict
 
-clans = ["Clan"]
+clans = ["Clan Commands"]
 family = ["Bans", "Family Commands"]
 war = ["War", "CWL"]
 trophies = ["Legends", "Family Trophy Stats", "Leaderboards", "DM Feed & Reports"]
