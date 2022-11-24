@@ -21,20 +21,17 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
         except:
             return
         # print(f"{new_player.name} donated {new_capital_dono.value - old_capital_dono.value}")
-        tracked = self.bot.clan_db.find({"tag": f"{clan_tag}"})
         limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan_tag}"})
+        if limit == 0:
+            return
+        tracked = self.bot.clan_db.find({"tag": f"{clan_tag}"})
         for cc in await tracked.to_list(length=limit):
-            server = cc.get("server")
-            try:
-                server = await self.bot.fetch_guild(server)
-            except:
-                continue
             clancapital_channel = cc.get("clan_capital")
             if clancapital_channel is None:
                 continue
 
             try:
-                clancapital_channel = await server.fetch_channel(clancapital_channel)
+                clancapital_channel = await self.bot.fetch_channel(clancapital_channel)
                 if clancapital_channel is None:
                     continue
             except:
@@ -61,20 +58,17 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
         except:
             return
         # print(f"{new_player.name} donated {new_capital_dono.value - old_capital_dono.value}")
-        tracked = self.bot.clan_db.find({"tag": f"{clan_tag}"})
         limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan_tag}"})
+        if limit == 0:
+            return
+        tracked = self.bot.clan_db.find({"tag": f"{clan_tag}"})
         for cc in await tracked.to_list(length=limit):
-            server = cc.get("server")
-            try:
-                server = await self.bot.fetch_guild(server)
-            except:
-                continue
             clancapital_channel = cc.get("clan_capital")
             if clancapital_channel is None:
                 continue
 
             try:
-                clancapital_channel = await server.fetch_channel(clancapital_channel)
+                clancapital_channel = await self.bot.fetch_channel(clancapital_channel)
                 if clancapital_channel is None:
                     continue
             except:
