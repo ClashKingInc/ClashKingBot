@@ -1,8 +1,12 @@
 import disnake
 import coc
 import emoji
+import io
 
+from urllib.request import Request, urlopen
 from CustomClasses.CustomBot import CustomClient
+from CustomClasses.CustomPlayer import MyCustomPlayer, HitRate
+from datetime import datetime, timedelta
 from Exceptions import *
 from collections import defaultdict
 
@@ -55,42 +59,180 @@ class Roster():
             embed.set_footer(text=f"Linked to {self.roster_result.get('clan_name')}", icon_url=self.roster_result.get("clan_badge"))
             return embed
 
-        roster_text = ""
-        longest_tag = 0
-        for member in members:
-            tag = member.get('tag')
-            if len(tag) > longest_tag:
-                longest_tag = len(tag)
+        roster_text = []
 
         thcount = defaultdict(int)
-        sub_text = ""
+        sub_text = []
         subs = 0
-        for count, member in enumerate(members):
-            count -= subs
-            count = f"{count + 1}".ljust(2)
-            name = member.get('name')
-            for char in ["`", "*", "_", "~", "ッ"]:
-                name = name.replace(char, "", 10)
-            name = emoji.replace_emoji(name, "")
-            name = name[:12]
-            name = name.ljust(12)
-            tag = str(member.get('tag')).ljust(longest_tag)
+        columns = self.columns
+        emojis_columns = ["Townhall Level", "War Opt Status"]
+        for member in members:
+            text = ""
+            all_fields = self.all_fields(member)
+            for x, column in enumerate(columns):
+                col = self.column_to_item(member, column)
+                #if its the first column, and the column isnt an emoji, add tick
+                if columns[0] not in emojis_columns and x == 0:
+                    text = f"`{text}"
+
+                # if its not first column, and the previous column is an emoji, add tick
+                if x != 0 and columns[x - 1] in emojis_columns:
+                    text += "`"
+
+                #add text, we have backticks
+                text += f"{col}"
+                if x != 0 and columns[x - 1] not in emojis_columns:
+                    text += " "
+                if x + 1 < len(columns) and columns[x + 1] in emojis_columns:
+                    text += "`"
+                if x + 1 == len(columns) and columns[x] not in emojis_columns:
+                    text += "`"
+
             if member.get("sub") is True:
                 subs += 1
-                sub_text += f"`{subs}`{self.bot.fetch_emoji(name=member.get('townhall'))}`{name} {tag}  {member.get('hero_lvs')}`\n"
+                if columns[0] not in emojis_columns:
+                    subs = f"`{subs} "
+                    text = text[1:]
+                else:
+                    subs = f"`{subs}`"
+                sub_text.append([f"{text}\n"] + all_fields)
             else:
-                roster_text += f"`{count}`{self.bot.fetch_emoji(name=member.get('townhall'))}`{name} {tag}  {member.get('hero_lvs')}`\n"
+
+                roster_text.append([f"{text}\n"] + all_fields)
             thcount[member.get('townhall')] += 1
 
-        tag = str("TAG").ljust(longest_tag)
-        roster_text = f"`  TH NAME         {tag} HERO`\n" + roster_text
-        if sub_text != "":
-            roster_text = f"{roster_text}\n**SUBS**\n{sub_text}"
+        convert_column = {"Name": "NAME", "Player Tag": "TAG", "Heroes": "HEROES", "Townhall Level": "TH",
+                          "Discord": "DISCORD", "30 Day Hitrate": "HITRATE",
+                          "Current Clan": "CLAN", "War Opt Status": "WAROPT", "Trophies": "TROPHIES"}
+        legend = " | ".join(convert_column[column] for column in columns)
+        roster_text = self.sort_(roster_text)
+        r_text = ""
+        for count, text in enumerate(roster_text):
+            text = text[0]
+            count = f"{count + 1}".ljust(2)
+            if columns[0] not in emojis_columns:
+                co = f"`{count} "
+                text = text[1:]
+            else:
+                co = f"`{count}`"
+            r_text += f"{co}{text}"
+        roster_text = f"`Legend: {legend}`\n{r_text}"
+        if sub_text != []:
+            sub_text = self.sort_(sub_text)
+            s_text = ""
+            for count, text in enumerate(sub_text):
+                text = text[0]
+                count = f"{count + 1}".ljust(2)
+                if columns[0] not in emojis_columns:
+                    co = f"`{count} "
+                    text = text[1:]
+                else:
+                    co = f"`{count}`"
+                s_text += f"{co}{text}"
+            roster_text = f"{roster_text}\n**SUBS**\n{s_text}"
 
         embed = disnake.Embed(title=f"__{self.roster_result.get('alias')} Roster__", description=roster_text)
         footer_text = "".join(f"Th{index}: {th} " for index, th in sorted(thcount.items(), reverse=True) if th != 0)
         embed.set_footer(text=f"{footer_text}\nLinked to {self.roster_result.get('clan_name')}\nTh{self.th_min}-Th{self.th_max} | {self.roster_size} Account Limit\n{move_text}", icon_url=self.roster_result.get("clan_badge"))
+        if self.image is not None and move_text == "":
+            embed.set_image(url=self.image)
         return embed
+
+
+    def column_to_item(self, player_dict, field):
+        #["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "War Opt Status", "Trophies"]
+
+        if field == "Name":
+            name = player_dict.get('name')
+            for char in ["`", "*", "_", "~", "ッ"]:
+                name = name.replace(char, "", 10)
+            name = emoji.replace_emoji(name, "")
+            name = name[:11]
+            name = name.ljust(12)
+            return name
+        elif field == "Player Tag":
+            return player_dict.get("tag").ljust(10)
+        elif field == "Heroes":
+            return player_dict.get("hero_lvs")
+        elif field == "Townhall Level":
+            return self.bot.fetch_emoji(name=player_dict.get('townhall'))
+        elif field == "Current Clan":
+            name = player_dict.get("current_clan")
+            for char in ["`", "*", "_", "~", "ッ"]:
+                name = name.replace(char, "", 10)
+            name = emoji.replace_emoji(name, "")
+            name = name[:11]
+            name = name.ljust(12)
+            return name
+        elif field == "Discord":
+            return str(player_dict.get("discord"))[:14].ljust(15)
+        elif field == "30 Day Hitrate":
+            hr = player_dict.get("hitrate")
+            return "0.0%" if hr is None else f"{hr}%"
+        elif field == "War Opt Status":
+            wp = player_dict.get("war_pref")
+            if wp is True:
+                return "<:opt_in:944905885367537685>"
+            elif wp is False:
+                return "<:opt_out:944905931265810432>"
+            else:
+                return None
+        elif field == "Trophies":
+            return player_dict.get("trophies")
+
+    def sort_(self, text_list):
+        master_col = ["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan",
+         "War Opt Status", "Trophies"]
+        spots = []
+        for column in self.sort:
+            spots.append(master_col.index(column))
+
+        if len(spots) == 1:
+            text_list = sorted(text_list, key=lambda l: (l[spots[0] + 1]), reverse=False)
+        if len(spots) == 2:
+            text_list = sorted(text_list, key=lambda l: (l[spots[0] + 1], l[spots[1] + 1]), reverse=False)
+        if len(spots) == 3:
+            text_list = sorted(text_list, key=lambda l: (l[spots[0] + 1], l[spots[1] + 1], l[spots[2] + 1]), reverse=False)
+        if len(spots) == 4:
+            text_list = sorted(text_list, key=lambda l: (l[spots[0] + 1], l[spots[1] + 1], l[spots[2] + 1], l[spots[3] + 1]), reverse=False)
+
+        return text_list
+
+    def all_fields(self, player_dict):
+        #["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "War Opt Status", "Trophies"]
+        item_list = []
+
+        name = player_dict.get('name')
+        for char in ["`", "*", "_", "~", "ッ"]:
+            name = name.replace(char, "", 10)
+        name = emoji.replace_emoji(name, "")
+        name = name[:12]
+        name = name.ljust(12)
+        item_list.append(name.upper())
+
+        item_list.append(player_dict.get("tag").ljust(10))
+        item_list.append(player_dict.get("hero_lvs") * -1)
+        item_list.append(player_dict.get('townhall') * -1)
+
+        name = str(player_dict.get("current_clan"))
+        for char in ["`", "*", "_", "~", "ッ"]:
+            name = name.replace(char, "", 10)
+        name = emoji.replace_emoji(name, "")
+        name = name[:12]
+        name = name.ljust(12)
+        item_list.append(name.upper())
+        item_list.append(str(player_dict.get("discord"))[:12].ljust(12))
+        hr = player_dict.get("hitrate")
+        if hr is None:
+            item_list.append(0)
+        else:
+            item_list.append(hr * -1)
+        item_list.append(str(player_dict.get("war_pref")))
+        if player_dict.get("trophies") is None:
+            item_list.append(0)
+        else:
+            item_list.append(player_dict.get("trophies") * -1)
+        return item_list
 
     async def set_missing_text(self, text: str):
         await self.bot.rosters.update_one(
@@ -128,16 +270,31 @@ class Roster():
         embed.set_footer(text=f"Linked to {self.roster_result.get('clan_name')}", icon_url=self.roster_result.get("clan_badge"))
         return embed
 
-    async def refresh(self):
+    async def refresh_roster(self):
         members = self.players
         if not members:
             return
-        tags = [member.get("tag") for member in members]
-        players = await self.bot.get_players(tags=tags)
-        for player in players:
-            player: coc.Player
-            await self.remove_member(player)
-            await self.add_member(player)
+        columns = self.columns
+        members = await self.bot.get_players(tags=[member.get("tag") for member in members], custom=("30 Day Hitrate" in columns))
+        has_ran = False
+        if "Discord" in columns:
+            has_ran = True
+            tag_to_id = await self.bot.link_client.get_links(*[member.tag for member in members])
+            tag_to_id = dict(tag_to_id)
+            for member in members:
+                discord_user = await self.bot.getch_user(tag_to_id[member.tag])
+                await self.update_member(player=member, field="discord", field_value=str(discord_user))
+
+        if "30 Day Hitrate" in columns:
+            has_ran = True
+            for member in members:
+                member: MyCustomPlayer
+                hr = await member.hit_rate(start_timestamp=int((datetime.utcnow() - timedelta(days=30)).timestamp()), end_timestamp=int(datetime.utcnow().timestamp()))
+                await self.update_member(player=member, field="hitrate", field_value=round((hr[0].average_triples * 100), 1))
+
+        if has_ran is False:
+            for player in members:
+                await self.update_member(player=player)
 
     async def add_member(self, player: coc.Player, sub=False):
         roster_members = self.roster_result.get("members")
@@ -153,16 +310,39 @@ class Roster():
         war_pref = player.war_opted_in
         if war_pref is None:
             war_pref = False
-        if not sub:
-            await self.bot.rosters.update_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
-                                              {"$push" : {"members" : {"name" : player.name, "tag" : player.tag, "townhall" : player.town_hall, "hero_lvs" : hero_lvs, "current_clan": current_clan, "war_pref" : war_pref}}})
-        else:
-            await self.bot.rosters.update_one({"$and": [{"server_id": self.roster_result.get("server_id")},{"alias": self.roster_result.get("alias")}]},
-                                              {"$push": {"members": {"name": player.name, "tag": player.tag,
-                                                                     "townhall": player.town_hall, "hero_lvs": hero_lvs,
-                                                                     "current_clan": current_clan,
-                                                                     "war_pref": war_pref, "sub" : sub}}})
+        await self.bot.rosters.update_one({"$and": [{"server_id": self.roster_result.get("server_id")},{"alias": self.roster_result.get("alias")}]},
+                                          {"$push": {"members": {"name": player.name, "tag": player.tag,
+                                                                 "townhall": player.town_hall, "hero_lvs": hero_lvs,
+                                                                 "current_clan": current_clan,
+                                                                 "war_pref": war_pref, "sub" : sub}}})
         roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]})
+        self.roster_result = roster_result
+
+    async def update_member(self, player: coc.Player, field = None, field_value = None):
+        hero_lvs = sum(hero.level for hero in player.heroes)
+        current_clan = "No Clan"
+        if player.clan is not None:
+            current_clan = player.clan.name
+        war_pref = player.war_opted_in
+        if war_pref is None:
+            war_pref = False
+
+        if field is not None:
+            await self.bot.rosters.update_one(
+                {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}, {"members.tag" : player.tag}]},
+                {"$set": {"members.$.townhall": player.town_hall, "members.$.hero_lvs": hero_lvs,
+                                       "members.$.current_clan": current_clan,
+                                       "members.$.war_pref": war_pref, "members.$.trophies" : player.trophies, f"members.$.{field}": field_value}})
+        else:
+            await self.bot.rosters.update_one(
+                {"$and": [{"server_id": self.roster_result.get("server_id")},
+                          {"alias": self.roster_result.get("alias")}, {"members.tag": player.tag}]},
+                {"$set": {"members.$.townhall": player.town_hall, "members.$.hero_lvs": hero_lvs,
+                           "members.$.current_clan": current_clan,
+                           "members.$.war_pref": war_pref, "members.$.trophies": player.trophies}})
+
+        roster_result = await self.bot.rosters.find_one(
+            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]})
         self.roster_result = roster_result
 
     async def remove_member(self, player: coc.Player):
@@ -218,6 +398,27 @@ class Roster():
         await self.bot.rosters.update_one(
             {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
             {"$set": {"clan_badge": new_clan.badge.url}})
+
+    async def set_image(self, url: str):
+        req = Request(url=url, headers={'User-Agent': 'Mozilla/5.0'})
+        f = io.BytesIO(urlopen(req).read())
+        file = disnake.File(fp=f, filename="pic.png")
+        pic_channel = await self.bot.fetch_channel(884951195406458900)
+        msg = await pic_channel.send(file=file)
+        pic = msg.attachments[0].url
+        await self.bot.rosters.update_one(
+            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
+            {"$set": {"image": pic}})
+
+    async def set_columns(self, columns: list):
+        await self.bot.rosters.update_one(
+            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
+            {"$set": {"columns": columns}})
+
+    async def set_sort(self, columns: list):
+        await self.bot.rosters.update_one(
+            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
+            {"$set": {"sort": columns}})
 
     async def other_rosters(self):
         guild = self.roster_result.get("server_id")
@@ -333,8 +534,24 @@ class Roster():
             return ""
         return f"**{self.roster_result.get('missing_text')}**" + "\n\n"
 
-    async def refresh_roster(self):
-        pass
+    @property
+    def columns(self):
+        if self.roster_result.get("columns") is None:
+            return ["Townhall Level", "Name", "Player Tag", "Heroes"]
+        return self.roster_result.get('columns')
+
+    @property
+    def sort(self):
+        if self.roster_result.get("sort") is None:
+            return ["Townhall Level", "Name", "Heroes", "Player Tag"]
+        return self.roster_result.get('sort')
+
+    @property
+    def image(self):
+        if self.roster_result.get("image") is None:
+            return None
+        return self.roster_result.get('image')
+
 
     async def missing_list(self):
         roster_members = self.roster_result.get("members")
@@ -343,6 +560,7 @@ class Roster():
         clan_members = [member.tag for member in clan.members]
         missing_tags = list(set(roster_member_tags).difference(clan_members))
         return [member for member in roster_members if member.get("tag") in missing_tags]
+
 
 
 

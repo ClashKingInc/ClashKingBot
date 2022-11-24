@@ -444,7 +444,99 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         embed.set_thumbnail(url=clan.badge.url)
         await ctx.edit_original_message(embed=embed)
 
-    @roster.sub_command()
+    @roster.sub_command(name="sort", description="Choose how to sort your roster")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def roster_sort(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+        _roster = Roster(bot=self.bot)
+        await ctx.response.defer()
+        await _roster.find_roster(guild=ctx.guild, alias=roster)
+        column_choices = _roster.columns
+        select_options = []
+        for category in column_choices:
+            select_options.append(disnake.SelectOption(label=category, value=category))
+        select = disnake.ui.Select(
+            options=select_options,
+            placeholder="Categories",  # the placeholder text to show when no options have been chosen
+            min_values=4,  # the minimum number of options a user must select
+            max_values=4,  # the maximum number of options a user can select
+        )
+        dropdown = [disnake.ui.ActionRow(select)]
+        embed = disnake.Embed(
+            description="**Select from the column choices below\nNOTE: The order you pick them is the order they will be sorted in..**",
+            color=disnake.Color.green())
+        await ctx.edit_original_message(embed=embed, components=dropdown)
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        try:
+            res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                      timeout=600)
+        except:
+            return await msg.edit(components=[])
+
+        await res.response.defer()
+        await _roster.set_sort(columns=res.values)
+        embed = disnake.Embed(
+            description=f"{roster} roster columns set to : `{', '.join(res.values)}`",
+            color=disnake.Color.green())
+        await res.edit_original_message(embed=embed, components=[])
+
+    @roster.sub_command(name="columns", description="Choose the columns of your roster")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def roster_columns(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+        column_choices = ["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "War Opt Status", "Trophies"]
+        _roster = Roster(bot=self.bot)
+        await ctx.response.defer()
+        await _roster.find_roster(guild=ctx.guild, alias=roster)
+        select_options = []
+        for category in column_choices:
+            select_options.append(disnake.SelectOption(label=category, value=category))
+        select = disnake.ui.Select(
+            options=select_options,
+            placeholder="Categories",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=4,  # the maximum number of options a user can select
+        )
+        dropdown = [disnake.ui.ActionRow(select)]
+        embed = disnake.Embed(
+            description="**Select from the column choices below\nNOTE: The order you pick them is the order they will appear on your roster from left to right.**",
+            color=disnake.Color.green())
+        await ctx.edit_original_message(embed=embed, components=dropdown)
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        try:
+            res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                      timeout=600)
+        except:
+            return await msg.edit(components=[])
+
+        await res.response.defer()
+        if "Name" not in res.values:
+            embed = disnake.Embed(
+                description=f"Name is a required column field.",
+                color=disnake.Color.red())
+            return await res.edit_original_message(embed=embed, components=[])
+        await _roster.set_columns(columns=res.values)
+        embed = disnake.Embed(
+            description=f"{roster} roster columns set to : `{', '.join(res.values)}`",
+            color=disnake.Color.green())
+        await res.edit_original_message(embed=embed, components=[])
+
+    @roster.sub_command(name="image", description="Add an image to your roster")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def roster_image(self, ctx: disnake.ApplicationCommandInteraction, roster: str, image: disnake.Attachment):
+        _roster = Roster(bot=self.bot)
+        await ctx.response.defer()
+        await _roster.find_roster(guild=ctx.guild, alias=roster)
+        await _roster.set_image(url=image.url)
+        embed = disnake.Embed(description=f"{roster} roster image set to the below.", colour=disnake.Color.green())
+        embed.set_image(image.url)
+        await ctx.edit_original_message(embed=embed)
 
 
     @roster_create.autocomplete("clan")
@@ -473,6 +565,9 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster_rename.autocomplete("roster")
     @roster_change_link.autocomplete("roster")
     @roster_clear.autocomplete("roster")
+    @roster_sort.autocomplete("roster")
+    @roster_columns.autocomplete("roster")
+    @roster_image.autocomplete("roster")
     async def autocomp_rosters(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         aliases = await self.bot.rosters.distinct("alias", filter={"server_id": ctx.guild.id})
         alias_list = []
