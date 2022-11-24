@@ -729,7 +729,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                 await message.edit(components=[])
                 await res.send(content="Components Removed", ephemeral=True)
             if res.values[0] == "re_comp":
-                await res.response.defer()
                 signup_buttons = [
                     disnake.ui.Button(label="Add", emoji=self.bot.emoji.yes.partial_emoji,
                                       style=disnake.ButtonStyle.green, custom_id=f"Signup_{roster}"),
