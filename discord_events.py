@@ -164,7 +164,6 @@ class DiscordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_slash_command_error(self, ctx: disnake.ApplicationCommandInteraction, error):
-        print(error)
         if isinstance(error, disnake.ext.commands.ConversionError):
             error = error.original
 
