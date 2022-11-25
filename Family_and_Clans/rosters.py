@@ -125,7 +125,8 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                     button_value = button_value.split("_")[1]
                     mode = button_value
                     if button_value == "move":
-                        embed = await _roster.embed(move_text=f"Mode: {button_value} | Moving to {new_roster}")
+                        embed = await _roster.embed(
+                            move_text=f"Mode: {button_value} | Moving to {new_roster}\nGroup Mode: {group}")
                     else:
                         embed = await _roster.embed(move_text=f"Mode: {button_value}")
                     components = await _roster.mode_components(mode=button_value, player_page=0)
@@ -144,18 +145,19 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                             if isinstance(player, coc.errors.NotFound):
                                 continue
                             if mode == "move":
-                                await _roster.move_member(player=player, new_roster=_new_roster)
+                                await _roster.move_member(player=player, new_roster=_new_roster, group=group)
                             else:
                                 await _roster.remove_member(player=player)
-                        embed = disnake.Embed(
-                            description=f"{', '.join([player.name for player in players if not isinstance(player, coc.errors.NotFound)])} moved from **{_roster.roster_result.get('alias')}** to **{_new_roster.roster_result.get('alias')}** roster",
-                            color=disnake.Color.green())
-                        embed.set_thumbnail(url=_new_roster.roster_result.get("clan_badge"))
+                        # embed = disnake.Embed(
+                        # description=f"{', '.join([player.name for player in players if not isinstance(player, coc.errors.NotFound)])} moved from **{_roster.roster_result.get('alias')}** to **{_new_roster.roster_result.get('alias')}** roster",
+                        # color=disnake.Color.green())
+                        # embed.set_thumbnail(url=_new_roster.roster_result.get("clan_badge"))
                         # await res.followup.send(embed=embed, ephemeral=True)
                         await _new_roster.find_roster(guild=ctx.guild, alias=_new_roster.roster_result.get("alias"))
                         await _roster.find_roster(guild=ctx.guild, alias=_roster.roster_result.get("alias"))
                         if mode == "move":
-                            embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}")
+                            embed = await _roster.embed(
+                                move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
                         else:
                             embed = await _roster.embed(move_text=f"Mode: {mode}")
                         components = await _roster.mode_components(mode=mode, player_page=0)
@@ -164,7 +166,8 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                         alias = res.values[0].split("_")[1]
                         await _roster.find_roster(guild=ctx.guild, alias=alias)
                         if mode == "move":
-                            embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}")
+                            embed = await _roster.embed(
+                                move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
                         else:
                             embed = await _roster.embed(move_text=f"Mode: {mode}")
                         components = await _roster.mode_components(mode=mode, player_page=0)
@@ -173,8 +176,16 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                         alias = res.values[0].split("_")[1]
                         new_roster = alias
                         await _new_roster.find_roster(guild=ctx.guild, alias=new_roster)
-                        embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}")
+                        embed = await _roster.embed(
+                            move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
                         await res.edit_original_message(embed=embed)
+                    elif "rostergroup_" in res.values[0]:
+                        group = res.values[0].split("_")[-1]
+                        embed = await _roster.embed(
+                            move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
+                        components = await _roster.mode_components(mode=mode, player_page=0)
+                        await res.edit_original_message(embed=embed, components=components)
+
             except Exception as error:
                 if isinstance(error, RosterAliasAlreadyExists):
                     embed = disnake.Embed(description=f"Roster with this alias already exists.",
