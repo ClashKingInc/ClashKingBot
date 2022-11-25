@@ -204,7 +204,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         await ctx.response.defer()
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
-        embed = await _roster.embed(move_text=f"Mode: Move | Moving to {new_roster}")
+        embed = await _roster.embed(move_text=f"Mode: Move | Moving to {new_roster}\nGroup Mode: No Group")
         components = await _roster.mode_components(mode="move", player_page=0)
         await ctx.edit_original_message(embed=embed, components=components)
         msg = await ctx.original_message()
@@ -215,6 +215,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         _new_roster = Roster(bot=self.bot)
         await _new_roster.find_roster(guild=ctx.guild, alias=new_roster)
         mode = "move"
+        group = "No Group"
         while True:
             try:
                 res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
@@ -232,7 +233,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                     button_value = button_value.split("_")[1]
                     mode = button_value
                     if button_value == "move":
-                        embed = await _roster.embed(move_text=f"Mode: {button_value} | Moving to {new_roster}")
+                        embed = await _roster.embed(move_text=f"Mode: {button_value} | Moving to {new_roster}\nGroup Mode: {group}")
                     else:
                         embed = await _roster.embed(move_text=f"Mode: {button_value}")
                     components = await _roster.mode_components(mode=button_value, player_page=0)
@@ -250,16 +251,19 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                         for player in players:
                             if isinstance(player, coc.errors.NotFound):
                                 continue
-                            await _roster.move_member(player=player, new_roster=_new_roster)
-                        embed = disnake.Embed(
-                            description=f"{', '.join([player.name for player in players if not isinstance(player, coc.errors.NotFound)])} moved from **{_roster.roster_result.get('alias')}** to **{_new_roster.roster_result.get('alias')}** roster",
-                            color=disnake.Color.green())
-                        embed.set_thumbnail(url=_new_roster.roster_result.get("clan_badge"))
+                            if mode == "move":
+                                await _roster.move_member(player=player, new_roster=_new_roster, group=group)
+                            else:
+                                await _roster.remove_member(player=player)
+                        #embed = disnake.Embed(
+                            #description=f"{', '.join([player.name for player in players if not isinstance(player, coc.errors.NotFound)])} moved from **{_roster.roster_result.get('alias')}** to **{_new_roster.roster_result.get('alias')}** roster",
+                            #color=disnake.Color.green())
+                        #embed.set_thumbnail(url=_new_roster.roster_result.get("clan_badge"))
                         #await res.followup.send(embed=embed, ephemeral=True)
                         await _new_roster.find_roster(guild=ctx.guild, alias=_new_roster.roster_result.get("alias"))
                         await _roster.find_roster(guild=ctx.guild, alias=_roster.roster_result.get("alias"))
                         if mode == "move":
-                            embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}")
+                            embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
                         else:
                             embed = await _roster.embed(move_text=f"Mode: {mode}")
                         components = await _roster.mode_components(mode=mode, player_page=0)
@@ -268,7 +272,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                         alias = res.values[0].split("_")[1]
                         await _roster.find_roster(guild=ctx.guild, alias=alias)
                         if mode == "move":
-                            embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}")
+                            embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
                         else:
                             embed = await _roster.embed(move_text=f"Mode: {mode}")
                         components = await _roster.mode_components(mode=mode, player_page=0)
@@ -277,8 +281,16 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                         alias = res.values[0].split("_")[1]
                         new_roster = alias
                         await _new_roster.find_roster(guild=ctx.guild, alias=new_roster)
-                        embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}")
+                        embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
                         await res.edit_original_message(embed=embed)
+                    elif "rostergroup_" in res.values[0]:
+                        group = res.values[0].split("_")[-1]
+                        embed = await _roster.embed(
+                            move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
+                        components = await _roster.mode_components(mode=mode, player_page=0)
+                        await res.edit_original_message(embed=embed, components=components)
+
+
             except Exception as error:
                 if isinstance(error, RosterAliasAlreadyExists):
                     embed = disnake.Embed(description=f"Roster with this alias already exists.",
@@ -311,16 +323,31 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             color=disnake.Color.green())
         embed.set_thumbnail(url=_new_roster.roster_result.get("clan_badge"))
 
-    @roster.sub_command(name="sub-set", description="Set a player as a sub")
+
+    @roster.sub_command(name="player-groups", description="Create/Remove a group players can be placed in")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_sub(self, ctx: disnake.ApplicationCommandInteraction, roster: str, player: coc.Player = commands.Param(converter=player_convertor)):
+    async def roster_create_player_group(self, ctx: disnake.ApplicationCommandInteraction, group_name: str, option = commands.Param(choices=["Add", "Remove"])):
         await ctx.response.defer()
-        _roster = Roster(bot=self.bot)
-        await _roster.find_roster(guild=ctx.guild, alias=roster)
-        await _roster.remove_member(player)
-        await _roster.add_member(player, sub=True)
-        embed= disnake.Embed(description=f"**{player.name} set as sub in {roster} Roster**", color=disnake.Color.green())
-        await ctx.edit_original_message(embed=embed)
+        results = await self.bot.server_db.find_one({"server": ctx.guild.id})
+        groups = results.get("player_groups")
+        if groups is None:
+            groups = []
+        if len(groups) == 25:
+            embed = disnake.Embed(description="**Please remove a player group before you add another (limit 25).**", color=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+
+        if option == "Add":
+            if group_name not in groups:
+                await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$push" : {"player_groups" : group_name}})
+                embed = disnake.Embed(description=f"**{group_name} added as a player group.**",
+                                      color=disnake.Color.green())
+                return await ctx.edit_original_message(embed=embed)
+        elif option == "Remove":
+            if group_name in groups:
+                await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$pull": {"player_groups": group_name}})
+            embed = disnake.Embed(description=f"**{group_name} removed as a player group.**",
+                                  color=disnake.Color.green())
+            return await ctx.edit_original_message(embed=embed)
 
 
     @roster.sub_command(name="post", description="Post a roster")
@@ -659,7 +686,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster_image.autocomplete("roster")
     @roster_role.autocomplete("roster")
     @roster_role_refresh.autocomplete("roster")
-    @roster_sub.autocomplete("roster")
     async def autocomp_rosters(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         aliases = await self.bot.rosters.distinct("alias", filter={"server_id": ctx.guild.id})
         alias_list = []
@@ -672,23 +698,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         names = await self.bot.family_names(query=query, guild=ctx.guild)
         return names
-
-    @roster_sub.autocomplete("player")
-    async def sub_ (self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        options = ctx.filled_options
-        roster = options["roster"]
-        mem_list = []
-        if roster != "":
-            try:
-                _roster = Roster(bot=self.bot)
-                await _roster.find_roster(guild=ctx.guild, alias=roster)
-                for player in _roster.players:
-                    if query.lower() in player.get("name").lower():
-                        mem_list.append(f"{player.get('name')} | {player.get('tag')}")
-            except:
-                return mem_list
-
-        return mem_list[:25]
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):

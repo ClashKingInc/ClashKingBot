@@ -62,7 +62,7 @@ class Roster():
         roster_text = []
 
         thcount = defaultdict(int)
-        sub_text = []
+        group_text = defaultdict(list)
         subs = 0
         columns = self.columns
         emojis_columns = ["Townhall Level", "War Opt Status"]
@@ -89,7 +89,9 @@ class Roster():
                     text += "`"
 
             if member.get("sub") is True:
-                sub_text.append([f"{text}\n"] + all_fields)
+                group_text["SUBS"].append([f"{text}\n"] + all_fields)
+            elif member.get("group") not in ["No Group", "Sub", None]:
+                group_text[str(member.get("group")).upper()].append([f"{text}\n"] + all_fields)
             else:
                 roster_text.append([f"{text}\n"] + all_fields)
             thcount[member.get('townhall')] += 1
@@ -110,19 +112,20 @@ class Roster():
                 co = f"`{count}`"
             r_text += f"{co}{text}"
         roster_text = f"`Legend: {legend}`\n{r_text}"
-        if sub_text != []:
-            sub_text = self.sort_(sub_text)
-            s_text = ""
-            for count, text in enumerate(sub_text):
-                text = text[0]
-                count = f"{count + 1}".ljust(2)
-                if columns[0] not in emojis_columns:
-                    co = f"`{count} "
-                    text = text[1:]
-                else:
-                    co = f"`{count}`"
-                s_text += f"{co}{text}"
-            roster_text = f"{roster_text}\n**SUBS**\n{s_text}"
+        if list(group_text.keys()) != []:
+            for group_name, text in group_text.items():
+                sub_text = self.sort_(text)
+                s_text = ""
+                for count, text in enumerate(sub_text):
+                    text = text[0]
+                    count = f"{count + 1}".ljust(2)
+                    if columns[0] not in emojis_columns:
+                        co = f"`{count} "
+                        text = text[1:]
+                    else:
+                        co = f"`{count}`"
+                    s_text += f"{co}{text}"
+                roster_text = f"{roster_text}\n**{group_name}**\n{s_text}"
 
         embed = disnake.Embed(title=f"__{self.roster_result.get('alias')} Roster__", description=roster_text)
         footer_text = "".join(f"Th{index}: {th} " for index, th in sorted(thcount.items(), reverse=True) if th != 0)
@@ -349,22 +352,19 @@ class Roster():
         roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]})
         self.roster_result = roster_result
 
-    async def move_member(self, player: coc.Player, new_roster):
+    async def move_member(self, player: coc.Player, new_roster, group):
         roster_members = self.roster_result.get("members")
         roster_member_tags = [member.get("tag") for member in roster_members]
         if player.tag not in roster_member_tags:
             raise PlayerNotInRoster
         new_roster_member_tags = [member.get("tag") for member in new_roster.roster_result.get("members")]
-        if player.tag in new_roster_member_tags:
-            raise PlayerAlreadyInRoster
-
         await self.bot.rosters.update_one(
             {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
             {"$pull": {"members": {"tag": player.tag}}})
         hero_lvs = sum(hero.level for hero in player.heroes)
         await self.bot.rosters.update_one(
             {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias" : new_roster.roster_result.get("alias")}]},
-            {"$push": {"members": {"name": player.name, "tag": player.tag, "townhall": player.town_hall,"hero_lvs": hero_lvs}}})
+            {"$push": {"members": {"name": player.name, "tag": player.tag, "townhall": player.town_hall,"hero_lvs": hero_lvs, "trophies" : player.trophies, "group" : group, "sub" : (group == "Sub")}}})
 
     async def restrict_th(self, min:int = 0, max="max"):
         await self.bot.rosters.update_one(
@@ -482,9 +482,11 @@ class Roster():
 
         if mode == "move":
             roster_options = []
+            other_rosters += [self.roster_result.get("alias")]
             for roster in other_rosters:
                 roster_options.append(disnake.SelectOption(label=f"{roster}", emoji=self.bot.emoji.troop.partial_emoji,
                                                            value=f"rostermove_{roster}"))
+
             roster_select = disnake.ui.Select(
                 options=roster_options,
                 placeholder="Select Roster To Move To",  # the placeholder text to show when no options have been chosen
@@ -492,6 +494,19 @@ class Roster():
                 max_values=1,  # the maximum number of options a user can select
             )
             dropdown.append(disnake.ui.ActionRow(roster_select))
+
+            grouping_options = []
+            for group in await self.grouping:
+                grouping_options.append(disnake.SelectOption(label=f"{group}", emoji=self.bot.emoji.pin.partial_emoji,
+                                                           value=f"rostergroup_{group}"))
+
+            group_select = disnake.ui.Select(
+                options=grouping_options,
+                placeholder="Select Grouping to Move Player to",  # the placeholder text to show when no options have been chosen
+                min_values=1,  # the minimum number of options a user must select
+                max_values=1,  # the maximum number of options a user can select
+            )
+            dropdown.append(disnake.ui.ActionRow(group_select))
 
         dropdown.append(buttons)
         if not self.players:
@@ -553,6 +568,16 @@ class Roster():
     @property
     def role(self):
         return self.roster_result.get("role")
+
+    @property
+    async def grouping(self):
+        guild_id = self.roster_result.get("server_id")
+        results = await self.bot.server_db.find_one({"server": guild_id})
+        groups = results.get("player_groups")
+        if groups is None:
+            return ["No Group", "Sub"]
+        return ["No Group", "Sub"] + groups
+
 
     async def missing_list(self):
         roster_members = self.roster_result.get("members")

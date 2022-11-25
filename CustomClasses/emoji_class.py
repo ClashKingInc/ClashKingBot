@@ -28,7 +28,7 @@ class Emojis():
         self.history = EmojiType("<:history:989351374087151617>")
         self.quick_check = EmojiType("<:plusminus:989351373608980490>")
         self.gear = EmojiType("<:gear:989351372711399504>")
-        self.pin = EmojiType("<:magnify:944914253171810384>")
+        self.pin = EmojiType("<:pin:989362628361072650>")
         self.back = EmojiType("<:back_arrow:989399022156525650>")
         self.forward = EmojiType("<:forward_arrow:989399021602877470>")
         self.print = EmojiType("<:print:989400875766251581>")
