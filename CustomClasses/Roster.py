@@ -157,8 +157,8 @@ class Roster():
             for char in ["`", "*", "_", "~", "ッ"]:
                 name = name.replace(char, "", 10)
             name = emoji.replace_emoji(name, "")
-            name = name[:11]
-            name = name.ljust(12)
+            name = name[:14]
+            name = name.ljust(15)
             return name
         elif field == "Discord":
             return str(player_dict.get("discord"))[:14].ljust(15)
@@ -175,6 +175,8 @@ class Roster():
                 return None
         elif field == "Trophies":
             return player_dict.get("trophies")
+        elif field == "Clan Tag":
+            return player_dict.get("current_clan_tag")
 
     def sort_(self, text_list):
         master_col = ["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan",
@@ -308,8 +310,10 @@ class Roster():
             raise PlayerAlreadyInRoster
         hero_lvs = sum(hero.level for hero in player.heroes)
         current_clan = "No Clan"
+        clan_tag = "No Clan"
         if player.clan is not None:
             current_clan = player.clan.name
+            clan_tag = player.clan.tag
         war_pref = player.war_opted_in
         if war_pref is None:
             war_pref = False
@@ -317,15 +321,17 @@ class Roster():
                                           {"$push": {"members": {"name": player.name, "tag": player.tag,
                                                                  "townhall": player.town_hall, "hero_lvs": hero_lvs,
                                                                  "current_clan": current_clan,
-                                                                 "war_pref": war_pref, "sub" : sub, "trophies": player.trophies}}})
+                                                                 "war_pref": war_pref, "sub" : sub, "trophies": player.trophies, "current_clan_tag" : clan_tag}}})
         roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]})
         self.roster_result = roster_result
 
     async def update_member(self, player: coc.Player, field = None, field_value = None):
         hero_lvs = sum(hero.level for hero in player.heroes)
         current_clan = "No Clan"
+        clan_tag = "No Clan"
         if player.clan is not None:
             current_clan = player.clan.name
+            clan_tag = player.clan.tag
         war_pref = player.war_opted_in
         if war_pref is None:
             war_pref = False
@@ -334,7 +340,7 @@ class Roster():
             await self.bot.rosters.update_one(
                 {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}, {"members.tag" : player.tag}]},
                 {"$set": {"members.$.townhall": player.town_hall, "members.$.hero_lvs": hero_lvs,
-                                       "members.$.current_clan": current_clan,
+                                       "members.$.current_clan": current_clan, "members.$.current_clan_tag" : clan_tag,
                                        "members.$.war_pref": war_pref, "members.$.trophies" : player.trophies, f"members.$.{field}": field_value}})
         else:
             await self.bot.rosters.update_one(

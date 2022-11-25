@@ -498,7 +498,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         _roster = Roster(bot=self.bot)
         await ctx.response.defer()
         await _roster.find_roster(guild=ctx.guild, alias=roster)
-        column_choices = ["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "War Opt Status", "Trophies"]
+        column_choices = ["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "Clan Tag", "War Opt Status", "Trophies"]
         select_options = []
         for category in column_choices:
             select_options.append(disnake.SelectOption(label=category, value=category))
@@ -534,7 +534,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster.sub_command(name="columns", description="Choose the columns of your roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_columns(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
-        column_choices = ["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "War Opt Status", "Trophies"]
+        column_choices = ["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "Clan Tag", "War Opt Status", "Trophies"]
         _roster = Roster(bot=self.bot)
         await ctx.response.defer()
         await _roster.find_roster(guild=ctx.guild, alias=roster)
