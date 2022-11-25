@@ -39,7 +39,7 @@ class Roster():
             self.roster_result = roster_result
 
     async def find_roster(self, guild: disnake.Guild, alias: str):
-        roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": guild.id}, {"alias": alias}]})
+        roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": 635203607213375519}, {"alias": alias}]})
         if roster_result is None:
             raise RosterDoesNotExist
         self.roster_result = roster_result
@@ -98,7 +98,7 @@ class Roster():
 
         convert_column = {"Name": "NAME", "Player Tag": "TAG", "Heroes": "HEROES", "Townhall Level": "TH",
                           "Discord": "DISCORD", "30 Day Hitrate": "HITRATE",
-                          "Current Clan": "CLAN", "War Opt Status": "WAROPT", "Trophies": "TROPHIES"}
+                          "Current Clan": "CLAN", "War Opt Status": "WAROPT", "Trophies": "TROPHIES",  "Clan Tag" : "CLAN TAG"}
         legend = " | ".join(convert_column[column] for column in columns)
         roster_text = self.sort_(roster_text)
         r_text = ""

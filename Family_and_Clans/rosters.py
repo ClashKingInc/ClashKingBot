@@ -688,7 +688,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster_role.autocomplete("roster")
     @roster_role_refresh.autocomplete("roster")
     async def autocomp_rosters(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        aliases = await self.bot.rosters.distinct("alias", filter={"server_id": ctx.guild.id})
+        aliases = await self.bot.rosters.distinct("alias", filter={"server_id": 635203607213375519})
         alias_list = []
         for alias in aliases:
             if query.lower() in alias.lower():
