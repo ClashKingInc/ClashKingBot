@@ -352,7 +352,7 @@ class Roster():
         roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]})
         self.roster_result = roster_result
 
-    async def move_member(self, player: coc.Player, new_roster, group):
+    async def move_member(self, player: coc.Player, new_roster, group = "No Group"):
         roster_members = self.roster_result.get("members")
         roster_member_tags = [member.get("tag") for member in roster_members]
         if player.tag not in roster_member_tags:
