@@ -237,32 +237,39 @@ class Roster():
         roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]})
         self.roster_result = roster_result
 
-    async def missing_embed(self):
-        missing = await self.missing_list()
+    async def missing_embed(self, reverse: bool):
+        missing = await self.missing_list(reverse=reverse)
         if not missing:
-            embed = disnake.Embed(description=f"**Roster is not missing in any players in {self.roster_result.get('clan_name')}**", color=disnake.Color.red())
+            if not reverse:
+                embed = disnake.Embed(description=f"**Roster is not missing in any players in {self.roster_result.get('clan_name')}**", color=disnake.Color.red())
+            else:
+                embed = disnake.Embed(
+                    description=f"**Roster has no out of place players in {self.roster_result.get('clan_name')}**",
+                    color=disnake.Color.red())
             return embed
         longest_tag = 0
         for member in missing:
-            tag = member.get('tag')
+            tag = member["tag"]
             if len(tag) > longest_tag:
                 longest_tag = len(tag)
 
         missing_text = ""
         for member in missing:
-            name = member.get('name')
+            name = member["name"]
             for char in ["`", "*", "_", "~", "ッ"]:
                 name = name.replace(char, "", 10)
             name = emoji.replace_emoji(name, "")
             name = name[:12]
             name = name.ljust(12)
-            tag = str(member.get('tag')).ljust(longest_tag)
-            missing_text += f"{self.bot.fetch_emoji(name=member.get('townhall'))}`{name} {tag}  {member.get('hero_lvs')}`\n"
+            tag = str(member["tag"]).ljust(longest_tag)
+            missing_text += f"{self.bot.fetch_emoji(name=member['townhall'])}`{name} {tag}`\n"
 
         tag = "TAG".ljust(longest_tag)
-        missing_text = f"`TH NAME         {tag} HERO`\n{missing_text}"
-
-        embed = disnake.Embed(title=f"**{self.roster_result.get('alias')} Roster Missing Members**", description=missing_text)
+        missing_text = f"`TH NAME         {tag}`\n{missing_text}"
+        miss_text = "Missing"
+        if reverse:
+            miss_text = "Out of Place"
+        embed = disnake.Embed(title=f"**{self.roster_result.get('alias')} Roster {miss_text} Members**", description=missing_text)
         embed.set_footer(text=f"Linked to {self.roster_result.get('clan_name')}", icon_url=self.roster_result.get("clan_badge"))
         return embed
 
@@ -579,13 +586,24 @@ class Roster():
         return ["No Group", "Sub"] + groups
 
 
-    async def missing_list(self):
+    async def missing_list(self, reverse: bool):
         roster_members = self.roster_result.get("members")
         roster_member_tags = [member.get("tag") for member in roster_members]
         clan = await self.bot.getClan(self.roster_result.get("clan_tag"))
         clan_members = [member.tag for member in clan.members]
-        missing_tags = list(set(roster_member_tags).difference(clan_members))
-        return [member for member in roster_members if member.get("tag") in missing_tags]
+
+        missing_tags = []
+        if not reverse:
+            missing_tags = list(set(roster_member_tags).difference(clan_members))
+            return [member for member in roster_members if member.get("tag") in missing_tags]
+        else:
+            for tag in clan_members:
+                if tag not in roster_member_tags:
+                    missing_tags.append(tag)
+            hold_player = []
+            async for player in self.bot.coc_client.get_players(missing_tags):
+                hold_player.append(player)
+            return [{"name": player.name, "tag": player.tag,"townhall": player.town_hall} for player in hold_player]
 
 
 

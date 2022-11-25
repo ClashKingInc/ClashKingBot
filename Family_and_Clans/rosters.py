@@ -381,18 +381,23 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="missing", description="Players that aren't in the clan tied to the roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_missing(self, ctx: disnake.ApplicationCommandInteraction, roster: str, message:str =""):
+    async def roster_missing(self, ctx: disnake.ApplicationCommandInteraction, roster: str, message:str ="", reverse = commands.Param(description="Instead ping those in clan who shouldn't be, i.e. not on roster.", default="False", choices= ["True"])):
         _roster = Roster(bot=self.bot)
+        await ctx.response.defer()
         await _roster.find_roster(guild=ctx.guild, alias=roster)
-        embed = await _roster.missing_embed()
+        reverse = (reverse == "True")
+        embed = await _roster.missing_embed(reverse=reverse)
+        miss_text = "Missing"
+        if reverse:
+            miss_text = "Out of Place"
         ping_buttons = [
-            disnake.ui.Button(label="Ping Missing", emoji=self.bot.emoji.pin.partial_emoji, style=disnake.ButtonStyle.green,
+            disnake.ui.Button(label=f"Ping {miss_text}", emoji=self.bot.emoji.pin.partial_emoji, style=disnake.ButtonStyle.green,
                               custom_id=f"ping")
         ]
         buttons = disnake.ui.ActionRow()
         for button in ping_buttons:
             buttons.append_item(button)
-        await ctx.send(embed=embed, components=[buttons])
+        await ctx.edit_original_message(embed=embed, components=[buttons])
         msg = await ctx.original_message()         
         if message != "":
             await _roster.set_missing_text(text=message)
@@ -405,7 +410,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             return await msg.edit(components=[])
 
         await res.response.defer()
-        missing = await _roster.missing_list()
+        missing = await _roster.missing_list(reverse=reverse)
         tags = [member.get("tag") for member in missing]
         names = {}
         for member in missing:
@@ -421,7 +426,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                 missing_text += f"{name} | {member.mention}\n"
         await msg.edit(components=[])
         await res.send(content=f"{_roster.missing_text}{missing_text}")
-
 
     @roster.sub_command(name="restrict", description="Set restrictions for a roster - th level & max roster size")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -463,7 +467,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
         await ctx.send(embed=embed)
 
-
     @roster.sub_command(name="rename", description="Rename a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_rename(self, ctx: disnake.ApplicationCommandInteraction, roster: str, new_name: str):
@@ -475,7 +478,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             color=disnake.Color.green())
         embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
         await ctx.send(embed=embed)
-
 
     @roster.sub_command(name="change-link", description="Change linked clan for roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -653,7 +655,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         embed = disnake.Embed(description=f"**Roles updated for {roster} Roster**",
                               colour=disnake.Color.green())
         return await ctx.edit_original_message(embed=embed)
-
 
     @roster_create.autocomplete("clan")
     @roster_change_link.autocomplete("clan")
