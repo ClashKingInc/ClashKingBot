@@ -39,7 +39,7 @@ class Roster():
             self.roster_result = roster_result
 
     async def find_roster(self, guild: disnake.Guild, alias: str):
-        roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": guild.id}, {"alias": alias}]})
+        roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": 635203607213375519}, {"alias": alias}]})
         if roster_result is None:
             raise RosterDoesNotExist
         self.roster_result = roster_result
@@ -153,7 +153,7 @@ class Roster():
         elif field == "Townhall Level":
             return self.bot.fetch_emoji(name=player_dict.get('townhall'))
         elif field == "Current Clan":
-            name = player_dict.get("current_clan")
+            name = str(player_dict.get("current_clan"))
             for char in ["`", "*", "_", "~", "ッ"]:
                 name = name.replace(char, "", 10)
             name = emoji.replace_emoji(name, "")
@@ -176,10 +176,10 @@ class Roster():
         elif field == "Trophies":
             return player_dict.get("trophies")
         elif field == "Clan Tag":
-            return player_dict.get("current_clan_tag")
+            return str(player_dict.get("current_clan_tag"))
 
     def sort_(self, text_list):
-        master_col = ["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan",
+        master_col = ["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "Clan Tag",
          "War Opt Status", "Trophies"]
         spots = []
         for column in self.sort:
