@@ -157,8 +157,8 @@ class Roster():
             for char in ["`", "*", "_", "~", "ッ"]:
                 name = name.replace(char, "", 10)
             name = emoji.replace_emoji(name, "")
-            name = name[:14]
-            name = name.ljust(15)
+            name = name[:15]
+            name = name.ljust(16)
             return name
         elif field == "Discord":
             return str(player_dict.get("discord"))[:14].ljust(15)
@@ -406,12 +406,15 @@ class Roster():
             {"$set": {"clan_badge": new_clan.badge.url}})
 
     async def set_image(self, url: str):
-        req = Request(url=url, headers={'User-Agent': 'Mozilla/5.0'})
-        f = io.BytesIO(urlopen(req).read())
-        file = disnake.File(fp=f, filename="pic.png")
-        pic_channel = await self.bot.fetch_channel(884951195406458900)
-        msg = await pic_channel.send(file=file)
-        pic = msg.attachments[0].url
+        try:
+            req = Request(url=url, headers={'User-Agent': 'Mozilla/5.0'})
+            f = io.BytesIO(urlopen(req).read())
+            file = disnake.File(fp=f, filename="pic.png")
+            pic_channel = await self.bot.fetch_channel(884951195406458900)
+            msg = await pic_channel.send(file=file)
+            pic = msg.attachments[0].url
+        except:
+            pic = "https://cdn.discordapp.com/attachments/1028905437300531271/1028905577662922772/unknown.png"
         await self.bot.rosters.update_one(
             {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
             {"$set": {"image": pic}})
