@@ -577,10 +577,18 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="image", description="Add an image to your roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_image(self, ctx: disnake.ApplicationCommandInteraction, roster: str, image: disnake.Attachment):
+    async def roster_image(self, ctx: disnake.ApplicationCommandInteraction, roster: str, image: disnake.Attachment = None, remove = commands.Param(default = "False", choices=["True"])):
         _roster = Roster(bot=self.bot)
         await ctx.response.defer()
+        if image is None and remove == "False":
+            embed = disnake.Embed(description=f"Please use one the parameters - image or remove.", colour=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
+        if remove == "True":
+            await _roster.set_image(url="https://cdn.discordapp.com/attachments/1028905437300531271/1028905577662922772/unknown.png")
+            embed = disnake.Embed(description=f"{roster} Roster image removed",
+                                  colour=disnake.Color.green())
+            return await ctx.edit_original_message(embed=embed)
         await _roster.set_image(url=image.url)
         embed = disnake.Embed(description=f"{roster} roster image set to the below.", colour=disnake.Color.green())
         embed.set_image(image.url)
