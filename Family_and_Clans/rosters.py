@@ -324,17 +324,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                     await res.send(embed=embed, ephemeral=True)
 
 
-
-
-        _new_roster = Roster(bot=self.bot)
-        await _new_roster.find_roster(guild=ctx.guild, alias=new_roster)
-        await _roster.move_member(player=player, new_roster=_new_roster)
-        embed = disnake.Embed(
-            description=f"{player.name} moved from **{_roster.roster_result.get('alias')}** to **{_new_roster.roster_result.get('alias')}** roster",
-            color=disnake.Color.green())
-        embed.set_thumbnail(url=_new_roster.roster_result.get("clan_badge"))
-
-
     @roster.sub_command(name="player-groups", description="Create/Remove a group players can be placed in")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_create_player_group(self, ctx: disnake.ApplicationCommandInteraction, group_name: str, option = commands.Param(choices=["Add", "Remove"])):
