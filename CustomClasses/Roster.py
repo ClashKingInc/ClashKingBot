@@ -39,7 +39,7 @@ class Roster():
             self.roster_result = roster_result
 
     async def find_roster(self, guild: disnake.Guild, alias: str):
-        roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": 635203607213375519}, {"alias": alias}]})
+        roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": guild.id}, {"alias": alias}]})
         if roster_result is None:
             raise RosterDoesNotExist
         self.roster_result = roster_result
