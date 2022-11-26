@@ -12,6 +12,9 @@ from CustomClasses.CustomBot import CustomClient
 from pymongo import UpdateOne
 from PIL import Image, ImageDraw, ImageFont
 import io
+from detecto import core, utils, visualize
+
+import torch
 
 class OwnerCommands(commands.Cog):
 
@@ -169,7 +172,7 @@ class OwnerCommands(commands.Cog):
         await guild.leave()  # Guild found
         await ctx.send(f"I left: {guild.name}!")
 
-    @commands.slash_command(name="clear_emojis")
+    @commands.slash_command(name="clear_emojis", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def clear_emojis(self, ctx):
         await ctx.response.defer()
@@ -195,7 +198,7 @@ class OwnerCommands(commands.Cog):
                 print(f"{guild.name} - {len(guild.emojis)} left")
 
 
-    @commands.slash_command(name="test_cc")
+    @commands.slash_command(name="test_cc", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def clan_capital_reminder(self, ctx):
         reminder_time = "1 hr"
@@ -258,7 +261,7 @@ class OwnerCommands(commands.Cog):
                             f"{custom_text}"
             await channel.send(content=reminder_text)
 
-    @commands.slash_command(name="create_icons")
+    @commands.slash_command(name="create_icons", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def create_icons(self, ctx):
         await ctx.response.defer()
