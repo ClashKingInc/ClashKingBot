@@ -436,7 +436,8 @@ class CustomClient(commands.Bot):
         if no_fetch:
             return ping
         try:
-            member = await ctx.guild.fetch_member(ping)
+            guild: disnake.Guild = ctx.guild
+            member = await guild.get_or_fetch_member(int(ping))
             return member
         except:
             return None

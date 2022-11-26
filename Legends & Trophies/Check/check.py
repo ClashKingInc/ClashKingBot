@@ -16,7 +16,7 @@ class Check(commands.Cog):
     async def check(self, ctx):
         pass
 
-    @check.sub_command(name="search", description="Search by player tag or name to find a player")
+    @check.sub_command(name="search", description="Search a player's Legend Day by name or tag")
     async def check_search(self, ctx: disnake.ApplicationCommandInteraction, smart_search):
         """
             Parameters
@@ -39,7 +39,7 @@ class Check(commands.Cog):
         return results
 
     @check.sub_command(name="user",
-                       description="Check a discord user's linked accounts (empty for your own)")
+                       description="Check a discord user's Legend Day")
     async def check_user(self, ctx: disnake.ApplicationCommandInteraction, discord_user: disnake.Member = None):
         """
             Parameters
@@ -80,7 +80,7 @@ class Check(commands.Cog):
         pagination = self.bot.get_cog("Legends")
         await pagination.button_pagination(msg, results, ez_look, ctx)
 
-    @check.sub_command(name="clan", description="Search by name or tag to find a clan.")
+    @check.sub_command(name="clan", description="Check a clan's legend day results")
     async def check_clan(self, ctx: disnake.ApplicationCommandInteraction, smart_search: str):
         """
             Parameters

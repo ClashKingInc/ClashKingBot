@@ -27,9 +27,9 @@ import disnake
 def create_weekends():
     return ["Last Week", "Two Weeks Ago", "Last 4 Weeks (all)", "Last 8 Weeks (all)"]
 
-def create_weekend_list(option):
+def create_weekend_list(option, weeks=4):
     weekends = []
-    for x in range(4):
+    for x in range(weeks):
         now = datetime.utcnow().replace(tzinfo=utc)
         now = now - timedelta(x * 7)
         current_dayofweek = now.weekday()
@@ -49,8 +49,7 @@ def create_weekend_list(option):
     elif option == "Last Week":
         return [weekends[1]]
     else:
-        return weekends[0:4]
-
+        return weekends[0:weeks]
 
 
 def weekend_timestamps():

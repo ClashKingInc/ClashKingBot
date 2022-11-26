@@ -102,8 +102,6 @@ def troops(player):
     return troopList
 
 
-
-
 def deTroops(player):
     troops = player.troop_cls
     troops = player.troops
@@ -189,20 +187,19 @@ def heroPets(player):
 
 
 def profileSuperTroops(player):
-    troops = player.troop_cls
     troops = player.troops
-
     boostedTroops = ""
-    emoji = ""
 
     for x in range(len(troops)):
         troop = troops[x]
-        if (troop.is_active):
-            # print (troop.name)
+        if troop.is_active:
             emoji = emojiDictionary(troop.name)
+            boostedTroops += f"{emoji} {troop.name}" + "\n"
 
-            boostedTroops += emoji + " " + troop.name + "\n"
-
+    if (len(boostedTroops) > 0):
+        boostedTroops = f"\n**Super Troops:**\n{boostedTroops}"
+    else:
+        boostedTroops = ""
     return boostedTroops
 
 
@@ -259,6 +256,56 @@ def leagueAndTrophies(player):
         emoji = "<:Unranked:601618883853680653>"
 
     return emoji + str(player.trophies)
+
+def league_emoji(player):
+    league = str(player.league)
+
+    if league == "Bronze League I":
+        return "<:BronzeLeagueI:601611950228635648>"
+    elif league == "Bronze League II":
+        return "<:BronzeLeagueII:601611942850986014>"
+    elif league == "Bronze League III":
+        return "<:BronzeLeagueIII:601611929311510528>"
+    elif league == "Champion League I":
+        return "<:ChampionLeagueI:601612124447440912>"
+    elif league == "Champion League II":
+        return "<:ChampionLeagueII:601612113345249290>"
+    elif league == "Champion League III":
+        return "<:ChampionLeagueIII:601612099226959892>"
+    elif league == "Crystal League I":
+        return "<:CrystalLeagueI:601612045359775746>"
+    elif league == "Crystal League II":
+        return "<:CrystalLeagueII:601612033976434698>"
+    elif league == "Crystal League III":
+        return "<:CrystalLeagueIII:601612021472952330>"
+    elif league == "Gold League I":
+        return "<:GoldLeagueI:601612010492526592>"
+    elif league == "Gold League II":
+        return "<:GoldLeagueII:601611996290613249>"
+    elif league == "Gold League III":
+        return "<:GoldLeagueIII:601611988992262144>"
+    elif league == "Legend League":
+        return "<:LegendLeague:601612163169255436>"
+    elif league == "Master League I":
+        return "<:MasterLeagueI:601612085327036436>"
+    elif league == "Master League II":
+        return "<:MasterLeagueII:601612075474616399>"
+    elif league == "Master League III":
+        return "<:MasterLeagueIII:601612064913621002>"
+    elif league == "Silver League I":
+        return "<:SilverLeagueI:601611974849331222>"
+    elif league == "Silver League II":
+        return "<:SilverLeagueII:601611965550428160>"
+    elif league == "Silver League III":
+        return "<:SilverLeagueIII:601611958067920906>"
+    elif league == "Titan League I":
+        return "<:TitanLeagueI:601612159327141888>"
+    elif league == "Titan League II":
+        return "<:TitanLeagueII:601612148325744640>"
+    elif league == "Titan League III":
+        return "<:TitanLeagueIII:601612137491726374>"
+    else:
+        return "<:Unranked:601618883853680653>"
 
 
 def cwl_league_emojis(league):

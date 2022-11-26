@@ -4,106 +4,82 @@ import aiohttp
 
 from Assets.emojiDictionary import emojiDictionary
 from Assets.thPicDictionary import thDictionary
-from utils.troop_methods import profileSuperTroops, leagueAndTrophies
+from utils.troop_methods import profileSuperTroops, league_emoji
 from utils.troop_methods import heros, heroPets, troops, deTroops, siegeMachines, spells
 from bs4 import BeautifulSoup
 from CustomClasses.CustomBot import CustomClient
+from CustomClasses.CustomPlayer import MyCustomPlayer
 from numerize import numerize
 
-async def create_profile_stats(bot: CustomClient, ctx, result):
+async def create_profile_stats(bot: CustomClient, ctx, player: MyCustomPlayer):
 
-    embed=[]
-    player = result
-    disnakeID = await bot.link_client.get_link(player.tag)
-    #member = await bot.pingToMember(ctx, str(disnakeID))
-    try:
-        member = await bot.fetch_user(disnakeID)
-        print(member.name)
-    except:
-        member = None
+    discord_id = await bot.link_client.get_link(player.tag)
+    member = await bot.pingToMember(ctx, str(discord_id))
+    super_troop_text = profileSuperTroops(player)
 
-    name = player.name
-    link = player.share_link
-    donos = player.donations
-    received = player.received
-    ratio = str(round((donos / (received + 1)), 2))
-    bestTrophies = emojiDictionary("trophy") + str(player.best_trophies)
-    friendInNeed = player.get_achievement("Friend in Need").value
-    friendInNeed = "{:,}".format(friendInNeed)
+    clan = f"{player.clan.name}, " if player.clan is not None else "None"
+    role = player.role if player.role is not None else ""
 
-    clan = ""
-    try:
-        clan = player.clan.name
-        clan = f"{clan},"
-    except:
-        clan = "None"
-
-    stroops = profileSuperTroops(player)
-    # print(stroops)
-    if (len(stroops) > 0):
-        stroops = "\n**Super Troops:**\n" + stroops + "\n"
-    else:
-        stroops = ""
-
-    troph = leagueAndTrophies(player)
-
-    th = str(player.town_hall)
-    role = str(player.role)
-    if role == "None":
-        role = ""
-    emoji = emojiDictionary(player.town_hall)
-
-    results = await bot.server_db.find_one({"server": ctx.guild.id})
-    prefix = results.get("prefix")
-
-    tag = player.tag
-    tag = tag.strip("#")
     if member is not None:
-        embed = disnake.Embed(title=f'{emoji} **{name}** ',
-                              description="Linked to " + member.mention +
-                              f"\nTh Level: {player.town_hall}\nTrophies: {troph}\n" +
-                                "Tag: " + f'[{player.tag}]({link})' "\n"
-                                f"Clan: {clan} {role}\n"
-                                f"[Clash Of Stats Profile](https://www.clashofstats.com/players/{tag})",
-                              color=disnake.Color.green())
-        if member.avatar is None:
-            embed.set_thumbnail(
-                url="https://cdn.discordapp.com/attachments/843624785560993833/961411093622816819/4_1.png")
-        else:
-            embed.set_thumbnail(url=member.avatar.url)
-    elif (member is None) and (disnakeID is not None):
-        embed = disnake.Embed(title=f'{emoji} **{name}** ',
-                              description=f"*Linked, but not on this server.*"+
-                                          f"\nTh Level: {player.town_hall}\nTrophies: {troph}\n" +
-                                          "Tag: " + f'[{player.tag}]({link})' "\n"
-                                                    f"Clan: {clan} {role}\n"
-                                                    f"[Clash Of Stats Profile](https://www.clashofstats.com/players/{tag})"
-                              , color=disnake.Color.green())
-        if player.town_hall >= 4:
-            embed.set_thumbnail(url=thDictionary(player.town_hall))
+        link_text = f"Linked to {member.mention}"
+    elif member is None and discord_id is not None:
+        link_text = "*Linked, but not on this server.*"
     else:
-        embed = disnake.Embed(title=f'{emoji} **{name}** ',
-                              description=f"Not linked. Owner? Use `{prefix}link`" +
-                                          f"\nTh Level: {player.town_hall}\nTrophies: {troph}\n" +
-                                          "Tag: " + f'[{player.tag}]({link})' "\n"
-                                                    f"Clan: {clan} {role}\n"
-                                                    f"[Clash Of Stats Profile](https://www.clashofstats.com/players/{tag})"
-                              , color=disnake.Color.green())
-        if player.town_hall >= 4:
-            embed.set_thumbnail(url=thDictionary(player.town_hall))
+        link_text = "Not linked. Owner? Use </link:1033741922180796451>"
 
+    last_online = f"<t:{player.last_online}:R>, {len(player.season_last_online())} times"
+    if player.last_online is None:
+        last_online = "`Not Seen Yet`"
 
-    embed.add_field(name="**Info:**",
-                    value=f"<:warwon:932212939899949176>Donated: {donos} troops\n"
-                          f"<:warlost:932212154164183081>Received: {received} troops\n"
-                          f"<:winrate:932212939908337705>Donation Ratio: {ratio}\n"
-                          f"<:sword:825589136026501160>Attack Wins: {player.attack_wins}\n"
-                          f"<:clash:877681427129458739>Defense Wins: {player.defense_wins}\n"
-                          f"{stroops}"
-                          f"**Stats:**\n"
-                          f"Best Trophies: {bestTrophies}\n"
-                          f"War Stars: ⭐ {player.war_stars}\n"
-                          f"All Time Donos: {friendInNeed}", inline=False)
+    loot_text = ""
+    if player.gold_looted != 0:
+        loot_text += f"- {bot.emoji.gold}Gold Looted: {'{:,}'.format(player.gold_looted)}\n"
+    if player.elixir_looted != 0:
+        loot_text += f"- {bot.emoji.elixir}Elixir Looted: {'{:,}'.format(player.elixir_looted)}\n"
+    if player.dark_elixir_looted != 0:
+        loot_text += f"- {bot.emoji.dark_elixir}DE Looted: {'{:,}'.format(player.dark_elixir_looted)}\n"
+
+    capital_stats = player.clan_capital_stats(start_week=0, end_week=4)
+    hitrate = (await player.hit_rate())[0]
+    profile_text = f"{link_text}\n" \
+        f"Tag: [{player.tag}]({player.share_link})\n" \
+        f"Clan: {clan} {role}\n" \
+        f"Last Seen: {last_online}\n" \
+        f"[Clash Of Stats Profile](https://www.clashofstats.com/players/{player.tag.strip('#')})\n\n" \
+        f"**Season Stats:**\n" \
+        f"__Attacks__\n" \
+        f"- {league_emoji(player)}Trophies: {player.trophies}\n" \
+        f"- {bot.emoji.thick_sword}Attack Wins: {player.attack_wins}\n" \
+        f"- {bot.emoji.brown_shield}Defense Wins: {player.defense_wins}\n" \
+        f"{loot_text}" \
+        f"__War__\n" \
+        f"- {bot.emoji.hitrate}Hitrate: `{round(hitrate.average_triples * 100, 1)}%`\n" \
+        f"- {bot.emoji.avg_stars}Avg Stars: `{round(hitrate.average_stars, 2)}`\n" \
+        f"- {bot.emoji.war_stars}Total Stars: `{hitrate.total_stars}, {hitrate.num_attacks} atks`\n" \
+        f"__Donations__\n" \
+        f"- <:warwon:932212939899949176>Donated: {player.donos.donated}\n" \
+        f"- <:warlost:932212154164183081>Received: {player.donos.received}\n" \
+        f"- <:winrate:932212939908337705>Donation Ratio: {player.donation_ratio}\n" \
+        f"__Event Stats__\n" \
+        f"- {bot.emoji.capital_gold}CG Donated: {'{:,}'.format(sum([sum(cap.donated) for cap in capital_stats]))}\n" \
+        f"- {bot.emoji.thick_sword}CG Raided: {'{:,}'.format(sum([sum(cap.raided) for cap in capital_stats]))}\n" \
+        f"- {bot.emoji.clan_games}Clan Games: {'{:,}'.format(player.clan_games)}\n" \
+        f"{super_troop_text}" \
+        f"\n**All Time Stats:**\n" \
+        f"Best Trophies: {bot.emoji.trophy}{player.best_trophies} | {bot.emoji.versus_trophy}{player.best_versus_trophies}\n" \
+        f"War Stars: {bot.emoji.war_star}{player.war_stars}\n" \
+        f"CWL Stars: {bot.emoji.war_star} {player.get_achievement('War League Legend').value}\n" \
+        f"{bot.emoji.troop}Donations: {'{:,}'.format(player.get_achievement('Friend in Need').value)}\n" \
+        f"{bot.emoji.clan_games}Clan Games: {'{:,}'.format(player.get_achievement('Games Champion').value)}\n" \
+        f"{bot.emoji.thick_sword}CG Raided: {'{:,}'.format(player.get_achievement('Aggressive Capitalism').value)}\n" \
+        f"{bot.emoji.capital_gold}CG Donated: {'{:,}'.format(player.get_achievement('Most Valuable Clanmate').value)}"
+
+    embed = disnake.Embed(title=f"{player.town_hall_cls.emoji} **{player.name}**",
+                          description=profile_text,
+                          color=disnake.Color.green())
+    embed.set_thumbnail(url=player.town_hall_cls.image_url)
+    if member is not None:
+        embed.set_footer(text=str(member), icon_url=member.display_avatar)
 
     ban = await bot.banlist.find_one({"$and": [
         {"VillageTag": f"{player.tag}"},

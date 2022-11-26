@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from pymongo import MongoClient
 from CustomClasses.emoji_class import EmojiType
 from collections import defaultdict
+from utils.clash import create_weekend_list
 
 sync_client = MongoClient("mongodb://localhost:27017")
 new_looper = sync_client.new_looper
@@ -102,6 +103,48 @@ class MyCustomPlayer(coc.Player):
         return LegendStats(season_stats)
 
     @property
+    def gold_looted(self, season=None):
+        if season is None:
+            season = self.bot.gen_season_date()
+        if self.results is None:
+            return 0
+        looted = self.results.get("gold_looted")
+        if looted is None:
+            return 0
+        season_looted = looted.get(f"{season}")
+        if season_looted is None:
+            return 0
+        return sum(season_looted)
+
+    @property
+    def elixir_looted(self, season=None):
+        if season is None:
+            season = self.bot.gen_season_date()
+        if self.results is None:
+            return 0
+        looted = self.results.get("elixir_looted")
+        if looted is None:
+            return 0
+        season_looted = looted.get(f"{season}")
+        if season_looted is None:
+            return 0
+        return sum(season_looted)
+
+    @property
+    def dark_elixir_looted(self, season=None):
+        if season is None:
+            season = self.bot.gen_season_date()
+        if self.results is None:
+            return 0
+        looted = self.results.get("dark_elixir_looted")
+        if looted is None:
+            return 0
+        season_looted = looted.get(f"{season}")
+        if season_looted is None:
+            return 0
+        return sum(season_looted)
+
+    @property
     def donation_ratio(self):
         donations = self.donos.donated
         received = self.donos.received
@@ -113,19 +156,38 @@ class MyCustomPlayer(coc.Player):
             round(donations / received, 1)
         return round(donations / received, 2)
 
-
-    def clan_capital_stats(self, week=None):
-        if week is None:
+    def clan_capital_stats(self, week = None, start_week = 0, end_week = 0):
+        if week is None and start_week== 0 and end_week == 0:
             week = self.bot.gen_raid_date()
-        if self.results is None:
-            return ClanCapitalWeek(None)
-        clan_capital_result = self.results.get("capital_gold")
-        if clan_capital_result is None:
-            return ClanCapitalWeek(None)
-        week_result = clan_capital_result.get(week)
-        if week_result is None:
-            return ClanCapitalWeek(None)
-        return ClanCapitalWeek(week_result)
+
+        if week is not None:
+            if self.results is None:
+                return ClanCapitalWeek(None)
+            clan_capital_result = self.results.get("capital_gold")
+            if clan_capital_result is None:
+                return ClanCapitalWeek(None)
+            week_result = clan_capital_result.get(week)
+            if week_result is None:
+                return ClanCapitalWeek(None)
+            return ClanCapitalWeek(week_result)
+        else:
+            weeks = create_weekend_list("other", weeks=end_week)
+            weeks = weeks[start_week:end_week]
+            cc_results = []
+            for week in weeks:
+                if self.results is None:
+                    cc_results.append(ClanCapitalWeek(None))
+                    continue
+                clan_capital_result = self.results.get("capital_gold")
+                if clan_capital_result is None:
+                    cc_results.append(ClanCapitalWeek(None))
+                    continue
+                week_result = clan_capital_result.get(week)
+                if week_result is None:
+                    cc_results.append(ClanCapitalWeek(None))
+                    continue
+                cc_results.append(ClanCapitalWeek(week_result))
+            return cc_results
 
     @property
     def donos(self):
@@ -147,6 +209,9 @@ class MyCustomPlayer(coc.Player):
             received = self.received
         if given is None:
             given = self.donations
+
+        given = max(given, self.donations)
+        received = max(received, self.received)
         return Donations(donated=given, received=received)
 
     @property

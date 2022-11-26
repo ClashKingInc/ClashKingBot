@@ -48,7 +48,7 @@ class Emojis():
         self.troop = EmojiType("<:troop:861797310224400434>")
         self.reddit_icon = EmojiType("<:reddit:1015107963536539688>")
         self.xp = EmojiType("<:xp:991965062703095938>")
-        self.deny_mark = EmojiType("<:deny_mark:892770746034704384>")
+        self.deny_mark = EmojiType("<:not_clan:1045915201037422683>")
         self.raid_medal = EmojiType("<:raidmedal:1032108724552224798>")
         self.clan_games = EmojiType("<:cg:1033805598518677604>")
         self.time = EmojiType("<:time:1033909938281529386>")
@@ -59,6 +59,15 @@ class Emojis():
         self.ratio = EmojiType("<:winrate:932212939908337705>")
         self.switch = EmojiType("<:switch:1037530447665704980>")
         self.menu = EmojiType("<:menu:1037531977324167219>")
+        self.elixir = EmojiType("<:elixir:1043616874446999602>")
+        self.dark_elixir = EmojiType("<:delixir:1043616963815022612>")
+        self.gold = EmojiType("<:gold:1043616714874687578>")
+        self.brown_shield = EmojiType("<:shield:1045920451165159525>")
+        self.thick_sword = EmojiType("<:thick_sword:1045921321990754305>")
+        self.hitrate = EmojiType("<:hitrate:1046114606151630918>")
+        self.avg_stars = EmojiType("<:avg_stars:1046114668139270234>")
+        self.war_stars = EmojiType("<:war_stars:1046114735059378236>")
+        self.versus_trophy = EmojiType("<:versustrophy:1046117900907450399>")
 
 
 
