@@ -22,7 +22,7 @@ intents.guilds = True
 intents.emojis = True
 intents.guild_messages = True
 intents.messages = True
-bot = CustomClient(command_prefix="<@824653933347209227> ",help_command=None, intents=intents,
+bot = CustomClient(command_prefix="$$",help_command=None, intents=intents,
     sync_commands_debug=False, sync_permissions=True, reload=True)
 
 def check_commands():
