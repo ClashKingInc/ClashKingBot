@@ -20,8 +20,8 @@ intents = disnake.Intents().none()
 intents.members = True
 intents.guilds = True
 intents.emojis = True
-intents.guild_messages = True
 intents.messages = True
+intents.message_content = True
 bot = CustomClient(command_prefix="$$",help_command=None, intents=intents,
     sync_commands_debug=False, sync_permissions=True, reload=True)
 
