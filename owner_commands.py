@@ -172,32 +172,6 @@ class OwnerCommands(commands.Cog):
         await guild.leave()  # Guild found
         await ctx.send(f"I left: {guild.name}!")
 
-    @commands.slash_command(name="clear_emojis", guild_ids=[923764211845312533])
-    @commands.is_owner()
-    async def clear_emojis(self, ctx):
-        await ctx.response.defer()
-        BADGE_GUILDS = [1029631304817451078, 1029631182196977766, 1029631107240562689, 1029631144641183774,
-                        1029629452403097651,
-                        1029629694854828082, 1029629763087777862, 1029629811221610516, 1029629853017841754,
-                        1029629905903833139,
-                        1029629953907634286, 1029629992830783549, 1029630376911581255, 1029630455202455563,
-                        1029630702125318144,
-                        1029630796966932520, 1029630873588469760, 1029630918106824754, 1029630974025277470,
-                        1029631012084396102]
-
-        while len(BADGE_GUILDS):
-            for guild in BADGE_GUILDS:
-                guild = self.bot.get_guild(guild)
-                emojis = guild.emojis
-                if len(emojis) == 0:
-                    BADGE_GUILDS.remove(guild.id)
-                    print(f"{len(BADGE_GUILDS)} guilds left")
-                    continue
-                await guild.delete_emoji(emoji=emojis[-1])
-                await asyncio.sleep(3)
-                print(f"{guild.name} - {len(guild.emojis)} left")
-
-
     @commands.slash_command(name="test_cc", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def clan_capital_reminder(self, ctx):

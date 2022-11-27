@@ -547,41 +547,6 @@ class eval(commands.Cog, name="Eval"):
                     if not GLOBAL_IS_FAMILY:
                         GLOBAL_IS_FAMILY = is_family_member
 
-                    if not is_family_member:
-                        continue
-
-                    family_accounts.append([player.trophies, player])
-                    # fetch clan role using dict
-                    # if the user doesnt have it in their master list - add to roles they should have
-                    # set doesnt allow duplicates, so no check needed
-                    if "clan" in role_types_to_eval:
-                        clan_role = clan_role_dict[player.clan.tag]
-                        if abbreviations[player.clan.tag] is not None:
-                            abbreviations_to_have.append(abbreviations[player.clan.tag])
-                        ROLES_SHOULD_HAVE.add(clan_role)
-                        if clan_role not in MASTER_ROLES:
-                            ROLES_TO_ADD.add(clan_role)
-
-                    if "category" in role_types_to_eval:
-                        if bool(category_roles):
-                            try:
-                                category_role = category_roles[clan_to_category[player.clan.tag]]
-                                ROLES_SHOULD_HAVE.add(category_role)
-                                if category_role not in MASTER_ROLES:
-                                    ROLES_TO_ADD.add(category_role)
-                            except:
-                                pass
-
-                    # if server has leadership_eval turned on
-                    # check & add any leadership roles
-                    if leadership_eval or ("leadership" in role_types_to_eval):
-                        in_clan_role = str(player.role)
-                        if in_clan_role == "Co-Leader" or in_clan_role == "Leader":
-                            leadership_clan_role = clan_leadership_role_dict[player.clan.tag]
-                            ROLES_SHOULD_HAVE.add(leadership_clan_role)
-                            if leadership_clan_role not in MASTER_ROLES:
-                                ROLES_TO_ADD.add(leadership_clan_role)
-
                     # check if they have any townhall roles setup
                     # try/except because dict throws error if it doesnt exist
                     # if it exists add the relevant role to the role list to add
@@ -658,6 +623,42 @@ class eval(commands.Cog, name="Eval"):
                                         ROLES_TO_ADD.add(legend_role)
                                 except:
                                     pass
+
+
+                    if not is_family_member:
+                        continue
+
+                    family_accounts.append([player.trophies, player])
+                    # fetch clan role using dict
+                    # if the user doesnt have it in their master list - add to roles they should have
+                    # set doesnt allow duplicates, so no check needed
+                    if "clan" in role_types_to_eval:
+                        clan_role = clan_role_dict[player.clan.tag]
+                        if abbreviations[player.clan.tag] is not None:
+                            abbreviations_to_have.append(abbreviations[player.clan.tag])
+                        ROLES_SHOULD_HAVE.add(clan_role)
+                        if clan_role not in MASTER_ROLES:
+                            ROLES_TO_ADD.add(clan_role)
+
+                    if "category" in role_types_to_eval:
+                        if bool(category_roles):
+                            try:
+                                category_role = category_roles[clan_to_category[player.clan.tag]]
+                                ROLES_SHOULD_HAVE.add(category_role)
+                                if category_role not in MASTER_ROLES:
+                                    ROLES_TO_ADD.add(category_role)
+                            except:
+                                pass
+
+                    # if server has leadership_eval turned on
+                    # check & add any leadership roles
+                    if leadership_eval or ("leadership" in role_types_to_eval):
+                        in_clan_role = str(player.role)
+                        if in_clan_role == "Co-Leader" or in_clan_role == "Leader":
+                            leadership_clan_role = clan_leadership_role_dict[player.clan.tag]
+                            ROLES_SHOULD_HAVE.add(leadership_clan_role)
+                            if leadership_clan_role not in MASTER_ROLES:
+                                ROLES_TO_ADD.add(leadership_clan_role)
 
                 ###ALL INDIVIDUAL ROLE HAVE BEEN FOUND
                 ###"Global" roles - family/not family now
