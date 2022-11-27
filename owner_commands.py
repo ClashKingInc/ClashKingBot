@@ -12,9 +12,7 @@ from CustomClasses.CustomBot import CustomClient
 from pymongo import UpdateOne
 from PIL import Image, ImageDraw, ImageFont
 import io
-from detecto import core, utils, visualize
-
-import torch
+import chat_exporter
 
 class OwnerCommands(commands.Cog):
 
@@ -294,7 +292,13 @@ class OwnerCommands(commands.Cog):
 
 
 
-
+    @commands.slash_command(name="transcript",guild_ids=[923764211845312533] )
+    @commands.is_owner()
+    async def create_transcript(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        message = await chat_exporter.quick_export(ctx.channel)
+        await chat_exporter.quick_link(ctx.channel, message)
+        await ctx.edit_original_message(content="Here is your transcript!")
 
 
 def setup(bot: CustomClient):

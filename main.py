@@ -64,6 +64,7 @@ def check_commands():
 
     return commands.check(predicate)
 
+
 if IS_BETA:
     initial_extensions = (
         #"BackgroundCrons.autoboard_loop",
