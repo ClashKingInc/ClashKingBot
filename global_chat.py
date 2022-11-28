@@ -14,6 +14,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
 
     @commands.Cog.listener()
     async def on_message(self, message: disnake.Message):
+        mods = [633662639318237184, 706149153431879760]
         if message.author.bot:
             return
         if message.channel.id in self.bot.global_channels:
@@ -53,6 +54,8 @@ class GlobalChat(commands.Cog, name="Global Chat"):
 
                 files = [await attachment.to_file() for attachment in message.attachments]
                 web_name = f"{str(message.author)} | {message.guild.name}"
+                if message.author.id in mods:
+                    web_name += "⚙️"
                 await glob_webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar,
                                         content=message.content, files=files, allowed_mentions=disnake.AllowedMentions.none())
                 async with aiohttp.ClientSession() as session:
@@ -86,7 +89,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                                               f"3. Create Webhook, *important*, set it's name to `Global Chat`\n"
                                               f"If you don't do this, the bot will create it's own webhook & will function normally but won't show emojis.")
         else:
-            await self.bot.global_chat_db.update_one({"server" : ctx.guild.id}, {"channel" : channel.id})
+            await self.bot.global_chat_db.update_one({"server" : ctx.guild.id}, {"$set": {"channel" : channel.id}})
             embed = disnake.Embed(description=f"Global Chat set to {channel.mention}")
         self.bot.global_channels.append(channel.id)
         await ctx.edit_original_message(embed=embed)
