@@ -10,6 +10,7 @@ import spacy
 from profanity_filter import ProfanityFilter
 import asyncio
 
+staff_webhook = 0
 class GlobalChat(commands.Cog, name="Global Chat"):
 
     def __init__(self, bot: CustomClient):
@@ -92,33 +93,39 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                             glob_webhook = await glob_channel.create_webhook(name="Global Chat", reason="Global Chat")
                         except:
                             return
-                    self.bot.global_webhooks[channel] = glob_webhook.url
+                    self.bot.global_webhooks[channel] = glob_webhook.id
                     await send_web(glob_webhook)
                 else:
-                    glob_webhook_url = self.bot.global_webhooks[channel]
-                    async with aiohttp.ClientSession() as session:
-                        webhook = disnake.Webhook.from_url(url=glob_webhook_url, session=session)
+                    try:
+                        webhook = await self.bot.fetch_webhook(self.bot.global_webhooks[channel])
                         await send_web(webhook)
+                    except:
+                        self.bot.global_webhooks[channel] = ""
 
             tasks = []
             for channel in self.bot.global_channels:
                 if message.channel.id == channel:
                     continue
+                if channel is None:
+                    continue
                 task = asyncio.ensure_future(webhook_task(channel, message))
                 tasks.append(task)
             await asyncio.gather(*tasks)
 
-            try:
-                staff_channel: disnake.TextChannel = self.bot.get_channel(1046572580200525894)
-            except:
-                staff_channel: disnake.TextChannel = await self.bot.fetch_channel(1046572580200525894)
-            webhooks = await staff_channel.webhooks()
-            glob_webhook = None
-            for webhook in webhooks:
-                glob_webhook = webhook
-                break
-            if glob_webhook is None:
-                glob_webhook = await staff_channel.create_webhook(name="Staff Log", reason="Global Chat")
+            if staff_webhook == 0:
+                try:
+                    staff_channel: disnake.TextChannel = self.bot.get_channel(1046572580200525894)
+                except:
+                    staff_channel: disnake.TextChannel = await self.bot.fetch_channel(1046572580200525894)
+                webhooks = await staff_channel.webhooks()
+                glob_webhook = None
+                for webhook in webhooks:
+                    glob_webhook = webhook
+                    break
+                if glob_webhook is None:
+                    glob_webhook = await staff_channel.create_webhook(name="Staff Log", reason="Global Chat")
+            else:
+                glob_webhook = await self.bot.fetch_webhook(staff_webhook)
             files = [await attachment.to_file() for attachment in message.attachments]
             files += [await sticker.to_file() for sticker in message.stickers]
             files = files[:10]
