@@ -39,7 +39,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             try:
                 msg_id = message.reference.message_id
                 rep = await message.channel.fetch_message(msg_id)
-                message.content = f"> {rep.content} - {str(message.author)}\n{message.content}"
+                message.content = f"> {rep.content} - {str(rep.author)}\n{message.content}"
             except:
                 pass
             for channel in self.bot.global_channels:
