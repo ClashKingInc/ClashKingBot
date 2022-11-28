@@ -23,7 +23,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
 
             urls = extractor.find_urls(message.content)
             for url in urls:
-                if "discord.gg" not in url:
+                if "discord.gg" not in url and "tenor" not in url and "gif" not in url and "giphy" not in url:
                     message.content = message.content.replace(url, "")
             if message.content == "" and message.attachments == []:
                 return
