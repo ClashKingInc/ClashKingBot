@@ -60,26 +60,28 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 web_name = web_name.replace("discord", "")
                 web_name = web_name.replace("Discord", "")
                 web_name = web_name.replace("clyde", "")
-                if str(message.type) == "reply":
+                try:
                     msg_id = message.reference.message_id
                     rep = await message.channel.fetch_message(msg_id)
                     message.content = f"> {rep.content}\n{message.content}"
+                except:
+                    pass
                 if str(message.guild.explicit_content_filter) == "all_members":
                     await glob_webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar, content=message.content, files=files, allowed_mentions=disnake.AllowedMentions.none())
                 else:
                     if message.content != "":
                         await glob_webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar, content=message.content, allowed_mentions=disnake.AllowedMentions.none())
             try:
-                staff_channel = self.bot.get_channel(1046572580200525894)
+                staff_channel: disnake.TextChannel = self.bot.get_channel(1046572580200525894)
             except:
-                staff_channel = await self.bot.fetch_channel(1046572580200525894)
+                staff_channel: disnake.TextChannel = await self.bot.fetch_channel(1046572580200525894)
             webhooks = await staff_channel.webhooks()
             glob_webhook = None
             for webhook in webhooks:
                 glob_webhook = webhook
                 break
             if glob_webhook is None:
-                glob_webhook = await glob_channel.create_webhook(name="Staff Log", reason="Global Chat")
+                glob_webhook = await staff_channel.create_webhook(name="Staff Log", reason="Global Chat")
                 await glob_webhook.send(username="Staff Log", content=message.content + f"\nUser: `{str(message.author)}` | User_ID:`{message.author.id}`", files=files, allowed_mentions=disnake.AllowedMentions.none())
 
 
