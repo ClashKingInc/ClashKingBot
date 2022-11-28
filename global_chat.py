@@ -57,7 +57,12 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 web_name = web_name.replace("discord", "")
                 web_name = web_name.replace("Discord", "")
                 web_name = web_name.replace("clyde", "")
-                await glob_webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar, content=message.content, files=files, allowed_mentions=disnake.AllowedMentions.none())
+                if message.guild.explicit_content_filter.all_members:
+                    await glob_webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar, content=message.content, files=files, allowed_mentions=disnake.AllowedMentions.none())
+                else:
+                    if message.content != "":
+                        await glob_webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar, content=message.content, allowed_mentions=disnake.AllowedMentions.none())
+
 
             async with aiohttp.ClientSession() as session:
                 staff_log = disnake.Webhook.from_url(url="https://canary.discord.com/api/webhooks/1046607582225240064/0f2gobUN4W4k-kXQc7hHans3ysAFZrpjPhSwff3IUud4r_Q9gYJQkS1vkHzIJ9fyEUQK", session=session)
