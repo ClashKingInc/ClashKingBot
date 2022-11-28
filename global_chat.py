@@ -79,10 +79,12 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                         except (disnake.NotFound, disnake.Forbidden):
                             result = await self.bot.global_chat_db.find_one({"channel": channel})
                             await self.bot.global_chat_db.update_one({"server": result.get("server")}, {'$set': {"channel": None}})
+                            self.bot.global_channels.remove(channel)
                             return
                     if glob_channel is None:
                         result = await self.bot.global_chat_db.find_one({"channel": channel})
                         await self.bot.global_chat_db.update_one({"server": result.get("server")}, {'$set': {"channel": None}})
+                        self.bot.global_channels.remove(channel)
                         return
                     webhooks = await glob_channel.webhooks()
                     glob_webhook = None
