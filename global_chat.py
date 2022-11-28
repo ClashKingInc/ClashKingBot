@@ -52,7 +52,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
 
                     web_name = f"{str(message.author.name)} | {message.guild.name}"
                     if message.author.id in mods:
-                        web_name += "⚙️"
+                        web_name = "⚙️" + web_name
                     web_name = web_name.replace("discord", "")
                     web_name = web_name.replace("Discord", "")
                     web_name = web_name.replace("clyde", "")
