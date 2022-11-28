@@ -42,6 +42,9 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 message.content = f"> {rep.content} - {str(rep.author)}\n{message.content}"
             except:
                 pass
+            files = [await attachment.to_file() for attachment in message.attachments]
+            files += [await sticker.to_file() for sticker in message.stickers]
+            files = files[:10]
             for channel in self.bot.global_channels:
                 if message.channel.id == channel:
                     continue
@@ -64,7 +67,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 if glob_webhook is None:
                     glob_webhook = await glob_channel.create_webhook(name="Global Chat", reason="Global Chat")
 
-                files = [await attachment.to_file() for attachment in message.attachments]
+
                 web_name = f"{str(message.author)} | {message.guild.name}"
                 if message.author.id in mods:
                     web_name += "⚙️"
