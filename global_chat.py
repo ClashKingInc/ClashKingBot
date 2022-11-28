@@ -36,7 +36,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             message.content = profanity_filter.censor(message.content)
             if message.content == "" and message.attachments == [] and message.stickers == []:
                 return
-            mods = [633662639318237184, 706149153431879760]
+            mods = [633662639318237184, 706149153431879760, 161053630038802433]
             try:
                 msg_id = message.reference.message_id
                 rep = await message.channel.fetch_message(msg_id)
@@ -81,7 +81,9 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                             await self.bot.global_chat_db.update_one({"server": result.get("server")}, {'$set': {"channel": None}})
                             return
                     if glob_channel is None:
-                        print(channel)
+                        result = await self.bot.global_chat_db.find_one({"channel": channel})
+                        await self.bot.global_chat_db.update_one({"server": result.get("server")}, {'$set': {"channel": None}})
+                        return
                     webhooks = await glob_channel.webhooks()
                     glob_webhook = None
                     for webhook in webhooks:
