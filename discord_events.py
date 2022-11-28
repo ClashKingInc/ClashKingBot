@@ -42,6 +42,14 @@ class DiscordEvents(commands.Cog):
                 scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[tag, reminder_time], id=f"{reminder_time}_{tag}", name=f"{tag}")
         scheduler.print_jobs()
 
+        global_chats = await self.bot.clan_db.distinct("channel")
+        self.bot.global_chats = [chat for chat in global_chats if chat is not None]
+
+        global_banned = self.bot.global_reports.find({})
+        for banned in await global_banned.to_list(length=1000):
+            strikes = banned.get("strikes")
+            if strikes >= 3:
+                self.bot.banned_global.append(banned.get("user"))
 
         for g in self.bot.guilds:
             results = await self.bot.server_db.find_one({"server": g.id})

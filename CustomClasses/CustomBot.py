@@ -12,6 +12,7 @@ from CustomClasses.emoji_class import Emojis, EmojiType
 from pyyoutube import Api
 from urllib.request import urlopen
 from utils.clash import weekend_timestamps
+from collections import defaultdict
 import dateutil.relativedelta
 
 import coc
@@ -118,6 +119,8 @@ class CustomClient(commands.Bot):
         self.whitelist = self.db_client.usafam.whitelist
         self.rosters = self.db_client.usafam.rosters
         self.credentials = self.db_client.usafam.credentials
+        self.global_chat_db = self.db_client.usafam.global_chats
+        self.global_reports = self.db_client.usafam.reports
 
         self.coc_client = coc.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD"), client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 30,
                                     cache_max_size=50000, load_game_data=coc.LoadGameData(always=True))
@@ -133,6 +136,9 @@ class CustomClient(commands.Bot):
         self.FAQ_CHANNEL_ID = 1010727127806648371
 
         self.linode_client: LinodeClient = LinodeClient(os.getenv("LINODE"))
+        self.global_channels = [903019225046741092, 1046564397306368051]
+        self.last_message = defaultdict(int)
+        self.banned_global = []
 
     async def create_new_badge_emoji(self, url:str):
         new_url = url.replace(".png", "")

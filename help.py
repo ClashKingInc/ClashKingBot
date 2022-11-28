@@ -12,7 +12,7 @@ utility = ["Army", "Awards", "Super Troops", "Profile", "Rosters"]
 link = ["Eval", "Linking"]
 setups = ["Clan Setup", "Board Setup", "Eval Setup", "Statbar Setup", "Welcome Setup", "Reminders"]
 settings = ["Settings"]
-other = ["Other"]
+other = ["Other", "Global Chat"]
 
 pages = [clans, family, trophies, war, utility, link, setups, settings, other]
 page_names = ["Clan Commands", "Family Commands", "Legends & Trophies", "War & CWL", "Utility", "Link & Eval", "Setups", "Settings", "Other"]

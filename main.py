@@ -22,8 +22,7 @@ intents.guilds = True
 intents.emojis = True
 intents.messages = True
 intents.message_content = True
-bot = CustomClient(command_prefix="$$",help_command=None, intents=intents,
-    sync_commands_debug=False, sync_permissions=True, reload=True)
+bot = CustomClient(command_prefix="$$",help_command=None, intents=intents, reload=True)
 
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
@@ -108,8 +107,8 @@ if IS_BETA:
         "settings",
         "owner_commands",
         #"erikuh_comp",
-        "Family_and_Clans.rosters"
-
+        "Family_and_Clans.rosters",
+        "global_chat"
     )
 else:
     initial_extensions = (
@@ -154,7 +153,8 @@ else:
     "other",
     "settings",
     "owner_commands",
-    "erikuh_comp"
+    "erikuh_comp",
+    "global_chat"
     )
 
 
