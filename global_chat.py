@@ -33,7 +33,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             nlp.add_pipe(profanity_filter.spacy_component, last=True)
 
             message.content = profanity_filter.censor(message.content)
-            if message.content == "" and message.attachments == []:
+            if message.content == "" and message.attachments == [] and message.stickers == []:
                 return
             mods = [633662639318237184, 706149153431879760]
             try:
