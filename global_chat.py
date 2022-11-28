@@ -69,14 +69,20 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 else:
                     if message.content != "":
                         await glob_webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar, content=message.content, allowed_mentions=disnake.AllowedMentions.none())
+            try:
+                staff_channel = self.bot.get_channel(1046572580200525894)
+            except:
+                staff_channel = await self.bot.fetch_channel(1046572580200525894)
+            webhooks = await staff_channel.webhooks()
+            glob_webhook = None
+            for webhook in webhooks:
+                glob_webhook = webhook
+                break
+            if glob_webhook is None:
+                glob_webhook = await glob_channel.create_webhook(name="Staff Log", reason="Global Chat")
+                await glob_webhook.send(username="Staff Log", content=message.content + f"\nUser: `{str(message.author)}` | User_ID:`{message.author.id}`", files=files, allowed_mentions=disnake.AllowedMentions.none())
 
 
-            async with aiohttp.ClientSession() as session:
-                staff_log = disnake.Webhook.from_url(url="https://canary.discord.com/api/webhooks/1046607582225240064/0f2gobUN4W4k-kXQc7hHans3ysAFZrpjPhSwff3IUud4r_Q9gYJQkS1vkHzIJ9fyEUQK", session=session)
-
-                await staff_log.send(username="Staff Log", content=message.content + f"\nUser: `{str(message.author)}` | User_ID:`{message.author.id}`", files=files, allowed_mentions=disnake.AllowedMentions.none())
-
-                await session.close()
 
 
     @commands.slash_command(name="global-chat", description="Global Chat")
