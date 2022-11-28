@@ -57,6 +57,10 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 web_name = web_name.replace("discord", "")
                 web_name = web_name.replace("Discord", "")
                 web_name = web_name.replace("clyde", "")
+                if isinstance(message.type, disnake.MessageType.reply):
+                    msg_id = message.reference.message_id
+                    rep = await message.channel.fetch_message(msg_id)
+                    message.content = f"> {rep.content}\n{message.content}"
                 if str(message.guild.explicit_content_filter) == "all_members":
                     await glob_webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar, content=message.content, files=files, allowed_mentions=disnake.AllowedMentions.none())
                 else:
