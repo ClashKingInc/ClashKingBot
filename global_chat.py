@@ -93,11 +93,11 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                             glob_webhook = await glob_channel.create_webhook(name="Global Chat", reason="Global Chat")
                         except:
                             return
-                    self.bot.global_webhooks[channel] = glob_webhook.id
+                    self.bot.global_webhooks[channel] = glob_webhook
                     await send_web(glob_webhook)
                 else:
                     try:
-                        webhook = await self.bot.fetch_webhook(self.bot.global_webhooks[channel])
+                        webhook = self.bot.global_webhooks[channel]
                         await send_web(webhook)
                     except:
                         self.bot.global_webhooks[channel] = ""
