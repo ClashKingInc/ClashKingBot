@@ -23,7 +23,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         if message.channel.id in self.bot.global_channels:
             if message.author.id in self.bot.banned_global:
                 return
-            self.bot.last_message[message.author.id] = int(datetime.datetime.utcnow().timestamp())
+            #self.bot.last_message[message.author.id] = int(datetime.datetime.utcnow().timestamp())
 
             urls = extractor.find_urls(message.content)
             for url in urls:
@@ -162,6 +162,57 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             await self.bot.global_chat_db.update_one({"server" : ctx.guild.id}, {"$set": {"channel" : channel.id}})
             embed = disnake.Embed(description=f"Global Chat set to {channel.mention}")
         self.bot.global_channels.append(channel.id)
+
+        async def webhook_task(channel, embed_):
+            async def send_web(webhook, embed):
+                try:
+                    await webhook.send(username="ClashKing", avatar_url=self.bot.user.avatar.url,
+                                       embed=embed,
+                                       allowed_mentions=disnake.AllowedMentions.none())
+                except:
+                    return None
+
+            if self.bot.global_webhooks[channel] == "":
+                try:
+                    glob_channel: disnake.TextChannel = self.bot.get_channel(channel)
+                except:
+                    try:
+                        glob_channel: disnake.TextChannel = await self.bot.fetch_channel(channel)
+                    except (disnake.NotFound, disnake.Forbidden):
+                        result = await self.bot.global_chat_db.find_one({"channel": channel})
+                        await self.bot.global_chat_db.update_one({"server": result.get("server")},
+                                                                 {'$set': {"channel": None}})
+                        self.bot.global_channels.remove(channel)
+                        return
+                webhooks = await glob_channel.webhooks()
+                glob_webhook = None
+                for webhook in webhooks:
+                    if webhook.name == "Global Chat":
+                        glob_webhook = webhook
+                        break
+                if glob_webhook is None:
+                    try:
+                        glob_webhook = await glob_channel.create_webhook(name="Global Chat", reason="Global Chat")
+                    except:
+                        return
+                self.bot.global_webhooks[channel] = glob_webhook.id
+                await send_web(glob_webhook, embed_)
+            else:
+                try:
+                    webhook = await self.bot.fetch_webhook(self.bot.global_webhooks[channel])
+                    await send_web(webhook, embed_)
+                except:
+                    self.bot.global_webhooks[channel] = ""
+
+        tasks = []
+        for channel in self.bot.global_channels:
+            if channel is None:
+                continue
+            em = disnake.Embed(description=f"Everyone welcome {ctx.guild.name} to the global chat!", color=disnake.Color.green())
+            em.set_image(url="https://cdn.discordapp.com/attachments/923767060977303552/1046920746636685342/unknown.png")
+            task = asyncio.ensure_future(webhook_task(channel, em))
+            tasks.append(task)
+        await asyncio.gather(*tasks)
         await ctx.edit_original_message(embed=embed)
 
     @global_chat.sub_command(name="report", description="Report a user in the global chat")
