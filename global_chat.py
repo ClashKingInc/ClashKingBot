@@ -14,22 +14,21 @@ class GlobalChat(commands.Cog, name="Global Chat"):
 
     @commands.Cog.listener()
     async def on_message(self, message: disnake.Message):
-        mods = [633662639318237184, 706149153431879760]
+        print("message")
         if message.author.bot:
             return
         if message.channel.id in self.bot.global_channels:
             if message.author.id in self.bot.banned_global:
                 return
-            #last_message= self.bot.last_message[message.author.id]
-            #if int(datetime.datetime.utcnow().timestamp()) - last_message <= 0.5:
-                #return
             self.bot.last_message[message.author.id] = int(datetime.datetime.utcnow().timestamp())
+
             urls = extractor.find_urls(message.content)
             for url in urls:
                 if "discord.gg" not in url:
                     message.content = message.content.replace(url, "")
             if message.content == "" and message.attachments == []:
                 return
+            mods = [633662639318237184, 706149153431879760]
             for channel in self.bot.global_channels:
                 if message.channel.id == channel:
                     continue
@@ -39,10 +38,10 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                     try:
                         glob_channel: disnake.TextChannel = await self.bot.fetch_channel(channel)
                     except (disnake.NotFound, disnake.Forbidden):
-                        result = await self.bot.global_chat_db.find_one({"channel" : channel})
+                        result = await self.bot.global_chat_db.find_one({"channel": channel})
                         await self.bot.global_chat_db.update_one({"server": result.get("server")}, {'$set': {"channel": None}})
-                        continue
 
+                        continue
                 webhooks = await glob_channel.webhooks()
                 glob_webhook = None
                 for webhook in webhooks:
@@ -56,12 +55,13 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 web_name = f"{str(message.author)} | {message.guild.name}"
                 if message.author.id in mods:
                     web_name += "⚙️"
-                await glob_webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar,
-                                        content=message.content, files=files, allowed_mentions=disnake.AllowedMentions.none())
+                await glob_webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar, content=message.content, files=files, allowed_mentions=disnake.AllowedMentions.none())
+
                 async with aiohttp.ClientSession() as session:
                     staff_log = disnake.Webhook.from_url(url="https://canary.discord.com/api/webhooks/1046574738333519942/U1pJEilDOLCJRWXlwH1YY4lyVs5Q3ksh9eDMvxK2b-kjCrBieaa_ysRA8WGCNWJLWRwV", session=session)
-                    await staff_log.send(username="Staff Log", content=message.content + f"\nUser: `{str(message.author)}` | User_ID:`{message.author.id}`", files=files,
-                                            allowed_mentions=disnake.AllowedMentions.none())
+
+                    await staff_log.send(username="Staff Log", content=message.content + f"\nUser: `{str(message.author)}` | User_ID:`{message.author.id}`", files=files, allowed_mentions=disnake.AllowedMentions.none())
+
                     await session.close()
 
 
