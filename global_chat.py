@@ -54,6 +54,8 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 web_name = f"{str(message.author)} | {message.guild.name}"
                 if message.author.id in mods:
                     web_name += "⚙️"
+                web_name = web_name.replace("discord", "")
+                web_name = web_name.replace("clyde", "")
                 await glob_webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar, content=message.content, files=files, allowed_mentions=disnake.AllowedMentions.none())
 
             async with aiohttp.ClientSession() as session:
