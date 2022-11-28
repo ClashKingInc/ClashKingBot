@@ -76,7 +76,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         if result is None and remove == "True":
             return await ctx.edit_original_message("No global channel set up")
         elif remove == "True":
-            await self.bot.global_chat_db.update_one({"server": ctx.guild.id}, {"channel": None})
+            await self.bot.global_chat_db.update_one({"server": ctx.guild.id}, {"$set" : {"channel": None}})
             embed = disnake.Embed(description="Global Chat removed.", color=disnake.Color.green())
             return await ctx.edit_original_message(embed=embed)
         if result is None:
