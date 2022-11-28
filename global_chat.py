@@ -55,6 +55,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 if message.author.id in mods:
                     web_name += "⚙️"
                 web_name = web_name.replace("discord", "")
+                web_name = web_name.replace("Discord", "")
                 web_name = web_name.replace("clyde", "")
                 await glob_webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar, content=message.content, files=files, allowed_mentions=disnake.AllowedMentions.none())
 
