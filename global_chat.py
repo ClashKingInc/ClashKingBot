@@ -41,7 +41,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             try:
                 msg_id = message.reference.message_id
                 rep = await message.channel.fetch_message(msg_id)
-                message.content = f"> {rep.content} - {str(rep.author)}\n{message.content}"
+                message.content = f"> {rep.content}\n - {str(rep.author)}\n{message.content}"
             except:
                 pass
 
@@ -130,8 +130,6 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             files += [await sticker.to_file() for sticker in message.stickers]
             files = files[:10]
             await glob_webhook.send(username="Staff Log", content=message.content + f"\nUser: `{str(message.author)}` | User_ID:`{message.author.id}`", files=files, allowed_mentions=disnake.AllowedMentions.none())
-
-
 
 
     @commands.slash_command(name="global-chat", description="Global Chat")
