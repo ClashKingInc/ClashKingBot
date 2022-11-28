@@ -43,7 +43,7 @@ class DiscordEvents(commands.Cog):
         scheduler.print_jobs()
 
         global_chats = await self.bot.global_chat_db.distinct("channel")
-        self.bot.global_chats = [chat for chat in global_chats if chat is not None]
+        self.bot.global_channels = [chat for chat in global_chats if chat is not None]
 
         global_banned = self.bot.global_reports.find({})
         for banned in await global_banned.to_list(length=1000):
