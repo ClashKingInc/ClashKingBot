@@ -8,6 +8,7 @@ from urlextract import URLExtract
 extractor = URLExtract()
 import spacy
 from profanity_filter import ProfanityFilter
+import asyncio
 
 class GlobalChat(commands.Cog, name="Global Chat"):
 
@@ -43,42 +44,69 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             except:
                 pass
 
+            async def webhook_task(channel, message: disnake.Message):
+                async def send_web(webhook):
+                    files = [await attachment.to_file() for attachment in message.attachments]
+                    files += [await sticker.to_file() for sticker in message.stickers]
+                    files = files[:10]
+
+                    web_name = f"{str(message.author.name)} | {message.guild.name}"
+                    if message.author.id in mods:
+                        web_name += "⚙️"
+                    web_name = web_name.replace("discord", "")
+                    web_name = web_name.replace("Discord", "")
+                    web_name = web_name.replace("clyde", "")
+                    try:
+                        if str(message.guild.explicit_content_filter) == "all_members":
+                            await webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar,
+                                                    content=message.content, files=files,
+                                                    allowed_mentions=disnake.AllowedMentions.none())
+                        else:
+                            if message.content != "":
+                                await webhook.send(username=web_name[:80],
+                                                        avatar_url=message.author.display_avatar,
+                                                        content=message.content,
+                                                        allowed_mentions=disnake.AllowedMentions.none())
+                    except:
+                        return None
+
+                if self.bot.global_webhooks[channel] == "":
+                    try:
+                        glob_channel: disnake.TextChannel = self.bot.get_channel(channel)
+                    except:
+                        try:
+                            glob_channel: disnake.TextChannel = await self.bot.fetch_channel(channel)
+                        except (disnake.NotFound, disnake.Forbidden):
+                            result = await self.bot.global_chat_db.find_one({"channel": channel})
+                            await self.bot.global_chat_db.update_one({"server": result.get("server")}, {'$set': {"channel": None}})
+                            return None
+                    webhooks = await glob_channel.webhooks()
+                    glob_webhook = None
+                    for webhook in webhooks:
+                        if webhook.name == "Global Chat":
+                            glob_webhook = webhook
+                            break
+                    if glob_webhook is None:
+                        try:
+                            glob_webhook = await glob_channel.create_webhook(name="Global Chat", reason="Global Chat")
+                        except:
+                            return
+                    self.bot.global_webhooks[channel] = glob_webhook.url
+                    await send_web(glob_webhook)
+                else:
+                    glob_webhook_url = self.bot.global_webhooks[channel]
+                    async with aiohttp.ClientSession() as session:
+                        webhook = disnake.Webhook.from_url(url=glob_webhook_url, session=session)
+                        await send_web(webhook)
+
+            tasks = []
             for channel in self.bot.global_channels:
                 if message.channel.id == channel:
                     continue
-                try:
-                    glob_channel: disnake.TextChannel = self.bot.get_channel(channel)
-                except:
-                    try:
-                        glob_channel: disnake.TextChannel = await self.bot.fetch_channel(channel)
-                    except (disnake.NotFound, disnake.Forbidden):
-                        result = await self.bot.global_chat_db.find_one({"channel": channel})
-                        await self.bot.global_chat_db.update_one({"server": result.get("server")}, {'$set': {"channel": None}})
+                task = asyncio.ensure_future(webhook_task(channel, message))
+                tasks.append(task)
+            await asyncio.gather(*tasks)
 
-                        continue
-                webhooks = await glob_channel.webhooks()
-                glob_webhook = None
-                for webhook in webhooks:
-                    if webhook.name == "Global Chat":
-                        glob_webhook = webhook
-                        break
-                if glob_webhook is None:
-                    glob_webhook = await glob_channel.create_webhook(name="Global Chat", reason="Global Chat")
-                files = [await attachment.to_file() for attachment in message.attachments]
-                files += [await sticker.to_file() for sticker in message.stickers]
-                files = files[:10]
-
-                web_name = f"{str(message.author)} | {message.guild.name}"
-                if message.author.id in mods:
-                    web_name += "⚙️"
-                web_name = web_name.replace("discord", "")
-                web_name = web_name.replace("Discord", "")
-                web_name = web_name.replace("clyde", "")
-                if str(message.guild.explicit_content_filter) == "all_members":
-                    await glob_webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar, content=message.content, files=files, allowed_mentions=disnake.AllowedMentions.none())
-                else:
-                    if message.content != "":
-                        await glob_webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar, content=message.content, allowed_mentions=disnake.AllowedMentions.none())
             try:
                 staff_channel: disnake.TextChannel = self.bot.get_channel(1046572580200525894)
             except:

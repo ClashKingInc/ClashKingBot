@@ -139,6 +139,7 @@ class CustomClient(commands.Bot):
         self.global_channels = []
         self.last_message = defaultdict(int)
         self.banned_global = []
+        self.global_webhooks = defaultdict(str)
 
     async def create_new_badge_emoji(self, url:str):
         new_url = url.replace(".png", "")
