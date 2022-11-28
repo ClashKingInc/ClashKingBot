@@ -6,6 +6,8 @@ from CustomClasses.CustomBot import CustomClient
 from main import check_commands
 from urlextract import URLExtract
 extractor = URLExtract()
+import spacy
+from profanity_filter import ProfanityFilter
 
 class GlobalChat(commands.Cog, name="Global Chat"):
 
@@ -25,12 +27,21 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             for url in urls:
                 if "discord.gg" not in url and "tenor" not in url and "gif" not in url and "giphy" not in url:
                     message.content = message.content.replace(url, "")
-            blacklisted_words = ["nigger", "gay", "penis", "cock"]
-            for word in blacklisted_words:
-                message.content = message.content.replace(word, "")
+
+            nlp = spacy.load('en')
+            profanity_filter = ProfanityFilter(nlps={'en': nlp})  # reuse spacy Language (optional)
+            nlp.add_pipe(profanity_filter.spacy_component, last=True)
+
+            message.content = profanity_filter.censor(message.content)
             if message.content == "" and message.attachments == []:
                 return
             mods = [633662639318237184, 706149153431879760]
+            try:
+                msg_id = message.reference.message_id
+                rep = await message.channel.fetch_message(msg_id)
+                message.content = f"> {rep.content} - {str(message.author)}\n{message.content}"
+            except:
+                pass
             for channel in self.bot.global_channels:
                 if message.channel.id == channel:
                     continue
@@ -60,12 +71,6 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 web_name = web_name.replace("discord", "")
                 web_name = web_name.replace("Discord", "")
                 web_name = web_name.replace("clyde", "")
-                try:
-                    msg_id = message.reference.message_id
-                    rep = await message.channel.fetch_message(msg_id)
-                    message.content = f"> {rep.content}\n{message.content}"
-                except:
-                    pass
                 if str(message.guild.explicit_content_filter) == "all_members":
                     await glob_webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar, content=message.content, files=files, allowed_mentions=disnake.AllowedMentions.none())
                 else:
