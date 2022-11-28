@@ -42,9 +42,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 message.content = f"> {rep.content} - {str(rep.author)}\n{message.content}"
             except:
                 pass
-            files = [await attachment.to_file() for attachment in message.attachments]
-            files += [await sticker.to_file() for sticker in message.stickers]
-            files = files[:10]
+
             for channel in self.bot.global_channels:
                 if message.channel.id == channel:
                     continue
@@ -66,7 +64,9 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                         break
                 if glob_webhook is None:
                     glob_webhook = await glob_channel.create_webhook(name="Global Chat", reason="Global Chat")
-
+                files = [await attachment.to_file() for attachment in message.attachments]
+                files += [await sticker.to_file() for sticker in message.stickers]
+                files = files[:10]
 
                 web_name = f"{str(message.author)} | {message.guild.name}"
                 if message.author.id in mods:
@@ -90,7 +90,10 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 break
             if glob_webhook is None:
                 glob_webhook = await staff_channel.create_webhook(name="Staff Log", reason="Global Chat")
-                await glob_webhook.send(username="Staff Log", content=message.content + f"\nUser: `{str(message.author)}` | User_ID:`{message.author.id}`", files=files, allowed_mentions=disnake.AllowedMentions.none())
+            files = [await attachment.to_file() for attachment in message.attachments]
+            files += [await sticker.to_file() for sticker in message.stickers]
+            files = files[:10]
+            await glob_webhook.send(username="Staff Log", content=message.content + f"\nUser: `{str(message.author)}` | User_ID:`{message.author.id}`", files=files, allowed_mentions=disnake.AllowedMentions.none())
 
 
 
