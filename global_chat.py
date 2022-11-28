@@ -57,7 +57,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 await glob_webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar, content=message.content, files=files, allowed_mentions=disnake.AllowedMentions.none())
 
                 async with aiohttp.ClientSession() as session:
-                    staff_log = disnake.Webhook.from_url(url="https://canary.discord.com/api/webhooks/1046574738333519942/U1pJEilDOLCJRWXlwH1YY4lyVs5Q3ksh9eDMvxK2b-kjCrBieaa_ysRA8WGCNWJLWRwV", session=session)
+                    staff_log = disnake.Webhook.from_url(url="https://canary.discord.com/api/webhooks/1046607582225240064/0f2gobUN4W4k-kXQc7hHans3ysAFZrpjPhSwff3IUud4r_Q9gYJQkS1vkHzIJ9fyEUQK", session=session)
 
                     await staff_log.send(username="Staff Log", content=message.content + f"\nUser: `{str(message.author)}` | User_ID:`{message.author.id}`", files=files, allowed_mentions=disnake.AllowedMentions.none())
 
