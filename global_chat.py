@@ -78,6 +78,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         elif remove == "True":
             await self.bot.global_chat_db.update_one({"server": ctx.guild.id}, {"$set" : {"channel": None}})
             embed = disnake.Embed(description="Global Chat removed.", color=disnake.Color.green())
+            self.bot.global_channels.remove(channel.id)
             return await ctx.edit_original_message(embed=embed)
         if result is None:
             await self.bot.global_chat_db.insert_one({"server" : ctx.guild.id, "channel" : channel.id})
