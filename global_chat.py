@@ -56,14 +56,17 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                         await self.bot.global_chat_db.update_one({"server": result.get("server")}, {'$set': {"channel": None}})
 
                         continue
-                webhooks = await glob_channel.webhooks()
-                glob_webhook = None
-                for webhook in webhooks:
-                    if webhook.name == "Global Chat":
-                        glob_webhook = webhook
-                        break
-                if glob_webhook is None:
-                    glob_webhook = await glob_channel.create_webhook(name="Global Chat", reason="Global Chat")
+                try:
+                    webhooks = await glob_channel.webhooks()
+                    glob_webhook = None
+                    for webhook in webhooks:
+                        if webhook.name == "Global Chat":
+                            glob_webhook = webhook
+                            break
+                    if glob_webhook is None:
+                        glob_webhook = await glob_channel.create_webhook(name="Global Chat", reason="Global Chat")
+                except:
+                    continue
                 files = [await attachment.to_file() for attachment in message.attachments]
                 files += [await sticker.to_file() for sticker in message.stickers]
                 files = files[:10]
