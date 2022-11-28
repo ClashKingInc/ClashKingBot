@@ -14,7 +14,8 @@ class GlobalChat(commands.Cog, name="Global Chat"):
 
     @commands.Cog.listener()
     async def on_message(self, message: disnake.Message):
-        print("message")
+        print(self.bot.global_channels)
+        print(message.content)
         if message.author.bot:
             return
         if message.channel.id in self.bot.global_channels:
