@@ -25,6 +25,9 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             for url in urls:
                 if "discord.gg" not in url and "tenor" not in url and "gif" not in url and "giphy" not in url:
                     message.content = message.content.replace(url, "")
+            blacklisted_words = ["nigger", "gay", "penis", "cock"]
+            for word in blacklisted_words:
+                message.content = message.content.replace(word, "")
             if message.content == "" and message.attachments == []:
                 return
             mods = [633662639318237184, 706149153431879760]
@@ -57,7 +60,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 web_name = web_name.replace("discord", "")
                 web_name = web_name.replace("Discord", "")
                 web_name = web_name.replace("clyde", "")
-                if isinstance(message.type, disnake.MessageType.reply):
+                if str(message.type) == "reply":
                     msg_id = message.reference.message_id
                     rep = await message.channel.fetch_message(msg_id)
                     message.content = f"> {rep.content}\n{message.content}"
