@@ -38,14 +38,16 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             if message.content == "" and message.attachments == [] and message.stickers == []:
                 return
             mods = [633662639318237184, 706149153431879760, 161053630038802433]
+            embed = None
             try:
                 msg_id = message.reference.message_id
                 rep = await message.channel.fetch_message(msg_id)
-                message.content = f"> {rep.content}\n> - {str(rep.author)}\n{message.content}"
+                embed = disnake.Embed(description=f"[⤺]{rep.jump_url} {message.content}")
+                embed.set_author(name=rep.author.display_name, icon_url=rep.author.display_avatar)
             except:
                 pass
 
-            async def webhook_task(channel, message: disnake.Message):
+            async def webhook_task(channel, message: disnake.Message, _embed):
                 async def send_web(webhook):
                     files = [await attachment.to_file() for attachment in message.attachments]
                     files += [await sticker.to_file() for sticker in message.stickers]
@@ -60,13 +62,13 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                     try:
                         if str(message.guild.explicit_content_filter) == "all_members":
                             await webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar,
-                                                    content=message.content, files=files,
+                                                    content=message.content, files=files, embed=embed,
                                                     allowed_mentions=disnake.AllowedMentions.none())
                         else:
                             if message.content != "":
                                 await webhook.send(username=web_name[:80],
                                                         avatar_url=message.author.display_avatar,
-                                                        content=message.content,
+                                                        content=message.content, embed=embed,
                                                         allowed_mentions=disnake.AllowedMentions.none())
                     except:
                         return None
@@ -108,7 +110,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                     continue
                 if channel is None:
                     continue
-                task = asyncio.ensure_future(webhook_task(channel, message))
+                task = asyncio.ensure_future(webhook_task(channel, message, embed))
                 tasks.append(task)
             await asyncio.gather(*tasks)
 
