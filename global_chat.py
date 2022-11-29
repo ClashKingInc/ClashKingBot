@@ -42,7 +42,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             try:
                 msg_id = message.reference.message_id
                 rep = await message.channel.fetch_message(msg_id)
-                embed = disnake.Embed(description=f"**[⤺]({rep.jump_url})** {message.content}")
+                embed = disnake.Embed(description=f"**[⤺]({rep.jump_url})** {rep.content}")
                 embed.set_author(name=rep.author.display_name, icon_url=rep.author.display_avatar)
             except:
                 pass
