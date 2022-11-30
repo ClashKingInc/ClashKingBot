@@ -1045,7 +1045,7 @@ class clan_commands(commands.Cog, name="Clan Commands"):
             name = f"{name}".ljust(12)
             stars = f"{hr.total_stars}".ljust(3)
             destruction = f"{int(hr.total_destruction)}%".ljust(5)
-            return [f"{stars} {destruction} {name}\n", round(hr.average_triples * 100, 3), name, hr.total_stars, player.town_hall]
+            return [f"{stars}/{hr.num_attacks} {destruction} {name}\n", round(hr.average_triples * 100, 3), name, hr.total_stars, player.town_hall]
 
         for player in players:  # type: MyCustomPlayer
             task = asyncio.ensure_future(fetch_n_rank(player=player))
@@ -1055,7 +1055,7 @@ class clan_commands(commands.Cog, name="Clan Commands"):
         ranked = [response for response in responses if response is not None]
 
         ranked = sorted(ranked, key=lambda l: (-l[-2], -l[1], l[2]), reverse=False)
-        text = "```#   ★   DSTR%  NAME       \n"
+        text = "```#   ★     DSTR%  NAME       \n"
         for count, rank in enumerate(ranked, 1):
             #spot_emoji = self.bot.get_number_emoji(color="gold", number=count)
             count = f"{count}.".ljust(3)
