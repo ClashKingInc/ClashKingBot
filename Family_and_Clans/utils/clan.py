@@ -535,7 +535,7 @@ class getClans(commands.Cog, name="Clan"):
         text = "\n".join(text)
 
         embed = disnake.Embed(title=f"**{clan.name} Activity Count**",
-                              description=f"```#   NAME\n{text}```",
+                              description=f"```#     NAME\n{text}```",
                               color=disnake.Color.green())
         return embed
 
