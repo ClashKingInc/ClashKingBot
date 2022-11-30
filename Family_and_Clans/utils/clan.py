@@ -528,7 +528,7 @@ class getClans(commands.Cog, name="Clan"):
         for member in members:
             member: MyCustomPlayer
             last_online = member.season_last_online()
-            text.append([f"{str(last_online).ljust(3)} `{member.name}`", len(last_online)])
+            text.append([f"{str(len(last_online)).ljust(3)} `{member.name}`", len(last_online)])
 
         text = sorted(text, key=lambda l: l[1], reverse=True)
         text = [line[0] for line in text]
