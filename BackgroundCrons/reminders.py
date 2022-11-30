@@ -510,12 +510,13 @@ class reminders(commands.Cog, name="Reminders"):
         war = await self.bot.get_clanwar(clanTag=clan_tag)
         if war is None:
             return
-        missing = {}; names = {}
+        missing = {}; names = {}; ths = {}
         for player in war.members:
             if player not in war.opponent.members:
                 if len(player.attacks) < war.attacks_per_member:
                     missing[player.tag] = war.attacks_per_member - len(player.attacks)
                     names[player.tag] = player.name
+                    ths[player.tag] = player.town_hall
 
         tags= list(missing.keys())
         if not missing:
@@ -556,9 +557,9 @@ class reminders(commands.Cog, name="Reminders"):
                 name = names[player_tag]
                 member = disnake.utils.get(server.members, id=discord_id)
                 if member is None:
-                    missing_text += f"{num_missing} hits- {name} | {player_tag}\n"
+                    missing_text += f"{num_missing} hits- {self.bot.fetch_emoji(ths[player_tag])}{name} | {player_tag}\n"
                 else:
-                    missing_text += f"{num_missing} hits- {name} | {member.mention}\n"
+                    missing_text += f"{num_missing} hits- {self.bot.fetch_emoji(ths[player_tag])}{name} | {member.mention}\n"
             badge = await self.bot.create_new_badge_emoji(url=war.clan.badge.url)
             reminder_text = f"**{reminder_time} Hours Remaining in War**\n" \
                             f"**{badge}{war.clan.name} vs {war.opponent.name}**\n\n" \
