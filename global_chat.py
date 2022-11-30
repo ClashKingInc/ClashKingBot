@@ -77,46 +77,13 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             files = [await attachment.to_file() for attachment in message.attachments]
             files += [await sticker.to_file() for sticker in message.stickers]
             files = files[:10]
-            await glob_webhook.send(username="Staff Log", content=message.content + f"\nUser: `{str(message.author)}` | User_ID:`{message.author.id}`", files=files, allowed_mentions=disnake.AllowedMentions.none())
-
-    @commands.Cog.listener()
-    async def on_message_edit(self, before_message: disnake.Message, after_message: disnake.Message):
-        if after_message.author.bot:
-            return
-        if after_message.channel.id in self.bot.global_channels:
-            result = await self.bot.webhook_message_db.find_one({"messages" : after_message.id})
-            if result is None:
-                return
-            message_ids = result.get("messages")
-            message_channels = result.get("channels")
-
-            async def edit_task(message_id, channel_id, content):
-                try:
-                    message = self.bot.get_message(message_id)
-                except:
-                    try:
-                        channel = self.bot.get_channel(channel_id)
-                    except:
-                        try:
-                            channel = await self.bot.fetch_channel(channel_id)
-                        except:
-                            return
-                    message = await channel.fetch_message(message_id)
-                await message.edit(content=content)
-
-            tasks = []
-            for count, channel in enumerate(message_channels):
-                if after_message.channel.id == channel:
-                    continue
-                if channel is None:
-                    continue
-                task = asyncio.ensure_future(edit_task(message_ids[count], channel, after_message.content))
-                tasks.append(task)
-            await asyncio.gather(*tasks)
+            await glob_webhook.send(username="Staff Log", content=message.content + f"\nUser: `{str(message.author)}` | User_ID:`{message.author.id} | Msg: `{message.id}`", files=files, allowed_mentions=disnake.AllowedMentions.none())
 
     @commands.Cog.listener()
     async def on_message_delete(self, after_message: disnake.Message):
         if after_message.author.bot:
+            return
+        if after_message.webhook_id is not None:
             return
         if after_message.channel.id in self.bot.global_channels:
             result = await self.bot.webhook_message_db.find_one({"op_message": after_message.id})
@@ -140,16 +107,10 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 await message.delete()
 
             tasks = []
-            for count, channel in enumerate(self.bot.global_channels):
-                if after_message.channel.id == channel:
-                    continue
-                if channel is None:
-                    continue
-                task = asyncio.ensure_future(edit_task(after_message.id, channel, None))
+            for count, channel in enumerate(message_channels):
+                task = asyncio.ensure_future(edit_task(message_ids[count], channel, None))
                 tasks.append(task)
             await asyncio.gather(*tasks)
-
-
 
     async def webhook_task(self, channel, message: disnake.Message, embed):
         if self.bot.global_webhooks[channel] == "":
@@ -177,7 +138,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 except:
                     return None
             self.bot.global_webhooks[channel] = glob_webhook
-            await self.send_web(glob_webhook, message, embed)
+            return await self.send_web(glob_webhook, message, embed)
         else:
             try:
                 webhook = self.bot.global_webhooks[channel]
@@ -209,6 +170,8 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                                        avatar_url=message.author.display_avatar,
                                        content=message.content, embed=embed,
                                        allowed_mentions=disnake.AllowedMentions.none(), wait=True)
+                else:
+                    return None
             return web_msg
         except:
             return None
@@ -332,17 +295,18 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             self.bot.banned_global.append(user.id)
         await ctx.edit_original_message(f"Gave {str(user)} a strike")
 
-    @commands.slash_command(name="staff-strike", description="Staff Command. Delete a message")
+    @global_chat.sub_command(name="delete-message", description="Staff Command. Delete a message")
     @commands.check_any(commands.has_any_role(*[1034134693869797416, 923787651058901062]))
     async def delete_mes(self, ctx: disnake.ApplicationCommandInteraction, message_):
+        message_ = int(message_)
         await ctx.response.defer()
         result = await self.bot.webhook_message_db.find_one({"messages": message_})
         if result is None:
-            return ctx.edit_original_message(content="Message Not Found")
+            result = await self.bot.webhook_message_db.find_one({"op_message": message_})
+            if result is None:
+                return await ctx.edit_original_message(content="Message Not Found")
         message_ids = result.get("messages") + [result.get("op_message")]
         message_channels = result.get("channels") + [result.get("op_channel")]
-        message_ids.remove(message_)
-        message_channels.remove(message_)
 
         async def edit_task(message_id, channel_id, content):
             try:
@@ -356,13 +320,14 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                     except:
                         return
                 message = await channel.fetch_message(message_id)
-            await message.delete()
+            try:
+              await message.delete()
+            except:
+                pass
 
         tasks = []
-        for count, channel in enumerate(self.bot.global_channels):
-            if channel is None:
-                continue
-            task = asyncio.ensure_future(edit_task(message_, channel, None))
+        for count, channel in enumerate(message_channels):
+            task = asyncio.ensure_future(edit_task(message_ids[count], channel, None))
             tasks.append(task)
         await asyncio.gather(*tasks)
         await ctx.edit_original_message(content="Message Deleted")
