@@ -1065,9 +1065,9 @@ class clan_commands(commands.Cog, name="Clan Commands"):
                 return None
             name = str(player.name)[0:12]
             name = f"{name}".ljust(12)
-            stars = f"{hr.total_stars}".ljust(3)
+            stars = f"{hr.total_stars}/{hr.num_attacks}".center(5)
             destruction = f"{int(hr.total_destruction)}%".ljust(5)
-            return [f"{stars}/{hr.num_attacks} {destruction} {name}\n", round(hr.average_triples * 100, 3), name, hr.total_stars, player.town_hall]
+            return [f"{stars} {destruction} {name}\n", round(hr.average_triples * 100, 3), name, hr.total_stars, player.town_hall]
 
         for player in players:  # type: MyCustomPlayer
             task = asyncio.ensure_future(fetch_n_rank(player=player))
