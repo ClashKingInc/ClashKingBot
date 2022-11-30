@@ -577,6 +577,20 @@ class clan_commands(commands.Cog, name="Clan Commands"):
         await ctx.edit_original_message(embed=embed, components=buttons)
         await ctx.edit_original_message(embed=embed)
 
+    @clan.sub_command(name="activities", description="Activity count of how many times a player has been seen online")
+    async def activities(self, ctx: disnake.ApplicationCommandInteraction,
+                          clan: coc.Clan = commands.Param(converter=clan_converter)):
+        await ctx.response.defer()
+        time = datetime.now().timestamp()
+        embed = await self.create_activities(clan)
+        embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
+                              custom_id=f"act_{clan.tag}"))
+        await ctx.edit_original_message(embed=embed, components=buttons)
+        await ctx.edit_original_message(embed=embed)
+
     def get_raid(self, raid_log, after, before):
         for raid in raid_log:
             time_start = int(raid.start_time.time.timestamp())
@@ -839,6 +853,13 @@ class clan_commands(commands.Cog, name="Clan Commands"):
             embed: disnake.Embed = await self.create_donations(clan, type="ratio")
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
+        elif "act_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            clan = (str(ctx.data.custom_id).split("_"))[-1]
+            clan = await self.bot.getClan(clan)
+            embed: disnake.Embed = await self.create_activities(clan)
+            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+            await ctx.edit_original_message(embed=embed)
 
     @war_stats_clan.autocomplete("season")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
@@ -861,6 +882,7 @@ class clan_commands(commands.Cog, name="Clan Commands"):
     @clan_donations.autocomplete("clan")
     @last_online_graph.autocomplete("clan")
     @war_stats_clan.autocomplete("clan")
+    @activities.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
             tracked = self.bot.clan_db.find({"server": ctx.guild.id})
             limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
