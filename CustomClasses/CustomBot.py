@@ -93,7 +93,7 @@ class CustomClient(commands.Bot):
         self.clan_leaderboard_db = self.new_looper.clan_leaderboard_db
         self.history_db = self.looper_db.legend_history
         self.warhits = self.looper_db.looper.warhits
-        self.webhook_message_db = self.looper_db.webhook_messages
+        self.webhook_message_db = self.looper_db.looper.webhook_messages
         self.user_name = "admin"
 
         self.link_client = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
