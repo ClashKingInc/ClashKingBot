@@ -139,7 +139,7 @@ class CustomClient(commands.Bot):
         self.linode_client: LinodeClient = LinodeClient(os.getenv("LINODE"))
         self.global_channels = []
         self.last_message = defaultdict(int)
-        self.banned_global = []
+        self.banned_global = [859653218979151892]
         self.global_webhooks = defaultdict(str)
 
     async def create_new_badge_emoji(self, url:str):
