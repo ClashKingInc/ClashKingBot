@@ -436,7 +436,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             roster: roster to edit
             th_min: set a th minimum that can sign up
             th_max: set a th maximum that can sign up
-            max_roster_size: set a max roster size (largest/default is 50 including subs)
+            max_roster_size: set a max roster size (largest is 60 including subs)
         """
         if th_min is None and th_max is None and max_roster_size is None:
             embed = disnake.Embed(
@@ -455,8 +455,8 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             await _roster.restrict_th(min=th_min, max=th_max)
 
         if max_roster_size is not None:
-            if max_roster_size > 50:
-                max_roster_size = 50
+            if max_roster_size > 60:
+                max_roster_size = 60
             if max_roster_size == 0:
                 max_roster_size = 1
             await _roster.restrict_size(roster_size=max_roster_size)
