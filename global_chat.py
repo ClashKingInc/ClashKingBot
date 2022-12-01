@@ -275,6 +275,13 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         await channel.send(embed=embed)
         await ctx.edit_original_message(content="Report submitted!")
 
+    @global_chat.sub_command(name="staff-ban", description="Staff Command. Ban a user.")
+    @commands.check_any(commands.has_any_role(*[1034134693869797416, 923787651058901062]))
+    async def global_chat_strike(self, ctx: disnake.ApplicationCommandInteraction, user_id: str):
+        await ctx.response.defer()
+        self.bot.banned_global.append(user_id)
+        await ctx.edit_original_message(f"Banned {user_id}")
+
     @global_chat.sub_command(name="staff-strike", description="Staff Command. Give a user a strike.")
     @commands.check_any(commands.has_any_role(*[1034134693869797416, 923787651058901062]))
     async def global_chat_strike(self, ctx: disnake.ApplicationCommandInteraction, user_id : str):
