@@ -60,24 +60,15 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             message_channels = [m.channel.id for m in results if m is not None]
             await self.bot.webhook_message_db.insert_one({"op_message" : message.id, "op_channel" : message.channel.id,"messages" : message_ids, "channels" : message_channels})
 
-            if staff_webhook == 0:
-                try:
-                    staff_channel: disnake.TextChannel = self.bot.get_channel(1046572580200525894)
-                except:
-                    staff_channel: disnake.TextChannel = await self.bot.fetch_channel(1046572580200525894)
-                webhooks = await staff_channel.webhooks()
-                glob_webhook = None
-                for webhook in webhooks:
-                    glob_webhook = webhook
-                    break
-                if glob_webhook is None:
-                    glob_webhook = await staff_channel.create_webhook(name="Staff Log", reason="Global Chat")
-            else:
-                glob_webhook = await self.bot.fetch_webhook(staff_webhook)
+
+            try:
+                staff_channel: disnake.TextChannel = self.bot.get_channel(1046572580200525894)
+            except:
+                staff_channel: disnake.TextChannel = await self.bot.fetch_channel(1046572580200525894)
             files = [await attachment.to_file() for attachment in message.attachments]
             files += [await sticker.to_file() for sticker in message.stickers]
             files = files[:10]
-            await glob_webhook.send(username="Staff Log", content=message.content + f"\nUser: `{str(message.author)}` | User_ID:`{message.author.id} | Msg: `{message.id}`", files=files, allowed_mentions=disnake.AllowedMentions.none())
+            await staff_channel.send(content=message.content + f"\nUser: `{str(message.author)}` | User_ID:`{message.author.id} | Msg: `{message.id}`", files=files, allowed_mentions=disnake.AllowedMentions.none())
 
     @commands.Cog.listener()
     async def on_message_delete(self, after_message: disnake.Message):
