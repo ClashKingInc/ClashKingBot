@@ -117,7 +117,10 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                     self.bot.global_channels.remove(channel)
                     return None
 
-            webhooks = await glob_channel.webhooks()
+            try:
+                webhooks = await glob_channel.webhooks()
+            except:
+                return None
             glob_webhook = None
             for webhook in webhooks:
                 if webhook.name == "Global Chat":
