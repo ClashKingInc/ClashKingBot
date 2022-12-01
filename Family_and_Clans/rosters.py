@@ -30,38 +30,42 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster.sub_command(name="create", description="Create a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_create(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), roster_alias: str = commands.Param(name="roster_alias"), add_members_to_roster: str = commands.Param(default="No", choices=["Yes", "No"])):
+        await ctx.response.defer()
         roster = Roster(bot=self.bot)
         await roster.create_roster(guild=ctx.guild, clan=clan, alias=roster_alias, add_members=(add_members_to_roster == "Yes"))
         embed = disnake.Embed(description=f"**{roster.roster_result.get('alias')}** Roster created & tied to {roster.roster_result.get('clan_name')}", color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.url)
-        await ctx.send(embed=embed)
+        await ctx.edit_original_message(embed=embed)
 
 
     @roster.sub_command(name="delete", description="Delete a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_delete(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+        await ctx.response.defer()
         _roster = Roster(self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
         await _roster.delete()
         embed = disnake.Embed(
             description=f"Roster - **{_roster.roster_result.get('alias')}** that was tied to {_roster.roster_result.get('clan_name')} has been **deleted**.",
             color=disnake.Color.red())
-        await ctx.send(embed=embed)
+        await ctx.edit_original_message(embed=embed)
 
     @roster.sub_command(name="clear", description="Clear a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_clear(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+        await ctx.response.defer()
         _roster = Roster(self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
         await _roster.clear_roster()
         embed = disnake.Embed(
             description=f"Roster - **{_roster.roster_result.get('alias')}** that was tied to {_roster.roster_result.get('clan_name')} has been **cleared**.",
             color=disnake.Color.red())
-        await ctx.send(embed=embed)
+        await ctx.edit_original_message(embed=embed)
 
     @roster.sub_command(name="signup", description="Create a signup for a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_create_signups(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+        await ctx.response.defer()
         _roster = Roster(self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
         embed = await _roster.embed()
@@ -75,18 +79,19 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         buttons = disnake.ui.ActionRow()
         for button in signup_buttons:
             buttons.append_item(button)
-        await ctx.send(embed=embed, components=[buttons])
+        await ctx.edit_original_message(embed=embed, components=[buttons])
 
 
     @roster.sub_command(name="add-player", description="Add a player to a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_add(self, ctx: disnake.ApplicationCommandInteraction, roster: str, player: coc.Player = commands.Param(converter=player_convertor), sub = commands.Param(name="sub", default=False, choices=["Yes"])):
+        await ctx.response.defer()
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
         await _roster.add_member(player=player, sub=(sub=="Yes"))
         embed = disnake.Embed(description=f"{player.name} added to **{_roster.roster_result.get('alias')}** roster.",color=disnake.Color.green())
         embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
-        await ctx.send(embed=embed, ephemeral=True)
+        await ctx.edit_original_message(embed=embed, ephemeral=True)
 
 
     @roster.sub_command(name="remove-player", description="Remove a player from a roster")
@@ -664,6 +669,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                               colour=disnake.Color.green())
         return await ctx.edit_original_message(embed=embed)
 
+
     @roster_create.autocomplete("clan")
     @roster_change_link.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
@@ -676,6 +682,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             if query.lower() in name.lower():
                 clan_list.append(f"{name} | {tag}")
         return clan_list[:25]
+
 
     @roster_delete.autocomplete("roster")
     @roster_create_signups.autocomplete("roster")

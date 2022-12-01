@@ -137,7 +137,7 @@ class CustomClient(commands.Bot):
         self.FAQ_CHANNEL_ID = 1010727127806648371
 
         self.linode_client: LinodeClient = LinodeClient(os.getenv("LINODE"))
-        self.global_channels = []
+        self.global_channels = [884950538809114665, 923767060977303552]
         self.last_message = defaultdict(int)
         self.banned_global = []
         self.global_webhooks = defaultdict(str)

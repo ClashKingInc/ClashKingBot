@@ -136,7 +136,7 @@ class Roster():
 
 
     def column_to_item(self, player_dict, field):
-        #["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "War Opt Status", "Trophies"]
+        #["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "Clan Tag, "War Opt Status", "Trophies"]
 
         if field == "Name":
             name = player_dict.get('name')
@@ -184,7 +184,6 @@ class Roster():
         spots = []
         for column in self.sort:
             spots.append(master_col.index(column))
-
         if len(spots) == 1:
             text_list = sorted(text_list, key=lambda l: (l[spots[0] + 1]), reverse=False)
         if len(spots) == 2:
@@ -197,7 +196,7 @@ class Roster():
         return text_list
 
     def all_fields(self, player_dict):
-        #["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "War Opt Status", "Trophies"]
+        #["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "Clan Tag" "War Opt Status", "Trophies"]
         item_list = []
 
         name = player_dict.get('name')
@@ -219,6 +218,10 @@ class Roster():
         name = name[:12]
         name = name.ljust(12)
         item_list.append(name.upper())
+
+        clan_tag =str(player_dict.get("current_clan_tag"))
+        item_list.append(clan_tag)
+
         item_list.append(str(player_dict.get("discord"))[:12].ljust(12))
         hr = player_dict.get("hitrate")
         if hr is None:
@@ -275,7 +278,7 @@ class Roster():
         embed.set_footer(text=f"Linked to {self.roster_result.get('clan_name')}", icon_url=self.roster_result.get("clan_badge"))
         return embed
 
-    async def refresh_roster(self):
+    async def refresh_roster(self, force=False):
         members = self.players
         if not members:
             return
@@ -294,6 +297,8 @@ class Roster():
             has_ran = True
             for member in members:
                 member: MyCustomPlayer
+                if member is None:
+                    continue
                 hr = await member.hit_rate(start_timestamp=int((datetime.utcnow() - timedelta(days=30)).timestamp()), end_timestamp=int(datetime.utcnow().timestamp()))
                 await self.update_member(player=member, field="hitrate", field_value=round(((hr[0].average_triples) * 100), 1))
 
@@ -301,7 +306,7 @@ class Roster():
             for player in members:
                 await self.update_member(player=player)
 
-    async def add_member(self, player: coc.Player, sub=False):
+    async def add_member(self, player: coc.Player, sub=False, group="No Group"):
         roster_members = self.roster_result.get("members")
         roster_member_tags = [member.get("tag") for member in roster_members]
         if len(roster_member_tags) == self.roster_size:
@@ -317,11 +322,12 @@ class Roster():
         war_pref = player.war_opted_in
         if war_pref is None:
             war_pref = False
-        await self.bot.rosters.update_one({"$and": [{"server_id": self.roster_result.get("server_id")},{"alias": self.roster_result.get("alias")}]},
+        #["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "Clan Tag", "War Opt Status", "Trophies"]
+        await self.bot.rosters.update_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
                                           {"$push": {"members": {"name": player.name, "tag": player.tag,
-                                                                 "townhall": player.town_hall, "hero_lvs": hero_lvs,
-                                                                 "current_clan": current_clan,
-                                                                 "war_pref": war_pref, "sub" : sub, "trophies": player.trophies, "current_clan_tag" : clan_tag}}})
+                                                                  "hero_lvs": hero_lvs, "townhall": player.town_hall, "discord" : None, "hitrate" : None,
+                                                                 "current_clan": current_clan, "current_clan_tag" : clan_tag,
+                                                                 "war_pref": war_pref, "trophies": player.trophies, "sub" : sub, "group" : group}}})
         roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]})
         self.roster_result = roster_result
 
@@ -375,9 +381,21 @@ class Roster():
             {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
             {"$pull": {"members": {"tag": player.tag}}})
         hero_lvs = sum(hero.level for hero in player.heroes)
+        current_clan = "No Clan"
+        clan_tag = "No Clan"
+        if player.clan is not None:
+            current_clan = player.clan.name
+            clan_tag = player.clan.tag
+        war_pref = player.war_opted_in
+        if war_pref is None:
+            war_pref = False
+
         await self.bot.rosters.update_one(
-            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias" : new_roster.roster_result.get("alias")}]},
-            {"$push": {"members": {"name": player.name, "tag": player.tag, "townhall": player.town_hall,"hero_lvs": hero_lvs, "trophies" : player.trophies, "group" : group, "sub" : (group == "Sub")}}})
+            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": new_roster.roster_result.get("alias")}]},
+            {"$push": {"members": {"name": player.name, "tag": player.tag,
+                                   "hero_lvs": hero_lvs, "townhall": player.town_hall, "discord": None, "hitrate": None,
+                                   "current_clan": current_clan, "current_clan_tag": clan_tag,
+                                   "war_pref": war_pref, "trophies": player.trophies, "sub": (group == "Sub"), "group": group}}})
 
     async def restrict_th(self, min:int = 0, max="max"):
         await self.bot.rosters.update_one(
