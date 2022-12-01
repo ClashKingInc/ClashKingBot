@@ -313,7 +313,7 @@ class Roster():
             raise RosterSizeLimit
         if player.tag in roster_member_tags:
             raise PlayerAlreadyInRoster
-        hero_lvs = sum(hero.level for hero in player.heroes)
+        hero_lvs = sum(hero.level for hero in player.heroes if hero.village == "home")
         current_clan = "No Clan"
         clan_tag = "No Clan"
         if player.clan is not None:
@@ -332,7 +332,7 @@ class Roster():
         self.roster_result = roster_result
 
     async def update_member(self, player: coc.Player, field = None, field_value = None):
-        hero_lvs = sum(hero.level for hero in player.heroes)
+        hero_lvs = sum(hero.level for hero in player.heroes if hero.village == "home")
         current_clan = "No Clan"
         clan_tag = "No Clan"
         if player.clan is not None:
