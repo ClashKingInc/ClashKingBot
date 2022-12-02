@@ -666,7 +666,7 @@ class getClans(commands.Cog, name="Clan"):
         stars = dict(sorted(stars.items(), key=lambda item: item[1], reverse=True))
         place = list(stars.keys()).index(clan.tag) + 1
         league = response["leagueId"]
-        war_leagues = open(f"Dictionaries/war_leagues.json")
+        war_leagues = open(f"Assets/war_leagues.json")
         war_leagues = json.load(war_leagues)
         league_name = [x["name"] for x in war_leagues["items"] if x["id"] == league][0]
         promo = [x["promo"] for x in war_leagues["items"] if x["id"] == league][0]

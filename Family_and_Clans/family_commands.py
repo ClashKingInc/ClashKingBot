@@ -321,7 +321,7 @@ class family_commands(commands.Cog):
     @family.sub_command(name="cwl-rankings", description="Get rankings of family clans in current cwl")
     async def cwl_rankings(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
-        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": 810466565744230410})
         if len(clan_tags) == 0:
             return await ctx.send("No clans linked to this server.")
 
@@ -334,6 +334,7 @@ class family_commands(commands.Cog):
             tasks.append(task)
         rankings = await asyncio.gather(*tasks)
         new_rankings = {}
+        print(rankings)
         for item in rankings:
             new_rankings[list(item.keys())[0]] = list(item.values())[0]
 
@@ -387,6 +388,12 @@ class family_commands(commands.Cog):
     async def cwl_ranking_create(self, clan: coc.Clan):
         try:
             group = await self.bot.coc_client.get_league_group(clan.tag)
+            state = group.state
+            if str(state) == "preparation" and len(group.rounds) == 1:
+                return {clan.tag: None}
+            print(group.season)
+            if str(group.season) != self.bot.gen_season_date():
+                return {clan.tag: None}
         except:
             return {clan.tag: None}
 
@@ -417,10 +424,9 @@ class family_commands(commands.Cog):
             star_list.append([tag, stars, destruction])
 
         sorted_list = sorted(star_list, key=operator.itemgetter(1, 2), reverse=True)
-
         place= 1
         for item in sorted_list:
-            war_leagues = open(f"Dictionaries/war_leagues.json")
+            war_leagues = open(f"Assets/war_leagues.json")
             war_leagues = json.load(war_leagues)
             promo = [x["promo"] for x in war_leagues["items"] if x["name"] == clan.war_league.name][0]
             demo = [x["demote"] for x in war_leagues["items"] if x["name"] == clan.war_league.name][0]

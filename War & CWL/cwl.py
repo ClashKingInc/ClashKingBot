@@ -756,9 +756,10 @@ class Cwl(commands.Cog, name="CWL"):
         for tClan in await tracked.to_list(length=limit):
             c = []
             tag = tClan.get("tag")
-            name = tClan.get("name")
-            c.append(name)
             clan = await self.bot.getClan(tag)
+            if clan is None:
+                continue
+            c.append(clan.name)
             c.append(clan.war_league.name)
             c.append(clan.tag)
             try:
@@ -773,15 +774,14 @@ class Cwl(commands.Cog, name="CWL"):
                 elif str(state) == "inWar":
                     c.append("<a:swords:944894455633297418>")
                     c.append(0)
+                elif str(state) == "notInWar":
+                    c.append("<a:spinning:992612297048588338>")
+                    c.append(2)
             except coc.errors.NotFound:
                 c.append("<:dash:933150462818021437>")
                 c.append(3)
-            except:
-                c.append("<a:spinning:992612297048588338>")
-                c.append(2)
             spin_list.append(c)
 
-        #print(spin_list)
         clans_list = sorted(spin_list, key=lambda x: (x[1], x[4]), reverse=False)
 
         main_embed = disnake.Embed(title=f"__**{ctx.guild.name} CWL Status**__",
