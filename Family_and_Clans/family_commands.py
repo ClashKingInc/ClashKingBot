@@ -321,7 +321,7 @@ class family_commands(commands.Cog):
     @family.sub_command(name="cwl-rankings", description="Get rankings of family clans in current cwl")
     async def cwl_rankings(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
-        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": 810466565744230410})
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
         if len(clan_tags) == 0:
             return await ctx.send("No clans linked to this server.")
 
