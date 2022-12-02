@@ -85,13 +85,12 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster.sub_command(name="add-player", description="Add a player to a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_add(self, ctx: disnake.ApplicationCommandInteraction, roster: str, player: coc.Player = commands.Param(converter=player_convertor), sub = commands.Param(name="sub", default=False, choices=["Yes"])):
-        await ctx.response.defer()
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
         await _roster.add_member(player=player, sub=(sub=="Yes"))
         embed = disnake.Embed(description=f"{player.name} added to **{_roster.roster_result.get('alias')}** roster.",color=disnake.Color.green())
         embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
-        await ctx.edit_original_message(embed=embed, ephemeral=True)
+        await ctx.send(embed=embed, ephemeral=True)
 
 
     @roster.sub_command(name="remove-player", description="Remove a player from a roster")
