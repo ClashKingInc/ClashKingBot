@@ -23,18 +23,19 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         if message.channel.id in self.bot.global_channels:
             if message.author.id in self.bot.banned_global:
                 return
-            #self.bot.last_message[message.author.id] = int(datetime.datetime.utcnow().timestamp())
+            if message.guild.member_count <= 24:
+                return
 
             urls = extractor.find_urls(message.content)
             for url in urls:
                 if "discord.gg" not in url and "tenor" not in url and "gif" not in url and "giphy" not in url:
                     message.content = message.content.replace(url, "")
 
-            nlp = spacy.load('en')
-            profanity_filter = ProfanityFilter(nlps={'en': nlp})  # reuse spacy Language (optional)
-            nlp.add_pipe(profanity_filter.spacy_component, last=True)
+            #nlp = spacy.load('en')
+            #profanity_filter = ProfanityFilter(nlps={'en': nlp})  # reuse spacy Language (optional)
+            #nlp.add_pipe(profanity_filter.spacy_component, last=True)
 
-            message.content = profanity_filter.censor(message.content)
+            #message.content = profanity_filter.censor(message.content)
             if message.content == "" and message.attachments == [] and message.stickers == []:
                 return
 
@@ -178,6 +179,11 @@ class GlobalChat(commands.Cog, name="Global Chat"):
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def global_chat_channel(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, remove = commands.Param(default="False", choices=["True", "False"])):
         await ctx.response.defer()
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
+        if limit == 0:
+            embed = disnake.Embed(description="Must have at least one clan set up on this server. This global chat is only for clash servers whom have 25 or more members.", color=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+
         result = await self.bot.global_chat_db.find_one({"server" : ctx.guild.id})
         if result is None and remove == "True":
             return await ctx.edit_original_message("No global channel set up")
@@ -256,25 +262,37 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         if not message_id.isdigit():
             return await ctx.send(content="Message id is invalid.", ephemeral=True)
         try:
-            message: disnake.WebhookMessage = await ctx.channel.fetch_message(1046587237179076668)
+            message: disnake.WebhookMessage = await ctx.channel.fetch_message(message_id)
         except:
             return await ctx.send(content="Message id is invalid.", ephemeral=True)
+        self.bot.global_channels = [903019225046741092]
         if message.channel.id not in self.bot.global_channels:
             return await ctx.send(content="Message is not in a global chat channel.", ephemeral=True)
         user = message.author.display_name
         await ctx.response.defer()
         channel = await self.bot.fetch_channel(1046595439962636318)
         embed = disnake.Embed(description=f"Report from {str(ctx.author)}\n"
-                                          f"{user.split('|')} - {message.content[0:100]}", color=disnake.Color.red())
+                                          f"{user} - {message.content[0:100]}", color=disnake.Color.red())
         await channel.send(embed=embed)
         await ctx.edit_original_message(content="Report submitted!")
 
     @global_chat.sub_command(name="staff-ban", description="Staff Command. Ban a user.")
     @commands.check_any(commands.has_any_role(*[1034134693869797416, 923787651058901062]))
-    async def global_chat_strike(self, ctx: disnake.ApplicationCommandInteraction, user_id: str):
+    async def global_chat_ban(self, ctx: disnake.ApplicationCommandInteraction, user_id: str):
         await ctx.response.defer()
-        self.bot.banned_global.append(user_id)
-        await ctx.edit_original_message(f"Banned {user_id}")
+        try:
+            user_id = int(user_id)
+            user = await self.bot.fetch_user(user_id)
+        except:
+            return await ctx.edit_original_message(content="Not a valid user")
+
+        results = await self.bot.global_reports.find_one({"user": user_id})
+        if results is None:
+            await self.bot.global_reports.insert_one({"user": user_id, "strikes": 3})
+        else:
+            await self.bot.global_reports.update_one({"user": user_id}, {"$set": {"strikes": 3}})
+        self.bot.banned_global.append(int(user.id))
+        await ctx.edit_original_message(f"Banned {user.name}")
 
     @global_chat.sub_command(name="staff-strike", description="Staff Command. Give a user a strike.")
     @commands.check_any(commands.has_any_role(*[1034134693869797416, 923787651058901062]))
