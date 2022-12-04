@@ -107,12 +107,17 @@ class VoiceStatCron(commands.Cog):
         month = now.month
         day = now.day
         hour = now.hour
+        print(month)
         if type == "CWL":
             is_cwl = True
             if day == 1:
                 first = datetime(year, month, 1, hour=8, tzinfo=utc)
             else:
-                first = datetime(year, month + 1, 1, hour=8, tzinfo=utc)
+                if month + 1 == 13:
+                    next_month = 1
+                else:
+                    next_month = month + 1
+                first = datetime(year, next_month, 1, hour=8, tzinfo=utc)
             end = datetime(year, month, 11, hour=8, tzinfo=utc)
             if (day >= 1 and day <= 10):
                 if (day == 1 and hour < 8) or (day == 11 and hour >= 8):
@@ -160,10 +165,18 @@ class VoiceStatCron(commands.Cog):
                 is_games = False
 
             if day == 28 and hour >= 8:
-                first = datetime(year, month + 1, 22, hour=8, tzinfo=utc)
+                if month + 1 == 13:
+                    next_month = 1
+                else:
+                    next_month = month + 1
+                first = datetime(year, next_month, 22, hour=8, tzinfo=utc)
 
             if day >= 29:
-                first = datetime(year, month + 1, 22, hour=8, tzinfo=utc)
+                if month + 1 == 13:
+                    next_month = 1
+                else:
+                    next_month = month + 1
+                first = datetime(year, next_month, 22, hour=8, tzinfo=utc)
 
             if is_games:
                 time_left = end - now
@@ -203,7 +216,7 @@ class VoiceStatCron(commands.Cog):
                 is_raids = False
 
             if is_raids:
-                end = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days=(7 - current_dayofweek))
+                end = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days= (7 - current_dayofweek))
                 time_left = end - now
                 secs = time_left.total_seconds()
                 days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
