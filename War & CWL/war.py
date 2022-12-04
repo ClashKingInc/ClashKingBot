@@ -33,20 +33,18 @@ class War(commands.Cog):
         if clan is None:
             return await ctx.send("Not a valid clan tag.")
 
-        if not clan.public_war_log:
-            embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) has a private war log.",
-                                  color=disnake.Color.green())
-            embed.set_thumbnail(url=clan.badge.large)
-            return await ctx.send(embed=embed)
-
         war = await self.bot.get_clanwar(clan.tag)
-
         if war is None or war.start_time is None:
-            embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) is not in War.",
-                                  color=disnake.Color.green())
-            embed.set_thumbnail(url=clan.badge.large)
-            return await ctx.send(embed=embed)
-
+            if not clan.public_war_log:
+                embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) has a private war log.",
+                                      color=disnake.Color.green())
+                embed.set_thumbnail(url=clan.badge.large)
+                return await ctx.send(embed=embed)
+            else:
+                embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) is not in War.",
+                                      color=disnake.Color.green())
+                embed.set_thumbnail(url=clan.badge.large)
+                return await ctx.send(embed=embed)
 
         disc = "<:map:944913638500761600>"
         emoji = ''.join(filter(str.isdigit, disc))
