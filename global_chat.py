@@ -16,7 +16,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.send_rules, 'interval', minutes=15)
+        scheduler.add_job(self.send_rules, 'interval', minutes=30)
 
 
     @commands.Cog.listener()
@@ -97,7 +97,10 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                                                                  {'$set': {"channel": None}})
                         self.bot.global_channels.remove(channel)
                         return
-                webhooks = await glob_channel.webhooks()
+                try:
+                    webhooks = await glob_channel.webhooks()
+                except:
+                    return None
                 glob_webhook = None
                 for webhook in webhooks:
                     if webhook.name == "Global Chat":
@@ -293,7 +296,10 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                                                                  {'$set': {"channel": None}})
                         self.bot.global_channels.remove(channel)
                         return
-                webhooks = await glob_channel.webhooks()
+                try:
+                    webhooks = await glob_channel.webhooks()
+                except:
+                    return None
                 glob_webhook = None
                 for webhook in webhooks:
                     if webhook.name == "Global Chat":
