@@ -382,7 +382,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             await self.bot.global_reports.insert_one({"user" : user.id, "strikes" : 1})
         else:
             await self.bot.global_reports.update_one({"user" : user.id}, {"$inc" : {"strikes" : 1}})
-        result = self.bot.banned_global.find_one({"user" : user.id})
+        result = self.bot.global_reports.find_one({"user" : user.id})
         if result.get("strikes") >= 3:
             self.bot.banned_global.append(user.id)
         await ctx.edit_original_message(f"Gave {str(user)} a strike")
