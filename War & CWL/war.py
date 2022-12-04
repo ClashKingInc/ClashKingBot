@@ -403,45 +403,7 @@ class War(commands.Cog):
         return new_num
 
     async def calculate_stars_percent(self, war: coc.ClanWar):
-        stars = 0
-        destr = 0
-        num_def = 0
-
-        opp_stars = 0
-        opp_destr = 0
-        opp_num_def = 0
-
-        for member in war.members:
-            if member not in war.opponent.members:
-                defenses = member.defenses
-                num_def +=1
-                largest_star = 0
-                largest_per = 0
-                for defense in defenses:
-                    star = defense.stars
-                    if star >= largest_star:
-                        if defense.destruction > largest_per:
-                            largest_star = star
-                            largest_per = defense.destruction
-                stars += largest_star
-                destr += largest_per
-            else:
-                defenses = member.defenses
-                opp_num_def += 1
-                largest_star = 0
-                largest_per = 0
-                for defense in defenses:
-                    star = defense.stars
-                    if star >= largest_star:
-                        if defense.destruction > largest_per:
-                            largest_star = star
-                            largest_per = defense.destruction
-                opp_stars += largest_star
-                opp_destr += largest_per
-
-        avg_destr = round(destr/num_def, 2)
-        avg_destr_opp = round(opp_destr / opp_num_def, 2)
-        return [stars, avg_destr, opp_stars, avg_destr_opp]
+        return [war.clan.stars, war.clan.destruction, war.opponent.stars, war.opponent.destruction]
 
     async def war_th_comps(self, war: coc.ClanWar):
         thcount = defaultdict(int)
