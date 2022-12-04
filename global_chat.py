@@ -16,7 +16,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.send_rules, 'interval', minutes=1)
+        scheduler.add_job(self.send_rules, 'interval', minutes=15)
 
 
     @commands.Cog.listener()
@@ -128,9 +128,9 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                                            "- English Chat Only\n"
                                            "- No advertising or self-promotion, unless in reference to a question\n"
                                            "- No discussion of topics against Discord or Clash of Clans/Supercell TOS\n"
-                                           "- Report bad behavior with </global-chat report:1046600513728290937>",
+                                           "- Report bad behavior with </global-chat report:1046600513728290937>\n"
+                                           "[Support Server](https://discord.gg/gChZm3XCrS)",
                                color=disnake.Color.green())
-            em.set_footer(text="[Support Server](https://discord.gg/gChZm3XCrS)")
             em.set_image(
                 url="https://cdn.discordapp.com/attachments/923767060977303552/1046920746636685342/unknown.png")
             task = asyncio.ensure_future(webhook_task(channel, em))
