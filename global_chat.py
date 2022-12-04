@@ -203,6 +203,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         else:
             await self.bot.global_chat_db.update_one({"server" : ctx.guild.id}, {"$set": {"channel" : channel.id}})
             embed = disnake.Embed(description=f"Global Chat set to {channel.mention}")
+        self.bot.global_webhooks[channel.id] = ""
         self.bot.global_channels.append(channel.id)
 
         async def webhook_task(channel, embed_):
