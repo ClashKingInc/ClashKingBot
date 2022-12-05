@@ -202,16 +202,16 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 except:
                     return None
             self.bot.global_webhooks[channel] = glob_webhook
-            return await self.send_web(glob_webhook, message, embed)
+            return await self.send_web(glob_webhook, message, embed, channel)
         else:
             try:
                 webhook = self.bot.global_webhooks[channel]
-                return await self.send_web(webhook, message, embed)
+                return await self.send_web(webhook, message, embed, channel)
             except:
                 self.bot.global_webhooks[channel] = ""
                 return None
 
-    async def send_web(self, webhook, message, embed):
+    async def send_web(self, webhook, message, embed, channel):
         files = [await attachment.to_file() for attachment in message.attachments]
         files += [await sticker.to_file() for sticker in message.stickers]
         files = files[:10]
@@ -238,6 +238,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                     return None
             return web_msg
         except:
+            self.bot.global_webhooks[channel] = ""
             return None
 
     @commands.slash_command(name="global-chat", description="Global Chat")
