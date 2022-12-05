@@ -235,10 +235,6 @@ class misc(commands.Cog, name="Other"):
         channel.execute('pm2 start main.py --interpreter=/usr/bin/python3')
     '''
 
-
-
-
-
     async def parse_faq(self):
         faq_channel = await self.bot.fetch_channel(self.bot.FAQ_CHANNEL_ID)
         q_n_a = {}

@@ -403,7 +403,7 @@ class War(commands.Cog):
         return new_num
 
     async def calculate_stars_percent(self, war: coc.ClanWar):
-        return [war.clan.stars, war.clan.destruction, war.opponent.stars, war.opponent.destruction]
+        return [war.opponent.stars, round(war.opponent.destruction, 2), war.clan.stars, round(war.clan.destruction, 2)]
 
     async def war_th_comps(self, war: coc.ClanWar):
         thcount = defaultdict(int)

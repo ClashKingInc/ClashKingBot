@@ -604,29 +604,52 @@ class clan_commands(commands.Cog, name="Clan Commands"):
         return disnake.File("ClanCapitalStats.xlsx", filename=f"{weekend}_clancapital.xlsx")
 
     @clan.sub_command(name="games", description="Points earned in clan games by clan members")
-    async def clan_games(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+    async def clan_games(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), season = commands.Param(default=None, name="season")):
         await ctx.response.defer()
         time = datetime.now().timestamp()
-        embed = await self.create_clan_games(clan)
+        _season = ""
+        if season is not None:
+            month = list(calendar.month_name).index(season.split(" ")[0])
+            year = season.split(" ")[1]
+            end_date = coc.utils.get_season_end(month=int(month-1), year=int(year))
+            month = end_date.month
+            if month <= 9:
+                month = f"0{month}"
+            embed = await self.create_clan_games(clan, date=f"{end_date.year}-{month}")
+            _season = f"_{end_date.year}-{month}"
+        else:
+            embed = await self.create_clan_games(clan)
+
         embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
         buttons = disnake.ui.ActionRow()
         buttons.append_item(
             disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
-                              custom_id=f"clangames_{clan.tag}"))
+                              custom_id=f"clangames{_season}_{clan.tag}"))
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     @clan.sub_command(name="donations", description="Donations given & received by clan members")
-    async def clan_donations(self, ctx: disnake.ApplicationCommandInteraction,clan: coc.Clan = commands.Param(converter=clan_converter)):
+    async def clan_donations(self, ctx: disnake.ApplicationCommandInteraction,clan: coc.Clan = commands.Param(converter=clan_converter), season = commands.Param(default=None, name="season")):
         await ctx.response.defer()
+        _season = ""
+        if season is not None:
+            month = list(calendar.month_name).index(season.split(" ")[0])
+            year = season.split(" ")[1]
+            end_date = coc.utils.get_season_end(month=int(month-1), year=int(year))
+            month = end_date.month
+            if month <= 9:
+                month = f"0{month}"
+            embed = await self.create_donations(clan, type="donated", date=f"{end_date.year}-{month}")
+            _season = f"_{end_date.year}-{month}"
+        else:
+            embed = await self.create_donations(clan, type="donated")
+
         time = datetime.now().timestamp()
-        embed = await self.create_donations(clan, type="donated")
         embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
         buttons = disnake.ui.ActionRow()
-        buttons.append_item(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,custom_id=f"donated_{clan.tag}"))
-        buttons.append_item(disnake.ui.Button(label="Received", emoji=self.bot.emoji.clan_castle.partial_emoji, style=disnake.ButtonStyle.green, custom_id=f"received_{clan.tag}"))
-        buttons.append_item(disnake.ui.Button(label="Ratio", emoji=self.bot.emoji.ratio.partial_emoji, style=disnake.ButtonStyle.green, custom_id=f"ratio_{clan.tag}"))
+        buttons.append_item(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,custom_id=f"donated{_season}_{clan.tag}"))
+        buttons.append_item(disnake.ui.Button(label="Received", emoji=self.bot.emoji.clan_castle.partial_emoji, style=disnake.ButtonStyle.green, custom_id=f"received{_season}_{clan.tag}"))
+        buttons.append_item(disnake.ui.Button(label="Ratio", emoji=self.bot.emoji.ratio.partial_emoji, style=disnake.ButtonStyle.green, custom_id=f"ratio{_season}_{clan.tag}"))
         await ctx.edit_original_message(embed=embed, components=buttons)
-
 
     @clan.sub_command(name='lastonline-graph', description="Get a graph showing average clan members on per an hour")
     async def last_online_graph(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), timezone = commands.Param(name="timezone")):
@@ -758,6 +781,80 @@ class clan_commands(commands.Cog, name="Clan Commands"):
                     embed = await self.create_stars_leaderboard(clan=clan, players=players, start_timestamp=start_date, end_timestamp=end_date)
                 await res.edit_original_message(embed=embed)
 
+    @clan.sub_command(name="ping", description="Ping members in the clan based on different characteristics")
+    async def clan_ping(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+        await ctx.response.defer()
+        embed = disnake.Embed(description="Choose the characteristics you would like to ping for below:", color=disnake.Color.green())
+        options = []
+        members = await self.bot.get_players(tags=[member.tag for member in clan.members])
+        ths = set()
+        for member in members: #type: coc.Player
+            ths.add(member.town_hall)
+        characteristic_types = ["War Opted In",  "War Opted Out", "War Attacks Remaining"] + [f"Townhall {th}" for th in list(ths)]
+        for type in characteristic_types:
+            options.append(disnake.SelectOption(label=type, value=type))
+        select = disnake.ui.Select(
+            options=options,
+            placeholder="Select Types to Ping",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=len(characteristic_types),  # the maximum number of options a user can select
+        )
+        dropdown = [disnake.ui.ActionRow(select)]
+        await ctx.edit_original_message(embed=embed, components=dropdown)
+
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        try:
+            res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
+        except:
+            return await msg.edit(components=[])
+
+        await res.response.defer()
+
+
+        to_ping = set()
+        tag_to_name = {}
+        tag_to_th = {}
+        for player in members: #type: coc.Player
+            tag_to_name[player.tag] = player.name
+            tag_to_th[player.tag] = player.town_hall
+            if f"Townhall {player.town_hall}" in res.values:
+                to_ping.add(player.tag)
+            if player.war_opted_in:
+                if "War Opted In" in res.values:
+                    to_ping.add(player.tag)
+
+            if not player.war_opted_in:
+                if "War Opted Out" in res.values:
+                    to_ping.add(player.tag)
+
+        if "War Attacks Remaining" in res.values:
+            war: coc.ClanWar = await self.bot.get_clanwar(clan.tag)
+            if war is not None:
+                for war_member in war.clan.members:
+                    if not war_member.attacks:
+                        tag_to_name[war_member.tag] = war_member.name
+                        tag_to_th[war_member.tag] = war_member.town_hall
+                        to_ping.add(war_member.tag)
+
+        links = await self.bot.link_client.get_links(*list(to_ping))
+        #badge = await self.bot.create_new_badge_emoji(url=clan.badge.url)
+        missing_text = ""
+        for player_tag, discord_id in links:
+            name = tag_to_name[player_tag]
+            discord_member = disnake.utils.get(ctx.guild.members, id=discord_id)
+            if discord_member is None:
+                missing_text += f"{self.bot.fetch_emoji(tag_to_th[player_tag])}{name} | {player_tag}\n"
+            else:
+                missing_text += f"{self.bot.fetch_emoji(tag_to_th[player_tag])}{name} | {discord_member.mention}\n"
+        if missing_text == "":
+            missing_text = "No Players Found"
+
+        await res.edit_original_message(embed=None, components=[], content=missing_text)
+
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
@@ -829,28 +926,44 @@ class clan_commands(commands.Cog, name="Clan Commands"):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
-            embed: disnake.Embed = await self.create_clan_games(clan)
+            if len(str(ctx.data.custom_id).split("_")) == 3:
+                season = (str(ctx.data.custom_id).split("_"))[-2]
+                embed: disnake.Embed = await self.create_clan_games(clan, season)
+            else:
+                embed: disnake.Embed = await self.create_clan_games(clan)
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
         elif "donated_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
-            embed: disnake.Embed = await self.create_donations(clan, type="donated")
+            if len(str(ctx.data.custom_id).split("_")) == 3:
+                season = (str(ctx.data.custom_id).split("_"))[-2]
+                embed: disnake.Embed = await self.create_donations(clan, type="donated", date=season)
+            else:
+                embed: disnake.Embed = await self.create_donations(clan, type="donated")
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
         elif "received_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
-            embed: disnake.Embed = await self.create_donations(clan, type="received")
+            if len(str(ctx.data.custom_id).split("_")) == 3:
+                season = (str(ctx.data.custom_id).split("_"))[-2]
+                embed: disnake.Embed = await self.create_donations(clan, type="received", date=season)
+            else:
+                embed: disnake.Embed = await self.create_donations(clan, type="received")
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
         elif "ratio_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
-            embed: disnake.Embed = await self.create_donations(clan, type="ratio")
+            if len(str(ctx.data.custom_id).split("_")) == 3:
+                season = (str(ctx.data.custom_id).split("_"))[-2]
+                embed: disnake.Embed = await self.create_donations(clan, type="ratio", date=season)
+            else:
+                embed: disnake.Embed = await self.create_donations(clan, type="received")
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
         elif "act_" in str(ctx.data.custom_id):
@@ -862,6 +975,8 @@ class clan_commands(commands.Cog, name="Clan Commands"):
             await ctx.edit_original_message(embed=embed)
 
     @war_stats_clan.autocomplete("season")
+    @clan_donations.autocomplete("season")
+    @clan_games.autocomplete("season")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
         return [season for season in seasons if query.lower() in season.lower()]
@@ -883,6 +998,7 @@ class clan_commands(commands.Cog, name="Clan Commands"):
     @last_online_graph.autocomplete("clan")
     @war_stats_clan.autocomplete("clan")
     @activities.autocomplete("clan")
+    @clan_ping.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
             tracked = self.bot.clan_db.find({"server": ctx.guild.id})
             limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})

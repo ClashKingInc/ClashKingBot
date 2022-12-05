@@ -57,13 +57,13 @@ async def create_profile_stats(bot: CustomClient, ctx, player: MyCustomPlayer):
         f"- {bot.emoji.avg_stars}Avg Stars: `{round(hitrate.average_stars, 2)}`\n" \
         f"- {bot.emoji.war_stars}Total Stars: `{hitrate.total_stars}, {hitrate.num_attacks} atks`\n" \
         f"__Donations__\n" \
-        f"- <:warwon:932212939899949176>Donated: {player.donos.donated}\n" \
-        f"- <:warlost:932212154164183081>Received: {player.donos.received}\n" \
-        f"- <:winrate:932212939908337705>Donation Ratio: {player.donation_ratio}\n" \
+        f"- <:warwon:932212939899949176>Donated: {player.donos().donated}\n" \
+        f"- <:warlost:932212154164183081>Received: {player.donos().received}\n" \
+        f"- <:winrate:932212939908337705>Donation Ratio: {player.donation_ratio()}\n" \
         f"__Event Stats__\n" \
         f"- {bot.emoji.capital_gold}CG Donated: {'{:,}'.format(sum([sum(cap.donated) for cap in capital_stats]))}\n" \
         f"- {bot.emoji.thick_sword}CG Raided: {'{:,}'.format(sum([sum(cap.raided) for cap in capital_stats]))}\n" \
-        f"- {bot.emoji.clan_games}Clan Games: {'{:,}'.format(player.clan_games)}\n" \
+        f"- {bot.emoji.clan_games}Clan Games: {'{:,}'.format(player.clan_games())}\n" \
         f"{super_troop_text}" \
         f"\n**All Time Stats:**\n" \
         f"Best Trophies: {bot.emoji.trophy}{player.best_trophies} | {bot.emoji.versus_trophy}{player.best_versus_trophies}\n" \

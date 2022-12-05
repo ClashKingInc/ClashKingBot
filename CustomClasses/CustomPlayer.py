@@ -144,10 +144,11 @@ class MyCustomPlayer(coc.Player):
             return 0
         return sum(season_looted)
 
-    @property
-    def donation_ratio(self):
-        donations = self.donos.donated
-        received = self.donos.received
+    def donation_ratio(self, date=None):
+        if date is None:
+            date = self.bot.gen_season_date()
+        donations = self.donos(date).donated
+        received = self.donos(date).received
         if received == 0:
             received = 1
         if int(donations/received) >= 1000:
@@ -189,9 +190,10 @@ class MyCustomPlayer(coc.Player):
                 cc_results.append(ClanCapitalWeek(week_result))
             return cc_results
 
-    @property
-    def donos(self):
-        date = self.bot.gen_season_date()
+
+    def donos(self, date = None):
+        if date is None:
+            date = self.bot.gen_season_date()
         if self.results is None:
             return Donations(donated=self.donations, received=self.received)
 
@@ -360,9 +362,9 @@ class MyCustomPlayer(coc.Player):
         return list_hr
 
 
-    @property
-    def clan_games(self):
-        date = self.bot.gen_season_date()
+    def clan_games(self, date= None):
+        if date is None:
+            date = self.bot.gen_season_date()
         if self.results is None:
             return 0
         clan_game = self.results.get("clan_games")

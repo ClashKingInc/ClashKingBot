@@ -539,8 +539,9 @@ class getClans(commands.Cog, name="Clan"):
                               color=disnake.Color.green())
         return embed
 
-    async def create_clan_games(self, clan: coc.Clan):
-        date = self.bot.gen_season_date()
+    async def create_clan_games(self, clan: coc.Clan, date = None):
+        if date is None:
+            date = self.bot.gen_season_date()
         member_tags = [member.tag for member in clan.members]
 
         tags = await self.bot.player_stats.distinct("tag", filter={f"clan_games.{date}.clan": clan.tag})
@@ -555,12 +556,13 @@ class getClans(commands.Cog, name="Clan"):
         responses = await asyncio.gather(*tasks)
 
         point_text = []
-        total_points = sum(player.clan_games for player in responses)
+        total_points = sum(player.clan_games(date) for player in responses)
         for player in responses:
             player: MyCustomPlayer
-            for char in ["`", "*", "_", "~"]:
-                name = player.name.replace(char, "", 10)
-            points = player.clan_games
+            name = player.name
+            for char in ["`", "*", "_", "~", "´"]:
+                name = name.replace(char, "", len(player.name))
+            points = player.clan_games(date)
 
             if player.tag in member_tags:
                 point_text.append([f"{self.bot.emoji.clan_games}`{str(points).ljust(4)}`: {name}", points])
@@ -575,8 +577,9 @@ class getClans(commands.Cog, name="Clan"):
         cg_point_embed.set_footer(text=f"Total Points: {'{:,}'.format(total_points)}")
         return cg_point_embed
 
-    async def create_donations(self, clan: coc.Clan, type: str):
-        date = self.bot.gen_season_date()
+    async def create_donations(self, clan: coc.Clan, type: str, date = None):
+        if date is None:
+            date = self.bot.gen_season_date()
         tasks = []
         for member in clan.members:
             results = await self.bot.player_stats.find_one({"tag": member.tag})
@@ -588,18 +591,19 @@ class getClans(commands.Cog, name="Clan"):
         donated_text = []
         received_text = []
         ratio_text = []
-        total_donated = sum(player.donos.donated for player in responses)
-        total_received = sum(player.donos.received for player in responses)
+        total_donated = sum(player.donos(date).donated for player in responses)
+        total_received = sum(player.donos(date).received for player in responses)
 
         for player in responses:
             player: MyCustomPlayer
-            for char in ["`", "*", "_", "~"]:
-                name = player.name.replace(char, "", 10)
+            name = player.name
+            for char in ["`", "*", "_", "~", "´"]:
+                name = name.replace(char, "", len(player.name))
             name = emoji.replace_emoji(name, "")
             name = name[:13]
-            donated_text.append([f"{str(player.donos.donated).ljust(5)} | {str(player.donos.received).ljust(5)} | {name}", player.donos.donated])
-            received_text.append([f"{str(player.donos.received).ljust(5)} | {str(player.donos.donated).ljust(5)} | {name}",player.donos.received])
-            ratio_text.append([f"{str(player.donation_ratio).ljust(5)} | {name}", player.donation_ratio])
+            donated_text.append([f"{str(player.donos(date).donated).ljust(5)} | {str(player.donos(date).received).ljust(5)} | {name}", player.donos(date).donated])
+            received_text.append([f"{str(player.donos(date).received).ljust(5)} | {str(player.donos(date).donated).ljust(5)} | {name}",player.donos(date).received])
+            ratio_text.append([f"{str(player.donation_ratio(date)).ljust(5)} | {name}", player.donation_ratio(date)])
 
         if type == "donated":
             donated_text = sorted(donated_text, key=lambda l: l[1], reverse=True)
