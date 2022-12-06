@@ -35,8 +35,8 @@ class getFamily(commands.Cog):
         donated_text = []
         received_text = []
         ratio_text = []
-        total_donated = sum(player.donos.donated for player in responses if not isinstance(player, coc.errors.NotFound))
-        total_received = sum(player.donos.received for player in responses if not isinstance(player, coc.errors.NotFound))
+        total_donated = sum(player.donos().donated for player in responses if not isinstance(player, coc.errors.NotFound))
+        total_received = sum(player.donos().received for player in responses if not isinstance(player, coc.errors.NotFound))
 
         for player in responses:
             if isinstance(player, coc.errors.NotFound):
@@ -53,11 +53,11 @@ class getFamily(commands.Cog):
             name = name[:13]
             name = name.ljust(13)
             donated_text.append(
-                [f"`{str(player.donos.donated).ljust(5)} | {str(player.donos.received).ljust(5)} | \u200e{name}`",
-                 player.donos.donated])
+                [f"`{str(player.donos().donated).ljust(5)} | {str(player.donos().received).ljust(5)} | \u200e{name}`",
+                 player.donos().donated])
             received_text.append(
-                [f"`{str(player.donos.received).ljust(5)} | {str(player.donos.donated).ljust(5)} | \u200e{name}`",
-                 player.donos.received])
+                [f"`{str(player.donos().received).ljust(5)} | {str(player.donos().donated).ljust(5)} | \u200e{name}`",
+                 player.donos().received])
             ratio_text.append([f"`{str(player.donation_ratio).ljust(5)} | \u200e{name}`", player.donation_ratio])
 
         if type == "donated":
