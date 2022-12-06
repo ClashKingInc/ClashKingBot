@@ -104,7 +104,7 @@ class War_Log(commands.Cog):
                             if reminder_time.is_integer():
                                 reminder_time = int(reminder_time)
                             send_time = time[1]
-                            scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[new_war.clan.tag, reminder_time], id=f"{reminder_time}_{new_war.clan.tag}", name=f"{new_war.clan.tag}")
+                            scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[new_war.clan.tag, reminder_time], id=f"{reminder_time}_{new_war.clan.tag}", name=f"{new_war.clan.tag}", misfire_grace_time=None)
 
                     clan = await self.bot.getClan(new_war.clan.tag)
                     war_cog = self.bot.get_cog(name="War")
