@@ -360,7 +360,7 @@ class misc(commands.Cog, name="Settings"):
             Parameters
             ----------
             clan: Use clan tag, alias, or select an option from the autocomplete
-            channel: channel to set the join/leave log to
+            channel: channel to set the donation log to
         """
 
         clan = await self.bot.getClan(clan)
@@ -381,6 +381,37 @@ class misc(commands.Cog, name="Settings"):
         ]}, {'$set': {"donolog": channel.id}})
 
         embed = disnake.Embed(description=f"Donation Log set in {channel.mention} for {clan.name}",
+                              color=disnake.Color.green())
+        await ctx.send(embed=embed)
+
+    @set.sub_command(name="player-upgrades-log", description="Set up a donation log for a clan")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def player_upgrades_log(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: Union[disnake.TextChannel, disnake.Thread]):
+        """
+            Parameters
+            ----------
+            clan: Use clan tag, alias, or select an option from the autocomplete
+            channel: channel to set the upgrades log to
+        """
+
+        clan = await self.bot.getClan(clan)
+
+        if clan is None:
+            return await ctx.send("Not a valid clan tag.")
+
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        if results is None:
+            return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
+
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]}, {'$set': {"upgrade_log": channel.id}})
+
+        embed = disnake.Embed(description=f"Player Upgrade Log set in {channel.mention} for {clan.name}. It will receive updates when player troops, spells, heros, or townhall is upgraded or unlocked.",
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
