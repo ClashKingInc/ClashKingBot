@@ -17,7 +17,7 @@ class War_Log(commands.Cog):
         self.bot = bot
         self.bot.coc_client.add_events(self.new_war, self.war_attack)
 
-    @coc.WarEvents.state()
+    @coc.WarEvents.state_or_new_war()
     async def new_war(self, old_war: coc.ClanWar, new_war: coc.ClanWar):
         #store old war
         #self.bot.store_war(old_war)
@@ -43,6 +43,22 @@ class War_Log(commands.Cog):
                 attack_feed = cc.get("attack_feed")
                 war_message = cc.get("war_message")
                 war_id = cc.get("war_id")
+
+                if new_war.state == "preparation" or (f"{old_war.clan.tag}-{int(old_war.preparation_start_time.time.timestamp())}" != f"{new_war.clan.tag}-{int(new_war.preparation_start_time.time.timestamp())}"):
+                    cog = self.bot.get_cog(name="Reminders")
+                    reminder_times = await self.bot.get_reminder_times(clan_tag=new_war.clan.tag)
+                    acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times,
+                                                                   war_end_time=new_war.end_time)
+                    if acceptable_times:
+                        for time in acceptable_times:
+                            reminder_time = time[0] / 3600
+                            if reminder_time.is_integer():
+                                reminder_time = int(reminder_time)
+                            send_time = time[1]
+                            scheduler.add_job(cog.war_reminder, 'date', run_date=send_time,
+                                              args=[new_war.clan.tag, reminder_time],
+                                              id=f"{reminder_time}_{new_war.clan.tag}", name=f"{new_war.clan.tag}",
+                                              misfire_grace_time=None)
 
                 if new_war.state == "preparation":
                     #if we skipped from one war to next, update the old one
@@ -94,17 +110,6 @@ class War_Log(commands.Cog):
                         else:
                             await self.update_war_message(war=old_war, warlog_channel=warlog_channel,
                                                           message_id=war_message, server=cc.get("server"))
-
-                    cog = self.bot.get_cog(name="Reminders")
-                    reminder_times = await self.bot.get_reminder_times(clan_tag=new_war.clan.tag)
-                    acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times,war_end_time=new_war.end_time)
-                    if acceptable_times:
-                        for time in acceptable_times:
-                            reminder_time = time[0] / 3600
-                            if reminder_time.is_integer():
-                                reminder_time = int(reminder_time)
-                            send_time = time[1]
-                            scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[new_war.clan.tag, reminder_time], id=f"{reminder_time}_{new_war.clan.tag}", name=f"{new_war.clan.tag}", misfire_grace_time=None)
 
                     clan = await self.bot.getClan(new_war.clan.tag)
                     war_cog = self.bot.get_cog(name="War")
