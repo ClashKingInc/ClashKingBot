@@ -17,7 +17,7 @@ import emoji
 tiz = pytz.utc
 
 
-class clan_commands(commands.Cog, name="Clan Commands"):
+class ClanCommands(commands.Cog, name="Clan Commands"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot

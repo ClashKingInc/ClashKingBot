@@ -1,3 +1,5 @@
+from CustomClasses.CustomPlayer import LegendRanking
+from CustomClasses.CustomBot import CustomClient
 import disnake
 import coc
 import pytz
@@ -19,14 +21,11 @@ from CustomClasses.CustomPlayer import MyCustomPlayer
 
 SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker", "Rocket Balloon", "Super Wizard", "Inferno Dragon",
                 "Super Minion", "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", "Super Dragon"]
-SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
+SUPER_SCRIPTS = ["⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹"]
 tiz = pytz.utc
 
 
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import LegendRanking
-
-class getClans(commands.Cog, name="Clan"):
+class ClanUtils(commands.Cog, name="Clan"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
@@ -53,7 +52,7 @@ class getClans(commands.Cog, name="Clan"):
 
         category = ""
         if results is not None:
-            ctg= results.get("category")
+            ctg = results.get("category")
             if ctg is not None:
                 category = f"Category: {ctg}\n"
 
@@ -65,8 +64,7 @@ class getClans(commands.Cog, name="Clan"):
             except:
                 flag = "🏳️"
 
-
-        result_ranking = await self.bot.clan_leaderboard_db.find_one({"tag" : clan.tag})
+        result_ranking = await self.bot.clan_leaderboard_db.find_one({"tag": clan.tag})
         ranking = LegendRanking(result_ranking)
 
         rank_text = ""
@@ -84,7 +82,6 @@ class getClans(commands.Cog, name="Clan"):
                 rank_text += f"{flag} {ranking.local_ranking}"
         else:
             rank_text += f"{flag} {ranking.local_ranking}"
-
 
         embed = disnake.Embed(title=f"**{clan.name}**", description=f"Tag: [{clan.tag}]({clan.share_link})\n"
                                                                     f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.versus_points}\n"
@@ -104,16 +101,18 @@ class getClans(commands.Cog, name="Clan"):
                               color=disnake.Color.green())
 
         compo = await self.war_th_comps(clan)
-        embed.add_field(name="**Townhall Composition:**", value=compo[0], inline=False)
-        embed.add_field(name="**Boosted Super Troops:**", value=compo[1], inline=False)
+        embed.add_field(name="**Townhall Composition:**",
+                        value=compo[0], inline=False)
+        embed.add_field(name="**Boosted Super Troops:**",
+                        value=compo[1], inline=False)
 
         embed.set_thumbnail(url=clan.badge.large)
         return embed
 
     async def war_th_comps(self, clan: coc.Clan):
 
-        stroops = {"Super Barbarian" : 0, "Super Archer": 0, "Super Giant": 0, "Sneaky Goblin": 0, "Super Wall Breaker": 0, "Rocket Balloon": 0, "Super Wizard": 0, "Inferno Dragon": 0,
-                "Super Minion": 0, "Super Valkyrie": 0, "Super Witch": 0, "Ice Hound": 0, "Super Bowler": 0, "Super Dragon": 0}
+        stroops = {"Super Barbarian": 0, "Super Archer": 0, "Super Giant": 0, "Sneaky Goblin": 0, "Super Wall Breaker": 0, "Rocket Balloon": 0, "Super Wizard": 0, "Inferno Dragon": 0,
+                   "Super Minion": 0, "Super Valkyrie": 0, "Super Witch": 0, "Ice Hound": 0, "Super Bowler": 0, "Super Dragon": 0}
 
         thcount = defaultdict(int)
 
@@ -127,7 +126,6 @@ class getClans(commands.Cog, name="Clan"):
                         stroops[troop.name] = stroops[troop.name] + 1
                     except:
                         pass
-
 
         stats = ""
         for th_level, th_count in sorted(thcount.items(), reverse=True):
@@ -192,7 +190,8 @@ class getClans(commands.Cog, name="Clan"):
             stats = "No players linked."
         embed = disnake.Embed(title=f"{clan.name}: {str(y)}/{str(clan.member_count)} linked", description=stats,
                               color=disnake.Color.green())
-        embed.set_footer(text="Discord blank if linked but not on this server.")
+        embed.set_footer(
+            text="Discord blank if linked but not on this server.")
         return embed
 
     async def unlinked_players(self, ctx, clan: coc.Clan):
@@ -227,7 +226,7 @@ class getClans(commands.Cog, name="Clan"):
 
             member = ""
             if notLinked:
-                y+=1
+                y += 1
                 member = player.tag
 
             stats += f'\u200e{linkE}`\u200e{name}` \u200e{member}' + "\n"
@@ -246,7 +245,7 @@ class getClans(commands.Cog, name="Clan"):
             place = str(x + 1) + "."
             place = place.ljust(3)
             text += f"\u200e`{place}` \u200e<:a_cups:667119203744088094> \u200e{player.trophies} - \u200e{player.name}\n"
-            x +=1
+            x += 1
 
         embed = disnake.Embed(title=f"{clan.name} Players - Sorted: Trophies", description=text,
                               color=disnake.Color.green())
@@ -259,7 +258,8 @@ class getClans(commands.Cog, name="Clan"):
         async for player in clan.get_detailed_members():
             th_emoji = emojiDictionary(player.town_hall)
             thcount[player.town_hall] += 1
-            ranking.append([player.town_hall, f"{th_emoji}\u200e{player.name}\n"])
+            ranking.append(
+                [player.town_hall, f"{th_emoji}\u200e{player.name}\n"])
 
         ranking = sorted(ranking, key=lambda l: l[0], reverse=True)
         ranking = "".join([i[1] for i in ranking])
@@ -268,11 +268,12 @@ class getClans(commands.Cog, name="Clan"):
                               description=ranking,
                               color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
-        footer_text = "".join(f"Th{index}: {th} " for index, th in sorted(thcount.items(), reverse=True) if th != 0)
+        footer_text = "".join(f"Th{index}: {th} " for index, th in sorted(
+            thcount.items(), reverse=True) if th != 0)
         embed.set_footer(text=footer_text)
         return embed
 
-    async def opt_status(self, clan : coc.Clan):
+    async def opt_status(self, clan: coc.Clan):
         opted_in = []
         opted_out = []
         num_in = 0
@@ -282,18 +283,19 @@ class getClans(commands.Cog, name="Clan"):
         async for player in clan.get_detailed_members():
             if player.war_opted_in:
                 th_emoji = emojiDictionary(player.town_hall)
-                opted_in.append([player.town_hall, f"<:opt_in:944905885367537685>{th_emoji}\u200e{player.name}\n", player.name])
+                opted_in.append(
+                    [player.town_hall, f"<:opt_in:944905885367537685>{th_emoji}\u200e{player.name}\n", player.name])
                 thcount[player.town_hall] += 1
                 num_in += 1
             else:
                 th_emoji = emojiDictionary(player.town_hall)
-                opted_out.append([player.town_hall, f"<:opt_out:944905931265810432>{th_emoji}\u200e{player.name}\n", player.name])
+                opted_out.append(
+                    [player.town_hall, f"<:opt_out:944905931265810432>{th_emoji}\u200e{player.name}\n", player.name])
                 out_thcount[player.town_hall] += 1
                 num_out += 1
 
-
-
-        opted_out = sorted(opted_out, key=lambda l: (-l[0], l[2]), reverse=False)
+        opted_out = sorted(
+            opted_out, key=lambda l: (-l[0], l[2]), reverse=False)
         opted_in = sorted(opted_in, key=lambda l: (-l[0], l[2]), reverse=False)
         opted_out = "".join([i[1] for i in opted_out])
         opted_in = "".join([i[1] for i in opted_in])
@@ -306,8 +308,10 @@ class getClans(commands.Cog, name="Clan"):
         embed = disnake.Embed(title=f"**{clan.name} War Opt Statuses**", description=f"**Players Opted In - {num_in}:**\n{opted_in}\n**Players Opted Out - {num_out}:**\n{opted_out}\n",
                               color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
-        footer_text = ", ".join(f"Th{index}: {th} " for index, th in sorted(thcount.items(), reverse=True) if th != 0)
-        footer_text2 = ", ".join(f"Th{index}: {th} " for index, th in sorted(out_thcount.items(), reverse=True) if th != 0)
+        footer_text = ", ".join(f"Th{index}: {th} " for index, th in sorted(
+            thcount.items(), reverse=True) if th != 0)
+        footer_text2 = ", ".join(f"Th{index}: {th} " for index, th in sorted(
+            out_thcount.items(), reverse=True) if th != 0)
         embed.set_footer(text=f"In: {footer_text}\nOut: {footer_text2}")
 
         return embed
@@ -373,7 +377,6 @@ class getClans(commands.Cog, name="Clan"):
             t1 = war.clan.attacks_used
             t2 = war.opponent.attacks_used
 
-
             if war.result == "win":
                 status = "<:warwon:932212939899949176>"
                 op_status = "Win"
@@ -384,9 +387,8 @@ class getClans(commands.Cog, name="Clan"):
                 status = "<:warlost:932212154164183081>"
                 op_status = "Loss"
 
-
             time = f"<t:{int(war.end_time.time.replace(tzinfo=tiz).timestamp())}:R>"
-            war : coc.ClanWarLogEntry
+            war: coc.ClanWarLogEntry
             try:
                 total = war.team_size * war.attacks_per_member
                 num_hit = SUPER_SCRIPTS[war.attacks_per_member]
@@ -394,9 +396,9 @@ class getClans(commands.Cog, name="Clan"):
                 total = war.team_size
                 num_hit = SUPER_SCRIPTS[1]
 
-            text+= f"{status}**{op_status} vs \u200e{war.opponent.name}**\n" \
-                   f"({war.team_size} vs {war.team_size}){num_hit} | {time}\n" \
-                   f"{war.clan.stars} <:star:825571962699907152> {war.opponent.stars} | {t1}/{total} | {round(war.clan.destruction, 1)}% | +{war.clan.exp_earned}xp\n"\
+            text += f"{status}**{op_status} vs \u200e{war.opponent.name}**\n" \
+                f"({war.team_size} vs {war.team_size}){num_hit} | {time}\n" \
+                f"{war.clan.stars} <:star:825571962699907152> {war.opponent.stars} | {t1}/{total} | {round(war.clan.destruction, 1)}% | +{war.clan.exp_earned}xp\n"\
 
 
         if text == "":
@@ -428,9 +430,9 @@ class getClans(commands.Cog, name="Clan"):
             if num == 1:
                 text = "<:blanke:838574915095101470> " + text
             if text == player.name:
-                none_boosted+= f"{player.name}\n"
+                none_boosted += f"{player.name}\n"
             else:
-                boosted+= f"{text}\n"
+                boosted += f"{text}\n"
         if boosted == "":
             boosted = "None"
         embed = disnake.Embed(title=f"**{clan.name} Boosting Statuses**", description=f"\n**Boosting:**\n{boosted}",
@@ -478,15 +480,16 @@ class getClans(commands.Cog, name="Clan"):
             if year != old_year:
                 if year_text != "":
                     not_empty = True
-                    embed.add_field(name=old_year, value=year_text, inline=False)
+                    embed.add_field(
+                        name=old_year, value=year_text, inline=False)
                     year_text = ""
                 old_year = year
             year_text += text
 
         if year_text != "":
             not_empty = True
-            embed.add_field(name = f"**{old_year}**", value=year_text, inline=False)
-
+            embed.add_field(name=f"**{old_year}**",
+                            value=year_text, inline=False)
 
         if not not_empty:
             embed.description = "No prior cwl data"
@@ -505,7 +508,8 @@ class getClans(commands.Cog, name="Clan"):
                 text.append([f"Not Seen `{member.name}`", last_online_sort])
             else:
                 avg_time.append(last_online)
-                text.append([f"<t:{last_online}:R> `{member.name}`", last_online_sort])
+                text.append(
+                    [f"<t:{last_online}:R> `{member.name}`", last_online_sort])
 
         text = sorted(text, key=lambda l: l[1], reverse=True)
         text = [line[0] for line in text]
@@ -528,7 +532,8 @@ class getClans(commands.Cog, name="Clan"):
         for member in members:
             member: MyCustomPlayer
             last_online = member.season_last_online()
-            text.append([f"{str(len(last_online)).ljust(4)} | {member.name}", len(last_online)])
+            text.append(
+                [f"{str(len(last_online)).ljust(4)} | {member.name}", len(last_online)])
 
         text = sorted(text, key=lambda l: l[1], reverse=True)
         text = [line[0] for line in text]
@@ -539,7 +544,7 @@ class getClans(commands.Cog, name="Clan"):
                               color=disnake.Color.green())
         return embed
 
-    async def create_clan_games(self, clan: coc.Clan, date = None):
+    async def create_clan_games(self, clan: coc.Clan, date=None):
         if date is None:
             date = self.bot.gen_season_date()
         member_tags = [member.tag for member in clan.members]
@@ -565,19 +570,22 @@ class getClans(commands.Cog, name="Clan"):
             points = player.clan_games(date)
 
             if player.tag in member_tags:
-                point_text.append([f"{self.bot.emoji.clan_games}`{str(points).ljust(4)}`: {name}", points])
+                point_text.append(
+                    [f"{self.bot.emoji.clan_games}`{str(points).ljust(4)}`: {name}", points])
             else:
-                point_text.append([f"{self.bot.emoji.deny_mark}`{str(points).ljust(4)}`: {name}", points])
+                point_text.append(
+                    [f"{self.bot.emoji.deny_mark}`{str(points).ljust(4)}`: {name}", points])
 
         point_text = sorted(point_text, key=lambda l: l[1], reverse=True)
         point_text = [line[0] for line in point_text]
         point_text = "\n".join(point_text)
         cg_point_embed = disnake.Embed(title=f"**{clan.name} Clan Game Totals**", description=point_text,
                                        color=disnake.Color.green())
-        cg_point_embed.set_footer(text=f"Total Points: {'{:,}'.format(total_points)}")
+        cg_point_embed.set_footer(
+            text=f"Total Points: {'{:,}'.format(total_points)}")
         return cg_point_embed
 
-    async def create_donations(self, clan: coc.Clan, type: str, date = None):
+    async def create_donations(self, clan: coc.Clan, type: str, date=None):
         if date is None:
             date = self.bot.gen_season_date()
         tasks = []
@@ -592,7 +600,8 @@ class getClans(commands.Cog, name="Clan"):
         received_text = []
         ratio_text = []
         total_donated = sum(player.donos(date).donated for player in responses)
-        total_received = sum(player.donos(date).received for player in responses)
+        total_received = sum(player.donos(
+            date).received for player in responses)
 
         for player in responses:
             player: MyCustomPlayer
@@ -601,28 +610,34 @@ class getClans(commands.Cog, name="Clan"):
                 name = name.replace(char, "", len(player.name))
             name = emoji.replace_emoji(name, "")
             name = name[:13]
-            donated_text.append([f"{str(player.donos(date).donated).ljust(5)} | {str(player.donos(date).received).ljust(5)} | {name}", player.donos(date).donated])
-            received_text.append([f"{str(player.donos(date).received).ljust(5)} | {str(player.donos(date).donated).ljust(5)} | {name}",player.donos(date).received])
-            ratio_text.append([f"{str(player.donation_ratio(date)).ljust(5)} | {name}", player.donation_ratio(date)])
+            donated_text.append(
+                [f"{str(player.donos(date).donated).ljust(5)} | {str(player.donos(date).received).ljust(5)} | {name}", player.donos(date).donated])
+            received_text.append(
+                [f"{str(player.donos(date).received).ljust(5)} | {str(player.donos(date).donated).ljust(5)} | {name}", player.donos(date).received])
+            ratio_text.append(
+                [f"{str(player.donation_ratio(date)).ljust(5)} | {name}", player.donation_ratio(date)])
 
         if type == "donated":
-            donated_text = sorted(donated_text, key=lambda l: l[1], reverse=True)
+            donated_text = sorted(
+                donated_text, key=lambda l: l[1], reverse=True)
             donated_text = [line[0] for line in donated_text]
             donated_text = "\n".join(donated_text)
             donated_text = "DON   | REC   | Name\n" + donated_text
             donation_embed = disnake.Embed(title=f"**{clan.name} Donations**", description=f"```{donated_text}```",
                                            color=disnake.Color.green())
-            donation_embed.set_footer(icon_url=clan.badge.url, text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {date}")
+            donation_embed.set_footer(
+                icon_url=clan.badge.url, text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {date}")
             return donation_embed
         elif type == "received":
-            received_text = sorted(received_text, key=lambda l: l[1], reverse=True)
+            received_text = sorted(
+                received_text, key=lambda l: l[1], reverse=True)
             received_text = [line[0] for line in received_text]
             received_text = "\n".join(received_text)
             received_text = "REC   | DON   | Name\n" + received_text
             received_embed = disnake.Embed(title=f"**{clan.name} Received**", description=f"```{received_text}```",
                                            color=disnake.Color.green())
             received_embed.set_footer(icon_url=clan.badge.url,
-                text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {date}")
+                                      text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {date}")
             return received_embed
         else:
             ratio_text = sorted(ratio_text, key=lambda l: l[1], reverse=True)
@@ -630,9 +645,9 @@ class getClans(commands.Cog, name="Clan"):
             ratio_text = "\n".join(ratio_text)
             ratio_text = "Ratio | Name\n" + ratio_text
             ratio_embed = disnake.Embed(title=f"**{clan.name} Ratios**", description=f"```{ratio_text}```",
-                                           color=disnake.Color.green())
+                                        color=disnake.Color.green())
             ratio_embed.set_footer(icon_url=clan.badge.url,
-                text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {date}")
+                                   text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {date}")
             return ratio_embed
 
     def response_to_line(self, response, clan):
@@ -667,14 +682,18 @@ class getClans(commands.Cog, name="Clan"):
                     stars[war["clan"]["tag"]] += 10
                 elif opp_destruction > main_destruction:
                     stars[war["opponent"]["tag"]] += 10
-        stars = dict(sorted(stars.items(), key=lambda item: item[1], reverse=True))
+        stars = dict(
+            sorted(stars.items(), key=lambda item: item[1], reverse=True))
         place = list(stars.keys()).index(clan.tag) + 1
         league = response["leagueId"]
         war_leagues = open(f"Assets/war_leagues.json")
         war_leagues = json.load(war_leagues)
-        league_name = [x["name"] for x in war_leagues["items"] if x["id"] == league][0]
-        promo = [x["promo"] for x in war_leagues["items"] if x["id"] == league][0]
-        demo = [x["demote"] for x in war_leagues["items"] if x["id"] == league][0]
+        league_name = [x["name"]
+                       for x in war_leagues["items"] if x["id"] == league][0]
+        promo = [x["promo"]
+                 for x in war_leagues["items"] if x["id"] == league][0]
+        demo = [x["demote"]
+                for x in war_leagues["items"] if x["id"] == league][0]
 
         if place <= promo:
             emoji = "<:warwon:932212939899949176>"
@@ -684,7 +703,7 @@ class getClans(commands.Cog, name="Clan"):
             emoji = "<:dash:933150462818021437>"
 
         end = "th"
-        ends = {1 : "st", 2: "nd", 3: "rd"}
+        ends = {1: "st", 2: "nd", 3: "rd"}
         if place <= 3:
             end = ends[place]
 
@@ -693,7 +712,7 @@ class getClans(commands.Cog, name="Clan"):
         month = calendar.month_name[int(month)]
         #month = month.ljust(9)
         date = f"`{month}`"
-        league = str(league_name).replace('League ','')
+        league = str(league_name).replace('League ', '')
         league = league.ljust(14)
         league = f"{league}"
 
@@ -716,7 +735,8 @@ class getClans(commands.Cog, name="Clan"):
                     if f"{time.hour}-{time.day}" != previous_time:
                         previous_time = f"{time.hour}-{time.day}"
                         if f"{time.day}-{time.month}" not in list(times_by_day.keys()):
-                            times_by_day[f"{time.day}-{time.month}"] = defaultdict(int)
+                            times_by_day[f"{time.day}-{time.month}"] = defaultdict(
+                                int)
                         times_by_day[f"{time.day}-{time.month}"][time.hour] += 1
 
             hour_totals = defaultdict(int)
@@ -739,7 +759,8 @@ class getClans(commands.Cog, name="Clan"):
                     continue
                 if int(round((members_online / hour_days[hour]))) > biggest:
                     biggest = int(round((members_online / hour_days[hour])))
-                activity_list.append(int(round((members_online / hour_days[hour]))))
+                activity_list.append(
+                    int(round((members_online / hour_days[hour]))))
 
             dates = np.array(dates)
             activity_list = np.array(activity_list)
@@ -753,8 +774,9 @@ class getClans(commands.Cog, name="Clan"):
             ax.xaxis.grid(color='gray', linestyle='dashed')
 
         x_ticks = [f"{x}:00" for x in range(24)]
-        #plt.style.use('seaborn-darkgrid')
-        plt.title(f"Average People on Per an Hour | Timezone: {timezone}", loc='center', fontsize=20, fontweight=0, color='black')
+        # plt.style.use('seaborn-darkgrid')
+        plt.title(f"Average People on Per an Hour | Timezone: {timezone}",
+                  loc='center', fontsize=20, fontweight=0, color='black')
         plt.xlabel("Time")
         plt.legend(loc="upper left")
         plt.yticks(range(0, biggest + 5, 2))
