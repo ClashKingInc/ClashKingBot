@@ -869,6 +869,7 @@ class misc(commands.Cog, name="Settings"):
     @legend_log.autocomplete("clan")
     @ban_alert.autocomplete("clan")
     @donolog.autocomplete("clan")
+    @player_upgrades_log.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
