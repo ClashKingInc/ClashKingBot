@@ -142,6 +142,8 @@ class CustomClient(commands.Bot):
         self.banned_global = [859653218979151892]
         self.global_webhooks = defaultdict(str)
 
+        self.clan_list = []
+
     async def create_new_badge_emoji(self, url:str):
         new_url = url.replace(".png", "")
         all_emojis = self.emojis
@@ -187,7 +189,6 @@ class CustomClient(commands.Bot):
         all_emojis = guild.emojis
         emoji = disnake.utils.get(all_emojis, name=f"{number}_")
         return EmojiType(emoji_string=f"<:{emoji.name}:{emoji.id}>")
-
 
     async def track_players(self, players: list):
         for player in players:
@@ -475,6 +476,16 @@ class CustomClient(commands.Bot):
             return channel
         except:
             return None
+
+    async def getch_channel(self, channel_id):
+        try:
+            channel = self.get_channel(channel_id)
+            return channel
+        except:
+            pass
+        channel = await self.fetch_channel(channel_id)
+        return channel
+
 
     #CLASH HELPERS
     async def player_handle(self, ctx, tag):

@@ -67,7 +67,7 @@ class addClan(commands.Cog, name="Clan Setup"):
 
         tags = await self.bot.clan_db.distinct("tag")
         self.bot.coc_client.add_war_updates(*tags)
-
+        self.bot.clan_list.append(clan.tag)
         embed = disnake.Embed(title=f"{clan.name} successfully added.",
                               description=f"Clan Tag: {clan.tag}\n"
                                           f"General Role: {general_clan_role.mention}\n"

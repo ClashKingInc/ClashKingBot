@@ -32,6 +32,7 @@ class DiscordEvents(commands.Cog):
                 self.bot.banned_global.append(banned.get("user"))
 
         tags = await self.bot.clan_db.distinct("tag")
+        self.bot.clan_list = tags
         reminder_tags = await self.bot.reminders.distinct("clan", filter={"type" : "War"})
         self.bot.coc_client.add_war_updates(*tags)
 
