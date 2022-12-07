@@ -30,7 +30,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
                 continue
 
             try:
-                clancapital_channel = await self.bot.fetch_channel(clancapital_channel)
+                clancapital_channel = await self.bot.getch_channel(clancapital_channel)
                 if clancapital_channel is None:
                     continue
             except:
@@ -67,7 +67,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
                 continue
 
             try:
-                clancapital_channel = await self.bot.fetch_channel(clancapital_channel)
+                clancapital_channel = await self.bot.getch_channel(clancapital_channel)
                 if clancapital_channel is None:
                     continue
             except:

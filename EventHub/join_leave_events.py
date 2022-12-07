@@ -75,7 +75,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                 if donolog_channel is None:
                     continue
                 try:
-                    donolog_channel = await self.bot.fetch_channel(donolog_channel)
+                    donolog_channel = await self.bot.getch_channel(donolog_channel)
                 except (disnake.Forbidden, disnake.NotFound):
                     await self.bot.clan_db.update_one({"$and": [
                         {"tag": clan_tag},
@@ -102,7 +102,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                 if joinlog_channel is None:
                     continue
                 try:
-                    joinlog_channel = await self.bot.fetch_channel(joinlog_channel)
+                    joinlog_channel = await self.bot.getch_channel(joinlog_channel)
                 except (disnake.Forbidden, disnake.NotFound):
                     await self.bot.clan_db.update_one({"$and": [
                         {"tag": clan_tag},
