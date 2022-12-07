@@ -36,18 +36,14 @@ class LegendEvents(commands.Cog):
             try:
                 legendlog = cc.get("legend_log")
                 server = cc.get("server")
-                server = await self.bot.fetch_guild(server)
                 try:
-                    legendlog_channel = await server.fetch_channel(legendlog.get("channel"))
+                    legendlog_channel = await self.bot.getch_channel(legendlog.get("channel"))
                 except:
                     legendlog_channel = None
                 legendlog_message = legendlog.get("message")
                 legendlog_date = legendlog.get("date")
 
-                try:
-                    legendlog_message = await legendlog_channel.fetch_message(legendlog_message)
-                except:
-                    legendlog_message = None
+                legendlog_message = None
 
                 if legendlog_date != self.bot.gen_legend_date():
                     legendlog_message = None
@@ -61,7 +57,8 @@ class LegendEvents(commands.Cog):
                         ]},
                         {"$set" : {"legend_log.date" : self.bot.gen_legend_date(), "legend_log.message" : message.id}})
                 else:
-                    await legendlog_message.edit(embeds=embeds)
+                    pass
+                    #await legendlog_message.edit(embeds=embeds)
 
             except:
                 continue
@@ -183,7 +180,7 @@ class LegendEvents(commands.Cog):
                     try:
                         webhook = await self.bot.fetch_webhook(webhook_id)
                         if thread_id is not None:
-                            thread = await self.bot.fetch_channel(thread_id)
+                            thread = await self.bot.getch_channel(thread_id)
                             if thread.locked:
                                 continue
                     except (disnake.NotFound, disnake.Forbidden):
