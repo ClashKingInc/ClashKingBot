@@ -26,11 +26,12 @@ class LegendEvents(commands.Cog):
         except:
             return
 
-        player_tag = event["new_player"]["tag"]
-        player: MyCustomPlayer = await self.bot.getPlayer(player_tag=player_tag, custom=True)
-
         tracked = self.bot.clan_db.find({"tag": f"{clan_tag}"})
         limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan_tag}"})
+        if limit == 0:
+            return
+        player_tag = event["new_player"]["tag"]
+        player: MyCustomPlayer = await self.bot.getPlayer(player_tag=player_tag, custom=True)
         for cc in await tracked.to_list(length=limit):
             try:
                 legendlog = cc.get("legend_log")
