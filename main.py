@@ -77,7 +77,7 @@ if IS_BETA:
         #"EventHub.clan_capital_events",
         #"EventHub.join_leave_events",
         #"EventHub.ban_events",
-        #"EventHub.war_events",
+        #"EventHub.player_upgrade_events",
         #"EventHub.legend_events",
         "Family_and_Clans.bans",
         "Family_and_Clans.clancog",
@@ -108,7 +108,7 @@ if IS_BETA:
         "owner_commands",
         #"erikuh_comp",
         "Family_and_Clans.rosters",
-        "global_chat"
+        #"global_chat"
     )
 else:
     initial_extensions = (
@@ -123,7 +123,7 @@ else:
     "EventHub.clan_capital_events",
     "EventHub.join_leave_events",
     "EventHub.ban_events",
-    #"EventHub.war_events",
+    "EventHub.player_upgrade_events",
     "EventHub.legend_events",
     "Family_and_Clans.bans",
     "Family_and_Clans.clancog",
