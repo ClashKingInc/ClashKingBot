@@ -58,7 +58,7 @@ class getFamily(commands.Cog):
             received_text.append(
                 [f"`{str(player.donos().received).ljust(5)} | {str(player.donos().donated).ljust(5)} | \u200e{name}`",
                  player.donos().received])
-            ratio_text.append([f"`{str(player.donation_ratio).ljust(5)} | \u200e{name}`", player.donation_ratio])
+            ratio_text.append([f"`{str(player.donation_ratio()).ljust(5)} | \u200e{name}`", player.donation_ratio()])
 
         if type == "donated":
             donated_text = sorted(donated_text, key=lambda l: l[1], reverse=True)
