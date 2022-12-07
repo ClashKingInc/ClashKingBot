@@ -12,7 +12,6 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
         self.player_ee = player_ee
         self.player_ee.on("Most Valuable Clanmate", self.cg_dono_event)
         self.player_ee.on("Aggressive Capitalism", self.raid_event)
-        scheduler.add_job(self.clan_capital_summary, "cron", day_of_week="mon", hour=7, minute=5)
 
     async def raid_event(self, event):
         dono_change = event["new_player"]["achievements"][-2]["value"] - event["old_player"]["achievements"][-2]["value"]
@@ -86,14 +85,6 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
                 await clancapital_channel.send(embed=embed)
             except:
                 continue
-
-    async def clan_capital_summary(self):
-        pass
-        #pseudo code
-        #get last week's date
-        #get all clan capital channels
-        #send clan capital summary from last week to all channels with "zeros"
-
 
 def setup(bot: CustomClient):
     bot.add_cog(clan_capital_events(bot))
