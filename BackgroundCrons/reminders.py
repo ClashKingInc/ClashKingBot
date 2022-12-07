@@ -38,13 +38,13 @@ class reminders(commands.Cog, name="Reminders"):
 
     @reminder.sub_command(name="create", description="Set a reminder for clan games, raid weekend, wars, & more")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def reminder_create(self, ctx: disnake.ApplicationCommandInteraction, channel: Union[disnake.TextChannel, disnake.Thread], type:str = commands.Param(choices=["Clan Capital", "War", "Clan Games", "Inactivity"]), clan: coc.Clan = commands.Param(converter=clan_converter)):
+    async def reminder_create(self, ctx: disnake.ApplicationCommandInteraction, type:str = commands.Param(choices=["Clan Capital", "War", "Clan Games", "Inactivity"]), clan: coc.Clan = commands.Param(converter=clan_converter), channel: Union[disnake.TextChannel, disnake.Thread] = None):
         """
             Parameters
             ----------
             type: Type of reminder you would like to create
             clan: Use clan tag or select an option from the autocomplete
-            channel: channel to set the join/leave log to
+            channel: channel to set the reminder to
         """
         results = await self.bot.clan_db.find_one({"$and": [
             {"tag": clan.tag},
@@ -52,7 +52,8 @@ class reminders(commands.Cog, name="Reminders"):
         ]})
         if results is None:
             return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
-
+        if channel is None:
+            channel = ctx.channel
         if type == "Clan Capital":
             await self.create_clan_capital_reminder(ctx=ctx, channel=channel, clan=clan)
         elif type == "War":
