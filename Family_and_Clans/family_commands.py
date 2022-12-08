@@ -62,7 +62,8 @@ class family_commands(commands.Cog):
                 {"category": category},
                 {"server": ctx.guild.id}
             ]}).sort("name", 1)
-
+            if results is None:
+                continue
             limit = await self.bot.clan_db.count_documents(filter={"$and": [
                 {"category": category},
                 {"server": ctx.guild.id}
