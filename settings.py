@@ -118,32 +118,7 @@ class misc(commands.Cog, name="Settings"):
             color=disnake.Color.green())
         await ctx.send(embed=embed)
 
-    @set.sub_command(name="category-role", description="Set a new category role for a server")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def category_role(self, ctx: disnake.ApplicationCommandInteraction, category: str, role: disnake.Role):
-        """
-            Parameters
-            ----------
-            category: category to set role for
-            role: New role to switch to
-        """
-
-        results = await self.bot.clan_db.find_one({"$and": [
-            {"category": category},
-            {"server": ctx.guild.id}
-        ]})
-
-        if results is None:
-            return await ctx.send(f"No category - **{category}** - on this server")
-
-        await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {f"category_roles.{category}": role.id}})
-
-        embed = disnake.Embed(
-            description=f"Category role set to {role.mention}",
-            color=disnake.Color.green())
-        await ctx.send(embed=embed)
-
-    @set.sub_command(name="leader-role", description="Set a new leader role for a clan")
+    @set.sub_command(name="leadership-role", description="Set a new leadership role for a clan")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def leaderrole(self, ctx: disnake.ApplicationCommandInteraction, clan: str, role: disnake.Role):
         """
@@ -269,6 +244,31 @@ class misc(commands.Cog, name="Settings"):
 
         await ctx.send(f"Ban alert channel for {clan.tag} switched to {channel.mention}")
 
+    @set.sub_command(name="category-role", description="Set a new category role for a server")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def category_role(self, ctx: disnake.ApplicationCommandInteraction, category: str, role: disnake.Role):
+        """
+            Parameters
+            ----------
+            category: category to set role for
+            role: New role to switch to
+        """
+
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"category": category},
+            {"server": ctx.guild.id}
+        ]})
+
+        if results is None:
+            return await ctx.send(f"No category - **{category}** - on this server")
+
+        await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {f"category_roles.{category}": role.id}})
+
+        embed = disnake.Embed(
+            description=f"Category role set to {role.mention}",
+            color=disnake.Color.green())
+        await ctx.send(embed=embed)
+
     @set.sub_command(name="nickname-labels", description="Set new abreviations for a clan or labels for family members (used for auto nicknames)")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def abbreviation(self, ctx: disnake.ApplicationCommandInteraction, type: str, new_label: str):
@@ -384,14 +384,14 @@ class misc(commands.Cog, name="Settings"):
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
-    @set.sub_command(name="player-upgrades-log", description="Set up a donation log for a clan")
+    @set.sub_command(name="clan-log", description="Set up a clan log for a clan - name, upgrade, & league changes")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def player_upgrades_log(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: Union[disnake.TextChannel, disnake.Thread]):
         """
             Parameters
             ----------
             clan: Use clan tag, alias, or select an option from the autocomplete
-            channel: channel to set the upgrades log to
+            channel: channel to set the clan log to
         """
 
         clan = await self.bot.getClan(clan)
@@ -411,7 +411,7 @@ class misc(commands.Cog, name="Settings"):
             {"server": ctx.guild.id}
         ]}, {'$set': {"upgrade_log": channel.id}})
 
-        embed = disnake.Embed(description=f"Player Upgrade Log set in {channel.mention} for {clan.name}. It will receive updates when player troops, spells, heros, or townhall is upgraded or unlocked.",
+        embed = disnake.Embed(description=f"Player Clan Log set in {channel.mention} for {clan.name}. It will receive updates when player troops, spells, heros, or townhall level or league or name changes.",
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
@@ -647,8 +647,8 @@ class misc(commands.Cog, name="Settings"):
     @set.sub_command(name="remove", description="Remove a setup")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def remove_setup(self, ctx: disnake.ApplicationCommandInteraction, clan: str,
-                           log_to_remove=commands.Param(choices=["Clan Capital Log", "Join Log", "War Log", "Legend Log", "Donation Log"])):
-        type_dict = {"Clan Capital Log": "clan_capital", "Join Log": "joinlog", "War Log": "war_log", "Legend Log" : "legend_log",  "Donation Log" : "donolog"}
+                           log_to_remove=commands.Param(choices=["Clan Capital Log", "Join Log", "War Log", "Legend Log", "Donation Log", "Clan Log"])):
+        type_dict = {"Clan Capital Log": "clan_capital", "Join Log": "joinlog", "War Log": "war_log", "Legend Log" : "legend_log",  "Donation Log" : "donolog",  "Clan Log" : "upgrade_log"}
         log_type = type_dict[log_to_remove]
 
         clan = await self.bot.getClan(clan)
