@@ -61,6 +61,8 @@ class Cwl(commands.Cog, name="CWL"):
             league_wars = []
             async for w in group.get_wars_for_clan(clan.tag):
                 league_wars.append(w)
+                if str(w.state) == "warEnded":
+                    war = w
                 if str(w.state) == "inWar":
                     war = w
                 if str(w.state) == "preparation":
@@ -209,7 +211,6 @@ class Cwl(commands.Cog, name="CWL"):
             max_values=1,  # the maximum number of options a user can select
         )
         return disnake.ui.ActionRow(select)
-
 
     async def war_embed(self, war: coc.ClanWar, clan: coc.Clan):
 
