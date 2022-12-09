@@ -842,18 +842,20 @@ class clan_commands(commands.Cog, name="Clan Commands"):
 
         links = await self.bot.link_client.get_links(*list(to_ping))
         #badge = await self.bot.create_new_badge_emoji(url=clan.badge.url)
-        missing_text = ""
+        missing_text = []
         for player_tag, discord_id in links:
             name = tag_to_name[player_tag]
             discord_member = disnake.utils.get(ctx.guild.members, id=discord_id)
             if discord_member is None:
-                missing_text += f"{self.bot.fetch_emoji(tag_to_th[player_tag])}{name} | {player_tag}\n"
+                missing_text.append([f"{self.bot.fetch_emoji(tag_to_th[player_tag])}{name} | {player_tag}\n", tag_to_th[player_tag]])
             else:
-                missing_text += f"{self.bot.fetch_emoji(tag_to_th[player_tag])}{name} | {discord_member.mention}\n"
-        if missing_text == "":
+                missing_text.append([f"{self.bot.fetch_emoji(tag_to_th[player_tag])}{name} | {discord_member.mention}\n", tag_to_th[player_tag]])
+        if not missing_text:
             missing_text = "No Players Found"
 
-        await res.edit_original_message(embed=None, components=[], content=missing_text)
+        missing_text = sorted(missing_text, key=lambda l: l[1], reverse=True)
+
+        await res.edit_original_message(embed=None, components=[], content="".join(text[0] for text in missing_text))
 
 
     @commands.Cog.listener()
