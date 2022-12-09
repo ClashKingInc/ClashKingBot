@@ -685,7 +685,7 @@ class misc(commands.Cog, name="Settings"):
             {"server": ctx.guild.id}
         ]}, {'$set': {f"{log_type}": None}})
 
-        if log_type != "legend_log":
+        if log_to_remove != "Legend Log":
             channel = await self.bot.fetch_channel(log_channel)
 
             embed = disnake.Embed(description=f"{log_to_remove} in {channel.mention} removed for {clan.name}",
