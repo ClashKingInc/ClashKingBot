@@ -59,10 +59,11 @@ class War_Log(commands.Cog):
                                               args=[new_war.clan.tag, reminder_time],
                                               id=f"{reminder_time}_{new_war.clan.tag}", name=f"{new_war.clan.tag}",
                                               misfire_grace_time=None)
-                    try:
-                        await self.bot.war_client.register_war(clan_tag=new_war.clan_tag)
-                    except:
-                        pass
+                    if not new_war.is_cwl:
+                        try:
+                            await self.bot.war_client.register_war(clan_tag=new_war.clan_tag)
+                        except:
+                            pass
 
                 if new_war.state == "preparation":
                     #if we skipped from one war to next, update the old one
