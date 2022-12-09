@@ -404,8 +404,6 @@ class clan_commands(commands.Cog, name="Clan Commands"):
                         #attacks_done -= len(district.attacks)
                         pass
 
-            print(total_medals)
-            print(attacks_done)
             total_medals = math.ceil(total_medals/attacks_done) * 6
 
             raid_text = []
