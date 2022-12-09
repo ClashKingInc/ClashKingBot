@@ -1,14 +1,12 @@
 from disnake.ext import commands
 import disnake
-from time import strftime
-from time import gmtime
 import pytz
 tiz = pytz.utc
 import coc
 
 from CustomClasses.CustomBot import CustomClient
 from EventHub.event_websockets import player_ee
-
+from utils.troop_methods import league_emoji
 
 class UpgradeEvent(commands.Cog):
 
@@ -19,6 +17,68 @@ class UpgradeEvent(commands.Cog):
         self.player_ee.on("heroes", self.hero_upgrade)
         self.player_ee.on("spells", self.spells_upgrade)
         self.player_ee.on("townHallLevel", self.th_upgrade)
+        self.player_ee.on("name", self.name_change)
+        self.player_ee.on("league", self.league_change)
+
+    async def league_change(self, event):
+        new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
+        if new_player.clan is None:
+            return
+        if new_player.clan.tag in self.bot.clan_list:
+            limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_player.clan.tag}"})
+            if limit == 0:
+                return
+            old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
+            if new_player.league.id == 29000000:
+                return
+            tracked = self.bot.clan_db.find({"tag": f"{new_player.clan.tag}"})
+            for cc in await tracked.to_list(length=limit):
+                upgrades_channel = cc.get("upgrade_log")
+                if upgrades_channel is None:
+                    continue
+                try:
+                    upgrades_channel = await self.bot.getch_channel(upgrades_channel)
+                except (disnake.Forbidden, disnake.NotFound):
+                    await self.bot.clan_db.update_one({"$and": [
+                        {"tag": new_player.clan.tag},
+                        {"server": cc.get("server")}
+                    ]}, {'$set': {"upgrade_log": None}})
+
+                if upgrades_channel is None:
+                    continue
+                try:
+                    await upgrades_channel.send(content=f"{self.bot.fetch_emoji(name=new_player.town_hall)}{new_player.name} moved to {league_emoji(new_player)}{new_player.league.name}")
+                except:
+                    continue
+
+    async def name_change(self, event):
+        new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
+        if new_player.clan is None:
+            return
+        if new_player.clan.tag in self.bot.clan_list:
+            limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_player.clan.tag}"})
+            if limit == 0:
+                return
+            tracked = self.bot.clan_db.find({"tag": f"{new_player.clan.tag}"})
+            for cc in await tracked.to_list(length=limit):
+                upgrades_channel = cc.get("upgrade_log")
+                if upgrades_channel is None:
+                    continue
+                try:
+                    upgrades_channel = await self.bot.getch_channel(upgrades_channel)
+                except (disnake.Forbidden, disnake.NotFound):
+                    await self.bot.clan_db.update_one({"$and": [
+                        {"tag": new_player.clan.tag},
+                        {"server": cc.get("server")}
+                    ]}, {'$set': {"upgrade_log": None}})
+
+                if upgrades_channel is None:
+                    continue
+                old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
+                try:
+                    await upgrades_channel.send(content=f"{self.bot.fetch_emoji(name=new_player.town_hall)}{old_player.name} changed their name to {new_player.name}")
+                except:
+                    continue
 
     async def th_upgrade(self, event):
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
