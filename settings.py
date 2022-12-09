@@ -666,7 +666,7 @@ class misc(commands.Cog, name="Settings"):
 
         log_channel = results.get(log_type)
         if log_type == "legend_log" and log_channel is not None:
-            log_channel = log_channel.get("channel")
+            log_channel = log_channel.get("webhook")
 
         if log_channel is None:
             embed = disnake.Embed(description=f"This clan does not have a {log_to_remove} set up on this server.",
