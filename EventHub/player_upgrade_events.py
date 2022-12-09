@@ -28,7 +28,6 @@ class UpgradeEvent(commands.Cog):
             limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_player.clan.tag}"})
             if limit == 0:
                 return
-            old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
             if new_player.league.id == 29000000:
                 return
             tracked = self.bot.clan_db.find({"tag": f"{new_player.clan.tag}"})
