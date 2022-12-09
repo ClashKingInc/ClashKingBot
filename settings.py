@@ -685,10 +685,14 @@ class misc(commands.Cog, name="Settings"):
             {"server": ctx.guild.id}
         ]}, {'$set': {f"{log_type}": None}})
 
-        channel = await self.bot.fetch_channel(log_channel)
+        if log_type != "legend_log":
+            channel = await self.bot.fetch_channel(log_channel)
 
-        embed = disnake.Embed(description=f"{log_to_remove} in {channel.mention} removed for {clan.name}",
-                              color=disnake.Color.green())
+            embed = disnake.Embed(description=f"{log_to_remove} in {channel.mention} removed for {clan.name}",
+                                  color=disnake.Color.green())
+        else:
+            embed = disnake.Embed(description=f"{log_to_remove} removed for {clan.name}",
+                                  color=disnake.Color.green())
 
         await ctx.send(embed=embed)
 
