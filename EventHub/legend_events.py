@@ -15,7 +15,7 @@ class LegendEvents(commands.Cog):
         self.bot = bot
         self.player_ee = player_ee
         #self.player_ee.on("trophies", self.legend_event)
-        self.player_ee.on("trophies", self.dm_legend_event)
+        #self.player_ee.on("trophies", self.dm_legend_event)
 
     async def legend_event(self, event):
         trophy_change = event["new_player"]["trophies"] - event["old_player"]["trophies"]
