@@ -25,6 +25,8 @@ class LegendEvents(commands.Cog):
             clan_tag = event["new_player"]["clan"]["tag"]
         except:
             return
+        if not (clan_tag in self.bot.clan_list):
+            return
 
         tracked = self.bot.clan_db.find({"tag": f"{clan_tag}"})
         limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan_tag}"})
