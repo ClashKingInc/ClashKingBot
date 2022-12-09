@@ -136,10 +136,14 @@ class UpgradeEvent(commands.Cog):
                 old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
                 unlocked = []
                 leveled_up = []
+                boosted = []
                 for troop in new_player.troops:
                     old_troop = old_player.get_troop(name=troop.name, is_home_troop=troop.is_home_base)
                     if old_troop is None:
-                        unlocked.append(troop)
+                        if troop.is_super_troop:
+                            boosted.append(troop)
+                        else:
+                            unlocked.append(troop)
                     elif troop.level > old_troop.level:
                         leveled_up.append(troop)
                 if not unlocked and not leveled_up:
@@ -147,6 +151,8 @@ class UpgradeEvent(commands.Cog):
                 text = ""
                 for troop in unlocked:
                     text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{new_player.name} unlocked {self.bot.fetch_emoji(name=troop.name)}{troop.name}\n"
+                for troop in boosted:
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{new_player.name} boosted {self.bot.fetch_emoji(name=troop.name)}{troop.name}\n"
                 for troop in leveled_up:
                     text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{new_player.name} leveled up {self.bot.fetch_emoji(name=troop.name)}{troop.name} to lv{self.bot.get_number_emoji(color='white', number=troop.level)}\n"
 
