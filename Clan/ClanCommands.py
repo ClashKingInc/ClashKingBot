@@ -59,23 +59,34 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             self.bot, "<:cwlmedal:1037126610962362370>")
 
         main = embed
-        options = [  # the options in your dropdown
-            disnake.SelectOption(label="Clan Overview",
-                                 emoji=clan_e, value="clan"),
-            disnake.SelectOption(label="Linked Players",
-                                 emoji=emoji, value="link"),
-            disnake.SelectOption(label="Unlinked Players",
-                                 emoji=rx, value="unlink"),
+
+        # the options in your dropdown
+        options = [
             disnake.SelectOption(
-                label="Players, Sorted: Trophies", emoji=trophy, value="trophies"),
-            disnake.SelectOption(label="Players, Sorted: TH", emoji=self.bot.partial_emoji_gen(
-                self.bot.fetch_emoji(14)), value="townhalls"),
-            disnake.SelectOption(label="War Opt Statuses",
-                                 emoji=opt, value="opt"),
-            disnake.SelectOption(label="Super Troops",
-                                 emoji=stroop, value="stroop"),
-            disnake.SelectOption(label="CWL History",
-                                 emoji=cwl_emoji, value="cwl")
+                label="Clan Overview",
+                emoji=clan_e, value="clan"),
+            disnake.SelectOption(
+                label="Linked Players",
+                emoji=emoji, value="link"),
+            disnake.SelectOption(
+                label="Unlinked Players",
+                emoji=rx, value="unlink"),
+            disnake.SelectOption(
+                label="Players, Sorted: Trophies",
+                emoji=trophy, value="trophies"),
+            disnake.SelectOption(
+                label="Players, Sorted: TH",
+                emoji=self.bot.partial_emoji_gen(
+                    self.bot.fetch_emoji(14)), value="townhalls"),
+            disnake.SelectOption(
+                label="War Opt Statuses",
+                emoji=opt, value="opt"),
+            disnake.SelectOption(
+                label="Super Troops",
+                emoji=stroop, value="stroop"),
+            disnake.SelectOption(
+                label="CWL History",
+                emoji=cwl_emoji, value="cwl")
         ]
 
         if clan.public_war_log:
