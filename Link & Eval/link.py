@@ -320,26 +320,56 @@ class Linking(commands.Cog):
                               color=disnake.Color.green())
         await ctx.send(embed=embed)
 
-
-    @commands.slash_command(name="buttons", description="Create a message that has buttons for easy eval/link actions.")
-    async def buttons(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Link Button"]), ping: disnake.User = None):
-        embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
-                              description=f"To link your account, press the link button below to get started.",
-                              color=disnake.Color.green())
-        stat_buttons = [disnake.ui.Button(label="Link Account", emoji="🔗", style=disnake.ButtonStyle.green,
-                                          custom_id="Start Link"),
-                        disnake.ui.Button(label="Help", emoji="❓", style=disnake.ButtonStyle.grey,
-                                          custom_id="Link Help")]
-        buttons = disnake.ui.ActionRow()
-        for button in stat_buttons:
-            buttons.append_item(button)
-        if ctx.guild.icon is not None:
-            embed.set_thumbnail(url=ctx.guild.icon.url)
-        if ping is not None:
-            content = ping.mention
+    @commands.slash_command(name="buttons", description="Create a message that has buttons for easy eval/link/refresh actions.")
+    async def buttons(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Link Button", "Refresh Button"]), ping: disnake.User = None):
+        if type == "Link Button":
+            embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
+                                  description=f"To link your account, press the link button below to get started.",
+                                  color=disnake.Color.green())
+            stat_buttons = [disnake.ui.Button(label="Link Account", emoji="🔗", style=disnake.ButtonStyle.green,
+                                              custom_id="Start Link"),
+                            disnake.ui.Button(label="Help", emoji="❓", style=disnake.ButtonStyle.grey,
+                                              custom_id="Link Help")]
+            buttons = disnake.ui.ActionRow()
+            for button in stat_buttons:
+                buttons.append_item(button)
+            if ctx.guild.icon is not None:
+                embed.set_thumbnail(url=ctx.guild.icon.url)
+            if ping is not None:
+                content = ping.mention
+            else:
+                content = ""
+            await ctx.send(content=content, embed=embed, components=[buttons])
         else:
-            content = ""
-        await ctx.send(content=content, embed=embed, components=[buttons])
+            embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
+                                  description=f"To refresh your account, press the refresh button below.",
+                                  color=disnake.Color.green())
+            stat_buttons = [disnake.ui.Button(label="Refresh Roles", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.green, custom_id="Refresh Roles")]
+            buttons = disnake.ui.ActionRow()
+            for button in stat_buttons:
+                buttons.append_item(button)
+            if ctx.guild.icon is not None:
+                embed.set_thumbnail(url=ctx.guild.icon.url)
+            if ping is not None:
+                content = ping.mention
+            else:
+                content = ""
+            await ctx.send(content=content, embed=embed, components=[buttons])
+
+    @commands.Cog.listener()
+    async def on_button_click(self, ctx: disnake.MessageInteraction):
+
+        if ctx.data.custom_id == "Refresh Roles":
+            await ctx.response.defer()
+            evalua = self.bot.get_cog("Eval")
+            embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                                            test=False,
+                                            change_nick="Off",
+                                            return_embed=True)
+            if embed.description == "":
+                embed.description = "Your roles are up to date!"
+            await ctx.send(embed=embed, ephemeral=True)
+
 
 
     @modlink.autocomplete("player_tag")
