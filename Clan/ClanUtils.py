@@ -169,6 +169,96 @@ def gen_season_date(seasons_ago=None):
         return dates
 
 
+def create_graph(
+        clans: list, timezone,
+        player_list):
+
+    fig, ax = plt.subplots(figsize=(15, 10))
+    biggest = 0
+
+    for clan in clans:
+        times_by_day = {}
+
+        for player in player_list:
+            times = player.season_last_online()
+            previous_time = None
+
+            for time in times:
+                time = dt.datetime.fromtimestamp(time, tz=timezone)
+
+                if f"{time.hour}-{time.day}" != previous_time:
+                    previous_time = f"{time.hour}-{time.day}"
+
+                    if (f"{time.day}-{time.month}" not in
+                            list(times_by_day.keys())):
+                        times_by_day[
+                            f"{time.day}-{time.month}"] = defaultdict(int)
+
+                    times_by_day[
+                        f"{time.day}-{time.month}"][time.hour] += 1
+
+        hour_totals = defaultdict(int)
+        hour_days = defaultdict(int)
+
+        for day, day_details in times_by_day.items():
+            for hour, members_online in sorted(day_details.items(), reverse=False):
+                hour_days[hour] += 1
+                hour_totals[hour] += members_online
+
+        for x in range(24):
+            if x not in list(hour_totals.keys()):
+                hour_totals[x] = 0
+
+        dates = []
+        activity_list = []
+        for hour, members_online in sorted(hour_totals.items(), reverse=False):
+            dates.append(hour)
+
+            if hour_days[hour] == 0:
+                activity_list.append(0)
+                continue
+
+            if int(round((members_online / hour_days[hour]))) > biggest:
+                biggest = int(round((members_online / hour_days[hour])))
+
+            activity_list.append(
+                int(round((members_online / hour_days[hour]))))
+
+        dates = np.array(dates)
+        activity_list = np.array(activity_list)
+        X_Y_Spline = make_interp_spline(dates, activity_list)
+        X_ = np.linspace(dates.min(initial=0), dates.max(initial=0), 500)
+        Y_ = X_Y_Spline(X_)
+
+        ax.plot(X_, Y_, label=clan.name, linewidth=5)
+
+        ax.yaxis.grid(color='gray', linestyle='dashed')
+        ax.xaxis.grid(color='gray', linestyle='dashed')
+
+    x_ticks = [f"{x}:00" for x in range(24)]
+
+    # plt.style.use('seaborn-darkgrid')
+    plt.title(f"Average People on Per an Hour | Timezone: {timezone}",
+              loc='center', fontsize=20, fontweight=0, color='black')
+    plt.xlabel("Time")
+    plt.legend(loc="upper left")
+    plt.yticks(range(0, biggest + 5, 2))
+    plt.xticks(ticks=range(24), labels=x_ticks)
+    plt.ylabel("Avg People On Per Hour")
+
+    import io
+
+    temp = io.BytesIO()
+
+    plt.tight_layout()
+    plt.savefig(temp, format="png")
+    temp.seek(0)
+
+    file = disnake.File(fp=temp, filename="filename.png")
+
+    return file
+
+
 class ClanUtils(commands.Cog, name="Clan"):
 
     def __init__(self, bot: CustomClient):
@@ -345,73 +435,3 @@ class ClanUtils(commands.Cog, name="Clan"):
         tier = str(league_name).count("I")
 
         return [f"{emoji} {self.leagueAndTrophies(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n", year]
-
-    async def create_graph(self, clans: list, timezone):
-        fig, ax = plt.subplots(figsize=(15, 10))
-        biggest = 0
-        for clan in clans:
-            player_tags = [member.tag for member in clan.members]
-            players = await self.bot.get_players(tags=player_tags, custom=True)
-            times_by_day = {}
-            for player in players:  # type: MyCustomPlayer
-                times = player.season_last_online()
-                previous_time = None
-                for time in times:
-                    time = dt.datetime.fromtimestamp(time, tz=timezone)
-                    if f"{time.hour}-{time.day}" != previous_time:
-                        previous_time = f"{time.hour}-{time.day}"
-                        if f"{time.day}-{time.month}" not in list(times_by_day.keys()):
-                            times_by_day[f"{time.day}-{time.month}"] = defaultdict(
-                                int)
-                        times_by_day[f"{time.day}-{time.month}"][time.hour] += 1
-
-            hour_totals = defaultdict(int)
-            hour_days = defaultdict(int)
-            for day, day_details in times_by_day.items():
-                for hour, members_online in sorted(day_details.items(), reverse=False):
-                    hour_days[hour] += 1
-                    hour_totals[hour] += members_online
-
-            for x in range(24):
-                if x not in list(hour_totals.keys()):
-                    hour_totals[x] = 0
-
-            dates = []
-            activity_list = []
-            for hour, members_online in sorted(hour_totals.items(), reverse=False):
-                dates.append(hour)
-                if hour_days[hour] == 0:
-                    activity_list.append(0)
-                    continue
-                if int(round((members_online / hour_days[hour]))) > biggest:
-                    biggest = int(round((members_online / hour_days[hour])))
-                activity_list.append(
-                    int(round((members_online / hour_days[hour]))))
-
-            dates = np.array(dates)
-            activity_list = np.array(activity_list)
-            X_Y_Spline = make_interp_spline(dates, activity_list)
-            X_ = np.linspace(dates.min(initial=0), dates.max(initial=0), 500)
-            Y_ = X_Y_Spline(X_)
-
-            ax.plot(X_, Y_, label=clan.name, linewidth=5)
-
-            ax.yaxis.grid(color='gray', linestyle='dashed')
-            ax.xaxis.grid(color='gray', linestyle='dashed')
-
-        x_ticks = [f"{x}:00" for x in range(24)]
-        # plt.style.use('seaborn-darkgrid')
-        plt.title(f"Average People on Per an Hour | Timezone: {timezone}",
-                  loc='center', fontsize=20, fontweight=0, color='black')
-        plt.xlabel("Time")
-        plt.legend(loc="upper left")
-        plt.yticks(range(0, biggest + 5, 2))
-        plt.xticks(ticks=range(24), labels=x_ticks)
-        plt.ylabel("Avg People On Per Hour")
-        import io
-        temp = io.BytesIO()
-        plt.tight_layout()
-        plt.savefig(temp, format="png")
-        temp.seek(0)
-        file = disnake.File(fp=temp, filename="filename.png")
-        return file

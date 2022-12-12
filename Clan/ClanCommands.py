@@ -827,27 +827,52 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.edit_original_message(embed=embed, components=buttons)
 
-    @clan.sub_command(name='lastonline-graph', description="Get a graph showing average clan members on per an hour")
-    async def last_online_graph(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), timezone=commands.Param(name="timezone")):
-        await ctx.response.defer()
-        if timezone not in pytz.common_timezones:
-            return await ctx.edit_original_message(content="Not a valid timezone, please choose one of the 300+ options in the autocomplete")
-        file = await self.create_graph([clan], timezone=pytz.timezone(timezone))
+    @clan.sub_command(
+        name='lastonline-graph',
+        description="Get a graph showing average clan members on per an hour")
+    async def last_online_graph(
+            self, ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = commands.Param(converter=clan_converter),
+            timezone=commands.Param(name="timezone")):
 
-        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
+        await ctx.response.defer()
+
+        if timezone not in pytz.common_timezones:
+            return await ctx.edit_original_message(content=(
+                "Not a valid timezone, please choose one of the 300+ "
+                "options in the autocomplete"))
+
+        player_tags = [member.tag for member in clan.members]
+        players = await self.bot.get_players(tags=player_tags, custom=True)
+
+        file = clan_utils.create_graph(
+            [clan], timezone=pytz.timezone(timezone), player_list=players)
+
+        clan_tags = await self.bot.clan_db.distinct(
+            "tag", filter={"server": ctx.guild.id})
+
         dropdown = []
         clan_dict = {}
+
         if clan_tags:
             clans = await self.bot.get_clans(tags=clan_tags)
             select_menu_options = []
-            clans = sorted(clans, key=lambda x: x.member_count, reverse=True)
+
+            clans = sorted(
+                clans, key=lambda x: x.member_count, reverse=True)
+
             for count, clan in enumerate(clans):
                 clan_dict[clan.tag] = clan
-                emoji = await self.bot.create_new_badge_emoji(url=clan.badge.url)
+                emoji = await self.bot.create_new_badge_emoji(
+                    url=clan.badge.url)
+
                 if count < 25:
-                    select_menu_options.append(
-                        disnake.SelectOption(label=clan.name, emoji=self.bot.partial_emoji_gen(emoji_string=emoji),
-                                             value=clan.tag))
+                    select_menu_options.append(disnake.SelectOption(
+                        label=clan.name,
+                        emoji=self.bot.partial_emoji_gen(
+                            emoji_string=emoji),
+                        value=clan.tag))
+
             select = disnake.ui.Select(
                 options=select_menu_options,
                 # the placeholder text to show when no options have been chosen
@@ -856,7 +881,9 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 # the maximum number of options a user can select
                 max_values=len(select_menu_options),
             )
+
             dropdown = [disnake.ui.ActionRow(select)]
+
         await ctx.edit_original_message(file=file, components=dropdown)
 
         msg = await ctx.original_message()
@@ -866,8 +893,9 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
-                                                                          timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for(
+                    "message_interaction", check=check,
+                    timeout=600)
             except:
                 await msg.edit(components=[])
                 break
@@ -875,7 +903,9 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             await res.response.defer()
 
             selected_clans = [clan_dict[value] for value in res.values]
+
             file = await self.create_graph(selected_clans, timezone=pytz.timezone(timezone))
+
             await res.edit_original_message(file=file, attachments=[])
 
     @clan.sub_command(name="war-stats", description="Get war stats of players in a clan")
