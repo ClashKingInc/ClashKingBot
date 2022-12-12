@@ -6,6 +6,11 @@ from CustomClasses.CustomPlayer import MyCustomPlayer
 from datetime import datetime
 from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
+from Clan.ClanResponder import (
+    clan_overview,
+    linked_players,
+    unlinked_players
+)
 import math
 import coc
 import disnake
@@ -33,7 +38,9 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         pass
 
     @clan.sub_command(name="search", description="lookup clan by tag")
-    async def getclan(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+    async def getclan(
+            self, ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
@@ -46,7 +53,17 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             color=disnake.Color.green())
         await ctx.edit_original_message(embed=embed)
 
-        embed = await self.clan_overview(ctx, clan)
+        db_clan = await self.bot.clan_db.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+
+        clan_legend_ranking = await self.bot.clan_leaderboard_db.find_one(
+            {"tag": clan.tag})
+
+        embed = await clan_overview(
+            clan=clan, db_clan=db_clan,
+            clan_legend_ranking=clan_legend_ranking)
 
         emoji = partial_emoji_gen(self.bot, "<:discord:840749695466864650>")
         rx = partial_emoji_gen(self.bot, "<:redtick:601900691312607242>")
@@ -109,8 +126,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
-                                                                          timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for(
+                    "message_interaction", check=check, timeout=600)
             except:
                 try:
                     await msg.edit(components=[])
@@ -147,23 +164,42 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 embed = await self.cwl_performance(clan)
                 await res.edit_original_message(embed=embed)
 
-    @clan.sub_command(name="player-links", description="List of un/linked players in clan")
-    async def linked_clans(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+    @clan.sub_command(
+        name="player-links",
+        description="List of un/linked players in clan")
+    async def linked_clans(
+            self, ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
             clan: Use clan tag or select an option from the autocomplete
         """
-        await ctx.response.defer()
-        time = datetime.now().timestamp()
 
-        embed = await self.linked_players(ctx, clan)
-        embed2 = await self.unlinked_players(ctx, clan)
-        embed2.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+        await ctx.response.defer()
+
+        # initializing player link list
+        clan_member_tags = []
+        for player in clan.members:
+            clan_member_tags.append(player.tag)
+        player_links = await self.bot.link_client.get_links(*clan_member_tags)
+
+        linked_players_embed = linked_players(
+            ctx.guild.members, clan, player_links)
+        unlinked_players_embed = unlinked_players(
+            clan, player_links)
+
+        unlinked_players_embed.set_footer(
+            text=f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+
         buttons = disnake.ui.ActionRow()
-        buttons.append_item(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji,
-                            style=disnake.ButtonStyle.grey, custom_id=f"linked_{clan.tag}"))
-        await ctx.edit_original_message(embeds=[embed, embed2], components=buttons)
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey, custom_id=f"linked_{clan.tag}"))
+
+        await ctx.edit_original_message(
+            embeds=[linked_players_embed, unlinked_players_embed],
+            components=buttons)
 
     @clan.sub_command(name="sorted-trophies", description="List of clan members, sorted by trophies")
     async def player_trophy(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
@@ -172,6 +208,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             ----------
             clan: Use clan tag or select an option from the autocomplete
         """
+
         await ctx.response.defer()
         time = datetime.now().timestamp()
 

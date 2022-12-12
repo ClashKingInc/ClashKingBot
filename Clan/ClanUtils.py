@@ -1,5 +1,6 @@
 from CustomClasses.CustomPlayer import LegendRanking
 from CustomClasses.CustomBot import CustomClient
+from utils.discord_utils import fetch_emoji
 import disnake
 import coc
 import pytz
@@ -50,218 +51,105 @@ SUPER_SCRIPTS = [
 tiz = pytz.utc
 
 
+def clan_th_comp(clan_members):
+    thcount = defaultdict(int)
+
+    for player in clan_members:
+        thcount[player.town_hall] += 1
+
+    th_comp_string = ""
+    for th_level, th_count in sorted(thcount.items(), reverse=True):
+        th_emoji = fetch_emoji(th_level)
+        th_comp_string += f"{th_emoji}`{th_count}` "
+
+    return th_comp_string
+
+
+def clan_super_troop_comp(clan_members):
+
+    # initializing the super troop dict to count active super troops
+    super_troop_comp_dict = {}
+    for super_troop in SUPER_TROOPS:
+        super_troop_comp_dict[super_troop] = 0
+
+    for player in clan_members:
+        for troop in player.troops:
+            if troop.is_active:
+                try:
+                    super_troop_comp_dict[troop.name] += 1
+                except:
+                    pass
+
+    return_string = ""
+
+    for troop in SUPER_TROOPS:
+        nu = super_troop_comp_dict[troop]
+        super_troop_emoji = fetch_emoji(emoji_name=troop)
+        if nu != 0:
+            return_string += f"{super_troop_emoji}`x{nu} `"
+
+    if return_string == "":
+        return_string = "None"
+
+    return return_string
+
+
+def league_and_trophies_emoji(league):
+
+    if (league == "Bronze League III"):
+        emoji = "<:BronzeLeagueIII:601611929311510528>"
+    elif (league == "Bronze League II"):
+        emoji = "<:BronzeLeagueII:601611942850986014>"
+    elif (league == "Bronze League I"):
+        emoji = "<:BronzeLeagueI:601611950228635648>"
+    elif (league == "Silver League III"):
+        emoji = "<:SilverLeagueIII:601611958067920906>"
+    elif (league == "Silver League II"):
+        emoji = "<:SilverLeagueII:601611965550428160>"
+    elif (league == "Silver League I"):
+        emoji = "<:SilverLeagueI:601611974849331222>"
+    elif (league == "Gold League III"):
+        emoji = "<:GoldLeagueIII:601611988992262144>"
+    elif (league == "Gold League II"):
+        emoji = "<:GoldLeagueII:601611996290613249>"
+    elif (league == "Gold League I"):
+        emoji = "<:GoldLeagueI:601612010492526592>"
+    elif (league == "Crystal League III"):
+        emoji = "<:CrystalLeagueIII:601612021472952330>"
+    elif (league == "Crystal League II"):
+        emoji = "<:CrystalLeagueII:601612033976434698>"
+    elif (league == "Crystal League I"):
+        emoji = "<:CrystalLeagueI:601612045359775746>"
+    elif (league == "Master League III"):
+        emoji = "<:MasterLeagueIII:601612064913621002>"
+    elif (league == "Master League II"):
+        emoji = "<:MasterLeagueII:601612075474616399>"
+    elif (league == "Master League I"):
+        emoji = "<:MasterLeagueI:601612085327036436>"
+    elif (league == "Champion League III"):
+        emoji = "<:ChampionLeagueIII:601612099226959892>"
+    elif (league == "Champion League II"):
+        emoji = "<:ChampionLeagueII:601612113345249290>"
+    elif (league == "Champion League I"):
+        emoji = "<:ChampionLeagueI:601612124447440912>"
+    elif (league == "Titan League III"):
+        emoji = "<:TitanLeagueIII:601612137491726374>"
+    elif (league == "Titan League II"):
+        emoji = "<:TitanLeagueII:601612148325744640>"
+    elif (league == "Titan League I"):
+        emoji = "<:TitanLeagueI:601612159327141888>"
+    elif (league == "Legend League"):
+        emoji = "<:LegendLeague:601612163169255436>"
+    else:
+        emoji = "<:Unranked:601618883853680653>"
+
+    return emoji
+
+
 class ClanUtils(commands.Cog, name="Clan"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-
-    async def clan_overview(self, ctx, clan: coc.Clan):
-        leader = utils.get(clan.members, role=coc.Role.leader)
-        if clan.public_war_log:
-            warwin = clan.war_wins
-            warloss = clan.war_losses
-            if warloss == 0:
-                warloss = 1
-            winstreak = clan.war_win_streak
-            winrate = round((warwin / warloss), 2)
-        else:
-            warwin = clan.war_wins
-            warloss = "Hidden Log"
-            winstreak = clan.war_win_streak
-            winrate = "Hidden Log"
-
-        results = await self.bot.clan_db.find_one({"$and": [
-            {"tag": clan.tag},
-            {"server": ctx.guild.id}
-        ]})
-
-        category = ""
-        if results is not None:
-            ctg = results.get("category")
-            if ctg is not None:
-                category = f"Category: {ctg}\n"
-
-        if str(clan.location) == "International":
-            flag = "<a:earth:861321402909327370>"
-        else:
-            try:
-                flag = f":flag_{clan.location.country_code.lower()}:"
-            except:
-                flag = "🏳️"
-
-        result_ranking = await self.bot.clan_leaderboard_db.find_one({"tag": clan.tag})
-        ranking = LegendRanking(result_ranking)
-
-        rank_text = ""
-        rank_text += f"<a:earth:861321402909327370> {ranking.global_ranking} | "
-
-        try:
-            location_name = clan.location.name
-        except:
-            location_name = "Not Set"
-
-        if clan.location is not None:
-            if clan.location.name == "International":
-                rank_text += f"🌍 {ranking.local_ranking}"
-            else:
-                rank_text += f"{flag} {ranking.local_ranking}"
-        else:
-            rank_text += f"{flag} {ranking.local_ranking}"
-
-        embed = disnake.Embed(title=f"**{clan.name}**", description=f"Tag: [{clan.tag}]({clan.share_link})\n"
-                                                                    f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.versus_points}\n"
-                                                                    f"Required Trophies: <:trophy:825563829705637889> {clan.required_trophies}\n"
-                                                                    f"Required Townhall: {clan.required_townhall}\n"
-                                                                    f"Location: {flag} {location_name}\n"
-                                                                    f"Type: {clan.type}\n"
-                                                                    f"{category}"
-                                                                    f"Rankings: {rank_text}\n\n"
-                                                                    f"Leader: {leader.name}\n"
-                                                                    f"Level: {clan.level} \n"
-                                                                    f"Members: <:people:932212939891552256>{clan.member_count}/50\n\n"
-                                                                    f"CWL: {self.leagueAndTrophies(str(clan.war_league))}{str(clan.war_league)}\n"
-                                                                    f"Wars Won: <:warwon:932212939899949176>{warwin}\nWars Lost: <:warlost:932212154164183081>{warloss}\n"
-                                                                    f"War Streak: <:warstreak:932212939983847464>{winstreak}\nWinratio: <:winrate:932212939908337705>{winrate}\n\n"
-                                                                    f"Description: {clan.description}",
-                              color=disnake.Color.green())
-
-        compo = await self.war_th_comps(clan)
-        embed.add_field(name="**Townhall Composition:**",
-                        value=compo[0], inline=False)
-        embed.add_field(name="**Boosted Super Troops:**",
-                        value=compo[1], inline=False)
-
-        embed.set_thumbnail(url=clan.badge.large)
-        return embed
-
-    async def war_th_comps(self, clan: coc.Clan):
-
-        stroops = {"Super Barbarian": 0, "Super Archer": 0, "Super Giant": 0, "Sneaky Goblin": 0, "Super Wall Breaker": 0, "Rocket Balloon": 0, "Super Wizard": 0, "Inferno Dragon": 0,
-                   "Super Minion": 0, "Super Valkyrie": 0, "Super Witch": 0, "Ice Hound": 0, "Super Bowler": 0, "Super Dragon": 0}
-
-        thcount = defaultdict(int)
-
-        async for player in clan.get_detailed_members():
-            thcount[player.town_hall] += 1
-            troops = player.troops
-            for x in range(len(troops)):
-                troop = troops[x]
-                if (troop.is_active):
-                    try:
-                        stroops[troop.name] = stroops[troop.name] + 1
-                    except:
-                        pass
-
-        stats = ""
-        for th_level, th_count in sorted(thcount.items(), reverse=True):
-            th_emoji = self.bot.fetch_emoji(th_level)
-            stats += f"{th_emoji}`{th_count}` "
-
-        stext = ""
-
-        for troop in SUPER_TROOPS:
-            nu = stroops[troop]
-            if nu != 0:
-                stext += f"{emojiDictionary(troop)}`x{nu} `"
-
-        if stext == "":
-            stext = "None"
-
-        return [stats, stext]
-
-    async def linked_players(self, ctx, clan):
-        gch = "<:greentick:601900670823694357>"
-        disc = "<:discord:840749695466864650>"
-        stats = disc + "`Name           ` **Discord**\n"
-        y = 0
-        tags = []
-        links = []
-        for player in clan.members:
-            tags.append(player.tag)
-
-        links = await self.bot.link_client.get_links(*tags)
-        links = dict(links)
-        for player in clan.members:
-            link = links[f"{player.tag}"]
-            notLinked = (link is None)
-            name = player.name
-            linkE = gch
-            if (notLinked):
-                continue
-
-            ol_name = name
-            for char in ["`", "*", "_", "~", "ッ"]:
-                name = name.replace(char, "", 10)
-            name = emoji.replace_emoji(name, "")
-            name = name[:14]
-            if len(name) <= 2:
-                name = ol_name
-            for x in range(14 - len(name)):
-                name += " "
-
-            member = ""
-            if not notLinked:
-                y += 1
-                member = disnake.utils.get(ctx.guild.members, id=link)
-                member = str(member)
-                if member == "None":
-                    member = ""
-            else:
-                member = player.tag
-
-            stats += f'\u200e{linkE}`\u200e{name}` \u200e{member}' + "\n"
-
-        if stats == disc + "`Name           ` **Discord**\n":
-            stats = "No players linked."
-        embed = disnake.Embed(title=f"{clan.name}: {str(y)}/{str(clan.member_count)} linked", description=stats,
-                              color=disnake.Color.green())
-        embed.set_footer(
-            text="Discord blank if linked but not on this server.")
-        return embed
-
-    async def unlinked_players(self, ctx, clan: coc.Clan):
-        rx = "<:redtick:601900691312607242>"
-        disc = "<:discord:840749695466864650>"
-        stats = disc + "`Name           ` **Player Tag**\n"
-        y = 0
-        tags = []
-        links = []
-        for player in clan.members:
-            tags.append(player.tag)
-
-        links = await self.bot.link_client.get_links(*tags)
-        links = dict(links)
-        for player in clan.members:
-            link = links[f"{player.tag}"]
-            notLinked = (link is None)
-            name = player.name
-            linkE = rx
-            if not notLinked:
-                continue
-
-            ol_name = name
-            for char in ["`", "*", "_", "~", "ッ"]:
-                name = name.replace(char, "", 10)
-            name = emoji.replace_emoji(name, "")
-            name = name[:14]
-            if len(name) <= 2:
-                name = ol_name
-            for x in range(14 - len(name)):
-                name += " "
-
-            member = ""
-            if notLinked:
-                y += 1
-                member = player.tag
-
-            stats += f'\u200e{linkE}`\u200e{name}` \u200e{member}' + "\n"
-
-        if stats == disc + "`Name           ` **Discord**\n":
-            stats = "No players unlinked."
-
-        embed = disnake.Embed(title=f"{clan.name}: {str(y)}/{clan.member_count} unlinked", description=stats,
-                              color=disnake.Color.green())
-        return embed
 
     async def player_trophy_sort(self, clan):
         text = ""
@@ -305,6 +193,7 @@ class ClanUtils(commands.Cog, name="Clan"):
         num_out = 0
         thcount = defaultdict(int)
         out_thcount = defaultdict(int)
+
         async for player in clan.get_detailed_members():
             if player.war_opted_in:
                 th_emoji = emojiDictionary(player.town_hall)
@@ -333,11 +222,11 @@ class ClanUtils(commands.Cog, name="Clan"):
         embed = disnake.Embed(title=f"**{clan.name} War Opt Statuses**", description=f"**Players Opted In - {num_in}:**\n{opted_in}\n**Players Opted Out - {num_out}:**\n{opted_out}\n",
                               color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
-        footer_text = ", ".join(f"Th{index}: {th} " for index, th in sorted(
+        in_string = ", ".join(f"Th{index}: {th} " for index, th in sorted(
             thcount.items(), reverse=True) if th != 0)
-        footer_text2 = ", ".join(f"Th{index}: {th} " for index, th in sorted(
+        out_string = ", ".join(f"Th{index}: {th} " for index, th in sorted(
             out_thcount.items(), reverse=True) if th != 0)
-        embed.set_footer(text=f"In: {footer_text}\nOut: {footer_text2}")
+        embed.set_footer(text=f"In: {in_string}\nOut: {out_string}")
 
         return embed
 
