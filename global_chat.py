@@ -16,7 +16,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.send_rules, 'interval', minutes=60)
+        scheduler.add_job(self.send_rules, 'interval', minutes=120)
 
 
     @commands.Cog.listener()
@@ -134,8 +134,8 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                                            "- Report bad behavior with </global-chat report:1046600513728290937>\n"
                                            "[Support Server](https://discord.gg/gChZm3XCrS)",
                                color=disnake.Color.green())
-            em.set_image(
-                url="https://cdn.discordapp.com/attachments/923767060977303552/1046920746636685342/unknown.png")
+            #em.set_image(
+                #url="https://cdn.discordapp.com/attachments/923767060977303552/1046920746636685342/unknown.png")
             task = asyncio.ensure_future(webhook_task(channel, em))
             tasks.append(task)
         await asyncio.gather(*tasks)
