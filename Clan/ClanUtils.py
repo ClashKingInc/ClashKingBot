@@ -146,6 +146,14 @@ def league_and_trophies_emoji(league):
     return emoji
 
 
+def get_raid(self, raid_log, after, before):
+    for raid in raid_log:
+        time_start = int(raid.start_time.time.timestamp())
+        if before > time_start > after:
+            return raid
+    return None
+
+
 class ClanUtils(commands.Cog, name="Clan"):
 
     def __init__(self, bot: CustomClient):

@@ -472,184 +472,85 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.edit_original_message(embed=embed)
 
-    @clan.sub_command(name="capital-stats", description="Get stats on raids & donations during selected time period")
-    async def clan_capital_stats(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
-        #weekend = commands.Param(default="Current Week", choices=["Current Week", "Last Week", "Last 4 Weeks (all)"])
-        weekend = "Current Week"
+    @clan.sub_command(
+        name="capital-stats",
+        description=(
+            "Get stats on raids & donations "
+            "during selected time period"))
+    async def clan_capital_stats(
+            self, ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = commands.Param(converter=clan_converter)):
+        """
+            Parameters
+            ----------
+            clan: Use clan tag or select an option from the autocomplete
+        """
+
         await ctx.response.defer()
+
         raidlog = await self.bot.coc_client.get_raidlog(clan.tag)
-        choice_to_date = {"Current Week": [0], "Last Week": [1], "Last 4 Weeks (all)": [
-            0, 1, 2, 3]}
+
+        weekend = "Current Week"
         weekend_times = weekend_timestamps()
         weekend_dates = create_weekend_list(option=weekend)
         member_tags = [member.tag for member in clan.members]
-
-        embeds = {}
-        other_tags = []
-        columns = ["Tag", "Donated", "Number of Donations",
-                   "Raided", "Number of Raids"]
-        donated_data = {}
-        number_donated_data = {}
-
+        capital_raid_member_tags = []
         for week in weekend_dates:
-            tags = await self.bot.player_stats.distinct("tag", filter={f"capital_gold.{week}.raided_clan": clan.tag})
-            other_tags += tags
-        all_tags = list(set(member_tags + other_tags))
+            tags = await self.bot.player_stats.distinct(
+                "tag",
+                filter={f"capital_gold.{week}.raided_clan": clan.tag})
+
+            capital_raid_member_tags += tags
+
         tasks = []
+
+        all_tags = list(set(member_tags + capital_raid_member_tags))
         for tag in all_tags:
             results = await self.bot.player_stats.find_one({"tag": tag})
             task = asyncio.ensure_future(self.bot.coc_client.get_player(
-                player_tag=tag, cls=MyCustomPlayer, bot=self.bot, results=results))
+                player_tag=tag, cls=MyCustomPlayer,
+                bot=self.bot, results=results))
+
             tasks.append(task)
+
         responses = await asyncio.gather(*tasks, return_exceptions=True)
 
-        donation_text = []
-        for player in responses:
-            if isinstance(player, coc.errors.NotFound):
-                continue
-            player: MyCustomPlayer
-            for char in ["`", "*", "_", "~", "´", "`"]:
-                name = player.name.replace(char, "")
-            sum_donated = 0
-            len_donated = 0
-            for week in weekend_dates:
-                cc_stats = player.clan_capital_stats(week=week)
-                sum_donated += sum(cc_stats.donated)
-                len_donated += len(cc_stats.donated)
-            donation = f"{sum_donated}".ljust(6)
-
-            donated_data[player.tag] = sum_donated
-            number_donated_data[player.tag] = len_donated
-
-            if sum_donated == 0 and len(weekend_dates) > 1:
-                continue
-            if player.tag in member_tags:
-                donation_text.append(
-                    [f"{self.bot.emoji.capital_gold}`{donation}`: {name}", sum_donated])
-            else:
-                donation_text.append(
-                    [f"{self.bot.emoji.deny_mark}`{donation}`: {name}", sum_donated])
-
-        donation_text = sorted(donation_text, key=lambda l: l[1], reverse=True)
-        donation_text = [line[0] for line in donation_text]
-        donation_text = "\n".join(donation_text)
-        donation_embed = disnake.Embed(
-            title=f"**{clan.name} Donation Totals**", description=donation_text, color=disnake.Color.green())
-        donation_embed.set_footer(
-            text=f"Donated: {'{:,}'.format(sum(donated_data.values()))}")
-        embeds["donations"] = donation_embed
-
-        raid_weekends = []
-        for week in choice_to_date[weekend]:
-            raid_weekend = self.get_raid(raid_log=raidlog, before=weekend_times[week],
-                                         after=weekend_times[week + 1])
-            if raid_weekend is not None:
-                raid_weekends.append(raid_weekend)
-
-        total_medals = 0
-        if not raid_weekends:
-            raid_embed = disnake.Embed(
-                title=f"**{clan.name} Raid Totals**", description="No raids", color=disnake.Color.green())
-            embeds["raids"] = raid_embed
-        else:
-            total_attacks = defaultdict(int)
-            total_looted = defaultdict(int)
-            attack_limit = defaultdict(int)
-            name_list = {}
-            members_not_looted = member_tags.copy()
-            for raid_weekend in raid_weekends:
-                for member in raid_weekend.members:
-                    name_list[member.tag] = member.name
-                    total_attacks[member.tag] += member.attack_count
-                    total_looted[member.tag] += member.capital_resources_looted
-                    attack_limit[member.tag] += (member.attack_limit +
-                                                 member.bonus_attack_limit)
-                    if len(raid_weekends) == 1 and member.tag in members_not_looted:
-                        members_not_looted.remove(member.tag)
-
-            district_dict = {1: 135, 2: 225, 3: 350, 4: 405, 5: 460}
-            capital_dict = {2: 180, 3: 360, 4: 585, 5: 810,
-                            6: 1115, 7: 1240, 8: 1260, 9: 1375, 10: 1450}
-            attacks_done = sum(list(total_attacks.values()))
-            raids = raid_weekends[0].attack_log
-            for raid_clan in raids:
-                for district in raid_clan.districts:
-                    if int(district.destruction) == 100:
-                        if district.id == 70000000:
-                            total_medals += capital_dict[int(
-                                district.hall_level)]
-                        else:
-                            total_medals += district_dict[int(
-                                district.hall_level)]
-                    else:
-                        #attacks_done -= len(district.attacks)
-                        pass
-
-            print(total_medals)
-            print(attacks_done)
-            total_medals = math.ceil(total_medals/attacks_done) * 6
-
-            raid_text = []
-            for tag, amount in total_looted.items():
-                raided_amount = f"{amount}".ljust(6)
-                name = name_list[tag]
-                for char in ["`", "*", "_", "~"]:
-                    name = name.replace(char, "", 10)
-                # print(tag)
-                # print(member_tags)
-                if tag in member_tags:
-                    raid_text.append(
-                        [f"\u200e{self.bot.emoji.capital_gold}`{total_attacks[tag]}/{attack_limit[tag]} {raided_amount}`: \u200e{name}", amount])
-                else:
-                    raid_text.append(
-                        [f"\u200e{self.bot.emoji.deny_mark}`{total_attacks[tag]}/{attack_limit[tag]} {raided_amount}`: \u200e{name}", amount])
-
-            if len(raid_weekends) == 1:
-                for member in members_not_looted:
-                    name = coc.utils.get(clan.members, tag=member)
-                    raid_text.append(
-                        [f"{self.bot.emoji.capital_gold}`{0}/{6*len(raid_weekends)} {0}`: {name.name}", 0])
-
-            raid_text = sorted(raid_text, key=lambda l: l[1], reverse=True)
-            raid_text = [line[0] for line in raid_text]
-            raid_text = "\n".join(raid_text)
-            if len(raid_weekends) == 1:
-                rw = raid_weekends[0]
-                offensive_reward = rw.offensive_reward * 6
-                if total_medals > offensive_reward:
-                    offensive_reward = total_medals
-                defensive_reward = rw.defensive_reward
-                raid_text += f"\n\n{self.bot.emoji.raid_medal}{offensive_reward} + {self.bot.emoji.raid_medal}{defensive_reward} = {self.bot.emoji.raid_medal}{offensive_reward + defensive_reward}"
-                raid_text += "\n`Offense + Defense = Total`"
-            raid_embed = disnake.Embed(
-                title=f"**{clan.name} Raid Totals**", description=raid_text, color=disnake.Color.green())
-            raid_embed.set_footer(
-                text=f"Spots: {len(total_attacks.values())}/50 | Attacks: {sum(total_attacks.values())}/300 | Looted: {'{:,}'.format(sum(total_looted.values()))}")
-            embeds["raids"] = raid_embed
+        (embeds, raid_weekends,
+         total_looted, total_attacks,
+         donated_data, number_donated_data) = clan_responder.clan_raid_weekend(
+            clan=clan, raid_log=raidlog,
+            capital_raid_members=responses)
 
         data = []
         index = []
+
         for tag in member_tags:
             if not raid_weekends:
                 looted = 0
                 attacks = 0
+
             else:
                 looted = total_looted[tag]
                 attacks = total_attacks[tag]
+
             try:
-                data.append([tag, donated_data[tag],
-                            number_donated_data[tag], looted, attacks])
+                data.append([
+                    tag, donated_data[tag],
+                    number_donated_data[tag], looted, attacks])
+
             except:
                 continue
+
             name = coc.utils.get(clan.members, tag=tag)
             index.append(name.name)
 
         buttons = raid_buttons(self.bot, data)
 
         if not raid_weekends:
-            await ctx.edit_original_message(embed=donation_embed, components=buttons)
+            await ctx.edit_original_message(embed=embeds["donations"], components=buttons)
+
         else:
-            await ctx.edit_original_message(embed=raid_embed, components=buttons)
+            await ctx.edit_original_message(embed=embeds["raids"], components=buttons)
 
         msg = await ctx.original_message()
 
@@ -658,8 +559,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
-                                                                          timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for(
+                    "message_interaction", check=check, timeout=600)
 
             except:
                 try:
@@ -673,6 +574,13 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             elif res.data.custom_id == "raids":
                 await res.edit_original_message(embed=embeds["raids"])
             elif res.data.custom_id == "capseason":
+                columns = [
+                    "Tag",
+                    "Donated",
+                    "Number of Donations",
+                    "Raided",
+                    "Number of Raids"]
+
                 file = self.create_excel(
                     columns=columns, index=index, data=data, weekend=weekend)
                 await res.send(file=file, ephemeral=True)
