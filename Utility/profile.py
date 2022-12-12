@@ -63,7 +63,7 @@ class profiles(commands.Cog, name="Profile"):
         text = ""
         total = 0
         sumth = 0
-
+        results = results[:100]
         for player in results:
             emoji = emojiDictionary(player.town_hall)
             th = player.town_hall
