@@ -56,60 +56,6 @@ class DMFeed(commands.Cog, name="DM Feed & Reports"):
             await self.bot.legend_profile.update_one({'discord_id': ctx.author.id},
                                         {'$set': {"opt": opt}})
 
-    @dm.sub_command(name="legend_feed", description="Add players from your quick_check list to your dm feed.")
-    async def legend_feed(self, ctx: disnake.ApplicationCommandInteraction):
-        results = await self.bot.legend_profile.find_one({'discord_id': ctx.author.id})
-        if results is None:
-            return await ctx.send(content="You don't have any players tracked, use `/quick_check` to get started.", ephemeral=True)
-
-        profile_tags = results.get("profile_tags")
-        if profile_tags is None or profile_tags == []:
-                return await ctx.send(content="You don't have any players tracked, use `/quick_check` to get started.", ephemeral=True)
-
-        feed_tags = results.get("feed_tags")
-        if feed_tags is None:
-            feed_tags = []
-        players = await self.bot.get_players(tags=profile_tags, custom=False)
-
-        build = self.legend_feed_embed_and_components(feed_tags=feed_tags, players=players)
-        embed = disnake.Embed(title="Edit Legend Feed Tracking (up to 3 players)", description=build[1])
-
-        await ctx.send(embed=embed, components=build[0], ephemeral=True)
-        msg = await ctx.original_message()
-
-        def check(res: disnake.MessageInteraction):
-            return res.message.id == msg.id
-
-        while True:
-            try:
-                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
-            except:
-                try:
-                    await msg.edit(components=[])
-                except:
-                    pass
-                break
-
-            if "addleg_" in res.values[0]:
-                player_tag = res.values[0].split("_")[-1]
-                if len(feed_tags) == self.bot.MAX_FEED_LEN:
-                    await res.send(content="Can only have 3 people in your dm feed at this time. Please remove one first.", ephemeral=True)
-                else:
-                    await self.bot.legend_profile.update_one({'discord_id': res.author.id}, {'$push': {"feed_tags": player_tag}})
-                    feed_tags.append(player_tag)
-                    build = self.legend_feed_embed_and_components(feed_tags=feed_tags, players=players)
-                    embed = disnake.Embed(title="Edit Legend Feed Tracking (up to 3 players)", description=build[1])
-                    await res.response.edit_message(embed=embed, components=build[0])
-
-            elif "removeleg_" in res.values[0]:
-                player_tag = res.values[0].split("_")[-1]
-                await self.bot.legend_profile.update_one({'discord_id': res.author.id},
-                                                         {'$pull': {"feed_tags": player_tag}})
-                feed_tags.remove(player_tag)
-                build = self.legend_feed_embed_and_components(feed_tags=feed_tags, players=players)
-                embed = disnake.Embed(title="Edit Legend Feed Tracking (up to 3 players)", description=build[1])
-                await res.response.edit_message(embed=embed, components=build[0])
-
 
     def legend_feed_embed_and_components(self, feed_tags, players):
         text = ""
@@ -131,9 +77,6 @@ class DMFeed(commands.Cog, name="DM Feed & Reports"):
         st2.append_item(profile_select)
 
         return [[st2], text]
-
-
-
 
     async def dm_check(self):
 
