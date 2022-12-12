@@ -32,11 +32,11 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
             else:
                 channel = await ctx.guild.create_voice_channel(name=f"{type} {time_}")
         except disnake.Forbidden:
-            embed = disnake.Embed(description="Bot requires admin to create & set permissions for channel.",
+            embed = disnake.Embed(description="Bot requires admin to create & set permissions for channel. **Channel will not update**",
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-        '''
+
         overwrite = disnake.PermissionOverwrite()
         overwrite.view_channel = True
         overwrite.connect = False
@@ -50,7 +50,7 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
             await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"raidCountdown": channel.id}})
         else:
             await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"eosCountdown": channel.id}})
-        '''
+
 
         embed = disnake.Embed(description=f"{type} Stat Bar Created",
                               color=disnake.Color.green())
@@ -65,7 +65,6 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
         month = now.month
         day = now.day
         hour = now.hour
-        print(month)
         if type == "CWL":
             is_cwl = True
             if day == 1:
@@ -73,9 +72,11 @@ class VoiceCountdowns(commands.Cog, name="Statbar Setup"):
             else:
                 if month + 1 == 13:
                     next_month = 1
+                    next_year = year + 1
                 else:
                     next_month = month + 1
-                first = datetime(year, next_month, 1, hour=8, tzinfo=utc)
+                    next_year = year
+                first = datetime(next_year, next_month, 1, hour=8, tzinfo=utc)
             end = datetime(year, month, 11, hour=8, tzinfo=utc)
             if (day >= 1 and day <= 10):
                 if (day == 1 and hour < 8) or (day == 11 and hour >= 8):
