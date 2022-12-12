@@ -11,7 +11,8 @@ from Clan.ClanUtils import (
     clan_super_troop_comp,
     league_and_trophies_emoji,
     tiz,
-    get_raid
+    get_raid,
+    gen_season_date
 )
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis
@@ -827,3 +828,46 @@ def create_activities(clan: coc.Clan, clan_members):
         description=f"```#     NAME\n{embed_description}```",
         color=Color.green())
     return embed
+
+
+def create_clan_games(
+        clan: coc.Clan, player_list,
+        member_tags, season_date):
+
+    point_text_list = []
+    total_points = sum(
+        player.clan_games(season_date) for player in player_list)
+
+    for player in player_list:
+        player: MyCustomPlayer
+        name = player.name
+        for char in ["`", "*", "_", "~", "´"]:
+            name = name.replace(char, "", len(player.name))
+
+        points = player.clan_games(season_date)
+
+        if player.tag in member_tags:
+            point_text_list.append([
+                f"{Emojis().clan_games}`{str(points).ljust(4)}`: {name}",
+                points])
+
+        else:
+            point_text_list.append([
+                f"{Emojis().deny_mark}`{str(points).ljust(4)}`: {name}",
+                points])
+
+    point_text_list_sorted = sorted(
+        point_text_list, key=lambda l: l[1], reverse=True)
+
+    point_text = [line[0] for line in point_text_list_sorted]
+    point_text = "\n".join(point_text)
+
+    cg_point_embed = Embed(
+        title=f"**{clan.name} Clan Game Totals**",
+        description=point_text,
+        color=Color.green())
+
+    cg_point_embed.set_footer(
+        text=f"Total Points: {'{:,}'.format(total_points)}")
+
+    return cg_point_embed

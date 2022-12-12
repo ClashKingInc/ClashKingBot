@@ -12,6 +12,7 @@ import statistics
 import matplotlib.pyplot as plt
 import datetime as dt
 import numpy as np
+import dateutil.relativedelta
 
 from scipy.interpolate import make_interp_spline
 from disnake.ext import commands
@@ -154,6 +155,20 @@ def get_raid(raid_log, after, before):
     return None
 
 
+def gen_season_date(seasons_ago=None):
+    if seasons_ago is None:
+        end = coc.utils.get_season_end().replace(tzinfo=pytz.utc).date()
+        return f"{end.year}-{end.month}"
+    else:
+        dates = []
+        for x in range(0, seasons_ago + 1):
+            end = coc.utils.get_season_end().replace(tzinfo=pytz.utc) - \
+                dateutil.relativedelta.relativedelta(months=x)
+            dates.append(
+                f"{calendar.month_name[end.date().month]} {end.date().year}")
+        return dates
+
+
 class ClanUtils(commands.Cog, name="Clan"):
 
     def __init__(self, bot: CustomClient):
@@ -260,47 +275,6 @@ class ClanUtils(commands.Cog, name="Clan"):
         if not not_empty:
             embed.description = "No prior cwl data"
         return embed
-
-    async def create_clan_games(self, clan: coc.Clan, date=None):
-        if date is None:
-            date = self.bot.gen_season_date()
-        member_tags = [member.tag for member in clan.members]
-
-        tags = await self.bot.player_stats.distinct("tag", filter={f"clan_games.{date}.clan": clan.tag})
-        all_tags = list(set(member_tags + tags))
-
-        tasks = []
-        for tag in all_tags:
-            results = await self.bot.player_stats.find_one({"tag": tag})
-            task = asyncio.ensure_future(
-                self.bot.coc_client.get_player(player_tag=tag, cls=MyCustomPlayer, bot=self.bot, results=results))
-            tasks.append(task)
-        responses = await asyncio.gather(*tasks)
-
-        point_text = []
-        total_points = sum(player.clan_games(date) for player in responses)
-        for player in responses:
-            player: MyCustomPlayer
-            name = player.name
-            for char in ["`", "*", "_", "~", "´"]:
-                name = name.replace(char, "", len(player.name))
-            points = player.clan_games(date)
-
-            if player.tag in member_tags:
-                point_text.append(
-                    [f"{self.bot.emoji.clan_games}`{str(points).ljust(4)}`: {name}", points])
-            else:
-                point_text.append(
-                    [f"{self.bot.emoji.deny_mark}`{str(points).ljust(4)}`: {name}", points])
-
-        point_text = sorted(point_text, key=lambda l: l[1], reverse=True)
-        point_text = [line[0] for line in point_text]
-        point_text = "\n".join(point_text)
-        cg_point_embed = disnake.Embed(title=f"**{clan.name} Clan Game Totals**", description=point_text,
-                                       color=disnake.Color.green())
-        cg_point_embed.set_footer(
-            text=f"Total Points: {'{:,}'.format(total_points)}")
-        return cg_point_embed
 
     async def create_donations(self, clan: coc.Clan, type: str, date=None):
         if date is None:
