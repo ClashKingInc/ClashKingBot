@@ -202,48 +202,6 @@ class ClanUtils(commands.Cog, name="Clan"):
 
         return emoji
 
-    async def war_log(self, clan: coc.Clan):
-        warlog = await self.bot.coc_client.get_warlog(clan.tag, limit=25)
-        text = ""
-        for war in warlog:
-            if war.is_league_entry:
-                continue
-
-            t1 = war.clan.attacks_used
-            t2 = war.opponent.attacks_used
-
-            if war.result == "win":
-                status = "<:warwon:932212939899949176>"
-                op_status = "Win"
-            elif (war.opponent.stars == war.clan.stars) and (war.clan.destruction == war.opponent.destruction):
-                status = "<:dash:933150462818021437>"
-                op_status = "Draw"
-            else:
-                status = "<:warlost:932212154164183081>"
-                op_status = "Loss"
-
-            time = f"<t:{int(war.end_time.time.replace(tzinfo=tiz).timestamp())}:R>"
-            war: coc.ClanWarLogEntry
-            try:
-                total = war.team_size * war.attacks_per_member
-                num_hit = SUPER_SCRIPTS[war.attacks_per_member]
-            except:
-                total = war.team_size
-                num_hit = SUPER_SCRIPTS[1]
-
-            text += f"{status}**{op_status} vs \u200e{war.opponent.name}**\n" \
-                f"({war.team_size} vs {war.team_size}){num_hit} | {time}\n" \
-                f"{war.clan.stars} <:star:825571962699907152> {war.opponent.stars} | {t1}/{total} | {round(war.clan.destruction, 1)}% | +{war.clan.exp_earned}xp\n"\
-
-
-        if text == "":
-            text = "Empty War Log"
-        embed = disnake.Embed(title=f"**{clan.name} WarLog (last 25)**",
-                              description=text,
-                              color=disnake.Color.green())
-        embed.set_footer(icon_url=clan.badge.large, text=clan.name)
-        return embed
-
     async def stroop_list(self, clan: coc.Clan):
         boosted = ""
         none_boosted = ""

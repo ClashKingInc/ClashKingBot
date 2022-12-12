@@ -13,6 +13,7 @@ from Clan.ClanResponder import (
     unlinked_players,
     player_trophy_sort,
     player_townhall_sort,
+    war_log,
 )
 import math
 import coc
@@ -310,28 +311,40 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.edit_original_message(embed=embed, components=buttons)
 
-    @clan.sub_command(name="war-log", description="List of clan's last 25 war win & losses")
-    async def clan_war_log(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+    @clan.sub_command(
+        name="war-log",
+        description="List of clan's last 25 war win & losses")
+    async def clan_war_log(
+            self, ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
             clan: Use clan tag or select an option from the autocomplete
         """
+
         await ctx.response.defer()
-        time = datetime.now().timestamp()
 
         if not clan.public_war_log:
-            embed = disnake.Embed(description="Clan has a private war log.",
-                                  color=disnake.Color.red())
+            embed = disnake.Embed(
+                description="Clan has a private war log.",
+                color=disnake.Color.red())
             embed.set_thumbnail(url=clan.badge.url)
             return await ctx.edit_original_message(embed=embed)
 
-        embed = await self.war_log(clan)
-        embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+        warlog = await self.bot.coc_client.get_warlog(clan.tag, limit=25)
+
+        embed = war_log(clan, warlog)
+        embed.description += (
+            f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+
         buttons = disnake.ui.ActionRow()
-        buttons.append_item(
-            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
-                              custom_id=f"warlog_{clan.tag}"))
+        buttons.append_item(disnake.ui.Button(
+            label="",
+            emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey,
+            custom_id=f"warlog_{clan.tag}"))
+
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     @clan.sub_command(name="super-troops", description="List of clan member's boosted & unboosted troops")

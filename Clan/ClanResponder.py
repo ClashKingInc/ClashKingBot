@@ -5,9 +5,12 @@ from disnake.utils import get
 from utils.discord_utils import fetch_emoji
 from collections import defaultdict
 from Clan.ClanUtils import (
+    SUPER_SCRIPTS,
     clan_th_comp,
     clan_super_troop_comp,
-    league_and_trophies_emoji)
+    league_and_trophies_emoji,
+    tiz
+)
 import emoji
 
 
@@ -318,4 +321,59 @@ async def opt_status(clan: coc.Clan):
             f"In: {in_string}\n"
             f"Out: {out_string}"))
 
+    return embed
+
+
+def war_log(clan: coc.Clan, war_log):
+
+    embed_description = ""
+    wars_counted = 0
+
+    for war in war_log:
+        if war.is_league_entry:
+            continue
+
+        clan_attack_count = war.clan.attacks_used
+
+        if war.result == "win":
+            status = "<:warwon:932212939899949176>"
+            op_status = "Win"
+
+        elif ((war.opponent.stars == war.clan.stars) and
+              (war.clan.destruction == war.opponent.destruction)):
+            status = "<:dash:933150462818021437>"
+            op_status = "Draw"
+
+        else:
+            status = "<:warlost:932212154164183081>"
+            op_status = "Loss"
+
+        time = f"<t:{int(war.end_time.time.replace(tzinfo=tiz).timestamp())}:R>"
+        war: coc.ClanWarLogEntry
+
+        try:
+            total = war.team_size * war.attacks_per_member
+            num_hit = SUPER_SCRIPTS[war.attacks_per_member]
+        except:
+            total = war.team_size
+            num_hit = SUPER_SCRIPTS[1]
+
+        embed_description += (
+            f"{status}**{op_status} vs "
+            f"\u200e{war.opponent.name}**\n"
+            f"({war.team_size} vs {war.team_size}){num_hit} | {time}\n"
+            f"{war.clan.stars} <:star:825571962699907152> {war.opponent.stars} | "
+            f"{clan_attack_count}/{total} | {round(war.clan.destruction, 1)}% | "
+            f"+{war.clan.exp_earned}xp\n")
+
+        wars_counted += 1
+
+    if wars_counted == 0:
+        embed_description = "Empty War Log"
+
+    embed = Embed(
+        title=f"**{clan.name} WarLog (last {wars_counted})**",
+        description=embed_description,
+        color=Color.green())
+    embed.set_footer(icon_url=clan.badge.large, text=clan.name)
     return embed
