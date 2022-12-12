@@ -414,7 +414,7 @@ class misc(commands.Cog, name="Settings"):
 
         embed = disnake.Embed(title=f"Logs Created for {clan.name}", description=text,
                               color=disnake.Color.green())
-        embed.set_thumbnail(url=clan.badge.medium.url)
+        #embed.set_thumbnail(url=clan.badge.medium.url)
         await res.edit_original_message(embed=embed, components=[])
 
     async def legend_log(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan, channel: Union[disnake.TextChannel, disnake.Thread]):
