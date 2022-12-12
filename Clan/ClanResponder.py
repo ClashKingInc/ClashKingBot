@@ -257,3 +257,65 @@ async def player_townhall_sort(clan: coc.Clan):
     embed.set_footer(text=footer_text)
 
     return embed
+
+
+async def opt_status(clan: coc.Clan):
+    opted_in = []
+    opted_out = []
+    in_count = 0
+    out_count = 0
+    thcount = defaultdict(int)
+    out_thcount = defaultdict(int)
+
+    async for player in clan.get_detailed_members():
+        if player.war_opted_in:
+            th_emoji = fetch_emoji(player.town_hall)
+            opted_in.append(
+                (player.town_hall, f"<:opt_in:944905885367537685>{th_emoji}"
+                 f"\u200e{player.name}\n", player.name))
+            thcount[player.town_hall] += 1
+            in_count += 1
+
+        else:
+            th_emoji = fetch_emoji(player.town_hall)
+            opted_out.append(
+                (player.town_hall, f"<:opt_out:944905931265810432>{th_emoji}"
+                 f"\u200e{player.name}\n", player.name))
+            out_thcount[player.town_hall] += 1
+            out_count += 1
+
+    opted_in = sorted(opted_in, key=lambda opted_in_member: (
+        opted_in_member[0], opted_in_member[2]), reverse=True)
+    opted_in = "".join([i[1] for i in opted_in])
+
+    opted_out = sorted(
+        opted_out, key=lambda opted_out_member: (
+            opted_out_member[0], opted_out_member[2]), reverse=True)
+    opted_out = "".join([i[1] for i in opted_out])
+
+    if not opted_in:
+        opted_in = "None"
+    if not opted_out:
+        opted_out = "None"
+
+    in_string = ", ".join(f"Th{index}: {th} " for index, th in sorted(
+        thcount.items(), reverse=True) if th != 0)
+    out_string = ", ".join(f"Th{index}: {th} " for index, th in sorted(
+        out_thcount.items(), reverse=True) if th != 0)
+
+    embed = Embed(
+        title=f"**{clan.name} War Opt Statuses**",
+        description=(
+            f"**Players Opted In - {in_count}:**\n"
+            f"{opted_in}\n"
+            f"**Players Opted Out - {out_count}:**\n"
+            f"{opted_out}\n"),
+        color=Color.green())
+
+    embed.set_thumbnail(url=clan.badge.large)
+    embed.set_footer(
+        text=(
+            f"In: {in_string}\n"
+            f"Out: {out_string}"))
+
+    return embed

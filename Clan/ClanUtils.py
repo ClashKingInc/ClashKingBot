@@ -151,50 +151,6 @@ class ClanUtils(commands.Cog, name="Clan"):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    async def opt_status(self, clan: coc.Clan):
-        opted_in = []
-        opted_out = []
-        num_in = 0
-        num_out = 0
-        thcount = defaultdict(int)
-        out_thcount = defaultdict(int)
-
-        async for player in clan.get_detailed_members():
-            if player.war_opted_in:
-                th_emoji = emojiDictionary(player.town_hall)
-                opted_in.append(
-                    [player.town_hall, f"<:opt_in:944905885367537685>{th_emoji}\u200e{player.name}\n", player.name])
-                thcount[player.town_hall] += 1
-                num_in += 1
-            else:
-                th_emoji = emojiDictionary(player.town_hall)
-                opted_out.append(
-                    [player.town_hall, f"<:opt_out:944905931265810432>{th_emoji}\u200e{player.name}\n", player.name])
-                out_thcount[player.town_hall] += 1
-                num_out += 1
-
-        opted_out = sorted(
-            opted_out, key=lambda l: (-l[0], l[2]), reverse=False)
-        opted_in = sorted(opted_in, key=lambda l: (-l[0], l[2]), reverse=False)
-        opted_out = "".join([i[1] for i in opted_out])
-        opted_in = "".join([i[1] for i in opted_in])
-
-        if not opted_in:
-            opted_in = "None"
-        if not opted_out:
-            opted_out = "None"
-
-        embed = disnake.Embed(title=f"**{clan.name} War Opt Statuses**", description=f"**Players Opted In - {num_in}:**\n{opted_in}\n**Players Opted Out - {num_out}:**\n{opted_out}\n",
-                              color=disnake.Color.green())
-        embed.set_thumbnail(url=clan.badge.large)
-        in_string = ", ".join(f"Th{index}: {th} " for index, th in sorted(
-            thcount.items(), reverse=True) if th != 0)
-        out_string = ", ".join(f"Th{index}: {th} " for index, th in sorted(
-            out_thcount.items(), reverse=True) if th != 0)
-        embed.set_footer(text=f"In: {in_string}\nOut: {out_string}")
-
-        return embed
-
     def leagueAndTrophies(self, league):
 
         if (league == "Bronze League III"):

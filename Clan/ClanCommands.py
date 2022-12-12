@@ -9,6 +9,7 @@ from disnake.ext import commands
 from Clan.ClanResponder import (
     clan_overview,
     linked_players,
+    opt_status,
     unlinked_players,
     player_trophy_sort,
     player_townhall_sort,
@@ -180,8 +181,11 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             elif res.values[0] == "clan":
                 await res.edit_original_message(embed=main)
             elif res.values[0] == "opt":
-                embed = await self.opt_status(clan)
+                embed = await opt_status(clan)
+                embed.description += f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>"
+
                 await res.edit_original_message(embed=embed)
+
             elif res.values[0] == "warlog":
                 embed = await self.war_log(clan)
                 await res.edit_original_message(embed=embed)
@@ -281,22 +285,29 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         await ctx.edit_original_message(
             embed=embed, components=buttons)
 
-    @clan.sub_command(name="war-preferences", description="List of player's war preferences")
-    async def war_opt(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+    @clan.sub_command(
+        name="war-preferences",
+        description="List of player's war preferences")
+    async def war_opt(
+            self, ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
             clan: Use clan tag or select an option from the autocomplete
         """
-        await ctx.response.defer()
-        time = datetime.now().timestamp()
 
-        embed = await self.opt_status(clan)
-        embed.description += f"Last Refreshed: <t:{int(time)}:R>"
+        await ctx.response.defer()
+
+        embed = await opt_status(clan)
+        embed.description += f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>"
+
         buttons = disnake.ui.ActionRow()
-        buttons.append_item(
-            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
-                              custom_id=f"waropt_{clan.tag}"))
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey,
+            custom_id=f"waropt_{clan.tag}"))
+
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     @clan.sub_command(name="war-log", description="List of clan's last 25 war win & losses")
@@ -1063,9 +1074,12 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
-            embed: disnake.Embed = await self.opt_status(clan)
-            embed.description += f"Last Refreshed: <t:{int(time)}:R>"
+
+            embed = await opt_status(clan)
+            embed.description += f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>"
+
             await ctx.edit_original_message(embed=embed)
+
         elif "warlog_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
