@@ -6,15 +6,7 @@ from CustomClasses.CustomPlayer import MyCustomPlayer
 from datetime import datetime
 from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
-from Clan.ClanResponder import (
-    clan_overview,
-    linked_players,
-    opt_status,
-    unlinked_players,
-    player_trophy_sort,
-    player_townhall_sort,
-    war_log,
-)
+import Clan.ClanResponder as clan_responder
 import math
 import coc
 import disnake
@@ -42,7 +34,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         pass
 
     @clan.sub_command(name="search", description="lookup clan by tag")
-    async def getclan(
+    async def get_clan(
             self, ctx: disnake.ApplicationCommandInteraction,
             clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
@@ -65,7 +57,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         clan_legend_ranking = await self.bot.clan_leaderboard_db.find_one(
             {"tag": clan.tag})
 
-        embed = await clan_overview(
+        embed = await clan_responder.clan_overview(
             clan=clan, db_clan=db_clan,
             clan_legend_ranking=clan_legend_ranking)
 
@@ -149,7 +141,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
                 player_links = await self.bot.link_client.get_links(*clan_member_tags)
 
-                linked_players_embed = linked_players(
+                linked_players_embed = clan_responder.linked_players(
                     ctx.guild.members, clan, player_links)
 
                 await res.edit_original_message(embed=linked_players_embed)
@@ -162,19 +154,19 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
                 player_links = await self.bot.link_client.get_links(*clan_member_tags)
 
-                unlinked_players_embed = unlinked_players(
+                unlinked_players_embed = clan_responder.unlinked_players(
                     clan, player_links)
 
                 await res.edit_original_message(embed=unlinked_players_embed)
 
             elif res.values[0] == "trophies":
-                embed = player_trophy_sort(clan)
+                embed = clan_responder.player_trophy_sort(clan)
                 embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
                 await res.edit_original_message(embed=embed)
 
             elif res.values[0] == "townhalls":
-                embed = await player_townhall_sort(clan)
+                embed = await clan_responder.player_townhall_sort(clan)
                 embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
                 await res.edit_original_message(embed=embed)
@@ -182,7 +174,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             elif res.values[0] == "clan":
                 await res.edit_original_message(embed=main)
             elif res.values[0] == "opt":
-                embed = await opt_status(clan)
+                embed = await clan_responder.opt_status(clan)
                 embed.description += f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
                 await res.edit_original_message(embed=embed)
@@ -190,15 +182,24 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             elif res.values[0] == "warlog":
                 warlog = await self.bot.coc_client.get_warlog(clan.tag, limit=25)
 
-                embed = war_log(clan, warlog)
+                embed = clan_responder.war_log(clan, warlog)
                 embed.description += (
                     f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
 
                 await res.edit_original_message(embed=embed)
 
             elif res.values[0] == "stroop":
-                embed = await self.stroop_list(clan)
+                embed: disnake.Embed = await clan_responder.super_troop_list(clan)
+
+                values = (
+                    f"{embed.fields[0].value}\n"
+                    f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+                embed.set_field_at(
+                    0, name="**Not Boosting:**",
+                    value=values, inline=False)
+
                 await res.edit_original_message(embed=embed)
+
             elif res.values[0] == "cwl":
                 embed = await self.cwl_performance(clan)
                 await res.edit_original_message(embed=embed)
@@ -223,9 +224,9 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             clan_member_tags.append(player.tag)
         player_links = await self.bot.link_client.get_links(*clan_member_tags)
 
-        linked_players_embed = linked_players(
+        linked_players_embed = clan_responder.linked_players(
             ctx.guild.members, clan, player_links)
-        unlinked_players_embed = unlinked_players(
+        unlinked_players_embed = clan_responder.unlinked_players(
             clan, player_links)
 
         unlinked_players_embed.description += (
@@ -254,7 +255,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.response.defer()
 
-        embed = player_trophy_sort(clan)
+        embed = clan_responder.player_trophy_sort(clan)
         embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
         buttons = disnake.ui.ActionRow()
@@ -279,7 +280,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.response.defer()
 
-        embed = await player_townhall_sort(clan)
+        embed = await clan_responder.player_townhall_sort(clan)
         embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
         buttons = disnake.ui.ActionRow()
@@ -306,7 +307,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.response.defer()
 
-        embed = await opt_status(clan)
+        embed = await clan_responder.opt_status(clan)
         embed.description += f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
         buttons = disnake.ui.ActionRow()
@@ -340,7 +341,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         warlog = await self.bot.coc_client.get_warlog(clan.tag, limit=25)
 
-        embed = war_log(clan, warlog)
+        embed = clan_responder.war_log(clan, warlog)
         embed.description += (
             f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
 
@@ -353,24 +354,36 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.edit_original_message(embed=embed, components=buttons)
 
-    @clan.sub_command(name="super-troops", description="List of clan member's boosted & unboosted troops")
-    async def clan_super_troops(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+    @clan.sub_command(
+        name="super-troops",
+        description="List of clan member's boosted & unboosted troops")
+    async def clan_super_troops(
+            self, ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
             clan: Use clan tag or select an option from the autocomplete
         """
-        await ctx.response.defer()
-        time = datetime.now().timestamp()
 
-        embed: disnake.Embed = await self.stroop_list(clan)
-        values = embed.fields[0].value + f"\nLast Refreshed: <t:{int(time)}:R>"
-        embed.set_field_at(0, name="**Not Boosting:**",
-                           value=values, inline=False)
+        await ctx.response.defer()
+
+        embed: disnake.Embed = await clan_responder.super_troop_list(clan)
+
+        values = (
+            f"{embed.fields[0].value}\n"
+            f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+        embed.set_field_at(
+            0, name="**Not Boosting:**",
+            value=values, inline=False)
+
         buttons = disnake.ui.ActionRow()
         buttons.append_item(
-            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
-                              custom_id=f"stroops_{clan.tag}"))
+            disnake.ui.Button(
+                label="", emoji=self.bot.emoji.refresh.partial_emoji,
+                style=disnake.ButtonStyle.grey,
+                custom_id=f"stroops_{clan.tag}"))
+
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     @clan.sub_command(name="board", description="Simple embed, with overview of a clan")
@@ -1056,9 +1069,9 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 clan_member_tags.append(player.tag)
             player_links = await self.bot.link_client.get_links(*clan_member_tags)
 
-            linked_players_embed = linked_players(
+            linked_players_embed = clan_responder.linked_players(
                 ctx.guild.members, clan, player_links)
-            unlinked_players_embed = unlinked_players(
+            unlinked_players_embed = clan_responder.unlinked_players(
                 clan, player_links)
 
             unlinked_players_embed.description += (
@@ -1078,7 +1091,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
 
-            embed = player_trophy_sort(clan)
+            embed = clan_responder.player_trophy_sort(clan)
             embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
             buttons = disnake.ui.ActionRow()
@@ -1094,7 +1107,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
 
-            embed = await opt_status(clan)
+            embed = await clan_responder.opt_status(clan)
             embed.description += f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
             await ctx.edit_original_message(embed=embed)
@@ -1106,7 +1119,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
             warlog = await self.bot.coc_client.get_warlog(clan.tag, limit=25)
 
-            embed = war_log(clan, warlog)
+            embed = clan_responder.war_log(clan, warlog)
             embed.description += (
                 f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
 
@@ -1116,12 +1129,18 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
-            embed: disnake.Embed = await self.stroop_list(clan)
-            values = embed.fields[0].value + \
-                f"\nLast Refreshed: <t:{int(time)}:R>"
-            embed.set_field_at(0, name="**Not Boosting:**",
-                               value=values, inline=False)
+
+            embed: disnake.Embed = await clan_responder.super_troop_list(clan)
+
+            values = (
+                f"{embed.fields[0].value}\n"
+                f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+            embed.set_field_at(
+                0, name="**Not Boosting:**",
+                value=values, inline=False)
+
             await ctx.edit_original_message(embed=embed)
+
         elif "clanboard_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
@@ -1137,7 +1156,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
 
-            embed = await player_townhall_sort(clan)
+            embed = await clan_responder.player_townhall_sort(clan)
             embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
             await ctx.edit_original_message(embed=embed)
@@ -1215,7 +1234,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @clan_war_log.autocomplete("clan")
     @clan_super_troops.autocomplete("clan")
     @clan_board.autocomplete("clan")
-    @getclan.autocomplete("clan")
+    @get_clan.autocomplete("clan")
     @clan_capital_stats.autocomplete("clan")
     @player_th.autocomplete("clan")
     @clan_compo.autocomplete("clan")

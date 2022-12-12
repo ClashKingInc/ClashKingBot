@@ -5,6 +5,7 @@ from disnake.utils import get
 from utils.discord_utils import fetch_emoji
 from collections import defaultdict
 from Clan.ClanUtils import (
+    SUPER_TROOPS,
     SUPER_SCRIPTS,
     clan_th_comp,
     clan_super_troop_comp,
@@ -376,4 +377,56 @@ def war_log(clan: coc.Clan, war_log):
         description=embed_description,
         color=Color.green())
     embed.set_footer(icon_url=clan.badge.large, text=clan.name)
+    return embed
+
+
+async def super_troop_list(clan: coc.Clan):
+    boosted = ""
+    none_boosted = ""
+
+    async for player in clan.get_detailed_members():
+        troops = player.troop_cls
+        troops = player.troops
+        text = f"{player.name}"
+
+        if player.town_hall < 11:
+            continue
+
+        num = 0
+
+        for troop in troops:
+            if troop.is_active:
+                try:
+                    if troop.name in SUPER_TROOPS:
+                        text = f"{fetch_emoji(troop.name)} " + text
+
+                        num += 1
+                except:
+                    pass
+
+        if num == 1:
+            text = "<:blanke:838574915095101470> " + text
+
+        if text == player.name:
+            none_boosted += f"{player.name}\n"
+
+        else:
+            boosted += f"{text}\n"
+
+    if boosted == "":
+        boosted = "None"
+
+    embed = Embed(
+        title=f"**{clan.name} Boosting Statuses**",
+        description=f"\n**Boosting:**\n{boosted}",
+        color=Color.green())
+
+    embed.set_thumbnail(url=clan.badge.large)
+
+    if none_boosted == "":
+        none_boosted = "None"
+
+    #embed.add_field(name="Boosting", value=boosted)
+    embed.add_field(name="Not Boosting:", value=none_boosted)
+
     return embed

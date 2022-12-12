@@ -202,41 +202,6 @@ class ClanUtils(commands.Cog, name="Clan"):
 
         return emoji
 
-    async def stroop_list(self, clan: coc.Clan):
-        boosted = ""
-        none_boosted = ""
-        async for player in clan.get_detailed_members():
-            troops = player.troop_cls
-            troops = player.troops
-            text = f"{player.name}"
-            if player.town_hall < 11:
-                continue
-            num = 0
-            for troop in troops:
-                if troop.is_active:
-                    try:
-                        if troop.name in SUPER_TROOPS:
-                            text = f"{emojiDictionary(troop.name)} " + text
-                            num += 1
-                    except:
-                        pass
-            if num == 1:
-                text = "<:blanke:838574915095101470> " + text
-            if text == player.name:
-                none_boosted += f"{player.name}\n"
-            else:
-                boosted += f"{text}\n"
-        if boosted == "":
-            boosted = "None"
-        embed = disnake.Embed(title=f"**{clan.name} Boosting Statuses**", description=f"\n**Boosting:**\n{boosted}",
-                              color=disnake.Color.green())
-        embed.set_thumbnail(url=clan.badge.large)
-        if none_boosted == "":
-            none_boosted = "None"
-        #embed.add_field(name="Boosting", value=boosted)
-        embed.add_field(name="Not Boosting:", value=none_boosted)
-        return embed
-
     async def cwl_performance(self, clan: coc.Clan):
 
         async def fetch(url, session):
