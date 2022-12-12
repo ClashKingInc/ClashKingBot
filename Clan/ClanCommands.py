@@ -188,8 +188,14 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 await res.edit_original_message(embed=embed)
 
             elif res.values[0] == "warlog":
-                embed = await self.war_log(clan)
+                warlog = await self.bot.coc_client.get_warlog(clan.tag, limit=25)
+
+                embed = war_log(clan, warlog)
+                embed.description += (
+                    f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+
                 await res.edit_original_message(embed=embed)
+
             elif res.values[0] == "stroop":
                 embed = await self.stroop_list(clan)
                 await res.edit_original_message(embed=embed)
@@ -1097,9 +1103,15 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
-            embed: disnake.Embed = await self.war_log(clan)
-            embed.description += f"Last Refreshed: <t:{int(time)}:R>"
+
+            warlog = await self.bot.coc_client.get_warlog(clan.tag, limit=25)
+
+            embed = war_log(clan, warlog)
+            embed.description += (
+                f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+
             await ctx.edit_original_message(embed=embed)
+
         elif "stroops_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
