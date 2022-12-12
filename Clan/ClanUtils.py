@@ -146,7 +146,7 @@ def league_and_trophies_emoji(league):
     return emoji
 
 
-def get_raid(self, raid_log, after, before):
+def get_raid(raid_log, after, before):
     for raid in raid_log:
         time_start = int(raid.start_time.time.timestamp())
         if before > time_start > after:

@@ -517,7 +517,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         (embeds, raid_weekends,
          total_looted, total_attacks,
-         donated_data, number_donated_data) = clan_responder.clan_raid_weekend(
+         donated_data, number_donated_data) = clan_responder.clan_raid_weekend_stats(
             clan=clan, raid_log=raidlog,
             capital_raid_members=responses)
 
@@ -585,74 +585,43 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                     columns=columns, index=index, data=data, weekend=weekend)
                 await res.send(file=file, ephemeral=True)
 
-    @clan.sub_command(name="capital-raids", description="See breakdown of clan's raids per clan & week")
-    async def clan_capital_raids(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), weekend=commands.Param(default="Current Week", choices=["Current Week", "Last Week", "2 Weeks Ago"])):
+    @clan.sub_command(
+        name="capital-raids",
+        description="See breakdown of clan's raids per clan & week")
+    async def clan_capital_raids(
+        self, ctx: disnake.ApplicationCommandInteraction,
+        clan: coc.Clan = commands.Param(converter=clan_converter),
+        weekend=commands.Param(
+            default="Current Week",
+            choices=["Current Week", "Last Week", "2 Weeks Ago"])):
+
         await ctx.response.defer()
+
         raidlog = await self.bot.coc_client.get_raidlog(clan.tag)
-        choice_to_date = {"Current Week": 0, "Last Week": 1,  "2 Weeks Ago": 2}
-        weekend_times = weekend_timestamps()
 
-        embed = disnake.Embed(
-            description=f"**{clan.name} Clan Capital Raids**", color=disnake.Color.green())
-        raid_weekend = self.get_raid(
-            raid_log=raidlog, before=weekend_times[choice_to_date[weekend]], after=weekend_times[choice_to_date[weekend] + 1])
-        if raid_weekend is None:
+        (embeds,
+         select_menu_options) = await clan_responder.clan_raid_weekend_raids(
+            clan=clan, raid_log=raidlog, weekend=weekend,
+            client_emojis=self.bot.emojis,
+            partial_emoji_gen=self.bot.partial_emoji_gen,
+            create_new_badge_emoji=self.bot.create_new_badge_emoji)
+
+        if embeds is None:
             embed = disnake.Embed(
-                description=f"**{clan.name} has no capital raids in the time frame - {weekend}**", color=disnake.Color.red())
+                description=(
+                    f"**{clan.name} has no capital raids "
+                    f"in the time frame - {weekend}**"),
+                color=disnake.Color.red())
             return await ctx.edit_original_message(embed=embed)
-        raids = raid_weekend.attack_log
 
-        select_menu_options = [disnake.SelectOption(
-            label="Overview", emoji=self.bot.emoji.sword_clash.partial_emoji, value="Overview")]
-        embeds = {}
-        total_attacks = 0
-        total_looted = 0
-        for raid_clan in raids:
-            url = raid_clan.badge.url.replace(".png", "")
-            emoji = disnake.utils.get(
-                self.bot.emojis, name=url[-15:].replace("-", ""))
-            if emoji is None:
-                emoji = await self.bot.create_new_badge_emoji(url=raid_clan.badge.url)
-            else:
-                emoji = f"<:{emoji.name}:{emoji.id}>"
-            looted = sum(district.looted for district in raid_clan.districts)
-            total_looted += looted
-            total_attacks += raid_clan.attack_count
-            embed.add_field(name=f"{emoji}\u200e{raid_clan.name}", value=f"> {self.bot.emoji.sword} Attacks: {raid_clan.attack_count}\n"
-                            f"> {self.bot.emoji.capital_gold} Looted: {'{:,}'.format(looted)}", inline=False)
-            select_menu_options.append(disnake.SelectOption(
-                label=raid_clan.name, emoji=self.bot.partial_emoji_gen(emoji_string=emoji), value=raid_clan.tag))
-
-            # create detailed embeds
-
-            detail_embed = disnake.Embed(
-                description=f"**Attacks on {raid_clan.name}**", color=disnake.Color.green())
-            for district in raid_clan.districts:
-                attack_text = ""
-                for attack in district.attacks:
-                    attack_text += f"> \u200e{attack.destruction}% - \u200e{attack.attacker_name}\n"
-                if district.id == 70000000:
-                    emoji = self.bot.fetch_emoji(
-                        name=f"Capital_Hall{district.hall_level}")
-                else:
-                    emoji = self.bot.fetch_emoji(
-                        name=f"District_Hall{district.hall_level}")
-                if attack_text == "":
-                    attack_text = "None"
-                detail_embed.add_field(
-                    name=f"{emoji}{district.name}", value=attack_text, inline=False)
-
-            embeds[raid_clan.tag] = detail_embed
-
-        embed.set_footer(
-            text=f"Attacks: {total_attacks}/300 | Looted: {'{:,}'.format(total_looted)}")
-        embeds["Overview"] = embed
         select = disnake.ui.Select(
             options=select_menu_options,
             # the placeholder text to show when no options have been chosen
             placeholder="Detailed View",
-            min_values=1,  # the minimum number of options a user must select
-            max_values=1,  # the maximum number of options a user can select
+            # the minimum number of options a user must select
+            min_values=1,
+            # the maximum number of options a user can select
+            max_values=1,
         )
         dropdown = [disnake.ui.ActionRow(select)]
 
@@ -665,8 +634,9 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
-                                                                          timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for(
+                    "message_interaction", check=check,
+                    timeout=600)
             except:
                 await msg.edit(components=[])
                 break

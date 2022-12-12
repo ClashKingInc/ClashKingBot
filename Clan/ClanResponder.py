@@ -1,6 +1,6 @@
 import coc
 from CustomClasses.CustomPlayer import LegendRanking
-from disnake import Embed, Color
+from disnake import Embed, Color, SelectOption
 from disnake.utils import get
 from utils.discord_utils import fetch_emoji
 from collections import defaultdict
@@ -471,7 +471,7 @@ def clan_th_composition(clan: coc.Clan, member_list):
     return embed
 
 
-def clan_raid_weekend(
+def clan_raid_weekend_stats(
         clan: coc.Clan, raid_log,
         capital_raid_members):
     weekend = "Current Week"
@@ -555,6 +555,11 @@ def clan_raid_weekend(
             title=f"**{clan.name} Raid Totals**",
             description="No raids", color=Color.green())
         embeds["raids"] = raid_embed
+
+        total_looted = None
+        total_attacks = None
+        donated_data = None
+        number_donated_data = None
 
     else:
         total_attacks = defaultdict(int)
@@ -662,3 +667,104 @@ def clan_raid_weekend(
         embeds, raid_weekends,
         total_looted, total_attacks, donated_data,
         number_donated_data)
+
+
+async def clan_raid_weekend_raids(
+        clan: coc.Clan, raid_log, weekend, client_emojis,
+        partial_emoji_gen, create_new_badge_emoji):
+    choice_to_date = {
+        "Current Week": 0,
+        "Last Week": 1,
+        "2 Weeks Ago": 2}
+
+    weekend_times = weekend_timestamps()
+
+    embed = Embed(
+        description=f"**{clan.name} Clan Capital Raids**",
+        color=Color.green())
+
+    raid_weekend = get_raid(
+        raid_log=raid_log,
+        before=weekend_times[choice_to_date[weekend]],
+        after=weekend_times[choice_to_date[weekend] + 1])
+
+    if raid_weekend is None:
+        return (None, None)
+
+    raids = raid_weekend.attack_log
+
+    select_menu_options = [SelectOption(
+        label="Overview",
+        emoji=Emojis().sword_clash.partial_emoji,
+        value="Overview")]
+
+    embeds = {}
+
+    total_attacks = 0
+    total_looted = 0
+
+    for raid_clan in raids:
+        url = raid_clan.badge.url.replace(".png", "")
+        emoji = get(
+            client_emojis, name=url[-15:].replace("-", ""))
+
+        if emoji is None:
+            emoji = await create_new_badge_emoji(url=raid_clan.badge.url)
+        else:
+            emoji = f"<:{emoji.name}:{emoji.id}>"
+
+        looted = sum(district.looted for district in raid_clan.districts)
+        total_looted += looted
+        total_attacks += raid_clan.attack_count
+
+        embed.add_field(
+            name=f"{emoji}\u200e{raid_clan.name}",
+            value=(
+                f"> {Emojis().sword} "
+                f"Attacks: {raid_clan.attack_count}\n"
+                f"> {Emojis().capital_gold} "
+                f"Looted: {'{:,}'.format(looted)}"),
+            inline=False)
+
+        select_menu_options.append(SelectOption(
+            label=raid_clan.name,
+            emoji=partial_emoji_gen(emoji_string=emoji),
+            value=raid_clan.tag))
+
+        # create detailed embeds
+
+        detail_embed = Embed(
+            description=f"**Attacks on {raid_clan.name}**",
+            color=Color.green())
+
+        for district in raid_clan.districts:
+            attack_text = ""
+            for attack in district.attacks:
+                attack_text += (
+                    f"> \u200e{attack.destruction}% - "
+                    f"\u200e{attack.attacker_name}\n")
+
+            if district.id == 70000000:
+                emoji = fetch_emoji(
+                    name=f"Capital_Hall{district.hall_level}")
+
+            else:
+                emoji = fetch_emoji(
+                    name=f"District_Hall{district.hall_level}")
+
+            if attack_text == "":
+                attack_text = "None"
+
+            detail_embed.add_field(
+                name=f"{emoji}{district.name}",
+                value=attack_text, inline=False)
+
+        embeds[raid_clan.tag] = detail_embed
+
+    embed.set_footer(text=(
+        f"Attacks: {total_attacks}/300 | "
+        f"Looted: {'{:,}'.format(total_looted)}"))
+
+    embeds["Overview"] = embed
+
+    return (embeds, select_menu_options)
