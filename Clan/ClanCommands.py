@@ -449,43 +449,27 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
             return await ctx.edit_original_message(embed=embed)
 
-    @clan.sub_command(name="compo", description="Townhall composition of a clan")
-    async def clan_compo(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+    @clan.sub_command(
+        name="compo",
+        description="Townhall composition of a clan")
+    async def clan_compo(
+            self, ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
             clan: Use clan tag or select an option from the autocomplete
         """
+
         await ctx.response.defer()
-        thcount = defaultdict(int)
-        total = 0
-        sumth = 0
 
         clan_members = []
-
         clan_members += [member.tag for member in clan.members]
-        list_members = await self.bot.get_players(tags=clan_members, custom=False)
-        for player in list_members:
-            th = player.town_hall
-            sumth += th
-            total += 1
-            thcount[th] += 1
+        member_list = await self.bot.get_players(tags=clan_members, custom=False)
 
-        stats = ""
-        for th_level, th_count in sorted(thcount.items(), reverse=True):
-            if (th_level) <= 9:
-                th_emoji = self.bot.fetch_emoji(th_level)
-                stats += f"{th_emoji} `TH{th_level} ` : {th_count}\n"
-            else:
-                th_emoji = self.bot.fetch_emoji(th_level)
-                stats += f"{th_emoji} `TH{th_level}` : {th_count}\n"
+        embed = clan_responder.clan_th_composition(
+            clan=clan, member_list=member_list)
 
-        average = round((sumth / total), 2)
-        embed = disnake.Embed(title=f"{clan.name} Townhall Composition", description=stats,
-                              color=disnake.Color.green())
-        embed.set_thumbnail(url=clan.badge.large)
-        embed.set_footer(
-            text=f"Average Th: {average}\nTotal: {total} accounts")
         await ctx.edit_original_message(embed=embed)
 
     @clan.sub_command(name="capital-stats", description="Get stats on raids & donations during selected time period")

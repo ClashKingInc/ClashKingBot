@@ -430,3 +430,37 @@ async def super_troop_list(clan: coc.Clan):
     embed.add_field(name="Not Boosting:", value=none_boosted)
 
     return embed
+
+
+def clan_th_composition(clan: coc.Clan, member_list):
+    th_count_dict = defaultdict(int)
+    th_sum = 0
+
+    for member in member_list:
+        th = member.town_hall
+        th_sum += th
+        th_count_dict[th] += 1
+
+    embed_description = ""
+    for th_level, th_count in sorted(th_count_dict.items(), reverse=True):
+        if (th_level) <= 9:
+            th_emoji = fetch_emoji(th_level)
+            embed_description += f"{th_emoji} `TH{th_level} ` : {th_count}\n"
+
+        else:
+            th_emoji = fetch_emoji(th_level)
+            embed_description += f"{th_emoji} `TH{th_level}` : {th_count}\n"
+
+    th_average = round((th_sum / clan.member_count), 2)
+
+    embed = Embed(
+        title=f"{clan.name} Townhall Composition",
+        description=embed_description,
+        color=Color.green())
+
+    embed.set_thumbnail(url=clan.badge.large)
+    embed.set_footer(text=(
+        f"Average Th: {th_average}\n"
+        f"Total: {clan.member_count} accounts"))
+
+    return embed
