@@ -189,8 +189,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         unlinked_players_embed = unlinked_players(
             clan, player_links)
 
-        unlinked_players_embed.set_footer(
-            text=f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+        unlinked_players_embed.description += (
+            f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
 
         buttons = disnake.ui.ActionRow()
         buttons.append_item(disnake.ui.Button(
@@ -201,8 +201,12 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             embeds=[linked_players_embed, unlinked_players_embed],
             components=buttons)
 
-    @clan.sub_command(name="sorted-trophies", description="List of clan members, sorted by trophies")
-    async def player_trophy(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+    @clan.sub_command(
+        name="sorted-trophies",
+        description="List of clan members, sorted by trophies")
+    async def player_trophy(
+            self, ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
@@ -213,7 +217,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         time = datetime.now().timestamp()
 
         embed = await self.player_trophy_sort(clan)
-        embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+        embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
+
         buttons = disnake.ui.ActionRow()
         buttons.append_item(
             disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
