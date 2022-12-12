@@ -185,7 +185,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
         if "jlban_" in ctx.data.custom_id:
             check = await self.bot.white_list_check(ctx, "ban add")
             if not check and not ctx.author.guild_permissions.manage_guild:
-                await ctx.send(content="You cannot use this component. Missing Permissions.")
+                await ctx.send(content="You cannot use this component. Missing Permissions.", ephemeral=True)
             player = ctx.data.custom_id.split("_")[-1]
             player = await self.bot.getPlayer(player_tag=player)
             components = [
@@ -224,7 +224,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
         if "jlstrike_" in ctx.data.custom_id:
             check = await self.bot.white_list_check(ctx, "strike add")
             if not check and not ctx.author.guild_permissions.manage_guild:
-                await ctx.send(content="You cannot use this component. Missing Permissions.")
+                await ctx.send(content="You cannot use this component. Missing Permissions.", ephemeral=True)
             player = ctx.data.custom_id.split("_")[-1]
             player = await self.bot.getPlayer(player_tag=player)
             components = [
