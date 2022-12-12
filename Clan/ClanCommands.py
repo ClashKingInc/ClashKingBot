@@ -767,32 +767,64 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.edit_original_message(embed=embed, components=buttons)
 
-    @clan.sub_command(name="donations", description="Donations given & received by clan members")
-    async def clan_donations(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), season=commands.Param(default=None, name="season")):
+    @clan.sub_command(
+        name="donations",
+        description="Donations given & received by clan members")
+    async def clan_donations(
+            self, ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = commands.Param(converter=clan_converter),
+            season=commands.Param(default=None, name="season")):
+
         await ctx.response.defer()
-        _season = ""
+
         if season is not None:
             month = list(calendar.month_name).index(season.split(" ")[0])
             year = season.split(" ")[1]
             end_date = coc.utils.get_season_end(
                 month=int(month-1), year=int(year))
+
             month = end_date.month
             if month <= 9:
                 month = f"0{month}"
-            embed = await self.create_donations(clan, type="donated", date=f"{end_date.year}-{month}")
-            _season = f"_{end_date.year}-{month}"
-        else:
-            embed = await self.create_donations(clan, type="donated")
 
-        time = datetime.now().timestamp()
-        embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+            _season = f"_{end_date.year}-{month}"
+            season_date = f"{end_date.year}-{month}"
+
+        else:
+            _season = ""
+            season_date = clan_utils.gen_season_date()
+
+        tasks = []
+        for member in clan.members:
+            results = await self.bot.player_stats.find_one({"tag": member.tag})
+            task = asyncio.ensure_future(
+                self.bot.coc_client.get_player(
+                    player_tag=member.tag, cls=MyCustomPlayer, bot=self.bot,
+                    results=results))
+            tasks.append(task)
+        player_responses = await asyncio.gather(*tasks)
+
+        embed = clan_responder.clan_donations(
+            clan=clan, type="donated",
+            season_date=season_date,
+            player_list=player_responses
+        )
+
+        embed.description += (
+            f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+
         buttons = disnake.ui.ActionRow()
-        buttons.append_item(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji,
-                            style=disnake.ButtonStyle.grey, custom_id=f"donated{_season}_{clan.tag}"))
-        buttons.append_item(disnake.ui.Button(label="Received", emoji=self.bot.emoji.clan_castle.partial_emoji,
-                            style=disnake.ButtonStyle.green, custom_id=f"received{_season}_{clan.tag}"))
-        buttons.append_item(disnake.ui.Button(label="Ratio", emoji=self.bot.emoji.ratio.partial_emoji,
-                            style=disnake.ButtonStyle.green, custom_id=f"ratio{_season}_{clan.tag}"))
+
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey, custom_id=f"donated{_season}_{clan.tag}"))
+        buttons.append_item(disnake.ui.Button(
+            label="Received", emoji=self.bot.emoji.clan_castle.partial_emoji,
+            style=disnake.ButtonStyle.green, custom_id=f"received{_season}_{clan.tag}"))
+        buttons.append_item(disnake.ui.Button(
+            label="Ratio", emoji=self.bot.emoji.ratio.partial_emoji,
+            style=disnake.ButtonStyle.green, custom_id=f"ratio{_season}_{clan.tag}"))
+
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     @clan.sub_command(name='lastonline-graph', description="Get a graph showing average clan members on per an hour")
@@ -1191,35 +1223,95 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
+
             if len(str(ctx.data.custom_id).split("_")) == 3:
-                season = (str(ctx.data.custom_id).split("_"))[-2]
-                embed: disnake.Embed = await self.create_donations(clan, type="donated", date=season)
+                season_date = (str(ctx.data.custom_id).split("_"))[-2]
+
             else:
-                embed: disnake.Embed = await self.create_donations(clan, type="donated")
-            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+                season_date = clan_utils.gen_season_date()
+
+            tasks = []
+            for member in clan.members:
+                results = await self.bot.player_stats.find_one({"tag": member.tag})
+                task = asyncio.ensure_future(
+                    self.bot.coc_client.get_player(
+                        player_tag=member.tag, cls=MyCustomPlayer, bot=self.bot,
+                        results=results))
+                tasks.append(task)
+            player_responses = await asyncio.gather(*tasks)
+
+            embed = clan_responder.clan_donations(
+                clan=clan, type="donated",
+                season_date=season_date,
+                player_list=player_responses)
+
+            embed.description += (
+                f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+
             await ctx.edit_original_message(embed=embed)
+
         elif "received_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
+
             if len(str(ctx.data.custom_id).split("_")) == 3:
-                season = (str(ctx.data.custom_id).split("_"))[-2]
-                embed: disnake.Embed = await self.create_donations(clan, type="received", date=season)
+                season_date = (str(ctx.data.custom_id).split("_"))[-2]
+
             else:
-                embed: disnake.Embed = await self.create_donations(clan, type="received")
-            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+                season_date = clan_utils.gen_season_date()
+
+            tasks = []
+            for member in clan.members:
+                results = await self.bot.player_stats.find_one({"tag": member.tag})
+                task = asyncio.ensure_future(
+                    self.bot.coc_client.get_player(
+                        player_tag=member.tag, cls=MyCustomPlayer, bot=self.bot,
+                        results=results))
+                tasks.append(task)
+            player_responses = await asyncio.gather(*tasks)
+
+            embed = clan_responder.clan_donations(
+                clan=clan, type="received",
+                season_date=season_date,
+                player_list=player_responses)
+
+            embed.description += (
+                f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+
             await ctx.edit_original_message(embed=embed)
+
         elif "ratio_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
+
             if len(str(ctx.data.custom_id).split("_")) == 3:
-                season = (str(ctx.data.custom_id).split("_"))[-2]
-                embed: disnake.Embed = await self.create_donations(clan, type="ratio", date=season)
+                season_date = (str(ctx.data.custom_id).split("_"))[-2]
+
             else:
-                embed: disnake.Embed = await self.create_donations(clan, type="received")
-            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+                season_date = clan_utils.gen_season_date()
+
+            tasks = []
+            for member in clan.members:
+                results = await self.bot.player_stats.find_one({"tag": member.tag})
+                task = asyncio.ensure_future(
+                    self.bot.coc_client.get_player(
+                        player_tag=member.tag, cls=MyCustomPlayer, bot=self.bot,
+                        results=results))
+                tasks.append(task)
+            player_responses = await asyncio.gather(*tasks)
+
+            embed = clan_responder.clan_donations(
+                clan=clan, type="ratio",
+                season_date=season_date,
+                player_list=player_responses)
+
+            embed.description += (
+                f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+
             await ctx.edit_original_message(embed=embed)
+
         elif "act_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]

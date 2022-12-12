@@ -871,3 +871,95 @@ def create_clan_games(
         text=f"Total Points: {'{:,}'.format(total_points)}")
 
     return cg_point_embed
+
+
+def clan_donations(
+        clan: coc.Clan, type: str, season_date, player_list):
+
+    donated_text = []
+    received_text = []
+    ratio_text = []
+    total_donated = sum(
+        player.donos(season_date).donated for player in player_list)
+
+    total_received = sum(
+        player.donos(season_date).received for player in player_list)
+
+    for player in player_list:
+        player: MyCustomPlayer
+        name = player.name
+
+        for char in ["`", "*", "_", "~", "´"]:
+            name = name.replace(char, "", len(player.name))
+
+        name = emoji.replace_emoji(name, "")
+        name = name[:13]
+
+        donated_text.append([(
+            f"{str(player.donos(season_date).donated).ljust(5)} | "
+            f"{str(player.donos(season_date).received).ljust(5)} | {name}"),
+            player.donos(season_date).donated])
+
+        received_text.append([(
+            f"{str(player.donos(season_date).received).ljust(5)} | "
+            f"{str(player.donos(season_date).donated).ljust(5)} | {name}"),
+            player.donos(season_date).received])
+
+        ratio_text.append([(
+            f"{str(player.donation_ratio(season_date)).ljust(5)} | {name}"),
+            player.donation_ratio(season_date)])
+
+    if type == "donated":
+        donated_text = sorted(
+            donated_text, key=lambda l: l[1], reverse=True)
+        donated_text = [line[0] for line in donated_text]
+        donated_text = "\n".join(donated_text)
+        donated_text = "DON   | REC   | Name\n" + donated_text
+
+        donation_embed = Embed(
+            title=f"**{clan.name} Donations**",
+            description=f"```{donated_text}```",
+            color=Color.green())
+
+        donation_embed.set_footer(
+            icon_url=clan.badge.url,
+            text=(
+                f"Donations: {'{:,}'.format(total_donated)} | "
+                f"Received : {'{:,}'.format(total_received)} | {season_date}"))
+
+        return donation_embed
+
+    elif type == "received":
+        received_text = sorted(
+            received_text, key=lambda l: l[1], reverse=True)
+        received_text = [line[0] for line in received_text]
+        received_text = "\n".join(received_text)
+        received_text = "REC   | DON   | Name\n" + received_text
+        received_embed = Embed(
+            title=f"**{clan.name} Received**",
+            description=f"```{received_text}```",
+            color=Color.green())
+
+        received_embed.set_footer(
+            icon_url=clan.badge.url,
+            text=(
+                f"Donations: {'{:,}'.format(total_donated)} | "
+                f"Received : {'{:,}'.format(total_received)} | {season_date}"))
+        return received_embed
+
+    else:
+        ratio_text = sorted(ratio_text, key=lambda l: l[1], reverse=True)
+        ratio_text = [line[0] for line in ratio_text]
+        ratio_text = "\n".join(ratio_text)
+        ratio_text = "Ratio | Name\n" + ratio_text
+        ratio_embed = Embed(
+            title=f"**{clan.name} Ratios**", description=f"```{ratio_text}```",
+            color=Color.green())
+
+        ratio_embed.set_footer(
+            icon_url=clan.badge.url,
+            text=(
+                f"Donations: {'{:,}'.format(total_donated)} | "
+                f"Received : {'{:,}'.format(total_received)} | {season_date}"))
+
+        return ratio_embed
