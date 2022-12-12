@@ -122,6 +122,7 @@ class CustomClient(commands.Bot):
         self.credentials = self.db_client.usafam.credentials
         self.global_chat_db = self.db_client.usafam.global_chats
         self.global_reports = self.db_client.usafam.reports
+        self.strikelist = self.db_client.usafam.strikes
 
         self.coc_client = coc.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD"), client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 30,
                                     cache_max_size=50000, load_game_data=coc.LoadGameData(always=True))
@@ -372,7 +373,7 @@ class CustomClient(commands.Bot):
                 if name is None:
                     continue
                 names.append(name + " | " + document.get("tag"))
-            return names
+            return names[:25]
 
         # ignore capitalization
         # results 3 or larger check for partial match
@@ -388,7 +389,7 @@ class CustomClient(commands.Bot):
         ]})
         for document in await results.to_list(length=25):
             names.append(document.get("name") + " | " + document.get("tag"))
-        return names
+        return names[:25]
 
     async def get_reminder_times(self, clan_tag):
         all_reminders = self.reminders.find({"$and": [
@@ -612,3 +613,37 @@ class CustomClient(commands.Bot):
     #SERVER HELPERS
     async def open_clan_capital_reminders(self):
         pass
+
+    async def white_list_check(self, ctx, command_name):
+        if ctx.author.id == 706149153431879760:
+            return True
+        member = ctx.author
+
+        commandd = command_name
+        guild = ctx.guild.id
+        results =  self.whitelist.find({"$and" : [
+                {"command": commandd},
+                {"server" : guild}
+            ]})
+
+        if results is None:
+            return False
+
+        limit = await self.whitelist.count_documents(filter={"$and" : [
+                {"command": commandd},
+                {"server" : guild}
+            ]})
+
+        perms = False
+        for role in await results.to_list(length=limit):
+            role_ = role.get("role_user")
+            is_role = role.get("is_role")
+            if is_role:
+                role_ = ctx.guild.get_role(role_)
+                if member in role_.members:
+                    return True
+            else:
+                if member.id == role_:
+                    return True
+
+        return perms
