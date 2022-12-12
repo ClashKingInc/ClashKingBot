@@ -669,19 +669,32 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.edit_original_message(embed=embed, components=buttons)
 
-    @clan.sub_command(name="activities", description="Activity count of how many times a player has been seen online")
-    async def activities(self, ctx: disnake.ApplicationCommandInteraction,
-                         clan: coc.Clan = commands.Param(converter=clan_converter)):
+    @clan.sub_command(
+        name="activities",
+        description="Activity count of how many times a player has been seen online")
+    async def activities(
+            self, ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = commands.Param(converter=clan_converter)):
+
         await ctx.response.defer()
-        time = datetime.now().timestamp()
-        embed = await self.create_activities(clan)
-        embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+
+        member_tags = [member.tag for member in clan.members]
+        members = await self.bot.get_players(
+            tags=member_tags, custom=True)
+
+        embed = clan_responder.create_activities(
+            clan=clan, clan_members=members)
+
+        embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
+
         buttons = disnake.ui.ActionRow()
         buttons.append_item(
-            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
-                              custom_id=f"act_{clan.tag}"))
+            disnake.ui.Button(
+                label="", emoji=self.bot.emoji.refresh.partial_emoji,
+                style=disnake.ButtonStyle.grey,
+                custom_id=f"act_{clan.tag}"))
+
         await ctx.edit_original_message(embed=embed, components=buttons)
-        await ctx.edit_original_message(embed=embed)
 
     def create_excel(self, columns, index, data, weekend):
         df = pd.DataFrame(data, index=index, columns=columns)
@@ -1140,8 +1153,16 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
-            embed: disnake.Embed = await self.create_activities(clan)
-            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+
+            member_tags = [member.tag for member in clan.members]
+            members = await self.bot.get_players(
+                tags=member_tags, custom=True)
+
+            embed = clan_responder.create_activities(
+                clan=clan, clan_members=members)
+
+            embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
+
             await ctx.edit_original_message(embed=embed)
 
     @war_stats_clan.autocomplete("season")

@@ -261,25 +261,6 @@ class ClanUtils(commands.Cog, name="Clan"):
             embed.description = "No prior cwl data"
         return embed
 
-    async def create_activities(self, clan: coc.Clan):
-        member_tags = [member.tag for member in clan.members]
-        members = await self.bot.get_players(tags=member_tags, custom=True)
-        text = []
-        for member in members:
-            member: MyCustomPlayer
-            last_online = member.season_last_online()
-            text.append(
-                [f"{str(len(last_online)).ljust(4)} | {member.name}", len(last_online)])
-
-        text = sorted(text, key=lambda l: l[1], reverse=True)
-        text = [line[0] for line in text]
-        text = "\n".join(text)
-
-        embed = disnake.Embed(title=f"**{clan.name} Activity Count**",
-                              description=f"```#     NAME\n{text}```",
-                              color=disnake.Color.green())
-        return embed
-
     async def create_clan_games(self, clan: coc.Clan, date=None):
         if date is None:
             date = self.bot.gen_season_date()
