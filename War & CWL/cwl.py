@@ -43,20 +43,8 @@ class Cwl(commands.Cog, name="CWL"):
         next_war = None
         try:
             group = await self.bot.coc_client.get_league_group(clan.tag)
-            members = []
-            key = os.getenv("API_TOKEN")
-            headers = {
-                "Accept": "application/json",
-                "authorization": f"{key}"
-            }
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                        f"https://cocproxy.royaleapi.dev/v1/clans/%23{clan.tag.replace('#', '')}/currentwar/leaguegroup", headers=headers) as response:
-                    response = await response.json()
-                    clans = response["clans"]
-                    our_clan = [c for c in clans if c["tag"] == clan.tag]
-                    members = our_clan[0]["members"]
-                await session.close()
+            our_clan = coc.utils.get(group.clans, tag=clan.tag)
+            members = our_clan.members
             rounds = group.number_of_rounds
             league_wars = []
             async for w in group.get_wars_for_clan(clan.tag):
@@ -67,6 +55,28 @@ class Cwl(commands.Cog, name="CWL"):
                     war = w
                 if str(w.state) == "preparation":
                     next_war = w
+        except:
+            pass
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                        f"https://api.clashofstats.com/clans/{clan.tag.replace('#', '')}/cwl/seasons/2022-12") as response:
+                    response = await response.json()
+                    group = coc.ClanWarLeagueGroup(data=response, client=self.bot.coc_client)
+                    our_clan = coc.utils.get(group.clans, tag=clan.tag)
+                    members = our_clan.members
+                    rounds = group.number_of_rounds
+                    league_wars = []
+                    async for w in group.get_wars_for_clan(clan.tag):
+                        league_wars.append(w)
+                        if str(w.state) == "warEnded":
+                            war = w
+                        if str(w.state) == "inWar":
+                            war = w
+                        if str(w.state) == "preparation":
+                            next_war = w
+                await session.close()
         except:
             embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) is not in CWL.",
                                   color=disnake.Color.green())
@@ -111,20 +121,8 @@ class Cwl(commands.Cog, name="CWL"):
                 clan = await self.bot.getClan(clan_tag)
                 war = await self.bot.get_clanwar(clan_tag)
                 next_war = await self.bot.get_clanwar(clan_tag, next_war=True)
-                key = os.getenv("API_TOKEN")
-                headers = {
-                    "Accept": "application/json",
-                    "authorization": f"{key}"
-                }
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(
-                            f"https://cocproxy.royaleapi.dev/v1/clans/%23{clan.tag.replace('#', '')}/currentwar/leaguegroup",
-                            headers=headers) as response:
-                        response = await response.json()
-                        clans = response["clans"]
-                        our_clan = [c for c in clans if c["tag"] == clan.tag]
-                        members = our_clan[0]["members"]
-                    await session.close()
+                our_clan = coc.utils.get(group.clans, tag=clan.tag)
+                members = our_clan.members
                 main = await war_cog.main_war_page(war=war, clan=clan)
                 await res.edit_original_message(embed=main)
                 group = await self.bot.coc_client.get_league_group(clan.tag)
@@ -261,12 +259,12 @@ class Cwl(commands.Cog, name="CWL"):
         embed.set_thumbnail(url=clan.badge.large)
         return embed
 
-    async def all_members(self, members: list, clan: coc.Clan):
+    async def all_members(self, members: coc.Player, clan: coc.Clan):
         roster = ""
-        tags = [member["tag"] for member in members]
+        tags = [member.tag for member in members]
 
         x = 1
-        async for player in self.bot.coc_client.get_players(tags):
+        for player in self.bot.coc_client.get_players(tags):
             th = player.town_hall
             th_emoji = emojiDictionary(th)
             place = str(x) + "."
