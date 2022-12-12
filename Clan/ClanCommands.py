@@ -643,18 +643,31 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
             await res.response.edit_message(embed=embeds[res.values[0]])
 
-    @clan.sub_command(name="last-online", description="List of most recently online players in clan")
-    async def last_online(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+    @clan.sub_command(
+        name="last-online",
+        description="List of most recently online players in clan")
+    async def last_online(
+            self, ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = commands.Param(converter=clan_converter)):
+
         await ctx.response.defer()
-        time = datetime.now().timestamp()
-        embed = await self.create_last_online(clan)
-        embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+
+        member_tags = [member.tag for member in clan.members]
+        members = await self.bot.get_players(
+            tags=member_tags, custom=True)
+
+        embed = clan_responder.create_last_online(
+            clan=clan, clan_members=members)
+        embed.description += (
+            f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+
         buttons = disnake.ui.ActionRow()
-        buttons.append_item(
-            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
-                              custom_id=f"lo_{clan.tag}"))
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey,
+            custom_id=f"lo_{clan.tag}"))
+
         await ctx.edit_original_message(embed=embed, components=buttons)
-        await ctx.edit_original_message(embed=embed)
 
     @clan.sub_command(name="activities", description="Activity count of how many times a player has been seen online")
     async def activities(self, ctx: disnake.ApplicationCommandInteraction,
@@ -669,13 +682,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                               custom_id=f"act_{clan.tag}"))
         await ctx.edit_original_message(embed=embed, components=buttons)
         await ctx.edit_original_message(embed=embed)
-
-    def get_raid(self, raid_log, after, before):
-        for raid in raid_log:
-            time_start = int(raid.start_time.time.timestamp())
-            if before > time_start > after:
-                return raid
-        return None
 
     def create_excel(self, columns, index, data, weekend):
         df = pd.DataFrame(data, index=index, columns=columns)
@@ -1074,9 +1080,18 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
-            embed: disnake.Embed = await self.create_last_online(clan)
-            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+
+            member_tags = [member.tag for member in clan.members]
+            members = await self.bot.get_players(
+                tags=member_tags, custom=True)
+
+            embed = clan_responder.create_last_online(
+                clan=clan, clan_members=members)
+            embed.description += (
+                f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+
             await ctx.edit_original_message(embed=embed)
+
         elif "clangames_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]

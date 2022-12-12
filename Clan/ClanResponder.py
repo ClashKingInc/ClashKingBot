@@ -768,3 +768,42 @@ async def clan_raid_weekend_raids(
     embeds["Overview"] = embed
 
     return (embeds, select_menu_options)
+
+
+def create_last_online(clan: coc.Clan, clan_members):
+
+    embed_description_list = []
+    last_online_sum = 0
+    last_online_count = 0
+    for member in clan_members:
+        if member.last_online is None:
+            last_online_sort = 0
+            embed_description_list.append([
+                f"Not Seen `{member.name}`",
+                last_online_sort])
+
+        else:
+            last_online_sort = member.last_online
+            last_online_count += 1
+            last_online_sum += member.last_online
+
+            embed_description_list.append([
+                f"<t:{member.last_online}:R> `{member.name}`",
+                last_online_sort])
+
+    embed_description = sorted(
+        embed_description_list, key=lambda l: l[1], reverse=True)
+    embed_description = [line[0] for line in embed_description]
+    embed_description = "\n".join(embed_description)
+
+    if last_online_sum != 0:
+        avg_last_online = last_online_sum / last_online_count
+        embed_description += (
+            f"\n\n**Median L.O.** <t:{int(avg_last_online)}:R>")
+
+    embed = Embed(
+        title=f"**{clan.name} Last Online**",
+        description=embed_description,
+        color=Color.green())
+
+    return embed

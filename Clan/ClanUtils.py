@@ -261,36 +261,6 @@ class ClanUtils(commands.Cog, name="Clan"):
             embed.description = "No prior cwl data"
         return embed
 
-    async def create_last_online(self, clan: coc.Clan):
-        member_tags = [member.tag for member in clan.members]
-        members = await self.bot.get_players(tags=member_tags, custom=True)
-        text = []
-        avg_time = []
-        for member in members:
-            last_online = member.last_online
-            last_online_sort = last_online
-            if last_online is None:
-                last_online_sort = 0
-                text.append([f"Not Seen `{member.name}`", last_online_sort])
-            else:
-                avg_time.append(last_online)
-                text.append(
-                    [f"<t:{last_online}:R> `{member.name}`", last_online_sort])
-
-        text = sorted(text, key=lambda l: l[1], reverse=True)
-        text = [line[0] for line in text]
-        text = "\n".join(text)
-        if avg_time != []:
-            avg_time.sort()
-            avg_time = statistics.median(avg_time)
-            avg_time = f"\n\n**Median L.O.** <t:{int(avg_time)}:R>"
-        else:
-            avg_time = ""
-        embed = disnake.Embed(title=f"**{clan.name} Last Online**",
-                              description=text + avg_time,
-                              color=disnake.Color.green())
-        return embed
-
     async def create_activities(self, clan: coc.Clan):
         member_tags = [member.tag for member in clan.members]
         members = await self.bot.get_players(tags=member_tags, custom=True)
