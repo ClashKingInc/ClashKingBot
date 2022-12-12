@@ -209,3 +209,25 @@ def unlinked_players(clan: coc.Clan, player_links):
         color=Color.green())
 
     return embed
+
+
+def player_trophy_sort(clan: coc.Clan):
+    embed_description = ""
+    place_index = 0
+
+    for player in clan.members:
+        place_index += 1
+        place_string = f"{place_index}."
+        place_string = place_string.ljust(3)
+        embed_description += (
+            f"\u200e`{place_string}` \u200e<:a_cups:667119203744088094> "
+            f"\u200e{player.trophies} - \u200e{player.name}\n")
+
+    embed = Embed(
+        title=f"{clan.name} Players - Sorted: Trophies",
+        description=embed_description,
+        color=Color.green())
+
+    embed.set_footer(icon_url=clan.badge.large, text=clan.name)
+
+    return embed

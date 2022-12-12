@@ -151,20 +151,6 @@ class ClanUtils(commands.Cog, name="Clan"):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    async def player_trophy_sort(self, clan):
-        text = ""
-        x = 0
-        for player in clan.members:
-            place = str(x + 1) + "."
-            place = place.ljust(3)
-            text += f"\u200e`{place}` \u200e<:a_cups:667119203744088094> \u200e{player.trophies} - \u200e{player.name}\n"
-            x += 1
-
-        embed = disnake.Embed(title=f"{clan.name} Players - Sorted: Trophies", description=text,
-                              color=disnake.Color.green())
-        embed.set_footer(icon_url=clan.badge.large, text=clan.name)
-        return embed
-
     async def player_townhall_sort(self, clan):
         ranking = []
         thcount = defaultdict(int)

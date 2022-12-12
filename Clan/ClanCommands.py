@@ -9,7 +9,8 @@ from disnake.ext import commands
 from Clan.ClanResponder import (
     clan_overview,
     linked_players,
-    unlinked_players
+    unlinked_players,
+    player_trophy_sort
 )
 import math
 import coc
@@ -138,14 +139,37 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             await res.response.defer()
 
             if res.values[0] == "link":
-                embed = await self.linked_players(ctx, clan)
-                await res.edit_original_message(embed=embed)
+                # initializing player link list
+                clan_member_tags = []
+                for player in clan.members:
+                    clan_member_tags.append(player.tag)
+
+                player_links = await self.bot.link_client.get_links(*clan_member_tags)
+
+                linked_players_embed = linked_players(
+                    ctx.guild.members, clan, player_links)
+
+                await res.edit_original_message(embed=linked_players_embed)
+
             elif res.values[0] == "unlink":
-                embed = await self.unlinked_players(ctx, clan)
-                await res.edit_original_message(embed=embed)
+                # initializing player link list
+                clan_member_tags = []
+                for player in clan.members:
+                    clan_member_tags.append(player.tag)
+
+                player_links = await self.bot.link_client.get_links(*clan_member_tags)
+
+                unlinked_players_embed = unlinked_players(
+                    clan, player_links)
+
+                await res.edit_original_message(embed=unlinked_players_embed)
+
             elif res.values[0] == "trophies":
-                embed = await self.player_trophy_sort(clan)
+                embed = player_trophy_sort(clan)
+                embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
+
                 await res.edit_original_message(embed=embed)
+
             elif res.values[0] == "townhalls":
                 embed = await self.player_townhall_sort(clan)
                 await res.edit_original_message(embed=embed)
@@ -214,15 +238,16 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         """
 
         await ctx.response.defer()
-        time = datetime.now().timestamp()
 
-        embed = await self.player_trophy_sort(clan)
+        embed = player_trophy_sort(clan)
         embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
         buttons = disnake.ui.ActionRow()
-        buttons.append_item(
-            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
-                              custom_id=f"trophies_{clan.tag}"))
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey,
+            custom_id=f"trophies_{clan.tag}"))
+
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     @clan.sub_command(name="sorted-townhall", description="List of clan members, sorted by townhall")
@@ -981,21 +1006,46 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
-            embed = await self.linked_players(ctx, clan)
-            embed2 = await self.unlinked_players(ctx, clan)
-            embed2.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+
+            # initializing player link list
+            clan_member_tags = []
+            for player in clan.members:
+                clan_member_tags.append(player.tag)
+            player_links = await self.bot.link_client.get_links(*clan_member_tags)
+
+            linked_players_embed = linked_players(
+                ctx.guild.members, clan, player_links)
+            unlinked_players_embed = unlinked_players(
+                clan, player_links)
+
+            unlinked_players_embed.description += (
+                f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+
             buttons = disnake.ui.ActionRow()
-            buttons.append_item(
-                disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
-                                  custom_id=f"linked_{clan.tag}"))
-            await ctx.edit_original_message(embeds=[embed, embed2], components=buttons)
+            buttons.append_item(disnake.ui.Button(
+                label="", emoji=self.bot.emoji.refresh.partial_emoji,
+                style=disnake.ButtonStyle.grey, custom_id=f"linked_{clan.tag}"))
+
+            await ctx.edit_original_message(
+                embeds=[linked_players_embed, unlinked_players_embed],
+                components=buttons)
+
         elif "trophies_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
-            embed: disnake.Embed = await self.player_trophy_sort(clan)
-            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
-            await ctx.edit_original_message(embed=embed)
+
+            embed = player_trophy_sort(clan)
+            embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
+
+            buttons = disnake.ui.ActionRow()
+            buttons.append_item(disnake.ui.Button(
+                label="", emoji=self.bot.emoji.refresh.partial_emoji,
+                style=disnake.ButtonStyle.grey,
+                custom_id=f"trophies_{clan.tag}"))
+
+            await ctx.edit_original_message(embed=embed, components=buttons)
+
         elif "waropt_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
