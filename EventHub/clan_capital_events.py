@@ -19,6 +19,8 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
             clan_tag = event["new_player"]["clan"]["tag"]
         except:
             return
+        if not (clan_tag in self.bot.clan_list):
+            return
         # print(f"{new_player.name} donated {new_capital_dono.value - old_capital_dono.value}")
         limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan_tag}"})
         if limit == 0:

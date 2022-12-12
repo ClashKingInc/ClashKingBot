@@ -16,7 +16,8 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
         previous_members = event["old_clan"]["memberList"]
         current_members = event["new_clan"]["memberList"]
         clan_tag = event["new_clan"]["tag"]
-
+        if not (clan_tag in self.bot.clan_list):
+            return
         limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan_tag}"})
         if limit == 0:
             return

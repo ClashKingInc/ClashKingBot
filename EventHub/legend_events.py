@@ -15,7 +15,7 @@ class LegendEvents(commands.Cog):
         self.bot = bot
         self.player_ee = player_ee
         #self.player_ee.on("trophies", self.legend_event)
-        self.player_ee.on("trophies", self.dm_legend_event)
+        #self.player_ee.on("trophies", self.dm_legend_event)
 
     async def legend_event(self, event):
         trophy_change = event["new_player"]["trophies"] - event["old_player"]["trophies"]
@@ -24,6 +24,8 @@ class LegendEvents(commands.Cog):
         try:
             clan_tag = event["new_player"]["clan"]["tag"]
         except:
+            return
+        if not (clan_tag in self.bot.clan_list):
             return
 
         tracked = self.bot.clan_db.find({"tag": f"{clan_tag}"})
