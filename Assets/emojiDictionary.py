@@ -36,6 +36,7 @@ def emojiDictionary(emojiName):
         "Sneaky Goblin": "<:SneakyGoblin:701626916129734787>",
         "Rocket Balloon": "<:RocketBalloon:854368171682431006>",
         "Super Wizard": "<:SuperWizard:785536616864153610>",
+        "Super Miner" : "<:sminer:1051845657910071346>",
         "Inferno Dragon": "<:InfernoDragon:742121658386743366>",
         "Super Minion": "<:SuperMinion:771375748916576286>",
         "Super Valkyrie": "<:SuperValkyrie:771375748815519825>",
