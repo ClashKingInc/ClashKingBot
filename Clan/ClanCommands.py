@@ -44,6 +44,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         """
 
         await ctx.response.defer()
+
         embed = disnake.Embed(
             description=f"<a:loading:884400064313819146> Fetching clan...",
             color=disnake.Color.green())
@@ -173,6 +174,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
             elif res.values[0] == "clan":
                 await res.edit_original_message(embed=main)
+
             elif res.values[0] == "opt":
                 embed = await clan_responder.opt_status(clan)
                 embed.description += f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>"
@@ -386,8 +388,13 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.edit_original_message(embed=embed, components=buttons)
 
-    @clan.sub_command(name="board", description="Simple embed, with overview of a clan")
-    async def clan_board(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), button_text: str = None, button_link: str = None):
+    @clan.sub_command(
+        name="board",
+        description="Simple embed, with overview of a clan")
+    async def clan_board(
+            self, ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = commands.Param(converter=clan_converter),
+            button_text: str = None, button_link: str = None):
         """
             Parameters
             ----------
@@ -395,28 +402,51 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             button_text: can add an extra button to this board, this is the text for it
             button_link:can add an extra button to this board, this is the link for it
         """
-        await ctx.response.defer()
-        time = datetime.now().timestamp()
 
-        embed = await self.clan_overview(ctx, clan)
-        values = embed.fields[-1].value + \
-            f"\nLast Refreshed: <t:{int(time)}:R>"
+        await ctx.response.defer()
+
+        db_clan = await self.bot.clan_db.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+
+        clan_legend_ranking = await self.bot.clan_leaderboard_db.find_one(
+            {"tag": clan.tag})
+
+        embed = await clan_responder.clan_overview(
+            clan=clan, db_clan=db_clan,
+            clan_legend_ranking=clan_legend_ranking)
+
+        values = (
+            f"{embed.fields[-1].value}"
+            f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+
         embed.set_field_at(len(
-            embed.fields) - 1, name="**Boosted Super Troops:**", value=values, inline=False)
+            embed.fields) - 1, name="**Boosted Super Troops:**",
+            value=values, inline=False)
+
         buttons = disnake.ui.ActionRow()
-        buttons.append_item(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji,
-                            style=disnake.ButtonStyle.grey, custom_id=f"clanboard_{clan.tag}"))
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey,
+            custom_id=f"clanboard_{clan.tag}"))
+
         buttons.append_item(disnake.ui.Button(
             label=f"Clan Link", emoji="🔗", url=clan.share_link))
+
         if button_text is not None and button_link is not None:
             buttons.append_item(disnake.ui.Button(
                 label=button_text, emoji="🔗", url=button_link))
 
         try:
-            await ctx.edit_original_message(embed=embed, components=buttons)
+            await ctx.edit_original_message(
+                embed=embed, components=buttons)
+
         except disnake.errors.HTTPException:
-            embed = disnake.Embed(description="Not a valid button link.",
-                                  color=disnake.Color.red())
+            embed = disnake.Embed(
+                description="Not a valid button link.",
+                color=disnake.Color.red())
+
             return await ctx.edit_original_message(embed=embed)
 
     @clan.sub_command(name="compo", description="Townhall composition of a clan")
@@ -1145,12 +1175,29 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
-            embed: disnake.Embed = await self.clan_overview(ctx, clan)
-            values = embed.fields[-1].value + \
-                f"\nLast Refreshed: <t:{int(time)}:R>"
+
+            db_clan = await self.bot.clan_db.find_one({"$and": [
+                {"tag": clan.tag},
+                {"server": ctx.guild.id}
+            ]})
+
+            clan_legend_ranking = await self.bot.clan_leaderboard_db.find_one(
+                {"tag": clan.tag})
+
+            embed = await clan_responder.clan_overview(
+                clan=clan, db_clan=db_clan,
+                clan_legend_ranking=clan_legend_ranking)
+
+            values = (
+                f"{embed.fields[-1].value}"
+                f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+
             embed.set_field_at(len(
-                embed.fields) - 1, name="**Boosted Super Troops:**", value=values, inline=False)
+                embed.fields) - 1, name="**Boosted Super Troops:**",
+                value=values, inline=False)
+
             await ctx.edit_original_message(embed=embed)
+
         elif "townhall_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             clan = (str(ctx.data.custom_id).split("_"))[-1]
