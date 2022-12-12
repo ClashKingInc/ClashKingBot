@@ -150,7 +150,7 @@ else:
     "War & CWL.cwl",
     "War & CWL.war",
     "War & CWL.war_track",
-    #"discord_events",
+    "discord_events",
     "help",
     "other",
     "settings",
