@@ -481,6 +481,7 @@ def clan_th_composition(clan: coc.Clan, member_list):
 def clan_raid_weekend_stats(
         clan: coc.Clan, raid_log,
         capital_raid_members):
+
     weekend = "Current Week"
 
     choice_to_date = {

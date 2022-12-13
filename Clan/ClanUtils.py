@@ -1,11 +1,7 @@
-from CustomClasses.CustomPlayer import LegendRanking
-from CustomClasses.CustomBot import CustomClient
 from utils.discord_utils import fetch_emoji
 import disnake
 import coc
 import pytz
-import asyncio
-import aiohttp
 import calendar
 import emoji
 import json
@@ -14,12 +10,10 @@ import datetime as dt
 import numpy as np
 import dateutil.relativedelta
 from CustomClasses.emoji_class import Emojis
+import pandas as pd
 
 from scipy.interpolate import make_interp_spline
-from disnake.ext import commands
-from Assets.emojiDictionary import emojiDictionary
 from collections import defaultdict
-from coc import utils
 from CustomClasses.CustomPlayer import MyCustomPlayer
 
 SUPER_TROOPS = [
@@ -510,3 +504,9 @@ def response_to_line(response, clan):
     tier = str(league_name).count("I")
 
     return [f"{emoji} {league_and_trophies_emoji(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n", year]
+
+
+def create_excel(columns, index, data, weekend):
+    df = pd.DataFrame(data, index=index, columns=columns)
+    df.to_excel('ClanCapitalStats.xlsx', sheet_name=f'{weekend}')
+    return disnake.File("ClanCapitalStats.xlsx", filename=f"{weekend}_clancapital.xlsx")

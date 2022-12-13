@@ -10,7 +10,6 @@ import Clan.ClanUtils as clan_utils
 import coc
 import disnake
 import asyncio
-import pandas as pd
 import pytz
 import calendar
 tiz = pytz.utc
@@ -481,6 +480,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         weekend_dates = create_weekend_list(option=weekend)
         member_tags = [member.tag for member in clan.members]
         capital_raid_member_tags = []
+
         for week in weekend_dates:
             tags = await self.bot.player_stats.distinct(
                 "tag",
@@ -557,8 +557,10 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             await res.response.defer()
             if res.data.custom_id == "donations":
                 await res.edit_original_message(embed=embeds["donations"])
+
             elif res.data.custom_id == "raids":
                 await res.edit_original_message(embed=embeds["raids"])
+
             elif res.data.custom_id == "capseason":
                 columns = [
                     "Tag",
@@ -567,8 +569,9 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                     "Raided",
                     "Number of Raids"]
 
-                file = self.create_excel(
+                file = clan_utils.create_excel(
                     columns=columns, index=index, data=data, weekend=weekend)
+
                 await res.send(file=file, ephemeral=True)
 
     @clan.sub_command(
@@ -675,11 +678,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 custom_id=f"act_{clan.tag}"))
 
         await ctx.edit_original_message(embed=embed, components=buttons)
-
-    def create_excel(self, columns, index, data, weekend):
-        df = pd.DataFrame(data, index=index, columns=columns)
-        df.to_excel('ClanCapitalStats.xlsx', sheet_name=f'{weekend}')
-        return disnake.File("ClanCapitalStats.xlsx", filename=f"{weekend}_clancapital.xlsx")
 
     @clan.sub_command(
         name="games",
