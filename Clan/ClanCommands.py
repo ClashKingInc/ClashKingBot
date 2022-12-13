@@ -29,7 +29,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
     @commands.slash_command(name="clan")
     async def clan(self, ctx):
-        pass
+        await ctx.response.defer()
 
     @clan.sub_command(name="search", description="lookup clan by tag")
     async def get_clan(
@@ -40,8 +40,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             ----------
             clan: Search by clan tag or select an option from the autocomplete
         """
-
-        await ctx.response.defer()
 
         embed = disnake.Embed(
             description=f"<a:loading:884400064313819146> Fetching clan...",
@@ -224,8 +222,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             clan: Use clan tag or select an option from the autocomplete
         """
 
-        await ctx.response.defer()
-
         # initializing player link list
         clan_member_tags = []
         for player in clan.members:
@@ -261,8 +257,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             clan: Use clan tag or select an option from the autocomplete
         """
 
-        await ctx.response.defer()
-
         embed = clan_responder.player_trophy_sort(clan)
         embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
@@ -285,8 +279,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             ----------
             clan: Use clan tag or select an option from the autocomplete
         """
-
-        await ctx.response.defer()
 
         embed = await clan_responder.player_townhall_sort(clan)
         embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
@@ -313,8 +305,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             clan: Use clan tag or select an option from the autocomplete
         """
 
-        await ctx.response.defer()
-
         embed = await clan_responder.opt_status(clan)
         embed.description += f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
@@ -337,8 +327,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             ----------
             clan: Use clan tag or select an option from the autocomplete
         """
-
-        await ctx.response.defer()
 
         if not clan.public_war_log:
             embed = disnake.Embed(
@@ -374,8 +362,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             clan: Use clan tag or select an option from the autocomplete
         """
 
-        await ctx.response.defer()
-
         embed: disnake.Embed = await clan_responder.super_troop_list(clan)
 
         values = (
@@ -408,8 +394,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             button_text: can add an extra button to this board, this is the text for it
             button_link:can add an extra button to this board, this is the link for it
         """
-
-        await ctx.response.defer()
 
         db_clan = await self.bot.clan_db.find_one({"$and": [
             {"tag": clan.tag},
@@ -467,8 +451,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             clan: Use clan tag or select an option from the autocomplete
         """
 
-        await ctx.response.defer()
-
         clan_members = []
         clan_members += [member.tag for member in clan.members]
         member_list = await self.bot.get_players(tags=clan_members, custom=False)
@@ -491,8 +473,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             ----------
             clan: Use clan tag or select an option from the autocomplete
         """
-
-        await ctx.response.defer()
 
         raidlog = await self.bot.coc_client.get_raidlog(clan.tag)
 
@@ -601,8 +581,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             default="Current Week",
             choices=["Current Week", "Last Week", "2 Weeks Ago"])):
 
-        await ctx.response.defer()
-
         raidlog = await self.bot.coc_client.get_raidlog(clan.tag)
 
         (embeds,
@@ -656,8 +634,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             self, ctx: disnake.ApplicationCommandInteraction,
             clan: coc.Clan = commands.Param(converter=clan_converter)):
 
-        await ctx.response.defer()
-
         member_tags = [member.tag for member in clan.members]
         members = await self.bot.get_players(
             tags=member_tags, custom=True)
@@ -681,8 +657,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     async def activities(
             self, ctx: disnake.ApplicationCommandInteraction,
             clan: coc.Clan = commands.Param(converter=clan_converter)):
-
-        await ctx.response.defer()
 
         member_tags = [member.tag for member in clan.members]
         members = await self.bot.get_players(
@@ -714,8 +688,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             self, ctx: disnake.ApplicationCommandInteraction,
             clan: coc.Clan = commands.Param(converter=clan_converter),
             season=commands.Param(default=None, name="season")):
-
-        await ctx.response.defer()
 
         member_tags = [member.tag for member in clan.members]
 
@@ -780,8 +752,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             clan: coc.Clan = commands.Param(converter=clan_converter),
             season=commands.Param(default=None, name="season")):
 
-        await ctx.response.defer()
-
         if season is not None:
             month = list(calendar.month_name).index(season.split(" ")[0])
             year = season.split(" ")[1]
@@ -839,8 +809,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             self, ctx: disnake.ApplicationCommandInteraction,
             clan: coc.Clan = commands.Param(converter=clan_converter),
             timezone=commands.Param(name="timezone")):
-
-        await ctx.response.defer()
 
         if timezone not in pytz.common_timezones:
             return await ctx.edit_original_message(content=(
@@ -920,8 +888,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             self, ctx: disnake.ApplicationCommandInteraction,
             clan: coc.Clan = commands.Param(converter=clan_converter),
             season=commands.Param(default=None, name="season")):
-
-        await ctx.response.defer()
 
         if season is not None:
             month = list(calendar.month_name).index(season.split(" ")[0])
@@ -1270,8 +1236,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     async def clan_ping(
             self, ctx: disnake.ApplicationCommandInteraction,
             clan: coc.Clan = commands.Param(converter=clan_converter)):
-
-        await ctx.response.defer()
 
         embed = disnake.Embed(
             description=(
