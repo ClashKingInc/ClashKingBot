@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import datetime as dt
 import numpy as np
 import dateutil.relativedelta
+from CustomClasses.emoji_class import Emojis
 
 from scipy.interpolate import make_interp_spline
 from disnake.ext import commands
@@ -257,6 +258,187 @@ def create_graph(
     file = disnake.File(fp=temp, filename="filename.png")
 
     return file
+
+
+def stat_components():
+    options = []
+    for townhall in reversed(range(6, 16)):
+        options.append(disnake.SelectOption(
+            label=f"Townhall {townhall}",
+            emoji=fetch_emoji(townhall),
+            value=str(townhall)))
+
+    th_select = disnake.ui.Select(
+        options=options,
+        # the placeholder text to show when no options have been chosen
+        placeholder="Select Townhalls",
+        min_values=1,  # the minimum number of options a user must select
+        # the maximum number of options a user can select
+        max_values=len(options),
+    )
+
+    options = []
+    real_types = [
+        "Fresh Hits",
+        "Non-Fresh",
+        "random", "cwl",
+        "friendly"]
+
+    for count, filter in enumerate([
+        "Fresh Hits",
+        "Non-Fresh",
+        "Random Wars",
+        "CWL",
+            "Friendly Wars"]):
+        options.append(disnake.SelectOption(
+            label=f"{filter}",
+            value=real_types[count]))
+
+    filter_select = disnake.ui.Select(
+        options=options,
+        # the placeholder text to show when no options have been chosen
+        placeholder="Select Filters",
+        min_values=1,  # the minimum number of options a user must select
+        # the maximum number of options a user can select
+        max_values=len(options),
+    )
+
+    options = []
+    emojis = [
+        Emojis().sword_clash.partial_emoji,
+        Emojis().shield.partial_emoji,
+        Emojis().war_star.partial_emoji]
+
+    for count, type in enumerate([
+        "Offensive Hitrate",
+        "Defensive Rate",
+            "Stars Leaderboard"]):
+        options.append(disnake.SelectOption(
+            label=f"{type}",
+            emoji=emojis[count],
+            value=type))
+
+    stat_select = disnake.ui.Select(
+        options=options,
+        # the placeholder text to show when no options have been chosen
+        placeholder="Select Stat Type",
+        min_values=1,  # the minimum number of options a user must select
+        max_values=1,  # the maximum number of options a user can select
+    )
+
+    dropdown = [
+        disnake.ui.ActionRow(th_select),
+        disnake.ui.ActionRow(filter_select),
+        disnake.ui.ActionRow(stat_select)]
+
+    return dropdown
+
+
+async def fetch_n_rank_hit_rate(
+        player: MyCustomPlayer,
+        townhall_level: list = [],
+        fresh_type: list = [False, True],
+        start_timestamp: int = 0,
+        end_timestamp: int = 9999999999,
+        war_types: list = ["random", "cwl", "friendly"],
+        war_statuses=["lost", "losing", "winning", "won"]):
+
+    if not townhall_level:
+        townhall_level = list(range(1, 17))
+
+    hitrate = await player.hit_rate(
+        townhall_level=townhall_level,
+        fresh_type=fresh_type,
+        start_timestamp=start_timestamp,
+        end_timestamp=end_timestamp,
+        war_types=war_types, war_statuses=war_statuses)
+
+    hr = hitrate[0]
+
+    if hr.num_attacks == 0:
+        return None
+
+    hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+    name = emoji.replace_emoji(player.name, "")
+    name = str(name)[0:12]
+    name = f"{name}".ljust(12)
+    destr = f"{round(hr.average_triples * 100, 1)}%".rjust(6)
+
+    return [
+        f"{player.town_hall_cls.emoji} `{hr_nums} {destr} {name}`\n",
+        round(hr.average_triples * 100, 3),
+        name, hr.num_attacks,
+        player.town_hall]
+
+
+async def fetch_n_rank_defensive_rate(
+        player: MyCustomPlayer,
+        townhall_level: list = [],
+        fresh_type: list = [False, True],
+        start_timestamp: int = 0,
+        end_timestamp: int = 9999999999,
+        war_types: list = ["random", "cwl", "friendly"],
+        war_statuses=["lost", "losing", "winning", "won"]):
+
+    hitrate = await player.defense_rate(
+        townhall_level=townhall_level,
+        fresh_type=fresh_type,
+        start_timestamp=start_timestamp,
+        end_timestamp=end_timestamp,
+        war_types=war_types, war_statuses=war_statuses)
+
+    hr = hitrate[0]
+
+    if hr.num_attacks == 0:
+        return None
+
+    hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+    name = emoji.replace_emoji(player.name, "")
+    name = str(name)[0:12]
+    name = f"{name}".ljust(12)
+    destr = f"{round(hr.average_triples * 100, 1)}%".rjust(6)
+
+    return [
+        f"{player.town_hall_cls.emoji} `{hr_nums} {destr} {name}`\n",
+        round(hr.average_triples * 100, 3),
+        name, hr.num_attacks,
+        player.town_hall]
+
+
+async def fetch_n_rank_star_leaderboard(
+        player: MyCustomPlayer,
+        townhall_level: list = [],
+        fresh_type: list = [False, True],
+        start_timestamp: int = 0,
+        end_timestamp: int = 9999999999,
+        war_types: list = ["random", "cwl", "friendly"],
+        war_statuses=["lost", "losing", "winning", "won"]):
+
+    if not townhall_level:
+        townhall_level = list(range(1, 17))
+
+    hitrate = await player.hit_rate(
+        townhall_level=townhall_level,
+        fresh_type=fresh_type,
+        start_timestamp=start_timestamp,
+        end_timestamp=end_timestamp,
+        war_types=war_types,
+        war_statuses=war_statuses)
+
+    hr = hitrate[0]
+    if hr.num_attacks == 0:
+        return None
+
+    name = str(player.name)[0:12]
+    name = f"{name}".ljust(12)
+    stars = f"{hr.total_stars}/{hr.num_attacks}".center(5)
+    destruction = f"{int(hr.total_destruction)}%".ljust(5)
+
+    return [
+        f"{stars} {destruction} {name}\n",
+        round(hr.average_triples * 100, 3),
+        name, hr.total_stars,
+        player.town_hall]
 
 
 class ClanUtils(commands.Cog, name="Clan"):

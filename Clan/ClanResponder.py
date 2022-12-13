@@ -14,6 +14,8 @@ from Clan.ClanUtils import (
     get_raid,
     gen_season_date
 )
+
+from datetime import datetime
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis
 from utils.clash import create_weekend_list, weekend_timestamps
@@ -963,3 +965,185 @@ def clan_donations(
                 f"Received : {'{:,}'.format(total_received)} | {season_date}"))
 
         return ratio_embed
+
+
+def create_offensive_hitrate(
+        clan: coc.Clan,
+        player_rank_responses,
+        get_number_emoji,
+        fresh_type: list = [False, True],
+        start_timestamp: int = 0,
+        end_timestamp: int = 9999999999,
+        war_types: list = ["random", "cwl", "friendly"]):
+
+    ranked = []
+
+    for player_rank_response in player_rank_responses:
+        if player_rank_response is not None:
+            ranked.append(player_rank_response)
+
+    ranked = sorted(
+        ranked,
+        key=lambda l: (-l[1], -l[-2], -l[-1], l[2]),
+        reverse=False)
+
+    embed_description = "`# TH  NUM    HR%    NAME       `\n"
+
+    for count, rank in enumerate(ranked, 1):
+        spot_emoji = get_number_emoji(color="gold", number=count)
+        embed_description += f"{spot_emoji}{rank[0]}"
+
+    if len(ranked) == 0:
+        embed_description = "No War Attacks Tracked Yet."
+
+    embed = Embed(
+        title=f"Offensive Hit Rates",
+        description=embed_description,
+        colour=Color.green())
+
+    filter_types = []
+    if True in fresh_type:
+        filter_types.append("Fresh")
+
+    if False in fresh_type:
+        filter_types.append("Non-Fresh")
+
+    for type in war_types:
+        filter_types.append(str(type).capitalize())
+
+    filter_types = ", ".join(filter_types)
+    time_range = "This Season"
+
+    if start_timestamp != 0 and end_timestamp != 9999999999:
+        time_range = (
+            f"{datetime.fromtimestamp(start_timestamp).strftime('%m/%d/%y')} - "
+            f"{datetime.fromtimestamp(end_timestamp).strftime('%m/%d/%y')}")
+
+    embed.set_footer(
+        icon_url=clan.badge.url,
+        text=f"{clan.name} | {time_range}\nFilters: {filter_types}")
+
+    return embed
+
+
+async def create_defensive_hitrate(
+        clan: coc.Clan,
+        player_rank_responses,
+        get_number_emoji,
+        fresh_type: list = [False, True],
+        start_timestamp: int = 0,
+        end_timestamp: int = 9999999999,
+        war_types: list = ["random", "cwl", "friendly"]):
+
+    ranked = []
+
+    for player_rank_response in player_rank_responses:
+        if player_rank_response is not None:
+            ranked.append(player_rank_response)
+
+    ranked = sorted(
+        ranked,
+        key=lambda l: (-l[1], -l[-2], -l[-1], l[2]),
+        reverse=False)
+
+    text = "`# TH  NUM    DR%    NAME       `\n"
+
+    for count, rank in enumerate(ranked, 1):
+        spot_emoji = get_number_emoji(
+            color="gold", number=count)
+        text += f"{spot_emoji}{rank[0]}"
+
+    if len(ranked) == 0:
+        text = "No War Attacks Tracked Yet."
+
+    embed = Embed(
+        title=f"Defensive Rates",
+        description=text,
+        colour=Color.green())
+
+    filter_types = []
+    if True in fresh_type:
+        filter_types.append("Fresh")
+
+    if False in fresh_type:
+        filter_types.append("Non-Fresh")
+
+    for type in war_types:
+        filter_types.append(str(type).capitalize())
+
+    filter_types = ", ".join(filter_types)
+    time_range = "This Season"
+
+    if start_timestamp != 0 and end_timestamp != 9999999999:
+        time_range = (
+            f"{datetime.fromtimestamp(start_timestamp).strftime('%m/%d/%y')} - "
+            f"{datetime.fromtimestamp(end_timestamp).strftime('%m/%d/%y')}")
+
+    embed.set_footer(
+        icon_url=clan.badge.url,
+        text=(
+            f"{clan.name} | {time_range}\n"
+            f"Filters: {filter_types}"))
+
+    return embed
+
+
+async def create_stars_leaderboard(
+        clan: coc.Clan,
+        player_rank_responses,
+        get_number_emoji,
+        fresh_type: list = [False, True],
+        start_timestamp: int = 0,
+        end_timestamp: int = 9999999999,
+        war_types: list = ["random", "cwl", "friendly"]):
+
+    ranked = []
+
+    for player_rank_response in player_rank_responses:
+        if player_rank_response is not None:
+            ranked.append(player_rank_response)
+
+    ranked = sorted(
+        ranked,
+        key=lambda l: (-l[-2], -l[1], l[2]),
+        reverse=False)
+
+    text = "```#   ★     DSTR%  NAME       \n"
+
+    for count, rank in enumerate(ranked, 1):
+        #spot_emoji = get_number_emoji(color="gold", number=count)
+        count = f"{count}.".ljust(3)
+        text += f"{count} {rank[0]}"
+
+    text += "```"
+
+    if len(ranked) == 0:
+        text = "No War Attacks Tracked Yet."
+
+    embed = Embed(
+        title=f"Star Leaderboard",
+        description=text, colour=Color.green())
+
+    filter_types = []
+    if True in fresh_type:
+        filter_types.append("Fresh")
+
+    if False in fresh_type:
+        filter_types.append("Non-Fresh")
+
+    for type in war_types:
+        filter_types.append(str(type).capitalize())
+
+    filter_types = ", ".join(filter_types)
+    time_range = "This Season"
+
+    if start_timestamp != 0 and end_timestamp != 9999999999:
+        time_range = (
+            f"{datetime.fromtimestamp(start_timestamp).strftime('%m/%d/%y')} - "
+            f"{datetime.fromtimestamp(end_timestamp).strftime('%m/%d/%y')}")
+
+    embed.set_footer(
+        icon_url=clan.badge.url,
+        text=f"{clan.name} | {time_range}\nFilters: {filter_types}")
+
+    return embed

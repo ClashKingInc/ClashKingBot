@@ -908,9 +908,16 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
             await res.edit_original_message(file=file, attachments=[])
 
-    @clan.sub_command(name="war-stats", description="Get war stats of players in a clan")
-    async def war_stats_clan(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
-                             season=commands.Param(default=None, name="season")):
+    @clan.sub_command(
+        name="war-stats",
+        description="Get war stats of players in a clan")
+    async def war_stats_clan(
+            self, ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = commands.Param(converter=clan_converter),
+            season=commands.Param(default=None, name="season")):
+
+        await ctx.response.defer()
+
         if season is not None:
             month = list(calendar.month_name).index(season.split(" ")[0])
             year = season.split(" ")[1]
@@ -918,15 +925,35 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 month=int(month-1), year=int(year)).timestamp())
             end_date = int(coc.utils.get_season_end(
                 month=int(month-1), year=int(year)).timestamp())
+
         else:
             start_date = int(coc.utils.get_season_start().timestamp())
             end_date = int(coc.utils.get_season_end().timestamp())
 
         members = [member.tag for member in clan.members]
-        await ctx.response.defer()
-        players = await self.bot.get_players(tags=members, custom=True)
-        off_hr_embed = await self.create_offensive_hitrate(clan=clan, players=players, start_timestamp=start_date, end_timestamp=end_date)
-        components = self.stat_components()
+
+        players = await self.bot.get_players(
+            tags=members, custom=True)
+
+        tasks = []
+
+        # type: MyCustomPlayer
+        for player in players:
+            task = asyncio.ensure_future(
+                clan_utils.fetch_n_rank_hit_rate(player=player))
+            tasks.append(task)
+
+        player_rank_responses = await asyncio.gather(*tasks)
+
+        off_hr_embed = clan_responder.create_offensive_hitrate(
+            clan=clan,
+            player_rank_responses=player_rank_responses,
+            get_number_emoji=self.bot.get_number_emoji,
+            start_timestamp=start_date,
+            end_timestamp=end_date)
+
+        components = clan_utils.stat_components()
+
         await ctx.edit_original_message(embed=off_hr_embed, components=components)
 
         msg = await ctx.original_message()
@@ -937,7 +964,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         board_type = "Offensive Hitrate"
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for(
+                    "message_interaction", check=check, timeout=600)
             except:
                 return await msg.edit(components=[])
                 break
@@ -947,18 +975,103 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             # is a list of th levels
             if res.values[0].isdigit():
                 th_levels = [int(value) for value in res.values]
+
                 if board_type == "Offensive Hitrate":
-                    embed = await self.create_offensive_hitrate(clan=clan, players=players, start_timestamp=start_date, end_timestamp=end_date, townhall_level=th_levels)
+
+                    members = [member.tag for member in clan.members]
+
+                    players = await self.bot.get_players(
+                        tags=members, custom=True)
+
+                    tasks = []
+
+                    # type: MyCustomPlayer
+                    for player in players:
+                        task = asyncio.ensure_future(
+                            clan_utils.fetch_n_rank_hit_rate(
+                                player=player,
+                                townhall_level=th_levels))
+
+                        tasks.append(task)
+
+                    player_rank_responses = await asyncio.gather(*tasks)
+
+                    embed = clan_responder.create_offensive_hitrate(
+                        clan=clan,
+                        player_rank_responses=player_rank_responses,
+                        get_number_emoji=self.bot.get_number_emoji,
+                        start_timestamp=start_date,
+                        end_timestamp=end_date)
+
                 elif board_type == "Defensive Rate":
-                    embed = await self.create_defensive_hitrate(clan=clan, players=players, start_timestamp=start_date, end_timestamp=end_date, townhall_level=th_levels)
+
+                    members = [member.tag for member in clan.members]
+
+                    players = await self.bot.get_players(
+                        tags=members, custom=True)
+
+                    tasks = []
+
+                    # type: MyCustomPlayer
+                    for player in players:
+                        task = asyncio.ensure_future(
+                            clan_utils.fetch_n_rank_defensive_rate(
+                                player=player,
+                                townhall_level=th_levels))
+
+                        tasks.append(task)
+
+                    player_rank_responses = await asyncio.gather(*tasks)
+
+                    embed = await clan_responder.create_defensive_hitrate(
+                        clan=clan,
+                        player_rank_responses=player_rank_responses,
+                        get_number_emoji=self.bot.get_number_emoji,
+                        start_timestamp=start_date,
+                        end_timestamp=end_date)
+
                 elif board_type == "Stars Leaderboard":
-                    embed = await self.create_stars_leaderboard(clan=clan, players=players, start_timestamp=start_date, end_timestamp=end_date, townhall_level=th_levels)
+
+                    members = [member.tag for member in clan.members]
+
+                    players = await self.bot.get_players(
+                        tags=members, custom=True)
+
+                    tasks = []
+
+                    # type: MyCustomPlayer
+                    for player in players:
+                        task = asyncio.ensure_future(
+                            clan_utils.fetch_n_rank_star_leaderboard(
+                                player=player,
+                                townhall_level=th_levels))
+
+                        tasks.append(task)
+
+                    player_rank_responses = await asyncio.gather(*tasks)
+
+                    embed = await clan_responder.create_stars_leaderboard(
+                        clan=clan,
+                        player_rank_responses=player_rank_responses,
+                        get_number_emoji=self.bot.get_number_emoji,
+                        start_timestamp=start_date,
+                        end_timestamp=end_date)
+
                 await res.edit_original_message(embed=embed)
+
             # is a filter type
-            elif res.values[0] in ["Fresh Hits", "Non-Fresh", "random", "cwl", "friendly"]:
+            elif res.values[0] in [
+                "Fresh Hits",
+                "Non-Fresh",
+                "random",
+                "cwl",
+                    "friendly"]:
+
                 fresh_type = [False, True]
+
                 if "Non-Fresh" not in res.values:
                     fresh_type.remove(False)
+
                 if "Fresh Hits" not in res.values:
                     fresh_type.remove(True)
 
@@ -969,26 +1082,179 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 for type in ["random", "cwl", "friendly"]:
                     if type not in res.values:
                         war_types.remove(type)
+
                 if war_types == []:
                     war_types = ["random", "cwl", "friendly"]
 
                 if board_type == "Offensive Hitrate":
-                    embed = await self.create_offensive_hitrate(clan=clan, players=players, start_timestamp=start_date, end_timestamp=end_date, fresh_type=fresh_type, war_types=war_types)
+
+                    members = [member.tag for member in clan.members]
+
+                    players = await self.bot.get_players(
+                        tags=members, custom=True)
+
+                    tasks = []
+
+                    # type: MyCustomPlayer
+                    for player in players:
+                        task = asyncio.ensure_future(
+                            clan_utils.fetch_n_rank_hit_rate(
+                                player=player))
+
+                        tasks.append(task)
+
+                    player_rank_responses = await asyncio.gather(*tasks)
+
+                    embed = clan_responder.create_offensive_hitrate(
+                        clan=clan,
+                        player_rank_responses=player_rank_responses,
+                        get_number_emoji=self.bot.get_number_emoji,
+                        fresh_type=fresh_type,
+                        start_timestamp=start_date,
+                        end_timestamp=end_date)
+
                 elif board_type == "Defensive Rate":
-                    embed = await self.create_defensive_hitrate(clan=clan, players=players, start_timestamp=start_date, end_timestamp=end_date, fresh_type=fresh_type, war_types=war_types)
+
+                    members = [member.tag for member in clan.members]
+
+                    players = await self.bot.get_players(
+                        tags=members, custom=True)
+
+                    tasks = []
+
+                    # type: MyCustomPlayer
+                    for player in players:
+                        task = asyncio.ensure_future(
+                            clan_utils.fetch_n_rank_defensive_rate(
+                                player=player))
+
+                        tasks.append(task)
+
+                    player_rank_responses = await asyncio.gather(*tasks)
+
+                    embed = await clan_responder.create_defensive_hitrate(
+                        clan=clan,
+                        player_rank_responses=player_rank_responses,
+                        get_number_emoji=self.bot.get_number_emoji,
+                        fresh_type=fresh_type,
+                        start_timestamp=start_date,
+                        end_timestamp=end_date)
+
                 elif board_type == "Stars Leaderboard":
-                    embed = await self.create_stars_leaderboard(clan=clan, players=players, start_timestamp=start_date, end_timestamp=end_date, fresh_type=fresh_type, war_types=war_types)
+
+                    members = [member.tag for member in clan.members]
+
+                    players = await self.bot.get_players(
+                        tags=members, custom=True)
+
+                    tasks = []
+
+                    # type: MyCustomPlayer
+                    for player in players:
+                        task = asyncio.ensure_future(
+                            clan_utils.fetch_n_rank_star_leaderboard(
+                                player=player))
+
+                        tasks.append(task)
+
+                    player_rank_responses = await asyncio.gather(*tasks)
+
+                    embed = await clan_responder.create_stars_leaderboard(
+                        clan=clan,
+                        player_rank_responses=player_rank_responses,
+                        get_number_emoji=self.bot.get_number_emoji,
+                        fresh_type=fresh_type,
+                        start_timestamp=start_date,
+                        end_timestamp=end_date)
+
                 await res.edit_original_message(embed=embed)
 
             # changing the board type
-            elif res.values[0] in ["Offensive Hitrate", "Defensive Rate", "Stars Leaderboard"]:
+            elif res.values[0] in [
+                "Offensive Hitrate",
+                "Defensive Rate",
+                "Stars Leaderboard"
+            ]:
                 board_type = res.values[0]
+
                 if board_type == "Offensive Hitrate":
-                    embed = await self.create_offensive_hitrate(clan=clan, players=players, start_timestamp=start_date, end_timestamp=end_date)
+
+                    members = [member.tag for member in clan.members]
+
+                    players = await self.bot.get_players(
+                        tags=members, custom=True)
+
+                    tasks = []
+
+                    # type: MyCustomPlayer
+                    for player in players:
+                        task = asyncio.ensure_future(
+                            clan_utils.fetch_n_rank_hit_rate(
+                                player=player))
+
+                        tasks.append(task)
+
+                    player_rank_responses = await asyncio.gather(*tasks)
+
+                    embed = clan_responder.create_offensive_hitrate(
+                        clan=clan,
+                        player_rank_responses=player_rank_responses,
+                        get_number_emoji=self.bot.get_number_emoji,
+                        start_timestamp=start_date,
+                        end_timestamp=end_date)
+
                 elif board_type == "Defensive Rate":
-                    embed = await self.create_defensive_hitrate(clan=clan, players=players, start_timestamp=start_date, end_timestamp=end_date)
+
+                    members = [member.tag for member in clan.members]
+
+                    players = await self.bot.get_players(
+                        tags=members, custom=True)
+
+                    tasks = []
+
+                    # type: MyCustomPlayer
+                    for player in players:
+                        task = asyncio.ensure_future(
+                            clan_utils.fetch_n_rank_defensive_rate(
+                                player=player))
+
+                        tasks.append(task)
+
+                    player_rank_responses = await asyncio.gather(*tasks)
+
+                    embed = await clan_responder.create_defensive_hitrate(
+                        clan=clan,
+                        player_rank_responses=player_rank_responses,
+                        get_number_emoji=self.bot.get_number_emoji,
+                        start_timestamp=start_date,
+                        end_timestamp=end_date)
+
                 elif board_type == "Stars Leaderboard":
-                    embed = await self.create_stars_leaderboard(clan=clan, players=players, start_timestamp=start_date, end_timestamp=end_date)
+
+                    members = [member.tag for member in clan.members]
+
+                    players = await self.bot.get_players(
+                        tags=members, custom=True)
+
+                    tasks = []
+
+                    # type: MyCustomPlayer
+                    for player in players:
+                        task = asyncio.ensure_future(
+                            clan_utils.fetch_n_rank_star_leaderboard(
+                                player=player))
+
+                        tasks.append(task)
+
+                    player_rank_responses = await asyncio.gather(*tasks)
+
+                    embed = await clan_responder.create_stars_leaderboard(
+                        clan=clan,
+                        player_rank_responses=player_rank_responses,
+                        get_number_emoji=self.bot.get_number_emoji,
+                        start_timestamp=start_date,
+                        end_timestamp=end_date)
+
                 await res.edit_original_message(embed=embed)
 
     @clan.sub_command(name="ping", description="Ping members in the clan based on different characteristics")
@@ -1414,52 +1680,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             if query.lower() in tz.lower():
                 return_list.append(tz)
         return return_list[:25]
-
-    def stat_components(self):
-        options = []
-        for townhall in reversed(range(6, 16)):
-            options.append(disnake.SelectOption(
-                label=f"Townhall {townhall}", emoji=self.bot.fetch_emoji(name=townhall), value=str(townhall)))
-        th_select = disnake.ui.Select(
-            options=options,
-            # the placeholder text to show when no options have been chosen
-            placeholder="Select Townhalls",
-            min_values=1,  # the minimum number of options a user must select
-            # the maximum number of options a user can select
-            max_values=len(options),
-        )
-
-        options = []
-        real_types = ["Fresh Hits", "Non-Fresh", "random", "cwl", "friendly"]
-        for count, filter in enumerate(["Fresh Hits", "Non-Fresh", "Random Wars", "CWL", "Friendly Wars"]):
-            options.append(disnake.SelectOption(
-                label=f"{filter}", value=real_types[count]))
-        filter_select = disnake.ui.Select(
-            options=options,
-            # the placeholder text to show when no options have been chosen
-            placeholder="Select Filters",
-            min_values=1,  # the minimum number of options a user must select
-            # the maximum number of options a user can select
-            max_values=len(options),
-        )
-
-        options = []
-        emojis = [self.bot.emoji.sword_clash.partial_emoji,
-                  self.bot.emoji.shield.partial_emoji, self.bot.emoji.war_star.partial_emoji]
-        for count, type in enumerate(["Offensive Hitrate", "Defensive Rate", "Stars Leaderboard"]):
-            options.append(disnake.SelectOption(
-                label=f"{type}", emoji=emojis[count], value=type))
-        stat_select = disnake.ui.Select(
-            options=options,
-            # the placeholder text to show when no options have been chosen
-            placeholder="Select Stat Type",
-            min_values=1,  # the minimum number of options a user must select
-            max_values=1,  # the maximum number of options a user can select
-        )
-
-        dropdown = [disnake.ui.ActionRow(th_select), disnake.ui.ActionRow(
-            filter_select), disnake.ui.ActionRow(stat_select)]
-        return dropdown
 
     async def create_offensive_hitrate(self, clan: coc.Clan, players: list[coc.Player],
                                        townhall_level: list = [], fresh_type: list = [False, True], start_timestamp: int = 0, end_timestamp: int = 9999999999,
