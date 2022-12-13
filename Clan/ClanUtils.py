@@ -8,7 +8,7 @@ import asyncio
 import aiohttp
 import calendar
 import emoji
-import statistics
+import json
 import matplotlib.pyplot as plt
 import datetime as dt
 import numpy as np
@@ -441,179 +441,72 @@ async def fetch_n_rank_star_leaderboard(
         player.town_hall]
 
 
-class ClanUtils(commands.Cog, name="Clan"):
+def response_to_line(response, clan):
+    te = json.dumps(response)
 
-    def __init__(self, bot: CustomClient):
-        self.bot = bot
+    if "Not Found" in te:
+        return ""
 
-    def leagueAndTrophies(self, league):
+    clans = response["clans"]
+    season = response["season"]
+    tags = [x["tag"] for x in clans]
+    stars = {}
+    for tag in tags:
+        stars[tag] = 0
+    rounds = response["rounds"]
+    for round in rounds:
+        wars = round["wars"]
+        for war in wars:
+            main_stars = war["clan"]["stars"]
+            main_destruction = war["clan"]["destructionPercentage"]
+            stars[war["clan"]["tag"]] += main_stars
 
-        if (league == "Bronze League III"):
-            emoji = "<:BronzeLeagueIII:601611929311510528>"
-        elif (league == "Bronze League II"):
-            emoji = "<:BronzeLeagueII:601611942850986014>"
-        elif (league == "Bronze League I"):
-            emoji = "<:BronzeLeagueI:601611950228635648>"
-        elif (league == "Silver League III"):
-            emoji = "<:SilverLeagueIII:601611958067920906>"
-        elif (league == "Silver League II"):
-            emoji = "<:SilverLeagueII:601611965550428160>"
-        elif (league == "Silver League I"):
-            emoji = "<:SilverLeagueI:601611974849331222>"
-        elif (league == "Gold League III"):
-            emoji = "<:GoldLeagueIII:601611988992262144>"
-        elif (league == "Gold League II"):
-            emoji = "<:GoldLeagueII:601611996290613249>"
-        elif (league == "Gold League I"):
-            emoji = "<:GoldLeagueI:601612010492526592>"
-        elif (league == "Crystal League III"):
-            emoji = "<:CrystalLeagueIII:601612021472952330>"
-        elif (league == "Crystal League II"):
-            emoji = "<:CrystalLeagueII:601612033976434698>"
-        elif (league == "Crystal League I"):
-            emoji = "<:CrystalLeagueI:601612045359775746>"
-        elif (league == "Master League III"):
-            emoji = "<:MasterLeagueIII:601612064913621002>"
-        elif (league == "Master League II"):
-            emoji = "<:MasterLeagueII:601612075474616399>"
-        elif (league == "Master League I"):
-            emoji = "<:MasterLeagueI:601612085327036436>"
-        elif (league == "Champion League III"):
-            emoji = "<:ChampionLeagueIII:601612099226959892>"
-        elif (league == "Champion League II"):
-            emoji = "<:ChampionLeagueII:601612113345249290>"
-        elif (league == "Champion League I"):
-            emoji = "<:ChampionLeagueI:601612124447440912>"
-        elif (league == "Titan League III"):
-            emoji = "<:TitanLeagueIII:601612137491726374>"
-        elif (league == "Titan League II"):
-            emoji = "<:TitanLeagueII:601612148325744640>"
-        elif (league == "Titan League I"):
-            emoji = "<:TitanLeagueI:601612159327141888>"
-        elif (league == "Legend League"):
-            emoji = "<:LegendLeague:601612163169255436>"
-        else:
-            emoji = "<:Unranked:601618883853680653>"
+            opp_stars = war["opponent"]["stars"]
+            opp_destruction = war["opponent"]["destructionPercentage"]
+            stars[war["opponent"]["tag"]] += opp_stars
 
-        return emoji
+            if main_stars > opp_stars:
+                stars[war["clan"]["tag"]] += 10
+            elif opp_stars > main_stars:
+                stars[war["opponent"]["tag"]] += 10
+            elif main_destruction > opp_destruction:
+                stars[war["clan"]["tag"]] += 10
+            elif opp_destruction > main_destruction:
+                stars[war["opponent"]["tag"]] += 10
+    stars = dict(
+        sorted(stars.items(), key=lambda item: item[1], reverse=True))
+    place = list(stars.keys()).index(clan.tag) + 1
+    league = response["leagueId"]
+    war_leagues = open(f"Assets/war_leagues.json")
+    war_leagues = json.load(war_leagues)
+    league_name = [x["name"]
+                   for x in war_leagues["items"] if x["id"] == league][0]
+    promo = [x["promo"]
+             for x in war_leagues["items"] if x["id"] == league][0]
+    demo = [x["demote"]
+            for x in war_leagues["items"] if x["id"] == league][0]
 
-    async def cwl_performance(self, clan: coc.Clan):
+    if place <= promo:
+        emoji = "<:warwon:932212939899949176>"
+    elif place >= demo:
+        emoji = "<:warlost:932212154164183081>"
+    else:
+        emoji = "<:dash:933150462818021437>"
 
-        async def fetch(url, session):
-            async with session.get(url) as response:
-                return await response.json()
+    end = "th"
+    ends = {1: "st", 2: "nd", 3: "rd"}
+    if place <= 3:
+        end = ends[place]
 
-        dates = await self.bot.coc_client.get_seasons(29000022)
-        dates.append(self.bot.gen_season_date())
-        dates = reversed(dates)
+    year = season[0:4]
+    month = season[5:]
+    month = calendar.month_name[int(month)]
+    #month = month.ljust(9)
+    date = f"`{month}`"
+    league = str(league_name).replace('League ', '')
+    league = league.ljust(14)
+    league = f"{league}"
 
-        tasks = []
-        async with aiohttp.ClientSession() as session:
-            tag = clan.tag.replace("#", "")
-            for date in dates:
-                url = f"https://api.clashofstats.com/clans/{tag}/cwl/seasons/{date}"
-                task = asyncio.ensure_future(fetch(url, session))
-                tasks.append(task)
+    tier = str(league_name).count("I")
 
-            responses = await asyncio.gather(*tasks)
-            await session.close()
-
-        embed = disnake.Embed(title=f"**{clan.name} CWL History**",
-                              color=disnake.Color.green())
-        embed.set_thumbnail(url=clan.badge.large)
-
-        old_year = "2015"
-        year_text = ""
-        not_empty = False
-        for response in responses:
-            try:
-                text, year = self.response_to_line(response, clan)
-            except:
-                continue
-            if year != old_year:
-                if year_text != "":
-                    not_empty = True
-                    embed.add_field(
-                        name=old_year, value=year_text, inline=False)
-                    year_text = ""
-                old_year = year
-            year_text += text
-
-        if year_text != "":
-            not_empty = True
-            embed.add_field(name=f"**{old_year}**",
-                            value=year_text, inline=False)
-
-        if not not_empty:
-            embed.description = "No prior cwl data"
-        return embed
-
-    def response_to_line(self, response, clan):
-        import json
-        te = json.dumps(response)
-        if "Not Found" in te:
-            return ""
-
-        clans = response["clans"]
-        season = response["season"]
-        tags = [x["tag"] for x in clans]
-        stars = {}
-        for tag in tags:
-            stars[tag] = 0
-        rounds = response["rounds"]
-        for round in rounds:
-            wars = round["wars"]
-            for war in wars:
-                main_stars = war["clan"]["stars"]
-                main_destruction = war["clan"]["destructionPercentage"]
-                stars[war["clan"]["tag"]] += main_stars
-
-                opp_stars = war["opponent"]["stars"]
-                opp_destruction = war["opponent"]["destructionPercentage"]
-                stars[war["opponent"]["tag"]] += opp_stars
-
-                if main_stars > opp_stars:
-                    stars[war["clan"]["tag"]] += 10
-                elif opp_stars > main_stars:
-                    stars[war["opponent"]["tag"]] += 10
-                elif main_destruction > opp_destruction:
-                    stars[war["clan"]["tag"]] += 10
-                elif opp_destruction > main_destruction:
-                    stars[war["opponent"]["tag"]] += 10
-        stars = dict(
-            sorted(stars.items(), key=lambda item: item[1], reverse=True))
-        place = list(stars.keys()).index(clan.tag) + 1
-        league = response["leagueId"]
-        war_leagues = open(f"Assets/war_leagues.json")
-        war_leagues = json.load(war_leagues)
-        league_name = [x["name"]
-                       for x in war_leagues["items"] if x["id"] == league][0]
-        promo = [x["promo"]
-                 for x in war_leagues["items"] if x["id"] == league][0]
-        demo = [x["demote"]
-                for x in war_leagues["items"] if x["id"] == league][0]
-
-        if place <= promo:
-            emoji = "<:warwon:932212939899949176>"
-        elif place >= demo:
-            emoji = "<:warlost:932212154164183081>"
-        else:
-            emoji = "<:dash:933150462818021437>"
-
-        end = "th"
-        ends = {1: "st", 2: "nd", 3: "rd"}
-        if place <= 3:
-            end = ends[place]
-
-        year = season[0:4]
-        month = season[5:]
-        month = calendar.month_name[int(month)]
-        #month = month.ljust(9)
-        date = f"`{month}`"
-        league = str(league_name).replace('League ', '')
-        league = league.ljust(14)
-        league = f"{league}"
-
-        tier = str(league_name).count("I")
-
-        return [f"{emoji} {self.leagueAndTrophies(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n", year]
+    return [f"{emoji} {league_and_trophies_emoji(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n", year]

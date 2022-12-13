@@ -1,3 +1,5 @@
+import asyncio
+import aiohttp
 import coc
 from CustomClasses.CustomPlayer import LegendRanking
 from disnake import Embed, Color, SelectOption
@@ -12,8 +14,10 @@ from Clan.ClanUtils import (
     league_and_trophies_emoji,
     tiz,
     get_raid,
-    gen_season_date
+    gen_season_date,
+    response_to_line
 )
+from utils.clash import fetch
 
 from datetime import datetime
 from CustomClasses.CustomPlayer import MyCustomPlayer
@@ -1026,7 +1030,7 @@ def create_offensive_hitrate(
     return embed
 
 
-async def create_defensive_hitrate(
+def create_defensive_hitrate(
         clan: coc.Clan,
         player_rank_responses,
         get_number_emoji,
@@ -1088,7 +1092,7 @@ async def create_defensive_hitrate(
     return embed
 
 
-async def create_stars_leaderboard(
+def create_stars_leaderboard(
         clan: coc.Clan,
         player_rank_responses,
         get_number_emoji,
@@ -1145,5 +1149,61 @@ async def create_stars_leaderboard(
     embed.set_footer(
         icon_url=clan.badge.url,
         text=f"{clan.name} | {time_range}\nFilters: {filter_types}")
+
+    return embed
+
+
+async def cwl_performance(clan: coc.Clan, dates):
+    tasks = []
+    async with aiohttp.ClientSession() as session:
+        tag = clan.tag.replace("#", "")
+        for date in dates:
+            url = (
+                f"https://api.clashofstats.com/clans/"
+                f"{tag}/cwl/seasons/{date}")
+
+            task = asyncio.ensure_future(fetch(url, session))
+            tasks.append(task)
+
+        responses = await asyncio.gather(*tasks)
+        await session.close()
+
+    embed = Embed(
+        title=f"**{clan.name} CWL History**",
+        color=Color.green())
+
+    embed.set_thumbnail(url=clan.badge.large)
+
+    old_year = "2015"
+    year_text = ""
+    not_empty = False
+    for response in responses:
+        try:
+            text, year = response_to_line(response, clan)
+
+        except:
+            continue
+
+        if year != old_year:
+            if year_text != "":
+                not_empty = True
+                embed.add_field(
+                    name=old_year,
+                    value=year_text,
+                    inline=False)
+
+                year_text = ""
+            old_year = year
+        year_text += text
+
+    if year_text != "":
+        not_empty = True
+        embed.add_field(
+            name=f"**{old_year}**",
+            value=year_text,
+            inline=False)
+
+    if not not_empty:
+        embed.description = "No prior cwl data"
 
     return embed

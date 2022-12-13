@@ -1,4 +1,3 @@
-from collections import defaultdict
 from utils.clash import create_weekend_list, weekend_timestamps
 from utils.components import raid_buttons
 from utils.discord_utils import partial_emoji_gen
@@ -8,14 +7,12 @@ from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
 import Clan.ClanResponder as clan_responder
 import Clan.ClanUtils as clan_utils
-import math
 import coc
 import disnake
 import asyncio
 import pandas as pd
 import pytz
 import calendar
-import emoji
 tiz = pytz.utc
 
 
@@ -204,7 +201,15 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 await res.edit_original_message(embed=embed)
 
             elif res.values[0] == "cwl":
-                embed = await self.cwl_performance(clan)
+
+                dates = await self.bot.coc_client.get_seasons(29000022)
+                dates.append(self.bot.gen_season_date())
+                dates = reversed(dates)
+
+                embed = await clan_responder.cwl_performance(
+                    clan=clan, dates=dates)
+
+                # embed = await self.cwl_performance(clan)
                 await res.edit_original_message(embed=embed)
 
     @clan.sub_command(
@@ -1023,7 +1028,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
                     player_rank_responses = await asyncio.gather(*tasks)
 
-                    embed = await clan_responder.create_defensive_hitrate(
+                    embed = clan_responder.create_defensive_hitrate(
                         clan=clan,
                         player_rank_responses=player_rank_responses,
                         get_number_emoji=self.bot.get_number_emoji,
@@ -1050,7 +1055,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
                     player_rank_responses = await asyncio.gather(*tasks)
 
-                    embed = await clan_responder.create_stars_leaderboard(
+                    embed = clan_responder.create_stars_leaderboard(
                         clan=clan,
                         player_rank_responses=player_rank_responses,
                         get_number_emoji=self.bot.get_number_emoji,
@@ -1132,7 +1137,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
                     player_rank_responses = await asyncio.gather(*tasks)
 
-                    embed = await clan_responder.create_defensive_hitrate(
+                    embed = clan_responder.create_defensive_hitrate(
                         clan=clan,
                         player_rank_responses=player_rank_responses,
                         get_number_emoji=self.bot.get_number_emoji,
@@ -1159,7 +1164,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
                     player_rank_responses = await asyncio.gather(*tasks)
 
-                    embed = await clan_responder.create_stars_leaderboard(
+                    embed = clan_responder.create_stars_leaderboard(
                         clan=clan,
                         player_rank_responses=player_rank_responses,
                         get_number_emoji=self.bot.get_number_emoji,
@@ -1222,7 +1227,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
                     player_rank_responses = await asyncio.gather(*tasks)
 
-                    embed = await clan_responder.create_defensive_hitrate(
+                    embed = clan_responder.create_defensive_hitrate(
                         clan=clan,
                         player_rank_responses=player_rank_responses,
                         get_number_emoji=self.bot.get_number_emoji,
@@ -1248,7 +1253,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
                     player_rank_responses = await asyncio.gather(*tasks)
 
-                    embed = await clan_responder.create_stars_leaderboard(
+                    embed = clan_responder.create_stars_leaderboard(
                         clan=clan,
                         player_rank_responses=player_rank_responses,
                         get_number_emoji=self.bot.get_number_emoji,
@@ -1257,29 +1262,51 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
                 await res.edit_original_message(embed=embed)
 
-    @clan.sub_command(name="ping", description="Ping members in the clan based on different characteristics")
-    async def clan_ping(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+    @clan.sub_command(
+        name="ping",
+        description=(
+            "Ping members in the clan "
+            "based on different characteristics"))
+    async def clan_ping(
+            self, ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = commands.Param(converter=clan_converter)):
+
         await ctx.response.defer()
+
         embed = disnake.Embed(
-            description="Choose the characteristics you would like to ping for below:", color=disnake.Color.green())
+            description=(
+                "Choose the characteristics you "
+                "would like to ping for below:"),
+            color=disnake.Color.green())
+
         options = []
-        members = await self.bot.get_players(tags=[member.tag for member in clan.members])
+        members = await self.bot.get_players(
+            tags=[member.tag for member in clan.members])
+
         ths = set()
-        for member in members:  # type: coc.Player
+
+        # type: coc.Player
+        for member in members:
             ths.add(member.town_hall)
-        characteristic_types = ["War Opted In",  "War Opted Out",
-                                "War Attacks Remaining"] + [f"Townhall {th}" for th in list(ths)]
+
+        characteristic_types = [
+            "War Opted In",  "War Opted Out",
+            "War Attacks Remaining"] + [f"Townhall {th}" for th in list(ths)]
+
         for type in characteristic_types:
             options.append(disnake.SelectOption(label=type, value=type))
+
         select = disnake.ui.Select(
             options=options,
             # the placeholder text to show when no options have been chosen
             placeholder="Select Types to Ping",
-            min_values=1,  # the minimum number of options a user must select
+            # the minimum number of options a user must select
+            min_values=1,
             # the maximum number of options a user can select
-            max_values=len(characteristic_types),
-        )
+            max_values=len(characteristic_types))
+
         dropdown = [disnake.ui.ActionRow(select)]
+
         await ctx.edit_original_message(embed=embed, components=dropdown)
 
         msg = await ctx.original_message()
@@ -1288,7 +1315,9 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             return res.message.id == msg.id
 
         try:
-            res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
+            res: disnake.MessageInteraction = await self.bot.wait_for(
+                "message_interaction", check=check, timeout=600)
+
         except:
             return await msg.edit(components=[])
 
@@ -1297,11 +1326,15 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         to_ping = set()
         tag_to_name = {}
         tag_to_th = {}
-        for player in members:  # type: coc.Player
+
+        # type: coc.Player
+        for player in members:
             tag_to_name[player.tag] = player.name
             tag_to_th[player.tag] = player.town_hall
+
             if f"Townhall {player.town_hall}" in res.values:
                 to_ping.add(player.tag)
+
             if player.war_opted_in:
                 if "War Opted In" in res.values:
                     to_ping.add(player.tag)
@@ -1312,28 +1345,41 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         if "War Attacks Remaining" in res.values:
             war: coc.ClanWar = await self.bot.get_clanwar(clan.tag)
+
             if war is not None:
                 for war_member in war.clan.members:
                     if not war_member.attacks:
                         tag_to_name[war_member.tag] = war_member.name
                         tag_to_th[war_member.tag] = war_member.town_hall
+
                         to_ping.add(war_member.tag)
 
         links = await self.bot.link_client.get_links(*list(to_ping))
+
         # badge = await self.bot.create_new_badge_emoji(url=clan.badge.url)
         missing_text = ""
         for player_tag, discord_id in links:
             name = tag_to_name[player_tag]
             discord_member = disnake.utils.get(
                 ctx.guild.members, id=discord_id)
+
             if discord_member is None:
-                missing_text += f"{self.bot.fetch_emoji(tag_to_th[player_tag])}{name} | {player_tag}\n"
+                missing_text += (
+                    f"{self.bot.fetch_emoji(tag_to_th[player_tag])}{name} | "
+                    f"{player_tag}\n")
+
             else:
-                missing_text += f"{self.bot.fetch_emoji(tag_to_th[player_tag])}{name} | {discord_member.mention}\n"
+                missing_text += (
+                    f"{self.bot.fetch_emoji(tag_to_th[player_tag])}{name} | "
+                    f"{discord_member.mention}\n")
+
         if missing_text == "":
             missing_text = "No Players Found"
 
-        await res.edit_original_message(embed=None, components=[], content=missing_text)
+        await res.edit_original_message(
+            embed=None,
+            components=[],
+            content=missing_text)
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
@@ -1680,166 +1726,3 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             if query.lower() in tz.lower():
                 return_list.append(tz)
         return return_list[:25]
-
-    async def create_offensive_hitrate(self, clan: coc.Clan, players: list[coc.Player],
-                                       townhall_level: list = [], fresh_type: list = [False, True], start_timestamp: int = 0, end_timestamp: int = 9999999999,
-                                       war_types: list = ["random", "cwl", "friendly"], war_statuses=["lost", "losing", "winning", "won"]):
-        if not townhall_level:
-            townhall_level = list(range(1, 17))
-
-        tasks = []
-
-        async def fetch_n_rank(player: MyCustomPlayer):
-            hitrate = await player.hit_rate(townhall_level=townhall_level, fresh_type=fresh_type, start_timestamp=start_timestamp, end_timestamp=end_timestamp,
-                                            war_types=war_types, war_statuses=war_statuses)
-            hr = hitrate[0]
-            if hr.num_attacks == 0:
-                return None
-            hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
-            name = emoji.replace_emoji(player.name, "")
-            name = str(name)[0:12]
-            name = f"{name}".ljust(12)
-            destr = f"{round(hr.average_triples * 100, 1)}%".rjust(6)
-            return [f"{player.town_hall_cls.emoji}` {hr_nums} {destr} {name}`\n", round(hr.average_triples * 100, 3), name, hr.num_attacks, player.town_hall]
-
-        for player in players:  # type: MyCustomPlayer
-            task = asyncio.ensure_future(fetch_n_rank(player=player))
-            tasks.append(task)
-
-        responses = await asyncio.gather(*tasks)
-        ranked = [response for response in responses if response is not None]
-
-        ranked = sorted(
-            ranked, key=lambda l: (-l[1], -l[-2], -l[-1], l[2]), reverse=False)
-        text = "`# TH  NUM    HR%    NAME       `\n"
-        for count, rank in enumerate(ranked, 1):
-            spot_emoji = self.bot.get_number_emoji(color="gold", number=count)
-            text += f"{spot_emoji}{rank[0]}"
-        if len(ranked) == 0:
-            text = "No War Attacks Tracked Yet."
-        embed = disnake.Embed(title=f"Offensive Hit Rates",
-                              description=text, colour=disnake.Color.green())
-
-        filter_types = []
-        if True in fresh_type:
-            filter_types.append("Fresh")
-        if False in fresh_type:
-            filter_types.append("Non-Fresh")
-        for type in war_types:
-            filter_types.append(str(type).capitalize())
-        filter_types = ", ".join(filter_types)
-        time_range = "This Season"
-        if start_timestamp != 0 and end_timestamp != 9999999999:
-            time_range = f"{datetime.fromtimestamp(start_timestamp).strftime('%m/%d/%y')} - {datetime.fromtimestamp(end_timestamp).strftime('%m/%d/%y')}"
-        embed.set_footer(icon_url=clan.badge.url,
-                         text=f"{clan.name} | {time_range}\nFilters: {filter_types}")
-        return embed
-
-    async def create_defensive_hitrate(self, clan: coc.Clan, players: list[coc.Player],
-                                       townhall_level: list = [], fresh_type: list = [False, True], start_timestamp: int = 0, end_timestamp: int = 9999999999,
-                                       war_types: list = ["random", "cwl", "friendly"], war_statuses=["lost", "losing", "winning", "won"]):
-        if not townhall_level:
-            townhall_level = list(range(1, 17))
-
-        tasks = []
-
-        async def fetch_n_rank(player: MyCustomPlayer):
-            hitrate = await player.defense_rate(townhall_level=townhall_level, fresh_type=fresh_type, start_timestamp=start_timestamp, end_timestamp=end_timestamp,
-                                                war_types=war_types, war_statuses=war_statuses)
-            hr = hitrate[0]
-            if hr.num_attacks == 0:
-                return None
-            hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
-            name = emoji.replace_emoji(player.name, "")
-            name = str(name)[0:12]
-            name = f"{name}".ljust(12)
-            destr = f"{round(hr.average_triples * 100, 1)}%".rjust(6)
-            return [f"{player.town_hall_cls.emoji} `{hr_nums} {destr} {name}`\n", round(hr.average_triples * 100, 3), name, hr.num_attacks, player.town_hall]
-
-        for player in players:  # type: MyCustomPlayer
-            task = asyncio.ensure_future(fetch_n_rank(player=player))
-            tasks.append(task)
-
-        responses = await asyncio.gather(*tasks)
-        ranked = [response for response in responses if response is not None]
-
-        ranked = sorted(
-            ranked, key=lambda l: (-l[1], -l[-2], -l[-1], l[2]), reverse=False)
-        text = "`# TH  NUM    DR%    NAME       `\n"
-        for count, rank in enumerate(ranked, 1):
-            spot_emoji = self.bot.get_number_emoji(color="gold", number=count)
-            text += f"{spot_emoji}{rank[0]}"
-        if len(ranked) == 0:
-            text = "No War Attacks Tracked Yet."
-        embed = disnake.Embed(title=f"Defensive Rates",
-                              description=text, colour=disnake.Color.green())
-
-        filter_types = []
-        if True in fresh_type:
-            filter_types.append("Fresh")
-        if False in fresh_type:
-            filter_types.append("Non-Fresh")
-        for type in war_types:
-            filter_types.append(str(type).capitalize())
-        filter_types = ", ".join(filter_types)
-        time_range = "This Season"
-        if start_timestamp != 0 and end_timestamp != 9999999999:
-            time_range = f"{datetime.fromtimestamp(start_timestamp).strftime('%m/%d/%y')} - {datetime.fromtimestamp(end_timestamp).strftime('%m/%d/%y')}"
-        embed.set_footer(icon_url=clan.badge.url,
-                         text=f"{clan.name} | {time_range}\nFilters: {filter_types}")
-        return embed
-
-    async def create_stars_leaderboard(self, clan: coc.Clan, players: list[coc.Player],
-                                       townhall_level: list = [], fresh_type: list = [False, True], start_timestamp: int = 0, end_timestamp: int = 9999999999,
-                                       war_types: list = ["random", "cwl", "friendly"], war_statuses=["lost", "losing", "winning", "won"]):
-        if not townhall_level:
-            townhall_level = list(range(1, 17))
-
-        tasks = []
-
-        async def fetch_n_rank(player: MyCustomPlayer):
-            hitrate = await player.hit_rate(townhall_level=townhall_level, fresh_type=fresh_type, start_timestamp=start_timestamp, end_timestamp=end_timestamp,
-                                            war_types=war_types, war_statuses=war_statuses)
-            hr = hitrate[0]
-            if hr.num_attacks == 0:
-                return None
-            name = str(player.name)[0:12]
-            name = f"{name}".ljust(12)
-            stars = f"{hr.total_stars}/{hr.num_attacks}".center(5)
-            destruction = f"{int(hr.total_destruction)}%".ljust(5)
-            return [f"{stars} {destruction} {name}\n", round(hr.average_triples * 100, 3), name, hr.total_stars, player.town_hall]
-
-        for player in players:  # type: MyCustomPlayer
-            task = asyncio.ensure_future(fetch_n_rank(player=player))
-            tasks.append(task)
-
-        responses = await asyncio.gather(*tasks)
-        ranked = [response for response in responses if response is not None]
-
-        ranked = sorted(
-            ranked, key=lambda l: (-l[-2], -l[1], l[2]), reverse=False)
-        text = "```#   ★     DSTR%  NAME       \n"
-        for count, rank in enumerate(ranked, 1):
-            #spot_emoji = self.bot.get_number_emoji(color="gold", number=count)
-            count = f"{count}.".ljust(3)
-            text += f"{count} {rank[0]}"
-        text += "```"
-        if len(ranked) == 0:
-            text = "No War Attacks Tracked Yet."
-        embed = disnake.Embed(title=f"Star Leaderboard",
-                              description=text, colour=disnake.Color.green())
-
-        filter_types = []
-        if True in fresh_type:
-            filter_types.append("Fresh")
-        if False in fresh_type:
-            filter_types.append("Non-Fresh")
-        for type in war_types:
-            filter_types.append(str(type).capitalize())
-        filter_types = ", ".join(filter_types)
-        time_range = "This Season"
-        if start_timestamp != 0 and end_timestamp != 9999999999:
-            time_range = f"{datetime.fromtimestamp(start_timestamp).strftime('%m/%d/%y')} - {datetime.fromtimestamp(end_timestamp).strftime('%m/%d/%y')}"
-        embed.set_footer(icon_url=clan.badge.url,
-                         text=f"{clan.name} | {time_range}\nFilters: {filter_types}")
-        return embed
