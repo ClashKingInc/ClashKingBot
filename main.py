@@ -14,7 +14,7 @@ from EventHub.event_websockets import player_websocket, clan_websocket
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
 
-IS_BETA = False
+IS_BETA = True
 discClient = Client()
 intents = disnake.Intents().none()
 intents.members = True
@@ -64,7 +64,7 @@ def check_commands():
     return commands.check(predicate)
 
 initial_extensions = [
-    "Clan.ClanCog"
+    "Clan.ClanCog",
     "Family_and_Clans.bans",
     "Family_and_Clans.strikes",
     "Family_and_Clans.familycog",
