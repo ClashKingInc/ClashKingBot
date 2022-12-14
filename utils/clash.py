@@ -1,3 +1,8 @@
+import disnake
+import motor.motor_asyncio
+import certifi
+from disnake import utils
+from dotenv import load_dotenv
 import os
 import coc
 from datetime import datetime
@@ -6,7 +11,6 @@ import datetime as dt
 import pytz
 utc = pytz.utc
 
-from dotenv import load_dotenv
 load_dotenv()
 
 COC_EMAIL = os.getenv("COC_EMAIL")
@@ -15,17 +19,15 @@ DB_LOGIN = os.getenv("DB_LOGIN")
 LINK_API_USER = os.getenv("LINK_API_USER")
 LINK_API_PW = os.getenv("LINK_API_PW")
 
-from disnake import utils
 
-import certifi
 ca = certifi.where()
 
-import motor.motor_asyncio
 client = motor.motor_asyncio.AsyncIOMotorClient(DB_LOGIN)
-import disnake
+
 
 def create_weekends():
     return ["Last Week", "Two Weeks Ago", "Last 4 Weeks (all)", "Last 8 Weeks (all)"]
+
 
 def create_weekend_list(option, weeks=4):
     weekends = []
@@ -70,6 +72,12 @@ def weekend_timestamps():
             hour = now.hour
             current_dayofweek = now.weekday()
         #end = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days=(7 - current_dayofweek))
-        first = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days=(4 - current_dayofweek))
+        first = datetime(year, month, day, hour=7, tzinfo=utc) + \
+            dt.timedelta(days=(4 - current_dayofweek))
         weekends.append(int(first.timestamp()))
     return weekends
+
+
+async def fetch(url, session):
+    async with session.get(url) as response:
+        return await response.json()
