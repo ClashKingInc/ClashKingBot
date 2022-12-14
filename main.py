@@ -63,72 +63,10 @@ def check_commands():
 
     return commands.check(predicate)
 
-
-if IS_BETA:
-    initial_extensions = (
-        #"BackgroundCrons.autoboard_loop",
-        #"BackgroundCrons.voicestat_loop",
-        #"BackgroundCrons.region_lb_update",
-        #"BackgroundCrons.legends_history",
-        #"BackgroundCrons.reddit_recruit_feed",
-        #"BackgroundCrons.dm_reports",
-        #"BackgroundCrons.store_clan_capital",
-        #"BackgroundCrons.reminders",
-        #"EventHub.clan_capital_events",
-        #"EventHub.join_leave_events",
-        #"EventHub.ban_events",
-        #"EventHub.player_upgrade_events",
-        #"EventHub.legend_events",
-        "Family_and_Clans.bans",
-        "Family_and_Clans.strikes",
-        "Family_and_Clans.clancog",
-        "Family_and_Clans.familycog",
-        "Legends & Trophies.family_trophy_stats",
-        "Legends & Trophies.Check.maincheck",
-        "Legends & Trophies.leaderboards",
-        "Link & Eval.link",
-        "Link & Eval.eval",
-        #"Link & Eval.link_button",
-        "Setups.addclans",
-        "Setups.autoboard",
-        "Setups.evalsetup",
-        "Setups.voice_countdowns",
-        "Setups.welcome_messages",
-        #"Setups.clan_boards",
-        "Utility.army",
-        "Utility.awards",
-        "Utility.boost",
-        "Utility.profile",
-        "War & CWL.cwl",
-        "War & CWL.war",
-        #"War & CWL.war_track",
-        #"discord_events",
-        "help",
-        "other",
-        "settings",
-        "owner_commands",
-        #"erikuh_comp",
-        "Family_and_Clans.rosters",
-        #"global_chat"
-    )
-else:
-    initial_extensions = (
-    "BackgroundCrons.autoboard_loop",
-    "BackgroundCrons.voicestat_loop",
-    "BackgroundCrons.region_lb_update",
-    "BackgroundCrons.legends_history",
-    "BackgroundCrons.reddit_recruit_feed",
-    "BackgroundCrons.dm_reports",
-    "BackgroundCrons.store_clan_capital",
-    "BackgroundCrons.reminders",
-    "EventHub.clan_capital_events",
-    "EventHub.join_leave_events",
-    "EventHub.ban_events",
-    "EventHub.player_upgrade_events",
-    "EventHub.legend_events",
+initial_extensions = [
+    "Clan.ClanCog"
     "Family_and_Clans.bans",
     "Family_and_Clans.strikes",
-    "Family_and_Clans.clancog",
     "Family_and_Clans.familycog",
     "Family_and_Clans.rosters",
     "Legends & Trophies.family_trophy_stats",
@@ -136,28 +74,45 @@ else:
     "Legends & Trophies.leaderboards",
     "Link & Eval.link",
     "Link & Eval.eval",
-    "Link & Eval.link_button",
     "Setups.addclans",
     "Setups.autoboard",
     "Setups.evalsetup",
     "Setups.voice_countdowns",
     "Setups.welcome_messages",
-    #"Setups.clan_boards",
     "Utility.army",
     "Utility.awards",
     "Utility.boost",
     "Utility.profile",
     "War & CWL.cwl",
     "War & CWL.war",
-    "War & CWL.war_track",
-    "discord_events",
     "help",
     "other",
     "settings",
     "owner_commands",
-    "erikuh_comp",
-    "global_chat"
-    )
+]
+
+if not IS_BETA:
+    initial_extensions += [
+        "BackgroundCrons.autoboard_loop",
+        "BackgroundCrons.voicestat_loop",
+        "BackgroundCrons.region_lb_update",
+        "BackgroundCrons.legends_history",
+        "BackgroundCrons.reddit_recruit_feed",
+        "BackgroundCrons.dm_reports",
+        "BackgroundCrons.store_clan_capital",
+        "BackgroundCrons.reminders",
+        "EventHub.clan_capital_events",
+        "EventHub.join_leave_events",
+        "EventHub.ban_events",
+        "EventHub.player_upgrade_events",
+        "EventHub.legend_events",
+        "Link & Eval.link_button",
+        "Setups.clan_boards",
+        "War & CWL.war_track",
+        "discord_events",
+        "erikuh_comp",
+        "global_chat"
+    ]
 
 
 if __name__ == "__main__":
