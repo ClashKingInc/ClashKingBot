@@ -438,9 +438,6 @@ async def fetch_n_rank_star_leaderboard(
 def response_to_line(response, clan):
     te = json.dumps(response)
 
-    if "Not Found" in te:
-        return ""
-
     clans = response["clans"]
     season = response["season"]
     tags = [x["tag"] for x in clans]
@@ -467,8 +464,7 @@ def response_to_line(response, clan):
                 stars[war["clan"]["tag"]] += 10
             elif opp_destruction > main_destruction:
                 stars[war["opponent"]["tag"]] += 10
-    stars = dict(
-        sorted(stars.items(), key=lambda item: item[1], reverse=True))
+    stars = dict(sorted(stars.items(), key=lambda item: item[1], reverse=True))
     place = list(stars.keys()).index(clan.tag) + 1
     league = response["leagueId"]
     war_leagues = open(f"Assets/war_leagues.json")
@@ -503,10 +499,11 @@ def response_to_line(response, clan):
 
     tier = str(league_name).count("I")
 
-    return [f"{emoji} {league_and_trophies_emoji(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n", year]
+    return (f"{emoji} {league_and_trophies_emoji(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n", year)
 
 
 def create_excel(columns, index, data, weekend):
     df = pd.DataFrame(data, index=index, columns=columns)
     df.to_excel('ClanCapitalStats.xlsx', sheet_name=f'{weekend}')
     return disnake.File("ClanCapitalStats.xlsx", filename=f"{weekend}_clancapital.xlsx")
+

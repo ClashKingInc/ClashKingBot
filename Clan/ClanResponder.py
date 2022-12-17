@@ -2,6 +2,7 @@ import asyncio
 import aiohttp
 import coc
 from CustomClasses.CustomPlayer import LegendRanking
+from CustomClasses.CustomBot import CustomClient
 from disnake import Embed, Color, SelectOption
 from disnake.utils import get
 from utils.discord_utils import fetch_emoji
@@ -14,21 +15,19 @@ from Clan.ClanUtils import (
     league_and_trophies_emoji,
     tiz,
     get_raid,
-    gen_season_date,
     response_to_line
 )
-from utils.clash import fetch
-
+from utils.General import fetch
+from coc.raid import RaidLogEntry
 from datetime import datetime
+from datetime import timedelta
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis
-from utils.clash import create_weekend_list, weekend_timestamps
 import emoji
 import math
+import re
 
-
-async def clan_overview(
-        clan: coc.Clan, db_clan, clan_legend_ranking):
+async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking):
 
     clan_leader = get(clan.members, role=coc.Role.leader)
 
@@ -50,7 +49,7 @@ async def clan_overview(
     if db_clan is not None:
         ctg = db_clan.get("category")
         if ctg is not None:
-            category = f"Category: {ctg}\n"
+            category = f", {ctg} Category"
 
     if str(clan.location) == "International":
         flag = "<a:earth:861321402909327370>"
@@ -77,30 +76,38 @@ async def clan_overview(
             rank_text += f"{flag} {ranking.local_ranking}"
     else:
         rank_text += f"{flag} {ranking.local_ranking}"
+    if not str(ranking.local_ranking).isdigit() and not str(ranking.global_ranking).isdigit():
+        rank_text = ""
+    else:
+        rank_text = f"Rankings: {rank_text}\n"
 
     cwl_league_emoji = league_and_trophies_emoji(str(clan.war_league))
+    capital_league_emoji = league_and_trophies_emoji(str(clan.capital_league))
 
+    clan_capital_text = f"League: {capital_league_emoji}{clan.capital_league}\n" \
+                        f"Points: {clan.capital_points}\n" \
+                        f"Hall Level: {fetch_emoji(f'Capital_Hall{coc.utils.get(clan.capital_districts, id=70000000).hall_level}')}{coc.utils.get(clan.capital_districts, id=70000000).hall_level}"
+
+    clan_type_converter = {"open" : "Anyone Can Join", "inviteOnly" : "Invite Only", "closed" : "Closed"}
     embed = Embed(
         title=f"**{clan.name}**",
         description=(
             f"Tag: [{clan.tag}]({clan.share_link})\n"
             f"Trophies: <:trophy:825563829705637889> {clan.points} | "
             f"<:vstrophy:944839518824058880> {clan.versus_points}\n"
-            f"Required Trophies: <:trophy:825563829705637889> "
-            f"{clan.required_trophies}\n"
-            f"Required Townhall: {clan.required_townhall}\n"
+            f"Requirements: <:trophy:825563829705637889>{clan.required_trophies} | {fetch_emoji(clan.required_townhall)}{clan.required_townhall}\n"
+            f"Type: {clan_type_converter[clan.type]}{category}\n"
             f"Location: {flag} {location_name}\n"
-            f"Type: {clan.type}\n"
-            f"{category}"
-            f"Rankings: {rank_text}\n\n"
+            f"{rank_text}\n"
             f"Leader: {clan_leader.name}\n"
             f"Level: {clan.level} \n"
             f"Members: <:people:932212939891552256>{clan.member_count}/50\n\n"
-            f"CWL: {cwl_league_emoji} {str(clan.war_league)}\n"
+            f"CWL: {cwl_league_emoji}{str(clan.war_league)}\n"
             f"Wars Won: <:warwon:932212939899949176>{warwin}\n"
             f"Wars Lost: <:warlost:932212154164183081>{warloss}\n"
             f"War Streak: <:warstreak:932212939983847464>{winstreak}\n"
             f"Winratio: <:winrate:932212939908337705>{winrate}\n\n"
+            f"{clan_capital_text}\n"
             f"Description: {clan.description}"),
         color=Color.green()
     )
@@ -478,63 +485,49 @@ def clan_th_composition(clan: coc.Clan, member_list):
     return embed
 
 
-def clan_raid_weekend_stats(
-        clan: coc.Clan, raid_log,
-        capital_raid_members):
-
-    weekend = "Current Week"
-
-    choice_to_date = {
-        "Current Week": [0],
-        "Last Week": [1],
-        "Last 4 Weeks (all)": [0, 1, 2, 3]
-    }
-
-    weekend_times = weekend_timestamps()
-    weekend_dates = create_weekend_list(option=weekend)
+async def clan_raid_weekend_donation_stats(clan: coc.Clan, raid_log_entry: RaidLogEntry, bot: CustomClient):
+    weekend = str(raid_log_entry.start_time.time.date())
 
     member_tags = [member.tag for member in clan.members]
+    capital_raid_member_tags = await bot.player_stats.distinct("tag", filter={f"capital_gold.{weekend}.raided_clan": clan.tag})
+    all_tags = list(set(member_tags + capital_raid_member_tags))
 
-    embeds = {}
+    tasks = []
+    for tag in all_tags:
+        results = await bot.player_stats.find_one({"tag": tag})
+        task = asyncio.ensure_future(
+            bot.coc_client.get_player(player_tag=tag, cls=MyCustomPlayer, bot=bot, results=results))
+        tasks.append(task)
+    capital_raid_members = await asyncio.gather(*tasks, return_exceptions=True)
 
     donated_data = {}
     number_donated_data = {}
-
     donation_text = []
+
     for player in capital_raid_members:
         if isinstance(player, coc.errors.NotFound):
             continue
-
         player: MyCustomPlayer
-
-        for char in ["`", "*", "_", "~", "´", "`"]:
-            name = player.name.replace(char, "")
+        name = re.sub('[*_`~/]', '', player.name)
 
         sum_donated = 0
         len_donated = 0
-
-        for week in weekend_dates:
-            cc_stats = player.clan_capital_stats(week=week)
-            sum_donated += sum(cc_stats.donated)
-            len_donated += len(cc_stats.donated)
+        cc_stats = player.clan_capital_stats(week=weekend)
+        sum_donated += sum(cc_stats.donated)
+        len_donated += len(cc_stats.donated)
 
         donation = f"{sum_donated}".ljust(6)
 
         donated_data[player.tag] = sum_donated
         number_donated_data[player.tag] = len_donated
 
-        if sum_donated == 0 and len(weekend_dates) > 1:
-            continue
-
         if player.tag in member_tags:
             donation_text.append(
-                [f"{Emojis().capital_gold}`{donation}`: {name}",
-                 sum_donated])
+                [f"{Emojis().capital_gold}`{donation}`: {name}", sum_donated])
 
         else:
             donation_text.append(
-                [f"{Emojis().deny_mark}`{donation}`: {name}",
-                 sum_donated])
+                [f"{Emojis().deny_mark}`{donation}`: {name}", sum_donated])
 
     donation_text = sorted(donation_text, key=lambda l: l[1], reverse=True)
     donation_text = [line[0] for line in donation_text]
@@ -546,160 +539,132 @@ def clan_raid_weekend_stats(
 
     donation_embed.set_footer(
         text=f"Donated: {'{:,}'.format(sum(donated_data.values()))}")
+    return donation_embed
 
-    embeds["donations"] = donation_embed
 
-    raid_weekends = []
-    for week in choice_to_date[weekend]:
-        raid_weekend = get_raid(
-            raid_log=raid_log, before=weekend_times[week],
-            after=weekend_times[week + 1])
-        if raid_weekend is not None:
-            raid_weekends.append(raid_weekend)
+def clan_raid_weekend_raid_stats(clan: coc.Clan, raid_log_entry: RaidLogEntry):
+
+    if raid_log_entry is None:
+        embed = Embed(
+            title=f"**{clan.name} Raid Totals**",
+            description="No raid found!", color=Color.green())
+        return (embed, None, None)
 
     total_medals = 0
-    if not raid_weekends:
-        raid_embed = Embed(
-            title=f"**{clan.name} Raid Totals**",
-            description="No raids", color=Color.green())
-        embeds["raids"] = raid_embed
+    total_attacks = defaultdict(int)
+    total_looted = defaultdict(int)
+    attack_limit = defaultdict(int)
+    name_list = {}
+    member_tags = [member.tag for member in clan.members]
+    members_not_looted = member_tags.copy()
 
-        total_looted = None
-        total_attacks = None
-        donated_data = None
-        number_donated_data = None
+    for member in raid_log_entry.members:
+        name_list[member.tag] = member.name
+        total_attacks[member.tag] += member.attack_count
+        total_looted[member.tag] += member.capital_resources_looted
+        attack_limit[member.tag] += (
+            member.attack_limit +
+            member.bonus_attack_limit)
+        try:
+            members_not_looted.remove(member.tag)
+        except:
+            pass
 
-    else:
-        total_attacks = defaultdict(int)
-        total_looted = defaultdict(int)
-        attack_limit = defaultdict(int)
-        name_list = {}
-        members_not_looted = member_tags.copy()
-        for raid_weekend in raid_weekends:
-            for member in raid_weekend.members:
-                name_list[member.tag] = member.name
-                total_attacks[member.tag] += member.attack_count
-                total_looted[member.tag] += member.capital_resources_looted
-                attack_limit[member.tag] += (
-                    member.attack_limit +
-                    member.bonus_attack_limit)
+    district_dict = {
+        1: 135, 2: 225, 3: 350, 4: 405, 5: 460}
+    capital_dict = {
+        2: 180, 3: 360, 4: 585, 5: 810,
+        6: 1115, 7: 1240, 8: 1260, 9: 1375, 10: 1450}
 
-                if (len(raid_weekends) == 1 and
-                        member.tag in members_not_looted):
-                    members_not_looted.remove(member.tag)
-
-        district_dict = {
-            1: 135, 2: 225, 3: 350, 4: 405, 5: 460}
-        capital_dict = {
-            2: 180, 3: 360, 4: 585, 5: 810,
-            6: 1115, 7: 1240, 8: 1260, 9: 1375, 10: 1450}
-
-        attacks_done = sum(list(total_attacks.values()))
-        raids = raid_weekends[0].attack_log
-        for raid_clan in raids:
-            for district in raid_clan.districts:
-                if int(district.destruction) == 100:
-                    if district.id == 70000000:
-                        total_medals += capital_dict[int(
-                            district.hall_level)]
-
-                    else:
-                        total_medals += district_dict[int(
-                            district.hall_level)]
+    attacks_done = sum(list(total_attacks.values()))
+    attacks_done = max(1, attacks_done)
+    raids = raid_log_entry.attack_log
+    for raid_clan in raids:
+        for district in raid_clan.districts:
+            if int(district.destruction) == 100:
+                if district.id == 70000000:
+                    total_medals += capital_dict[int(
+                        district.hall_level)]
 
                 else:
-                    #attacks_done -= len(district.attacks)
-                    pass
+                    total_medals += district_dict[int(
+                        district.hall_level)]
 
-        print(total_medals)
-        print(attacks_done)
-        total_medals = math.ceil(total_medals/attacks_done) * 6
-
-        raid_text = []
-        for tag, amount in total_looted.items():
-            raided_amount = f"{amount}".ljust(6)
-            name = name_list[tag]
-            for char in ["`", "*", "_", "~"]:
-                name = name.replace(char, "", 10)
-            # print(tag)
-            # print(member_tags)
-            if tag in member_tags:
-                raid_text.append([(
-                    f"\u200e{Emojis().capital_gold}`"
-                    f"{total_attacks[tag]}/{attack_limit[tag]} "
-                    f"{raided_amount}`: \u200e{name}", amount)])
             else:
-                raid_text.append([(
-                    f"\u200e{Emojis().deny_mark}`"
-                    f"{total_attacks[tag]}/{attack_limit[tag]} "
-                    f"{raided_amount}`: \u200e{name}", amount)])
+                #attacks_done -= len(district.attacks)
+                pass
 
-        if len(raid_weekends) == 1:
-            for member in members_not_looted:
-                name = coc.utils.get(clan.members, tag=member)
-                raid_text.append([(
-                    f"{Emojis().capital_gold}`{0}"
-                    f"/{6*len(raid_weekends)} {0}`: {name.name}"),
-                    0])
+    total_medals = math.ceil(total_medals/attacks_done) * 6
+    raid_text = []
+    for tag, amount in total_looted.items():
+        raided_amount = f"{amount}".ljust(6)
+        name = name_list[tag]
+        name = re.sub('[*_`~/]', '', name)
+        if tag in member_tags:
+            raid_text.append([
+                f"\u200e{Emojis().capital_gold}`"
+                f"{total_attacks[tag]}/{attack_limit[tag]} "
+                f"{raided_amount}`: \u200e{name}", amount])
+        else:
+            raid_text.append([
+                f"\u200e{Emojis().deny_mark}`"
+                f"{total_attacks[tag]}/{attack_limit[tag]} "
+                f"{raided_amount}`: \u200e{name}", amount])
 
-        raid_text = sorted(raid_text, key=lambda l: l[1], reverse=True)
-        raid_text = [line[0] for line in raid_text]
-        raid_text = "\n".join(raid_text)
-        if len(raid_weekends) == 1:
-            rw = raid_weekends[0]
-            offensive_reward = rw.offensive_reward * 6
-            if total_medals > offensive_reward:
-                offensive_reward = total_medals
 
-            defensive_reward = rw.defensive_reward
-            raid_text += (
-                f"\n\n{Emojis().raid_medal}{offensive_reward} + "
-                f"{Emojis().raid_medal}{defensive_reward} = "
-                f"{Emojis().raid_medal}"
-                f"{offensive_reward + defensive_reward}"
-                f"\n`Offense + Defense = Total`")
+    for member in members_not_looted:
+        member = coc.utils.get(clan.members, tag=member)
+        name = re.sub('[*_`~/]', '', member.name)
+        raid_text.append([
+            f"{Emojis().capital_gold}`{0}"
+            f"/{6} {0}`: {name}",
+            0])
 
-        raid_embed = Embed(
-            title=f"**{clan.name} Raid Totals**",
-            description=raid_text,
-            color=Color.green())
+    raid_text = sorted(raid_text, key=lambda l: l[1], reverse=True)
+    raid_text = [line[0] for line in raid_text]
+    raid_text = "\n".join(raid_text)
 
-        raid_embed.set_footer(text=(
-            f"Spots: {len(total_attacks.values())}/50 | "
-            f"Attacks: {sum(total_attacks.values())}/300 | "
-            f"Looted: {'{:,}'.format(sum(total_looted.values()))}"))
+    rw = raid_log_entry
+    offensive_reward = rw.offensive_reward * 6
+    if total_medals > offensive_reward:
+        offensive_reward = total_medals
 
-        embeds["raids"] = raid_embed
+    defensive_reward = rw.defensive_reward
+    raid_text += (
+        f"\n\n{Emojis().raid_medal}{offensive_reward} + "
+        f"{Emojis().raid_medal}{defensive_reward} = "
+        f"{Emojis().raid_medal}"
+        f"{offensive_reward + defensive_reward}"
+        f"\n`Offense + Defense = Total`")
 
-    return (
-        embeds, raid_weekends,
-        total_looted, total_attacks, donated_data,
-        number_donated_data)
+    raid_embed = Embed(
+        title=f"**{clan.name} Raid Totals**",
+        description=raid_text,
+        color=Color.green())
+
+    raid_embed.set_footer(text=(
+        f"Spots: {len(total_attacks.values())}/50 | "
+        f"Attacks: {sum(total_attacks.values())}/300 | "
+        f"Looted: {'{:,}'.format(sum(total_looted.values()))} | {raid_log_entry.start_time.time.date()}"))
+
+    return (raid_embed, total_looted, total_attacks)
 
 
 async def clan_raid_weekend_raids(
-        clan: coc.Clan, raid_log, weekend, client_emojis,
+        clan: coc.Clan, raid_log_entry, client_emojis,
         partial_emoji_gen, create_new_badge_emoji):
-    choice_to_date = {
-        "Current Week": 0,
-        "Last Week": 1,
-        "2 Weeks Ago": 2}
 
-    weekend_times = weekend_timestamps()
 
     embed = Embed(
         description=f"**{clan.name} Clan Capital Raids**",
         color=Color.green())
 
-    raid_weekend = get_raid(
-        raid_log=raid_log,
-        before=weekend_times[choice_to_date[weekend]],
-        after=weekend_times[choice_to_date[weekend] + 1])
 
-    if raid_weekend is None:
+
+    if raid_log_entry is None:
         return (None, None)
 
-    raids = raid_weekend.attack_log
+    raids = raid_log_entry.attack_log
 
     select_menu_options = [SelectOption(
         label="Overview",
@@ -753,12 +718,10 @@ async def clan_raid_weekend_raids(
                     f"\u200e{attack.attacker_name}\n")
 
             if district.id == 70000000:
-                emoji = fetch_emoji(
-                    name=f"Capital_Hall{district.hall_level}")
+                emoji = fetch_emoji(f"Capital_Hall{district.hall_level}")
 
             else:
-                emoji = fetch_emoji(
-                    name=f"District_Hall{district.hall_level}")
+                emoji = fetch_emoji(f"District_Hall{district.hall_level}")
 
             if attack_text == "":
                 attack_text = "None"
@@ -1179,11 +1142,10 @@ async def cwl_performance(clan: coc.Clan, dates):
     year_text = ""
     not_empty = False
     for response in responses:
-        try:
-            text, year = response_to_line(response, clan)
-
-        except:
+        if "Not Found" in str(response):
             continue
+
+        text, year = response_to_line(response, clan)
 
         if year != old_year:
             if year_text != "":

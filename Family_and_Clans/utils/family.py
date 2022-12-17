@@ -138,5 +138,29 @@ class getFamily(commands.Cog):
                               color=disnake.Color.green())
         return embed
 
+    async def create_activities(self, guild: disnake.Guild):
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+        clans = await self.bot.get_clans(tags=clan_tags)
+        member_tags = []
+        for clan in clans:
+            member_tags.extend(member.tag for member in clan.members)
+        clan_members = await self.bot.get_players(tags=member_tags, custom=True)
+
+        embed_description_list = []
+        for member in clan_members:
+            member: MyCustomPlayer
+            last_online = member.season_last_online()
+            embed_description_list.append([f"{str(len(last_online)).ljust(4)} | {member.name}", len(last_online)])
+
+        embed_description_list_sorted = sorted(embed_description_list, key=lambda l: l[1], reverse=True)
+        embed_description = [line[0] for line in embed_description_list_sorted[:50]]
+        embed_description = "\n".join(embed_description)
+
+        embed = disnake.Embed(
+            title=f"**{guild.name} Activity Leaderboard**",
+            description=f"```#     NAME\n{embed_description}```",
+            color=disnake.Color.green())
+        return embed
+
 def setup(bot: CustomClient):
     bot.add_cog(getFamily(bot))

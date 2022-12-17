@@ -4,7 +4,6 @@ from utils.troop_methods import heros, heroPets
 from CustomClasses.CustomBot import CustomClient
 from EventHub.event_websockets import clan_ee
 from utils.troop_methods import leagueAndTrophies
-from main import check_commands
 
 class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
 
@@ -102,6 +101,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                 server = cc.get("server")
                 joinlog_channel = cc.get("joinlog")
                 strike_ban_buttons = cc.get("strike_ban_buttons")
+                auto_eval = cc.get("auto_eval")
                 if joinlog_channel is None:
                     continue
                 try:
@@ -179,6 +179,16 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                     except:
                         continue
 
+                if auto_eval:
+                    role_mode = cc.get("role_mode")
+                    all_tags = new_tags + left_tags
+                    links = await self.bot.link_client.get_links(*all_tags)
+                    links = dict(links)
+                    for tag in all_tags:
+                        evalua = self.bot.get_cog("Eval")
+                        embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                                                        test=False,
+                                                        change_nick="Off", return_embed=True)
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):

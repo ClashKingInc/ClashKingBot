@@ -1,9 +1,10 @@
-from utils.clash import create_weekend_list, weekend_timestamps
+from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from utils.components import raid_buttons
 from utils.discord_utils import partial_emoji_gen
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from datetime import datetime
 from CustomClasses.CustomBot import CustomClient
+from coc.miscmodels import Timestamp
 from disnake.ext import commands
 import Clan.ClanResponder as clan_responder
 import Clan.ClanUtils as clan_utils
@@ -150,21 +151,16 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
                 player_links = await self.bot.link_client.get_links(*clan_member_tags)
 
-                unlinked_players_embed = clan_responder.unlinked_players(
-                    clan, player_links)
+                unlinked_players_embed = clan_responder.unlinked_players(clan, player_links)
 
                 await res.edit_original_message(embed=unlinked_players_embed)
 
             elif res.values[0] == "trophies":
                 embed = clan_responder.player_trophy_sort(clan)
-                embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
-
                 await res.edit_original_message(embed=embed)
 
             elif res.values[0] == "townhalls":
                 embed = await clan_responder.player_townhall_sort(clan)
-                embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
-
                 await res.edit_original_message(embed=embed)
 
             elif res.values[0] == "clan":
@@ -172,25 +168,18 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
             elif res.values[0] == "opt":
                 embed = await clan_responder.opt_status(clan)
-                embed.description += f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>"
-
                 await res.edit_original_message(embed=embed)
 
             elif res.values[0] == "warlog":
                 warlog = await self.bot.coc_client.get_warlog(clan.tag, limit=25)
 
                 embed = clan_responder.war_log(clan, warlog)
-                embed.description += (
-                    f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
-
                 await res.edit_original_message(embed=embed)
 
             elif res.values[0] == "stroop":
                 embed: disnake.Embed = await clan_responder.super_troop_list(clan)
 
-                values = (
-                    f"{embed.fields[0].value}\n"
-                    f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+                values = f"{embed.fields[0].value}\n"
                 embed.set_field_at(
                     0, name="**Not Boosting:**",
                     value=values, inline=False)
@@ -202,9 +191,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 dates = await self.bot.coc_client.get_seasons(29000022)
                 dates.append(self.bot.gen_season_date())
                 dates = reversed(dates)
-
-                embed = await clan_responder.cwl_performance(
-                    clan=clan, dates=dates)
+                embed = await clan_responder.cwl_performance(clan=clan, dates=dates)
 
                 # embed = await self.cwl_performance(clan)
                 await res.edit_original_message(embed=embed)
@@ -465,48 +452,23 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             "Get stats on raids & donations "
             "during selected time period"))
     async def clan_capital_stats(
-            self, ctx: disnake.ApplicationCommandInteraction,
-            clan: coc.Clan = commands.Param(converter=clan_converter)):
+            self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), weekend: str = commands.Param(default=None, name="weekend")):
         """
             Parameters
             ----------
             clan: Use clan tag or select an option from the autocomplete
         """
+        #await ctx.response.defer()
+        if weekend is None:
+            weekend = gen_raid_weekend_datestrings(number_of_weeks=1)[0]
+        weekend_raid_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot)
 
-        raidlog = await self.bot.coc_client.get_raidlog(clan.tag)
+        (raid_embed, total_looted, total_attacks) = clan_responder.clan_raid_weekend_raid_stats(clan=clan, raid_log_entry=weekend_raid_entry)
+        donation_embed = await clan_responder.clan_raid_weekend_donation_stats(clan=clan, raid_log_entry=weekend_raid_entry, bot=self.bot)
 
-        weekend = "Current Week"
-        weekend_times = weekend_timestamps()
-        weekend_dates = create_weekend_list(option=weekend)
-        member_tags = [member.tag for member in clan.members]
-        capital_raid_member_tags = []
-
-        for week in weekend_dates:
-            tags = await self.bot.player_stats.distinct(
-                "tag",
-                filter={f"capital_gold.{week}.raided_clan": clan.tag})
-
-            capital_raid_member_tags += tags
-
-        tasks = []
-
-        all_tags = list(set(member_tags + capital_raid_member_tags))
-        for tag in all_tags:
-            results = await self.bot.player_stats.find_one({"tag": tag})
-            task = asyncio.ensure_future(self.bot.coc_client.get_player(
-                player_tag=tag, cls=MyCustomPlayer,
-                bot=self.bot, results=results))
-
-            tasks.append(task)
-
-        responses = await asyncio.gather(*tasks, return_exceptions=True)
-
-        (embeds, raid_weekends,
-         total_looted, total_attacks,
-         donated_data, number_donated_data) = clan_responder.clan_raid_weekend_stats(
-            clan=clan, raid_log=raidlog,
-            capital_raid_members=responses)
-
+        buttons = raid_buttons(self.bot, [])
+        await ctx.send(embed=raid_embed, components=buttons)
+        '''
         data = []
         index = []
 
@@ -529,7 +491,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
             name = coc.utils.get(clan.members, tag=tag)
             index.append(name.name)
-
+            
+        
         buttons = raid_buttons(self.bot, data)
 
         if not raid_weekends:
@@ -537,7 +500,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         else:
             await ctx.edit_original_message(embed=embeds["raids"], components=buttons)
-
+        '''
         msg = await ctx.original_message()
 
         def check(res: disnake.MessageInteraction):
@@ -556,10 +519,10 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 break
             await res.response.defer()
             if res.data.custom_id == "donations":
-                await res.edit_original_message(embed=embeds["donations"])
+                await res.edit_original_message(embed=donation_embed)
 
             elif res.data.custom_id == "raids":
-                await res.edit_original_message(embed=embeds["raids"])
+                await res.edit_original_message(embed=raid_embed)
 
             elif res.data.custom_id == "capseason":
                 columns = [
@@ -574,21 +537,21 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
                 await res.send(file=file, ephemeral=True)
 
+
     @clan.sub_command(
         name="capital-raids",
         description="See breakdown of clan's raids per clan & week")
     async def clan_capital_raids(
         self, ctx: disnake.ApplicationCommandInteraction,
         clan: coc.Clan = commands.Param(converter=clan_converter),
-        weekend=commands.Param(
-            default="Current Week",
-            choices=["Current Week", "Last Week", "2 Weeks Ago"])):
+        weekend=commands.Param(default=None, name="weekend")):
 
-        raidlog = await self.bot.coc_client.get_raidlog(clan.tag)
+        if weekend is None:
+            weekend = gen_raid_weekend_datestrings(number_of_weeks=1)[0]
+        weekend_raid_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot)
 
-        (embeds,
-         select_menu_options) = await clan_responder.clan_raid_weekend_raids(
-            clan=clan, raid_log=raidlog, weekend=weekend,
+        (embeds, select_menu_options) = await clan_responder.clan_raid_weekend_raids(
+            clan=clan, raid_log_entry=weekend_raid_entry,
             client_emojis=self.bot.emojis,
             partial_emoji_gen=self.bot.partial_emoji_gen,
             create_new_badge_emoji=self.bot.create_new_badge_emoji)
@@ -612,7 +575,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         )
         dropdown = [disnake.ui.ActionRow(select)]
 
-        await ctx.edit_original_message(embed=embed, components=dropdown)
+        await ctx.edit_original_message(embed=embeds["Overview"], components=dropdown)
 
         msg = await ctx.original_message()
 
@@ -657,17 +620,11 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @clan.sub_command(
         name="activities",
         description="Activity count of how many times a player has been seen online")
-    async def activities(
-            self, ctx: disnake.ApplicationCommandInteraction,
-            clan: coc.Clan = commands.Param(converter=clan_converter)):
-
+    async def activities(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
         member_tags = [member.tag for member in clan.members]
-        members = await self.bot.get_players(
-            tags=member_tags, custom=True)
+        members = await self.bot.get_players(tags=member_tags, custom=True)
 
-        embed = clan_responder.create_activities(
-            clan=clan, clan_members=members)
-
+        embed = clan_responder.create_activities(clan=clan, clan_members=members)
         embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
         buttons = disnake.ui.ActionRow()
@@ -1638,6 +1595,16 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
         return [season for season in seasons if query.lower() in season.lower()]
+
+    @clan_capital_stats.autocomplete("weekend")
+    @clan_capital_raids.autocomplete("weekend")
+    async def weekend(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        weekends = gen_raid_weekend_datestrings(number_of_weeks=25)
+        matches = []
+        for weekend in weekends:
+            if query.lower() in weekend.lower():
+                matches.append(weekend)
+        return matches
 
     @clan_capital_raids.autocomplete("clan")
     @linked_clans.autocomplete("clan")

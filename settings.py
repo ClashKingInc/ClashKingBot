@@ -545,6 +545,33 @@ class misc(commands.Cog, name="Settings"):
                               "- **Cannot** get building upgrades or when an lab or hero upgrade is started")
         await ctx.send(embed=embed)
 
+    @set.sub_command(name="autoeval", description="Turn on/off auto role evaluation for a clan")
+    async def set_autoeval(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), option = commands.Param(choices=["On", "Off"]),
+                           role_mode = commands.Param(default=None, choices=["Normal (Add & Remove)", "Only Add Roles", "Only Remove Roles"])):
+        if option == "On" and role_mode is None:
+            return await ctx.send(content="If turning autoeval on, must select an option in `role_mode`", ephemeral=True)
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        if results is None:
+            return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
+
+        if role_mode == "Only Add Roles":
+            role_mode = ["Add"]
+        elif role_mode == "Only Remove Roles":
+            role_mode = ["Remove"]
+        else:
+            role_mode = "Normal (Add & Remove)"
+
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]}, {'$set': {"auto_eval": (option == "On"), "role_mode" : role_mode}})
+
+        embed = disnake.Embed(description=f"AutoEval for {clan.name} turned {option}.",
+                              color=disnake.Color.green())
+        await ctx.send(embed=embed)
 
     @set.sub_command(name="leadership-eval", description="Have eval assign leadership role to clan coleads & leads (on default)")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -785,6 +812,7 @@ class misc(commands.Cog, name="Settings"):
                               color=disnake.Color.green())
 
         await ctx.send(embed=embed)
+
 
     @channel.autocomplete("clan")
     @role.autocomplete("clan")

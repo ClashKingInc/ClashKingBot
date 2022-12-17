@@ -11,7 +11,6 @@ from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis, EmojiType
 from pyyoutube import Api
 from urllib.request import urlopen
-from utils.clash import weekend_timestamps
 from collections import defaultdict
 import dateutil.relativedelta
 
@@ -123,6 +122,7 @@ class CustomClient(commands.Bot):
         self.global_chat_db = self.db_client.usafam.global_chats
         self.global_reports = self.db_client.usafam.reports
         self.strikelist = self.db_client.usafam.strikes
+        self.raid_weekend_db = self.db_client.usafam.raid_weekends
 
         self.coc_client = coc.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD"), client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 30,
                                     cache_max_size=50000, load_game_data=coc.LoadGameData(always=True))
@@ -527,7 +527,7 @@ class CustomClient(commands.Bot):
         for tag in tags:
             task = asyncio.ensure_future(self.getPlayer(player_tag=tag, custom=custom))
             tasks.append(task)
-        responses = await asyncio.gather(*tasks)
+        responses = await asyncio.gather(*tasks, return_exceptions=True)
         return responses
 
     async def get_clans(self, tags: list):
@@ -592,23 +592,6 @@ class CustomClient(commands.Bot):
                 return war
             except:
                 return None
-
-    async def get_raid(self, clan_tag):
-        try:
-            weekend_times = weekend_timestamps()
-            raidlog = await self.coc_client.get_raidlog(clan_tag)
-            time_start = int(raidlog[0].start_time.time.timestamp())
-            raid_weekend = self.find_raid(raid_log=raidlog, before=weekend_times[0],after=weekend_times[1])
-            return raid_weekend
-        except:
-            return None
-
-    def find_raid(self, raid_log, after, before):
-        for raid in raid_log:
-            time_start = int(raid.start_time.time.timestamp())
-            if before > time_start > after:
-                return raid
-        return None
 
     #SERVER HELPERS
     async def open_clan_capital_reminders(self):

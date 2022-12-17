@@ -6,7 +6,6 @@ clan_tags = ["#2P0JJQGUJ"]
 known_streak = []
 count = 0
 list_size = 0
-from utils.clash import weekend_timestamps
 import asyncio
 from CustomClasses.CustomBot import CustomClient
 from pymongo import UpdateOne
@@ -39,28 +38,38 @@ class OwnerCommands(commands.Cog):
         guild = ctx.guild
         await ctx.send(content="Edited 0 members")
         x = 0
+        twelve_month = disnake.utils.get(ctx.guild.roles, id=1029249316981833748)
+        nine_month = disnake.utils.get(ctx.guild.roles, id=1029249365858062366)
+        six_month = disnake.utils.get(ctx.guild.roles, id=1029249360178987018)
+        three_month = disnake.utils.get(ctx.guild.roles, id=1029249480261906463)
         for member in guild.members:
+            if member.bot:
+                continue
             year = member.joined_at.year
             month = member.joined_at.month
             n_year = datetime.now().year
             n_month = datetime.now().month
             num_months = (n_year - year) * 12 + (n_month - month)
             if num_months >= 12:
-                r = disnake.utils.get(ctx.guild.roles, id=1029249316981833748)
-                if r not in member.roles:
-                    await member.add_roles(*[r])
+                if twelve_month not in member.roles:
+                    await member.add_roles(*[twelve_month])
+                if nine_month in member.roles or six_month in member.roles or three_month in member.roles:
+                    await member.remove_roles(*[nine_month, six_month, three_month])
             elif num_months >= 9:
-                r = disnake.utils.get(ctx.guild.roles, id=1029249365858062366)
-                if r not in member.roles:
-                    await member.add_roles(*[r])
+                if nine_month not in member.roles:
+                    await member.add_roles(*[nine_month])
+                if twelve_month in member.roles or six_month in member.roles or three_month in member.roles:
+                    await member.remove_roles(*[twelve_month, six_month, three_month])
             elif num_months >= 6:
-                r = disnake.utils.get(ctx.guild.roles, id=1029249360178987018)
-                if r not in member.roles:
-                    await member.add_roles(*[r])
+                if six_month not in member.roles:
+                    await member.add_roles(*[six_month])
+                if twelve_month in member.roles or nine_month in member.roles or three_month in member.roles:
+                    await member.remove_roles(*[twelve_month, nine_month, three_month])
             elif num_months >= 3:
-                r = disnake.utils.get(ctx.guild.roles, id=1029249480261906463)
-                if r not in member.roles:
-                    await member.add_roles(*[r])
+                if three_month not in member.roles:
+                    await member.add_roles(*[three_month])
+                if twelve_month in member.roles or nine_month in member.roles or six_month in member.roles:
+                    await member.remove_roles(*[twelve_month, nine_month, six_month])
             x += 1
             if x % 5 == 0:
                 await ctx.edit_original_message(content=f"Edited {x} members")
@@ -233,64 +242,6 @@ class OwnerCommands(commands.Cog):
                             f"{custom_text}"
             await channel.send(content=reminder_text)
 
-    @commands.slash_command(name="create_icons", guild_ids=[923764211845312533])
-    @commands.is_owner()
-    async def create_icons(self, ctx):
-        await ctx.response.defer()
-
-        text = ""
-        for xnumber in range(51, 100):
-            number = str(xnumber)
-            #create blue numbers
-            image = Image.open('poster/transparent.png')
-            font = ImageFont.truetype("poster/Signika-Regular.TTF", 350)
-            draw = ImageDraw.Draw(image)
-            W, H = (450, 450)
-            _, _, w, h = draw.textbbox((0, 0), number, font=font)
-            draw.text(((W - w) / 2, (H - h - 80) / 2), number, font=font, fill='#89CFF0')
-            temp = io.BytesIO()
-            image.save(temp, format="png")
-            temp.seek(0)
-            # file = disnake.File(fp=temp, filename="filename.png")
-            server = await self.bot.fetch_guild(1042635521890992158)
-            emoji = await server.create_custom_emoji(name=f"{number}_", image=temp.read())
-            text += f"<:{emoji.name}:{emoji.id}> "
-
-            #create white letters
-            image = Image.open('poster/transparent.png')
-            font = ImageFont.truetype("poster/Signika-Regular.TTF", 350)
-            draw = ImageDraw.Draw(image)
-            W, H = (450, 450)
-            _, _, w, h = draw.textbbox((0, 0), number, font=font)
-            draw.text(((W - w) / 2, (H - h - 80) / 2), number, font=font, fill='#FFFFFF')
-            temp = io.BytesIO()
-            image.save(temp, format="png")
-            temp.seek(0)
-            # file = disnake.File(fp=temp, filename="filename.png")
-            server = await self.bot.fetch_guild(1042635651562086430)
-            emoji = await server.create_custom_emoji(name=f"{number}_", image=temp.read())
-            text += f"<:{emoji.name}:{emoji.id}> "
-
-            #gold number emojis
-            image = Image.open('poster/transparent.png')
-            font = ImageFont.truetype("poster/Signika-Regular.TTF", 350)
-            draw = ImageDraw.Draw(image)
-            W, H = (450, 450)
-            _, _, w, h = draw.textbbox((0, 0), number, font=font)
-            draw.text(((W - w) / 2, (H - h - 80) / 2), number, font=font, fill='#FFD700')
-            temp = io.BytesIO()
-            image.save(temp, format="png")
-            temp.seek(0)
-            # file = disnake.File(fp=temp, filename="filename.png")
-            server = await self.bot.fetch_guild(1042635608088125491)
-            emoji = await server.create_custom_emoji(name=f"{number}_", image=temp.read())
-            text += f"<:{emoji.name}:{emoji.id}> "
-
-            await asyncio.sleep(delay=60)
-
-        await ctx.edit_original_message(content=text)
-
-
 
     @commands.slash_command(name="transcript",guild_ids=[923764211845312533] )
     @commands.is_owner()
@@ -299,6 +250,16 @@ class OwnerCommands(commands.Cog):
         message = await chat_exporter.quick_export(ctx.channel)
         await chat_exporter.quick_link(ctx.channel, message)
         await ctx.edit_original_message(content="Here is your transcript!")
+
+    @commands.slash_command(name="testlog")
+    @commands.is_owner()
+    async def testfwlog(self, ctx: disnake.ApplicationCommandInteraction, clan_tag):
+        log = await self.bot.war_client.war_result_log(clan_tag=clan_tag)
+        clan = await self.bot.getClan(clan_tag)
+        for war in log:
+            war_cog = self.bot.get_cog(name="War")
+            embed = await war_cog.main_war_page(war=war, clan=clan)
+            await ctx.channel.send(embed=embed)
 
 
 def setup(bot: CustomClient):

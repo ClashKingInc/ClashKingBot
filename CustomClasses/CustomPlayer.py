@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from pymongo import MongoClient
 from CustomClasses.emoji_class import EmojiType
 from collections import defaultdict
-from utils.clash import create_weekend_list
+from utils.ClanCapital import gen_raid_weekend_datestrings
 
 sync_client = MongoClient("mongodb://localhost:27017")
 new_looper = sync_client.new_looper
@@ -172,7 +172,7 @@ class MyCustomPlayer(coc.Player):
                 return ClanCapitalWeek(None)
             return ClanCapitalWeek(week_result)
         else:
-            weeks = create_weekend_list("other", weeks=end_week)
+            weeks = gen_raid_weekend_datestrings(end_week)
             weeks = weeks[start_week:end_week]
             cc_results = []
             for week in weeks:

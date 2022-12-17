@@ -32,7 +32,6 @@ class eval(commands.Cog, name="Eval"):
         if role.id == ctx.guild.id:
             role = ctx.guild.default_role
         test = (test != "No")
-
         await ctx.response.defer()
         default_eval = ["family" , "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "nicknames"]
         if advanced_mode == "Yes":
@@ -381,9 +380,11 @@ class eval(commands.Cog, name="Eval"):
                 except:
                     await res.send(content=f"Could not edit {member.mention} name. Permissions error or user is above or equal to the bot's highest role.", ephemeral=True)
 
-    async def eval_logic(self, ctx: disnake.ApplicationCommandInteraction, role_or_user, members_to_eval, test, change_nick, role_types_to_eval = None, return_array=False, return_embed=None):
+    async def eval_logic(self, ctx: disnake.ApplicationCommandInteraction, role_or_user, members_to_eval, test, change_nick, role_types_to_eval = None, return_array=False, return_embed=None, role_treatment=None):
         if role_types_to_eval is None:
-            role_types_to_eval = ["family" , "not_family", "clan", "townhall", "builderhall", "category", "league", "nicknames"]
+            role_types_to_eval = ["family" , "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "nicknames"]
+        if role_treatment is None:
+            role_treatment = ["Add", "Remove"]
         server = CustomServer(guild=ctx.guild, bot=self.bot)
         leadership_eval = await server.leadership_eval_choice
 
@@ -511,9 +512,9 @@ class eval(commands.Cog, name="Eval"):
             ignored_roles += category_role_list
 
         ALL_CLASH_ROLES = family_roles + clan_roles + not_fam_roles + league_role_list + th_role_list + category_role_list
-        if leadership_eval or ("leadership" in role_types_to_eval):
-            ALL_CLASH_ROLES += leadership_roles
-
+        if "leadership" in role_types_to_eval:
+            if leadership_eval:
+                ALL_CLASH_ROLES += leadership_roles
 
         text = ""
         num = 0
@@ -533,14 +534,19 @@ class eval(commands.Cog, name="Eval"):
                     MASTER_ROLES.append(m_role.id)
                 ROLES_TO_ADD = set()
                 ROLES_SHOULD_HAVE = set()
-                account_tags = await self.bot.get_tags(str(member.id))
+
                 GLOBAL_IS_FAMILY = False
                 list_accounts = []
                 family_accounts = []
                 abbreviations_to_have = []
-                async for player in self.bot.coc_client.get_players(account_tags):
-                    list_accounts.append([player.trophies, player])
 
+                account_tags = await self.bot.get_tags(str(member.id))
+                players = await self.bot.get_players(tags=account_tags)
+
+                for player in players:
+                    if isinstance(player, coc.errors.NotFound):
+                        continue
+                    list_accounts.append([player.trophies, player])
                     # check if is a family member for 2 things - 1. to check for global roles (Not/is family) and 2. for if they shuld get roles on individual lvl
                     # ignore the global if even one account is in family
                     is_family_member = await self.is_in_family(player, clan_tags)
@@ -722,13 +728,13 @@ class eval(commands.Cog, name="Eval"):
                     removed += r.mention + " "
 
                 if not test:
-                    if FINAL_ROLES_TO_ADD != []:
+                    if FINAL_ROLES_TO_ADD != [] and ("Add" in role_treatment):
                         try:
                             await member.add_roles(*FINAL_ROLES_TO_ADD)
                         except:
                             added = "Could not add role(s)"
 
-                    if FINAL_ROLES_TO_REMOVE != []:
+                    if FINAL_ROLES_TO_REMOVE != [] and ("Remove" in role_treatment):
                         member: disnake.Member
                         try:
                             await member.remove_roles(*FINAL_ROLES_TO_REMOVE)
