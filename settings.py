@@ -545,7 +545,7 @@ class misc(commands.Cog, name="Settings"):
                               "- **Cannot** get building upgrades or when an lab or hero upgrade is started")
         await ctx.send(embed=embed)
 
-    @set.sub_command(name="autoeval", description="Turn on/off auto role evaluation for a clan")
+    """@set.sub_command(name="autoeval", description="Turn on/off auto role evaluation for a clan")
     async def set_autoeval(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), option = commands.Param(choices=["On", "Off"]),
                            role_mode = commands.Param(default=None, choices=["Normal (Add & Remove)", "Only Add Roles", "Only Remove Roles"])):
         if option == "On" and role_mode is None:
@@ -571,7 +571,7 @@ class misc(commands.Cog, name="Settings"):
 
         embed = disnake.Embed(description=f"AutoEval for {clan.name} turned {option}.",
                               color=disnake.Color.green())
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed)"""
 
     @set.sub_command(name="leadership-eval", description="Have eval assign leadership role to clan coleads & leads (on default)")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())

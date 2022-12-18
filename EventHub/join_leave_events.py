@@ -179,7 +179,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                     except:
                         continue
 
-                if auto_eval:
+                """if auto_eval:
                     role_mode = cc.get("role_mode")
                     all_tags = new_tags + left_tags
                     links = await self.bot.link_client.get_links(*all_tags)
@@ -188,7 +188,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                         evalua = self.bot.get_cog("Eval")
                         embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                                         test=False,
-                                                        change_nick="Off", return_embed=True)
+                                                        change_nick="Off", return_embed=True)"""
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
