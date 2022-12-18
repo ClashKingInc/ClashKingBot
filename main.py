@@ -14,7 +14,7 @@ from EventHub.event_websockets import player_websocket, clan_websocket
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
 
-IS_BETA = True
+IS_BETA = False
 discClient = Client()
 intents = disnake.Intents().none()
 intents.members = True
@@ -89,6 +89,7 @@ initial_extensions = [
     "other",
     "settings",
     "owner_commands",
+    #"BackgroundCrons.reminders"
 ]
 
 if not IS_BETA:
@@ -121,6 +122,6 @@ if __name__ == "__main__":
             bot.load_extension(extension)
         except Exception as extension:
             traceback.print_exc()
-    #bot.loop.create_task(player_websocket())
-    #bot.loop.create_task(clan_websocket())
+    bot.loop.create_task(player_websocket())
+    bot.loop.create_task(clan_websocket())
     bot.run(os.getenv("TOKEN"))

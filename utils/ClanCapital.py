@@ -35,14 +35,14 @@ def weekend_to_cocpy_timestamp(weekend: str, end=False) -> coc.Timestamp:
 async def get_raidlog_entry(clan: coc.Clan, weekend: str, bot):
     raidlog = await bot.coc_client.get_raidlog(clan.tag)
     weekend_timestamp = weekend_to_cocpy_timestamp(weekend)
-    weekend_raid = coc.utils.get(raidlog, start_time=weekend_timestamp)
-    if weekend_raid is not None:
+    weekend_raid: RaidLogEntry = coc.utils.get(raidlog, start_time=weekend_timestamp)
+    if weekend_raid is not None and sum(member.capital_resources_looted for member in weekend_raid.members) != 0:
         return weekend_raid
     else:
         raid_data = await bot.raid_weekend_db.find_one({"startTime" : f"{weekend_timestamp.time.strftime('%Y%m%dT%H%M%S.000Z')}"})
         if raid_data is not None:
-            entry = RaidLogEntry(data=raid_data, client=bot.coc_client)
-            if entry.members != []:
+            entry: RaidLogEntry = RaidLogEntry(data=raid_data, client=bot.coc_client)
+            if sum(member.capital_resources_looted for member in entry.members) != 0:
                 return entry
 
     raid_data = await player_results_to_json(clan=clan, weekend=weekend, player_stats=bot.player_stats)
