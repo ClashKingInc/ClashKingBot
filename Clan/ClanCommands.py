@@ -379,7 +379,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         embed = await clan_responder.clan_overview(
             clan=clan, db_clan=db_clan,
-            clan_legend_ranking=clan_legend_ranking)
+            clan_legend_ranking=clan_legend_ranking, previous_season = self.bot.gen_previous_season_date(),
+            season=self.bot.gen_season_date(), player_stats_db=self.bot.player_stats, cwl_db=self.bot.cwl_db)
 
         values = (
             f"{embed.fields[-1].value}"
@@ -1388,8 +1389,9 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 {"tag": clan.tag})
 
             embed = await clan_responder.clan_overview(
-                clan=clan, db_clan=db_clan,
-                clan_legend_ranking=clan_legend_ranking)
+            clan=clan, db_clan=db_clan,
+            clan_legend_ranking=clan_legend_ranking, previous_season = self.bot.gen_previous_season_date(),
+            season=self.bot.gen_season_date(), player_stats_db=self.bot.player_stats, cwl_db=self.bot.cwl_db)
 
             values = (
                 f"{embed.fields[-1].value}"
