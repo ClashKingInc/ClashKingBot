@@ -14,42 +14,32 @@ from Clan.ClanUtils import (
     clan_super_troop_comp,
     league_and_trophies_emoji,
     tiz,
-    get_raid,
     response_to_line
 )
 from utils.General import fetch
 from coc.raid import RaidLogEntry
 from datetime import datetime
-from datetime import timedelta
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis
+from utils.ClanCapital import gen_raid_weekend_datestrings
 import emoji
 import math
 import re
 
-async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking):
+async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking, player_stats_db, cwl_db, previous_season, season):
 
     clan_leader = get(clan.members, role=coc.Role.leader)
 
+    warwin = clan.war_wins
+    winstreak = clan.war_win_streak
     if clan.public_war_log:
-        warwin = clan.war_wins
         warloss = clan.war_losses
         if warloss == 0:
             warloss = 1
-        winstreak = clan.war_win_streak
         winrate = round((warwin / warloss), 2)
     else:
-        warwin = clan.war_wins
         warloss = "Hidden Log"
-        winstreak = clan.war_win_streak
         winrate = "Hidden Log"
-
-    # getting the category of the clan set by server
-    category = ""
-    if db_clan is not None:
-        ctg = db_clan.get("category")
-        if ctg is not None:
-            category = f", {ctg} Category"
 
     if str(clan.location) == "International":
         flag = "<a:earth:861321402909327370>"
@@ -60,9 +50,7 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking):
             flag = "🏳️"
 
     ranking = LegendRanking(clan_legend_ranking)
-
-    rank_text = ""
-    rank_text += f"<a:earth:861321402909327370> {ranking.global_ranking} | "
+    rank_text = f"<a:earth:861321402909327370> {ranking.global_ranking} | "
 
     try:
         location_name = clan.location.name
@@ -84,9 +72,9 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking):
     cwl_league_emoji = league_and_trophies_emoji(str(clan.war_league))
     capital_league_emoji = league_and_trophies_emoji(str(clan.capital_league))
 
-    clan_capital_text = f"League: {capital_league_emoji}{clan.capital_league}\n" \
-                        f"Points: {clan.capital_points}\n" \
-                        f"Hall Level: {fetch_emoji(f'Capital_Hall{coc.utils.get(clan.capital_districts, id=70000000).hall_level}')}{coc.utils.get(clan.capital_districts, id=70000000).hall_level}"
+    clan_capital_text = f"Capital League: {capital_league_emoji}{clan.capital_league}\n" \
+                        f"Capital Points: {clan.capital_points}\n" \
+                        f"Capital Hall: {fetch_emoji(f'Capital_Hall{coc.utils.get(clan.capital_districts, id=70000000).hall_level}')} Level {coc.utils.get(clan.capital_districts, id=70000000).hall_level}\n"
 
     clan_type_converter = {"open" : "Anyone Can Join", "inviteOnly" : "Invite Only", "closed" : "Closed"}
     embed = Embed(
@@ -96,7 +84,7 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking):
             f"Trophies: <:trophy:825563829705637889> {clan.points} | "
             f"<:vstrophy:944839518824058880> {clan.versus_points}\n"
             f"Requirements: <:trophy:825563829705637889>{clan.required_trophies} | {fetch_emoji(clan.required_townhall)}{clan.required_townhall}\n"
-            f"Type: {clan_type_converter[clan.type]}{category}\n"
+            f"Type: {clan_type_converter[clan.type]}\n"
             f"Location: {flag} {location_name}\n"
             f"{rank_text}\n"
             f"Leader: {clan_leader.name}\n"
@@ -116,6 +104,44 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking):
     async for player in clan.get_detailed_members():
         clan_members.append(player)
 
+    clangames_season_stats = await player_stats_db.find({f"clan_games.{season}.clan" : clan.tag}).to_list(length=100)
+    clangames_season_stats = sum([player.get(f"clan_games").get(f"{season}").get("points") for player in clangames_season_stats])
+    if clangames_season_stats == 0:
+        clangames_season_stats = await player_stats_db.find({f"clan_games.{previous_season}.clan": clan.tag}).to_list(length=100)
+        clangames_season_stats = sum([player.get(f"clan_games").get(f"{previous_season}").get("points") for player in clangames_season_stats])
+
+    cwl_text = "No Recent CWL\n"
+    response = await cwl_db.find_one({"clan_tag" : clan.tag, "season" : season})
+    if response is None:
+        response = await cwl_db.find_one({"clan_tag": clan.tag, "season": previous_season})
+    if response is None:
+        async with aiohttp.ClientSession() as session:
+            url = (f"https://api.clashofstats.com/clans/{clan.tag.replace('#', '')}/cwl/seasons/{season}")
+            response = await fetch(url, session)
+            if "Not Found" in str(response):
+                url = (f"https://api.clashofstats.com/clans/{clan.tag.replace('#', '')}/cwl/seasons/{previous_season}")
+                response = await fetch(url, session)
+            if "Not Found" not in str(response):
+                await cwl_db.insert_one({"clan_tag" : clan.tag,
+                                         "season" : response["season"],
+                                         "data" : response})
+    else:
+        response = response.get("data")
+
+    if "Not Found" not in str(response) and response is not None:
+        text, year = response_to_line(response, clan)
+        cwl_text = text
+
+    raid_season_stats = await player_stats_db.find({f"tag": {"$in" : [member.tag for member in clan.members]}}).to_list(length=100)
+    donated_cc = 0
+    for date in gen_raid_weekend_datestrings(number_of_weeks=4):
+        donated_cc += sum([sum(player.get(f"capital_gold").get(f"{date}").get("donate")) for player in raid_season_stats
+                                 if player.get("capital_gold") is not None and player.get("capital_gold").get(f"{date}") is not None and
+                                 player.get("capital_gold").get(f"{date}").get("donate") is not None])
+
+    embed.add_field(name="Season Stats", value=f"Clan Games: {'{:,}'.format(clangames_season_stats)} Points\n"
+                                               f"CWL: {cwl_text}"
+                                               f"Capital Gold: {'{:,}'.format(donated_cc)} Donated")
     th_comp = clan_th_comp(clan_members=clan_members)
     super_troop_comp = clan_super_troop_comp(clan_members=clan_members)
 
@@ -125,7 +151,11 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking):
                     value=super_troop_comp, inline=False)
 
     embed.set_thumbnail(url=clan.badge.large)
-
+    if db_clan is not None:
+        ctg = db_clan.get("category")
+        if ctg is not None:
+            category = f"Category: {ctg} Clans"
+            embed.set_footer(text=category)
     return embed
 
 
@@ -805,8 +835,7 @@ def create_clan_games(
         member_tags, season_date):
 
     point_text_list = []
-    total_points = sum(
-        player.clan_games(season_date) for player in player_list)
+    total_points = sum(player.clan_games(season_date) for player in player_list)
 
     for player in player_list:
         player: MyCustomPlayer

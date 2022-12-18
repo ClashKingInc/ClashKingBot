@@ -56,7 +56,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         embed = await clan_responder.clan_overview(
             clan=clan, db_clan=db_clan,
-            clan_legend_ranking=clan_legend_ranking)
+            clan_legend_ranking=clan_legend_ranking, previous_season = self.bot.gen_previous_season_date(),
+            season=self.bot.gen_season_date(), player_stats_db=self.bot.player_stats, cwl_db=self.bot.cwl_db)
 
         emoji = partial_emoji_gen(self.bot, "<:discord:840749695466864650>")
         rx = partial_emoji_gen(self.bot, "<:redtick:601900691312607242>")
@@ -132,27 +133,16 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
             if res.values[0] == "link":
                 # initializing player link list
-                clan_member_tags = []
-                for player in clan.members:
-                    clan_member_tags.append(player.tag)
-
+                clan_member_tags = [player.tag for player in clan.members]
                 player_links = await self.bot.link_client.get_links(*clan_member_tags)
-
-                linked_players_embed = clan_responder.linked_players(
-                    ctx.guild.members, clan, player_links)
-
+                linked_players_embed = clan_responder.linked_players(ctx.guild.members, clan, player_links)
                 await res.edit_original_message(embed=linked_players_embed)
 
             elif res.values[0] == "unlink":
                 # initializing player link list
-                clan_member_tags = []
-                for player in clan.members:
-                    clan_member_tags.append(player.tag)
-
+                clan_member_tags = [player.tag for player in clan.members]
                 player_links = await self.bot.link_client.get_links(*clan_member_tags)
-
                 unlinked_players_embed = clan_responder.unlinked_players(clan, player_links)
-
                 await res.edit_original_message(embed=unlinked_players_embed)
 
             elif res.values[0] == "trophies":
@@ -172,7 +162,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
             elif res.values[0] == "warlog":
                 warlog = await self.bot.coc_client.get_warlog(clan.tag, limit=25)
-
                 embed = clan_responder.war_log(clan, warlog)
                 await res.edit_original_message(embed=embed)
 
@@ -187,7 +176,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 await res.edit_original_message(embed=embed)
 
             elif res.values[0] == "cwl":
-
                 dates = await self.bot.coc_client.get_seasons(29000022)
                 dates.append(self.bot.gen_season_date())
                 dates = reversed(dates)

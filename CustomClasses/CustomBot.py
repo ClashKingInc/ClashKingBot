@@ -94,6 +94,7 @@ class CustomClient(commands.Bot):
         self.warhits = self.looper_db.looper.warhits
         self.webhook_message_db = self.looper_db.looper.webhook_messages
         self.user_name = "admin"
+        self.cwl_db = self.looper_db.looper.cwl_db
 
         self.link_client = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
 
@@ -240,6 +241,10 @@ class CustomClient(commands.Bot):
                 end = coc.utils.get_season_end().replace(tzinfo=utc) - dateutil.relativedelta.relativedelta(months=x)
                 dates.append(f"{calendar.month_name[end.date().month]} {end.date().year}")
             return dates
+
+    def gen_previous_season_date(self):
+        end = coc.utils.get_season_start().replace(tzinfo=utc).date()
+        return f"{end.year}-{end.month}"
 
     def gen_legend_date(self):
         now = datetime.utcnow()
