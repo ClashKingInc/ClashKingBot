@@ -437,7 +437,6 @@ async def fetch_n_rank_star_leaderboard(
 
 def response_to_line(response, clan):
     te = json.dumps(response)
-
     clans = response["clans"]
     season = response["season"]
     tags = [x["tag"] for x in clans]
