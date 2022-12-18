@@ -21,15 +21,15 @@ from coc.raid import RaidLogEntry
 from datetime import datetime
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis
+from CustomClasses.CustomBot import CustomClient
 from utils.ClanCapital import gen_raid_weekend_datestrings
+from typing import List
 import emoji
 import math
 import re
 
-async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking, player_stats_db, cwl_db, previous_season, season):
-
+async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking, previous_season, season, bot: CustomClient):
     clan_leader = get(clan.members, role=coc.Role.leader)
-
     warwin = clan.war_wins
     winstreak = clan.war_win_streak
     if clan.public_war_log:
@@ -100,20 +100,19 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking, player_sta
         color=Color.green()
     )
 
-    clan_members: list(coc.Player) = []
-    async for player in clan.get_detailed_members():
-        clan_members.append(player)
+    player_tags = [member.tag for member in clan.members]
+    clan_members: List[MyCustomPlayer] = await bot.get_players(tags=player_tags, custom=True)
 
-    clangames_season_stats = await player_stats_db.find({f"clan_games.{season}.clan" : clan.tag}).to_list(length=100)
+    clangames_season_stats = await bot.player_stats.find({f"clan_games.{season}.clan" : clan.tag}).to_list(length=100)
     clangames_season_stats = sum([player.get(f"clan_games").get(f"{season}").get("points") for player in clangames_season_stats])
     if clangames_season_stats == 0:
-        clangames_season_stats = await player_stats_db.find({f"clan_games.{previous_season}.clan": clan.tag}).to_list(length=100)
+        clangames_season_stats = await bot.player_stats.find({f"clan_games.{previous_season}.clan": clan.tag}).to_list(length=100)
         clangames_season_stats = sum([player.get(f"clan_games").get(f"{previous_season}").get("points") for player in clangames_season_stats])
 
     cwl_text = "No Recent CWL\n"
-    response = await cwl_db.find_one({"clan_tag" : clan.tag, "season" : season})
+    response = await bot.cwl_db.find_one({"clan_tag" : clan.tag, "season" : season})
     if response is None:
-        response = await cwl_db.find_one({"clan_tag": clan.tag, "season": previous_season})
+        response = await bot.cwl_db.find_one({"clan_tag": clan.tag, "season": previous_season})
     if response is None:
         async with aiohttp.ClientSession() as session:
             url = (f"https://api.clashofstats.com/clans/{clan.tag.replace('#', '')}/cwl/seasons/{season}")
@@ -122,7 +121,7 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking, player_sta
                 url = (f"https://api.clashofstats.com/clans/{clan.tag.replace('#', '')}/cwl/seasons/{previous_season}")
                 response = await fetch(url, session)
             if "Not Found" not in str(response):
-                await cwl_db.insert_one({"clan_tag" : clan.tag,
+                await bot.cwl_db.insert_one({"clan_tag" : clan.tag,
                                          "season" : response["season"],
                                          "data" : response})
     else:
@@ -132,16 +131,35 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking, player_sta
         text, year = response_to_line(response, clan)
         cwl_text = text
 
-    raid_season_stats = await player_stats_db.find({f"tag": {"$in" : [member.tag for member in clan.members]}}).to_list(length=100)
+    raid_season_stats = await bot.player_stats.find({f"tag": {"$in" : [member.tag for member in clan.members]}}).to_list(length=100)
     donated_cc = 0
     for date in gen_raid_weekend_datestrings(number_of_weeks=4):
         donated_cc += sum([sum(player.get(f"capital_gold").get(f"{date}").get("donate")) for player in raid_season_stats
                                  if player.get("capital_gold") is not None and player.get("capital_gold").get(f"{date}") is not None and
                                  player.get("capital_gold").get(f"{date}").get("donate") is not None])
 
+
+    total_donated = sum([player.donos().donated for player in clan_members])
+    total_received = sum([player.donos().received for player in clan_members])
+
+
+    now = datetime.utcnow()
+    time_add = defaultdict(set)
+    for player in clan_members:
+        for time in player.season_last_online():
+            time_to_date = datetime.fromtimestamp(time)
+            time_add[str(time_to_date.date())].add(player.tag)
+
+    num_players_day = []
+    for date, players in time_add.items():
+        num_players_day.append(len(players))
+
+    avg_players = int(sum(num_players_day)/len(num_players_day))
     embed.add_field(name="Season Stats", value=f"Clan Games: {'{:,}'.format(clangames_season_stats)} Points\n"
                                                f"CWL: {cwl_text}"
-                                               f"Capital Gold: {'{:,}'.format(donated_cc)} Donated")
+                                               f"Cap Gold: {'{:,}'.format(donated_cc)} Donated\n"
+                                               f"Donos: {bot.emoji.up_green_arrow}{'{:,}'.format(total_donated)}, {bot.emoji.down_red_arrow}{'{:,}'.format(total_received)}\n"
+                                               f"Active Daily: {avg_players} players/avg")
     th_comp = clan_th_comp(clan_members=clan_members)
     super_troop_comp = clan_super_troop_comp(clan_members=clan_members)
 

@@ -68,6 +68,8 @@ class Emojis():
         self.avg_stars = EmojiType("<:avg_stars:1046114668139270234>")
         self.war_stars = EmojiType("<:war_stars:1046114735059378236>")
         self.versus_trophy = EmojiType("<:versustrophy:1046117900907450399>")
+        self.up_green_arrow = EmojiType("<:warwon:932212939899949176>")
+        self.down_red_arrow = EmojiType("<:warlost:932212154164183081>")
 
 
 

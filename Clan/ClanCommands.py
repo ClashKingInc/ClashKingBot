@@ -57,7 +57,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         embed = await clan_responder.clan_overview(
             clan=clan, db_clan=db_clan,
             clan_legend_ranking=clan_legend_ranking, previous_season = self.bot.gen_previous_season_date(),
-            season=self.bot.gen_season_date(), player_stats_db=self.bot.player_stats, cwl_db=self.bot.cwl_db)
+            season=self.bot.gen_season_date(), bot=self.bot)
 
         emoji = partial_emoji_gen(self.bot, "<:discord:840749695466864650>")
         rx = partial_emoji_gen(self.bot, "<:redtick:601900691312607242>")
@@ -380,7 +380,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         embed = await clan_responder.clan_overview(
             clan=clan, db_clan=db_clan,
             clan_legend_ranking=clan_legend_ranking, previous_season = self.bot.gen_previous_season_date(),
-            season=self.bot.gen_season_date(), player_stats_db=self.bot.player_stats, cwl_db=self.bot.cwl_db)
+            season=self.bot.gen_season_date(), bot=self.bot)
 
         values = (
             f"{embed.fields[-1].value}"
@@ -762,8 +762,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         player_tags = [member.tag for member in clan.members]
         players = await self.bot.get_players(tags=player_tags, custom=True)
 
-        file = clan_utils.create_graph(
-            [clan], timezone=pytz.timezone(timezone), player_list=players)
+        file = clan_utils.create_graph([clan], timezone=pytz.timezone(timezone), player_list=players)
 
         clan_tags = await self.bot.clan_db.distinct(
             "tag", filter={"server": ctx.guild.id})
@@ -1391,7 +1390,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             embed = await clan_responder.clan_overview(
             clan=clan, db_clan=db_clan,
             clan_legend_ranking=clan_legend_ranking, previous_season = self.bot.gen_previous_season_date(),
-            season=self.bot.gen_season_date(), player_stats_db=self.bot.player_stats, cwl_db=self.bot.cwl_db)
+            season=self.bot.gen_season_date(), bot=self.bot)
 
             values = (
                 f"{embed.fields[-1].value}"
