@@ -142,8 +142,6 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking, previous_s
     total_donated = sum([player.donos().donated for player in clan_members])
     total_received = sum([player.donos().received for player in clan_members])
 
-
-    now = datetime.utcnow()
     time_add = defaultdict(set)
     for player in clan_members:
         for time in player.season_last_online():
@@ -154,7 +152,11 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking, previous_s
     for date, players in time_add.items():
         num_players_day.append(len(players))
 
-    avg_players = int(sum(num_players_day)/len(num_players_day))
+    try:
+        avg_players = int(sum(num_players_day)/len(num_players_day))
+    except:
+        avg_players = 0
+
     embed.add_field(name="Season Stats", value=f"Clan Games: {'{:,}'.format(clangames_season_stats)} Points\n"
                                                f"CWL: {cwl_text}"
                                                f"Cap Gold: {'{:,}'.format(donated_cc)} Donated\n"
