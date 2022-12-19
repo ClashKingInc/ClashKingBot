@@ -39,7 +39,7 @@ class reminders(commands.Cog, name="Reminder Cron"):
         scheduler.add_job(self.clan_games_reminder, "cron", args=["2 hr"], day=28, hour=6, misfire_grace_time=None)
         scheduler.add_job(self.clan_games_reminder, "cron", args=["1 hr"], day=28, hour=7, misfire_grace_time=None)
 
-        scheduler.add_job(self.inactivity_reminder, 'interval', minutes=120)
+        scheduler.add_job(self.inactivity_reminder, 'interval', minutes=120, misfire_grace_time=None)
 
     #REMINDER SENDING UTILS
     async def war_reminder(self, clan_tag, reminder_time):
