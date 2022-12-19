@@ -5,7 +5,7 @@ from CustomClasses.CustomBot import CustomClient
 from collections import defaultdict
 
 clans = ["Clan Commands"]
-family = ["Bans", "Family Commands"]
+family = ["Bans", "Strikes", "Family Commands"]
 war = ["War", "CWL"]
 trophies = ["Legends", "Family Trophy Stats", "Leaderboards", "DM Feed & Reports"]
 utility = ["Army", "Awards", "Super Troops", "Profile", "Rosters"]
