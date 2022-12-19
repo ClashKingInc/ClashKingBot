@@ -397,6 +397,18 @@ class family_commands(commands.Cog):
             disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=f"activitiesfam_"))
         await ctx.edit_original_message(embed=embed, components=buttons)
 
+    @family.sub_command(name="leagues", description="List of clans by cwl or capital league")
+    async def league(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        embed = await self.create_cwl_leagues(guild=ctx.guild)
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(label="CWL", emoji=self.bot.emoji.cwl_medal.partial_emoji, style=disnake.ButtonStyle.grey,
+                              custom_id=f"cwlleaguesfam_"))
+        buttons.append_item(disnake.ui.Button(label="Capital", emoji=self.bot.emoji.capital_trophy.partial_emoji,
+                                              style=disnake.ButtonStyle.green, custom_id=f"capitalleaguesfam_"))
+        await ctx.edit_original_message(embed=embed, components=buttons)
+
     async def cwl_ranking_create(self, clan: coc.Clan):
         try:
             group = await self.bot.coc_client.get_league_group(clan.tag)
@@ -543,6 +555,14 @@ class family_commands(commands.Cog):
             await ctx.response.defer()
             embed: disnake.Embed = await self.create_activities(ctx.guild)
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+            await ctx.edit_original_message(embed=embed)
+        elif "cwlleaguesfam_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            embed = await self.create_cwl_leagues(guild=ctx.guild)
+            await ctx.edit_original_message(embed=embed)
+        elif "capitalleaguesfam_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            embed = await self.create_capital_leagues(guild=ctx.guild)
             await ctx.edit_original_message(embed=embed)
 
 def setup(bot: CustomClient):
