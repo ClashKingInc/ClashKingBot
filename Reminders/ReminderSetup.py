@@ -1,16 +1,6 @@
-import datetime
-import asyncio
-import coc
-import disnake
-import math
-
 from main import check_commands
 from disnake.ext import commands
-from main import scheduler
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer
 from typing import Union
-from collections import defaultdict
 from .ReminderUtils import *
 
 class ReminderCreation(commands.Cog, name="Reminders"):
