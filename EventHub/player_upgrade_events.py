@@ -153,7 +153,7 @@ class UpgradeEvent(commands.Cog):
                         unlocked.append(pet)
                     elif pet.level > old_pet.level:
                         leveled_up.append(pet)
-                if not unlocked and not leveled_up:
+                if not unlocked and not leveled_up and not boosted:
                     return
                 text = ""
                 for troop in unlocked:
