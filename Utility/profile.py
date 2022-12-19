@@ -256,7 +256,7 @@ class profiles(commands.Cog, name="Profile"):
     async def get_war_hits(self, linked_accounts: List[MyCustomPlayer]):
         async def get_clan_wars(clan_tag, player):
             war = await self.bot.get_clanwar(clanTag=clan_tag)
-            if war is not None and str(war.state) == "ended":
+            if war is not None and war.end_time.seconds_until <= 0:
                 war = None
             return (player, war)
 
