@@ -682,10 +682,11 @@ class eval(commands.Cog, name="Eval"):
                         ROLES_SHOULD_HAVE.add(role)
                         if role not in MASTER_ROLES:
                             ROLES_TO_ADD.add(role)
-                    if not leadership_eval or "leadership" in role_types_to_eval:
-                        for role in leadership_roles:
-                            if role in MASTER_ROLES:
-                                ROLES_TO_REMOVE.add(role)
+                    if "leadership" in role_types_to_eval:
+                        if leadership_eval:
+                            for role in leadership_roles:
+                                if role in MASTER_ROLES:
+                                    ROLES_TO_REMOVE.add(role)
 
                 # convert sets to a list
                 ROLES_TO_ADD = list(ROLES_TO_ADD)
