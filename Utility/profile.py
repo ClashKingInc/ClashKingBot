@@ -276,7 +276,7 @@ class profiles(commands.Cog, name="Profile"):
             attacks = our_player.attacks
             required_attacks = war.attacks_per_member
             if len(attacks) < required_attacks:
-                war_hits += f"({len(attacks)}/{required_attacks}) - {player.name}\n"
+                war_hits += f"({len(attacks)}/{required_attacks}) | <t:{int(war.end_time.time.timestamp())}:R> - {player.name}\n"
         return war_hits
 
 
