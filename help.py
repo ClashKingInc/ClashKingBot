@@ -35,12 +35,26 @@ class help(commands.Cog):
             if children != {}:
                 for child in children:
                     command = children[child]
-                    full_name = f"{base_command} {command.name}"
-                    #for option in command.body.options:
-                        #full_name += f" [{option.name}]"
-                    cog_dict[cog_name].append(full_name)
-                    desc = command.body.description
-                    command_description[full_name] = desc
+                    try:
+                        sub_children = command.children
+                    except:
+                        sub_children = {}
+                    if sub_children != {}:
+                        for sub_child in sub_children:
+                            sub_command = sub_children[sub_child]
+                            full_name = f"{base_command} {command.name} {sub_command.name}"
+                            # for option in command.body.options:
+                            # full_name += f" [{option.name}]"
+                            cog_dict[cog_name].append(full_name)
+                            desc = sub_command.body.description
+                            command_description[full_name] = desc
+                    else:
+                        full_name = f"{base_command} {command.name}"
+                        #for option in command.body.options:
+                            #full_name += f" [{option.name}]"
+                        cog_dict[cog_name].append(full_name)
+                        desc = command.body.description
+                        command_description[full_name] = desc
             else:
                 desc = command.description
                 #for option in command.body.options:
@@ -60,7 +74,6 @@ class help(commands.Cog):
                 text = ""
                 commands = cog_dict[cog]
                 for command in commands:
-
                     description = command_description[command]
                     name = command.split(" ")[0]
                     command_ = self.bot.get_global_command_named(name=name)

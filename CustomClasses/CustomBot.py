@@ -562,6 +562,8 @@ class CustomClient(commands.Bot):
                 clan = await self.coc_client.get_clan(clan_tag)
             except:
                 return None
+        if clan.member_count == 0:
+            return None
         return clan
 
     async def get_current_war_times(self, tags: list):

@@ -77,6 +77,7 @@ initial_extensions = [
     "Setups.addclans",
     "Setups.autoboard",
     "Setups.evalsetup",
+    "Reminders.ReminderSetup",
     "Setups.voice_countdowns",
     "Setups.welcome_messages",
     "Utility.army",
@@ -89,7 +90,6 @@ initial_extensions = [
     "other",
     "settings",
     "owner_commands",
-    #"BackgroundCrons.reminders"
 ]
 
 if not IS_BETA:
@@ -101,7 +101,7 @@ if not IS_BETA:
         "BackgroundCrons.reddit_recruit_feed",
         "BackgroundCrons.dm_reports",
         "BackgroundCrons.store_clan_capital",
-        "BackgroundCrons.reminders",
+        "Reminders.ReminderCrons",
         "EventHub.clan_capital_events",
         "EventHub.join_leave_events",
         "EventHub.ban_events",

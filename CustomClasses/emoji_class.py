@@ -70,6 +70,7 @@ class Emojis():
         self.versus_trophy = EmojiType("<:versustrophy:1046117900907450399>")
         self.up_green_arrow = EmojiType("<:warwon:932212939899949176>")
         self.down_red_arrow = EmojiType("<:warlost:932212154164183081>")
+        self.capital_trophy = EmojiType("<:capital_trophy:1054056202864177232>")
 
 
 

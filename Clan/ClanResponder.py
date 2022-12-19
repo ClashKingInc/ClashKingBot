@@ -73,7 +73,7 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking, previous_s
     capital_league_emoji = league_and_trophies_emoji(str(clan.capital_league))
 
     clan_capital_text = f"Capital League: {capital_league_emoji}{clan.capital_league}\n" \
-                        f"Capital Points: {clan.capital_points}\n" \
+                        f"Capital Points: {bot.emoji.capital_trophy}{clan.capital_points}\n" \
                         f"Capital Hall: {fetch_emoji(f'Capital_Hall{coc.utils.get(clan.capital_districts, id=70000000).hall_level}')} Level {coc.utils.get(clan.capital_districts, id=70000000).hall_level}\n"
 
     clan_type_converter = {"open" : "Anyone Can Join", "inviteOnly" : "Invite Only", "closed" : "Closed"}
@@ -142,10 +142,13 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking, previous_s
     total_donated = sum([player.donos().donated for player in clan_members])
     total_received = sum([player.donos().received for player in clan_members])
 
+    now = datetime.utcnow()
     time_add = defaultdict(set)
     for player in clan_members:
         for time in player.season_last_online():
             time_to_date = datetime.fromtimestamp(time)
+            if now.date() == time_to_date.date():
+                continue
             time_add[str(time_to_date.date())].add(player.tag)
 
     num_players_day = []
