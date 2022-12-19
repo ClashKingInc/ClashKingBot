@@ -403,10 +403,10 @@ class family_commands(commands.Cog):
         embed = await self.create_cwl_leagues(guild=ctx.guild)
         buttons = disnake.ui.ActionRow()
         buttons.append_item(
-            disnake.ui.Button(label="CWL", emoji=self.bot.emoji.cwl_medal.partial_emoji, style=disnake.ButtonStyle.grey,
+            disnake.ui.Button(label="CWL", emoji=self.bot.emoji.cwl_medal.partial_emoji, style=disnake.ButtonStyle.green,
                               custom_id=f"cwlleaguesfam_"))
         buttons.append_item(disnake.ui.Button(label="Capital", emoji=self.bot.emoji.capital_trophy.partial_emoji,
-                                              style=disnake.ButtonStyle.green, custom_id=f"capitalleaguesfam_"))
+                                              style=disnake.ButtonStyle.grey, custom_id=f"capitalleaguesfam_"))
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     async def cwl_ranking_create(self, clan: coc.Clan):
@@ -559,11 +559,25 @@ class family_commands(commands.Cog):
         elif "cwlleaguesfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             embed = await self.create_cwl_leagues(guild=ctx.guild)
-            await ctx.edit_original_message(embed=embed)
+            buttons = disnake.ui.ActionRow()
+            buttons.append_item(
+                     disnake.ui.Button(label="CWL", emoji=self.bot.emoji.cwl_medal.partial_emoji, style=disnake.ButtonStyle.green,
+                              custom_id=f"cwlleaguesfam_"))
+            buttons.append_item(disnake.ui.Button(label="Capital", emoji=self.bot.emoji.capital_trophy.partial_emoji,
+                                              style=disnake.ButtonStyle.grey, custom_id=f"capitalleaguesfam_"))
+
+            await ctx.edit_original_message(embed=embed, components=buttons)
         elif "capitalleaguesfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             embed = await self.create_capital_leagues(guild=ctx.guild)
-            await ctx.edit_original_message(embed=embed)
+            buttons = disnake.ui.ActionRow()
+            buttons.append_item(
+                    disnake.ui.Button(label="CWL", emoji=self.bot.emoji.cwl_medal.partial_emoji, style=disnake.ButtonStyle.grey,
+                              custom_id=f"cwlleaguesfam_"))
+            buttons.append_item(disnake.ui.Button(label="Capital", emoji=self.bot.emoji.capital_trophy.partial_emoji,
+                                              style=disnake.ButtonStyle.green, custom_id=f"capitalleaguesfam_"))
+
+            await ctx.edit_original_message(embed=embed, components=buttons)
 
 def setup(bot: CustomClient):
     bot.add_cog(family_commands(bot))
