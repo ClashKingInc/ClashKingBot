@@ -94,7 +94,7 @@ class reminders(commands.Cog, name="Reminder Cron"):
                 num_missing = missing[player_tag]
                 name = names[player_tag]
                 member = disnake.utils.get(server.members, id=discord_id)
-                if len(missing_text) >= 3800:
+                if len(missing_text) >= 1900:
                     missing_text_list.append(missing_text)
                     missing_text = ""
                 if member is None:
