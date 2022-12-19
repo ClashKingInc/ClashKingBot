@@ -20,10 +20,13 @@ class StoreClanCapital(commands.Cog):
 
         weekend = gen_raid_weekend_datestrings(2)[1]
         clans: list[coc.Clan] = await self.bot.get_clans(tags=tags)
+        clans = [clan for clan in clans if clan is not None]
 
         async def get_raid(tag):
             clan = coc.utils.get(clans, tag=tag)
-            raid_log_entry: RaidLogEntry = get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot)
+            if clan is None:
+                return (None, None)
+            raid_log_entry: RaidLogEntry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot)
             if raid_log_entry is not None:
                 await self.bot.raid_weekend_db.insert_one({
                     "clan_tag" : clan.tag,

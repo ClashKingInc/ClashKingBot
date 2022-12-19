@@ -39,7 +39,7 @@ async def get_raidlog_entry(clan: coc.Clan, weekend: str, bot):
     if weekend_raid is not None and sum(member.capital_resources_looted for member in weekend_raid.members) != 0:
         return weekend_raid
     else:
-        raid_data = await bot.raid_weekend_db.find_one({"startTime" : f"{weekend_timestamp.time.strftime('%Y%m%dT%H%M%S.000Z')}"})
+        raid_data = await bot.raid_weekend_db.find_one({"clan_tag" : clan.tag, "data.startTime" : f"{weekend_timestamp.time.strftime('%Y%m%dT%H%M%S.000Z')}"})
         if raid_data is not None:
             entry: RaidLogEntry = RaidLogEntry(data=raid_data, client=bot.coc_client)
             if sum(member.capital_resources_looted for member in entry.members) != 0:
