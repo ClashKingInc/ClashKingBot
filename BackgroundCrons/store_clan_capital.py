@@ -3,39 +3,48 @@ import coc
 import asyncio
 from main import scheduler
 from CustomClasses.CustomBot import CustomClient
-from utils.clash import weekend_timestamps
+from utils.ClanCapital import get_raidlog_entry, gen_raid_weekend_datestrings
 from pymongo import UpdateOne
+from coc.raid import RaidLogEntry
 
 class StoreClanCapital(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.store_cc, "cron", day_of_week="mon", hour=12)
-
+        scheduler.add_job(self.store_cc, "cron", day_of_week="mon", hour=7, minute=30)
 
     async def store_cc(self):
         tags = await self.bot.clan_db.distinct("tag")
         tasks = []
         date = self.bot.gen_raid_date()
-        async def get_raidlog(tag):
-            raidlog = await self.bot.coc_client.get_raidlog(tag)
-            weekend_times = weekend_timestamps()
-            raid_weekend = self.get_raid(raid_log=raidlog, before=weekend_times[1], after=weekend_times[2])
-            return [raid_weekend, tag]
+
+        weekend = gen_raid_weekend_datestrings(2)[1]
+        clans: list[coc.Clan] = await self.bot.get_clans(tags=tags)
+
+        async def get_raid(tag):
+            clan = coc.utils.get(clans, tag=tag)
+            raid_log_entry: RaidLogEntry = get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot)
+            if raid_log_entry is not None:
+                await self.bot.raid_weekend_db.insert_one({
+                    "clan_tag" : clan.tag,
+                    "data" : raid_log_entry._raw_data
+                })
+            return (clan, raid_log_entry)
 
         for tag in tags:
-            task = asyncio.ensure_future(get_raidlog(tag))
+            task = asyncio.ensure_future(get_raid(tag))
             tasks.append(task)
         responses = await asyncio.gather(*tasks)
 
         updates = []
-        for raid_weekend in responses:
-            if raid_weekend[0] is None:
+        for clan, raid_log_entry in responses:
+            if raid_log_entry is None:
                 continue
-            for member in raid_weekend[0].members:
+            raid_log_entry: RaidLogEntry
+            for member in raid_log_entry.members:
                 if member is None:
                     continue
-                updates.append(UpdateOne({"tag" : member.tag}, {"$set": {f"capital_gold.{date}.raided_clan": raid_weekend[1]}}, upsert=True))
+                updates.append(UpdateOne({"tag" : member.tag}, {"$set": {f"capital_gold.{date}.raided_clan": clan.tag}}, upsert=True))
                 updates.append(UpdateOne({"tag": member.tag}, {"$set": {f"capital_gold.{date}.raid": [member.capital_resources_looted]}}, upsert=True))
                 updates.append(UpdateOne({"tag": member.tag}, {"$set": {f"capital_gold.{date}.limit_hits": (member.attack_limit + member.bonus_attack_limit)}}, upsert=True))
                 updates.append(UpdateOne({"tag": member.tag}, {"$set": {f"capital_gold.{date}.attack_count": member.attack_count}}, upsert=True))
@@ -43,13 +52,6 @@ class StoreClanCapital(commands.Cog):
         if updates != []:
             results = await self.bot.player_stats.bulk_write(updates)
             print(results.bulk_api_result)
-
-    def get_raid(self, raid_log, after, before):
-        for raid in raid_log:
-            time_start = int(raid.start_time.time.timestamp())
-            if before > time_start > after:
-                return raid
-        return None
 
 
 
