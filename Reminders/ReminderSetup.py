@@ -295,7 +295,6 @@ class ReminderCreation(commands.Cog, name="Reminders"):
     @clan_capital_reminder_remove.autocomplete("clan")
     @inactivity_reminder_create.autocomplete("clan")
     @inactivity_reminder_remove.autocomplete("clan")
-    @inactivity_reminder_ping.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
