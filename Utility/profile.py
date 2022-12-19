@@ -311,14 +311,15 @@ class profiles(commands.Cog, name="Profile"):
             raid_log_entry: RaidLogEntry
             our_player = coc.utils.get(raid_log_entry.members, tag=player.tag)
             if our_player is None:
-                attacks = []
+                attacks = 0
                 required_attacks = 6
             else:
-                attacks = our_player.attacks
+                attacks = our_player.attack_count
                 required_attacks = our_player.attack_limit + our_player.bonus_attack_limit
-            if len(attacks) < required_attacks:
-                raid_hits += f"({len(attacks)}/{required_attacks}) - {player.name}\n"
+            if attacks < required_attacks:
+                raid_hits += f"({attacks}/{required_attacks}) - {player.name}\n"
         return raid_hits
+
 
     async def get_inactive(self, linked_accounts: List[MyCustomPlayer]):
         now = int(datetime.now(tz=utc).timestamp())
