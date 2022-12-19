@@ -108,7 +108,6 @@ if not IS_BETA:
         "EventHub.player_upgrade_events",
         "EventHub.legend_events",
         "Link & Eval.link_button",
-        "Setups.clan_boards",
         "War & CWL.war_track",
         "discord_events",
         "erikuh_comp",
