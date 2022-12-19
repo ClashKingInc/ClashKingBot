@@ -226,7 +226,7 @@ class profiles(commands.Cog, name="Profile"):
         if discord_user is None:
             discord_user = ctx.author
         linked_accounts = await search_results(self.bot, str(discord_user.id))
-        embed = disnake.Embed(title=f"{ctx.author.display_name} To-Do List", color=disnake.Color.green())
+        embed = disnake.Embed(title=f"{discord_user.display_name} To-Do List", color=disnake.Color.green())
 
         if linked_accounts == []:
             embed.description = "No accounts linked, use `/link` to get started!"
