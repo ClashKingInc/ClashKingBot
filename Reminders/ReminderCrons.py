@@ -3,7 +3,8 @@ import asyncio
 import coc
 import disnake
 import math
-
+import pytz
+utc = pytz.utc
 from main import check_commands
 from disnake.ext import commands
 from main import scheduler
@@ -302,7 +303,7 @@ class reminders(commands.Cog, name="Reminder Cron"):
 
             seconds_inactive = int(str(reminder_time).replace("hr", "")) * 60 * 60
             max_diff = 120 * 60 #time in seconds between runs
-            now = datetime.datetime.utcnow()
+            now = datetime.datetime.now(tz=utc)
             clan_members = [member.tag for member in clan.members]
             clan_members_stats = await self.bot.player_stats.find({f"tag": {"$in" : clan_members}}).to_list(length=100)
             inactive_tags = []
@@ -311,7 +312,7 @@ class reminders(commands.Cog, name="Reminder Cron"):
                 last_online = stat.get("last_online")
                 if last_online is None:
                     continue
-                lo_time = datetime.datetime.fromtimestamp(float(last_online))
+                lo_time = datetime.datetime.fromtimestamp(float(last_online), tz=utc)
                 passed_time = (now - lo_time).total_seconds()
                 if passed_time - seconds_inactive >= 0 and passed_time - seconds_inactive <= max_diff:
                     inactive_tags.append(stat.get("tag"))
