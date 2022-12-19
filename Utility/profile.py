@@ -1,17 +1,21 @@
 import coc
 import disnake
-
+from coc.raid import RaidLogEntry
 from datetime import date, timedelta, datetime
 from disnake.ext import commands
 from Utility.profile_embeds import *
 from Assets.emojiDictionary import emojiDictionary
 from Utility.pagination import button_pagination
 from utils.search import search_results
+from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from utils.troop_methods import heros, heroPets
 from Assets.thPicDictionary import thDictionary
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from typing import List
+import asyncio
+import pytz
+utc = pytz.utc
 
 class profiles(commands.Cog, name="Profile"):
 
@@ -214,6 +218,120 @@ class profiles(commands.Cog, name="Profile"):
             page = int(res.values[0])
             embed = await self.create_player_hr(player=players[page], start_date=start_date, end_date=end_date)
             await res.edit_original_message(embed=embed)
+
+
+    @player.sub_command(name="to-do", description="Get a list of things to be done (war attack, legends hits, capital raids etc)")
+    async def to_do(self, ctx: disnake.ApplicationCommandInteraction, discord_user: disnake.Member=None):
+        await ctx.response.defer()
+        if discord_user is None:
+            discord_user = ctx.author
+        linked_accounts = await search_results(self.bot, str(discord_user.id))
+        embed = disnake.Embed(title=f"{ctx.author.display_name} To-Do List", color=disnake.Color.green())
+
+        if linked_accounts == []:
+            embed.description = "No accounts linked, use `/link` to get started!"
+            return await ctx.edit_original_message(embed=embed)
+
+        war_hits_to_do = await self.get_war_hits(linked_accounts=linked_accounts)
+        if war_hits_to_do != "":
+            embed.add_field(name="War Hits", value=war_hits_to_do, inline=False)
+
+        legend_hits_to_do = await self.get_legend_hits(linked_accounts=linked_accounts)
+        if legend_hits_to_do != "":
+            embed.add_field(name="Legend Hits", value=legend_hits_to_do, inline=False)
+
+        raid_hits_to_do = await self.get_raid_hits(linked_accounts=linked_accounts)
+        if raid_hits_to_do != "":
+            embed.add_field(name="Raid Hits", value=raid_hits_to_do, inline=False)
+
+        inactive_to_do = await self.get_inactive(linked_accounts=linked_accounts)
+        if inactive_to_do != "":
+            embed.add_field(name="Inactive Accounts (48+ hr)", value=inactive_to_do, inline=False)
+
+        if len(embed.fields) == 0:
+            embed.description = "You're all caught up chief!"
+
+        await ctx.edit_original_message(embed=embed)
+
+    async def get_war_hits(self, linked_accounts: List[MyCustomPlayer]):
+        async def get_clan_wars(clan_tag, player):
+            war = await self.bot.get_clanwar(clanTag=clan_tag)
+            return (player, war)
+
+        tasks = []
+        for player in linked_accounts:
+            if player.clan is not None:
+                task = asyncio.ensure_future(get_clan_wars(clan_tag=player.clan.tag, player=player))
+                tasks.append(task)
+        wars = await asyncio.gather(*tasks)
+
+        war_hits = ""
+        for player, war in wars:
+            if war is None:
+                continue
+            war: coc.ClanWar
+            our_player = coc.utils.get(war.members, tag=player.tag)
+            if our_player is None:
+                continue
+            attacks = our_player.attacks
+            required_attacks = war.attacks_per_member
+            if len(attacks) < required_attacks:
+                war_hits += f"({len(attacks)}/{required_attacks}) - {player.name}\n"
+        return war_hits
+
+
+    async def get_legend_hits(self, linked_accounts: List[MyCustomPlayer]):
+        legend_hits_remaining = ""
+        for player in linked_accounts:
+            if player.is_legends():
+                if player.legend_day().num_attacks.integer < 8:
+                    legend_hits_remaining += f"({player.legend_day().num_attacks.integer}/8) - {player.name}\n"
+        return legend_hits_remaining
+
+
+    async def get_raid_hits(self, linked_accounts: List[MyCustomPlayer]):
+        async def get_raid(clan_tag, player):
+            weekend = gen_raid_weekend_datestrings(number_of_weeks=1)[0]
+            weekend_raid_entry = await get_raidlog_entry(clan=player.clan, weekend=weekend, bot=self.bot)
+            if weekend_raid_entry is not None and str(weekend_raid_entry.state) == "ended":
+                weekend_raid_entry = None
+            return (player, weekend_raid_entry)
+
+        tasks = []
+        for player in linked_accounts:
+            if player.clan is not None:
+                task = asyncio.ensure_future(get_raid(clan_tag=player.clan.tag, player=player))
+                tasks.append(task)
+        wars = await asyncio.gather(*tasks)
+
+        raid_hits = ""
+        for player, raid_log_entry in wars:
+            if raid_log_entry is None:
+                continue
+            raid_log_entry: RaidLogEntry
+            our_player = coc.utils.get(raid_log_entry.members, tag=player.tag)
+            if our_player is None:
+                attacks = []
+                required_attacks = 6
+            else:
+                attacks = our_player.attacks
+                required_attacks = our_player.attack_limit + our_player.bonus_attack_limit
+            if len(attacks) < required_attacks:
+                raid_hits += f"({len(attacks)}/{required_attacks}) - {player.name}\n"
+        return raid_hits
+
+    async def get_inactive(self, linked_accounts: List[MyCustomPlayer]):
+        now = int(datetime.now(tz=utc).timestamp())
+        inactive_text = ""
+        for player in linked_accounts:
+            last_online = player.last_online
+            #48 hours in seconds
+            if last_online is None:
+                continue
+            if now - last_online >= (48 * 60 * 60):
+                inactive_text += f"<t:{last_online}:R> - {player.name}\n"
+        return inactive_text
+
 
     # UTILS
     async def create_player_hr(self, player: MyCustomPlayer, start_date, end_date):

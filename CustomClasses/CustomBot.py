@@ -600,6 +600,14 @@ class CustomClient(commands.Bot):
             except:
                 return None
 
+    async def get_clan_wars(self, tags: list):
+        tasks = []
+        for tag in tags:
+            task = asyncio.ensure_future(self.get_clanwar(clan_tag=tag))
+            tasks.append(task)
+        responses = await asyncio.gather(*tasks)
+        return responses
+
     #SERVER HELPERS
     async def open_clan_capital_reminders(self):
         pass
