@@ -350,7 +350,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         await channel.send(embed=embed)
         await ctx.edit_original_message(content="Report submitted!")
 
-    @global_chat.sub_command(name="staff-ban", description="Staff Command. Ban a user.")
+    @global_chat.sub_command(name="staff-ban", description="Staff Command. Ban a user.", guild_ids=[923764211845312533])
     @commands.check_any(commands.has_any_role(*[1034134693869797416, 923787651058901062]))
     async def global_chat_ban(self, ctx: disnake.ApplicationCommandInteraction, user_id: str):
         await ctx.response.defer()
@@ -368,7 +368,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         self.bot.banned_global.append(int(user.id))
         await ctx.edit_original_message(f"Banned {user.name}")
 
-    @global_chat.sub_command(name="staff-strike", description="Staff Command. Give a user a strike.")
+    @global_chat.sub_command(name="staff-strike", description="Staff Command. Give a user a strike.", guild_ids=[923764211845312533])
     @commands.check_any(commands.has_any_role(*[1034134693869797416, 923787651058901062]))
     async def global_chat_strike(self, ctx: disnake.ApplicationCommandInteraction, user_id : str):
         await ctx.response.defer()
@@ -388,7 +388,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             self.bot.banned_global.append(user.id)
         await ctx.edit_original_message(f"Gave {str(user)} a strike")
 
-    @global_chat.sub_command(name="delete-message", description="Staff Command. Delete a message")
+    @global_chat.sub_command(name="delete-message", description="Staff Command. Delete a message", guild_ids=[923764211845312533])
     @commands.check_any(commands.has_any_role(*[1034134693869797416, 923787651058901062]))
     async def delete_mes(self, ctx: disnake.ApplicationCommandInteraction, message_):
         message_ = int(message_)
