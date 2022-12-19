@@ -73,9 +73,10 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking, previous_s
     capital_league_emoji = league_and_trophies_emoji(str(clan.capital_league))
 
     hall_level = 0 if coc.utils.get(clan.capital_districts, id=70000000) is None else coc.utils.get(clan.capital_districts, id=70000000).hall_level
+    hall_level_emoji = 1 if hall_level == 0 else hall_level
     clan_capital_text = f"Capital League: {capital_league_emoji}{clan.capital_league}\n" \
                         f"Capital Points: {bot.emoji.capital_trophy}{clan.capital_points}\n" \
-                        f"Capital Hall: {fetch_emoji(f'Capital_Hall{hall_level}')} Level {hall_level}\n"
+                        f"Capital Hall: {fetch_emoji(f'Capital_Hall{hall_level_emoji}')} Level {hall_level}\n"
 
     clan_type_converter = {"open" : "Anyone Can Join", "inviteOnly" : "Invite Only", "closed" : "Closed"}
     embed = Embed(
