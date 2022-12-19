@@ -453,10 +453,14 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         weekend_raid_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot)
 
         (raid_embed, total_looted, total_attacks) = clan_responder.clan_raid_weekend_raid_stats(clan=clan, raid_log_entry=weekend_raid_entry)
-        donation_embed = await clan_responder.clan_raid_weekend_donation_stats(clan=clan, raid_log_entry=weekend_raid_entry, bot=self.bot)
+        donation_embed = await clan_responder.clan_raid_weekend_donation_stats(clan=clan, weekend=weekend, bot=self.bot)
 
         buttons = raid_buttons(self.bot, [])
-        await ctx.send(embed=raid_embed, components=buttons)
+        if "No raid found!" in raid_embed.description:
+            await ctx.send(embed=donation_embed, components=buttons)
+        else:
+            await ctx.send(embed=raid_embed, components=buttons)
+
         '''
         data = []
         index = []

@@ -196,7 +196,7 @@ class reminders(commands.Cog, name="Reminder Cron"):
             if raid_log_entry is None:
                 continue
             (raid_embed, total_looted, total_attacks) = clan_raid_weekend_raid_stats(clan=clan, raid_log_entry=raid_log_entry)
-            donation_embed = await clan_raid_weekend_donation_stats(clan=clan, raid_log_entry=raid_log_entry, bot=self.bot)
+            donation_embed = await clan_raid_weekend_donation_stats(clan=clan, weekend=weekend, bot=self.bot)
 
             try:
                 await clancapital_channel.send(embed=raid_embed)

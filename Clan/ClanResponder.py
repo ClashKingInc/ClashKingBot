@@ -540,8 +540,7 @@ def clan_th_composition(clan: coc.Clan, member_list):
     return embed
 
 
-async def clan_raid_weekend_donation_stats(clan: coc.Clan, raid_log_entry: RaidLogEntry, bot: CustomClient):
-    weekend = str(raid_log_entry.start_time.time.date())
+async def clan_raid_weekend_donation_stats(clan: coc.Clan, weekend: str, bot: CustomClient):
 
     member_tags = [member.tag for member in clan.members]
     capital_raid_member_tags = await bot.player_stats.distinct("tag", filter={f"capital_gold.{weekend}.raided_clan": clan.tag})
