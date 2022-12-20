@@ -125,8 +125,8 @@ class Cwl(commands.Cog, name="CWL"):
                     pass
                 break
 
+            await res.response.defer()
             if "cwlchoose_" in res.values[0]:
-                await res.response.defer()
                 clan_tag = (str(res.values[0]).split("_"))[-1]
                 clan = await self.bot.getClan(clan_tag)
                 war = await self.bot.get_clanwar(clan_tag)
@@ -144,31 +144,31 @@ class Cwl(commands.Cog, name="CWL"):
                     if str(w.state) == "preparation":
                         next_war = w
             elif res.values[0] == "round":
-                await res.response.edit_message(embed=main)
+                await res.edit_original_message(embed=main)
             elif res.values[0] == "nextround":
                 embed = await self.war_embed(next_war, clan)
-                await res.response.edit_message(embed=embed)
+                await res.edit_original_message(embed=embed)
             elif res.values[0] == "lineup":
                 embed1 = await self.roster_embed(next_war)
                 embed2 = await self.opp_roster_embed(next_war)
-                await res.response.edit_message(embeds=[embed1, embed2])
+                await res.edit_original_message(embeds=[embed1, embed2])
             elif res.values[0] == "stars":
                 embed = await self.star_lb(league_wars, clan)
                 embed2 = await self.star_lb(league_wars, clan, defense=True)
-                await res.response.edit_message(embeds=[embed, embed2])
+                await res.edit_original_message(embeds=[embed, embed2])
             elif res.values[0] == "rankings":
                 embed = await self.ranking_lb(group, clan)
-                await res.response.edit_message(embed=embed)
+                await res.edit_original_message(embed=embed)
             elif res.values[0] == "allrounds":
                 embed = await self.all_rounds(league_wars, clan)
-                await res.response.edit_message(embed=embed)
+                await res.edit_original_message(embed=embed)
             elif res.values[0] == "all_members":
                 embed = await self.all_members(members, clan)
-                await res.response.edit_message(embed=embed)
+                await res.edit_original_message(embed=embed)
             elif res.values[0] == "current_lineup":
                 embed1 = await self.roster_embed(war)
                 embed2 = await self.opp_roster_embed(war)
-                await res.response.edit_message(embeds=[embed1, embed2])
+                await res.edit_original_message(embeds=[embed1, embed2])
 
     async def stat_components(self, war: coc.ClanWar, next_war: coc.ClanWar):
         map = partial_emoji_gen(self.bot, "<:map:944913638500761600>")
