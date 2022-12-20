@@ -658,7 +658,7 @@ class eval(commands.Cog, name="Eval"):
 
                     # if server has leadership_eval turned on
                     # check & add any leadership roles
-                    if leadership_eval or ("leadership" in role_types_to_eval):
+                    if leadership_eval and ("leadership" in role_types_to_eval):
                         in_clan_role = str(player.role)
                         if in_clan_role == "Co-Leader" or in_clan_role == "Leader":
                             leadership_clan_role = clan_leadership_role_dict[player.clan.tag]
