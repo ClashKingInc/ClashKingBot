@@ -74,7 +74,7 @@ class reminders(commands.Cog, name="Reminder Cron"):
             if custom_text is None:
                 custom_text = ""
             else:
-                custom_text = "\n\n" + custom_text
+                custom_text = "\n" + custom_text
             channel = reminder.get("channel")
             try:
                 channel = await self.bot.fetch_channel(channel)
@@ -94,19 +94,22 @@ class reminders(commands.Cog, name="Reminder Cron"):
                 num_missing = missing[player_tag]
                 name = names[player_tag]
                 member = disnake.utils.get(server.members, id=discord_id)
-                if len(missing_text) >= 1900:
+                if len(missing_text) + len(custom_text) + 100 >= 2000:
                     missing_text_list.append(missing_text)
                     missing_text = ""
                 if member is None:
                     missing_text += f"{num_missing} hits- {self.bot.fetch_emoji(ths[player_tag])}{name} | {player_tag}\n"
                 else:
                     missing_text += f"{num_missing} hits- {self.bot.fetch_emoji(ths[player_tag])}{name} | {member.mention}\n"
+            if missing_text != "":
+                missing_text_list.append(missing_text)
             badge = await self.bot.create_new_badge_emoji(url=war.clan.badge.url)
             for text in missing_text_list:
                 reminder_text = f"**{reminder_time} Hours Remaining in War**\n" \
                                 f"**{badge}{war.clan.name} vs {war.opponent.name}**\n\n" \
-                                f"{text}" \
-                                f"{custom_text}"
+                                f"{text}"
+                if text == missing_text_list[-1]:
+                    reminder_text += f"{custom_text}"
                 await channel.send(content=reminder_text)
 
     async def clan_capital_reminder(self, reminder_time):
