@@ -111,6 +111,7 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking, previous_s
         clangames_season_stats = await bot.player_stats.find({f"clan_games.{previous_season}.clan": clan.tag}).to_list(length=100)
         clangames_season_stats = sum([player.get(f"clan_games").get(f"{previous_season}").get("points") for player in clangames_season_stats])
 
+    season_used = ""
     cwl_text = "No Recent CWL\n"
     response = await bot.cwl_db.find_one({"clan_tag" : clan.tag, "season" : season})
     if response is None:
@@ -118,14 +119,15 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking, previous_s
     if response is None:
         async with aiohttp.ClientSession() as session:
             url = (f"https://api.clashofstats.com/clans/{clan.tag.replace('#', '')}/cwl/seasons/{season}")
+            season_used = season
             response = await fetch(url, session)
             if "Not Found" in str(response):
                 url = (f"https://api.clashofstats.com/clans/{clan.tag.replace('#', '')}/cwl/seasons/{previous_season}")
+                season_used = previous_season
                 response = await fetch(url, session)
-            if "Not Found" not in str(response):
-                await bot.cwl_db.insert_one({"clan_tag" : clan.tag,
-                                         "season" : response["season"],
-                                         "data" : response})
+            await bot.cwl_db.insert_one({"clan_tag" : clan.tag,
+                                     "season" : season_used,
+                                     "data" : response})
     else:
         response = response.get("data")
 
