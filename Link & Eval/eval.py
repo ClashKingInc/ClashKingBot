@@ -589,7 +589,7 @@ class eval(commands.Cog, name="Eval"):
                                 league = str(player.league).split(" ")
                                 league = league[0].lower()
                                 try:
-                                    league_role = league_roles[league]
+                                    league_role = league_roles[f"{league}_league"]
                                     ROLES_SHOULD_HAVE.add(league_role)
                                     if league_role not in MASTER_ROLES:
                                         ROLES_TO_ADD.add(league_role)
