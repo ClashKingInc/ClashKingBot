@@ -11,7 +11,7 @@ from Assets.emojiDictionary import emojiDictionary
 from collections import defaultdict
 import operator
 import aiohttp
-import calendar
+import re
 
 from CustomClasses.CustomBot import CustomClient
 
@@ -274,7 +274,9 @@ class Cwl(commands.Cog, name="CWL"):
         tags = [member.tag for member in members]
 
         x = 1
-        for player in self.bot.coc_client.get_players(tags):
+        for player in await self.bot.get_players(tags):
+            if isinstance(player, coc.errors.NotFound):
+                continue
             th = player.town_hall
             th_emoji = emojiDictionary(th)
             place = str(x) + "."
@@ -287,7 +289,8 @@ class Cwl(commands.Cog, name="CWL"):
                     hero_total += hero.level
             if hero_total == 0:
                 hero_total = ""
-            roster += f"\u200e`{place}` {th_emoji} \u200e{player.name}\u200e | {hero_total}\n"
+            name = re.sub('[*_`~/]', '', player.name)
+            roster += f"\u200e`{place}` {th_emoji} \u200e{name}\u200e | {hero_total}\n"
             x += 1
 
         embed = disnake.Embed(title=f"{clan.name} CWL Members", description=roster,
