@@ -244,6 +244,10 @@ class profiles(commands.Cog, name="Profile"):
         if raid_hits_to_do != "":
             embed.add_field(name="Raid Hits", value=raid_hits_to_do, inline=False)
 
+        clangames_to_do = await self.get_clan_games(linked_accounts=linked_accounts)
+        if clangames_to_do != "":
+            embed.add_field(name="Clan Games", value=clangames_to_do, inline=False)
+
         inactive_to_do = await self.get_inactive(linked_accounts=linked_accounts)
         if inactive_to_do != "":
             embed.add_field(name="Inactive Accounts (48+ hr)", value=inactive_to_do, inline=False)
@@ -253,9 +257,12 @@ class profiles(commands.Cog, name="Profile"):
 
         await ctx.edit_original_message(embed=embed)
 
+
     async def get_war_hits(self, linked_accounts: List[MyCustomPlayer]):
         async def get_clan_wars(clan_tag, player):
             war = await self.bot.get_clanwar(clanTag=clan_tag)
+            if str(war.state) == "notInWar":
+                war = None
             if war is not None and war.end_time.seconds_until <= 0:
                 war = None
             return (player, war)
@@ -335,6 +342,34 @@ class profiles(commands.Cog, name="Profile"):
                 inactive_text += f"<t:{last_online}:R> - {player.name}\n"
         return inactive_text
 
+
+    async def get_clan_games(self, linked_accounts: List[MyCustomPlayer]):
+        missing_clan_games = ""
+        if self.is_clan_games():
+            for player in linked_accounts:
+                points = player.clan_games()
+                if points < 4000:
+                    missing_clan_games += f"({points}/4000) - {player.name}\n"
+
+        return missing_clan_games
+
+
+    def is_clan_games(self):
+        now = datetime.utcnow().replace(tzinfo=utc)
+        year = now.year
+        month = now.month
+        day = now.day
+        hour = now.hour
+        first = datetime(year, month, 22, hour=8, tzinfo=utc)
+        end = datetime(year, month, 28, hour=8, tzinfo=utc)
+        if (day >= 22 and day <= 28):
+            if (day == 22 and hour < 8) or (day == 28 and hour >= 8):
+                is_games = False
+            else:
+                is_games = True
+        else:
+            is_games = False
+        return is_games
 
     # UTILS
     async def create_player_hr(self, player: MyCustomPlayer, start_date, end_date):
