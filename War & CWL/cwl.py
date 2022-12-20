@@ -275,7 +275,7 @@ class Cwl(commands.Cog, name="CWL"):
 
         x = 1
         for player in await self.bot.get_players(tags):
-            if isinstance(player, coc.errors.NotFound):
+            if player is None:
                 continue
             th = player.town_hall
             th_emoji = emojiDictionary(th)
