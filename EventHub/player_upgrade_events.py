@@ -3,6 +3,7 @@ import disnake
 import pytz
 tiz = pytz.utc
 import coc
+import re
 
 from CustomClasses.CustomBot import CustomClient
 from EventHub.event_websockets import player_ee
@@ -31,6 +32,7 @@ class UpgradeEvent(commands.Cog):
             if new_player.league.id == 29000000:
                 return
             tracked = self.bot.clan_db.find({"tag": f"{new_player.clan.tag}"})
+            name = re.sub('[*_`~/]', '', new_player.name)
             for cc in await tracked.to_list(length=limit):
                 upgrades_channel = cc.get("upgrade_log")
                 if upgrades_channel is None:
@@ -46,7 +48,7 @@ class UpgradeEvent(commands.Cog):
                 if upgrades_channel is None:
                     continue
                 try:
-                    await upgrades_channel.send(content=f"{self.bot.fetch_emoji(name=new_player.town_hall)}{new_player.name} moved to {league_emoji(new_player)}{new_player.league.name}")
+                    await upgrades_channel.send(content=f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} moved to {league_emoji(new_player)}{new_player.league.name}")
                 except:
                     continue
 
@@ -59,6 +61,7 @@ class UpgradeEvent(commands.Cog):
             if limit == 0:
                 return
             tracked = self.bot.clan_db.find({"tag": f"{new_player.clan.tag}"})
+            new_name = re.sub('[*_`~/]', '', new_player.name)
             for cc in await tracked.to_list(length=limit):
                 upgrades_channel = cc.get("upgrade_log")
                 if upgrades_channel is None:
@@ -74,8 +77,9 @@ class UpgradeEvent(commands.Cog):
                 if upgrades_channel is None:
                     continue
                 old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
+                old_name = re.sub('[*_`~/]', '', old_player.name)
                 try:
-                    await upgrades_channel.send(content=f"{self.bot.fetch_emoji(name=new_player.town_hall)}{old_player.name} changed their name to {new_player.name}")
+                    await upgrades_channel.send(content=f"{self.bot.fetch_emoji(name=new_player.town_hall)}{old_name} changed their name to {new_name}")
                 except:
                     continue
 
@@ -87,6 +91,8 @@ class UpgradeEvent(commands.Cog):
             limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_player.clan.tag}"})
             if limit == 0:
                 return
+
+            name = re.sub('[*_`~/]', '', new_player.name)
             tracked = self.bot.clan_db.find({"tag": f"{new_player.clan.tag}"})
             for cc in await tracked.to_list(length=limit):
                 upgrades_channel = cc.get("upgrade_log")
@@ -104,7 +110,7 @@ class UpgradeEvent(commands.Cog):
                     continue
 
                 try:
-                    await upgrades_channel.send(content=f"{new_player.name} upgraded to {self.bot.fetch_emoji(name=new_player.town_hall)}Townhall {new_player.town_hall}")
+                    await upgrades_channel.send(content=f"{name} upgraded to {self.bot.fetch_emoji(name=new_player.town_hall)}Townhall {new_player.town_hall}")
                 except:
                     continue
 
@@ -117,6 +123,8 @@ class UpgradeEvent(commands.Cog):
             limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_player.clan.tag}"})
             if limit == 0:
                 return
+
+            name = re.sub('[*_`~/]', '', new_player.name)
             tracked = self.bot.clan_db.find({"tag": f"{new_player.clan.tag}"})
             for cc in await tracked.to_list(length=limit):
                 upgrades_channel = cc.get("upgrade_log")
@@ -157,11 +165,11 @@ class UpgradeEvent(commands.Cog):
                     return
                 text = ""
                 for troop in unlocked:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{new_player.name} unlocked {self.bot.fetch_emoji(name=troop.name)}{troop.name}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} unlocked {self.bot.fetch_emoji(name=troop.name)}{troop.name}\n"
                 for troop in boosted:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{new_player.name} boosted {self.bot.fetch_emoji(name=troop.name)}{troop.name}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} boosted {self.bot.fetch_emoji(name=troop.name)}{troop.name}\n"
                 for troop in leveled_up:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{new_player.name} leveled up {self.bot.fetch_emoji(name=troop.name)}{troop.name} to lv{self.bot.get_number_emoji(color='white', number=troop.level)}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} leveled up {self.bot.fetch_emoji(name=troop.name)}{troop.name} to lv{self.bot.get_number_emoji(color='white', number=troop.level)}\n"
 
                 try:
                     await upgrades_channel.send(content=text)
@@ -176,6 +184,8 @@ class UpgradeEvent(commands.Cog):
             limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_player.clan.tag}"})
             if limit == 0:
                 return
+
+            name = re.sub('[*_`~/]', '', new_player.name)
             tracked = self.bot.clan_db.find({"tag": f"{new_player.clan.tag}"})
             for cc in await tracked.to_list(length=limit):
                 upgrades_channel = cc.get("upgrade_log")
@@ -205,9 +215,9 @@ class UpgradeEvent(commands.Cog):
                     return
                 text = ""
                 for hero in unlocked:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{new_player.name} unlocked {self.bot.fetch_emoji(name=hero.name)}{hero.name}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} unlocked {self.bot.fetch_emoji(name=hero.name)}{hero.name}\n"
                 for hero in leveled_up:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{new_player.name} leveled up {self.bot.fetch_emoji(name=hero.name)}{hero.name} to lv{self.bot.get_number_emoji(color='white', number=hero.level)}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} leveled up {self.bot.fetch_emoji(name=hero.name)}{hero.name} to lv{self.bot.get_number_emoji(color='white', number=hero.level)}\n"
 
                 try:
                     await upgrades_channel.send(content=text)
@@ -222,6 +232,8 @@ class UpgradeEvent(commands.Cog):
             limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_player.clan.tag}"})
             if limit == 0:
                 return
+
+            name = re.sub('[*_`~/]', '', new_player.name)
             tracked = self.bot.clan_db.find({"tag": f"{new_player.clan.tag}"})
             for cc in await tracked.to_list(length=limit):
                 upgrades_channel = cc.get("upgrade_log")
@@ -251,9 +263,9 @@ class UpgradeEvent(commands.Cog):
                     return
                 text = ""
                 for spell in unlocked:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{new_player.name} unlocked {self.bot.fetch_emoji(name=spell.name)}{spell.name}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} unlocked {self.bot.fetch_emoji(name=spell.name)}{spell.name}\n"
                 for spell in leveled_up:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{new_player.name} leveled up {self.bot.fetch_emoji(name=spell.name)}{spell.name} to lv{self.bot.get_number_emoji(color='white', number=spell.level)}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} leveled up {self.bot.fetch_emoji(name=spell.name)}{spell.name} to lv{self.bot.get_number_emoji(color='white', number=spell.level)}\n"
 
                 try:
                     await upgrades_channel.send(content=text)
