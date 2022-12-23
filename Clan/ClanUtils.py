@@ -164,9 +164,7 @@ def gen_season_date(seasons_ago=None):
         return dates
 
 
-def create_graph(
-        clans: list, timezone,
-        player_list):
+async def create_graph(clans: list, timezone, bot):
 
     fig, ax = plt.subplots(figsize=(15, 10))
     biggest = 0
@@ -174,8 +172,16 @@ def create_graph(
     for clan in clans:
         times_by_day = {}
 
-        for player in player_list:
-            times = player.season_last_online()
+        last_online_stats = await bot.player_stats.find({f"tag": {"$in": [member.tag for member in clan.members]}}).to_list(length=100)
+
+        for player in last_online_stats:
+            times = player.get("last_online_times")
+            if times is None:
+                times = []
+            season_date = bot.gen_season_date()
+            times = times.get(season_date)
+            if times is None:
+                times = []
             previous_time = None
 
             for time in times:

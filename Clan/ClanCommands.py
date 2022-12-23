@@ -751,9 +751,9 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     @clan.sub_command(
-        name='lastonline-graph',
+        name='activity-graph',
         description="Get a graph showing average clan members on per an hour")
-    async def last_online_graph(
+    async def activity_graph(
             self, ctx: disnake.ApplicationCommandInteraction,
             clan: coc.Clan = commands.Param(converter=clan_converter),
             timezone=commands.Param(name="timezone")):
@@ -763,10 +763,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 "Not a valid timezone, please choose one of the 300+ "
                 "options in the autocomplete"))
 
-        player_tags = [member.tag for member in clan.members]
-        players = await self.bot.get_players(tags=player_tags, custom=True)
-
-        file = clan_utils.create_graph([clan], timezone=pytz.timezone(timezone), player_list=players)
+        file = await clan_utils.create_graph([clan], timezone=pytz.timezone(timezone), bot=self.bot)
 
         clan_tags = await self.bot.clan_db.distinct(
             "tag", filter={"server": ctx.guild.id})
@@ -823,8 +820,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             await res.response.defer()
 
             selected_clans = [clan_dict[value] for value in res.values]
-
-            file = await self.create_graph(selected_clans, timezone=pytz.timezone(timezone))
+            file = await clan_utils.create_graph(selected_clans, timezone=pytz.timezone(timezone), bot=self.bot)
 
             await res.edit_original_message(file=file, attachments=[])
 
@@ -1613,7 +1609,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @last_online.autocomplete("clan")
     @clan_games.autocomplete("clan")
     @clan_donations.autocomplete("clan")
-    @last_online_graph.autocomplete("clan")
+    @activity_graph.autocomplete("clan")
     @war_stats_clan.autocomplete("clan")
     @activities.autocomplete("clan")
     @clan_ping.autocomplete("clan")
@@ -1640,7 +1636,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 return clan_list
         return clan_list[0:25]
 
-    @last_online_graph.autocomplete("timezone")
+    @activity_graph.autocomplete("timezone")
     async def timezone_autocomplete(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         all_tz = pytz.common_timezones
         return_list = []
