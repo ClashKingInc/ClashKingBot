@@ -40,7 +40,7 @@ class reminders(commands.Cog, name="Reminder Cron"):
         scheduler.add_job(self.clan_games_reminder, "cron", args=["2 hr"], day=28, hour=6, misfire_grace_time=None)
         scheduler.add_job(self.clan_games_reminder, "cron", args=["1 hr"], day=28, hour=7, misfire_grace_time=None)
 
-        scheduler.add_job(self.inactivity_reminder, 'interval', minutes=120, misfire_grace_time=None)
+        scheduler.add_job(self.inactivity_reminder, 'interval', minutes=30, misfire_grace_time=None)
 
     #REMINDER SENDING UTILS
     async def war_reminder(self, clan_tag, reminder_time):
@@ -305,7 +305,7 @@ class reminders(commands.Cog, name="Reminder Cron"):
                 continue
 
             seconds_inactive = int(str(reminder_time).replace("hr", "")) * 60 * 60
-            max_diff = 120 * 60 #time in seconds between runs
+            max_diff = 30 * 60 #time in seconds between runs
             now = datetime.datetime.now(tz=utc)
             clan_members = [member.tag for member in clan.members]
             clan_members_stats = await self.bot.player_stats.find({f"tag": {"$in" : clan_members}}).to_list(length=100)

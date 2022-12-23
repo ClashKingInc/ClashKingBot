@@ -376,8 +376,8 @@ class MyCustomPlayer(coc.Player):
         points = date.get("points")
         if points is None:
             return 0
-        if points >= 4500:
-            return 4500
+        if points >= 5000:
+            return 5000
         return points
 
     async def track(self):
