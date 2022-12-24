@@ -511,7 +511,7 @@ class eval(commands.Cog, name="Eval"):
         if "category" not in role_types_to_eval:
             ignored_roles += category_role_list
 
-        ALL_CLASH_ROLES = family_roles + clan_roles + not_fam_roles + league_role_list + th_role_list + category_role_list
+        ALL_CLASH_ROLES = family_roles + clan_roles + not_fam_roles + league_role_list + th_role_list + category_role_list + bh_role_list
         if "leadership" in role_types_to_eval:
             if leadership_eval:
                 ALL_CLASH_ROLES += leadership_roles
