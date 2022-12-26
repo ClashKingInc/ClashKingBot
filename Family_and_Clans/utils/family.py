@@ -171,64 +171,50 @@ class getFamily(commands.Cog):
         return embed
 
     async def create_capital_leagues(self, guild: disnake.Guild):
-        tracked = self.bot.clan_db.find({"server": guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": guild.id})
-        if limit == 0:
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+        if not clan_tags:
             embed = disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
             return embed
 
-        cwl_list = []
-        for tClan in await tracked.to_list(length=limit):
-            c = []
-            tag = tClan.get("tag")
-            clan = await self.bot.getClan(tag)
-            c.append(clan.name)
-            c.append(clan.capital_league.name)
-            cwl_list.append(c)
+        clans = await self.bot.get_clans(tags=clan_tags)
+        clan_list = []
+        for clan in clans:
+            if clan is None:
+                continue
+            clan_list.append([clan.name, clan.war_league.name])
 
-        clans_list = sorted(cwl_list, key=lambda l: l[0], reverse=False)
+        clans_list = sorted(clan_list, key=lambda l: l[0], reverse=False)
 
-        main_embed = disnake.Embed(title=f"__**{guild.name} Clan Capital Leagues**__",
+        main_embed = disnake.Embed(title=f"__**{guild.name} Capital Leagues**__",
                                    color=disnake.Color.green())
         if guild.icon is not None:
             main_embed.set_thumbnail(url=guild.icon.url)
 
-        embeds = []
         leagues_present = ["All"]
         for league in leagues:
-            # print(league)
             text = ""
             for clan in clans_list:
-                # print(clan)
                 if clan[1] == league:
                     text += clan[0] + "\n"
                 if (clan[0] == clans_list[len(clans_list) - 1][0]) and (text != ""):
                     leagues_present.append(league)
-                    league_emoji = cwl_league_emojis(league)
                     main_embed.add_field(name=f"**{league}**", value=text, inline=False)
-                    embed = disnake.Embed(title=f"__**{guild.name} {league} Clans**__", description=text,
-                                          color=disnake.Color.green())
-                    if guild.icon is not None:
-                        embed.set_thumbnail(url=guild.icon.url)
-                    embeds.append(embed)
+                    text = ""
 
         return main_embed
 
     async def create_cwl_leagues(self, guild: disnake.Guild):
-        tracked = self.bot.clan_db.find({"server": guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": guild.id})
-        if limit == 0:
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server" : guild.id})
+        if not clan_tags:
             embed = disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
             return embed
 
+        clans = await self.bot.get_clans(tags=clan_tags)
         cwl_list = []
-        for tClan in await tracked.to_list(length=limit):
-            c = []
-            tag = tClan.get("tag")
-            clan = await self.bot.getClan(tag)
-            c.append(clan.name)
-            c.append(clan.war_league.name)
-            cwl_list.append(c)
+        for clan in clans:
+            if clan is None:
+                continue
+            cwl_list.append([clan.name, clan.war_league.name])
 
         clans_list = sorted(cwl_list, key=lambda l: l[0], reverse=False)
 
@@ -237,26 +223,22 @@ class getFamily(commands.Cog):
         if guild.icon is not None:
             main_embed.set_thumbnail(url=guild.icon.url)
 
-        embeds = []
         leagues_present = ["All"]
         for league in leagues:
-            # print(league)
             text = ""
             for clan in clans_list:
-                # print(clan)
                 if clan[1] == league:
                     text += clan[0] + "\n"
                 if (clan[0] == clans_list[len(clans_list) - 1][0]) and (text != ""):
                     leagues_present.append(league)
-                    league_emoji = cwl_league_emojis(league)
                     main_embed.add_field(name=f"**{league}**", value=text, inline=False)
-                    embed = disnake.Embed(title=f"__**{guild.name} {league} Clans**__", description=text,
-                                          color=disnake.Color.green())
-                    if guild.icon is not None:
-                        embed.set_thumbnail(url=guild.icon.url)
-                    embeds.append(embed)
+                    text = ""
 
         return main_embed
+
+    async def create_clan_games(self, guild: disnake.Guild):
+        pass
+
 
 def setup(bot: CustomClient):
     bot.add_cog(getFamily(bot))

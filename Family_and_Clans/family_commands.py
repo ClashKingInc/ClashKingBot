@@ -415,7 +415,6 @@ class family_commands(commands.Cog):
             state = group.state
             if str(state) == "preparation" and len(group.rounds) == 1:
                 return {clan.tag: None}
-            print(group.season)
             if str(group.season) != self.bot.gen_season_date():
                 return {clan.tag: None}
         except:

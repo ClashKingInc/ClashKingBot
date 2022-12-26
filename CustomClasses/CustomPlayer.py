@@ -364,7 +364,13 @@ class MyCustomPlayer(coc.Player):
 
     def clan_games(self, date= None):
         if date is None:
-            date = self.bot.gen_season_date()
+            diff_days = datetime.utcnow().replace(tzinfo=utc) - coc.utils.get_season_end().replace(tzinfo=utc)
+            if diff_days.days <= 3:
+                sea = coc.utils.get_season_start().replace(tzinfo=utc).date()
+                date = f"{sea.year}-{sea.month}"
+            else:
+                date = self.bot.gen_season_date()
+
         if self.results is None:
             return 0
         clan_game = self.results.get("clan_games")

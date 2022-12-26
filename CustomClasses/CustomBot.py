@@ -234,7 +234,10 @@ class CustomClient(commands.Bot):
     def gen_season_date(self, seasons_ago = None):
         if seasons_ago is None:
             end = coc.utils.get_season_end().replace(tzinfo=utc).date()
-            return f"{end.year}-{end.month}"
+            month = end.month
+            if end.month <= 9:
+                month = f"0{month}"
+            return f"{end.year}-{month}"
         else:
             dates = []
             for x in range(0, seasons_ago + 1):

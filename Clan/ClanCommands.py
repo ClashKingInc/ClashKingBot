@@ -1,5 +1,3 @@
-import random
-
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from utils.components import raid_buttons
 from utils.discord_utils import partial_emoji_gen
@@ -527,61 +525,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
 
     @clan.sub_command(
-        name="capital-raids",
-        description="See breakdown of clan's raids per clan & week")
-    async def clan_capital_raids(
-        self, ctx: disnake.ApplicationCommandInteraction,
-        clan: coc.Clan = commands.Param(converter=clan_converter),
-        weekend=commands.Param(default=None, name="weekend")):
-
-        if weekend is None:
-            weekend = gen_raid_weekend_datestrings(number_of_weeks=1)[0]
-        weekend_raid_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot)
-
-        (embeds, select_menu_options) = await clan_responder.clan_raid_weekend_raids(
-            clan=clan, raid_log_entry=weekend_raid_entry,
-            client_emojis=self.bot.emojis,
-            partial_emoji_gen=self.bot.partial_emoji_gen,
-            create_new_badge_emoji=self.bot.create_new_badge_emoji)
-
-        if embeds is None:
-            embed = disnake.Embed(
-                description=(
-                    f"**{clan.name} has no capital raids "
-                    f"in the time frame - {weekend}**"),
-                color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
-
-        select = disnake.ui.Select(
-            options=select_menu_options,
-            # the placeholder text to show when no options have been chosen
-            placeholder="Detailed View",
-            # the minimum number of options a user must select
-            min_values=1,
-            # the maximum number of options a user can select
-            max_values=1,
-        )
-        dropdown = [disnake.ui.ActionRow(select)]
-
-        await ctx.edit_original_message(embed=embeds["Overview"], components=dropdown)
-
-        msg = await ctx.original_message()
-
-        def check(res: disnake.MessageInteraction):
-            return res.message.id == msg.id
-
-        while True:
-            try:
-                res: disnake.MessageInteraction = await self.bot.wait_for(
-                    "message_interaction", check=check,
-                    timeout=600)
-            except:
-                await msg.edit(components=[])
-                break
-
-            await res.response.edit_message(embed=embeds[res.values[0]])
-
-    @clan.sub_command(
         name="last-online",
         description="List of most recently online players in clan")
     async def last_online(
@@ -709,7 +652,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             month = end_date.month
             if month <= 9:
                 month = f"0{month}"
-
             _season = f"_{end_date.year}-{month}"
             season_date = f"{end_date.year}-{month}"
 
@@ -1941,7 +1883,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         return [season for season in seasons if query.lower() in season.lower()]
 
     @clan_capital_stats.autocomplete("weekend")
-    @clan_capital_raids.autocomplete("weekend")
     async def weekend(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         weekends = gen_raid_weekend_datestrings(number_of_weeks=25)
         matches = []
@@ -1950,7 +1891,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 matches.append(weekend)
         return matches
 
-    @clan_capital_raids.autocomplete("clan")
     @linked_clans.autocomplete("clan")
     @player_trophy.autocomplete("clan")
     @war_opt.autocomplete("clan")

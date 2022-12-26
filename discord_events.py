@@ -41,6 +41,10 @@ class DiscordEvents(commands.Cog):
         for tag in current_war_times.keys():
             war_end_time = current_war_times[tag]
             reminder_times = await self.bot.get_reminder_times(clan_tag=tag)
+            try:
+                await self.bot.war_client.register_war(clan_tag=tag)
+            except:
+                pass
             acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times, war_end_time=war_end_time)
             if not acceptable_times:
                 continue
