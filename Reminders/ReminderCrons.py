@@ -264,13 +264,13 @@ class reminders(commands.Cog, name="Reminder Cron"):
                 name = names[player_tag]
                 member = disnake.utils.get(server.members, id=discord_id)
                 if member is None:
-                    missing_text += f"{num_missing} points- {name} | {player_tag}\n"
+                    missing_text += f"({num_missing}/{point_threshold})- {name} | {player_tag}\n"
                 else:
-                    missing_text += f"{num_missing} points- {name} | {member.mention}\n"
+                    missing_text += f"({num_missing}/{point_threshold})- {name} | {member.mention}\n"
             time = str(reminder_time).replace("hr", "")
             badge = await self.bot.create_new_badge_emoji(url=clan.badge.url)
             reminder_text = f"**{badge}{clan.name}\n{time} Hours Remaining in Clan Games**\n" \
-                            f"*Points needed to hit {point_threshold}*" \
+                            f"*Points needed to hit {point_threshold}points*\n" \
                                 f"{missing_text}" \
                                 f"{custom_text}"
             try:
