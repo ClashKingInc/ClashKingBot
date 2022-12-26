@@ -16,7 +16,7 @@ class reminders(commands.Cog, name="Reminder Cron"):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         #ends at 7 am monday
-        scheduler.add_job(self.send_boards, "cron", day_of_week="mon", hour=7, minute=5, misfire_grace_time=None)
+        scheduler.add_job(self.send_boards, "cron", day_of_week="mon", hour=7, minute=16, misfire_grace_time=None)
         scheduler.add_job(self.clan_capital_reminder, "cron", args=["1 hr"], day_of_week="mon", hour=6, misfire_grace_time=None)
         scheduler.add_job(self.clan_capital_reminder, "cron", args=["6 hr"], day_of_week="mon", hour=1, misfire_grace_time=None)
         scheduler.add_job(self.clan_capital_reminder, "cron", args=["12 hr"], day_of_week="sun", hour=19, misfire_grace_time=None)
@@ -194,7 +194,7 @@ class reminders(commands.Cog, name="Reminder Cron"):
             raid_log_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot)
             if raid_log_entry is None:
                 continue
-            file = capital_gen.generate_raid_result_image(raid_entry=raid_log_entry, clan=clan)
+            file = await capital_gen.generate_raid_result_image(raid_entry=raid_log_entry, clan=clan)
             (raid_embed, total_looted, total_attacks) = clan_raid_weekend_raid_stats(clan=clan, raid_log_entry=raid_log_entry)
             donation_embed = await clan_raid_weekend_donation_stats(clan=clan, weekend=weekend, bot=self.bot)
 

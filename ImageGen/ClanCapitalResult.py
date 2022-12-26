@@ -1,12 +1,9 @@
-import time
-
 import coc
 import disnake
 from PIL import Image, ImageDraw, ImageFont
 import io
 import pytz
 utc = pytz.utc
-import requests
 import aiohttp
 from io import BytesIO
 import asyncio
