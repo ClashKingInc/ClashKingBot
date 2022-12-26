@@ -25,6 +25,24 @@ def gen_raid_weekend_datestrings(number_of_weeks: int):
         weekends.append(str(raidDate))
     return weekends
 
+def next_raid_weekend():
+    weekends = []
+    for x in range(2):
+        now = datetime.utcnow().replace(tzinfo=utc)
+        now = now + timedelta(x * 7)
+        current_dayofweek = now.weekday()
+        if (current_dayofweek == 4 and now.hour >= 7) or (current_dayofweek == 5) or (current_dayofweek == 6) or (
+                current_dayofweek == 0 and now.hour < 7):
+            if current_dayofweek == 0:
+                current_dayofweek = 7
+            fallback = current_dayofweek - 4
+            raidDate = (now - timedelta(fallback)).date()
+        else:
+            forward = 4 - current_dayofweek
+            raidDate = (now + timedelta(forward)).date()
+        weekends.append(str(raidDate))
+    return weekends[1]
+
 def weekend_to_cocpy_timestamp(weekend: str, end=False) -> coc.Timestamp:
     weekend_to_iso = datetime.strptime(weekend, "%Y-%m-%d")
     weekend_to_iso = weekend_to_iso.replace(hour=7)
@@ -50,6 +68,8 @@ async def get_raidlog_entry(clan: coc.Clan, weekend: str, bot):
     return None
 
 async def player_results_to_json(clan: coc.Clan, weekend: str, player_stats):
+    weekend = next_raid_weekend()
+    print(weekend)
     tags = await player_stats.distinct("tag", filter={f"capital_gold.{weekend}.raided_clan": clan.tag})
     if not tags:
         return None

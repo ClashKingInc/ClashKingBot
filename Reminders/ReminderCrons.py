@@ -16,7 +16,7 @@ class reminders(commands.Cog, name="Reminder Cron"):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         #ends at 7 am monday
-        scheduler.add_job(self.send_boards, "cron", day_of_week="mon", hour=7, minute=23, misfire_grace_time=None)
+        scheduler.add_job(self.send_boards, "cron", day_of_week="mon", hour=7, minute=3, misfire_grace_time=None)
         scheduler.add_job(self.clan_capital_reminder, "cron", args=["1 hr"], day_of_week="mon", hour=6, misfire_grace_time=None)
         scheduler.add_job(self.clan_capital_reminder, "cron", args=["6 hr"], day_of_week="mon", hour=1, misfire_grace_time=None)
         scheduler.add_job(self.clan_capital_reminder, "cron", args=["12 hr"], day_of_week="sun", hour=19, misfire_grace_time=None)

@@ -19,7 +19,7 @@ import calendar
 tiz = pytz.utc
 #import excel2img
 import xlsxwriter
-
+from ImageGen import ClanCapitalResult as capital_gen
 
 class ClanCommands(commands.Cog, name="Clan Commands"):
 
@@ -464,6 +464,9 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         if "No raid found!" in raid_embed.description:
             await ctx.send(embed=donation_embed, components=buttons)
         else:
+            if weekend_raid_entry.total_loot != 0:
+                file = await capital_gen.generate_raid_result_image(raid_entry=weekend_raid_entry, clan=clan)
+                raid_embed.set_image(file=file)
             await ctx.send(embed=raid_embed, components=buttons)
 
         '''

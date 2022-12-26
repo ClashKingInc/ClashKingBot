@@ -11,7 +11,7 @@ class StoreClanCapital(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.store_cc, "cron", day_of_week="mon", hour=7, minute=30)
+        scheduler.add_job(self.store_cc, "cron", day_of_week="mon", hour=7, minute=45)
 
     async def store_cc(self):
         tags = await self.bot.clan_db.distinct("tag")
