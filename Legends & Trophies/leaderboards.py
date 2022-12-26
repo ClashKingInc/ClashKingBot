@@ -330,7 +330,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                     await ctx.send(embed=embed)
 
     @leaderboard.sub_command(name="capital", description="Clan Capital leaderboard of a location")
-    async def clan_leaderboards(self, ctx: disnake.ApplicationCommandInteraction, country: str):
+    async def capital_leaderboards(self, ctx: disnake.ApplicationCommandInteraction, country: str):
         """
             Parameters
             ----------
@@ -503,6 +503,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
 
     @clan_leaderboards.autocomplete("country")
     @player_leaderboards.autocomplete("country")
+    @capital_leaderboards.autocomplete("country")
     async def autocomp_names(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         locations = await self.bot.coc_client.search_locations()
         results = []
