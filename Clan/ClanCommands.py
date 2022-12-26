@@ -17,7 +17,7 @@ import asyncio
 import pytz
 import calendar
 tiz = pytz.utc
-import excel2img
+#import excel2img
 import xlsxwriter
 
 
