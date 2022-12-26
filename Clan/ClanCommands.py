@@ -647,7 +647,12 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             _season = f"_{end_date.year}-{month}"
 
         else:
-            season_date = clan_utils.gen_season_date()
+            diff_days = datetime.utcnow() - coc.utils.get_season_end().replace(tzinfo=tiz)
+            if diff_days.days <= 3:
+                sea = coc.utils.get_season_start().replace(tzinfo=tiz).date()
+                season_date = f"{sea.year}-{sea.month}"
+            else:
+                season_date = clan_utils.gen_season_date()
 
         tags = await self.bot.player_stats.distinct(
             "tag", filter={f"clan_games.{season_date}.clan": clan.tag})
