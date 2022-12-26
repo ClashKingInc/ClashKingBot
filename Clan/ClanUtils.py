@@ -254,6 +254,9 @@ async def create_graph(clans: list, timezone, bot):
     plt.tight_layout()
     plt.savefig(temp, format="png")
     temp.seek(0)
+    plt.close()
+    plt.clf()
+    plt.close("all")
 
     file = disnake.File(fp=temp, filename="filename.png")
 
@@ -431,7 +434,7 @@ async def fetch_n_rank_star_leaderboard(
 
     name = str(player.name)[0:12]
     name = f"{name}".ljust(12)
-    stars = f"{hr.total_stars}/{hr.num_attacks}".center(5)
+    stars = f"{hr.total_stars}".ljust(3)
     destruction = f"{int(hr.total_destruction)}%".ljust(5)
 
     return [

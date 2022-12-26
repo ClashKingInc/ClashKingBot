@@ -14,7 +14,11 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @commands.slash_command(name="family-leaderboard", description="Server's player trophy leaderboard")
+    @commands.slash_command(name="top")
+    async def leaderboard(self, ctx):
+        pass
+
+    @leaderboard.sub_command(name="family", description="Server's player trophy leaderboard")
     async def top(self, ctx: disnake.ApplicationCommandInteraction, limit: int = 100):
         """
             Parameters
@@ -124,7 +128,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                     await ctx.channel.send(embed=embed)
                 return
 
-    @commands.slash_command(name="legend-leaderboard", description="Server's legend players leaderboard")
+    @leaderboard.sub_command(name="legends", description="Server's legend players leaderboard")
     async def legend_leaderboard(self, ctx: disnake.ApplicationCommandInteraction):
         server = CustomServer(ctx.guild, self.bot)
 
@@ -132,7 +136,8 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
         clan_list = await server.clan_list
 
         if clan_list == []:
-            embed = disnake.Embed(description="No clans linked to this server. Get started with `/addclan`.", color=disnake.Color.red())
+            embed = disnake.Embed(description="No clans linked to this server. Get started with `/addclan`.",
+                                  color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
         member_tags = []
@@ -151,12 +156,18 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
             try:
                 player: MyCustomPlayer
                 legend_day = player.legend_day()
-                ranking.append([player.name, player.trophy_start(), legend_day.attack_sum, legend_day.num_attacks.superscript, legend_day.defense_sum, legend_day.num_defenses.superscript, player.trophies])
+                ranking.append(
+                    [player.name, player.trophy_start(), legend_day.attack_sum, legend_day.num_attacks.superscript,
+                     legend_day.defense_sum, legend_day.num_defenses.superscript, player.trophies])
             except:
                 pass
         ranking = sorted(ranking, key=lambda l: l[6], reverse=True)
 
-        ALPHABET = 0; STARTED = 1; OFFENSE = 2; DEFENSE = 4; TROPHIES = 6
+        ALPHABET = 0;
+        STARTED = 1;
+        OFFENSE = 2;
+        DEFENSE = 4;
+        TROPHIES = 6
         sort_types = {0: "Alphabetically", 1: "by Start Trophies", 2: "by Offense", 4: "by Defense",
                       6: "by Current Trophies"}
         sort_type = 6
@@ -184,13 +195,16 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                     embed = embeds[current_page]
                     embed.set_footer(text=f"Sorted by {sort_types[sort_type]}")
                     await res.response.edit_message(embed=embed,
-                                                    components=leaderboard_components(self.bot, current_page, embeds, ctx))
+                                                    components=leaderboard_components(self.bot, current_page, embeds,
+                                                                                      ctx))
 
                 elif res.data.custom_id == "Next":
                     current_page += 1
                     embed = embeds[current_page]
                     embed.set_footer(text=f"Sorted by {sort_types[sort_type]}")
-                    await res.response.edit_message(embed=embed,components=leaderboard_components(self.bot, current_page, embeds, ctx))
+                    await res.response.edit_message(embed=embed,
+                                                    components=leaderboard_components(self.bot, current_page, embeds,
+                                                                                      ctx))
             else:
                 current_page = 0
                 sort_type = int(res.values[0])
@@ -199,7 +213,8 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                 embeds = await self.create_player_embed(ctx, ranking)
                 embed = embeds[current_page]
                 embed.set_footer(text=f"Sorted by {sort_types[sort_type]}")
-                await res.response.edit_message(embed=embed,components=leaderboard_components(self.bot, current_page, embeds, ctx))
+                await res.response.edit_message(embed=embed,
+                                                components=leaderboard_components(self.bot, current_page, embeds, ctx))
 
     async def create_player_embed(self, ctx, ranking):
         text = ""
@@ -231,11 +246,6 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                 embed.set_thumbnail(url=ctx.guild.icon.url)
             embeds.append(embed)
         return embeds
-
-
-    @commands.slash_command(name="country-leaderboard")
-    async def leaderboard(self, ctx):
-        pass
 
     @leaderboard.sub_command(name="clans", description="Clan leaderboard of a location")
     async def clan_leaderboards(self, ctx: disnake.ApplicationCommandInteraction, country: str ):
@@ -283,6 +293,83 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
 
         if text != "":
             embed = disnake.Embed(title=f"{country_names} Top 200 Leaderboard",
+                                  description=text,
+                                  color=disnake.Color.green())
+            if ctx.guild.icon is not None:
+                embed.set_thumbnail(url=ctx.guild.icon.url)
+            embeds.append(embed)
+
+        current_page = 0
+        await ctx.send(embed=embeds[0], components=create_components(current_page, embeds, True))
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        while True:
+            try:
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
+            except:
+                await msg.edit(components=[])
+                break
+
+            if res.data.custom_id == "Previous":
+                current_page -= 1
+                await res.response.edit_message(embed=embeds[current_page],
+                                                components=create_components(current_page, embeds, True))
+
+            elif res.data.custom_id == "Next":
+                current_page += 1
+                await res.response.edit_message(embed=embeds[current_page],
+                                                components=create_components(current_page, embeds, True))
+
+            elif res.data.custom_id == "Print":
+                await msg.delete()
+                for embed in embeds:
+                    await ctx.send(embed=embed)
+
+    @leaderboard.sub_command(name="capital", description="Clan Capital leaderboard of a location")
+    async def clan_leaderboards(self, ctx: disnake.ApplicationCommandInteraction, country: str):
+        """
+            Parameters
+            ----------
+            country: country to fetch leaderboard for
+        """
+        tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
+
+        if country != "Global":
+            locations = await self.bot.coc_client.search_locations(limit=None)
+            is_country = (country != "International")
+            country = coc.utils.get(locations, name=country, is_country=is_country)
+            country_names = country.name
+            rankings = await self.bot.coc_client.get_location_clans_capital(location_id=country.id)
+        else:
+            rankings = await self.bot.coc_client.get_location_clans_capital()
+            country_names = "Global"
+
+        x = 0
+        embeds = []
+        text = ""
+        for clan in rankings:
+            rank = str(x + 1)
+            rank = rank.ljust(2)
+            star = ""
+            if clan.tag in tags:
+                star = "⭐"
+            text += f"`\u200e{rank}`<:capital_trophy:1054056202864177232>`\u200e{clan.capital_points}` \u200e{clan.name}{star}\n"
+            x += 1
+            if x != 0 and x % 50 == 0:
+                embed = disnake.Embed(title=f"{country_names} Top 200 Capital Leaderboard",
+                                      description=text,
+                                      color=disnake.Color.green())
+                if ctx.guild.icon is not None:
+                    embed.set_thumbnail(url=ctx.guild.icon.url)
+                embeds.append(embed)
+                text = ""
+
+        if text != "":
+            embed = disnake.Embed(title=f"{country_names} Top 200 Capital Leaderboard",
                                   description=text,
                                   color=disnake.Color.green())
             if ctx.guild.icon is not None:

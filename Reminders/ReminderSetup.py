@@ -103,7 +103,7 @@ class ReminderCreation(commands.Cog, name="Reminders"):
     async def clan_games_reminder_create(self, ctx: disnake.ApplicationCommandInteraction,
                               clan: coc.Clan = commands.Param(converter=clan_converter),
                               channel: Union[disnake.TextChannel, disnake.Thread] = None,
-                              point_threshold=commands.Param(default=4000, choices=["1000", "2000", "3000", "4000"])):
+                              point_threshold=commands.Param(default=4000, choices=["500", "1000", "2000", "3000", "4000"])):
         """
             Parameters
             ----------
@@ -152,7 +152,7 @@ class ReminderCreation(commands.Cog, name="Reminders"):
             ----------
             clan: Use clan tag or select an option from the autocomplete
             channel: channel to set the reminder to
-            attack_threshold: only ping people with less than this many points, default 4000
+            attack_threshold: only ping people with less than this many attacks, default 6
         """
         results = await self.bot.clan_db.find_one({"$and": [
             {"tag": clan.tag},

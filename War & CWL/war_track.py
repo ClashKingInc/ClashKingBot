@@ -260,7 +260,8 @@ class War_Log(commands.Cog):
             "war_status" : str(war.status),
             "attack_order" : attack.order,
             "map_position" : attack.attacker.map_position,
-            "war_size" : war.team_size
+            "war_size" : war.team_size,
+            "clan" : war.clan_tag
         })
 
         #is an attack

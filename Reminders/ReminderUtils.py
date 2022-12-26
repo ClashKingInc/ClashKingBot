@@ -489,7 +489,7 @@ async def create_inactivity_reminder(bot, ctx: disnake.ApplicationCommandInterac
     custom_text = modal_inter.text_values["custom_text"]
     await bot.reminders.update_many({
         "server": ctx.guild.id,
-        "type": "Clan Capital",
+        "type": "inactivity",
         "clan": clan.tag,
         "channel": channel.id,
     }, {"$set": {"custom_text": custom_text}})

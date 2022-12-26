@@ -11,6 +11,9 @@ import calendar
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 import random
+import aiohttp
+import asyncio
+
 POSTER_LIST = {"Edrag" : "edrag",
                "Hogrider" : "hogrider",
                "Clash Forest" : "clashforest",
@@ -105,9 +108,18 @@ class CheckPoster(commands.Cog):
 
         # add clan badge & text
         if player.clan is not None:
-            clan = await player.get_detailed_clan()
-            await clan.badge.save("poster/clanbadge.png", size="large")
-            badge = Image.open("poster/clanbadge.png")
+            # clan = await player.get_detailed_clan()
+            async def fetch(url, session):
+                async with session.get(url) as response:
+                    image_data = io.BytesIO(await response.read())
+                    return image_data
+
+            tasks = []
+            async with aiohttp.ClientSession() as session:
+                tasks.append(fetch(player.clan.badge.large, session))
+                responses = await asyncio.gather(*tasks)
+                await session.close()
+            badge = Image.open(responses[0])
             size = 275, 275
             badge.thumbnail(size, Image.ANTIALIAS)
             A = badge.getchannel('A')
@@ -117,7 +129,7 @@ class CheckPoster(commands.Cog):
 
             watermark = Image.new("RGBA", poster.size)
             waterdraw = ImageDraw.ImageDraw(watermark, "RGBA")
-            waterdraw.text((1488, 70), clan.name, anchor="mm", font=font)
+            waterdraw.text((1488, 70), player.clan.name, anchor="mm", font=font)
             watermask = watermark.convert("L").point(lambda x: min(x, 100))
             watermark.putalpha(watermask)
             poster.paste(watermark, None, watermark)
@@ -165,7 +177,7 @@ class CheckPoster(commands.Cog):
 
         # poster.show()
         temp = io.BytesIO()
-        poster.save(temp, format="png")
+        poster.save(temp, format="png", compress_level=1)
         temp.seek(0)
         file = disnake.File(fp=temp, filename="filename.png")
 
