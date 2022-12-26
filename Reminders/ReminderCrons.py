@@ -1,19 +1,15 @@
 import datetime
-import asyncio
 import coc
 import disnake
-import math
 import pytz
 utc = pytz.utc
-from main import check_commands
 from disnake.ext import commands
 from main import scheduler
 from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer
-from typing import Union
-from collections import defaultdict
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from Clan.ClanResponder import clan_raid_weekend_raid_stats, clan_raid_weekend_donation_stats
+from ImageGen import ClanCapitalResult as capital_gen
+
 
 class reminders(commands.Cog, name="Reminder Cron"):
 
@@ -198,12 +194,14 @@ class reminders(commands.Cog, name="Reminder Cron"):
             raid_log_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot)
             if raid_log_entry is None:
                 continue
+            file = capital_gen.generate_raid_result_image(raid_entry=raid_log_entry, clan=clan)
             (raid_embed, total_looted, total_attacks) = clan_raid_weekend_raid_stats(clan=clan, raid_log_entry=raid_log_entry)
             donation_embed = await clan_raid_weekend_donation_stats(clan=clan, weekend=weekend, bot=self.bot)
 
             try:
                 await clancapital_channel.send(embed=raid_embed)
                 await clancapital_channel.send(embed=donation_embed)
+                await clancapital_channel.send(file=file)
             except:
                 continue
 
