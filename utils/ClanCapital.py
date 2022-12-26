@@ -69,7 +69,6 @@ async def get_raidlog_entry(clan: coc.Clan, weekend: str, bot):
 
 async def player_results_to_json(clan: coc.Clan, weekend: str, player_stats):
     weekend = next_raid_weekend()
-    print(weekend)
     tags = await player_stats.distinct("tag", filter={f"capital_gold.{weekend}.raided_clan": clan.tag})
     if not tags:
         return None
