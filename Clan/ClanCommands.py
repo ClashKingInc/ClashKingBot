@@ -520,10 +520,10 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 break
             await res.response.defer()
             if res.data.custom_id == "donations":
-                await res.edit_original_message(embed=donation_embed)
+                await res.edit_original_message(embed=donation_embed, attachments=[])
 
             elif res.data.custom_id == "raids":
-                await res.edit_original_message(embed=raid_embed)
+                await res.edit_original_message(embed=raid_embed, attachments=[])
 
 
     @clan.sub_command(
