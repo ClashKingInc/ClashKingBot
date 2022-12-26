@@ -12,11 +12,11 @@ from coc.raid import RaidLogEntry
 async def generate_raid_result_image(raid_entry: RaidLogEntry, clan: coc.Clan):
 
     background = Image.open("ImageGen/raidweek.png")
-    clan_name = ImageFont.truetype("ImageGen/SCmagic.TTF", 30)
-    total_medal_font = ImageFont.truetype("ImageGen/SCmagic.TTF", 60)
-    boxes_font = ImageFont.truetype("ImageGen/SCmagic.TTF",30)
+    clan_name = ImageFont.truetype("ImageGen/SCmagic.ttf", 30)
+    total_medal_font = ImageFont.truetype("ImageGen/SCmagic.ttf", 60)
+    boxes_font = ImageFont.truetype("ImageGen/SCmagic.ttf",30)
 
-    split_medal_font = ImageFont.truetype("ImageGen/SCmagic.TTF", 25)
+    split_medal_font = ImageFont.truetype("ImageGen/SCmagic.ttf", 25)
 
 
     draw = ImageDraw.Draw(background)
