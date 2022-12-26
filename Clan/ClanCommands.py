@@ -522,19 +522,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             elif res.data.custom_id == "raids":
                 await res.edit_original_message(embed=raid_embed)
 
-            elif res.data.custom_id == "capseason":
-                columns = [
-                    "Tag",
-                    "Donated",
-                    "Number of Donations",
-                    "Raided",
-                    "Number of Raids"]
-
-                file = clan_utils.create_excel(
-                    columns=columns, index=index, data=data, weekend=weekend)
-
-                await res.send(file=file, ephemeral=True)
-
 
     @clan.sub_command(
         name="capital-raids",
