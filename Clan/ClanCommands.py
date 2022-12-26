@@ -647,7 +647,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             _season = f"_{end_date.year}-{month}"
 
         else:
-            diff_days = datetime.utcnow() - coc.utils.get_season_end().replace(tzinfo=tiz)
+            diff_days = datetime.utcnow().replace(tzinfo=tiz) - coc.utils.get_season_end().replace(tzinfo=tiz)
             if diff_days.days <= 3:
                 sea = coc.utils.get_season_start().replace(tzinfo=tiz).date()
                 season_date = f"{sea.year}-{sea.month}"
