@@ -439,7 +439,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         await ctx.edit_original_message(embed=embed)
 
     @clan.sub_command(
-        name="capital-stats",
+        name="capital",
         description=(
             "Get stats on raids & donations "
             "during selected time period"))
