@@ -215,7 +215,9 @@ class War_Log(commands.Cog):
                         await warlog_channel.send(embed=embed)
                     else:
                         await self.update_war_message(war=new_war, warlog_channel=warlog_channel, message_id=war_message, server=cc.get("server"), war_id=war_id)
-
+                    
+                    file = await war_gen.generate_war_result_image(new_war)
+                    await warlog_channel.send(file=file)
                     #calculate missed attacks
                     one_hit_missed = []
                     two_hit_missed = []
