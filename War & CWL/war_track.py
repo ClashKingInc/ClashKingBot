@@ -2,7 +2,7 @@
 import coc
 import disnake
 import pytz
-
+from ImageGen import WarEndResult as war_gen
 from disnake.ext import commands
 from Assets.emojiDictionary import emojiDictionary
 from CustomClasses.CustomBot import CustomClient
