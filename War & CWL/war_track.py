@@ -368,7 +368,7 @@ class War_Log(commands.Cog):
             attack_embed = await war_cog.defenses_embed(war)
             await ctx.send(embed=attack_embed, ephemeral=True)
 
-    async def create_superscript(self, num):
+    def create_superscript(self, num):
         digits = [int(num) for num in str(num)]
         new_num = ""
         for d in digits:
