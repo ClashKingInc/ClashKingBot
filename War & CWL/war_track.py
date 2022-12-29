@@ -312,21 +312,13 @@ class War_Log(commands.Cog):
                     stats = await war_cog.calculate_stars_percent(war)
 
                     if attack.attacker.clan.tag == war.clan.tag:
-                        embed = disnake.Embed(
-                            description=f"{emojiDictionary(attack.attacker.town_hall)}[**{attack.attacker.name}**]({attack.attacker.share_link}) {star_str}{attack.destruction}%"
-                                        f"\n- Defender: {emojiDictionary(attack.defender.town_hall)}{attack.defender} | {war.opponent.name}\n"
-                                        f"- {self.bot.emoji.time}{attack.duration}s | {attack.attacker.town_hall} v {attack.defender.town_hall} | Fresh: {fresh_emoji}",
-                            color=disnake.Color.green())
-                        embed.set_footer(text=f"{war.clan.name} {stats[2]}-{stats[0]}", icon_url=war.clan.badge.url)
+                        hit_message = f"{self.bot.emoji.thick_sword} {emojiDictionary(attack.attacker.town_hall)}**{attack.attacker.name}{self.create_superscript(num=attack.attacker.map_position)}**" \
+                                      f" {star_str} **{attack.destruction}%** {emojiDictionary(attack.defender.town_hall)}{self.create_superscript(num=attack.defender.map_position)}"
                     else:
                         # is a defense
-                        embed = disnake.Embed(
-                            description=f"{emojiDictionary(attack.attacker.town_hall)}[**{attack.attacker.name}**]({attack.attacker.share_link}) {star_str}{attack.destruction}%"
-                                        f"\n- Defender: {emojiDictionary(attack.defender.town_hall)}{attack.defender} | {war.clan.name}\n"
-                                        f"- {self.bot.emoji.time}{attack.duration}s | {attack.attacker.town_hall} v {attack.defender.town_hall} | Fresh: {fresh_emoji}",
-                            color=disnake.Color.red())
-                        embed.set_footer(text=f"{war.opponent.name} {stats[0]}-{stats[2]}", icon_url=war.clan.badge.url)
-                    await warlog_channel.send(embed=embed)
+                        hit_message = f"{self.bot.emoji.shield} {emojiDictionary(attack.defender.town_hall)}**{attack.defender.name}{self.create_superscript(num=attack.defender.map_position)}**" \
+                                      f" {star_str} **{attack.destruction}%** {emojiDictionary(attack.attacker.town_hall)}{self.create_superscript(num=attack.attacker.map_position)}"
+                    await warlog_channel.send(content=hit_message)
                 else:
                     await self.update_war_message(war=war, warlog_channel=warlog_channel, message_id=war_message, server=cc.get("server"), war_id=war_id)
             except Exception as e:
@@ -375,6 +367,14 @@ class War_Log(commands.Cog):
             war_cog = self.bot.get_cog(name="War")
             attack_embed = await war_cog.defenses_embed(war)
             await ctx.send(embed=attack_embed, ephemeral=True)
+
+    async def create_superscript(self, num):
+        digits = [int(num) for num in str(num)]
+        new_num = ""
+        for d in digits:
+            new_num += SUPER_SCRIPTS[d]
+
+        return new_num
 
 def setup(bot: CustomClient):
     bot.add_cog(War_Log(bot))
