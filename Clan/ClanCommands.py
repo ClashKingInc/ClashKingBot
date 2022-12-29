@@ -1904,6 +1904,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @war_stats_clan.autocomplete("season")
     @clan_donations.autocomplete("season")
     @clan_games.autocomplete("season")
+    @activities.autocomplete("season")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
         return [season for season in seasons if query.lower() in season.lower()]
