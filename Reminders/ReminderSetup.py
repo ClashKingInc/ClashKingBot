@@ -185,7 +185,6 @@ class ReminderCreation(commands.Cog, name="Reminders"):
 
 
 
-
     @inactivity_reminder.sub_command(name="create", description="Setup reminders for inactivity")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def inactivity_reminder_create(self, ctx: disnake.ApplicationCommandInteraction,
@@ -224,7 +223,6 @@ class ReminderCreation(commands.Cog, name="Reminders"):
         if results is None:
             return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
         await remove_inactivity_reminder(ctx=ctx, clan=clan, bot=self.bot)
-
 
 
 
