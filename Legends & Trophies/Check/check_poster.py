@@ -45,7 +45,10 @@ class CheckPoster(commands.Cog):
         start = utils.get_season_start().replace(tzinfo=utc).date()
         today = datetime.utcnow().date()
         length = today - start
-        month = calendar.month_name[start.month + 1]
+        month = start.month
+        if month == 12:
+            month = 0
+        month = calendar.month_name[month + 1]
         trophies = player.trophies
         season = self.bot.gen_season_date()
 
@@ -177,6 +180,7 @@ class CheckPoster(commands.Cog):
 
         # poster.show()
         temp = io.BytesIO()
+        poster = poster.resize((960, 540))
         poster.save(temp, format="png", compress_level=1)
         temp.seek(0)
         file = disnake.File(fp=temp, filename="filename.png")

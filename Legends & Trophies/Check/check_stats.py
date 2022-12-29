@@ -114,8 +114,10 @@ class CheckStats(commands.Cog):
         embed.set_author(name=f"{player.name} | {player.clan_name()}", icon_url=f"{player.clan_badge_link()}", url=player.share_link)
         embed.set_thumbnail(url=player.town_hall_cls.image_url)
 
-
-        month = calendar.month_name[start.month + 1]
+        month = start.month
+        if month == 12:
+            month = 0
+        month = calendar.month_name[month + 1]
         embed.set_footer(text=f"{month} {start.year} Season")
 
         return embed

@@ -181,7 +181,8 @@ class getFamily(commands.Cog):
         for clan in clans:
             if clan is None:
                 continue
-            clan_list.append([clan.name, clan.war_league.name])
+            clan: coc.Clan
+            clan_list.append([clan.name, clan.capital_league.name])
 
         clans_list = sorted(clan_list, key=lambda l: l[0], reverse=False)
 

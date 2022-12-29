@@ -333,7 +333,7 @@ async def create_war_reminder(bot, ctx: disnake.ApplicationCommandInteraction, c
             if reminder_time.is_integer():
                 reminder_time = int(reminder_time)
             send_time = time[1]
-            cog = bot.get_cog(name="Reminders")
+            cog = bot.get_cog(name="Reminder Cron")
             scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[tag, reminder_time],
                               id=f"{reminder_time}_{tag}", name=f"{tag}")
 

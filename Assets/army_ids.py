@@ -26,6 +26,7 @@ def troop_ids(troop_id):
         29: "Super Giant",
         53: "Yeti",
         55: "Sneaky Goblin",
+        56: "Super Miner",
         57: "Rocket Balloon",
         58: "Ice Golem",
         59: "Electro Dragon",
@@ -116,6 +117,7 @@ def size(troop_or_spell):
         "Super Bowler" : 30,
         "Super Dragon" : 40,
         "Electro Titan" : 32,
+        "Super Miner" : 24,
 
         "Lightning Spell" : 1,
         "Healing Spell" : 2,

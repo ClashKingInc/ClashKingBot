@@ -226,7 +226,7 @@ def linked_players(server_members, clan: coc.Clan, player_links):
             member = ""
             embed_footer = "Discord blank if linked but not on this server."
         else:
-            member = member.mention
+            member = str(member)
 
         embed_description += f'\u200e{green_check_emoji}`\u200e{name}` \u200e{member}'
         embed_description += "\n"

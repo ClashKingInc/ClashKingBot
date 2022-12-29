@@ -81,8 +81,11 @@ class Poster(commands.Cog):
             # end of last season is beginning of current
             end = utils.get_season_start().replace(tzinfo=utc).date()
             start = utils.get_season_start(month=end.month - 1, year=end.year).replace(tzinfo=utc).date()
-            month = calendar.month_name[start.month + 1]
             try:
+                month = start.month
+                if month == 12:
+                    month = 0
+                month = calendar.month_name[month + 1]
                 id = player.legend_statistics.previous_season.id
                 mon = start.month
                 if mon <= 9:
@@ -105,7 +108,10 @@ class Poster(commands.Cog):
             start = utils.get_season_start().replace(tzinfo=utc).date()
             today = datetime.utcnow().date()
             length = today-start
-            month = calendar.month_name[start.month + 1]
+            month = start.month
+            if month == 12:
+                month = 0
+            month = calendar.month_name[month + 1]
             trophies = player.trophies
             season = self.bot.gen_season_date()
 
@@ -252,6 +258,8 @@ class Poster(commands.Cog):
 
         #poster.show()
         temp = io.BytesIO()
+        #960/540
+        poster = poster.resize((960, 540))
         poster.save(temp, format="png", compress_level=1)
         temp.seek(0)
         file = disnake.File(fp=temp, filename="filename.png")
