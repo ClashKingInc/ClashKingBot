@@ -15,6 +15,8 @@ class ArmyLinks(commands.Cog, name="Army"):
     async def army(self, ctx: disnake.ApplicationCommandInteraction, link, name:str = "Results", clan_castle:str = "None"):
         try:
             embed = await self.armyEmbed(ctx, name, link, clan_castle)
+            if embed is None:
+                return
             buttons = disnake.ui.ActionRow()
             buttons.append_item(disnake.ui.Button(label=f"Copy Army Link", emoji=self.bot.emoji.troop.partial_emoji,
                                   url=link))
