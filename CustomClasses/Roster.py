@@ -443,9 +443,15 @@ class Roster():
             {"$set": {"columns": columns}})
 
     async def set_role(self, role: disnake.Role):
-        await self.bot.rosters.update_one(
-            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
-            {"$set": {"role": role.id}})
+        if role is not None:
+            await self.bot.rosters.update_one(
+                {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
+                {"$set": {"role": role.id}})
+        else:
+            await self.bot.rosters.update_one(
+                {"$and": [{"server_id": self.roster_result.get("server_id")},
+                          {"alias": self.roster_result.get("alias")}]},
+                {"$set": {"role": None}})
 
     async def set_sort(self, columns: list):
         await self.bot.rosters.update_one(

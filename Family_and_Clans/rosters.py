@@ -623,10 +623,12 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="role", description="Set a role that will be added when a person signs up & vice versa")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_role(self, ctx: disnake.ApplicationCommandInteraction, roster: str, role: disnake.Role):
+    async def roster_role(self, ctx: disnake.ApplicationCommandInteraction, roster: str, role: disnake.Role, remove_role = commands.Param(default=None, choices=["True"])):
         _roster = Roster(bot=self.bot)
         await ctx.response.defer()
         await _roster.find_roster(guild=ctx.guild, alias=roster)
+        if remove_role == "True":
+            role = None
         await _roster.set_role(role=role)
         embed = disnake.Embed(description=f"{roster} role set to {role.mention}", colour=disnake.Color.green())
         await ctx.edit_original_message(embed=embed)
