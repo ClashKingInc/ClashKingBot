@@ -836,11 +836,11 @@ def create_last_online(clan: coc.Clan, clan_members):
     return embed
 
 
-def create_activities(clan: coc.Clan, clan_members):
+def create_activities(clan: coc.Clan, clan_members, season):
     embed_description_list = []
     for member in clan_members:
         member: MyCustomPlayer
-        last_online = member.season_last_online()
+        last_online = member.season_last_online(season_date=season)
         embed_description_list.append(
             [f"{str(len(last_online)).ljust(4)} | {member.name}", len(last_online)])
 
@@ -853,6 +853,7 @@ def create_activities(clan: coc.Clan, clan_members):
         title=f"**{clan.name} Activity Count**",
         description=f"```#     NAME\n{embed_description}```",
         color=Color.green())
+    embed.set_footer(text=f"{season} Season")
     return embed
 
 

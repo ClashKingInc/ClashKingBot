@@ -247,7 +247,10 @@ class CustomClient(commands.Bot):
 
     def gen_previous_season_date(self):
         end = coc.utils.get_season_start().replace(tzinfo=utc).date()
-        return f"{end.year}-{end.month}"
+        month = end.month
+        if end.month <= 9:
+            month = f"0{month}"
+        return f"{end.year}-{month}"
 
     def gen_legend_date(self):
         now = datetime.utcnow()

@@ -553,11 +553,26 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @clan.sub_command(
         name="activities",
         description="Activity count of how many times a player has been seen online")
-    async def activities(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+    async def activities(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), season=commands.Param(default=None, name="season")):
         member_tags = [member.tag for member in clan.members]
         members = await self.bot.get_players(tags=member_tags, custom=True)
 
-        embed = clan_responder.create_activities(clan=clan, clan_members=members)
+        _season = ""
+        if season is not None:
+            month = list(calendar.month_name).index(season.split(" ")[0])
+            year = season.split(" ")[1]
+            end_date = coc.utils.get_season_end(month=int(month - 1), year=int(year))
+            month = end_date.month
+            if month <= 9:
+                month = f"0{month}"
+
+            season_date = f"{end_date.year}-{month}"
+            _season = f"_{end_date.year}-{month}"
+
+        else:
+            season_date = self.bot.gen_season_date()
+
+        embed = clan_responder.create_activities(clan=clan, clan_members=members, season=season_date)
         embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
         buttons = disnake.ui.ActionRow()
@@ -565,7 +580,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             disnake.ui.Button(
                 label="", emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f"act_{clan.tag}"))
+                custom_id=f"act_{_season}_{clan.tag}"))
 
         await ctx.edit_original_message(embed=embed, components=buttons)
 
@@ -1870,12 +1885,17 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
 
+            if len(str(ctx.data.custom_id).split("_")) == 3:
+                season_date = (str(ctx.data.custom_id).split("_"))[-2]
+            else:
+                season_date = clan_utils.gen_season_date()
+
             member_tags = [member.tag for member in clan.members]
             members = await self.bot.get_players(
                 tags=member_tags, custom=True)
 
             embed = clan_responder.create_activities(
-                clan=clan, clan_members=members)
+                clan=clan, clan_members=members, season=season_date)
 
             embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 

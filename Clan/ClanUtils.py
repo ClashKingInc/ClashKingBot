@@ -153,7 +153,10 @@ def get_raid(raid_log, after, before):
 def gen_season_date(seasons_ago=None):
     if seasons_ago is None:
         end = coc.utils.get_season_end().replace(tzinfo=pytz.utc).date()
-        return f"{end.year}-{end.month}"
+        month = end.month
+        if end.month <= 9:
+            month = f"0{month}"
+        return f"{end.year}-{month}"
     else:
         dates = []
         for x in range(0, seasons_ago + 1):
