@@ -103,7 +103,7 @@ class ReminderCreation(commands.Cog, name="Reminders"):
     async def clan_games_reminder_create(self, ctx: disnake.ApplicationCommandInteraction,
                               clan: coc.Clan = commands.Param(converter=clan_converter),
                               channel: Union[disnake.TextChannel, disnake.Thread] = None,
-                              point_threshold=commands.Param(default=4000, choices=["500", "1000", "2000", "3000", "4000"])):
+                              point_threshold=commands.Param(default=4000, choices=["500", "1000", "1500", "2000", "2500", "3000", "3500", "4000"])):
         """
             Parameters
             ----------
