@@ -52,12 +52,12 @@ async def generate_war_result_image(war: coc.ClanWar):
         won_xp += 25
 
     background = Image.open("ImageGen/warbkpng.png")
-    clan_name = ImageFont.truetype("ImageGen/SCmagic.TTF", 45)
-    result_font = ImageFont.truetype("ImageGen/SCmagic.TTF", 65)
-    score_font = ImageFont.truetype("ImageGen/SCmagic.TTF",70)
-    total_xp_font = ImageFont.truetype("ImageGen/SCmagic.TTF", 35)
-    box_xp_font = ImageFont.truetype("ImageGen/SCmagic.TTF", 25)
-    destruction_font = ImageFont.truetype("ImageGen/SCmagic.TTF", 25)
+    clan_name = ImageFont.truetype("ImageGen/SCmagic.ttf", 45)
+    result_font = ImageFont.truetype("ImageGen/SCmagic.ttf", 65)
+    score_font = ImageFont.truetype("ImageGen/SCmagic.ttf",70)
+    total_xp_font = ImageFont.truetype("ImageGen/SCmagic.ttf", 35)
+    box_xp_font = ImageFont.truetype("ImageGen/SCmagic.ttf", 25)
+    destruction_font = ImageFont.truetype("ImageGen/SCmagic.ttf", 25)
 
     draw = ImageDraw.Draw(background)
 

@@ -441,7 +441,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         await ctx.edit_original_message(embed=embed)
 
     @clan.sub_command(
-        name="capital-stats",
+        name="capital",
         description=(
             "Get stats on raids & donations "
             "during selected time period"))
@@ -461,7 +461,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         donation_embed = await clan_responder.clan_raid_weekend_donation_stats(clan=clan, weekend=weekend, bot=self.bot)
 
         buttons = raid_buttons(self.bot, [])
-        if "No raid found! Use the weekend parameter to look at previous weeks." in raid_embed.description:
+        if "No raid found!" in raid_embed.description:
             await ctx.send(embed=donation_embed, components=buttons)
         else:
             if weekend_raid_entry.total_loot != 0:
