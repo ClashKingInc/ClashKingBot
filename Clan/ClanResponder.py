@@ -836,22 +836,26 @@ def create_last_online(clan: coc.Clan, clan_members):
     return embed
 
 
-def create_activities(clan: coc.Clan, clan_members, season):
+def create_activities(bot, clan: coc.Clan, clan_members, season):
     embed_description_list = []
     for member in clan_members:
         member: MyCustomPlayer
         last_online = member.season_last_online(season_date=season)
+        name = member.name
+        name = re.sub('[*_`~/]', '', name)
+        name = name[:15]
+        name = name.ljust(15)
         embed_description_list.append(
-            [f"{str(len(last_online)).ljust(4)} | {member.name}", len(last_online)])
+            [f"{str(len(last_online)).center(4)} | {name}", len(last_online)])
 
     embed_description_list_sorted = sorted(
         embed_description_list, key=lambda l: l[1], reverse=True)
-    embed_description = [line[0] for line in embed_description_list_sorted]
+    embed_description = [f"{bot.get_number_emoji(color='gold', number=count + 1)} `{line[0]}`" for count, line in enumerate(embed_description_list_sorted)]
     embed_description = "\n".join(embed_description)
 
     embed = Embed(
         title=f"**{clan.name} Activity Count**",
-        description=f"```#     NAME\n{embed_description}```",
+        description=f"`    #     NAME         `\n{embed_description}",
         color=Color.green())
     embed.set_footer(text=f"{season} Season")
     return embed
@@ -899,8 +903,7 @@ def create_clan_games(
     return cg_point_embed
 
 
-def clan_donations(
-        clan: coc.Clan, type: str, season_date, player_list):
+def clan_donations(clan: coc.Clan, type: str, season_date, player_list):
 
     donated_text = []
     received_text = []

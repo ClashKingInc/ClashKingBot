@@ -572,7 +572,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         else:
             season_date = self.bot.gen_season_date()
 
-        embed = clan_responder.create_activities(clan=clan, clan_members=members, season=season_date)
+        embed = clan_responder.create_activities(clan=clan, clan_members=members, season=season_date, bot=self.bot)
         embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
         buttons = disnake.ui.ActionRow()
@@ -1895,7 +1895,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 tags=member_tags, custom=True)
 
             embed = clan_responder.create_activities(
-                clan=clan, clan_members=members, season=season_date)
+                clan=clan, clan_members=members, season=season_date, bot=self.bot)
 
             embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
