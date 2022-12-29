@@ -168,6 +168,7 @@ class VoiceStatCron(commands.Cog):
             if day == 28 and hour >= 8:
                 if month + 1 == 13:
                     next_month = 1
+                    year += 1
                 else:
                     next_month = month + 1
                 first = datetime(year, next_month, 22, hour=8, tzinfo=utc)
@@ -175,6 +176,7 @@ class VoiceStatCron(commands.Cog):
             if day >= 29:
                 if month + 1 == 13:
                     next_month = 1
+                    year += 1
                 else:
                     next_month = month + 1
                 first = datetime(year, next_month, 22, hour=8, tzinfo=utc)
