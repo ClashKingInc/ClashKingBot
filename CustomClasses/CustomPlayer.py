@@ -261,6 +261,7 @@ class MyCustomPlayer(coc.Player):
             if f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}" in prev_:
                 continue
             prev_.append(f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}")
+
             if (townhall in townhall_level) and (fresh in fresh_type) and (time >= start_timestamp) and (time <= end_timestamp) and (type in war_types) and (status in war_statuses):
                 if len(war_sizes) == 1 and war_size not in war_sizes:
                     continue

@@ -43,7 +43,7 @@ class profiles(commands.Cog, name="Profile"):
 
         await ctx.response.defer()
         results = await search_results(self.bot, search_query)
-
+        results = results[:25]
         if results == []:
             return await ctx.edit_original_message(content="No results were found.", embed=None)
         msg = await ctx.original_message()

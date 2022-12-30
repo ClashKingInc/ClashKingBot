@@ -250,7 +250,7 @@ class ReminderCreation(commands.Cog, name="Reminders"):
             for reminder in await clan_games_reminders.to_list(length=100):
                 cg_reminder_text.append(f"`{reminder.get('time')}` - <#{reminder.get('channel')}>")
             if cg_reminder_text:
-                reminder_text += "**Clan Games:** \n" + "\n".join(cc_reminder_text) + "\n"
+                reminder_text += "**Clan Games:** \n" + "\n".join(cg_reminder_text) + "\n"
 
             inactivity_reminders = self.bot.reminders.find(
                 {"$and": [{"clan": tag}, {"type": "inactivity"}, {"server": ctx.guild.id}]})
@@ -258,7 +258,7 @@ class ReminderCreation(commands.Cog, name="Reminders"):
             for reminder in await inactivity_reminders.to_list(length=100):
                 ia_reminder_text.append(f"`{reminder.get('time')}` - <#{reminder.get('channel')}>")
             if ia_reminder_text:
-                reminder_text += "**Inactivity:** \n" + "\n".join(cc_reminder_text) + "\n"
+                reminder_text += "**Inactivity:** \n" + "\n".join(ia_reminder_text) + "\n"
 
             war_reminders = self.bot.reminders.find({"$and": [{"clan": tag}, {"type": "War"}, {"server": ctx.guild.id}]})
             war_reminder_text = []

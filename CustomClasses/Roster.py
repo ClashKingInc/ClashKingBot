@@ -377,12 +377,13 @@ class Roster():
         if player.tag not in roster_member_tags:
             raise PlayerNotInRoster
         new_roster_member_tags = [member.get("tag") for member in new_roster.roster_result.get("members")]
-        if player.tag in new_roster_member_tags:
-            raise PlayerAlreadyInRoster
+        if self.roster_result.get("alias") != new_roster.roster_result.get("alias"):
+            if player.tag in new_roster_member_tags:
+                raise PlayerAlreadyInRoster
         await self.bot.rosters.update_one(
             {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
             {"$pull": {"members": {"tag": player.tag}}})
-        hero_lvs = sum(hero.level for hero in player.heroes)
+        hero_lvs = sum(hero.level for hero in player.heroes if hero.village == "home")
         current_clan = "No Clan"
         clan_tag = "No Clan"
         if player.clan is not None:

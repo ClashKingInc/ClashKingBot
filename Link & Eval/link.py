@@ -226,22 +226,23 @@ class Linking(commands.Cog):
                 embed = disnake.Embed(
                     description=f"{player.name} is already linked to {member.mention}",
                     color=disnake.Color.red())
-                try:
-                    results = await self.bot.server_db.find_one({"server": ctx.guild.id})
-                    greeting = results.get("greeting")
-                    if greeting is None:
-                        greeting = ""
+                if greet != "No":
+                    try:
+                        results = await self.bot.server_db.find_one({"server": ctx.guild.id})
+                        greeting = results.get("greeting")
+                        if greeting is None:
+                            greeting = ""
 
-                    results = await self.bot.clan_db.find_one({"$and": [
-                        {"tag": player.clan.tag},
-                        {"server": ctx.guild.id}
-                    ]})
-                    if results is not None:
-                        channel = results.get("clanChannel")
-                        channel = self.bot.get_channel(channel)
-                        await channel.send(f"{member.mention}, welcome to {ctx.guild.name}! {greeting}")
-                except:
-                    pass
+                        results = await self.bot.clan_db.find_one({"$and": [
+                            {"tag": player.clan.tag},
+                            {"server": ctx.guild.id}
+                        ]})
+                        if results is not None:
+                            channel = results.get("clanChannel")
+                            channel = await self.bot.getch_channel(channel)
+                            await channel.send(f"{member.mention}, welcome to {ctx.guild.name}! {greeting}")
+                    except:
+                        pass
                 return await ctx.edit_original_message(embed=embed)
             else:
                 embed = disnake.Embed(
