@@ -256,6 +256,7 @@ class FamilyStats(commands.Cog, name="Family Trophy Stats"):
                 await msg.edit(components=[])
                 break
 
+            await res.response.defer()
             if res.data.custom_id == "Previous":
                 current_page -= 1
                 await res.edit_original_message(embed=embeds[current_page],
