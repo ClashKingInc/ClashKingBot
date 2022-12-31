@@ -22,6 +22,8 @@ class board_loop(commands.Cog):
         all_clans = await self.bot.get_clans(tags=all_tags)
         clan_dict = {}
         for clan in all_clans:
+            if clan is None:
+                continue
             clan_dict[clan.tag] = clan
         for r in await results.to_list(length=limit):
             try:
