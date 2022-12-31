@@ -18,15 +18,19 @@ class board_loop(commands.Cog):
         limit = await self.bot.server_db.count_documents(filter={"topboardchannel": {"$ne" : None}})
         tasks = []
         date = self.bot.gen_legend_date()
+        all_tags = await self.bot.clan_db.distinct("tag")
+        all_clans = await self.bot.get_clans(tags=all_tags)
+        clan_dict = {}
+        for clan in all_clans:
+            clan_dict[clan.tag] = clan
         for r in await results.to_list(length=limit):
             try:
                 serv = r.get("server")
                 channel = r.get("topboardchannel")
-                channel = await self.bot.fetch_channel(channel)
-                g = self.bot.get_guild(serv)
+                channel = await self.bot.getch_channel(channel)
                 limit = 250
                 rankings = []
-                tags = await self.bot.clan_db.distinct("tag")
+                tags = await self.bot.clan_db.distinct("tag", filter={"server" : serv})
                 async for clan in self.bot.coc_client.get_clans(tags):
                     for player in clan.members:
                         try:
@@ -56,11 +60,11 @@ class board_loop(commands.Cog):
                         place = place.ljust(3)
                         rText += f"\u200e`{place}` \u200e<:trophy:956417881778815016> \u200e{ranking[x][1]} - \u200e{ranking[x][0]} | \u200e{ranking[x][2]}\n"
 
-                    embed = disnake.Embed(title=f"**Top {limit} {g.name} players**",
+                    embed = disnake.Embed(title=f"**Top {limit} {channel.guild.name} players**",
                                           description=rText)
                     texts.append(rText)
-                    if g.icon is not None:
-                        embed.set_thumbnail(url=g.icon.url)
+                    if channel.guild.icon is not None:
+                        embed.set_thumbnail(url=channel.guild.icon.url)
                     embeds.append(embed)
                 identifier = f"auto_{serv}{date}"
                 if limit > 50:
@@ -82,12 +86,10 @@ class board_loop(commands.Cog):
         for r in await results.to_list(length=limit):
             try:
                 channel = r.get("lbboardChannel")
-                channel =  self.bot.get_channel(channel)
+                channel = await self.bot.getch_channel(channel)
                 serv = r.get("server")
-                g = self.bot.get_guild(serv)
                 country = r.get("country")
-
-                tags = await self.bot.clan_db.distinct("tag")
+                tags = await self.bot.clan_db.distinct("tag", filter={"server" : serv})
 
                 text = ""
                 is_country = (country != "International")
@@ -116,8 +118,8 @@ class board_loop(commands.Cog):
                 embed = disnake.Embed(title=f"{country_names} Top 25 Leaderboard",
                                       description=text,
                                       color=disnake.Color.green())
-                if g.icon is not None:
-                    embed.set_thumbnail(url=g.icon.url)
+                if channel.guild.icon is not None:
+                    embed.set_thumbnail(url=channel.guild.icon.url)
                 try:
                     await channel.send(embed=embed)
                 except:
