@@ -10,7 +10,7 @@ class board_loop(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.autoboard_cron, "cron", hour=4, minute=57)
+        scheduler.add_job(self.autoboard_cron, "cron", hour=11, minute=10)
 
     async def autoboard_cron(self):
         hour = 4
@@ -26,16 +26,7 @@ class board_loop(commands.Cog):
                 g = self.bot.get_guild(serv)
                 limit = 250
                 rankings = []
-                tracked = self.bot.clan_db.find({"server": serv})
-                l = await self.bot.clan_db.count_documents(filter={"server": serv})
-                if l == 0:
-                    continue
-
-                tags = []
-                for clan in await tracked.to_list(length=l):
-                    tag = clan.get("tag")
-                    tags.append(tag)
-
+                tags = await self.bot.clan_db.distinct("tag")
                 async for clan in self.bot.coc_client.get_clans(tags):
                     for player in clan.members:
                         try:
@@ -84,7 +75,8 @@ class board_loop(commands.Cog):
             except (disnake.NotFound, disnake.Forbidden):
                 await self.bot.server_db.update_one({"server": r.get("server")}, {'$set': {"topboardchannel": None}})
 
-        country_results = []
+        country_results = {}
+        locations = await self.bot.coc_client.search_locations(limit=None)
         results = self.bot.server_db.find({"lbhour": hour+1})
         limit = await self.bot.server_db.count_documents(filter={"lbhour": hour+1})
         for r in await results.to_list(length=limit):
@@ -95,21 +87,18 @@ class board_loop(commands.Cog):
                 g = self.bot.get_guild(serv)
                 country = r.get("country")
 
-                tags = []
-                tracked = self.bot.clan_db.find({"server": g.id})
-                limit = await self.bot.clan_db.count_documents(filter={"server": g.id})
-
-                for clan in await tracked.to_list(length=limit):
-                    tag = clan.get("tag")
-                    tags.append(tag)
+                tags = await self.bot.clan_db.distinct("tag")
 
                 text = ""
-                locations = await self.bot.coc_client.search_locations(limit=None)
                 is_country = (country != "International")
                 country = coc.utils.get(locations, name=country, is_country=is_country)
                 country_names = country.name
                 # print(country.id)
-                rankings = await self.bot.coc_client.get_location_clans(location_id=country.id)
+                try:
+                    rankings = country_results[country.id]
+                except:
+                    rankings = await self.bot.coc_client.get_location_clans(location_id=country.id)
+                    country_results[country.id] = rankings
                 # print(rankings)
 
                 x = 1
@@ -137,31 +126,6 @@ class board_loop(commands.Cog):
                 pass
 
         results = await self.bot.autoboards.bulk_write(tasks)
-
-        results = self.bot.server_db.find({"comp_channel": {"$ne" : None}})
-        limit = await self.bot.server_db.count_documents(filter={"comp_channel": {"$ne" : None}})
-        for r in await results.to_list(length=limit):
-            try:
-                channel = r.get("comp_channel")
-                channel = self.bot.get_channel(channel)
-                all_tags = self.bot.erikuh.distinct("player_tag")
-                all_players = await self.bot.get_players(tags=all_tags)
-                serv = r.get("server")
-                guild = self.bot.get_guild(serv)
-                ranking = []
-                for player in all_players:
-                    try:
-                        legend_day = player.legend_day()
-                        ranking.append([player.name, player.trophy_start(), legend_day.attack_sum,
-                                        legend_day.num_attacks.superscript, legend_day.defense_sum,
-                                        legend_day.num_defenses.superscript, player.trophies])
-                    except:
-                        pass
-                ranking = sorted(ranking, key=lambda l: l[6], reverse=True)
-                embeds = await self.create_player_embed(guild, ranking)
-                await channel.send(embed=embeds[0])
-            except:
-                continue
 
 
     @commands.Cog.listener()
