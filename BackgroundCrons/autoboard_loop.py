@@ -10,7 +10,7 @@ class board_loop(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.autoboard_cron, "cron", hour=11, minute=19)
+        scheduler.add_job(self.autoboard_cron, "cron", hour=11, minute=21)
 
     async def autoboard_cron(self):
         hour = 4
