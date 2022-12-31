@@ -33,7 +33,11 @@ class board_loop(commands.Cog):
                 limit = 250
                 rankings = []
                 tags = await self.bot.clan_db.distinct("tag", filter={"server" : serv})
-                async for clan in self.bot.coc_client.get_clans(tags):
+                async for tag in tags:
+                    try:
+                        clan = clan_dict[tag]
+                    except:
+                        continue
                     for player in clan.members:
                         try:
                             playerStats = []
