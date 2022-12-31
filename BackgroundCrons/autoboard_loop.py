@@ -68,6 +68,9 @@ class board_loop(commands.Cog):
                     if channel.guild.icon is not None:
                         embed.set_thumbnail(url=channel.guild.icon.url)
                     embeds.append(embed)
+
+                if not embeds:
+                    continue
                 identifier = f"auto_{serv}{date}"
                 if limit > 50:
                     buttons = disnake.ui.ActionRow()
