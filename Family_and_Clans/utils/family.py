@@ -244,7 +244,7 @@ class getFamily(commands.Cog):
         pass
 
     async def create_raids(self, guild: disnake.Guild):
-        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": 810466565744230410})
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
         if not clan_tags:
             embed = disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
             return embed
