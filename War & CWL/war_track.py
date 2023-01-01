@@ -45,7 +45,7 @@ class War_Log(commands.Cog):
                 war_id = cc.get("war_id")
 
                 if new_war.state == "preparation" or (f"{old_war.clan.tag}-{int(old_war.preparation_start_time.time.timestamp())}" != f"{new_war.clan.tag}-{int(new_war.preparation_start_time.time.timestamp())}"):
-                    cog = self.bot.get_cog(name="Reminders")
+                    cog = self.bot.get_cog(name="Reminder Cron")
                     reminder_times = await self.bot.get_reminder_times(clan_tag=new_war.clan.tag)
                     acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times,
                                                                    war_end_time=new_war.end_time)
