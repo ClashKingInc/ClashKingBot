@@ -61,36 +61,37 @@ class Cwl(commands.Cog, name="CWL"):
         except:
             pass
 
-        try:
-            response = await self.bot.cwl_db.find_one({"clan_tag": clan.tag, "season": season})
-            if response is None:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(
-                            f"https://api.clashofstats.com/clans/{clan.tag.replace('#', '')}/cwl/seasons/{season}") as response:
-                        response = await response.json()
-                        if "Not Found" not in str(response):
-                            await self.bot.cwl_db.insert_one({"clan_tag": clan.tag, "season": response["season"], "data": response})
-                    await session.close()
-            else:
-                response = response.get("data")
-            group = coc.ClanWarLeagueGroup(data=response, client=self.bot.coc_client)
-            our_clan = coc.utils.get(group.clans, tag=clan.tag)
-            members = our_clan.members
-            rounds = group.number_of_rounds
-            league_wars = []
-            async for w in group.get_wars_for_clan(clan.tag):
-                league_wars.append(w)
-                if str(w.state) == "warEnded":
-                    war = w
-                if str(w.state) == "inWar":
-                    war = w
-                if str(w.state) == "preparation":
-                    next_war = w
-        except:
-            embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) is not in CWL for {season}.",
-                                  color=disnake.Color.green())
-            embed.set_thumbnail(url=clan.badge.large)
-            return await ctx.send(embed=embed)
+        if war is None and next_war is None:
+            try:
+                response = await self.bot.cwl_db.find_one({"clan_tag": clan.tag, "season": season})
+                if response is None:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(
+                                f"https://api.clashofstats.com/clans/{clan.tag.replace('#', '')}/cwl/seasons/{season}") as response:
+                            response = await response.json()
+                            if "Not Found" not in str(response):
+                                await self.bot.cwl_db.insert_one({"clan_tag": clan.tag, "season": response["season"], "data": response})
+                        await session.close()
+                else:
+                    response = response.get("data")
+                group = coc.ClanWarLeagueGroup(data=response, client=self.bot.coc_client)
+                our_clan = coc.utils.get(group.clans, tag=clan.tag)
+                members = our_clan.members
+                rounds = group.number_of_rounds
+                league_wars = []
+                async for w in group.get_wars_for_clan(clan.tag):
+                    league_wars.append(w)
+                    if str(w.state) == "warEnded":
+                        war = w
+                    if str(w.state) == "inWar":
+                        war = w
+                    if str(w.state) == "preparation":
+                        next_war = w
+            except:
+                embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) is not in CWL for {season}.",
+                                      color=disnake.Color.green())
+                embed.set_thumbnail(url=clan.badge.large)
+                return await ctx.send(embed=embed)
 
 
         if war is None and next_war is not None:
