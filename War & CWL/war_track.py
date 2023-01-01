@@ -113,8 +113,9 @@ class War_Log(commands.Cog):
                             embed.set_footer(text=f"{old_war.type.capitalize()} War")
                             await warlog_channel.send(embed=embed)
                         else:
+                            war_id = f"{new_war.clan.tag}v{new_war.opponent.tag}-{int(new_war.start_time.time.timestamp())}"
                             await self.update_war_message(war=old_war, warlog_channel=warlog_channel,
-                                                          message_id=war_message, server=cc.get("server"))
+                                                          message_id=war_message, server=cc.get("server"), war_id=war_id)
 
                     clan = await self.bot.getClan(new_war.clan.tag)
                     war_cog = self.bot.get_cog(name="War")
@@ -166,6 +167,7 @@ class War_Log(commands.Cog):
                                                       custom_id=f"listwardefenses_{new_war.clan.tag}"))]
                             message = await warlog_channel.send(embed=embed, components=button)
                         else:
+                            war_id = f"{new_war.clan.tag}v{new_war.opponent.tag}-{int(new_war.start_time.time.timestamp())}"
                             await self.update_war_message(war=new_war, warlog_channel=warlog_channel, message_id=war_message, server=cc.get("server"), war_id=war_id)
 
                 if new_war.state == "warEnded":
@@ -214,6 +216,7 @@ class War_Log(commands.Cog):
                         embed.set_footer(text=f"{new_war.type.capitalize()} War")
                         await warlog_channel.send(embed=embed)
                     else:
+                        war_id = f"{new_war.clan.tag}v{new_war.opponent.tag}-{int(new_war.start_time.time.timestamp())}"
                         await self.update_war_message(war=new_war, warlog_channel=warlog_channel, message_id=war_message, server=cc.get("server"), war_id=war_id)
                     
                     file = await war_gen.generate_war_result_image(new_war)
