@@ -3,6 +3,7 @@ import disnake
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer
 from main import check_commands
+from utils.search import search_results
 
 class Linking(commands.Cog):
 
@@ -322,7 +323,7 @@ class Linking(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.slash_command(name="buttons", description="Create a message that has buttons for easy eval/link/refresh actions.")
-    async def buttons(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Link Button", "Refresh Button"]), ping: disnake.User = None):
+    async def buttons(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Link Button", "Refresh Button", "To-Do Button"]), ping: disnake.User = None):
         if type == "Link Button":
             embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
                                   description=f"To link your account, press the link button below to get started.",
@@ -341,11 +342,30 @@ class Linking(commands.Cog):
             else:
                 content = ""
             await ctx.send(content=content, embed=embed, components=[buttons])
-        else:
+        elif type == "Refresh Button":
             embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
                                   description=f"To refresh your account, press the refresh button below.",
                                   color=disnake.Color.green())
             stat_buttons = [disnake.ui.Button(label="Refresh Roles", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.green, custom_id="Refresh Roles")]
+            buttons = disnake.ui.ActionRow()
+            for button in stat_buttons:
+                buttons.append_item(button)
+            if ctx.guild.icon is not None:
+                embed.set_thumbnail(url=ctx.guild.icon.url)
+            if ping is not None:
+                content = ping.mention
+            else:
+                content = ""
+            await ctx.send(content=content, embed=embed, components=[buttons])
+        elif type == "To-Do Button":
+            embed = disnake.Embed(description=f"To view your account to-do list click the button below!\n"
+                                              f"> Clan Games\n"
+                                              f"> War Hits\n"
+                                              f"> Raid Hits\n"
+                                              f"> Inactivity",
+                                  color=disnake.Color.green())
+            stat_buttons = [disnake.ui.Button(label="To-Do List", emoji=self.bot.emoji.yes.partial_emoji,
+                                              style=disnake.ButtonStyle.green, custom_id="MyToDoList")]
             buttons = disnake.ui.ActionRow()
             for button in stat_buttons:
                 buttons.append_item(button)
@@ -369,6 +389,13 @@ class Linking(commands.Cog):
                                             return_embed=True)
             if embed.description == "":
                 embed.description = "Your roles are up to date!"
+            await ctx.send(embed=embed, ephemeral=True)
+        elif ctx.data.custom_id == "MyToDoList":
+            cog = self.bot.get_cog(name="Profile")
+            await ctx.response.defer(ephemeral=True)
+            discord_user = ctx.author
+            linked_accounts = await search_results(self.bot, str(discord_user.id))
+            embed = await cog.to_do_embed(discord_user=discord_user, linked_accounts=linked_accounts)
             await ctx.send(embed=embed, ephemeral=True)
 
 

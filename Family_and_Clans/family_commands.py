@@ -249,57 +249,15 @@ class family_commands(commands.Cog):
     @family.sub_command(name="wars", description="List of current wars by family clans")
     async def family_wars(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
-        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
-        if len(clan_tags) == 0:
-            return await ctx.send("No clans linked to this server.")
-        if ctx.guild.id == 923764211845312533:
-            clan_tags.append("#29Q9809")
-            clan_tags.append("#20VRYL99C")
-            clan_tags.append("#88UUCRR9")
-        war_list = []
-        for tag in clan_tags:
-            war = await self.bot.get_clanwar(tag)
-            if war is not None:
-                war_list.append(war)
-
-        if len(war_list) == 0:
-            return await ctx.send("No clans in war and/or have public war logs.")
-
-        embed = disnake.Embed(description=f"**{ctx.guild.name} Current Wars**", color=disnake.Color.green())
-        for war in war_list:
-            if war.clan.name is None:
-                continue
-            emoji = await self.bot.create_new_badge_emoji(url=war.clan.badge.url)
-            war_cog = self.bot.get_cog(name="War")
-            stars_percent = await war_cog.calculate_stars_percent(war)
-
-            war_time = war.start_time.seconds_until
-            war_pos = "Starting"
-            if war_time >= 0:
-                war_time = war.start_time.time.replace(tzinfo=tiz).timestamp()
-            else:
-                war_time = war.end_time.seconds_until
-                if war_time <= 0:
-                    war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
-                    war_pos = "Ended"
-                else:
-                    war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
-                    war_pos = "Ending"
-
-            team_hits = f"{len(war.attacks) - len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".ljust(7)
-            opp_hits = f"{len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".rjust(7)
-            team_stars = str(stars_percent[2]).ljust(7)
-            opp_stars = str(stars_percent[0]).rjust(7)
-            team_per = (str(stars_percent[3]) + "%").ljust(7)
-            opp_per = (str(stars_percent[1]) + "%").rjust(7)
-
-
-            embed.add_field(name=f"{emoji}{war.clan.name} vs {war.opponent.name}",
-                            value=f"> `{team_hits}`<a:swords:944894455633297418>`{opp_hits}`\n"
-                                  f"> `{team_stars}`<:star:825571962699907152>`{opp_stars}`\n"
-                                  f"> `{team_per}`<:broken_sword:944896241429540915>`{opp_per}`\n"
-                                  f"> {war_pos}: <t:{int(war_time)}:R>", inline=False)
-
+        time = datetime.now()
+        embed: disnake.Embed = await self.create_wars(guild=ctx.guild)
+        embed.timestamp = time
+        embed.set_footer(text="Last Refreshed:")
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
+                              custom_id=f"warsfam_"))
+        await ctx.edit_original_message(embed=embed, components=buttons)
         await ctx.edit_original_message(embed=embed)
 
     @family.sub_command(name="donations", description="List of top 50 donators in family")
@@ -407,6 +365,19 @@ class family_commands(commands.Cog):
                               custom_id=f"cwlleaguesfam_"))
         buttons.append_item(disnake.ui.Button(label="Capital", emoji=self.bot.emoji.capital_trophy.partial_emoji,
                                               style=disnake.ButtonStyle.grey, custom_id=f"capitalleaguesfam_"))
+        await ctx.edit_original_message(embed=embed, components=buttons)
+
+    @family.sub_command(name="raids", description="Show list of raids in family")
+    async def family_raids(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        time = datetime.now()
+        embed: disnake.Embed = await self.create_raids(guild=ctx.guild)
+        embed.timestamp = time
+        embed.set_footer(text="Last Refreshed:")
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
+                              custom_id=f"raidsfam_"))
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     async def cwl_ranking_create(self, clan: coc.Clan):
@@ -577,6 +548,20 @@ class family_commands(commands.Cog):
                                               style=disnake.ButtonStyle.green, custom_id=f"capitalleaguesfam_"))
 
             await ctx.edit_original_message(embed=embed, components=buttons)
+
+        elif "raidsfam_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            embed = await self.create_raids(guild=ctx.guild)
+            embed.set_footer(text="Last Refreshed:")
+            embed.timestamp = datetime.now()
+            await ctx.edit_original_message(embed=embed)
+
+        elif "warsfam_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            embed = await self.create_wars(guild=ctx.guild)
+            embed.set_footer(text="Last Refreshed:")
+            embed.timestamp = datetime.now()
+            await ctx.edit_original_message(embed=embed)
 
 def setup(bot: CustomClient):
     bot.add_cog(family_commands(bot))

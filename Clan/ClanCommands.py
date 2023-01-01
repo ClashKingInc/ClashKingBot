@@ -453,9 +453,11 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             clan: Use clan tag or select an option from the autocomplete
         """
         #await ctx.response.defer()
+        limit = 25
         if weekend is None:
+            limit = 2
             weekend = gen_raid_weekend_datestrings(number_of_weeks=1)[0]
-        weekend_raid_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot)
+        weekend_raid_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot, limit=limit)
 
         (raid_embed, total_looted, total_attacks) = clan_responder.clan_raid_weekend_raid_stats(clan=clan, raid_log_entry=weekend_raid_entry)
         donation_embed = await clan_responder.clan_raid_weekend_donation_stats(clan=clan, weekend=weekend, bot=self.bot)

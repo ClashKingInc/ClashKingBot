@@ -22,7 +22,7 @@ from datetime import datetime
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis
 from CustomClasses.CustomBot import CustomClient
-from utils.ClanCapital import gen_raid_weekend_datestrings
+from utils.ClanCapital import gen_raid_weekend_datestrings, calc_raid_medals
 from typing import List
 import emoji
 import math
@@ -628,49 +628,30 @@ def clan_raid_weekend_raid_stats(clan: coc.Clan, raid_log_entry: RaidLogEntry):
         except:
             pass
 
-    district_dict = {
-        1: 135, 2: 225, 3: 350, 4: 405, 5: 460}
-    capital_dict = {
-        2: 180, 3: 360, 4: 585, 5: 810,
-        6: 1115, 7: 1240, 8: 1260, 9: 1375, 10: 1450}
-
     attacks_done = sum(list(total_attacks.values()))
     attacks_done = max(1, attacks_done)
-    raids = raid_log_entry.attack_log
-    for raid_clan in raids:
-        for district in raid_clan.districts:
-            if int(district.destruction) == 100:
-                if district.id == 70000000:
-                    total_medals += capital_dict[int(
-                        district.hall_level)]
 
-                else:
-                    total_medals += district_dict[int(
-                        district.hall_level)]
+    total_medals = calc_raid_medals(raid_log_entry.attack_log)
 
-            else:
-                #attacks_done -= len(district.attacks)
-                pass
-
-    total_medals = math.ceil(total_medals/attacks_done) * 6
     raid_text = []
     for tag, amount in total_looted.items():
-        raided_amount = f"{amount}".ljust(6)
+        raided_amount = f"{amount}".ljust(5)
         name = name_list[tag]
         name = re.sub('[*_`~/]', '', name)
+        name= name[:13]
         if tag in member_tags:
             raid_text.append([
                 f"\u200e{Emojis().capital_gold}`"
                 f"{total_attacks[tag]}/{attack_limit[tag]} "
-                f"{raided_amount}`: \u200e{name}", amount])
+                f"{raided_amount}` \u200e{name}", amount])
         else:
             raid_text.append([
                 f"\u200e{Emojis().deny_mark}`"
                 f"{total_attacks[tag]}/{attack_limit[tag]} "
-                f"{raided_amount}`: \u200e{name}", amount])
+                f"{raided_amount}`\u200e{name}", amount])
 
-
-    for member in members_not_looted:
+    more_to_show =  55 - len(total_attacks.values())
+    for member in members_not_looted[:more_to_show]:
         member = coc.utils.get(clan.members, tag=member)
         name = re.sub('[*_`~/]', '', member.name)
         raid_text.append([
@@ -681,19 +662,6 @@ def clan_raid_weekend_raid_stats(clan: coc.Clan, raid_log_entry: RaidLogEntry):
     raid_text = sorted(raid_text, key=lambda l: l[1], reverse=True)
     raid_text = [line[0] for line in raid_text]
     raid_text = "\n".join(raid_text)
-
-    rw = raid_log_entry
-    offensive_reward = rw.offensive_reward * 6
-    if total_medals > offensive_reward:
-        offensive_reward = total_medals
-
-    defensive_reward = rw.defensive_reward
-    raid_text += (
-        f"\n\n{Emojis().raid_medal}{offensive_reward} + "
-        f"{Emojis().raid_medal}{defensive_reward} = "
-        f"{Emojis().raid_medal}"
-        f"{offensive_reward + defensive_reward}"
-        f"\n`Offense + Defense = Total`")
 
     raid_embed = Embed(
         title=f"**{clan.name} Raid Totals**",

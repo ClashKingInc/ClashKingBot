@@ -124,6 +124,7 @@ class CustomClient(commands.Bot):
         self.global_reports = self.db_client.usafam.reports
         self.strikelist = self.db_client.usafam.strikes
         self.raid_weekend_db = self.db_client.usafam.raid_weekends
+        self.ticketing = self.db_client.usafam.tickets
 
         self.coc_client = coc.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD"), client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 30,
                                     cache_max_size=50000, load_game_data=coc.LoadGameData(always=True))
@@ -609,7 +610,7 @@ class CustomClient(commands.Bot):
     async def get_clan_wars(self, tags: list):
         tasks = []
         for tag in tags:
-            task = asyncio.ensure_future(self.get_clanwar(clan_tag=tag))
+            task = asyncio.ensure_future(self.get_clanwar(clanTag=tag))
             tasks.append(task)
         responses = await asyncio.gather(*tasks)
         return responses

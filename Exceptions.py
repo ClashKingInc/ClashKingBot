@@ -12,3 +12,6 @@ class PlayerNotInRoster(Exception):
 
 class RosterSizeLimit(Exception):
     pass
+
+class ExpiredComponents(Exception):
+    pass

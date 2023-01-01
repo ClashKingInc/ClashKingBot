@@ -226,11 +226,15 @@ class profiles(commands.Cog, name="Profile"):
         if discord_user is None:
             discord_user = ctx.author
         linked_accounts = await search_results(self.bot, str(discord_user.id))
+        embed = await self.to_do_embed(discord_user=discord_user, linked_accounts=linked_accounts)
+        await ctx.edit_original_message(embed=embed)
+
+    async def to_do_embed(self, discord_user, linked_accounts):
         embed = disnake.Embed(title=f"{discord_user.display_name} To-Do List", color=disnake.Color.green())
 
         if linked_accounts == []:
             embed.description = "No accounts linked, use `/link` to get started!"
-            return await ctx.edit_original_message(embed=embed)
+            return embed
 
         war_hits_to_do = await self.get_war_hits(linked_accounts=linked_accounts)
         if war_hits_to_do != "":
@@ -255,8 +259,7 @@ class profiles(commands.Cog, name="Profile"):
         if len(embed.fields) == 0:
             embed.description = "You're all caught up chief!"
 
-        await ctx.edit_original_message(embed=embed)
-
+        return embed
 
     async def get_war_hits(self, linked_accounts: List[MyCustomPlayer]):
         async def get_clan_wars(clan_tag, player):
@@ -300,8 +303,10 @@ class profiles(commands.Cog, name="Profile"):
 
     async def get_raid_hits(self, linked_accounts: List[MyCustomPlayer]):
         async def get_raid(clan_tag, player):
+            if player.town_hall <= 5:
+                return (player, None)
             weekend = gen_raid_weekend_datestrings(number_of_weeks=1)[0]
-            weekend_raid_entry = await get_raidlog_entry(clan=player.clan, weekend=weekend, bot=self.bot)
+            weekend_raid_entry = await get_raidlog_entry(clan=player.clan, weekend=weekend, bot=self.bot, limit=2)
             if weekend_raid_entry is not None and str(weekend_raid_entry.state) == "ended":
                 weekend_raid_entry = None
             return (player, weekend_raid_entry)

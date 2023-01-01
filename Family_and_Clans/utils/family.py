@@ -5,10 +5,13 @@ import emoji
 import asyncio
 import statistics
 
+from coc.raid import RaidLogEntry
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from utils.troop_methods import cwl_league_emojis
+from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry, calc_raid_medals
+
 
 tiz = pytz.utc
 
@@ -239,6 +242,104 @@ class getFamily(commands.Cog):
 
     async def create_clan_games(self, guild: disnake.Guild):
         pass
+
+    async def create_raids(self, guild: disnake.Guild):
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": 810466565744230410})
+        if not clan_tags:
+            embed = disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
+            return embed
+
+        clans = await self.bot.get_clans(tags=clan_tags)
+
+        tasks = []
+        async def get_raid_stuff(clan):
+            weekend = gen_raid_weekend_datestrings(number_of_weeks=1)[0]
+            weekend_raid_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot, limit=2)
+            return [clan, weekend_raid_entry]
+
+        for clan in clans:
+            if clan is None:
+                continue
+            task = asyncio.ensure_future(get_raid_stuff(clan))
+            tasks.append(task)
+
+        raid_list = await asyncio.gather(*tasks)
+        raid_list = [r for r in raid_list if r[1] is not None]
+
+        if len(raid_list) == 0:
+            embed = disnake.Embed(description="No clans currently in raid weekend", color=disnake.Color.red())
+            return embed
+
+        embed = disnake.Embed(description=f"**{guild.name} Current Raids**", color=disnake.Color.green())
+
+        raid_list = sorted(raid_list, key=lambda l: l[0].name, reverse=False)
+        for raid_item in raid_list:
+            clan: coc.Clan = raid_item[0]
+            raid: RaidLogEntry = raid_item[1]
+
+            medals = calc_raid_medals(raid.attack_log)
+            emoji = await self.bot.create_new_badge_emoji(url=clan.badge.url)
+            hall_level = 0 if coc.utils.get(clan.capital_districts, id=70000000) is None else coc.utils.get(clan.capital_districts, id=70000000).hall_level
+            embed.add_field(name=f"{emoji}{clan.name} | CH{hall_level}",
+                            value=f"> {self.bot.emoji.thick_sword} {raid.attack_count}/300 | "
+                                  f"{self.bot.emoji.person} {len(raid.members)}/50\n"
+                                  f"> {self.bot.emoji.capital_gold} {'{:,}'.format(raid.total_loot)} | "
+                                  f"{self.bot.emoji.raid_medal} {medals}", inline=False)
+
+        return embed
+
+    async def create_wars(self, guild: disnake.Guild):
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+        if len(clan_tags) == 0:
+            embed = disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
+            return embed
+
+        if guild.id == 923764211845312533:
+            clan_tags.append("#29Q9809")
+            clan_tags.append("#20VRYL99C")
+            clan_tags.append("#88UUCRR9")
+        war_list = await self.bot.get_clan_wars(tags=clan_tags)
+        war_list = [w for w in war_list if w is not None and w.start_time is not None]
+        if len(war_list) == 0:
+            embed = disnake.Embed(description="No clans in war and/or have public war logs.", color=disnake.Color.red())
+            return embed
+
+        war_list = sorted(war_list, key=lambda l: l.start_time.seconds_until, reverse=True)
+        embed = disnake.Embed(description=f"**{guild.name} Current Wars**", color=disnake.Color.green())
+        for war in war_list:
+            if war.clan.name is None:
+                continue
+            emoji = await self.bot.create_new_badge_emoji(url=war.clan.badge.url)
+            war_cog = self.bot.get_cog(name="War")
+            stars_percent = await war_cog.calculate_stars_percent(war)
+
+            war_time = war.start_time.seconds_until
+            war_pos = "Starting"
+            if war_time >= 0:
+                war_time = war.start_time.time.replace(tzinfo=tiz).timestamp()
+            else:
+                war_time = war.end_time.seconds_until
+                if war_time <= 0:
+                    war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
+                    war_pos = "Ended"
+                else:
+                    war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
+                    war_pos = "Ending"
+
+            team_hits = f"{len(war.attacks) - len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".ljust(
+                7)
+            opp_hits = f"{len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".rjust(7)
+            team_stars = str(stars_percent[2]).ljust(7)
+            opp_stars = str(stars_percent[0]).rjust(7)
+            team_per = (str(stars_percent[3]) + "%").ljust(7)
+            opp_per = (str(stars_percent[1]) + "%").rjust(7)
+
+            embed.add_field(name=f"{emoji}{war.clan.name} vs {war.opponent.name}",
+                            value=f"> `{team_hits}`<a:swords:944894455633297418>`{opp_hits}`\n"
+                                  f"> `{team_stars}`<:star:825571962699907152>`{opp_stars}`\n"
+                                  f"> `{team_per}`<:broken_sword:944896241429540915>`{opp_per}`\n"
+                                  f"> {war_pos}: <t:{int(war_time)}:R>", inline=False)
+        return embed
 
 
 def setup(bot: CustomClient):
