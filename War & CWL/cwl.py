@@ -188,6 +188,9 @@ class Cwl(commands.Cog, name="CWL"):
         elif page == "nextopp_overview":
             embed = await self.opp_overview(war=war)
             return [embed]
+        elif page == "missedhits":
+            embed = await self.missed_hits(league_wars=league_wars, clan=clan)
+            return [embed]
 
     #COMPONENTS
     async def component_handler(self, page: str, current_war: coc.ClanWar, next_war: coc.ClanWar, group: coc.ClanWarLeagueGroup, league_wars: List[coc.ClanWar]):
@@ -200,7 +203,7 @@ class Cwl(commands.Cog, name="CWL"):
             round = page.split("_")[-1]
             if round == "overview":
                 return [overall_stat_dropdown, round_dropdown, clan_dropdown]
-        elif page in ["stars", "rankings", "allrounds", "all_members", "excel"]:
+        elif page in ["stars", "rankings", "allrounds", "all_members", "excel", "missedhits"]:
             return [overall_stat_dropdown, round_dropdown, clan_dropdown]
         else:
             return [round_stat_dropdown, round_dropdown, clan_dropdown]
@@ -213,6 +216,7 @@ class Cwl(commands.Cog, name="CWL"):
         options = [  # the options in your dropdown
             disnake.SelectOption(label="Star Leaderboard", emoji=star, value="stars"),
             disnake.SelectOption(label="Clan Rankings", emoji=up, value="rankings"),
+            disnake.SelectOption(label="Missed Hits", emoji=self.bot.emoji.no.partial_emoji, value="missedhits"),
             disnake.SelectOption(label="All Rounds", emoji=map, value="allrounds"),
             disnake.SelectOption(label="All Members", emoji=self.bot.emoji.alphabet.partial_emoji, value="all_members"),
             disnake.SelectOption(label="Excel Export", emoji=self.bot.emoji.excel.partial_emoji, value="excel")
@@ -599,6 +603,32 @@ class Cwl(commands.Cog, name="CWL"):
                                   f"{war_pos} <t:{int(war_time)}:R>\n­\n"
                             , inline=False)
             r+=1
+        return embed
+
+    async def missed_hits(self, league_wars, clan):
+        missed_hits = defaultdict(int)
+        tag_to_member = {}
+        for war in league_wars:
+            war: coc.ClanWar
+            war_time = war.end_time.seconds_until
+            if war_time <= 0:
+                for member in war.clan.members:
+                    if not member.attacks:
+                        missed_hits[member.tag] += 1
+                        tag_to_member[member.tag] = member
+
+        text = ""
+        for tag, number_missed in missed_hits.items():
+            member = tag_to_member[tag]
+            name = re.sub('[*_`~/]', '', member.name)
+            th_emoji = emojiDictionary(member.town_hall)
+            text += f"{th_emoji}{name} - {number_missed} hits\n"
+
+        if text == "":
+            text = "No Missed Hits"
+
+        embed = disnake.Embed(title=f"{clan.name} CWL Missed Hits", description= text,color=disnake.Color.green())
+
         return embed
 
     async def ranking_lb(self, group: coc.ClanWarLeagueGroup):
