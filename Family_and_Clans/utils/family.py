@@ -310,6 +310,8 @@ class getFamily(commands.Cog):
             stars_percent = await war_cog.calculate_stars_percent(war)
 
             war_time = war.start_time.seconds_until
+            if war_time < -172800:
+                continue
             war_pos = "Starting"
             if war_time >= 0:
                 war_time = war.start_time.time.replace(tzinfo=tiz).timestamp()

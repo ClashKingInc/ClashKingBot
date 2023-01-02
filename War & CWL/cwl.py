@@ -651,41 +651,37 @@ class Cwl(commands.Cog, name="CWL"):
         return clan_list[0:25]
 
 
-
-
     @commands.slash_command(name="cwl-status", description="CWL spin status of clans in family")
     async def cwl_status(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
-        now = datetime.utcnow()
-        year = now.year
-        month = now.month
-        if month <= 9:
-            month = f"0{month}"
-        dt = f"{year}-{month}"
-        #print(dt)
-        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
-        if limit == 0:
-            return await ctx.edit_original_message(content="No clans linked to this server.")
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
+                              custom_id=f"cwlstatusfam_"))
+        embed = await self.create_cwl_status(guild=ctx.guild)
+        await ctx.edit_original_message(embed=embed, components=[buttons])
 
-        embed = disnake.Embed(
-            description="<a:loading:884400064313819146> Loading Family CWL Status...",
-            color=disnake.Color.green())
-        await ctx.edit_original_message(embed=embed)
+    async def create_cwl_status(self, guild: disnake.Guild):
+        now = datetime.now()
+        season = self.bot.gen_season_date()
+        #print(dt)
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+        if len(clan_tags) == 0:
+            embed = disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
+            return embed
+
+        clans= await self.bot.get_clans(tags=clan_tags)
 
         spin_list = []
-        for tClan in await tracked.to_list(length=limit):
-            c = []
-            tag = tClan.get("tag")
-            clan = await self.bot.getClan(tag)
+        for clan in clans:
             if clan is None:
                 continue
-            c.append(clan.name)
-            c.append(clan.war_league.name)
-            c.append(clan.tag)
+            c = [clan.name, clan.war_league.name, clan.tag]
             try:
-                league = await self.bot.coc_client.get_league_group(tag)
+                league = await self.bot.coc_client.get_league_group(clan.tag)
                 state = league.state
+                if season != league.season:
+                    continue
                 if str(state) == "preparation":
                     c.append("<a:CheckAccept:992611802561134662>")
                     c.append(1)
@@ -705,11 +701,9 @@ class Cwl(commands.Cog, name="CWL"):
 
         clans_list = sorted(spin_list, key=lambda x: (x[1], x[4]), reverse=False)
 
-        main_embed = disnake.Embed(title=f"__**{ctx.guild.name} CWL Status**__",
+        main_embed = disnake.Embed(title=f"__**{guild.name} CWL Status**__",
                                    color=disnake.Color.green())
 
-        embeds = []
-        leagues_present = ["All"]
         #name, league, clan, status emoji, order
         for league in leagues:
             text = ""
@@ -717,17 +711,19 @@ class Cwl(commands.Cog, name="CWL"):
                 if clan[1] == league:
                     text += f"{clan[3]} {clan[0]}\n"
                 if (clan[2] == clans_list[len(clans_list) - 1][2]) and (text != ""):
-                    leagues_present.append(league)
                     main_embed.add_field(name=f"**{league}**", value=text, inline=False)
-                    embed = disnake.Embed(title=f"__**{ctx.guild.name} {league} Clans**__", description=text,
-                                          color=disnake.Color.green())
-                    if ctx.guild.icon is not None:
-                        embed.set_thumbnail(url=ctx.guild.icon.url)
-                    embeds.append(embed)
 
         main_embed.add_field(name="Legend", value=f"<a:spinning:992612297048588338> Spinning | <:dash:933150462818021437> Not Spun | <a:CheckAccept:992611802561134662> Prep |  <a:swords:944894455633297418> War")
-        embeds.append(main_embed)
-        await ctx.edit_original_message(embed=main_embed)
+        main_embed.timestamp = now
+        main_embed.set_footer(text="Last Refreshed:")
+        return main_embed
+
+    @commands.Cog.listener()
+    async def on_button_click(self, ctx: disnake.MessageInteraction):
+        if "cwlstatusfam_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            embed = await self.create_cwl_status(guild=ctx.guild)
+            await ctx.edit_original_message(embed=embed)
 
 def setup(bot: CustomClient):
     bot.add_cog(Cwl(bot))
