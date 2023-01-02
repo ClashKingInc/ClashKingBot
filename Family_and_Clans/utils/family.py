@@ -294,17 +294,13 @@ class getFamily(commands.Cog):
             embed = disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
             return embed
 
-        if guild.id == 923764211845312533:
-            clan_tags.append("#29Q9809")
-            clan_tags.append("#20VRYL99C")
-            clan_tags.append("#88UUCRR9")
         war_list = await self.bot.get_clan_wars(tags=clan_tags)
         war_list = [w for w in war_list if w is not None and w.start_time is not None]
         if len(war_list) == 0:
             embed = disnake.Embed(description="No clans in war and/or have public war logs.", color=disnake.Color.red())
             return embed
 
-        war_list = sorted(war_list, key=lambda l: l.start_time.seconds_until, reverse=True)
+        war_list = sorted(war_list, key=lambda l: (str(l.state), int(l.start_time.time.timestamp())), reverse=False)
         embed = disnake.Embed(description=f"**{guild.name} Current Wars**", color=disnake.Color.green())
         for war in war_list:
             if war.clan.name is None:
