@@ -12,6 +12,7 @@ from CustomClasses.CustomBot import CustomClient
 from collections import defaultdict
 from collections import Counter
 from datetime import datetime
+from CustomClasses.Enums import TrophySort
 
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 tiz = pytz.utc
@@ -331,7 +332,6 @@ class family_commands(commands.Cog):
         embeds.append(main_embed)
         await ctx.send(embed=main_embed)
 
-
     @family.sub_command(name="last-online", description="Last 50 online in family")
     async def last_online(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
@@ -378,6 +378,21 @@ class family_commands(commands.Cog):
         buttons.append_item(
             disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
                               custom_id=f"raidsfam_"))
+        await ctx.edit_original_message(embed=embed, components=buttons)
+
+    @family.sub_command(name="trophies", description="List of clans by home, builder, or capital trophy points")
+    async def trophies(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        embed = await self.create_trophies(guild=ctx.guild, sort_type=TrophySort.home)
+        buttons = disnake.ui.ActionRow()
+        sort_type = TrophySort.home
+        buttons.append_item(disnake.ui.Button(label="Home", emoji=self.bot.emoji.trophy.partial_emoji,
+                                              style=disnake.ButtonStyle.green if sort_type == TrophySort.home else disnake.ButtonStyle.grey,custom_id=f"hometrophiesfam_"))
+        buttons.append_item(disnake.ui.Button(label="Versus", emoji=self.bot.emoji.versus_trophy.partial_emoji,
+                                              style=disnake.ButtonStyle.green if sort_type == TrophySort.versus else disnake.ButtonStyle.grey, custom_id=f"versustrophiesfam_"))
+        buttons.append_item(disnake.ui.Button(label="Capital", emoji=self.bot.emoji.capital_trophy.partial_emoji,
+                                              style=disnake.ButtonStyle.green if sort_type == TrophySort.capital else disnake.ButtonStyle.grey,
+                                              custom_id=f"capitaltrophiesfam_"))
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     async def cwl_ranking_create(self, clan: coc.Clan):
@@ -506,26 +521,31 @@ class family_commands(commands.Cog):
             embed: disnake.Embed = await self.create_donations(ctx.guild, type="donated")
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
+
         elif "receivedfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             embed: disnake.Embed = await self.create_donations(ctx.guild, type="received")
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
+
         elif "ratiofam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             embed: disnake.Embed = await self.create_donations(ctx.guild, type="ratio")
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
+
         elif "lastonlinefam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             embed: disnake.Embed = await self.create_last_online(ctx.guild)
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
+
         elif "activitiesfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             embed: disnake.Embed = await self.create_activities(ctx.guild)
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
+
         elif "cwlleaguesfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             embed = await self.create_cwl_leagues(guild=ctx.guild)
@@ -537,6 +557,7 @@ class family_commands(commands.Cog):
                                               style=disnake.ButtonStyle.grey, custom_id=f"capitalleaguesfam_"))
 
             await ctx.edit_original_message(embed=embed, components=buttons)
+
         elif "capitalleaguesfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             embed = await self.create_capital_leagues(guild=ctx.guild)
@@ -562,6 +583,54 @@ class family_commands(commands.Cog):
             embed.set_footer(text="Last Refreshed:")
             embed.timestamp = datetime.now()
             await ctx.edit_original_message(embed=embed)
+
+        elif "hometrophiesfam_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            sort_type = TrophySort.home
+            embed = await self.create_trophies(guild=ctx.guild, sort_type=sort_type)
+            buttons = disnake.ui.ActionRow()
+            buttons.append_item(disnake.ui.Button(label="Home", emoji=self.bot.emoji.trophy.partial_emoji,
+                                                  style=disnake.ButtonStyle.green if sort_type == TrophySort.home else disnake.ButtonStyle.grey,
+                                                  custom_id=f"hometrophiesfam_"))
+            buttons.append_item(disnake.ui.Button(label="Versus", emoji=self.bot.emoji.versus_trophy.partial_emoji,
+                                                  style=disnake.ButtonStyle.green if sort_type == TrophySort.versus else disnake.ButtonStyle.grey,
+                                                  custom_id=f"versustrophiesfam_"))
+            buttons.append_item(disnake.ui.Button(label="Capital", emoji=self.bot.emoji.capital_trophy.partial_emoji,
+                                                  style=disnake.ButtonStyle.green if sort_type == TrophySort.capital else disnake.ButtonStyle.grey,
+                                                  custom_id=f"capitaltrophiesfam_"))
+            await ctx.edit_original_message(embed=embed, components=buttons)
+
+        elif "versustrophiesfam_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            sort_type = TrophySort.versus
+            embed = await self.create_trophies(guild=ctx.guild, sort_type=sort_type)
+            buttons = disnake.ui.ActionRow()
+            buttons.append_item(disnake.ui.Button(label="Home", emoji=self.bot.emoji.trophy.partial_emoji,
+                                                  style=disnake.ButtonStyle.green if sort_type == TrophySort.home else disnake.ButtonStyle.grey,
+                                                  custom_id=f"hometrophiesfam_"))
+            buttons.append_item(disnake.ui.Button(label="Versus", emoji=self.bot.emoji.versus_trophy.partial_emoji,
+                                                  style=disnake.ButtonStyle.green if sort_type == TrophySort.versus else disnake.ButtonStyle.grey,
+                                                  custom_id=f"versustrophiesfam_"))
+            buttons.append_item(disnake.ui.Button(label="Capital", emoji=self.bot.emoji.capital_trophy.partial_emoji,
+                                                  style=disnake.ButtonStyle.green if sort_type == TrophySort.capital else disnake.ButtonStyle.grey,
+                                                  custom_id=f"capitaltrophiesfam_"))
+            await ctx.edit_original_message(embed=embed, components=buttons)
+
+        elif "capitaltrophiesfam_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            sort_type = TrophySort.capital
+            embed = await self.create_trophies(guild=ctx.guild, sort_type=sort_type)
+            buttons = disnake.ui.ActionRow()
+            buttons.append_item(disnake.ui.Button(label="Home", emoji=self.bot.emoji.trophy.partial_emoji,
+                                                  style=disnake.ButtonStyle.green if sort_type == TrophySort.home else disnake.ButtonStyle.grey,
+                                                  custom_id=f"hometrophiesfam_"))
+            buttons.append_item(disnake.ui.Button(label="Versus", emoji=self.bot.emoji.versus_trophy.partial_emoji,
+                                                  style=disnake.ButtonStyle.green if sort_type == TrophySort.versus else disnake.ButtonStyle.grey,
+                                                  custom_id=f"versustrophiesfam_"))
+            buttons.append_item(disnake.ui.Button(label="Capital", emoji=self.bot.emoji.capital_trophy.partial_emoji,
+                                                  style=disnake.ButtonStyle.green if sort_type == TrophySort.capital else disnake.ButtonStyle.grey,
+                                                  custom_id=f"capitaltrophiesfam_"))
+            await ctx.edit_original_message(embed=embed, components=buttons)
 
 def setup(bot: CustomClient):
     bot.add_cog(family_commands(bot))

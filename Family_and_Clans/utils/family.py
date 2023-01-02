@@ -1,3 +1,5 @@
+import datetime
+
 import disnake
 import coc
 import pytz
@@ -9,9 +11,9 @@ from coc.raid import RaidLogEntry
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
-from utils.troop_methods import cwl_league_emojis
+from utils.General import create_superscript
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry, calc_raid_medals
-
+from CustomClasses.Enums import TrophySort
 
 tiz = pytz.utc
 
@@ -338,6 +340,36 @@ class getFamily(commands.Cog):
                                   f"> `{team_per}`<:broken_sword:944896241429540915>`{opp_per}`\n"
                                   f"> {war_pos}: <t:{int(war_time)}:R>", inline=False)
         return embed
+
+    async def create_trophies(self, guild: disnake.Guild, sort_type: TrophySort):
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+        clans = await self.bot.get_clans(tags=clan_tags)
+        clans = [clan for clan in clans if clan is not None]
+        if not clans:
+            return disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
+
+        if sort_type is TrophySort.home:
+            point_type = "Trophies"
+            clans = sorted(clans, key=lambda l: l.points, reverse=True)
+            clan_text = [f"{self.bot.emoji.trophy}`{clan.points:5} {clan.name}`{create_superscript(clan.member_count)}" for clan in clans]
+        elif sort_type is TrophySort.versus:
+            point_type = "Versus Trophies"
+            clans = sorted(clans, key=lambda l: l.versus_points, reverse=True)
+            clan_text = [f"{self.bot.emoji.versus_trophy}`{clan.versus_points:5} {clan.name}`" for clan in clans]
+        elif sort_type is TrophySort.capital:
+            point_type = "Capital Trophies"
+            clans = sorted(clans, key=lambda l: l.capital_points, reverse=True)
+            clan_text = [f"{self.bot.emoji.capital_trophy}`{clan.capital_points:5} {clan.name}`" for clan in clans]
+
+        clan_text = "\n".join(clan_text)
+
+        embed = disnake.Embed(title=f"**{guild.name} {point_type}**", description=clan_text, color=disnake.Color.green())
+        if guild.icon is not None:
+            embed.set_footer(text="Last Refreshed", icon_url=guild.icon.url)
+        embed.timestamp = datetime.datetime.now()
+        return embed
+
+
 
 
 def setup(bot: CustomClient):

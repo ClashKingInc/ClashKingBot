@@ -1,5 +1,3 @@
-import json
-import os
 
 import coc
 import disnake
@@ -9,11 +7,14 @@ from utils.troop_methods import cwl_league_emojis
 from utils.discord_utils import partial_emoji_gen
 from Assets.emojiDictionary import emojiDictionary
 from collections import defaultdict
+from typing import List
+from coc import utils
+from CustomClasses.CustomBot import CustomClient
+from utils.General import create_superscript
+
 import operator
 import aiohttp
 import re
-
-from CustomClasses.CustomBot import CustomClient
 
 leagues = ["Champion League I", "Champion League II", "Champion League III",
                    "Master League I", "Master League II", "Master League III",
@@ -31,89 +32,35 @@ class Cwl(commands.Cog, name="CWL"):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
+    async def clan_converter(self, clan_tag: str):
+        clan = await self.bot.getClan(clan_tag=clan_tag, raise_exceptions=True)
+        if clan.member_count == 0:
+            raise coc.errors.NotFound
+        return clan
+
     @commands.slash_command(name="cwl", description="Stats, stars, and more for a clan's cwl")
-    async def cwl(self, ctx: disnake.ApplicationCommandInteraction, clan: str):
-
-        season = self.bot.gen_season_date()
-
+    async def cwl(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
         await ctx.response.defer()
-        clan = await self.bot.getClan(clan)
 
-        if clan is None:
-            return await ctx.send("Not a valid clan tag.")
+        (group, clan_league_wars) = await self.get_cwl_wars(clan=clan)
 
-        war = None
-        next_war = None
-        try:
-            group = await self.bot.coc_client.get_league_group(clan.tag)
-            our_clan = coc.utils.get(group.clans, tag=clan.tag)
-            members = our_clan.members
-            rounds = group.number_of_rounds
-            league_wars = []
-            async for w in group.get_wars_for_clan(clan.tag):
-                league_wars.append(w)
-                if str(w.state) == "warEnded":
-                    war = w
-                if str(w.state) == "inWar":
-                    war = w
-                if str(w.state) == "preparation":
-                    next_war = w
-        except:
-            pass
-
-        if war is None and next_war is None:
-            try:
-                response = await self.bot.cwl_db.find_one({"clan_tag": clan.tag, "season": season})
-                if response is None:
-                    async with aiohttp.ClientSession() as session:
-                        async with session.get(
-                                f"https://api.clashofstats.com/clans/{clan.tag.replace('#', '')}/cwl/seasons/{season}") as response:
-                            response = await response.json()
-                            if "Not Found" not in str(response):
-                                await self.bot.cwl_db.insert_one({"clan_tag": clan.tag, "season": response["season"], "data": response})
-                        await session.close()
-                else:
-                    response = response.get("data")
-                group = coc.ClanWarLeagueGroup(data=response, client=self.bot.coc_client)
-                our_clan = coc.utils.get(group.clans, tag=clan.tag)
-                members = our_clan.members
-                rounds = group.number_of_rounds
-                league_wars = []
-                async for w in group.get_wars_for_clan(clan.tag):
-                    league_wars.append(w)
-                    if str(w.state) == "warEnded":
-                        war = w
-                    if str(w.state) == "inWar":
-                        war = w
-                    if str(w.state) == "preparation":
-                        next_war = w
-            except:
-                embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) is not in CWL for {season}.",
-                                      color=disnake.Color.green())
-                embed.set_thumbnail(url=clan.badge.large)
-                return await ctx.send(embed=embed)
-
-
-        if war is None and next_war is not None:
-            war = next_war
-            next_war= None
-
-        if war is None and next_war is None:
+        if not clan_league_wars:
             embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) is not in CWL.",
                                   color=disnake.Color.green())
             embed.set_thumbnail(url=clan.badge.large)
             return await ctx.send(embed=embed)
 
-        stat_dropdown = await self.stat_components(war=war, next_war=next_war)
-        clan_dropdown = await self.clan_components(group=group)
-        dropdown = [stat_dropdown, clan_dropdown]
-        war_cog = self.bot.get_cog(name="War")
-        main = await war_cog.main_war_page(war=war, clan=clan)
-        await ctx.send(embed=main, components=dropdown)
-        msg = await ctx.original_message()
+        ROUND = 0; CLAN = clan; PAGE = "cwlround_overview"
 
+        (current_war, next_war) = self.get_wars_at_round(clan_league_wars=clan_league_wars, round=ROUND)
+        dropdown = await self.component_handler(page=PAGE, current_war=current_war, next_war=next_war, group=group, league_wars=clan_league_wars)
+        embeds = await self.page_manager(page=PAGE, group=group, war=current_war, next_war=next_war, league_wars=clan_league_wars, clan=CLAN)
+
+        await ctx.send(embeds=embeds, components=dropdown)
+        msg = await ctx.original_message()
         def check(res: disnake.MessageInteraction):
             return res.message.id == msg.id
+
 
         while True:
             try:
@@ -127,81 +74,199 @@ class Cwl(commands.Cog, name="CWL"):
                 break
 
             await res.response.defer()
+
             if "cwlchoose_" in res.values[0]:
                 clan_tag = (str(res.values[0]).split("_"))[-1]
-                clan = await self.bot.getClan(clan_tag)
-                war = await self.bot.get_clanwar(clan_tag)
-                next_war = await self.bot.get_clanwar(clan_tag, next_war=True)
-                our_clan = coc.utils.get(group.clans, tag=clan.tag)
-                members = our_clan.members
-                main = await war_cog.main_war_page(war=war, clan=clan)
-                await res.edit_original_message(embed=main)
-                group = await self.bot.coc_client.get_league_group(clan.tag)
-                league_wars = []
-                async for w in group.get_wars_for_clan(clan.tag):
-                    league_wars.append(w)
-                    if str(w.state) == "inWar":
-                        war = w
-                    if str(w.state) == "preparation":
-                        next_war = w
-            elif res.values[0] == "round":
-                await res.edit_original_message(embed=main)
-            elif res.values[0] == "nextround":
-                embed = await self.war_embed(next_war, clan)
-                await res.edit_original_message(embed=embed)
-            elif res.values[0] == "lineup":
-                embed1 = await self.roster_embed(next_war)
-                embed2 = await self.opp_roster_embed(next_war)
-                await res.edit_original_message(embeds=[embed1, embed2])
-            elif res.values[0] == "stars":
-                embed = await self.star_lb(league_wars, clan)
-                embed2 = await self.star_lb(league_wars, clan, defense=True)
-                await res.edit_original_message(embeds=[embed, embed2])
-            elif res.values[0] == "rankings":
-                embed = await self.ranking_lb(group, clan)
-                await res.edit_original_message(embed=embed)
-            elif res.values[0] == "allrounds":
-                embed = await self.all_rounds(league_wars, clan)
-                await res.edit_original_message(embed=embed)
-            elif res.values[0] == "all_members":
-                embed = await self.all_members(members, clan)
-                await res.edit_original_message(embed=embed)
-            elif res.values[0] == "current_lineup":
-                embed1 = await self.roster_embed(war)
-                embed2 = await self.opp_roster_embed(war)
-                await res.edit_original_message(embeds=[embed1, embed2])
+                CLAN = await self.bot.getClan(clan_tag)
+                (group, clan_league_wars) = await self.get_cwl_wars(clan=CLAN)
+                PAGE = "cwlround_overview"; ROUND = 0
 
-    async def stat_components(self, war: coc.ClanWar, next_war: coc.ClanWar):
+            elif "cwlround_" in res.values[0]:
+                round = res.values[0].split("_")[-1]
+                if round != "overview":
+                    PAGE = "round"; ROUND = int(round) - 1
+                else:
+                    PAGE = "cwlround_overview"; ROUND = 0
+
+            elif res.values[0] == "excel":
+                await res.send(content="Coming Soon!", ephemeral=True)
+                continue
+            else:
+                PAGE = res.values[0]
+
+            (current_war, next_war) = self.get_wars_at_round(clan_league_wars=clan_league_wars, round=ROUND)
+            embeds = await self.page_manager(page=PAGE, group=group, war=current_war, next_war=next_war, league_wars=clan_league_wars, clan=CLAN)
+            dropdown = await self.component_handler(page=PAGE, current_war=current_war, next_war=next_war, group=group, league_wars=clan_league_wars)
+
+            await res.edit_original_message(embeds=embeds, components=dropdown)
+
+
+    def get_wars_at_round(self, clan_league_wars: List[coc.ClanWar], round: int):
+        current_war = clan_league_wars[round]
+        try:
+            next_war = clan_league_wars[round + 1]
+        except:
+            next_war = None
+        return (current_war, next_war)
+
+    async def get_cwl_wars(self, clan: coc.Clan, group=None):
+        season = self.bot.gen_season_date()
+
+        clan_league_wars = []
+        try:
+            if group is None:
+                group = await self.bot.coc_client.get_league_group(clan.tag)
+            async for w in group.get_wars_for_clan(clan.tag):
+                clan_league_wars.append(w)
+            if clan_league_wars:
+                return (group, clan_league_wars)
+        except:
+            pass
+
+        if not clan_league_wars:
+            try:
+                response = await self.bot.cwl_db.find_one({"clan_tag": clan.tag, "season": season})
+                if response is None:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(
+                                f"https://api.clashofstats.com/clans/{clan.tag.replace('#', '')}/cwl/seasons/{season}") as response:
+                            response = await response.json()
+                            if "Not Found" not in str(response):
+                                await self.bot.cwl_db.insert_one(
+                                    {"clan_tag": clan.tag, "season": response["season"], "data": response})
+                        await session.close()
+                else:
+                    response = response.get("data")
+                group = coc.ClanWarLeagueGroup(data=response, client=self.bot.coc_client)
+                async for w in group.get_wars_for_clan(clan.tag):
+                    clan_league_wars.append(w)
+                if clan_league_wars:
+                    return (group, clan_league_wars)
+            except:
+                return (None, [])
+
+    async def page_manager(self, page:str, group: coc.ClanWarLeagueGroup, war: coc.ClanWar, next_war: coc.ClanWar, league_wars: List[coc.ClanWar], clan: coc.Clan):
+        if page == "cwlround_overview":
+            war_cog = self.bot.get_cog(name="War")
+            embed = await war_cog.main_war_page(war=war, clan=clan)
+            return [embed]
+        elif page == "round":
+            war_cog = self.bot.get_cog(name="War")
+            embed = await war_cog.main_war_page(war=war, clan=clan)
+            return [embed]
+        elif page == "nextround":
+            war_cog = self.bot.get_cog(name="War")
+            embed = await war_cog.main_war_page(war=next_war, clan=clan)
+            return [embed]
+        elif page == "lineup":
+            embed1 = await self.roster_embed(next_war)
+            embed2 = await self.opp_roster_embed(next_war)
+            return[embed1, embed2]
+        elif page == "stars":
+            embed = await self.star_lb(league_wars, clan)
+            embed2 = await self.star_lb(league_wars, clan, defense=True)
+            return[embed, embed2]
+        elif page == "rankings":
+            embed = await self.ranking_lb(group)
+            return [embed]
+        elif page == "allrounds":
+            embed = await self.all_rounds(league_wars, clan)
+            return [embed]
+        elif page == "all_members":
+            embed = await self.all_members(group, clan)
+            return [embed]
+        elif page == "current_lineup":
+            embed1 = await self.roster_embed(war)
+            embed2 = await self.opp_roster_embed(war)
+            return [embed1, embed2]
+        elif page == "attacks":
+            embed = await self.attacks_embed(war=war)
+            return [embed]
+        elif page == "defenses":
+            embed = await self.defenses_embed(war=war)
+            return [embed]
+        elif page == "nextopp_overview":
+            embed = await self.opp_overview(war=war)
+            return [embed]
+
+    #COMPONENTS
+    async def component_handler(self, page: str, current_war: coc.ClanWar, next_war: coc.ClanWar, group: coc.ClanWarLeagueGroup, league_wars: List[coc.ClanWar]):
+        round_stat_dropdown = await self.stat_components(war=current_war, next_war=next_war)
+        overall_stat_dropdown = await self.overall_stat_components()
+        clan_dropdown = await self.clan_components(group=group)
+        round_dropdown = await self.round_components(league_wars=league_wars)
+
+        if "cwlround_" in page:
+            round = page.split("_")[-1]
+            if round == "overview":
+                return [overall_stat_dropdown, round_dropdown, clan_dropdown]
+        elif page in ["stars", "rankings", "allrounds", "all_members", "excel"]:
+            return [overall_stat_dropdown, round_dropdown, clan_dropdown]
+        else:
+            return [round_stat_dropdown, round_dropdown, clan_dropdown]
+
+    async def overall_stat_components(self):
         map = partial_emoji_gen(self.bot, "<:map:944913638500761600>")
-        swords = partial_emoji_gen(self.bot, "<a:swords:944894455633297418>", animated=True)
         star = partial_emoji_gen(self.bot, "<:star:825571962699907152>")
-        troop = partial_emoji_gen(self.bot, "<:troop:861797310224400434>")
         up = partial_emoji_gen(self.bot, "<:warwon:932212939899949176>")
 
         options = [  # the options in your dropdown
             disnake.SelectOption(label="Star Leaderboard", emoji=star, value="stars"),
             disnake.SelectOption(label="Clan Rankings", emoji=up, value="rankings"),
             disnake.SelectOption(label="All Rounds", emoji=map, value="allrounds"),
-            disnake.SelectOption(label="All Members", emoji=self.bot.emoji.alphabet.partial_emoji, value="all_members")
+            disnake.SelectOption(label="All Members", emoji=self.bot.emoji.alphabet.partial_emoji, value="all_members"),
+            disnake.SelectOption(label="Excel Export", emoji=self.bot.emoji.excel.partial_emoji, value="excel")
         ]
+
+        select = disnake.ui.Select(
+            options=options,
+            placeholder="Overview Pages",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=1,  # the maximum number of options a user can select
+        )
+        return disnake.ui.ActionRow(select)
+
+    async def stat_components(self, war: coc.ClanWar, next_war: coc.ClanWar):
+        swords = partial_emoji_gen(self.bot, "<a:swords:944894455633297418>", animated=True)
+        troop = partial_emoji_gen(self.bot, "<:troop:861797310224400434>")
+        options = []
 
         # on first round - only next round
         # on last round - only current round
         if war is None:
-            options.insert(0, disnake.SelectOption(label="Next Round", emoji='📍', value="nextround"))
+            options.insert(0, disnake.SelectOption(label="Next Round", emoji=self.bot.emoji.right_green_arrow.partial_emoji, value="nextround"))
             options.insert(1, disnake.SelectOption(label="Next Round Lineup", emoji=troop, value="lineup"))
         elif next_war is None:
             options.insert(0, disnake.SelectOption(label="Current Round", emoji=swords, value="round"))
             options.insert(1, disnake.SelectOption(label="Current Lineup", emoji=troop, value="current_lineup"))
+            options.insert(2, disnake.SelectOption(label="Attacks", emoji=self.bot.emoji.thick_sword.partial_emoji, value="attacks"))
+            options.insert(3, disnake.SelectOption(label="Defenses", emoji=self.bot.emoji.shield.partial_emoji, value="defenses"))
         else:
             options.insert(0, disnake.SelectOption(label="Current Round", emoji=swords, value="round"))
             options.insert(1, disnake.SelectOption(label="Current Lineup", emoji=troop, value="current_lineup"))
-            options.insert(2, disnake.SelectOption(label="Next Round", emoji="📍", value="nextround"))
-            options.insert(3, disnake.SelectOption(label="Next Round Lineup", emoji=troop, value="lineup"))
+            options.insert(2, disnake.SelectOption(label="Attacks", emoji=self.bot.emoji.thick_sword.partial_emoji,value="attacks"))
+            options.insert(3, disnake.SelectOption(label="Defenses", emoji=self.bot.emoji.shield.partial_emoji,value="defenses"))
+
+            options.insert(4, disnake.SelectOption(label="Next Round", emoji=self.bot.emoji.right_green_arrow.partial_emoji, value="nextround"))
+            options.insert(5, disnake.SelectOption(label="Next Round Lineup", emoji=troop, value="lineup"))
+            options.insert(6, disnake.SelectOption(label="Next Opponent Overview", emoji=self.bot.emoji.magnify_glass.partial_emoji, value="nextopp_overview"))
 
         select = disnake.ui.Select(
             options=options,
-            placeholder="CWL Stat Pages",  # the placeholder text to show when no options have been chosen
+            placeholder="Round Stat Pages",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=1,  # the maximum number of options a user can select
+        )
+        return disnake.ui.ActionRow(select)
+
+    async def round_components(self, league_wars: List[coc.ClanWar]):
+        options = [disnake.SelectOption(label=f"Overview", value=f"cwlround_overview")]
+        for round in range(1, len(league_wars) + 1):
+            options.append(disnake.SelectOption(label=f"Round {round}", value=f"cwlround_{round}"))
+
+        select = disnake.ui.Select(
+            options=options,
+            placeholder="Choose a round",  # the placeholder text to show when no options have been chosen
             min_values=1,  # the minimum number of options a user must select
             max_values=1,  # the maximum number of options a user can select
         )
@@ -210,8 +275,8 @@ class Cwl(commands.Cog, name="CWL"):
     async def clan_components(self, group: coc.ClanWarLeagueGroup):
         options = []
         for clan in group.clans:
-            emoji = await self.bot.create_new_badge_emoji(url=clan.badge.url)
-            options.append(disnake.SelectOption(label=f"{clan.name}", emoji=self.bot.partial_emoji_gen(emoji_string=emoji), value=f"cwlchoose_{clan.tag}"))
+            options.append(
+                disnake.SelectOption(label=f"{clan.name}", value=f"cwlchoose_{clan.tag}"))
 
         select = disnake.ui.Select(
             options=options,
@@ -221,57 +286,120 @@ class Cwl(commands.Cog, name="CWL"):
         )
         return disnake.ui.ActionRow(select)
 
-    async def war_embed(self, war: coc.ClanWar, clan: coc.Clan):
+    async def attacks_embed(self, war: coc.ClanWar):
+        attacks = ""
+        missing_attacks = []
+        miss_attack_text = ""
+        for player in war.members:
+            if player not in war.opponent.members:
+                if player.attacks == []:
+                    miss_attack = f"➼ {self.bot.fetch_emoji(name=player.town_hall)}{player.name}\n"
+                    if len(miss_attack) + len(miss_attack_text) >= 1024:
+                        missing_attacks.append(miss_attack_text)
+                        miss_attack_text = ""
+                    miss_attack_text += miss_attack
+                    continue
+                name = player.name
+                attacks += f"\n{self.bot.fetch_emoji(name=player.town_hall)}**{name}**"
+                for a in player.attacks:
+                    star_str = ""
+                    stars = a.stars
+                    for x in range(0, stars):
+                        star_str += "★"
+                    for x in range(0, 3 - stars):
+                        star_str += "☆"
 
-        war_time = war.start_time.seconds_until
+                    base = create_superscript(a.defender.map_position)
+                    attacks += f"\n➼ {a.destruction}%{star_str}{base}"
 
-        war_state = "In Prep"
-        war_pos = "Starting"
-        if war_time >= 0:
-            war_time = war.start_time.time.replace(tzinfo=tiz).timestamp()
-        else:
-            war_time = war.end_time.seconds_until
-            if war_time <= 0:
-                war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
-                war_pos = "Ended"
-                war_state = "War Over"
-            else:
-                war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
-                war_pos = "Ending"
-                war_state = "In War"
-
-        stats = await self.calculate_stars_percent(war)
-        team_stars = str(stats[2]).ljust(7)
-        opp_stars = str(stats[0]).rjust(7)
-        team_per = (str(stats[3]) + "%").ljust(7)
-        opp_per = (str(stats[1]) + "%").rjust(7)
-        team_hits = f"{len(war.attacks) - len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".ljust(7)
-        opp_hits = f"{len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".rjust(7)
-
-        th_comps = await self.war_th_comps(war)
-
-        embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link})",
+        embed = disnake.Embed(title=f"{war.clan.name} War Attacks", description=attacks,
                               color=disnake.Color.green())
-        embed.add_field(name=f"**War Against**", value=f"[**{war.opponent.name}**]({war.opponent.share_link})\n­\n",
-                        inline=False)
-        embed.add_field(name=f"**War State**",
-                        value=f"{cwl_league_emojis(str(clan.war_league))}{str(clan.war_league)}\n"
-                              f"{war_state} ({war.team_size} vs {war.team_size})\n"
-                              f"{war_pos}: <t:{int(war_time)}:R>\n­\n", inline=False)
-        embed.add_field(name="**War Stats**",
-                        value=f"`{team_hits}`<a:swords:944894455633297418>`{opp_hits}`\n"
-                              f"`{team_stars}`<:star:825571962699907152>`{opp_stars}`\n"
-                              f"`{team_per}`<:broken_sword:944896241429540915>`{opp_per}`\n­\n"
-                        , inline=False)
+        if miss_attack_text != "":
+            missing_attacks.append(miss_attack_text)
+        if missing_attacks:
+            for m in missing_attacks:
+                embed.add_field(name="**No attacks done:**", value=m)
+        embed.set_thumbnail(url=war.clan.badge.large)
+        return embed
 
-        embed.add_field(name="War Composition", value=f"{war.clan.name}\n{th_comps[0]}\n"
-                                                      f"{war.opponent.name}\n{th_comps[1]}", inline=False)
+    async def defenses_embed(self, war: coc.ClanWar):
+        defenses = ""
+        missing_defenses = []
+        miss_def_text = ""
+        for player in war.clan.members:
+            if player.defenses == []:
+                miss_attack = f"➼ {self.bot.fetch_emoji(name=player.town_hall)}{player.name}\n"
+                if len(miss_attack) + len(miss_def_text) >= 1024:
+                    missing_defenses.append(miss_def_text)
+                    miss_def_text = ""
+                miss_def_text += miss_attack
+                continue
+            name = player.name
+            defenses += f"\n{self.bot.fetch_emoji(name=player.town_hall)}**{name}**"
+            for a in player.defenses:
+                star_str = ""
+                stars = a.stars
+                for x in range(0, stars):
+                    star_str += "★"
+                for x in range(0, 3 - stars):
+                    star_str += "☆"
+
+                base = create_superscript(a.defender.map_position)
+                defenses += f"\n➼ {a.destruction}%{star_str}{base}"
+
+        embed = disnake.Embed(title=f"{war.clan.name} Defenses Taken", description=defenses,
+                              color=disnake.Color.green())
+
+        if miss_def_text != "":
+            missing_defenses.append(miss_def_text)
+        if missing_defenses:
+            for d in missing_defenses:
+                embed.add_field(name="**No defenses taken:**", value=d)
+        embed.set_thumbnail(url=war.clan.badge.large)
+        return embed
+
+    async def opp_overview(self, war: coc.ClanWar):
+        clan = await self.bot.getClan(war.opponent.tag)
+        leader = utils.get(clan.members, role=coc.Role.leader)
+
+        if clan.public_war_log:
+            warwin = clan.war_wins
+            warloss = clan.war_losses
+            if warloss == 0:
+                warloss = 1
+            winstreak = clan.war_win_streak
+            winrate = round((warwin / warloss), 2)
+        else:
+            warwin = clan.war_wins
+            warloss = "Hidden Log"
+            winstreak = clan.war_win_streak
+            winrate = "Hidden Log"
+
+        flag = ""
+        if str(clan.location) == "International":
+            flag = "<a:earth:861321402909327370>"
+        else:
+            flag = f":flag_{clan.location.country_code.lower()}:"
+        embed = disnake.Embed(title=f"**War Opponent: {clan.name}**", description=f"Tag: [{clan.tag}]({clan.share_link})\n"
+                                                                    f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.versus_points}\n"
+                                                                    f"Required Trophies: <:trophy:825563829705637889> {clan.required_trophies}\n"
+                                                                    f"Location: {flag} {clan.location}\n\n"
+                                                                    f"Leader: {leader.name}\n"
+                                                                    f"Level: {clan.level} \n"
+                                                                    f"Members: <:people:932212939891552256>{clan.member_count}/50\n\n"
+                                                                    f"CWL: {self.leagueAndTrophies(str(clan.war_league))}{str(clan.war_league)}\n"
+                                                                    f"Wars Won: <:warwon:932212939899949176>{warwin}\nWars Lost: <:warlost:932212154164183081>{warloss}\n"
+                                                                    f"War Streak: <:warstreak:932212939983847464>{winstreak}\nWinratio: <:winrate:932212939908337705>{winrate}\n\n"
+                                                                    f"Description: {clan.description}",
+                              color=disnake.Color.green())
 
         embed.set_thumbnail(url=clan.badge.large)
         return embed
 
-    async def all_members(self, members: coc.Player, clan: coc.Clan):
+    async def all_members(self, group:coc.ClanWarLeagueGroup, clan: coc.Clan):
         roster = ""
+        our_clan = coc.utils.get(group.clans, tag=clan.tag)
+        members = our_clan.members
         tags = [member.tag for member in members]
 
         x = 1
@@ -437,7 +565,7 @@ class Cwl(commands.Cog, name="CWL"):
         embed = disnake.Embed(title=f"{clan.name} CWL | All Rounds",
                               color=disnake.Color.green())
 
-        round = 1
+        r = 1
         for war in league_wars:
             war: coc.ClanWar
             war_time = war.start_time.seconds_until
@@ -455,11 +583,6 @@ class Cwl(commands.Cog, name="CWL"):
                     war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
                     war_pos = "Ending"
                     war_state = "In War |"
-            stats = await self.calculate_stars_percent(war)
-            team_stars = str(stats[2]).ljust(7)
-            opp_stars = str(stats[0]).rjust(7)
-            team_per = (str(stats[3]) + "%").ljust(7)
-            opp_per = (str(stats[1]) + "%").rjust(7)
             team_hits = f"{len(war.attacks) - len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".ljust(
                 7)
             opp_hits = f"{len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".rjust(7)
@@ -469,16 +592,16 @@ class Cwl(commands.Cog, name="CWL"):
             elif str(war.status) == "lost":
                 emoji = "<:redtick:601900691312607242>"
             embed.add_field(name=f"**{war.clan.name}** vs **{war.opponent.name}**\n"
-                                 f"{emoji}Round {round} | {war_state} {str(war.status).capitalize()}",
+                                 f"{emoji}Round {r} | {war_state} {str(war.status).capitalize()}",
                             value=f"`{team_hits}`<a:swords:944894455633297418>`{opp_hits}`\n"
-                                  f"`{team_stars}`<:star:825571962699907152>`{opp_stars}`\n"
-                                  f"`{team_per}`<:broken_sword:944896241429540915>`{opp_per}`\n"
+                                  f"`{war.clan.stars:<7}`<:star:825571962699907152>`{war.opponent.stars:7}`\n"
+                                  f"`{round(war.clan.destruction,2):<6}%`<:broken_sword:944896241429540915>`{round(war.opponent.destruction,2):6}%`\n"
                                   f"{war_pos} <t:{int(war_time)}:R>\n­\n"
                             , inline=False)
-            round+=1
+            r+=1
         return embed
 
-    async def ranking_lb(self, group: coc.ClanWarLeagueGroup, clan):
+    async def ranking_lb(self, group: coc.ClanWarLeagueGroup):
         star_dict = defaultdict(int)
         dest_dict = defaultdict(int)
         tag_to_name = defaultdict(str)

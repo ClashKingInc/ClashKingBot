@@ -127,7 +127,7 @@ class CustomClient(commands.Bot):
         self.ticketing = self.db_client.usafam.tickets
 
         self.coc_client = coc.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD"), client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 30,
-                                    cache_max_size=50000, load_game_data=coc.LoadGameData(always=True))
+                                    cache_max_size=50000, load_game_data=coc.LoadGameData(always=True), stats_max_size=10000)
 
         self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwarapi.login(username=os.getenv("FW_USER"), password=os.getenv("FW_PW"), clash_client=self.coc_client))
 

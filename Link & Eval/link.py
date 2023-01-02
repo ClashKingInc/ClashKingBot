@@ -281,6 +281,7 @@ class Linking(commands.Cog):
                 pass
 
     @commands.slash_command(name="unlink", description="Unlinks a clash account from discord")
+    @commands.check_any(check_commands())
     async def unlink(self, ctx: disnake.ApplicationCommandInteraction, player_tag):
         """
             Parameters
@@ -300,23 +301,43 @@ class Linking(commands.Cog):
                 color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
+
         perms = ctx.author.guild_permissions.manage_guild
+        whitelist_perm = await self.bot.white_list_check(ctx=ctx, command_name="unlink")
         if ctx.author.id == self.bot.owner.id:
             perms = True
 
+        is_family = False
+        if player.clan is not None and player.clan.tag in clan_tags:
+            is_family = True
+
+        perms_only_because_whitelist = False
+        if whitelist_perm:
+            if is_family:
+                perms = True
+                perms_only_because_whitelist = True
+
         if linked != ctx.author.id and not perms:
-            if not perms:
-                embed = disnake.Embed(
-                    description="Must have `Manage Server` permissions to unlink commands that aren't yours.",
-                    color=disnake.Color.red())
-                return await ctx.send(embed=embed)
+            embed = disnake.Embed(
+                description="Must have `Manage Server` permissions or be whitelisted (`/whitelist add`) to unlink accounts that aren't yours.",
+                color=disnake.Color.red())
+            return await ctx.send(embed=embed)
 
         if perms:
             member = await self.bot.pingToMember(ctx, linked)
-            if ctx.guild.member_count <= 99 and member is None:
-                embed = disnake.Embed(description=f"[{player.name}]({player.share_link}), cannot unlink players on servers with less than 100 members.\n(Reach out on the support server if you have questions about this)",
-                                      color=disnake.Color.red())
+            #if they are on a different server, and not in family
+            if ctx.guild.member_count <= 249 and member is None and not is_family:
+                embed = disnake.Embed(
+                    description=f"[{player.name}]({player.share_link}), cannot unlink players on other servers & not in your clans.\n(Reach out on the support server if you have questions about this)",
+                    color=disnake.Color.red())
                 return await ctx.send(embed=embed)
+            elif member is None and perms_only_because_whitelist and not is_family:
+                embed = disnake.Embed(
+                    description=f"[{player.name}]({player.share_link}), Must have `Manage Server` permissions to unlink accounts not on your server or in your clans.",
+                    color=disnake.Color.red())
+                return await ctx.send(embed=embed)
+
         await self.bot.link_client.delete_link(player.tag)
         embed = disnake.Embed(description=f"[{player.name}]({player.share_link}) has been unlinked from discord.",
                               color=disnake.Color.green())
@@ -397,8 +418,6 @@ class Linking(commands.Cog):
             linked_accounts = await search_results(self.bot, str(discord_user.id))
             embed = await cog.to_do_embed(discord_user=discord_user, linked_accounts=linked_accounts)
             await ctx.send(embed=embed, ephemeral=True)
-
-
 
     @modlink.autocomplete("player_tag")
     @unlink.autocomplete("player_tag")

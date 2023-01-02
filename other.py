@@ -79,17 +79,17 @@ class misc(commands.Cog, name="Other"):
 
         me = self.bot.user.mention
 
-        before = time.time()
-        await self.bot.getPlayer("#P2PQDW")
-        after = time.time()
-        cocping = round(((after - before) * 1000), 2)
+        cocping = self.bot.coc_client.http.stats.get_all_average()
+        ping_text = ""
+        for endpoint, ping in cocping.items():
+            ping_text += f"> `{endpoint} - {round(ping, 2)}ms`\n"
 
         inservers = len(self.bot.guilds)
         members = sum(guild.member_count - 1 for guild in self.bot.guilds)
         embed = disnake.Embed(title=f'{self.bot.user.name} Stats',
                               description=f"<:bot:862911608140333086> Bot: {me}\n" +
                                           f"<:discord:840749695466864650> Discord Api Ping: {round(self.bot.latency * 1000, 2)} ms\n" +
-                                          f"<:clash:855491735488036904> COC Api Ping: {cocping} ms\n" +
+                                          f"<:clash:855491735488036904> COC Api Ping by Endpoint:\n {ping_text}" +
                                           f"<:server:863148364006031422> In {str(inservers)} servers\n" +
                                           f"<a:num:863149480819949568> Watching {members} users\n" +
                                           f"🕐 Uptime: {uptime}\n",

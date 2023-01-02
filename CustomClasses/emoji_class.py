@@ -73,6 +73,9 @@ class Emojis():
         self.capital_trophy = EmojiType("<:capital_trophy:1054056202864177232>")
         self.cwl_medal = EmojiType("<:cwlmedal:1037126610962362370>")
         self.person = EmojiType("<:people:932212939891552256>")
+        self.excel = EmojiType("<:excel:1059583349762572298>")
+        self.magnify_glass = EmojiType("<:magnify:944914253171810384>")
+        self.right_green_arrow = EmojiType("<:arrow_right_green:1059585270833487943>")
 
 
 
