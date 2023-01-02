@@ -10,7 +10,7 @@ class board_loop(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.autoboard_cron, "cron", hour=5, minute=7)
+        scheduler.add_job(self.autoboard_cron, "cron", hour=5, minute=11)
 
     async def autoboard_cron(self):
         hour = 4
@@ -29,7 +29,12 @@ class board_loop(commands.Cog):
             try:
                 serv = r.get("server")
                 channel = r.get("topboardchannel")
-                channel = await self.bot.getch_channel(channel)
+                try:
+                    channel = await self.bot.getch_channel(channel)
+                except:
+                    channel = None
+                if channel is None:
+                    continue
                 limit = 250
                 rankings = []
                 tags = await self.bot.clan_db.distinct("tag", filter={"server" : serv})
