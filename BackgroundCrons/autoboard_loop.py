@@ -10,7 +10,7 @@ class board_loop(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.autoboard_cron, "cron", hour=5, minute=5)
+        scheduler.add_job(self.autoboard_cron, "cron", hour=5, minute=7)
 
     async def autoboard_cron(self):
         hour = 4
@@ -33,7 +33,7 @@ class board_loop(commands.Cog):
                 limit = 250
                 rankings = []
                 tags = await self.bot.clan_db.distinct("tag", filter={"server" : serv})
-                async for tag in tags:
+                for tag in tags:
                     try:
                         clan = clan_dict[tag]
                     except:
