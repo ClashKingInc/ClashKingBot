@@ -630,7 +630,10 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         if remove_role == "True":
             role = None
         await _roster.set_role(role=role)
-        embed = disnake.Embed(description=f"{roster} role set to {role.mention}", colour=disnake.Color.green())
+        if role is not None:
+            embed = disnake.Embed(description=f"{roster} role set to {role.mention}", colour=disnake.Color.green())
+        else:
+            embed = disnake.Embed(description=f"{roster} role removed", colour=disnake.Color.green())
         await ctx.edit_original_message(embed=embed)
 
     @roster.sub_command(name="role-refresh", description="Refresh the roles of those signed up to this roster")

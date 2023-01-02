@@ -680,8 +680,6 @@ class Cwl(commands.Cog, name="CWL"):
             try:
                 league = await self.bot.coc_client.get_league_group(clan.tag)
                 state = league.state
-                if season != league.season:
-                    continue
                 if str(state) == "preparation":
                     c.append("<a:CheckAccept:992611802561134662>")
                     c.append(1)
