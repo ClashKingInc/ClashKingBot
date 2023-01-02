@@ -3,9 +3,11 @@ import coc
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
+from Assets.emojiDictionary import emojiDictionary
 from CustomClasses.Roster import Roster
 from main import check_commands
 from Exceptions import *
+from typing import List
 
 class Roster_Commands(commands.Cog, name="Rosters"):
 
@@ -18,9 +20,16 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             raise coc.errors.NotFound
         return clan
 
-    async def player_convertor(self, player_tag: str):
-        player = await self.bot.getPlayer(player_tag=player_tag, raise_exceptions=True)
-        return player
+    async def player_convertor(self, player_tags: str):
+        player_tags = player_tags.split(",")[:50]
+        players = []
+        for player_tag in player_tags:
+            player = await self.bot.getPlayer(player_tag=player_tag)
+            if player is not None:
+                players.append(player)
+        if not players:
+            raise coc.errors.NotFound
+        return players
 
     @commands.slash_command(name="roster")
     async def roster(self, ctx: disnake.ApplicationCommandInteraction):
@@ -84,11 +93,22 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="add-player", description="Add a player to a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_add(self, ctx: disnake.ApplicationCommandInteraction, roster: str, player: coc.Player = commands.Param(converter=player_convertor), sub = commands.Param(name="sub", default=False, choices=["Yes"])):
+    async def roster_add(self, ctx: disnake.ApplicationCommandInteraction, roster: str, players: List[coc.Player] = commands.Param(converter=player_convertor), sub = commands.Param(name="sub", default=False, choices=["Yes"])):
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
-        await _roster.add_member(player=player, sub=(sub=="Yes"))
-        embed = disnake.Embed(description=f"{player.name} added to **{_roster.roster_result.get('alias')}** roster.",color=disnake.Color.green())
+        added_text = ""
+        messed_text = ""
+        for player in players:
+            try:
+                await _roster.add_member(player=player, sub=(sub=="Yes"))
+                added_text += f"{emojiDictionary(player.town_hall)}{player.name}\n"
+            except Exception as e:
+                messed_text += f"{emojiDictionary(player.town_hall)}{player.name} - {e}\n"
+        if added_text == "":
+            added_text = f"No Players "
+        embed = disnake.Embed(title=f"Added to **{_roster.roster_result.get('alias')}** roster", description=added_text,color=disnake.Color.green())
+        if messed_text != "":
+            embed.add_field(name="Not Added (Errors)", value=messed_text)
         embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
         await ctx.send(embed=embed, ephemeral=True)
 
@@ -714,7 +734,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                 alias_list.append(f"{alias}")
         return alias_list[:25]
 
-    @roster_add.autocomplete("player")
+    @roster_add.autocomplete("players")
     async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         names = await self.bot.family_names(query=query, guild=ctx.guild)
         return names

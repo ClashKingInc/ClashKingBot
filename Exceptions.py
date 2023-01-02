@@ -5,13 +5,15 @@ class RosterDoesNotExist(Exception):
     pass
 
 class PlayerAlreadyInRoster(Exception):
-    pass
+    def __str__(self):
+        return "Already in Roster"
 
 class PlayerNotInRoster(Exception):
     pass
 
 class RosterSizeLimit(Exception):
-    pass
+    def __str__(self):
+        return "Roster Size Limit Hit"
 
 class ExpiredComponents(Exception):
     pass
