@@ -346,13 +346,12 @@ class misc(commands.Cog, name="Settings"):
     @set_log.sub_command(name="add", description="Set a variety of different clan logs for your server!")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def set_log_add(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), channel: Union[disnake.TextChannel, disnake.Thread] = commands.Param(default=None, name="channel")):
-        await ctx.response.defer()
         results = await self.bot.clan_db.find_one({"$and": [
             {"tag": clan.tag},
             {"server": ctx.guild.id}
         ]})
         if results is None:
-            return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
+            return await ctx.edit_original_message("This clan is not set up on this server. Use `/addclan` to get started.")
 
         if channel is None:
             channel = ctx.channel
@@ -465,7 +464,6 @@ class misc(commands.Cog, name="Settings"):
     @set_log.sub_command(name="remove", description="Remove a log for a clan")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def set_log_remove(self, ctx: disnake.ApplicationCommandInteraction, clan: str, log_to_remove=commands.Param(choices=["Clan Capital Log", "Join Log", "War Log", "Legend Log", "Donation Log", "Clan Log"])):
-        await ctx.response.defer()
         type_dict = {"Clan Capital Log": "clan_capital", "Join Log": "joinlog", "War Log": "war_log",
                      "Legend Log": "legend_log", "Donation Log": "donolog", "Clan Log": "upgrade_log"}
         log_type = type_dict[log_to_remove]
@@ -546,7 +544,7 @@ class misc(commands.Cog, name="Settings"):
                               "- Reports when a super troop is boosted\n"
                               "- Reports when a players league changes\n"
                               "- **Cannot** get building upgrades or when an lab or hero upgrade is started")
-        await ctx.send(embed=embed)
+        await ctx.edit_original_message(embed=embed)
 
     """@set.sub_command(name="autoeval", description="Turn on/off auto role evaluation for a clan")
     async def set_autoeval(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), option = commands.Param(choices=["On", "Off"]),
