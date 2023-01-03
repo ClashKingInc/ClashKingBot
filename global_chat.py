@@ -403,16 +403,13 @@ class GlobalChat(commands.Cog, name="Global Chat"):
 
         async def edit_task(message_id, channel_id, content):
             try:
-                message = self.bot.get_message(message_id)
+                channel = await self.bot.getch_channel(channel_id)
             except:
-                try:
-                    channel = self.bot.get_channel(channel_id)
-                except:
-                    try:
-                        channel = await self.bot.fetch_channel(channel_id)
-                    except:
-                        return
+                return
+            try:
                 message = await channel.fetch_message(message_id)
+            except:
+                pass
             try:
               await message.delete()
             except:
