@@ -26,6 +26,11 @@ class addClan(commands.Cog, name="Clan Setup"):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
+        if general_clan_role.is_bot_managed() or leadership_clan_role.is_bot_managed():
+            embed = disnake.Embed(description=f"Clan Roles cannot be bot roles.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
         if general_clan_role.id == ctx.guild.default_role.id:
             embed = disnake.Embed(description=f"General Clan Role cannot be {ctx.guild.default_role.mention}.",
                                   color=disnake.Color.red())
@@ -77,6 +82,19 @@ class addClan(commands.Cog, name="Clan Setup"):
                               color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
         await ctx.edit_original_message(embed=embed)
+
+
+    async def get_clan_role(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
+
+    async def get_leadership_role(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
+
+    async def get_clan_channel(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
+
+    async def get_logs(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
 
     @addClan.autocomplete("category")
     async def autocomp_names(self, ctx: disnake.ApplicationCommandInteraction, query: str):
