@@ -127,6 +127,7 @@ class Linking(commands.Cog):
             ----------
             player_tag: player_tag as found in-game
         """
+        await ctx.response.defer()
         server = CustomServer(guild=ctx.guild, bot=self.bot)
         change_nickname = await server.nickname_choice
         try:
@@ -137,7 +138,7 @@ class Linking(commands.Cog):
                     color=disnake.Color.red())
                 embed.set_image(
                     url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
-                return await ctx.send(embed=embed)
+                return await ctx.edit_original_message(embed=embed)
 
             linked = await self.bot.link_client.get_link(player.tag)
             is_linked = (linked is not None)
@@ -149,12 +150,12 @@ class Linking(commands.Cog):
                                                     test=False,
                                                     change_nick=change_nickname,
                                                     return_embed=True)
-                    await ctx.send(embed=embed)
+                    await ctx.edit_original_message(embed=embed)
                 else:
                     embed = disnake.Embed(
                         description=f"[{player.name}]({player.share_link}) is already linked to another discord user. Use `/unlink` to remove the link first.",
                         color=disnake.Color.red())
-                    await ctx.send(embed=embed)
+                    await ctx.edit_original_message(embed=embed)
 
             elif not is_linked:
                 await self.bot.link_client.add_link(player.tag, ctx.author.id)
@@ -164,7 +165,7 @@ class Linking(commands.Cog):
                                                 change_nick=change_nickname,
                                                 return_embed=True)
                 embed.title = f"**{player.name} successfully linked to {str(ctx.author)}**"
-                await ctx.send(embed=embed)
+                await ctx.edit_original_message(embed=embed)
                 try:
                     results = await self.bot.server_db.find_one({"server": ctx.guild.id})
                     greeting = results.get("greeting")

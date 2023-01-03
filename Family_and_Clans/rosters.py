@@ -105,7 +105,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             except Exception as e:
                 messed_text += f"{emojiDictionary(player.town_hall)}{player.name} - {e}\n"
         if added_text == "":
-            added_text = f"No Players "
+            added_text = f"No Players"
         embed = disnake.Embed(title=f"Added to **{_roster.roster_result.get('alias')}** roster", description=added_text,color=disnake.Color.green())
         if messed_text != "":
             embed.add_field(name="Not Added (Errors)", value=messed_text)
