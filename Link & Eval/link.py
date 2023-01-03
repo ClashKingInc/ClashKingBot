@@ -288,18 +288,18 @@ class Linking(commands.Cog):
             ----------
             player_tag: player_tag as found in-game
         """
-
+        await ctx.response.defer()
         player = await self.bot.getPlayer(player_tag)
         if player is None:
             embed = disnake.Embed(description="Invalid Player Tag", color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            return await ctx.edit_original_message(embed=embed)
 
         linked = await self.bot.link_client.get_link(player.tag)
         if linked is None:
             embed = disnake.Embed(
                 title=player.name + " is not linked to a discord user.",
                 color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            return await ctx.edit_original_message(embed=embed)
 
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
 
@@ -322,7 +322,7 @@ class Linking(commands.Cog):
             embed = disnake.Embed(
                 description="Must have `Manage Server` permissions or be whitelisted (`/whitelist add`) to unlink accounts that aren't yours.",
                 color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            return await ctx.edit_original_message(embed=embed)
 
         if perms:
             member = await self.bot.pingToMember(ctx, linked)
@@ -331,17 +331,17 @@ class Linking(commands.Cog):
                 embed = disnake.Embed(
                     description=f"[{player.name}]({player.share_link}), cannot unlink players on other servers & not in your clans.\n(Reach out on the support server if you have questions about this)",
                     color=disnake.Color.red())
-                return await ctx.send(embed=embed)
+                return await ctx.edit_original_message(embed=embed)
             elif member is None and perms_only_because_whitelist and not is_family:
                 embed = disnake.Embed(
                     description=f"[{player.name}]({player.share_link}), Must have `Manage Server` permissions to unlink accounts not on your server or in your clans.",
                     color=disnake.Color.red())
-                return await ctx.send(embed=embed)
+                return await ctx.edit_original_message(embed=embed)
 
         await self.bot.link_client.delete_link(player.tag)
         embed = disnake.Embed(description=f"[{player.name}]({player.share_link}) has been unlinked from discord.",
                               color=disnake.Color.green())
-        await ctx.send(embed=embed)
+        await ctx.edit_original_message(embed=embed)
 
     @commands.slash_command(name="buttons", description="Create a message that has buttons for easy eval/link/refresh actions.")
     async def buttons(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Link Button", "Refresh Button", "To-Do Button"]), ping: disnake.User = None):
