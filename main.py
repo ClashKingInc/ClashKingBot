@@ -33,6 +33,8 @@ def check_commands():
         member = ctx.author
 
         commandd = ctx.application_command.qualified_name
+        if commandd == "unlink":
+            return True
         guild = ctx.guild.id
         results =  whitelist.find({"$and" : [
                 {"command": commandd},
