@@ -371,7 +371,8 @@ class misc(commands.Cog, name="Settings"):
         )
         dropdown = [disnake.ui.ActionRow(select)]
 
-        embed =disnake.Embed(description=f"Choose the logs that you would like to add for {clan.name} in {channel.mention}", color=disnake.Color.green())
+        embed =disnake.Embed(description=f"Choose the logs that you would like to add for {clan.name} in {channel.mention}\n"
+                                         f"Use </set log help:1033741922562494569> for more details", color=disnake.Color.green())
         await ctx.edit_original_message(embed=embed, components=dropdown)
 
         msg = await ctx.original_message()
