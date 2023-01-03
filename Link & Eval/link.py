@@ -383,7 +383,8 @@ class Linking(commands.Cog):
                                               f"> Clan Games\n"
                                               f"> War Hits\n"
                                               f"> Raid Hits\n"
-                                              f"> Inactivity",
+                                              f"> Inactivity\n"
+                                              f"> Legend Hits",
                                   color=disnake.Color.green())
             stat_buttons = [disnake.ui.Button(label="To-Do List", emoji=self.bot.emoji.yes.partial_emoji,
                                               style=disnake.ButtonStyle.green, custom_id="MyToDoList")]
