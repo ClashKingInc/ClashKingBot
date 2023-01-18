@@ -97,7 +97,7 @@ def size(troop_or_spell):
         "Bowler" : 6,
         "Baby Dragon" : 10,
         "Miner" : 6,
-        "Super Barbarian" : 10,
+        "Super Barbarian" : 5,
         "Super Archer" :12,
         "Super Wall Breaker" : 8,
         "Super Giant" : 10,
