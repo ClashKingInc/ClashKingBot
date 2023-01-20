@@ -312,8 +312,8 @@ class CustomClient(commands.Bot):
             ttt = await self.get_tags(query)
             for tag in ttt:
                 result = await self.player_stats.find_one({"$and": [
-                    {"tag": tag},
-                    {"league": {"$eq": "Legend League"}}
+                    {"league": {"$eq": "Legend League"}},
+                    {"tag": tag}
                 ]})
                 if result is not None:
                     tags.append(tag)
@@ -322,10 +322,18 @@ class CustomClient(commands.Bot):
 
         query = query.lower()
         query = re.escape(query)
-        results = self.player_stats.find({"$and": [
-            {"name": {"$regex": f"^(?i).*{query}.*$"}},
-            {"league": {"$eq": "Legend League"}}
-        ]})
+        results = self.player_stats.find({
+            "$and": [
+                {"league": {"$eq": "Legend League"}},
+                {
+                    "name": {"$regex": f"^(?i).*{query}.*$"}
+                }
+            ]}
+        ).limit(24)
+        '''results = self.player_stats.find({"$and": [
+            {"league": {"$eq": "Legend League"}},
+            {"name": {"$regex": f"^(?i).*{query}.*$"}}
+        ]})'''
         for document in await results.to_list(length=24):
             tags.append(document.get("tag"))
         return tags
@@ -336,14 +344,14 @@ class CustomClient(commands.Bot):
             names.append(query)
         # if search is a player tag, pull stats of the player tag
 
-        if utils.is_valid_tag(query) is True:
+        if len(query) >= 5 and utils.is_valid_tag(query) is True:
             t = utils.correct_tag(tag=query)
             query = query.lower()
             query = re.escape(query)
             results = self.player_stats.find({"$and": [
+                {"league": {"$eq": "Legend League"}},
                 {"tag": {"$regex": f"^(?i).*{t}.*$"}}
-                , {"league": {"$eq": "Legend League"}}
-            ]})
+            ]}).limit(24)
             for document in await results.to_list(length=24):
                 name = document.get("name")
                 if name is None:
@@ -358,10 +366,14 @@ class CustomClient(commands.Bot):
 
         query = query.lower()
         query = re.escape(query)
-        results = self.player_stats.find({"$and": [
-            {"name": {"$regex": f"^(?i).*{query}.*$"}}
-            , {"league": {"$eq": "Legend League"}}
-        ]})
+        results = self.player_stats.find({
+            "$and": [
+                {"league": {"$eq": "Legend League"}},
+                {
+                    "name": {"$regex": f"^(?i).*{query}.*$"}
+                }
+            ]}
+        ).limit(24)
         for document in await results.to_list(length=24):
             names.append(document.get("name") + " | " + document.get("tag"))
         return names
@@ -377,9 +389,9 @@ class CustomClient(commands.Bot):
             query = query.lower()
             query = re.escape(query)
             results = self.player_stats.find({"$and": [
+                {"clan_tag": {"$in": clan_tags}},
                 {"tag": {"$regex": f"^(?i).*{t}.*$"}}
-                , {"clan_tag": {"$in": clan_tags}}
-            ]})
+            ]}).limit(24)
             for document in await results.to_list(length=25):
                 name = document.get("name")
                 if name is None:
@@ -395,10 +407,9 @@ class CustomClient(commands.Bot):
         query = query.lower()
         query = re.escape(query)
         results = self.player_stats.find({"$and": [
+            {"clan_tag": {"$in": clan_tags}},
             {"name": {"$regex": f"^(?i).*{query}.*$"}}
-            , {"clan_tag": {"$in": clan_tags}}
-
-        ]})
+        ]}).limit(24)
         for document in await results.to_list(length=25):
             names.append(document.get("name") + " | " + document.get("tag"))
         return names[:25]
