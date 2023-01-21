@@ -366,7 +366,7 @@ class Linking(commands.Cog):
             await ctx.send(content=content, embed=embed, components=[buttons])
         elif type == "Refresh Button":
             embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
-                                  description=f"To refresh your account, press the refresh button below.",
+                                  description=f"To refresh your roles, press the refresh button below.",
                                   color=disnake.Color.green())
             stat_buttons = [disnake.ui.Button(label="Refresh Roles", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.green, custom_id="Refresh Roles")]
             buttons = disnake.ui.ActionRow()
