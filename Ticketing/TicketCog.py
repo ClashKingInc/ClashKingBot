@@ -1,5 +1,5 @@
 from disnake.ext import commands
-from Ticketing import TicketCommands, TicketButtons
+from Ticketing import TicketCommands
 
 
 class TicketCog(TicketCommands.TicketCommands, commands.Cog, name="Ticket Commands"):
