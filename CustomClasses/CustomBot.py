@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from datetime import timedelta
 from coc import utils
@@ -12,8 +13,9 @@ from CustomClasses.emoji_class import Emojis, EmojiType
 from pyyoutube import Api
 from urllib.request import urlopen
 from collections import defaultdict
-import dateutil.relativedelta
 
+import dateutil.relativedelta
+import ast
 import coc
 import motor.motor_asyncio
 import disnake
@@ -124,7 +126,12 @@ class CustomClient(commands.Bot):
         self.global_reports = self.db_client.usafam.reports
         self.strikelist = self.db_client.usafam.strikes
         self.raid_weekend_db = self.db_client.usafam.raid_weekends
-        self.ticketing = self.db_client.usafam.tickets
+        self.tickets = self.db_client.usafam.tickets
+        self.ticket_settings = self.db_client.usafam.ticket_settings
+        self.custom_embeds = self.db_client.usafam.custom_embeds
+        self.custom_commands = self.db_client.usafam.custom_commands
+
+        self.autoboard_db = self.db_client.usafam.autoboard_db
 
         self.coc_client = coc.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD"), client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 30,
                                     cache_max_size=50000, load_game_data=coc.LoadGameData(always=True), stats_max_size=10000)
@@ -450,6 +457,8 @@ class CustomClient(commands.Bot):
     def partial_emoji_gen(self, emoji_string, animated=False):
         emoji = emoji_string.split(":")
         #emoji = self.get_emoji(int(str(emoji[2])[:-1]))
+        if "<a:" in emoji_string:
+            animated = True
         emoji = disnake.PartialEmoji(name=emoji[1][1:], id=int(str(emoji[2])[:-1]), animated=animated)
         return emoji
 
@@ -457,7 +466,7 @@ class CustomClient(commands.Bot):
         emoji = emojiDictionary(name)
         if emoji is None:
             emoji = legend_emojis(name)
-        return emoji
+        return EmojiType(emoji_string=emoji)
 
     async def pingToMember(self, ctx, ping, no_fetch=False):
         ping = str(ping)
@@ -663,3 +672,77 @@ class CustomClient(commands.Bot):
                     return True
 
         return perms
+
+
+    def parse_to_embed(self, custom_json: str, clan: coc.Clan=None, guild: disnake.Guild = None):
+        custom_json = custom_json.replace("true", "True")
+
+        custom_json = custom_json.replace("`", '"')
+        new_string = ""
+        inside_string = False
+        last_two = []
+        for character in custom_json:
+            if character == '"':
+                inside_string = not inside_string
+
+            if not inside_string and not character.isspace():
+                new_string += character
+            elif inside_string:
+                new_string += character
+
+        custom_json = new_string
+        embed_json = re.findall('"embeds"(.*?)}]}\);', custom_json)
+        embed_json = embed_json[0]
+
+        embed_json = '{"embeds"' + embed_json + "}]}"
+        if clan is not None:
+            possible_attributes = {"clan.name": clan.name, "clan.badge_url": clan.badge.url, "clan.tag": clan.tag,
+                                   "clan.level": clan.level,
+                                   "clan.share_link": clan.share_link, "clan.description": clan.description,
+                                   "clan.location": clan.location, "clan.points": clan.points,
+                                   "clan.versus_points": clan.versus_points, "clan.capital_points": clan.capital_points,
+                                   "clan.war_wins": clan.war_wins, "clan.member": clan.members}
+
+            member_attributes = ["name", "trophies", "tag", "role", "exp_level", "league"]
+            for attribute, replace in possible_attributes.items():
+                if "clan.member" not in attribute:
+                    embed_json = embed_json.replace(f"{{{attribute}}}", str(replace))
+                elif "clan.member" in embed_json:
+                    line_format = re.findall("{clan\.member\[(.*?)]}", embed_json)[0]
+                    all_lines = ""
+                    for member in clan.members:
+                        this_line = line_format
+                        for att in member_attributes:
+                            if f"clan_member.{att}" in this_line:
+                                this_line = this_line.replace(f"{{clan_member.{att}}}", str(getattr(member, att)))
+                        all_lines += f"{this_line}" + r'\n'
+                    embed_json = re.sub("{clan\.member(.*?)]}", all_lines, embed_json)
+
+        if guild is not None:
+            possible_attributes = {"guild.name": guild.name, "guild.icon" : guild.icon.url,  "guild.banner" : guild.banner.url}
+            for attribute, replace in possible_attributes.items():
+                embed_json = embed_json.replace(f"{{{attribute}}}", str(replace))
+
+
+        embed_json = ast.literal_eval(embed_json.replace('\r','\\r').replace('\n','\\n').replace("^^","`"))
+        print(embed_json)
+
+
+        embed = disnake.Embed.from_dict(embed_json["embeds"][0])
+        return embed
+
+
+    def command_names(self):
+        commands = []
+        for command_ in self.slash_commands:
+            base_command = command_.name
+            children = command_.children
+            if children != {}:
+                for child in children:
+                    command = children[child]
+                    full_name = f"{base_command} {command.name}"
+                    commands.append(full_name)
+            else:
+                full_name = base_command
+                commands.append(full_name)
+        return commands

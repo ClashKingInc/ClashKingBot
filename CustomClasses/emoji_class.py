@@ -76,6 +76,9 @@ class Emojis():
         self.excel = EmojiType("<:excel:1059583349762572298>")
         self.magnify_glass = EmojiType("<:magnify:944914253171810384>")
         self.right_green_arrow = EmojiType("<:arrow_right_green:1059585270833487943>")
+        self.calendar = EmojiType("<:calendar:1063642295162916924>")
+        self.red_status = EmojiType("<:status_red:948032012160204840>")
+        self.green_status = EmojiType("<:status_green:948031949140799568>")
 
 
 
