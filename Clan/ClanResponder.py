@@ -968,7 +968,7 @@ def stat_components(bot):
     options = []
     for townhall in reversed(range(6, 16)):
         options.append(disnake.SelectOption(
-            label=f"Townhall {townhall}", emoji=bot.fetch_emoji(name=townhall), value=str(townhall)))
+            label=f"Townhall {townhall}", emoji=str(bot.fetch_emoji(name=townhall)), value=str(townhall)))
     th_select = disnake.ui.Select(
         options=options,
         # the placeholder text to show when no options have been chosen
