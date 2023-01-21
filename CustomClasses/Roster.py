@@ -151,7 +151,7 @@ class Roster():
         elif field == "Heroes":
             return player_dict.get("hero_lvs")
         elif field == "Townhall Level":
-            return self.bot.fetch_emoji(name=player_dict.get('townhall'))
+            return self.bot.fetch_emoji(name=player_dict.get('townhall')).emoji_string
         elif field == "Current Clan":
             name = str(player_dict.get("current_clan"))
             for char in ["`", "*", "_", "~", "ッ"]:
@@ -506,7 +506,7 @@ class Roster():
             player_options.append(disnake.SelectOption(label=f"Previous 25 Players", emoji=self.bot.emoji.back.partial_emoji, value=f"players_{player_page - 1}"))
         for count, player in enumerate(players):
             player_options.append(disnake.SelectOption(label=f"{player.get('name')}",
-                                                       emoji=self.bot.partial_emoji_gen(emoji_string=self.bot.fetch_emoji(name=player.get('townhall'))),
+                                                       emoji=self.bot.fetch_emoji(name=player.get('townhall').partial_emoji),
                                                        value=f"edit_{player.get('tag')}"))
         if len(players) == length and (len(self.players) > (length * player_page) + length):
             player_options.append(disnake.SelectOption(label=f"Next 25 Players", emoji=self.bot.emoji.forward.partial_emoji, value=f"players_{player_page + 1}"))

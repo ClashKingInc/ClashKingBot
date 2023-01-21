@@ -817,7 +817,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                 if account.tag in roster_tags:
                     continue
                 player_dict[account.tag] = account
-                options.append(disnake.SelectOption(label=account.name, emoji=self.bot.partial_emoji_gen(self.bot.fetch_emoji(name=account.town_hall)), value=f"{account.tag}"))
+                options.append(disnake.SelectOption(label=account.name, emoji=self.bot.fetch_emoji(name=account.town_hall).partial_emoji, value=f"{account.tag}"))
 
             if not options:
                 return await ctx.send(content="No accounts to add", ephemeral=True)
@@ -878,8 +878,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                 if account.tag not in roster_tags:
                     continue
                 player_dict[account.tag] = account
-                options.append(disnake.SelectOption(label=account.name, emoji=self.bot.partial_emoji_gen(
-                    self.bot.fetch_emoji(name=account.town_hall)), value=f"{account.tag}"))
+                options.append(disnake.SelectOption(label=account.name, emoji=self.bot.fetch_emoji(name=account.town_hall).partial_emoji, value=f"{account.tag}"))
 
             if not options:
                 return await ctx.send(content="No accounts to remove", ephemeral=True)
@@ -941,8 +940,8 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                 if account.tag in roster_tags:
                     continue
                 player_dict[account.tag] = account
-                options.append(disnake.SelectOption(label=account.name, emoji=self.bot.partial_emoji_gen(
-                    self.bot.fetch_emoji(name=account.town_hall)), value=f"{account.tag}"))
+                options.append(disnake.SelectOption(label=account.name, emoji=
+                    self.bot.fetch_emoji(name=account.town_hall).partial_emoji, value=f"{account.tag}"))
 
             if not options:
                 return await ctx.send(content="No accounts to add", ephemeral=True)
