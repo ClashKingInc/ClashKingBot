@@ -17,3 +17,18 @@ class RosterSizeLimit(Exception):
 
 class ExpiredComponents(Exception):
     pass
+
+class PanelNotFound(Exception):
+    pass
+
+class ButtonNotFound(Exception):
+    pass
+
+class ButtonAlreadyExists(Exception):
+    pass
+
+class PanelAlreadyExists(Exception):
+    pass
+
+class FaultyJson(Exception):
+    pass
