@@ -162,7 +162,7 @@ class Pagination(commands.Cog):
                 if tag in tags:
                     options.append(disnake.SelectOption(label=f"{stat}", value=f"{stat}", emoji=self.bot.emoji.quick_check.partial_emoji))
             else:
-                emoji = self.bot.partial_emoji_gen(self.bot.fetch_emoji(stat))
+                emoji = self.bot.fetch_emoji(stat).partial_emoji
                 options.append(disnake.SelectOption(label=f"{stat}", value=f"{stat}", emoji=emoji))
 
         stat_select = disnake.ui.Select(options=options, placeholder="🔎 Stat Pages & Settings", min_values=1, max_values=1)
