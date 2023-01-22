@@ -574,16 +574,23 @@ class TicketCommands(commands.Cog):
 
     @ticket.sub_command(name="category", description="Category where you want different types of tickets")
     @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
-    async def ticket_categories(self, ctx: disnake.ApplicationCommandInteraction, panel_name:str, status = commands.Param(choices=["open", "sleep", "closed"]), category: disnake.CategoryChannel = commands.Param(name="category")):
+    async def ticket_categories(self, ctx: disnake.ApplicationCommandInteraction, panel_name:str, status = commands.Param(choices=["all", "open", "sleep", "closed"]), category: disnake.CategoryChannel = commands.Param(name="category")):
         await ctx.response.defer()
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:
             raise PanelNotFound
 
-        await self.bot.tickets.update_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]},
-                                          {"$set": {f"{status}-category" : category.id}})
+        if status == "all":
+            status_types = ["open", "sleep", "closed"]
+        else:
+            status_types = [status]
+        text = ""
+        for status in status_types:
+            await self.bot.tickets.update_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]},
+                                              {"$set": {f"{status}-category" : category.id}})
+            text += f"{status} tickets will now go to {category.mention}\n"
 
-        await ctx.send(content=f"{status} tickets will now go to {category.mention}")
+        await ctx.send(content=text)
 
 
     @ticket.sub_command(name="log-channel", description="Log Channel for ticket actions")
