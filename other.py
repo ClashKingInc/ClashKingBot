@@ -230,7 +230,7 @@ class misc(commands.Cog, name="Other"):
         await ctx.send(f"</{command}:{command.id}> created!")
 
     @commands.slash_command(name="command-remove", description="Remove a custom command")
-    async def custom_command(self, ctx: disnake.ApplicationCommandInteraction, command_name: str):
+    async def remove_command(self, ctx: disnake.ApplicationCommandInteraction, command_name: str):
         await ctx.response.defer(ephemeral=True)
         guild_command = self.bot.get_guild_command_named(guild_id=ctx.guild.id, name=command_name.lower())
         if guild_command is None:
