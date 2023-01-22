@@ -7,7 +7,7 @@ from CustomClasses.CustomBot import CustomClient
 import io
 from PIL import Image, ImageDraw, ImageFont
 from utils.components import create_components
-
+from main import check_commands
 
 class misc(commands.Cog, name="Other"):
 
@@ -208,6 +208,7 @@ class misc(commands.Cog, name="Other"):
             await self.bot.create_guild_command(guild_id=guild, application_command=command)
 
     @commands.slash_command(name="custom-command", description="Create a custom command")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def custom_command(self, ctx: disnake.ApplicationCommandInteraction, command_name: str, description: str,
                              custom_embed: str, type=commands.Param(choices=["clan"]), refresh_button = commands.Param(default="False", choices=["True"])):
         command_name: str = command_name.replace(" ", "-")
@@ -229,6 +230,7 @@ class misc(commands.Cog, name="Other"):
         await ctx.send(f"</{command}:{command.id}> created!")
 
     @commands.slash_command(name="command-remove", description="Remove a custom command")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def remove_command(self, ctx: disnake.ApplicationCommandInteraction, command_name: str):
         await ctx.response.defer(ephemeral=True)
         guild_command = self.bot.get_guild_command_named(guild_id=ctx.guild.id, name=command_name.lower())
