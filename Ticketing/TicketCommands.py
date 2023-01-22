@@ -1117,6 +1117,7 @@ class TicketCommands(commands.Cog):
     @ticket_categories.autocomplete("panel_name")
     @ticket_logging.autocomplete("panel_name")
     @ticket_panel_edit.autocomplete("panel_name")
+    @ticket_thread.autocomplete("panel_name")
     async def autocomp_tickets(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         aliases = await self.bot.tickets.distinct("name", filter={"server_id": ctx.guild.id})
         alias_list = []
@@ -1134,6 +1135,7 @@ class TicketCommands(commands.Cog):
     @ticket_mods.autocomplete("button")
     @ticket_roles.autocomplete("button")
     @ticket_name.autocomplete("button")
+    @ticket_thread.autocomplete("button")
     async def autocomp_tickets(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         panel_name = ctx.filled_options["panel_name"]
         if panel_name == "":
