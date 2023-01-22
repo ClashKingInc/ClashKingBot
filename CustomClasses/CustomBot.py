@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 from Assets.emojiDictionary import emojiDictionary, legend_emojis
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis, EmojiType
-from pyyoutube import Api
 from urllib.request import urlopen
 from collections import defaultdict
 from utils.troop_methods import cwl_league_emojis
@@ -131,6 +130,7 @@ class CustomClient(commands.Bot):
         self.open_tickets = self.db_client.usafam.open_tickets
         self.custom_embeds = self.db_client.usafam.custom_embeds
         self.custom_commands = self.db_client.usafam.custom_commands
+        self.bases = self.db_client.usafam.bases
 
         self.autoboard_db = self.db_client.usafam.autoboard_db
 
