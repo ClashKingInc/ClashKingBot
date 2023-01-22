@@ -210,11 +210,10 @@ class misc(commands.Cog, name="Other"):
     @commands.slash_command(name="custom-command", description="Create a custom command")
     async def custom_command(self, ctx: disnake.ApplicationCommandInteraction, command_name: str, description: str,
                              custom_embed: str, type=commands.Param(choices=["clan"]), refresh_button = commands.Param(default="False", choices=["True"])):
-        command_name = command_name.replace(" ", "-")
+        command_name: str = command_name.replace(" ", "-")
         await ctx.response.defer(ephemeral=True)
-        command = self.bot.get_global_command_named(command_name.lower())
-        guild_command = self.bot.get_guild_command_named(guild_id=ctx.guild.id, name=command_name.lower())
-        if command is not None or guild_command is not None:
+        result = await self.bot.custom_commands.find_one({"$and": [{"guild": ctx.guild.id}, {"name": command_name.lower()}]})
+        if result is not None:
             return await ctx.send(content="Cannot name command after an already existing command")
         command = disnake.APISlashCommand(name=command_name, description=description)
         command.add_option(name=type, required=True, autocomplete=True)

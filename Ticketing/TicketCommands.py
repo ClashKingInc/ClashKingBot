@@ -35,7 +35,7 @@ class TicketCommands(commands.Cog):
 
     #PANELS
     @ticket.sub_command(name="panel-create", description="Get started here! Create your first ticket panel")
-    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_panel_create(self, ctx: disnake.ApplicationCommandInteraction, panel_name:str, custom_embed:str = None):
         """
             Parameters
@@ -85,7 +85,7 @@ class TicketCommands(commands.Cog):
         await ctx.edit_original_message(content="This is what your panel will look like. (You can change it later with `/ticket panel-edit`)", embed=embed, components=None)
 
     @ticket.sub_command(name="panel-post", description="Post your created ticket panels anywhere!")
-    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_panel_post(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str):
         """
             Parameters
@@ -131,7 +131,7 @@ class TicketCommands(commands.Cog):
 
 
     @ticket.sub_command(name="panel-edit", description="Edit the embed portion of your existing panels")
-    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_panel_edit(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, custom_embed: str):
         """
             Parameters
@@ -157,7 +157,7 @@ class TicketCommands(commands.Cog):
 
     #BUTTONS
     @ticket.sub_command(name="button-add", description="Add a button to a ticket panel")
-    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_button_add(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, button_text: str,
                                 button_color=commands.Param(choices=["Blue", "Green", "Grey", "Red"]),
                                 button_emoji: str = None):
@@ -206,7 +206,7 @@ class TicketCommands(commands.Cog):
 
 
     @ticket.sub_command(name="button-remove", description="Remove a button from a ticket panel")
-    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_button_remove(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, button: str):
         """
             Parameters
@@ -230,7 +230,7 @@ class TicketCommands(commands.Cog):
 
     #ACTIONS
     @ticket.sub_command(name="questions", description="Create a set of questions (up to 5) that will be asked when a ticket is opened")
-    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_questionaire(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, button: str, remove=commands.Param(default="False", choices=["True"])):
         """
             Parameters
@@ -290,7 +290,7 @@ class TicketCommands(commands.Cog):
 
     @ticket.sub_command(name="private-thread",
                         description="Turn private thread use - on/off")
-    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_thread(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, button: str, option=commands.Param(choices=["On", "Off"])):
         await ctx.response.defer()
 
@@ -307,7 +307,7 @@ class TicketCommands(commands.Cog):
             embed=disnake.Embed(description=f"Private Thread Settings Updated!",color=disnake.Color.green()))
 
     @ticket.sub_command(name="message", description="Customize the message that is sent when a ticket is opened")
-    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_message(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, button: str,  custom_embed: str = None, ping_staff = commands.Param(default=None, choices=["True", "False"])):
         if ping_staff is None and custom_embed is None:
             return await ctx.send("Must use the `custom_embed` or `ping_staff` field.")
@@ -339,7 +339,7 @@ class TicketCommands(commands.Cog):
 
 
     @ticket.sub_command(name="staff", description="Set staff roles, that get added to tickets created with this button")
-    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_mods(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, button: str, remove=commands.Param(default="False", choices=["True"])):
         await ctx.response.defer()
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
@@ -370,7 +370,7 @@ class TicketCommands(commands.Cog):
 
 
     @ticket.sub_command(name="apply-clans", description="Set clans that user can choose to apply to")
-    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_apply_clans(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, button: str, remove= commands.Param(default="False", choices=["True"])):
         await ctx.response.defer()
 
@@ -428,7 +428,7 @@ class TicketCommands(commands.Cog):
 
 
     @ticket.sub_command(name="roles", description="Set roles to be removed/added when ticket is opened")
-    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_roles(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, button: str,
                            mode=commands.Param(choices=["Add Roles", "Remove Roles"]), remove= commands.Param(default="False", choices=["True"])):
         await ctx.response.defer()
@@ -469,7 +469,7 @@ class TicketCommands(commands.Cog):
 
 
     @ticket.sub_command(name="account-apply", description="Set settings regarding")
-    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_account_apply(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, button: str, option = commands.Param(default=None, choices=["On", "Off"]), number_of_accounts: int = None, send_player_info = commands.Param(default = None, choices=["True", "False"]),
                                    townhall_minimum: int = commands.Param(default=None, name="townhall_minimum")):
         await ctx.response.defer()
@@ -556,7 +556,7 @@ class TicketCommands(commands.Cog):
 
 
     @ticket.sub_command(name="naming", description="Creating a naming convention for channels")
-    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_name(self, ctx: disnake.ApplicationCommandInteraction, panel_name : str, button: str, naming_convention: str):
         await ctx.response.defer()
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
@@ -574,7 +574,7 @@ class TicketCommands(commands.Cog):
 
 
     @ticket.sub_command(name="category", description="Category where you want different types of tickets")
-    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_categories(self, ctx: disnake.ApplicationCommandInteraction, panel_name:str, status = commands.Param(choices=["all", "open", "sleep", "closed"]), category: disnake.CategoryChannel = commands.Param(name="category")):
         await ctx.response.defer()
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
@@ -595,7 +595,7 @@ class TicketCommands(commands.Cog):
 
 
     @ticket.sub_command(name="log-channel", description="Log Channel for ticket actions")
-    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_logging(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, channel: disnake.TextChannel):
         await ctx.response.defer()
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
