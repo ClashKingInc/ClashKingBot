@@ -216,6 +216,7 @@ class misc(commands.Cog, name="Other"):
         result = await self.bot.custom_commands.find_one({"$and": [{"guild": ctx.guild.id}, {"name": command_name.lower()}]})
         if result is not None:
             return await ctx.send(content="Cannot name command after an already existing command")
+        command_name = command_name.lower()
         command = disnake.APISlashCommand(name=command_name, description=description)
         command.add_option(name=type, required=True, autocomplete=True)
         await self.bot.custom_commands.insert_one({
