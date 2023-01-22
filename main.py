@@ -92,7 +92,7 @@ initial_extensions = [
     "settings",
     "owner_commands",
     "Ticketing.TicketCog",
-    #"SetupNew.SetupCog"
+    "SetupNew.SetupCog"
 ]
 
 if not IS_BETA:
