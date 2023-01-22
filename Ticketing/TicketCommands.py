@@ -661,8 +661,6 @@ class TicketCommands(commands.Cog):
     async def on_button_click(self, ctx: disnake.MessageInteraction):
         if ctx.channel.id == 1066526556874346587:
             return
-        if disnake.utils.get(ctx.user.roles, id=1034134693869797416) is None and disnake.utils.get(ctx.user.roles, id=1065325454560591882) is None:
-            return await ctx.send(content="Not for you yet :)", ephemeral=True)
 
         if ctx.data.custom_id == "close_ticket":
             result = await self.bot.open_tickets.find_one({
