@@ -556,6 +556,7 @@ class TicketCommands(commands.Cog):
 
 
     @ticket.sub_command(name="naming", description="Creating a naming convention for channels")
+    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
     async def ticket_name(self, ctx: disnake.ApplicationCommandInteraction, panel_name : str, button: str, naming_convention: str):
         await ctx.response.defer()
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
@@ -611,11 +612,16 @@ class TicketCommands(commands.Cog):
         await ctx.response.defer(ephemeral=True)
 
         if status == "close":
-            status == "closed"
+            status = "closed"
 
         result = await self.bot.open_tickets.find_one({"channel": ctx.channel.id})
+        if result is None:
+            return await ctx.send("Not a ticket channel")
         if result.get("status") == status:
             return await ctx.send(content=f"Ticket already {status}")
+
+        panel_settings = await self.bot.tickets.find_one(
+            {"$and": [{"server_id": ctx.guild.id}, {"name": result.get("panel")}]})
 
         await self.bot.open_tickets.update_one({
             "channel": ctx.channel.id
@@ -627,6 +633,8 @@ class TicketCommands(commands.Cog):
             })
             if ticketresult is None:
                 return await ctx.send("Not a ticket channel")
+
+            await self.ticket_log(result=panel_settings, open_result=result, channel=ctx.channel)
             await ctx.send(content="Deleting channel...")
             return await ctx.channel.delete()
 
@@ -641,10 +649,9 @@ class TicketCommands(commands.Cog):
             account = await self.bot.getPlayer(player_tag=result.get("apply_account"))
         else:
             account = None
-        name = await self.rename_channel(user= member, ctx=ctx, apply_account=account, naming_convention=result.get("naming"), channel=ctx.channel, number=result.get("number"), status=status)
+        if "status" in result.get("naming"):
+            name = await self.rename_channel(user= member, ctx=ctx, apply_account=account, naming_convention=result.get("naming"), channel=ctx.channel, number=result.get("number"), status=status)
 
-        panel_settings = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": result.get("panel")}]})
         category = None
         if panel_settings.get(f"{status}-category") is not None:
             try:
@@ -654,7 +661,10 @@ class TicketCommands(commands.Cog):
         if category is None:
             category: disnake.CategoryChannel = ctx.channel.category
 
-        await ctx.channel.edit(name=name, category = category)
+        if "status" in result.get("naming"):
+            await ctx.channel.edit(name=name, category = category)
+        else:
+            await ctx.channel.edit(category=category)
 
 
         await ctx.send(content=f"Ticket status switched to {status}")
@@ -852,7 +862,7 @@ class TicketCommands(commands.Cog):
                         continue
                     await self.send_answers(questions=questions, answers=answers, apply_clan=applyclan, channel=channel, thread=thread, apply_accounts=players)
 
-            all_ticket_nums = await self.bot.open_tickets.distinct("number")
+            all_ticket_nums = await self.bot.open_tickets.distinct("number", filter={"server" : ctx.guild.id})
             if not all_ticket_nums:
                 all_ticket_nums = [0]
             await self.bot.open_tickets.insert_one({
@@ -863,13 +873,60 @@ class TicketCommands(commands.Cog):
                 "number" : max(all_ticket_nums) + 1,
                 "apply_account" : players[0].name if players is not None else None,
                 "naming" : button_settings.get("naming", '{ticket_count}-{user}'),
-                "panel" : ctx.data.custom_id.split("_")[0]
+                "panel" : ctx.data.custom_id.split("_")[0],
+                "server" : ctx.guild.id
             })
             name = await self.rename_channel(user=ctx.user, naming_convention=button_settings.get("naming", '{ticket_count}-{user}'), apply_account=players[0] if players is not None else None,
                                       ctx=ctx, channel=channel, number= max(all_ticket_nums) + 1, status="open")
             await channel.edit(name=name)
             if thread is not None:
                 await thread.edit(name=f"private-{name}")
+
+
+    async def ticket_log(self, open_result, result, channel: disnake.TextChannel):
+        log_channel = result.get("log-channel")
+        try:
+            l_channel = await self.bot.getch_channel(log_channel)
+        except:
+            l_channel = None
+        if l_channel is None:
+            return
+
+        user = open_result.get("user")
+        user = await self.bot.getch_user(user)
+        thread_channel = open_result.get("thread")
+        now = int(datetime.now().timestamp())
+        if thread_channel is not None:
+            try:
+                thread_channel = await self.bot.getch_channel(channel_id=thread_channel)
+            except:
+                thread_channel = None
+            if thread_channel is not None:
+                transcript = await chat_exporter.export(thread_channel)
+                transcript_file = disnake.File(
+                    io.BytesIO(transcript.encode()),
+                    filename=f"transcript-{thread_channel.name}.html",
+                )
+                message = await l_channel.send(file=transcript_file)
+                link = await chat_exporter.link(message)
+
+                buttons = disnake.ui.ActionRow()
+                buttons.append_item(disnake.ui.Button(label=f"Online View", emoji="🌐", url=link))
+                await message.edit(embed=disnake.Embed(description=f"{user.mention}, Private Thread for Ticket #{open_result.get('number')}\n"
+                                                                   f"Ticket Deleted: <t:{now}:R>" ),components=[buttons])
+
+        transcript = await chat_exporter.export(channel)
+        transcript_file = disnake.File(
+            io.BytesIO(transcript.encode()),
+            filename=f"transcript-{channel.name}.html",
+        )
+        message = await l_channel.send(file=transcript_file)
+        link = await chat_exporter.link(message)
+
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(label=f"Online View", emoji="🌐", url=link))
+        await message.edit(embed=disnake.Embed(description=f"{user.mention}, Main Ticket #{open_result.get('number')}\n"
+                                                                   f"Ticket Deleted: <t:{now}:R>" ), components=[buttons])
 
 
     async def change_status(self, ctx: disnake.MessageInteraction, channel: disnake.TextChannel, status : str):
@@ -984,6 +1041,7 @@ class TicketCommands(commands.Cog):
         mod_overwrite.attach_files = True
         mod_overwrite.manage_channels = True
         mod_overwrite.send_messages_in_threads = True
+        mod_overwrite.manage_channels = True
 
         user_overwrite = disnake.PermissionOverwrite()
         user_overwrite.view_channel = True

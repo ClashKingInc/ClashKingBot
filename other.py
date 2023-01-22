@@ -1,4 +1,4 @@
-import asyncio
+
 import contextlib
 import disnake
 from disnake.ext import commands
@@ -7,14 +7,24 @@ from CustomClasses.CustomBot import CustomClient
 import io
 from PIL import Image, ImageDraw, ImageFont
 from utils.components import create_components
-import socket
-from ssh2.session import Session
+
 
 class misc(commands.Cog, name="Other"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.up = time.time()
+
+    async def auto_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
+        clan_list = []
+        for tClan in await tracked.to_list(length=limit):
+            name = tClan.get("name")
+            tag = tClan.get("tag")
+            if query.lower() in name.lower():
+                clan_list.append(f"{name} | {tag}")
+        return clan_list[0:25]
 
     @commands.slash_command(name="support-server", description="Invite to bot support server")
     async def support(self, ctx):
@@ -183,6 +193,103 @@ class misc(commands.Cog, name="Other"):
 
                 await res.response.defer()
                 await res.edit_original_message(embed=embeds[int(res.values[0])])
+
+
+    @commands.Cog.listener()
+    async def on_connect(self):
+        custom_commands = self.bot.custom_commands.find({})
+        for command in await custom_commands.to_list(length=10000):
+            name = command.get("name")
+            desc = command.get("description")
+            guild = command.get("guild")
+            type = command.get("type")
+            command = disnake.APISlashCommand(name=name, description=desc)
+            command.add_option(name=type, required=True, autocomplete=True)
+            await self.bot.create_guild_command(guild_id=guild, application_command=command)
+
+    @commands.slash_command(name="custom-command", description="Create a custom command")
+    async def custom_command(self, ctx: disnake.ApplicationCommandInteraction, command_name: str, description: str,
+                             custom_embed: str, type=commands.Param(choices=["clan"]), refresh_button = commands.Param(default="False", choices=["True"])):
+        command_name = command_name.replace(" ", "-")
+        await ctx.response.defer(ephemeral=True)
+        command = self.bot.get_global_command_named(command_name.lower())
+        guild_command = self.bot.get_guild_command_named(guild_id=ctx.guild.id, name=command_name.lower())
+        if command is not None or guild_command is not None:
+            return await ctx.send(content="Cannot name command after an already existing command")
+        command = disnake.APISlashCommand(name=command_name, description=description)
+        command.add_option(name=type, required=True, autocomplete=True)
+        await self.bot.custom_commands.insert_one({
+            "name": command_name,
+            "description": description,
+            "embed_data": custom_embed,
+            "type": type,
+            "guild": ctx.guild_id,
+            "refresh" : (refresh_button == "True")
+        })
+        command = await self.bot.create_guild_command(guild_id=ctx.guild_id, application_command=command)
+        await ctx.send(f"</{command}:{command.id}> created!")
+
+    @commands.slash_command(name="command-remove", description="Remove a custom command")
+    async def custom_command(self, ctx: disnake.ApplicationCommandInteraction, command_name: str):
+        await ctx.response.defer(ephemeral=True)
+        guild_command = self.bot.get_guild_command_named(guild_id=ctx.guild.id, name=command_name.lower())
+        if guild_command is None:
+            return await ctx.send("Command not found")
+        await self.bot.delete_guild_command(guild_id=ctx.guild_id, command_id=guild_command.id)
+        await self.bot.custom_commands.delete_one({
+            "name": command_name,
+            "guild": ctx.guild_id
+        })
+        await ctx.send(f"Command removed!")
+
+    @commands.Cog.listener()
+    async def on_application_command(self, ctx: disnake.ApplicationCommandInteraction):
+        command = ctx.data.name.split(" ")[0]
+        if command not in [c.name for c in self.bot.global_slash_commands]:
+            await ctx.response.defer()
+            result = await self.bot.custom_commands.find_one({"name": command})
+            if result is None:
+                return
+            type = result.get("type")
+            query = ctx.filled_options[type]
+            if type == "clan":
+                clan = await self.bot.getClan(query)
+            embed_data = result.get("embed_data")
+            refresh = result.get("refresh")
+            if refresh:
+                buttons = disnake.ui.ActionRow()
+                buttons.append_item(disnake.ui.Button(
+                    label="", emoji=self.bot.emoji.refresh.partial_emoji,
+                    style=disnake.ButtonStyle.grey,
+                    custom_id=f"{command}_{clan.tag}"))
+            else:
+                buttons = []
+            embed = await self.bot.parse_to_embed(custom_json=embed_data, clan=clan)
+            await ctx.edit_original_message(embed=embed, components=buttons)
+
+    @commands.Cog.listener()
+    async def on_application_command_autocomplete(self, ctx: disnake.ApplicationCommandInteraction):
+        command = ctx.data.name
+        if command not in self.bot.command_names():
+            result = await self.bot.custom_commands.find_one({"name": command})
+            if result is None:
+                return
+            command_type = result.get("type")
+            query = ctx.filled_options[command_type]
+            choices = await self.auto_clan(ctx=ctx, query=query)
+            await ctx.response.autocomplete(choices=choices)
+
+    @commands.Cog.listener()
+    async def on_button_click(self, ctx: disnake.MessageInteraction):
+        command_name = ctx.data.custom_id.split("_")
+        result = await self.bot.custom_commands.find_one({"name": command_name[0]})
+        if result is not None:
+            await ctx.response.defer()
+            embed_data = result.get("embed_data")
+            clan = await self.bot.getClan(clan_tag=command_name[-1])
+            embed = await self.bot.parse_to_embed(custom_json=embed_data, clan=clan)
+            await ctx.edit_original_message(embed=embed)
+
 
     '''
     @commands.slash_command(name="custom-bot", description="Create your custom bot")
