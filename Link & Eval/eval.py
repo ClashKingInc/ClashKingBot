@@ -554,7 +554,6 @@ class eval(commands.Cog, name="Eval"):
                     if not GLOBAL_IS_FAMILY:
                         GLOBAL_IS_FAMILY = is_family_member
 
-                    print(GLOBAL_IS_FAMILY)
                     # check if they have any townhall roles setup
                     # try/except because dict throws error if it doesnt exist
                     # if it exists add the relevant role to the role list to add
