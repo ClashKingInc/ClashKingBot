@@ -698,7 +698,6 @@ class TicketCommands(commands.Cog):
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": ctx.data.custom_id.split("_")[0]}]})
         if result is not None:
 
-
             button_settings = result.get(f"{ctx.data.custom_id}_settings")
             if button_settings is None:
                 return await ctx.send("Button No Longer Exists", ephemeral=True)
@@ -912,8 +911,8 @@ class TicketCommands(commands.Cog):
     async def ask_questions(self, ctx: disnake.MessageInteraction, message: disnake.Message, questions: List[str]):
         components = [
             disnake.ui.TextInput(
-                label=f"{question}",
-                placeholder="answer here",
+                label=f"Question #{count}:",
+                placeholder=f"{question}",
                 custom_id=f"{count}",
                 required=True,
                 style=disnake.TextInputStyle.single_line,
