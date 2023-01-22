@@ -915,8 +915,8 @@ class TicketCommands(commands.Cog):
                 placeholder=f"{question}",
                 custom_id=f"{count}",
                 required=True,
-                style=disnake.TextInputStyle.single_line,
-                max_length=150,
+                style=disnake.TextInputStyle.paragraph,
+                max_length=500,
             )
             for count, question in enumerate(questions) if question != ""
         ]
