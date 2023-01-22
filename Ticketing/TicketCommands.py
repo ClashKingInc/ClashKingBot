@@ -911,7 +911,7 @@ class TicketCommands(commands.Cog):
     async def ask_questions(self, ctx: disnake.MessageInteraction, message: disnake.Message, questions: List[str]):
         components = [
             disnake.ui.TextInput(
-                label=f"Question #{count}:",
+                label=f"Question #{count+1}:",
                 placeholder=f"{question}",
                 custom_id=f"{count}",
                 required=True,
