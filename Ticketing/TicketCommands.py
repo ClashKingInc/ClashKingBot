@@ -330,8 +330,6 @@ class TicketCommands(commands.Cog):
             embed = await self.bot.parse_to_embed(custom_json=custom_embed, guild=ctx.guild)
         except:
             raise FaultyJson
-
-        await self.create_setting_if_none(ctx.guild_id)
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         button_id = next((x for x in result.get("components") if x.get("label") == button), None)
         await self.bot.tickets.update_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]},
