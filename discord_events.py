@@ -223,6 +223,33 @@ class DiscordEvents(commands.Cog):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed, ephemeral=True)
 
+        if isinstance(error, PanelNotFound):
+            embed = disnake.Embed(description=f"Panel not found!",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed, ephemeral=True)
+
+        if isinstance(error, ButtonNotFound):
+            embed = disnake.Embed(description=f"Button not found!",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed, ephemeral=True)
+
+        if isinstance(error, PanelAlreadyExists):
+            embed = disnake.Embed(description=f"Panel of this name already exists!",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed, ephemeral=True)
+
+        if isinstance(error, ButtonAlreadyExists):
+            embed = disnake.Embed(description=f"Button of this name already exists!",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed, ephemeral=True)
+
+        if isinstance(error, FaultyJson):
+            embed = disnake.Embed(description=f"Custom Embed Code is Faulty - > be sure to use this site -> https://autocode.com/tools/discord/embed-builder/ , "
+                                              f"create your embed, then click `copy code`",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed, ephemeral=True)
+
+
 
 def setup(bot: CustomClient):
     bot.add_cog(DiscordEvents(bot))
