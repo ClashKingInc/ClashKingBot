@@ -606,11 +606,8 @@ class TicketCommands(commands.Cog):
         if status == "close":
             status == "closed"
 
-        result = await self.bot.open_tickets.find_one({
-            "user": ctx.user.id,
-            "channel": ctx.channel.id
-        })
-        if result.get("status", "open") == status:
+        result = await self.bot.open_tickets.find_one({"$and": [{"user": ctx.user.id}, {"channel": ctx.channel.id}]})
+        if result.get("status") == status:
             return await ctx.send(content=f"Ticket already {status}")
 
         await self.bot.open_tickets.update_one({
