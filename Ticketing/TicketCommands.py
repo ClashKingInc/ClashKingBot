@@ -542,18 +542,18 @@ class TicketCommands(commands.Cog):
                 buttons.append_item(disnake.ui.Button(label=f"Online View", emoji="🌐", url=link))
                 await message.edit(components=[buttons])
 
-            transcript = await chat_exporter.export(ctx.channel)
-            transcript_file = disnake.File(
-                io.BytesIO(transcript.encode()),
-                filename=f"transcript-{ctx.channel.name}.html",
-            )
-            message = await channel.send(file=transcript_file)
-            link = await chat_exporter.link(message)
+        transcript = await chat_exporter.export(ctx.channel)
+        transcript_file = disnake.File(
+            io.BytesIO(transcript.encode()),
+            filename=f"transcript-{ctx.channel.name}.html",
+        )
+        message = await channel.send(file=transcript_file)
+        link = await chat_exporter.link(message)
 
-            buttons = disnake.ui.ActionRow()
-            buttons.append_item(disnake.ui.Button(label=f"Online View", emoji="🌐", url=link))
-            await message.edit(components=[buttons])
-            await ctx.send(f"Transcript sent to {channel.mention}")
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(label=f"Online View", emoji="🌐", url=link))
+        await message.edit(components=[buttons])
+        await ctx.send(f"Transcript sent to {channel.mention}")
 
 
 
