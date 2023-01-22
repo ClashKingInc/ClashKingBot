@@ -80,6 +80,7 @@ initial_extensions = [
     "Setups.evalsetup",
     "Reminders.ReminderSetup",
     "Setups.welcome_messages",
+
     "Utility.army",
     "Utility.awards",
     "Utility.boost",
@@ -113,6 +114,8 @@ if not IS_BETA:
         "War & CWL.war_track",
         "discord_events",
         "erikuh_comp",
+        "Setups.addclans",
+        "Setups.voice_countdowns",
         "global_chat"
     ]
 
