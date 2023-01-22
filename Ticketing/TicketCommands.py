@@ -611,7 +611,6 @@ class TicketCommands(commands.Cog):
             return await ctx.send(content=f"Ticket already {status}")
 
         await self.bot.open_tickets.update_one({
-            "user": ctx.user.id,
             "channel": ctx.channel.id
         }, {"$set": {"status": status}})
 
@@ -624,10 +623,10 @@ class TicketCommands(commands.Cog):
             await ctx.send(content="Deleting channel...")
             return await ctx.channel.delete()
 
+        member = await ctx.guild.getch_member(result.get("user"))
         if status == "closed" or status == "open":
             user_overwrite = disnake.PermissionOverwrite()
             user_overwrite.view_channel = (status == "open")
-            member = await ctx.guild.getch_member(ctx.user.id)
             channel: disnake.TextChannel = ctx.channel
             await channel.set_permissions(member, overwrite=user_overwrite)
 
@@ -635,7 +634,7 @@ class TicketCommands(commands.Cog):
             account = await self.bot.getPlayer(player_tag=result.get("apply_account"))
         else:
             account = None
-        name = await self.rename_channel(ctx=ctx, apply_account=account, naming_convention=result.get("naming"), channel=ctx.channel, number=result.get("number"), status=status)
+        name = await self.rename_channel(user= member, ctx=ctx, apply_account=account, naming_convention=result.get("naming"), channel=ctx.channel, number=result.get("number"), status=status)
 
         panel_settings = await self.bot.tickets.find_one(
             {"$and": [{"server_id": ctx.guild.id}, {"name": result.get("panel")}]})
@@ -659,7 +658,6 @@ class TicketCommands(commands.Cog):
 
         if ctx.data.custom_id == "close_ticket":
             result = await self.bot.open_tickets.find_one({
-                "user": ctx.user.id,
                 "channel": ctx.channel.id
             })
             if result.get("status") == "closed":
@@ -667,11 +665,9 @@ class TicketCommands(commands.Cog):
 
             await ctx.response.defer()
             await self.bot.open_tickets.update_one({
-                "user": ctx.user.id,
                 "channel": ctx.channel.id
             }, {"$set": {"status": "closed"}})
             result = await self.bot.open_tickets.find_one({
-                "user": ctx.user.id,
                 "channel": ctx.channel.id
             })
 
@@ -679,7 +675,7 @@ class TicketCommands(commands.Cog):
                 account = await self.bot.getPlayer(player_tag=result.get("apply_account"))
             else:
                 account = None
-            name = await self.rename_channel(ctx=ctx, apply_account=account, naming_convention=result.get("naming"), channel=ctx.channel, number=result.get("number"), status=result.get("status"))
+            name = await self.rename_channel(user=ctx.user, ctx=ctx, apply_account=account, naming_convention=result.get("naming"), channel=ctx.channel, number=result.get("number"), status=result.get("status"))
             category = None
 
             panel_settings = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": result.get("panel")}]})
@@ -866,7 +862,7 @@ class TicketCommands(commands.Cog):
                 "naming" : button_settings.get("naming", '{ticket_count}-{user}'),
                 "panel" : ctx.data.custom_id.split("_")[0]
             })
-            name = await self.rename_channel(naming_convention=button_settings.get("naming", '{ticket_count}-{user}'), apply_account=players[0] if players is not None else None,
+            name = await self.rename_channel(user=ctx.user, naming_convention=button_settings.get("naming", '{ticket_count}-{user}'), apply_account=players[0] if players is not None else None,
                                       ctx=ctx, channel=channel, number= max(all_ticket_nums) + 1, status="open")
             await channel.edit(name=name)
             if thread is not None:
@@ -875,11 +871,10 @@ class TicketCommands(commands.Cog):
 
     async def change_status(self, ctx: disnake.MessageInteraction, channel: disnake.TextChannel, status : str):
         await self.bot.open_tickets.update_one({
-            "user": ctx.user.id,
             "channel": channel.id
         }, {"$set" : {"status" : status}})
 
-    async def rename_channel(self, ctx: disnake.MessageInteraction, apply_account: coc.Player, naming_convention: str, channel: disnake.TextChannel, number = None, status = None):
+    async def rename_channel(self, user:disnake.User, ctx: disnake.MessageInteraction, apply_account: coc.Player, naming_convention: str, channel: disnake.TextChannel, number = None, status = None):
         if number is None:
             all_ticket_nums = await self.bot.open_tickets.distinct("number")
             if not all_ticket_nums:
@@ -887,13 +882,12 @@ class TicketCommands(commands.Cog):
             number = max(all_ticket_nums) + 1
         if status is None:
             result = await self.bot.open_tickets.find_one({
-                 "user": ctx.user.id,
-                 "channel": channel.id,
+                    "channel": channel.id
              })
             status = result.get("status")
 
         status_emoji = {"open" : "✅", "sleep" : "🌙", "closed" : "❌"}
-        types = {"{ticket_count}": number, "{user}" : ctx.user.name, "{account_name}" : apply_account.name if apply_account is not None else "", "{account_th}" : apply_account.town_hall if apply_account is not None else "",
+        types = {"{ticket_count}": number, "{user}" : user.name, "{account_name}" : apply_account.name if apply_account is not None else "", "{account_th}" : apply_account.town_hall if apply_account is not None else "",
                  "{ticket_status}" : status, "{emoji_status}" : status_emoji[status]}
 
         for type, replace in types.items():
