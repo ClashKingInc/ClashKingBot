@@ -697,12 +697,7 @@ class TicketCommands(commands.Cog):
 
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": ctx.data.custom_id.split("_")[0]}]})
         if result is not None:
-            openresult = await self.bot.open_tickets.distinct("channel", filter={
-                "user": ctx.user.id,
-                "status": "open"
-            })
-            if len(openresult) > 3:
-                return await ctx.send("Cannot have more than 3 tickets open", ephemeral=True)
+
 
             button_settings = result.get(f"{ctx.data.custom_id}_settings")
             if button_settings is None:
