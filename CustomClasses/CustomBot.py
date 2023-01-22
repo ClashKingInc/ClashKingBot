@@ -80,8 +80,7 @@ BADGE_GUILDS = [1029631304817451078, 1029631182196977766, 1029631107240562689, 1
                              1029629694854828082, 1029629763087777862, 1029629811221610516, 1029629853017841754, 1029629905903833139,
                              1029629953907634286, 1029629992830783549, 1029630376911581255, 1029630455202455563, 1029630702125318144,
                              1029630796966932520, 1029630873588469760, 1029630918106824754, 1029630974025277470, 1029631012084396102]
-api = Api(api_key=os.getenv("YT_API_KEY"))
-from linode_api4 import LinodeClient
+
 
 class CustomClient(commands.Bot):
     def __init__(self, **options):
@@ -142,12 +141,11 @@ class CustomClient(commands.Bot):
         self.emoji = emoji_class
         self.locations = locations
 
-        self.yt_api = api
+
 
         self.MAX_FEED_LEN = 5
         self.FAQ_CHANNEL_ID = 1010727127806648371
 
-        self.linode_client: LinodeClient = LinodeClient(os.getenv("LINODE"))
         self.global_channels = []
         self.last_message = defaultdict(int)
         self.banned_global = [859653218979151892]
