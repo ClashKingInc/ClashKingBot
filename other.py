@@ -248,7 +248,7 @@ class misc(commands.Cog, name="Other"):
         command = ctx.data.name.split(" ")[0]
         if command not in [c.name for c in self.bot.global_slash_commands]:
             await ctx.response.defer()
-            result = await self.bot.custom_commands.find_one({"name": command})
+            result = await self.bot.custom_commands.find_one({"$and": [{"guild": ctx.guild.id}, {"name": command}]})
             if result is None:
                 return
             type = result.get("type")
@@ -283,7 +283,7 @@ class misc(commands.Cog, name="Other"):
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
         command_name = ctx.data.custom_id.split("_")
-        result = await self.bot.custom_commands.find_one({"name": command_name[0]})
+        result = await self.bot.custom_commands.find_one({"$and": [{"guild": ctx.guild.id}, {"name": command_name[0]}]})
         if result is not None:
             await ctx.response.defer()
             embed_data = result.get("embed_data")
