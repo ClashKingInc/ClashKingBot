@@ -9,6 +9,7 @@ from CustomClasses.CustomPlayer import MyCustomPlayer, HitRate
 from datetime import datetime, timedelta
 from Exceptions import *
 from collections import defaultdict
+from disnake.ext import commands
 
 class Roster():
     def __init__(self, bot: CustomClient):
@@ -16,7 +17,7 @@ class Roster():
         self.bot = bot
 
     async def create_roster(self, guild: disnake.Guild, clan: coc.Clan, alias: str, add_members: bool):
-        roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": guild.id}, {"alias": alias}]})
+        roster_result = await self.bot.rosters.find_one({"$and": [{"server_id":guild.id}, {"alias": alias}]})
         if roster_result is not None:
             raise RosterAliasAlreadyExists
         roster_result = await self.bot.rosters.insert_one({
@@ -506,7 +507,7 @@ class Roster():
             player_options.append(disnake.SelectOption(label=f"Previous 25 Players", emoji=self.bot.emoji.back.partial_emoji, value=f"players_{player_page - 1}"))
         for count, player in enumerate(players):
             player_options.append(disnake.SelectOption(label=f"{player.get('name')}",
-                                                       emoji=self.bot.fetch_emoji(name=player.get('townhall').partial_emoji),
+                                                       emoji=self.bot.fetch_emoji(name=player.get('townhall')).partial_emoji,
                                                        value=f"edit_{player.get('tag')}"))
         if len(players) == length and (len(self.players) > (length * player_page) + length):
             player_options.append(disnake.SelectOption(label=f"Next 25 Players", emoji=self.bot.emoji.forward.partial_emoji, value=f"players_{player_page + 1}"))
