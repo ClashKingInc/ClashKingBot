@@ -610,7 +610,7 @@ class TicketCommands(commands.Cog):
             "user": ctx.user.id,
             "channel": ctx.channel.id
         })
-        if result.get("status") == status:
+        if result.get("status", "open") == status:
             return await ctx.send(content=f"Ticket already {status}")
 
         await self.bot.open_tickets.update_one({
@@ -1016,7 +1016,7 @@ class TicketCommands(commands.Cog):
         return channel
 
     async def create_private_thread(self, ctx: disnake.MessageInteraction, channel: disnake.TextChannel, mod_roles: List[int]):
-        thread = await channel.create_thread(name="Private Thread", type=disnake.ChannelType.public_thread)
+        thread = await channel.create_thread(name="Private Thread", type=disnake.ChannelType.private_thread)
         if not mod_roles:
             mod_roles = [role for role in ctx.guild.roles if role.permissions.administrator and not role.is_bot_managed()]
         else:
