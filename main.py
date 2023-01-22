@@ -76,11 +76,9 @@ initial_extensions = [
     "Legends & Trophies.leaderboards",
     "Link & Eval.link",
     "Link & Eval.eval",
-    "Setups.addclans",
     "Setups.autoboard",
     "Setups.evalsetup",
     "Reminders.ReminderSetup",
-    "Setups.voice_countdowns",
     "Setups.welcome_messages",
     "Utility.army",
     "Utility.awards",
@@ -92,6 +90,8 @@ initial_extensions = [
     "other",
     "settings",
     "owner_commands",
+    "Ticketing.TicketCog",
+    #"SetupNew.SetupCog"
 ]
 
 if not IS_BETA:

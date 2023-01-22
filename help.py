@@ -13,9 +13,10 @@ link = ["Eval", "Linking"]
 setups = ["Clan Setup", "Board Setup", "Eval Setup", "Statbar Setup", "Welcome Setup", "Reminders"]
 settings = ["Settings"]
 other = ["Other", "Global Chat"]
+ticketing = ["Ticket Commands"]
 
-pages = [clans, family, trophies, war, utility, link, setups, settings, other]
-page_names = ["Clan Commands", "Family Commands", "Legends & Trophies", "War & CWL", "Utility", "Link & Eval", "Setups", "Settings", "Other"]
+pages = [clans, family, trophies, war, utility, ticketing, link, setups, settings, other]
+page_names = ["Clan Commands", "Family Commands", "Legends & Trophies", "War & CWL", "Utility", "Ticketing", "Link & Eval", "Setups", "Settings", "Other"]
 
 class help(commands.Cog):
 
