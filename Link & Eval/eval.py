@@ -545,6 +545,8 @@ class eval(commands.Cog, name="Eval"):
                 for player in players:
                     if isinstance(player, coc.errors.NotFound):
                         continue
+                    if player is None:
+                        continue
                     list_accounts.append([player.trophies, player])
                     # check if is a family member for 2 things - 1. to check for global roles (Not/is family) and 2. for if they shuld get roles on individual lvl
                     # ignore the global if even one account is in family
@@ -552,6 +554,7 @@ class eval(commands.Cog, name="Eval"):
                     if not GLOBAL_IS_FAMILY:
                         GLOBAL_IS_FAMILY = is_family_member
 
+                    print(GLOBAL_IS_FAMILY)
                     # check if they have any townhall roles setup
                     # try/except because dict throws error if it doesnt exist
                     # if it exists add the relevant role to the role list to add
