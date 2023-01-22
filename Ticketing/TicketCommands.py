@@ -982,6 +982,8 @@ class TicketCommands(commands.Cog):
         mod_overwrite.send_messages = True
         mod_overwrite.manage_messages = True
         mod_overwrite.attach_files = True
+        mod_overwrite.manage_channels = True
+        mod_overwrite.send_messages_in_threads = True
 
         user_overwrite = disnake.PermissionOverwrite()
         user_overwrite.view_channel = True
