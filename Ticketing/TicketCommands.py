@@ -610,10 +610,6 @@ class TicketCommands(commands.Cog):
         if result.get("status") == status:
             return await ctx.send(content=f"Ticket already {status}")
 
-        await self.bot.open_tickets.update_one({
-            "channel": ctx.channel.id
-        }, {"$set": {"status": status}})
-
         if status == "delete":
             ticketresult = await self.bot.open_tickets.find_one({
                 "channel": ctx.channel.id
@@ -648,6 +644,10 @@ class TicketCommands(commands.Cog):
             category: disnake.CategoryChannel = ctx.channel.category
 
         await ctx.channel.edit(name=name, category = category)
+        await self.bot.open_tickets.update_one({
+            "channel": ctx.channel.id
+        }, {"$set": {"status": status}})
+
         await ctx.send(content=f"Ticket status switched to {status}")
 
 
