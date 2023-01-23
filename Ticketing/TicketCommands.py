@@ -666,6 +666,12 @@ class TicketCommands(commands.Cog):
 
         if "status" in result.get("naming"):
             await ctx.channel.edit(name=name, category = category)
+            if result.get("thread") is not None:
+                try:
+                    thread = await self.bot.getch_channel(result.get("thread"))
+                    await thread.edit(name=f"private-{name}")
+                except:
+                    pass
         else:
             await ctx.channel.edit(category=category)
 
