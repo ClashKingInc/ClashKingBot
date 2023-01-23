@@ -596,7 +596,7 @@ class TicketCommands(commands.Cog):
 
     @ticket.sub_command(name="log-channel", description="Log Channel for ticket actions")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def ticket_logging(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, channel: disnake.TextChannel):
+    async def ticket_logging(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, channel: Union[disnake.TextChannel, disnake.Thread]):
         await ctx.response.defer()
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:
@@ -619,6 +619,9 @@ class TicketCommands(commands.Cog):
             return await ctx.send("Not a ticket channel")
         if result.get("status") == status:
             return await ctx.send(content=f"Ticket already {status}")
+
+        await self.send_log(guild=ctx.guild, panel_name=result.get("panel"), user=ctx.user,
+                            action_text=f"{ctx.user.mention} changed {ctx.channel.mention} status to {status}")
 
         panel_settings = await self.bot.tickets.find_one(
             {"$and": [{"server_id": ctx.guild.id}, {"name": result.get("panel")}]})
@@ -669,6 +672,52 @@ class TicketCommands(commands.Cog):
 
         await ctx.send(content=f"Ticket status switched to {status}")
 
+    @ticket.sub_command(name="add", description="Add a member to a ticket")
+    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    async def ticket_add(self, ctx: disnake.ApplicationCommandInteraction, member: disnake.Member):
+        await ctx.response.defer()
+        result = await self.bot.open_tickets.find_one({"channel": ctx.channel.id})
+        if result is None:
+            return await ctx.send("Not a ticket channel")
+        user_overwrite = disnake.PermissionOverwrite()
+        user_overwrite.view_channel = True
+        user_overwrite.external_emojis = True
+        user_overwrite.add_reactions = True
+        user_overwrite.read_message_history = True
+        user_overwrite.send_messages = True
+        user_overwrite.attach_files = True
+        await ctx.channel.set_permissions(member, overwrite=user_overwrite)
+        await ctx.send(f"**{member.mention} Added**")
+        await self.send_log(guild=ctx.guild, panel_name=result.get("panel"), user=ctx.user,
+                            action_text=f"{ctx.user.mention} added {member.mention} to {ctx.channel.mention}")
+
+    @ticket.sub_command(name="opt", description="Opt in/out of a ticket")
+    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    async def ticket_opt(self, ctx: disnake.ApplicationCommandInteraction, opt= commands.Param(choices=["In", "Out"])):
+        await ctx.response.defer(ephemeral=True)
+        result = await self.bot.open_tickets.find_one({"channel": ctx.channel.id})
+        if result is None:
+            return await ctx.send("Not a ticket channel")
+        if opt == "In":
+             await self.bot.open_tickets.update_one({"channel": ctx.channel.id}, {"$push" : {"opted_in":ctx.user.id}})
+        else:
+            await self.bot.open_tickets.update_one({"channel": ctx.channel.id}, {"$pull": {"opted_in": ctx.user.id}})
+        await ctx.send(content=f"Opted {opt} now!")
+        await self.send_log(guild=ctx.guild, panel_name=result.get("panel"),user=ctx.user, action_text=f"{ctx.user.mention} opted into {ctx.channel.mention}")
+
+
+    @commands.Cog.listener()
+    async def on_message(self, message: disnake.Message):
+        result = await self.bot.open_tickets.find_one({"channel": message.channel.id})
+        if result is not None:
+            if message.author.id != result.get("user"):
+                return
+            opted_in = result.get("opted_in")
+            if opted_in is not None:
+                text = ""
+                for user in opted_in:
+                    text += f"<@{user}> "
+                await message.channel.send(content=text)
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
@@ -720,6 +769,14 @@ class TicketCommands(commands.Cog):
             button_settings = result.get(f"{ctx.data.custom_id}_settings")
             if button_settings is None:
                 return await ctx.send("Button No Longer Exists", ephemeral=True)
+
+            button_label = next((x for x in result.get("components") if x.get("custom_id") == ctx.data.custom_id), None)
+
+            await self.send_log(guild=ctx.guild, panel_name=result.get("name"), user=ctx.user,
+                                action_text=f"{ctx.user.mention} started a ticket with {button_label.get('label')} button | {result.get('name')} panel")
+
+            asyncio.get_event_loop().call_later(300, asyncio.create_task, self.send_log(guild=ctx.guild, panel_name=result.get("name"), user=ctx.user,
+                                action_text=f"{ctx.user.mention} did not finish opening ticket within 5 minutes - {button_label.get('label')} button | {result.get('name')} panel"))
 
             actions = ["questions", "account_apply", "apply_clans", "open_ticket", "message", "roles_to_add", "roles_to_remove", "private_thread", "player_info", "question_answers"]
 
@@ -883,6 +940,22 @@ class TicketCommands(commands.Cog):
                 await thread.edit(name=f"private-{name}")
 
 
+    async def send_log(self, guild: disnake.Guild, user:disnake.User, panel_name, action_text:str, sleep=False):
+        result = await self.bot.tickets.find_one({"$and": [{"server_id": guild.id}, {"name": panel_name}]})
+        log_channel = result.get("log-channel")
+        try:
+            l_channel = await self.bot.getch_channel(log_channel)
+        except:
+            l_channel = None
+        if l_channel is None:
+            return
+        embed = disnake.Embed(description=f"{action_text}", colour=disnake.Color.green())
+        try:
+            embed.set_thumbnail(url=user.display_avatar)
+        except:
+            pass
+        await l_channel.send(embed=embed)
+
     async def ticket_log(self, open_result, result, channel: disnake.TextChannel):
         log_channel = result.get("log-channel")
         try:
@@ -927,7 +1000,6 @@ class TicketCommands(commands.Cog):
         buttons.append_item(disnake.ui.Button(label=f"Online View", emoji="🌐", url=link))
         await message.edit(embed=disnake.Embed(description=f"{user.mention}, Main Ticket #{open_result.get('number')}\n"
                                                                    f"Ticket Deleted: <t:{now}:R>" ), components=[buttons])
-
 
     async def change_status(self, ctx: disnake.MessageInteraction, channel: disnake.TextChannel, status : str):
         await self.bot.open_tickets.update_one({
@@ -1023,7 +1095,7 @@ class TicketCommands(commands.Cog):
             mod_roles = [disnake.utils.get(ctx.guild.roles, id=int(role)) for role in mod_roles]
             text = " ".join([role.mention for role in mod_roles if not role.is_bot_managed()])
             content = f"{user.mention} {text}"
-        await channel.send(content=f"{content}", embed=embed, components=[buttons])
+        await channel.send(content=f"{content}", embed=embed, components=[])
 
     async def open_ticket(self, panel_settings, ctx: disnake.MessageInteraction, mod_roles: List[int]):
         overwrite = disnake.PermissionOverwrite()
