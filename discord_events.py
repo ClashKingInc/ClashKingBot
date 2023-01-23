@@ -16,8 +16,8 @@ class DiscordEvents(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         len_g = len(self.bot.guilds)
-        await self.bot.change_presence(
-            activity=disnake.Activity(name=f'{len_g} servers', type=3))  # type 3 watching type#1 - playing
+        for count, shard in self.bot.shards.items():
+            await self.bot.change_presence(activity=disnake.Activity(name=f'{len_g} servers | Shard {count}', shard_id=shard.id ,type=3))  # type 3 watching type#1 - playing
 
     @commands.Cog.listener()
     async def on_connect(self):
@@ -53,7 +53,10 @@ class DiscordEvents(commands.Cog):
                 if reminder_time.is_integer():
                     reminder_time = int(reminder_time)
                 send_time = time[1]
-                scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[tag, reminder_time], id=f"{reminder_time}_{tag}", name=f"{tag}", misfire_grace_time=None)
+                try:
+                    scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[tag, reminder_time], id=f"{reminder_time}_{tag}", name=f"{tag}", misfire_grace_time=None)
+                except:
+                    pass
         scheduler.print_jobs()
 
         for g in self.bot.guilds:
@@ -141,8 +144,11 @@ class DiscordEvents(commands.Cog):
         await channel.send(f"Just joined {guild.name}")
         owner = guild.owner
         len_g = len(self.bot.guilds)
-        await self.bot.change_presence(
-            activity=disnake.Activity(name=f'{len_g} servers', type=3))  # type 3 watching type#1 - playing
+        for count, shard in self.bot.shards.items():
+            await self.bot.change_presence(
+                activity=disnake.Activity(name=f'{len_g} servers | Shard {count}', shard_id=shard.id,
+                                          type=3))  # type 3 watching type#1 - playing
+
         channel = self.bot.get_channel(937528942661877851)
         await channel.edit(name=f"ClashKing: {len_g} Servers")
 
@@ -152,8 +158,10 @@ class DiscordEvents(commands.Cog):
         channel = self.bot.get_channel(937519135607373874)
         await channel.send(f"Just left {guild.name}, {guild.member_count} members")
         len_g = len(self.bot.guilds)
-        await self.bot.change_presence(
-            activity=disnake.Activity(name=f'{len_g} servers', type=3))  # type 3 watching type#1 - playing
+        for count, shard in self.bot.shards.items():
+            await self.bot.change_presence(
+                activity=disnake.Activity(name=f'{len_g} servers | Shard {count}', shard_id=shard.id,
+                                          type=3))  # type 3 watching type#1 - playing
         channel = self.bot.get_channel(937528942661877851)
         await channel.edit(name=f"ClashKing: {len_g} Servers")
 
