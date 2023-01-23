@@ -621,7 +621,7 @@ class TicketCommands(commands.Cog):
             return await ctx.send(content=f"Ticket already {status}")
 
         await self.send_log(guild=ctx.guild, panel_name=result.get("panel"), user=ctx.user,
-                            action_text=f"{ctx.user.mention} changed {ctx.channel.mention} status to {status}")
+                            action_text=f"{ctx.user.mention} changed #{ctx.channel.name} status to {status}")
 
         panel_settings = await self.bot.tickets.find_one(
             {"$and": [{"server_id": ctx.guild.id}, {"name": result.get("panel")}]})
@@ -689,7 +689,7 @@ class TicketCommands(commands.Cog):
         await ctx.channel.set_permissions(member, overwrite=user_overwrite)
         await ctx.send(f"**{member.mention} Added**")
         await self.send_log(guild=ctx.guild, panel_name=result.get("panel"), user=ctx.user,
-                            action_text=f"{ctx.user.mention} added {member.mention} to {ctx.channel.mention}")
+                            action_text=f"{ctx.user.mention} added {member.mention} to #{ctx.channel.name}")
 
     @ticket.sub_command(name="opt", description="Opt in/out of a ticket")
     @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
@@ -703,7 +703,7 @@ class TicketCommands(commands.Cog):
         else:
             await self.bot.open_tickets.update_one({"channel": ctx.channel.id}, {"$pull": {"opted_in": ctx.user.id}})
         await ctx.send(content=f"Opted {opt} now!")
-        await self.send_log(guild=ctx.guild, panel_name=result.get("panel"),user=ctx.user, action_text=f"{ctx.user.mention} opted into {ctx.channel.mention}")
+        await self.send_log(guild=ctx.guild, panel_name=result.get("panel"),user=ctx.user, action_text=f"{ctx.user.mention} opted into #{ctx.channel.name}")
 
 
     @commands.Cog.listener()
@@ -717,7 +717,7 @@ class TicketCommands(commands.Cog):
                 text = ""
                 for user in opted_in:
                     text += f"<@{user}> "
-                await message.channel.send(content=text)
+                await message.channel.send(content=text, delete_after=1)
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
