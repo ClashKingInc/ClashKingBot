@@ -22,7 +22,8 @@ else:
 from Utility.profile_embeds import create_profile_stats, create_profile_troops, history, upgrade_embed
 from main import check_commands
 from CustomClasses.CustomPlayer import MyCustomPlayer
-
+from collections import defaultdict
+last_ping = defaultdict(int)
 class TicketCommands(commands.Cog):
 
     def __init__(self, bot: CustomClient):
@@ -723,7 +724,10 @@ class TicketCommands(commands.Cog):
                 text = ""
                 for user in opted_in:
                     text += f"<@{user}> "
-                await message.channel.send(content=text, delete_after=1)
+                global last_ping
+                if int(datetime.now().timestamp()) - last_ping[message.channel.id] >= 60:
+                    await message.channel.send(content=text, delete_after=1)
+                    last_ping[message.channel.id] = int(datetime.now().timestamp())
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
