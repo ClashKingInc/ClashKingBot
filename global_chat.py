@@ -75,6 +75,21 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             files = files[:10]
             await staff_channel.send(content=message.content + f"\nUser: `{str(message.author)}` | User_ID:`{message.author.id} | Msg: `{message.id}`", files=files, allowed_mentions=disnake.AllowedMentions.none())
 
+        result = await self.bot.open_tickets.find_one({"channel": message.channel.id})
+        if result is not None:
+            if message.author.id != result.get("user"):
+                return
+            opted_in = result.get("opted_in")
+            if opted_in is not None:
+                text = ""
+                for user in opted_in:
+                    text += f"<@{user}> "
+                global last_ping
+                if int(datetime.now().timestamp()) - last_ping[message.channel.id] >= 60:
+                    await message.channel.send(content=text, delete_after=1)
+                    last_ping[message.channel.id] = int(datetime.now().timestamp())
+
+
     async def send_rules(self):
         async def webhook_task(channel, embed_):
             async def send_web(webhook, embed):
