@@ -10,7 +10,8 @@ import spacy
 from profanity_filter import ProfanityFilter
 import asyncio
 from main import scheduler
-
+from collections import defaultdict
+last_ping = defaultdict(int)
 staff_webhook = 0
 class GlobalChat(commands.Cog, name="Global Chat"):
 
@@ -85,9 +86,9 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 for user in opted_in:
                     text += f"<@{user}> "
                 global last_ping
-                if int(datetime.now().timestamp()) - last_ping[message.channel.id] >= 60:
+                if int(datetime.datetime.now().timestamp()) - last_ping[message.channel.id] >= 60:
                     await message.channel.send(content=text, delete_after=1)
-                    last_ping[message.channel.id] = int(datetime.now().timestamp())
+                    last_ping[message.channel.id] = int(datetime.datetime.now().timestamp())
 
 
     async def send_rules(self):
