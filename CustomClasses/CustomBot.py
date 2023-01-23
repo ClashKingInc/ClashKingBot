@@ -82,7 +82,7 @@ BADGE_GUILDS = [1029631304817451078, 1029631182196977766, 1029631107240562689, 1
                              1029630796966932520, 1029630873588469760, 1029630918106824754, 1029630974025277470, 1029631012084396102]
 
 
-class CustomClient(commands.Bot):
+class CustomClient(commands.AutoShardedBot):
     def __init__(self, **options):
         super().__init__(**options)
         self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
