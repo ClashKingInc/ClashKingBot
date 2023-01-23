@@ -17,7 +17,7 @@ class DiscordEvents(commands.Cog):
     async def on_ready(self):
         len_g = len(self.bot.guilds)
         for count, shard in self.bot.shards.items():
-            await self.bot.change_presence(activity=disnake.Activity(name=f'{len_g} servers | Shard {count}', shard_id=shard.id ,type=3))  # type 3 watching type#1 - playing
+            await self.bot.change_presence(activity=disnake.Activity(name=f'{len_g} servers | Shard {count + 1}' ,type=3), shard_id=shard.id)  # type 3 watching type#1 - playing
 
     @commands.Cog.listener()
     async def on_connect(self):
@@ -146,8 +146,8 @@ class DiscordEvents(commands.Cog):
         len_g = len(self.bot.guilds)
         for count, shard in self.bot.shards.items():
             await self.bot.change_presence(
-                activity=disnake.Activity(name=f'{len_g} servers | Shard {count}', shard_id=shard.id,
-                                          type=3))  # type 3 watching type#1 - playing
+                activity=disnake.Activity(name=f'{len_g} servers | Shard {count + 1}',
+                                          type=3), shard_id=shard.id)  # type 3 watching type#1 - playing
 
         channel = self.bot.get_channel(937528942661877851)
         await channel.edit(name=f"ClashKing: {len_g} Servers")
@@ -160,8 +160,8 @@ class DiscordEvents(commands.Cog):
         len_g = len(self.bot.guilds)
         for count, shard in self.bot.shards.items():
             await self.bot.change_presence(
-                activity=disnake.Activity(name=f'{len_g} servers | Shard {count}', shard_id=shard.id,
-                                          type=3))  # type 3 watching type#1 - playing
+                activity=disnake.Activity(name=f'{len_g} servers | Shard {count + 1}',
+                                          type=3), shard_id=shard.id)  # type 3 watching type#1 - playing
         channel = self.bot.get_channel(937528942661877851)
         await channel.edit(name=f"ClashKing: {len_g} Servers")
 
