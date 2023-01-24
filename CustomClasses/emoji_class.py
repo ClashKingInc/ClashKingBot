@@ -79,6 +79,8 @@ class Emojis():
         self.calendar = EmojiType("<:calendar:1063642295162916924>")
         self.red_status = EmojiType("<:status_red:948032012160204840>")
         self.green_status = EmojiType("<:status_green:948031949140799568>")
+        self.toggle_on = EmojiType("<:toggle_on:1067254915438739456>")
+        self.toggle_off = EmojiType("<:toggle_off:1067254958698803230>")
 
 
 

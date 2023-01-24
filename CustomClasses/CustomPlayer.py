@@ -32,6 +32,7 @@ class MyCustomPlayer(coc.Player):
         self.results = kwargs.pop("results")
         self.town_hall_cls = CustomTownHall(self.town_hall)
 
+
     def clan_badge_link(self):
         try:
             clan_badge = self.clan.badge.url
@@ -219,6 +220,12 @@ class MyCustomPlayer(coc.Player):
     @property
     def last_online(self):
         return None if self.results is None else self.results.get("last_online")
+
+    @property
+    def level_points(self):
+        if self.results is None:
+            return 0
+        return 0 if self.results.get("points") is None else self.results.get("points")
 
     def season_last_online(self, season_date = None):
         if season_date is None:

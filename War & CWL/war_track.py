@@ -27,23 +27,6 @@ class War_Log(commands.Cog):
         limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_war.clan.tag}"})
         for cc in await tracked.to_list(length=limit):
             try:
-                warlog_channel = cc.get("war_log")
-                if warlog_channel is None:
-                    continue
-                try:
-                    warlog_channel = await self.bot.fetch_channel(warlog_channel)
-                    if warlog_channel is None:
-                        continue
-                except (disnake.NotFound, disnake.Forbidden):
-                    await self.bot.clan_db.update_one({"$and": [
-                                {"tag": new_war.clan.tag},
-                                {"server": cc.get("server")}
-                                ]}, {'$set': {"war_log": None}})
-                    continue
-                attack_feed = cc.get("attack_feed")
-                war_message = cc.get("war_message")
-                war_id = cc.get("war_id")
-
                 if new_war.state == "preparation" or (f"{old_war.clan.tag}-{int(old_war.preparation_start_time.time.timestamp())}" != f"{new_war.clan.tag}-{int(new_war.preparation_start_time.time.timestamp())}"):
                     cog = self.bot.get_cog(name="Reminder Cron")
                     reminder_times = await self.bot.get_reminder_times(clan_tag=new_war.clan.tag)
@@ -64,6 +47,23 @@ class War_Log(commands.Cog):
                             await self.bot.war_client.register_war(clan_tag=new_war.clan_tag)
                         except:
                             pass
+
+                warlog_channel = cc.get("war_log")
+                if warlog_channel is None:
+                    continue
+                try:
+                    warlog_channel = await self.bot.fetch_channel(warlog_channel)
+                    if warlog_channel is None:
+                        continue
+                except (disnake.NotFound, disnake.Forbidden):
+                    await self.bot.clan_db.update_one({"$and": [
+                        {"tag": new_war.clan.tag},
+                        {"server": cc.get("server")}
+                    ]}, {'$set': {"war_log": None}})
+                    continue
+                attack_feed = cc.get("attack_feed")
+                war_message = cc.get("war_message")
+                war_id = cc.get("war_id")
 
                 if new_war.state == "preparation":
                     #if we skipped from one war to next, update the old one
@@ -268,6 +268,25 @@ class War_Log(commands.Cog):
             "war_size" : war.team_size,
             "clan" : war.clan_tag
         })
+
+
+        point_to_point = {0:0, 1: 500, 2: 1000, 3 :1500}
+        cwl_point = {0:0, 1 : 500, 2: 1000, 3: 3000}
+        if str(war.type) == "cwl":
+            points_earned = cwl_point[attack.stars]
+            if attack.stars == 2 or attack.stars == 1:
+                if attack.defender.town_hall > attack.attacker.town_hall:
+                    points_earned += 1000
+            await self.bot.player_stats.update_one({"tag": attack.attacker_tag}, {"$inc": {f"points": points_earned}})
+        elif str(war.type) == "random":
+            points_earned = point_to_point[attack.stars]
+            if len(attack.attacker.attacks) == 2:
+                total_stars = 0
+                for a in attack.attacker.attacks:
+                    total_stars += a.stars
+                if total_stars == 6 and attack == attack.attacker.attacks[-1]:
+                    points_earned += 1000
+            await self.bot.player_stats.update_one({"tag": attack.attacker_tag}, {"$inc": {f"points": points_earned}})
 
         #is an attack
         tracked = self.bot.clan_db.find({"tag": f"{war.clan.tag}"})

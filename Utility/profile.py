@@ -16,6 +16,112 @@ from typing import List
 import asyncio
 import pytz
 utc = pytz.utc
+from DiscordLevelingCard import RankCard, Settings
+from operator import attrgetter
+
+LEVELS_AND_XP = {
+    '0': 0,
+    '1': 100,
+    '2': 255,
+    '3': 475,
+    '4': 770,
+    '5': 1150,
+    '6': 1625,
+    '7': 2205,
+    '8': 2900,
+    '9': 3720,
+    '10': 4675,
+    '11': 5775,
+    '12': 7030,
+    '13': 8450,
+    '14': 10045,
+    '15': 11825,
+    '16': 13800,
+    '17': 15980,
+    '18': 18375,
+    '19': 20995,
+    '20': 23850,
+    '21': 26950,
+    '22': 30305,
+    '23': 33925,
+    '24': 37820,
+    '25': 42000,
+    '26': 46475,
+    '27': 51255,
+    '28': 56350,
+    '29': 61770,
+    '30': 67525,
+    '31': 73625,
+    '32': 80080,
+    '33': 86900,
+    '34': 94095,
+    '35': 101675,
+    '36': 109650,
+    '37': 118030,
+    '38': 126825,
+    '39': 136045,
+    '40': 145700,
+    '41': 155800,
+    '42': 166355,
+    '43': 177375,
+    '44': 188870,
+    '45': 200850,
+    '46': 213325,
+    '47': 226305,
+    '48': 239800,
+    '49': 253820,
+    '50': 268375,
+    '51': 283475,
+    '52': 299130,
+    '53': 315350,
+    '54': 332145,
+    '55': 349525,
+    '56': 367500,
+    '57': 386080,
+    '58': 405275,
+    '59': 425095,
+    '60': 445550,
+    '61': 466650,
+    '62': 488405,
+    '63': 510825,
+    '64': 533920,
+    '65': 557700,
+    '66': 582175,
+    '67': 607355,
+    '68': 633250,
+    '69': 659870,
+    '70': 687225,
+    '71': 715325,
+    '72': 744180,
+    '73': 773800,
+    '74': 804195,
+    '75': 835375,
+    '76': 867350,
+    '77': 900130,
+    '78': 933725,
+    '79': 968145,
+    '80': 1003400,
+    '81': 1039500,
+    '82': 1076455,
+    '83': 1114275,
+    '84': 1152970,
+    '85': 1192550,
+    '86': 1233025,
+    '87': 1274405,
+    '88': 1316700,
+    '89': 1359920,
+    '90': 1404075,
+    '91': 1449175,
+    '92': 1495230,
+    '93': 1542250,
+    '94': 1590245,
+    '95': 1639225,
+    '96': 1689200,
+    '97': 1740180,
+    '98': 1792175,
+    '99': 1845195,
+    '100': 1899250
+}
 
 class profiles(commands.Cog, name="Profile"):
 
@@ -219,6 +325,48 @@ class profiles(commands.Cog, name="Profile"):
             embed = await self.create_player_hr(player=players[page], start_date=start_date, end_date=end_date)
             await res.edit_original_message(embed=embed)
 
+    @commands.slash_command(name="game-rank", description="Get xp rank for in game activities")
+    async def game_rank(self, ctx: disnake.ApplicationCommandInteraction, member: disnake.Member = None):
+        await ctx.response.defer()
+        if member is None:
+            member = ctx.author
+        card_settings = Settings(
+            background="https://media.discordapp.net/attachments/923767060977303552/1067289914443583488/bgonly1.jpg",
+            text_color="white",
+            bar_color="#b5cf3d"
+        )
+
+        linked_accounts: List[MyCustomPlayer] = await search_results(self.bot, str(member.id))
+        if linked_accounts == []:
+            await ctx.send(content="No Linked Acccounts")
+
+        top_account = max(linked_accounts, key=attrgetter('level_points'))
+
+        level = max(self._find_level(current_total_xp=top_account.level_points), 0)
+        image = await RankCard(
+            settings=card_settings,
+            avatar=member.display_avatar.url,
+            level=level,
+            current_exp=(top_account.level_points - LEVELS_AND_XP[str(level)]),
+            max_exp=LEVELS_AND_XP[str(level+ 1)],
+            username=f"{member}"
+        ).card3()
+        await ctx.edit_original_message(file=disnake.File(image, filename="rank.png"))
+
+    def _find_level(self, current_total_xp: int):
+        # check if the current xp matches the xp_needed exactly
+        if current_total_xp in LEVELS_AND_XP.values():
+            for level, xp_needed in LEVELS_AND_XP.items():
+                if current_total_xp == xp_needed:
+                    return int(level)
+        else:
+            for level, xp_needed in LEVELS_AND_XP.items():
+                if 0 <= current_total_xp <= xp_needed:
+                    level = int(level)
+                    level -= 1
+                    if level < 0:
+                        level = 0
+                    return level
 
     @player.sub_command(name="to-do", description="Get a list of things to be done (war attack, legends hits, capital raids etc)")
     async def to_do(self, ctx: disnake.ApplicationCommandInteraction, discord_user: disnake.Member=None):
@@ -248,9 +396,9 @@ class profiles(commands.Cog, name="Profile"):
         if raid_hits_to_do != "":
             embed.add_field(name="Raid Hits", value=raid_hits_to_do, inline=False)
 
-        clangames_to_do = await self.get_clan_games(linked_accounts=linked_accounts)
+        '''clangames_to_do = await self.get_clan_games(linked_accounts=linked_accounts)
         if clangames_to_do != "":
-            embed.add_field(name="Clan Games", value=clangames_to_do, inline=False)
+            embed.add_field(name="Clan Games", value=clangames_to_do, inline=False)'''
 
         inactive_to_do = await self.get_inactive(linked_accounts=linked_accounts)
         if inactive_to_do != "":

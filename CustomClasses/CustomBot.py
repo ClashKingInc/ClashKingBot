@@ -96,6 +96,7 @@ class CustomClient(commands.AutoShardedBot):
         self.webhook_message_db = self.looper_db.looper.webhook_messages
         self.user_name = "admin"
         self.cwl_db = self.looper_db.looper.cwl_db
+        self.leveling = self.new_looper.leveling
 
         self.link_client = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
 
@@ -130,6 +131,7 @@ class CustomClient(commands.AutoShardedBot):
         self.custom_embeds = self.db_client.usafam.custom_embeds
         self.custom_commands = self.db_client.usafam.custom_commands
         self.bases = self.db_client.usafam.bases
+        self.colors = self.db_client.usafam.colors
 
         self.autoboard_db = self.db_client.usafam.autoboard_db
 

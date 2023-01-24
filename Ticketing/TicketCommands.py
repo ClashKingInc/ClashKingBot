@@ -3,6 +3,7 @@ from typing import List, Union
 from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
 from coc import utils
+import requests
 import coc
 import disnake
 import asyncio
@@ -22,17 +23,17 @@ else:
 from Utility.profile_embeds import create_profile_stats, create_profile_troops, history, upgrade_embed
 from main import check_commands
 from CustomClasses.CustomPlayer import MyCustomPlayer
-from collections import defaultdict
-last_ping = defaultdict(int)
+from utils.discord_utils import interaction_handler
+
 class TicketCommands(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
+
     @commands.slash_command(name="ticket")
     async def ticket(self, ctx: disnake.ApplicationCommandInteraction):
         pass
-
 
     #PANELS
     @ticket.sub_command(name="panel-create", description="Get started here! Create your first ticket panel")
@@ -714,22 +715,6 @@ class TicketCommands(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_message(self, message: disnake.Message):
-        result = await self.bot.open_tickets.find_one({"channel": message.channel.id})
-        if result is not None:
-            if message.author.id != result.get("user"):
-                return
-            opted_in = result.get("opted_in")
-            if opted_in is not None:
-                text = ""
-                for user in opted_in:
-                    text += f"<@{user}> "
-                global last_ping
-                if int(datetime.now().timestamp()) - last_ping[message.channel.id] >= 60:
-                    await message.channel.send(content=text, delete_after=1)
-                    last_ping[message.channel.id] = int(datetime.now().timestamp())
-
-    @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
         if ctx.channel.id == 1066526556874346587:
             return
@@ -785,9 +770,6 @@ class TicketCommands(commands.Cog):
             await self.send_log(guild=ctx.guild, panel_name=result.get("name"), user=ctx.user,
                                 action_text=f"{ctx.user.mention} started a ticket with {button_label.get('label')} button | {result.get('name')} panel")
 
-            asyncio.get_event_loop().call_later(300, asyncio.create_task, self.send_log(guild=ctx.guild, panel_name=result.get("name"), user=ctx.user,
-                                action_text=f"{ctx.user.mention} did not finish opening ticket within 5 minutes - {button_label.get('label')} button | {result.get('name')} panel"))
-
             actions = ["questions", "account_apply", "apply_clans", "open_ticket", "message", "roles_to_add", "roles_to_remove", "private_thread", "player_info", "question_answers"]
 
             channel = None
@@ -798,6 +780,7 @@ class TicketCommands(commands.Cog):
             answers = []
             questions = []
             for action in actions:
+
                 if action != "questions":
                     if not ctx.response.is_done():
                         await ctx.response.defer(ephemeral=True)
@@ -819,17 +802,30 @@ class TicketCommands(commands.Cog):
                         disnake.ui.Button(label="Link Account", emoji="🔗", style=disnake.ButtonStyle.green,
                                           custom_id="Start Link"),
                         disnake.ui.Button(label="Help", emoji="❓", style=disnake.ButtonStyle.grey,
-                                          custom_id="Link Help")]
+                                          custom_id="Link Help"),
+                        disnake.ui.Button(label="Continue", style=disnake.ButtonStyle.blurple,
+                                          custom_id="continue")
+                    ]
                     buttons = disnake.ui.ActionRow()
                     for button in stat_buttons:
                         buttons.append_item(button)
                     if not linked_accounts:
-                        if message is None:
-                            return await ctx.send(content="No accounts linked to you. Click the button below to link. **Once you are done, please open a ticket again.**",
-                                           components=buttons, ephemeral=True)
-                        else:
-                            return await message.edit(content="No accounts linked to you. Click the button below to link. **Once you are done, please open a ticket again.**",
-                                           components=buttons)
+                        contin = False
+                        while not contin:
+                            if message is None:
+                                await ctx.send(content="No accounts linked to you. Click the button below to link. **Once you are done, please click continue.**",
+                                               components=buttons, ephemeral=True)
+                            else:
+                                await message.edit(content="No accounts linked to you. Click the button below to link. **Once you are done, please click continue.**",
+                                               components=buttons)
+                            res = await interaction_handler(bot=self.bot, ctx=ctx, msg=message, no_defer=True)
+                            if res.data.custom_id == "continue":
+                                linked_accounts = await self.bot.get_tags(ping=str(ctx.user.id))
+                                if linked_accounts != []:
+                                    contin = True
+                                else:
+                                    await res.response.defer(ephemeral=True)
+                                    await res.send(content="Please link an account first", ephemeral=True)
 
                     accounts = await self.bot.get_players(tags=linked_accounts, custom=True)
                     accounts.sort(key=lambda x: x.town_hall, reverse=True)
@@ -949,6 +945,15 @@ class TicketCommands(commands.Cog):
             if thread is not None:
                 await thread.edit(name=f"private-{name}")
 
+    @commands.Cog.listener()
+    async def on_message(self, message: disnake.Message):
+        try:
+            if message.content[:2] == "-/":
+                command = self.bot.get_global_command_named(name=message.content.replace("-/","").split(" ")[0])
+                await message.channel.send(f"</{message.content.replace('-/','')}:{command.id}>")
+
+        except:
+            pass
 
     async def send_log(self, guild: disnake.Guild, user:disnake.User, panel_name, action_text:str, sleep=False):
         result = await self.bot.tickets.find_one({"$and": [{"server_id": guild.id}, {"name": panel_name}]})
@@ -1296,18 +1301,7 @@ class TicketCommands(commands.Cog):
 
 
 
-    '''    @commands.Cog.listener()
-    async def on_message(self, sent_message: disnake.Message):
-        if "<@808566437199216691>" in sent_message.content or (sent_message.reference is not None and sent_message.reference.resolved.author.id == self.bot.user.id):
-            message = sent_message.content.replace("<@808566437199216691>", "")
-            parameters = {
-                "botkey": "d2a98e27651751da35edc2ed6584f997fd62508eaffeaff1ef7cb57667178bee",
-                "input": message,
-                "client_id" : sent_message.author.id
-            }
-            response = requests.post("https://devman.kuki.ai/talk", params=parameters)
-            await sent_message.reply(content="\n".join(response.json().get("responses")))
-    '''
+
 
 
     '''async def cog_slash_command_error(self, inter: disnake.ApplicationCommandInteraction, error: Exception):

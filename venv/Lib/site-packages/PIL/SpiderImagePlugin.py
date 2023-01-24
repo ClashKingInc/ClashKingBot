@@ -15,7 +15,7 @@
 #
 
 ##
-# Image plugin for the Spider image format.  This format is is used
+# Image plugin for the Spider image format. This format is used
 # by the SPIDER software, in processing image data from electron
 # microscopy and tomography.
 ##
@@ -110,14 +110,17 @@ class SpiderImageFile(ImageFile.ImageFile):
                 t = struct.unpack("<27f", f)  # little-endian
                 hdrlen = isSpiderHeader(t)
             if hdrlen == 0:
-                raise SyntaxError("not a valid Spider file")
+                msg = "not a valid Spider file"
+                raise SyntaxError(msg)
         except struct.error as e:
-            raise SyntaxError("not a valid Spider file") from e
+            msg = "not a valid Spider file"
+            raise SyntaxError(msg) from e
 
         h = (99,) + t  # add 1 value : spider header index starts at 1
         iform = int(h[5])
         if iform != 1:
-            raise SyntaxError("not a Spider 2D image")
+            msg = "not a Spider 2D image"
+            raise SyntaxError(msg)
 
         self._size = int(h[12]), int(h[2])  # size in pixels (width, height)
         self.istack = int(h[24])
@@ -140,7 +143,8 @@ class SpiderImageFile(ImageFile.ImageFile):
             offset = hdrlen + self.stkoffset
             self.istack = 2  # So Image knows it's still a stack
         else:
-            raise SyntaxError("inconsistent stack header values")
+            msg = "inconsistent stack header values"
+            raise SyntaxError(msg)
 
         if self.bigendian:
             self.rawmode = "F;32BF"
@@ -149,7 +153,7 @@ class SpiderImageFile(ImageFile.ImageFile):
         self.mode = "F"
 
         self.tile = [("raw", (0, 0) + self.size, offset, (self.rawmode, 0, 1))]
-        self.__fp = self.fp  # FIXME: hack
+        self._fp = self.fp  # FIXME: hack
 
     @property
     def n_frames(self):
@@ -168,11 +172,12 @@ class SpiderImageFile(ImageFile.ImageFile):
 
     def seek(self, frame):
         if self.istack == 0:
-            raise EOFError("attempt to seek in a non-stack file")
+            msg = "attempt to seek in a non-stack file"
+            raise EOFError(msg)
         if not self._seek_check(frame):
             return
         self.stkoffset = self.hdrlen + frame * (self.hdrlen + self.imgbytes)
-        self.fp = self.__fp
+        self.fp = self._fp
         self.fp.seek(self.stkoffset)
         self._open()
 
@@ -190,15 +195,6 @@ class SpiderImageFile(ImageFile.ImageFile):
         from PIL import ImageTk
 
         return ImageTk.PhotoImage(self.convert2byte(), palette=256)
-
-    def _close__fp(self):
-        try:
-            if self.__fp != self.fp:
-                self.__fp.close()
-        except AttributeError:
-            pass
-        finally:
-            self.__fp = None
 
 
 # --------------------------------------------------------------------
@@ -238,17 +234,18 @@ def makeSpiderHeader(im):
     if 1024 % lenbyt != 0:
         labrec += 1
     labbyt = labrec * lenbyt
-    hdr = []
     nvalues = int(labbyt / 4)
+    if nvalues < 23:
+        return []
+
+    hdr = []
     for i in range(nvalues):
         hdr.append(0.0)
-
-    if len(hdr) < 23:
-        return []
 
     # NB these are Fortran indices
     hdr[1] = 1.0  # nslice (=1 for an image)
     hdr[2] = float(nrow)  # number of rows per slice
+    hdr[3] = float(nrow)  # number of records in the image
     hdr[5] = 1.0  # iform for 2D image
     hdr[12] = float(nsam)  # number of pixels per line
     hdr[13] = float(labrec)  # number of records in file header
@@ -259,10 +256,7 @@ def makeSpiderHeader(im):
     hdr = hdr[1:]
     hdr.append(0.0)
     # pack binary data into a string
-    hdrstr = []
-    for v in hdr:
-        hdrstr.append(struct.pack("f", v))
-    return hdrstr
+    return [struct.pack("f", v) for v in hdr]
 
 
 def _save(im, fp, filename):
@@ -271,7 +265,8 @@ def _save(im, fp, filename):
 
     hdr = makeSpiderHeader(im)
     if len(hdr) < 256:
-        raise OSError("Error creating Spider header")
+        msg = "Error creating Spider header"
+        raise OSError(msg)
 
     # write the SPIDER header
     fp.writelines(hdr)
@@ -316,7 +311,7 @@ if __name__ == "__main__":
             outfile = sys.argv[2]
 
             # perform some image operation
-            im = im.transpose(Image.FLIP_LEFT_RIGHT)
+            im = im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
             print(
                 f"saving a flipped version of {os.path.basename(filename)} "
                 f"as {outfile} "

@@ -49,25 +49,31 @@ class GdImageFile(ImageFile.ImageFile):
         s = self.fp.read(1037)
 
         if not i16(s) in [65534, 65535]:
-            raise SyntaxError("Not a valid GD 2.x .gd file")
+            msg = "Not a valid GD 2.x .gd file"
+            raise SyntaxError(msg)
 
         self.mode = "L"  # FIXME: "P"
         self._size = i16(s, 2), i16(s, 4)
 
-        trueColor = s[6]
-        trueColorOffset = 2 if trueColor else 0
+        true_color = s[6]
+        true_color_offset = 2 if true_color else 0
 
         # transparency index
-        tindex = i32(s, 7 + trueColorOffset)
+        tindex = i32(s, 7 + true_color_offset)
         if tindex < 256:
             self.info["transparency"] = tindex
 
         self.palette = ImagePalette.raw(
-            "XBGR", s[7 + trueColorOffset + 4 : 7 + trueColorOffset + 4 + 256 * 4]
+            "XBGR", s[7 + true_color_offset + 4 : 7 + true_color_offset + 4 + 256 * 4]
         )
 
         self.tile = [
-            ("raw", (0, 0) + self.size, 7 + trueColorOffset + 4 + 256 * 4, ("L", 0, 1))
+            (
+                "raw",
+                (0, 0) + self.size,
+                7 + true_color_offset + 4 + 256 * 4,
+                ("L", 0, 1),
+            )
         ]
 
 
@@ -75,16 +81,18 @@ def open(fp, mode="r"):
     """
     Load texture from a GD image file.
 
-    :param filename: GD file name, or an opened file handle.
+    :param fp: GD file name, or an opened file handle.
     :param mode: Optional mode.  In this version, if the mode argument
         is given, it must be "r".
     :returns: An image instance.
     :raises OSError: If the image could not be read.
     """
     if mode != "r":
-        raise ValueError("bad mode")
+        msg = "bad mode"
+        raise ValueError(msg)
 
     try:
         return GdImageFile(fp)
     except SyntaxError as e:
-        raise UnidentifiedImageError("cannot identify this image file") from e
+        msg = "cannot identify this image file"
+        raise UnidentifiedImageError(msg) from e

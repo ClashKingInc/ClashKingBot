@@ -42,7 +42,8 @@ class HDF5StubImageFile(ImageFile.StubImageFile):
         offset = self.fp.tell()
 
         if not _accept(self.fp.read(8)):
-            raise SyntaxError("Not an HDF file")
+            msg = "Not an HDF file"
+            raise SyntaxError(msg)
 
         self.fp.seek(offset)
 
@@ -59,8 +60,9 @@ class HDF5StubImageFile(ImageFile.StubImageFile):
 
 
 def _save(im, fp, filename):
-    if _handler is None or not hasattr("_handler", "save"):
-        raise OSError("HDF5 save handler not installed")
+    if _handler is None or not hasattr(_handler, "save"):
+        msg = "HDF5 save handler not installed"
+        raise OSError(msg)
     _handler.save(im, fp, filename)
 
 

@@ -132,7 +132,8 @@ class LinkWelcomeMessages(commands.Cog):
 
             player_tag = modal_inter.text_values["player_tag"]
             api_token = modal_inter.text_values["api_token"]
-            #await modal_inter.response.defer(ephemeral=True)
+            if not modal_inter.response.is_done():
+                await modal_inter.response.defer(ephemeral=True)
             server = CustomServer(guild=ctx.guild, bot=self.bot)
             change_nickname = await server.nickname_choice
 

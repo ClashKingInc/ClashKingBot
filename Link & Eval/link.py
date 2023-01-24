@@ -346,6 +346,7 @@ class Linking(commands.Cog):
 
     @commands.slash_command(name="buttons", description="Create a message that has buttons for easy eval/link/refresh actions.")
     async def buttons(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Link Button", "Refresh Button", "To-Do Button"]), ping: disnake.User = None):
+        await ctx.response.defer()
         if type == "Link Button":
             embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
                                   description=f"To link your account, press the link button below to get started.",

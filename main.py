@@ -22,7 +22,7 @@ intents.guilds = True
 intents.emojis = True
 intents.messages = True
 intents.message_content = True
-bot = CustomClient(command_prefix="$$",help_command=None, intents=intents, reload=True)
+bot = CustomClient(shard_count=2, command_prefix="$$",help_command=None, intents=intents, reload=True)
 
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
@@ -80,7 +80,6 @@ initial_extensions = [
     "Setups.evalsetup",
     "Reminders.ReminderSetup",
     "Setups.welcome_messages",
-
     "Utility.army",
     "Utility.awards",
     "Utility.boost",
@@ -89,10 +88,10 @@ initial_extensions = [
     "War & CWL.war",
     "help",
     "other",
+    "Utility.bases",
     "settings",
     "owner_commands",
     "Ticketing.TicketCog",
-    "SetupNew.SetupCog"
 ]
 
 if not IS_BETA:

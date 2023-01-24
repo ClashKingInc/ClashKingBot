@@ -31,6 +31,7 @@ class DiscordEvents(commands.Cog):
             if strikes >= 3:
                 self.bot.banned_global.append(banned.get("user"))
 
+
         tags = await self.bot.clan_db.distinct("tag")
         self.bot.clan_list = tags
         reminder_tags = await self.bot.reminders.distinct("clan", filter={"type" : "War"})

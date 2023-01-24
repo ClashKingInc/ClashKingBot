@@ -589,7 +589,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.edit_original_message(embed=embed, components=buttons)
 
-    @clan.sub_command(
+    '''@clan.sub_command(
         name="games",
         description="Points earned in clan games by clan members")
     async def clan_games(
@@ -655,7 +655,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 style=disnake.ButtonStyle.grey,
                 custom_id=f"clangames{_season}_{clan.tag}"))
 
-        await ctx.edit_original_message(embed=embed, components=buttons)
+        await ctx.edit_original_message(embed=embed, components=buttons)'''
 
     @clan.sub_command(
         name="donations",
@@ -1668,7 +1668,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
     @war_stats_clan.autocomplete("season")
     @clan_donations.autocomplete("season")
-    @clan_games.autocomplete("season")
     @activities.autocomplete("season")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
@@ -1694,7 +1693,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @player_th.autocomplete("clan")
     @clan_compo.autocomplete("clan")
     @last_online.autocomplete("clan")
-    @clan_games.autocomplete("clan")
     @clan_donations.autocomplete("clan")
     @activity_graph.autocomplete("clan")
     @war_stats_clan.autocomplete("clan")

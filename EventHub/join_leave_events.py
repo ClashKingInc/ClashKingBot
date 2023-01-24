@@ -4,6 +4,7 @@ from utils.troop_methods import heros, heroPets
 from CustomClasses.CustomBot import CustomClient
 from EventHub.event_websockets import clan_ee
 from utils.troop_methods import leagueAndTrophies
+from pymongo import UpdateOne
 
 class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
 
@@ -37,6 +38,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
 
         donated = {}
         received = {}
+        changes = []
         for member in previous_members:
             if member["tag"] in list(tag_to_name.keys()):
                 current_donation = current_donated_dict[member["tag"]]
@@ -44,10 +46,15 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                 change_dono = current_donation - member["donations"]
                 change_rec = current_received - member["donationsReceived"]
                 if change_dono > 0:
+                    change_amount = 0.25
+                    if member["donations"] > 100000:
+                        change_amount = 0.10
                     donated[member["tag"]] = change_dono
+                    changes.append(UpdateOne({"tag": member["tag"]}, {"$inc": {f"points": int(change_amount * change_dono)}}, upsert=True))
                 if change_rec > 0:
                     received[member["tag"]] = change_rec
 
+        await self.bot.player_stats.bulk_write(changes)
         clan_share_link = f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{event['new_clan']['tag'].strip('#')}"
         embed = disnake.Embed(description=f"[**{event['new_clan']['name']}**]({clan_share_link})")
         embed.set_thumbnail(url=event['new_clan']["badgeUrls"]["large"])

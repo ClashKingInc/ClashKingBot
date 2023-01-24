@@ -51,6 +51,7 @@ class StoreClanCapital(commands.Cog):
                 updates.append(UpdateOne({"tag": member.tag}, {"$set": {f"capital_gold.{date}.raid": [member.capital_resources_looted]}}, upsert=True))
                 updates.append(UpdateOne({"tag": member.tag}, {"$set": {f"capital_gold.{date}.limit_hits": (member.attack_limit + member.bonus_attack_limit)}}, upsert=True))
                 updates.append(UpdateOne({"tag": member.tag}, {"$set": {f"capital_gold.{date}.attack_count": member.attack_count}}, upsert=True))
+                updates.append(UpdateOne({"tag": member.tag}, {"$inc": {"points": int(member.capital_resources_looted * 0.25)}}, upsert=True))
 
         if updates != []:
             results = await self.bot.player_stats.bulk_write(updates)
