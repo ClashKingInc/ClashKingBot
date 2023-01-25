@@ -270,22 +270,16 @@ class War_Log(commands.Cog):
         })
 
 
-        point_to_point = {0:0, 1: 500, 2: 1000, 3 :1500}
-        cwl_point = {0:0, 1 : 500, 2: 1000, 3: 3000}
-        if str(war.type) == "cwl":
-            points_earned = cwl_point[attack.stars]
-            if attack.stars == 2 or attack.stars == 1:
-                if attack.defender.town_hall > attack.attacker.town_hall:
-                    points_earned += 1000
-            await self.bot.player_stats.update_one({"tag": attack.attacker_tag}, {"$inc": {f"points": points_earned}})
-        elif str(war.type) == "random":
+        point_to_point = {0:0, 1: 400, 2: 800, 3 : 1200}
+
+        if str(war.type) == "cwl" or str(war.type) == "random":
             points_earned = point_to_point[attack.stars]
-            if len(attack.attacker.attacks) == 2:
-                total_stars = 0
-                for a in attack.attacker.attacks:
-                    total_stars += a.stars
-                if total_stars == 6 and attack == attack.attacker.attacks[-1]:
-                    points_earned += 1000
+            if attack.stars != 0:
+                if attack.defender.town_hall > attack.attacker.town_hall:
+                    points_earned += (attack.defender.town_hall - attack.attacker.town_hall) * 400
+
+            if attack.defender.town_hall < attack.attacker.town_hall:
+                points_earned -= (attack.defender.town_hall - attack.attacker.town_hall) * 200
             await self.bot.player_stats.update_one({"tag": attack.attacker_tag}, {"$inc": {f"points": points_earned}})
 
         #is an attack

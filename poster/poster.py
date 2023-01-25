@@ -13,6 +13,7 @@ from CustomClasses.CustomPlayer import MyCustomPlayer
 import random
 import asyncio
 import aiohttp
+import concurrent.futures
 
 POSTER_LIST = {"Edrag" : "edrag",
                "Hogrider" : "hogrider",
@@ -257,13 +258,21 @@ class Poster(commands.Cog):
             pass
 
         #poster.show()
-        temp = io.BytesIO()
-        #960/540
-        poster = poster.resize((960, 540))
-        poster.save(temp, format="png", compress_level=1)
-        temp.seek(0)
-        file = disnake.File(fp=temp, filename="filename.png")
-        temp.close()
+
+        def save_im(poster):
+            temp = io.BytesIO()
+            # 960/540
+            poster = poster.resize((960, 540))
+            poster.save(temp, format="png", compress_level=1)
+            temp.seek(0)
+            file = disnake.File(fp=temp, filename="filename.png")
+            temp.close()
+            return file
+
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            loop = asyncio.get_event_loop()
+            file = await loop.run_in_executor(pool, save_im, poster)
+
         await ctx.edit_original_message(file=file)
 
 

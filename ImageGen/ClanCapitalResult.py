@@ -9,6 +9,7 @@ from io import BytesIO
 import asyncio
 from coc.raid import RaidLogEntry
 from utils.ClanCapital import calc_raid_medals
+import concurrent.futures
 
 async def generate_raid_result_image(raid_entry: RaidLogEntry, clan: coc.Clan):
 
@@ -58,13 +59,20 @@ async def generate_raid_result_image(raid_entry: RaidLogEntry, clan: coc.Clan):
 
     draw.text((25, 35), f"{raid_entry.start_time.time.date()}", anchor="lm", fill=(255, 255, 255), stroke_width=stroke, stroke_fill=(0, 0, 0), font=clan_name)
 
-    #background.show()
-    temp = io.BytesIO()
-    #background = background.resize((869, 637))
-    #background = background.resize((1036, 673))
-    background.save(temp, format="png", compress_level=1)
-    temp.seek(0)
-    file = disnake.File(fp=temp, filename="filename.png")
-    temp.close()
+    def save_im(background):
+        # background.show()
+        temp = io.BytesIO()
+        # background = background.resize((869, 637))
+        # background = background.resize((1036, 673))
+        background.save(temp, format="png", compress_level=1)
+        temp.seek(0)
+        file = disnake.File(fp=temp, filename="filename.png")
+        temp.close()
+        return file
+
+    with concurrent.futures.ThreadPoolExecutor() as pool:
+        loop = asyncio.get_event_loop()
+        file = await loop.run_in_executor(pool, save_im, background)
+
     return file
 

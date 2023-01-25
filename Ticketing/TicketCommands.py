@@ -714,6 +714,7 @@ class TicketCommands(commands.Cog):
         await self.send_log(guild=ctx.guild, panel_name=result.get("panel"),user=ctx.user, action_text=f"{ctx.user.mention} opted into #{ctx.channel.name}")
 
 
+
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
         if ctx.channel.id == 1066526556874346587:
@@ -954,6 +955,16 @@ class TicketCommands(commands.Cog):
 
         except:
             pass
+        sent_message = message
+        if "<@808566437199216691>" in sent_message.content or (sent_message.reference is not None and sent_message.reference.resolved.author.id == self.bot.user.id):
+            message = sent_message.content.replace("<@808566437199216691>", "")
+            parameters = {
+                "botkey": "d2a98e27651751da35edc2ed6584f997fd62508eaffeaff1ef7cb57667178bee",
+                "input": message,
+                "client_id": sent_message.author.id
+            }
+            response = requests.post("https://devman.kuki.ai/talk", params=parameters)
+            await sent_message.reply(content="\n".join(response.json().get("responses")))
 
     async def send_log(self, guild: disnake.Guild, user:disnake.User, panel_name, action_text:str, sleep=False):
         result = await self.bot.tickets.find_one({"$and": [{"server_id": guild.id}, {"name": panel_name}]})

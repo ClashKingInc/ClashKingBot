@@ -20,6 +20,7 @@ class Bases(commands.Cog):
             return await ctx.send("Not a valid base link")
         await ctx.response.defer()
         description = description[0:256]
+        description = description.replace(f"&&", "\n")
 
         r1 = disnake.ui.ActionRow()
         link_button = disnake.ui.Button(label="Link", emoji="🔗", style=disnake.ButtonStyle.green, custom_id="link")

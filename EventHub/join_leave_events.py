@@ -48,9 +48,9 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                 if change_dono > 0:
                     change_amount = 0.25
                     if member["donations"] > 100000:
-                        change_amount = 0.10
+                        change_amount = 0.05
                     donated[member["tag"]] = change_dono
-                    changes.append(UpdateOne({"tag": member["tag"]}, {"$inc": {f"points": int(change_amount * change_dono)}}, upsert=True))
+                    changes.append(UpdateOne({"tag": member["tag"]}, {"$inc": {f"points": change_amount * change_dono}}, upsert=True))
                 if change_rec > 0:
                     received[member["tag"]] = change_rec
 

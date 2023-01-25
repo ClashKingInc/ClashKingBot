@@ -10,6 +10,7 @@ import requests
 import aiohttp
 from io import BytesIO
 import asyncio
+import concurrent.futures
 
 th_to_xp = {1:1, 2:1, 3:1, 4:2, 5: 2, 6:2, 7:3, 8:4, 9:5, 10:7, 11:7, 12:10, 13:11, 14:11, 15:12, 16:13}
 
@@ -100,13 +101,23 @@ async def generate_war_result_image(war: coc.ClanWar):
 
     draw.text((490, 775), f"{won_xp} / {possible_xp}", anchor="mm", fill=(255, 255, 255), stroke_width=stroke, stroke_fill=(0, 0, 0), font=total_xp_font)
 
-    #background.show()
-    temp = io.BytesIO()
-    background = background.resize((725, 471))
-    #background = background.resize((1036, 673))
-    background.save(temp, format="png", compress_level=1)
-    temp.seek(0)
-    file = disnake.File(fp=temp, filename="filename.png")
-    temp.close()
+    def save_im(background):
+        # background.show()
+        temp = io.BytesIO()
+        background = background.resize((725, 471))
+        # background = background.resize((1036, 673))
+        background.save(temp, format="png", compress_level=1)
+        temp.seek(0)
+        file = disnake.File(fp=temp, filename="filename.png")
+        temp.close()
+        return file
+
+    with concurrent.futures.ThreadPoolExecutor() as pool:
+        loop = asyncio.get_event_loop()
+        file = await loop.run_in_executor(pool, save_im, background)
+
     return file
+
+
+
 

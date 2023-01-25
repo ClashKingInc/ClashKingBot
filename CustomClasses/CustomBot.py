@@ -132,6 +132,7 @@ class CustomClient(commands.AutoShardedBot):
         self.custom_commands = self.db_client.usafam.custom_commands
         self.bases = self.db_client.usafam.bases
         self.colors = self.db_client.usafam.colors
+        self.level_cards = self.db_client.usafam.level_cards
 
         self.autoboard_db = self.db_client.usafam.autoboard_db
 

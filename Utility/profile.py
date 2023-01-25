@@ -18,6 +18,8 @@ import pytz
 utc = pytz.utc
 from DiscordLevelingCard import RankCard, Settings
 from operator import attrgetter
+import asyncio
+
 
 LEVELS_AND_XP = {
     '0': 0,
@@ -329,11 +331,26 @@ class profiles(commands.Cog, name="Profile"):
     async def game_rank(self, ctx: disnake.ApplicationCommandInteraction, member: disnake.Member = None):
         await ctx.response.defer()
         if member is None:
-            member = ctx.author
+            self.author = ctx.author
+            member = self.author
+
+        custom = await self.bot.level_cards.find_one({"user_id" : ctx.author.id})
+        if custom is not None:
+            background_color = custom.get("background_color", "#36393f")
+            background = custom.get("background_image", "#https://media.discordapp.net/attachments/923767060977303552/1067289914443583488/bgonly1.jpg")
+            text_color = custom.get("text_color", "white")
+            bar_color = custom.get("bar_color", "#b5cf3d")
+        else:
+            background_color = "#36393f"
+            background = "https://media.discordapp.net/attachments/923767060977303552/1067289914443583488/bgonly1.jpg"
+            text_color = "white"
+            bar_color = "#b5cf3d"
+
         card_settings = Settings(
-            background="https://media.discordapp.net/attachments/923767060977303552/1067289914443583488/bgonly1.jpg",
-            text_color="white",
-            bar_color="#b5cf3d"
+            background_color=background_color,
+            background=background,
+            text_color=text_color,
+            bar_color=bar_color
         )
 
         linked_accounts: List[MyCustomPlayer] = await search_results(self.bot, str(member.id))
@@ -341,16 +358,26 @@ class profiles(commands.Cog, name="Profile"):
             await ctx.send(content="No Linked Acccounts")
 
         top_account = max(linked_accounts, key=attrgetter('level_points'))
+        print(f"{top_account.name} | {top_account.tag}")
+        level = int(max(self._find_level(current_total_xp=top_account.level_points), 0))
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
+        results = await self.bot.player_stats.find({"clan_tag": {"$in": clan_tags}}).sort("points", -1).to_list(1500)
+        rank = None
+        for r, result in enumerate(results, 1):
+            if result.get("tag") == top_account.tag:
+                rank = r
+                break
 
-        level = max(self._find_level(current_total_xp=top_account.level_points), 0)
-        image = await RankCard(
-            settings=card_settings,
-            avatar=member.display_avatar.url,
-            level=level,
-            current_exp=(top_account.level_points - LEVELS_AND_XP[str(level)]),
-            max_exp=LEVELS_AND_XP[str(level+ 1)],
-            username=f"{member}"
-        ).card3()
+        rank_card = RankCard(
+                settings=card_settings,
+                avatar=member.display_avatar.url,
+                level=level,
+                current_exp=top_account.level_points,
+                max_exp=LEVELS_AND_XP[str(level+ 1)],
+                username=f"{member}", account=top_account.name[:13],
+                rank = rank
+            )
+        image = await rank_card.card3()
         await ctx.edit_original_message(file=disnake.File(image, filename="rank.png"))
 
     def _find_level(self, current_total_xp: int):
