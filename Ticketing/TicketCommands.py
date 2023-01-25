@@ -955,7 +955,7 @@ class TicketCommands(commands.Cog):
 
         except:
             pass
-        sent_message = message
+        '''sent_message = message
         if "<@808566437199216691>" in sent_message.content or (sent_message.reference is not None and sent_message.reference.resolved.author.id == self.bot.user.id):
             message = sent_message.content.replace("<@808566437199216691>", "")
             parameters = {
@@ -964,7 +964,7 @@ class TicketCommands(commands.Cog):
                 "client_id": sent_message.author.id
             }
             response = requests.post("https://devman.kuki.ai/talk", params=parameters)
-            await sent_message.reply(content="\n".join(response.json().get("responses")))
+            await sent_message.reply(content="\n".join(response.json().get("responses")))'''
 
     async def send_log(self, guild: disnake.Guild, user:disnake.User, panel_name, action_text:str, sleep=False):
         result = await self.bot.tickets.find_one({"$and": [{"server_id": guild.id}, {"name": panel_name}]})
