@@ -9,7 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 from utils.components import create_components
 from main import check_commands
 from utils.discord_utils import permanent_image
-
+from operator import attrgetter
 
 
 
@@ -213,7 +213,7 @@ class misc(commands.Cog, name="Other"):
 
         await ctx.send(content=f"Image set to {background_image}", ephemeral=True)
 
-    '''@commands.slash_command(name="embed", description="Create, Edit, Or Delete a Custom Embed")
+    @commands.slash_command(name="embed", description="Create, Edit, Or Delete a Custom Embed")
     async def custom_embed(self, ctx: disnake.ApplicationCommandInteraction):
         pass
 
@@ -277,6 +277,62 @@ class misc(commands.Cog, name="Other"):
             "embed" : embed.to_dict()})
         await ctx.send(embed=embed)
 
+    @custom_embed.sub_command(name="import", description="Import a Custom Embed")
+    async def custom_embed_import(self, ctx: disnake.ApplicationCommandInteraction, embed_name: str, embed_link: str):
+        """
+            Parameters
+            ----------
+            embed_name: name for embed
+            embed_link: message link to embed to import
+        """
+        await ctx.response.defer()
+        result = await self.bot.custom_embeds.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": embed_name}]})
+        if result is not None:
+            return await ctx.send(content=f"Custom Embed - `{embed_name}` already exists")
+
+        if "discord.com" not in embed_link:
+            return await ctx.send(content=f"Not a valid message link")
+
+        link_split = embed_link.split("/")
+        message_id = link_split[-1]
+        channel_id = link_split[-2]
+
+        channel = await self.bot.getch_channel(channel_id=int(channel_id))
+        if channel is None:
+            return await ctx.send(content=f"Cannot access this channel")
+        message = await channel.fetch_message(int(message_id))
+
+        if not message.embeds:
+            return await ctx.send(content=f"Message has no embeds")
+        embed = message.embeds[0].to_dict()
+        await self.bot.custom_embeds.insert_one({
+            "name": embed_name,
+            "server_id": ctx.guild_id,
+            "embed": embed})
+        embed = disnake.Embed.from_dict(data=embed)
+        await ctx.send(content=f"**Your new embed - {embed_name}**", embed=embed)
+
+    @custom_embed.sub_command(name="post", description="Post a Custom Embed")
+    async def custom_embed_post(self, ctx: disnake.ApplicationCommandInteraction, embed_name: str):
+        await ctx.response.defer()
+        result = await self.bot.custom_embeds.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": embed_name}]})
+        if result is None:
+            return await ctx.send(content=f"Custom Embed - `{embed_name}` does not exist")
+
+        data = result.get("embed")
+        embed = disnake.Embed.from_dict(data=data)
+        await ctx.send(embed=embed)
+
+    @custom_embed.sub_command(name="delete", description="Delete a Custom Embed")
+    async def custom_embed_delete(self, ctx: disnake.ApplicationCommandInteraction, embed_name: str):
+        await ctx.response.defer()
+        result = await self.bot.custom_embeds.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": embed_name}]})
+        if result is None:
+            return await ctx.send(content=f"Custom Embed - `{embed_name}` does not exist")
+
+        await self.bot.custom_embeds.delete_one({"$and": [{"server_id": ctx.guild.id}, {"name": embed_name}]})
+        await ctx.send(f"Custom Embed - `{embed_name}` deleted")
+
 
     async def generate_embed(self, our_embed: dict):
         embed = disnake.Embed()
@@ -307,10 +363,7 @@ class misc(commands.Cog, name="Other"):
                 else:
                     setattr(embed, attribute, embed_field)
 
-        return embed'''
-
-
-
+        return embed
 
 
     '''@commands.Cog.listener()
@@ -325,7 +378,7 @@ class misc(commands.Cog, name="Other"):
             command.add_option(name=type, required=True, autocomplete=True)
             await self.bot.create_guild_command(guild_id=guild, application_command=command)'''
 
-    @commands.slash_command(name="custom-command", description="Create a custom command")
+    '''@commands.slash_command(name="custom-command", description="Create a custom command")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def custom_command(self, ctx: disnake.ApplicationCommandInteraction, command_name: str, description: str,
                              custom_embed: str, type=commands.Param(choices=["clan"]), refresh_button = commands.Param(default="False", choices=["True"])):
@@ -390,14 +443,14 @@ class misc(commands.Cog, name="Other"):
     @commands.Cog.listener()
     async def on_application_command_autocomplete(self, ctx: disnake.ApplicationCommandInteraction):
         command = ctx.data.name
-        if command not in self.bot.command_names():
+        if command in [c.name for c in self.bot.global_slash_commands]:
             result = await self.bot.custom_commands.find_one({"name": command})
             if result is None:
                 return
             command_type = result.get("type")
             query = ctx.filled_options[command_type]
             choices = await self.auto_clan(ctx=ctx, query=query)
-            await ctx.response.autocomplete(choices=choices)
+            await ctx.response.autocomplete(choices=choices)'''
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
@@ -491,6 +544,19 @@ class misc(commands.Cog, name="Other"):
                 if len(return_list) == 25:
                     break
         return return_list'''
+
+    @custom_embed_post.autocomplete("embed_name")
+    @custom_embed_delete.autocomplete("embed_name")
+    async def embed_names(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        results = await self.bot.custom_embeds.distinct("name", filter={"server_id": ctx.guild.id})
+        return_list = []
+        for result in results:
+            if query.lower() in result.lower():
+                return_list.append(result)
+                if len(return_list) == 25:
+                    break
+        return return_list
+
 
 
 def setup(bot: CustomClient):
