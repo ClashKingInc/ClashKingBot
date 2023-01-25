@@ -199,7 +199,7 @@ class misc(commands.Cog, name="Other"):
                 await res.edit_original_message(embed=embeds[int(res.values[0])])
 
     @commands.slash_command(name="level-card", description="Set custom colors & image for level card")
-    async def level_card(self, ctx: disnake.ApplicationCommandInteraction, background_image: disnake.Attachment, reset = commands.Param(default=None, choices=["True"])):
+    async def level_card(self, ctx: disnake.ApplicationCommandInteraction, background_image: disnake.Attachment = None, reset = commands.Param(default=None, choices=["True"])):
         await ctx.response.defer(ephemeral=True)
         custom = await self.bot.level_cards.find_one({"user_id": ctx.author.id})
         if reset is None:

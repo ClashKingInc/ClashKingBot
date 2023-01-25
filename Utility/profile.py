@@ -336,10 +336,10 @@ class profiles(commands.Cog, name="Profile"):
 
         custom = await self.bot.level_cards.find_one({"user_id" : ctx.author.id})
         if custom is not None:
-            background_color = custom.get("background_color", "#36393f")
-            background = custom.get("background_image", "#https://media.discordapp.net/attachments/923767060977303552/1067289914443583488/bgonly1.jpg")
-            text_color = custom.get("text_color", "white")
-            bar_color = custom.get("bar_color", "#b5cf3d")
+            background_color = custom.get("background_color") if custom.get("background_color") is not None else "#36393f"
+            background = custom.get("background_image") if custom.get("background_image") is not None else "#https://media.discordapp.net/attachments/923767060977303552/1067289914443583488/bgonly1.jpg"
+            text_color = custom.get("text_color") if custom.get("text_color") is not None else "white"
+            bar_color = custom.get("bar_color") if custom.get("bar_color") is not None else "#b5cf3d"
         else:
             background_color = "#36393f"
             background = "https://media.discordapp.net/attachments/923767060977303552/1067289914443583488/bgonly1.jpg"
