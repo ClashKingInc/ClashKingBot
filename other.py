@@ -534,8 +534,8 @@ class misc(commands.Cog, name="Other"):
                 questions.append(question[0:99])
         return questions
 
-    '''@custom_embed_create.autocomplete("color")
-    async def faq_question(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+    @custom_embed_create.autocomplete("color")
+    async def faq_color(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         all_colors = await self.bot.colors.distinct("name")
         return_list = []
         for color in all_colors:
@@ -543,7 +543,7 @@ class misc(commands.Cog, name="Other"):
                 return_list.append(color)
                 if len(return_list) == 25:
                     break
-        return return_list'''
+        return return_list
 
     @custom_embed_post.autocomplete("embed_name")
     @custom_embed_delete.autocomplete("embed_name")
