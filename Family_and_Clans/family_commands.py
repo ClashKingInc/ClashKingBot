@@ -395,6 +395,19 @@ class family_commands(commands.Cog):
                                               custom_id=f"capitaltrophiesfam_"))
         await ctx.edit_original_message(embed=embed, components=buttons)
 
+    @family.sub_command(name="summary", description="Summary of family stats")
+    async def family_summary(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        time = datetime.now()
+        embeds = await self.create_summary(guild=ctx.guild)
+        embeds[-1].timestamp = time
+        embeds[-1].set_footer(text="Last Refreshed:")
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
+                              custom_id=f"summaryfam_"))
+        await ctx.edit_original_message(embeds=embeds, components=buttons)
+
     async def cwl_ranking_create(self, clan: coc.Clan):
         try:
             group = await self.bot.coc_client.get_league_group(clan.tag)
@@ -545,6 +558,14 @@ class family_commands(commands.Cog):
             embed: disnake.Embed = await self.create_activities(ctx.guild)
             embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
             await ctx.edit_original_message(embed=embed)
+
+        elif "summaryfam_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            time = datetime.now()
+            embeds = await self.create_summary(guild=ctx.guild)
+            embeds[-1].timestamp = time
+            embeds[-1].set_footer(text="Last Refreshed:")
+            await ctx.edit_original_message(embeds=embeds)
 
         elif "cwlleaguesfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()

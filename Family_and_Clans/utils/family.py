@@ -10,11 +10,11 @@ import statistics
 from coc.raid import RaidLogEntry
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from CustomClasses.CustomPlayer import MyCustomPlayer, ClanCapitalWeek
 from utils.General import create_superscript
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry, calc_raid_medals
 from CustomClasses.Enums import TrophySort
-
+from collections import defaultdict
 tiz = pytz.utc
 
 leagues = ["Champion League I", "Champion League II", "Champion League III",
@@ -368,6 +368,275 @@ class getFamily(commands.Cog):
             embed.set_footer(text="Last Refreshed", icon_url=guild.icon.url)
         embed.timestamp = datetime.datetime.now()
         return embed
+
+    async def create_summary(self, guild: disnake.Guild):
+        date = self.bot.gen_season_date()
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+
+        results = await self.bot.player_stats.find({"clan_tag": {"$in": clan_tags}}).to_list(length=2000)
+        def gold(elem):
+            g = elem.get("gold_looted")
+            if g is None:
+                return 0
+            g = g.get(date)
+            if g is None:
+                return 0
+            return sum(g)
+        top_gold = sorted(results, key=gold, reverse=True)[:10]
+
+
+        text = f"**{self.bot.emoji.gold} Gold Looted\n**"
+        for count, result in enumerate(top_gold, 1):
+            try:
+                looted_gold = sum(result['gold_looted'][date])
+            except:
+                looted_gold = 0
+            try:
+                result['name']
+            except:
+                continue
+            text += f"{self.bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(looted_gold):11} \u200e{result['name']}`\n"
+
+        def elixir(elem):
+            g = elem.get("elixir_looted")
+            if g is None:
+                return 0
+            g = g.get(date)
+            if g is None:
+                return 0
+            return sum(g)
+        top_elixir = sorted(results, key=elixir, reverse=True)[:10]
+
+        text += f"**{self.bot.emoji.elixir} Elixir Looted\n**"
+        for count, result in enumerate(top_elixir, 1):
+            try:
+                looted_elixir = sum(result['elixir_looted'][date])
+            except:
+                looted_elixir = 0
+            try:
+                result['name']
+            except:
+                continue
+            text += f"{self.bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(looted_elixir):11} \u200e{result['name']}`\n"
+
+        def dark_elixir(elem):
+            g = elem.get("dark_elixir_looted")
+            if g is None:
+                return 0
+            g = g.get(date)
+            if g is None:
+                return 0
+            return sum(g)
+        top_dark_elixir = sorted(results, key=dark_elixir, reverse=True)[:10]
+
+        text += f"**{self.bot.emoji.dark_elixir} Dark Elixir Looted\n**"
+        for count, result in enumerate(top_dark_elixir, 1):
+            try:
+                looted_dark_elixir = sum(result['dark_elixir_looted'][date])
+            except:
+                looted_dark_elixir = 0
+            try:
+                result['name']
+            except:
+                continue
+            text += f"{self.bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(looted_dark_elixir):11} \u200e{result['name']}`\n"
+
+
+        def activity_count(elem):
+            g = elem.get("last_online_times")
+            if g is None:
+                return 0
+            g = g.get(date)
+            if g is None:
+                return 0
+            return len(g)
+        top_activity = sorted(results, key=activity_count, reverse=True)[:10]
+
+        text += f"**{self.bot.emoji.clock} Top Activity\n**"
+        for count, result in enumerate(top_activity, 1):
+            try:
+                activity = activity_count(result)
+            except:
+                activity = 0
+            try:
+                result['name']
+            except:
+                continue
+            text += f"{self.bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(activity):5} \u200e{result['name']}`\n"
+
+        def donations(elem):
+            g = elem.get("donations")
+            if g is None:
+                return 0
+            g = g.get(date)
+            if g is None:
+                return 0
+            g = g.get("donated")
+            if g is None:
+                return 0
+            return g
+        top_donations = sorted(results, key=donations, reverse=True)[:10]
+
+        second_text = f"**{self.bot.emoji.up_green_arrow} Donations\n**"
+        for count, result in enumerate(top_donations, 1):
+            try:
+                donated = result['donations'][date]['donated']
+            except:
+                donated = 0
+            try:
+                result['name']
+            except:
+                continue
+            second_text += f"{self.bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(donated):7} \u200e{result['name']}`\n"
+
+        def received(elem):
+            g = elem.get("donations")
+            if g is None:
+                return 0
+            g = g.get(date)
+            if g is None:
+                return 0
+            g = g.get("received")
+            if g is None:
+                return 0
+            return g
+        top_received = sorted(results, key=received, reverse=True)[:10]
+
+        second_text += f"**{self.bot.emoji.down_red_arrow} Received\n**"
+        for count, result in enumerate(top_received, 1):
+            try:
+                received = result['donations'][date]['received']
+            except:
+                received = 0
+            try:
+                result['name']
+            except:
+                continue
+            second_text += f"{self.bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(received):7} \u200e{result['name']}`\n"
+
+        def attacks(elem):
+            g = elem.get("attack_wins")
+            if g is None:
+                return 0
+            g = g.get(date)
+            if g is None:
+                return 0
+            return g
+        top_attacks = sorted(results, key=attacks, reverse=True)[:10]
+
+        second_text += f"**{self.bot.emoji.sword_clash} Attack Wins\n**"
+        for count, result in enumerate(top_attacks, 1):
+            try:
+                attack_num = result['attack_wins'][date]
+            except:
+                attack_num = 0
+            try:
+                result['name']
+            except:
+                continue
+            second_text += f"{self.bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(attack_num):7} \u200e{result['name']}`\n"
+
+
+        def capital_gold_donated(elem):
+            weeks = gen_raid_weekend_datestrings(4)
+            weeks = weeks[0:4]
+            cc_results = []
+            for week in weeks:
+                if elem is None:
+                    cc_results.append(ClanCapitalWeek(None))
+                    continue
+                clan_capital_result = elem.get("capital_gold")
+                if clan_capital_result is None:
+                    cc_results.append(ClanCapitalWeek(None))
+                    continue
+                week_result = clan_capital_result.get(week)
+                if week_result is None:
+                    cc_results.append(ClanCapitalWeek(None))
+                    continue
+                cc_results.append(ClanCapitalWeek(week_result))
+            return sum([sum(cap.donated) for cap in cc_results])
+
+        top_cg_donos = sorted(results, key=capital_gold_donated, reverse=True)[:10]
+
+        second_text += f"**{self.bot.emoji.capital_gold} CG Donated (last 4 weeks)\n**"
+        for count, result in enumerate(top_cg_donos, 1):
+            try:
+                cg_donated = capital_gold_donated(result)
+            except:
+                cg_donated = 0
+            try:
+                result['name']
+            except:
+                continue
+            second_text += f"{self.bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(cg_donated):7} \u200e{result['name']}`\n"
+
+
+        def capital_gold_raided(elem):
+            weeks = gen_raid_weekend_datestrings(4)
+            weeks = weeks[0:4]
+            cc_results = []
+            for week in weeks:
+                if elem is None:
+                    cc_results.append(ClanCapitalWeek(None))
+                    continue
+                clan_capital_result = elem.get("capital_gold")
+                if clan_capital_result is None:
+                    cc_results.append(ClanCapitalWeek(None))
+                    continue
+                week_result = clan_capital_result.get(week)
+                if week_result is None:
+                    cc_results.append(ClanCapitalWeek(None))
+                    continue
+                cc_results.append(ClanCapitalWeek(week_result))
+            return sum([sum(cap.raided) for cap in cc_results])
+
+        top_cg_raided = sorted(results, key=capital_gold_raided, reverse=True)[:10]
+
+        second_text += f"**{self.bot.emoji.capital_gold} CG Raided (last 4 weeks)\n**"
+        for count, result in enumerate(top_cg_raided, 1):
+            try:
+                cg_raided = capital_gold_raided(result)
+            except:
+                cg_raided = 0
+            try:
+                result['name']
+            except:
+                continue
+            second_text += f"{self.bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(cg_raided):7} \u200e{result['name']}`\n"
+
+        tags = [result.get("tag") for result in results]
+        start = int(coc.utils.get_season_start().timestamp())
+        now = (datetime.datetime.now().timestamp())
+        hits = await self.bot.warhits.find(
+            {"$and": [
+                {"tag": {"$in" : tags}},
+                {"_time": {"$gte": start}},
+                {"_time": {"$lte": now}}
+            ]}).to_list(length=100000)
+
+        names = {}
+        group_hits = defaultdict(int)
+        for hit in hits:
+            if hit["war_type"] == "friendly":
+                continue
+            group_hits[hit["tag"]]+= hit["stars"]
+            names[hit["tag"]] = hit['name']
+
+        top_war_stars = sorted(group_hits.items(), key=lambda x:x[1], reverse=True)[:10]
+
+        second_text += f"**{self.bot.emoji.war_star} War Stars\n**"
+        for count, result in enumerate(top_war_stars, 1):
+            tag, war_star = result
+            try:
+                name = names[tag]
+            except:
+                continue
+            second_text += f"{self.bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(war_star):3} \u200e{name}`\n"
+
+        embed = disnake.Embed(title=f"{guild.name} Season Summary", description=text)
+        embed2 = disnake.Embed(description=second_text)
+        print(len(embed.description) + len(embed2.description))
+        return [embed, embed2]
 
 
 
