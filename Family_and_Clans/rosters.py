@@ -94,6 +94,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster.sub_command(name="add-player", description="Add a player to a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_add(self, ctx: disnake.ApplicationCommandInteraction, roster: str, players: List[coc.Player] = commands.Param(converter=player_convertor), sub = commands.Param(name="sub", default=False, choices=["Yes"])):
+        await ctx.response.defer(ephemeral=True)
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
         added_text = ""
