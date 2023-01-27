@@ -35,7 +35,8 @@ async def button_pagination(bot, ctx: disnake.ApplicationCommandInteraction, msg
                     await res.edit_original_message(embeds= embed)
                 else:
                     await res.edit_original_message(embed=embed)
-            except:
+            except Exception as e:
+                print(e)
                 if profile_pages[current_stat] == "History":
                     embed = disnake.Embed(description="This player has made their clash of stats history private.",
                                           color=disnake.Color.green())
