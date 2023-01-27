@@ -925,15 +925,16 @@ class TicketCommands(commands.Cog):
                         valid_value = res.values
 
                     if "LinkDiff" in valid_value:
+                        await res.response.defer()
                         contin = False
                         while not contin:
                             if message is None:
                                 await ctx.send(
-                                    content="No accounts linked to you. Click the button below to link. **Once you are done, please click continue.**",
+                                    content="Link another account. Click the button below to link. **Once you are done, please click continue.**",
                                     components=buttons, ephemeral=True)
                             else:
                                 await message.edit(
-                                    content="No accounts linked to you. Click the button below to link. **Once you are done, please click continue.**",
+                                    content="Link another account. Click the button below to link. **Once you are done, please click continue.**",
                                     components=buttons)
                             res = await interaction_handler(bot=self.bot, ctx=ctx, msg=message, no_defer=True)
                             if res.data.custom_id == "continue":
