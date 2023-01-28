@@ -53,8 +53,8 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                     changes.append(UpdateOne({"tag": member["tag"]}, {"$inc": {f"points": change_amount * change_dono}}, upsert=True))
                 if change_rec > 0:
                     received[member["tag"]] = change_rec
-
-        await self.bot.player_stats.bulk_write(changes)
+        if changes:
+            await self.bot.player_stats.bulk_write(changes)
         clan_share_link = f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{event['new_clan']['tag'].strip('#')}"
         embed = disnake.Embed(description=f"[**{event['new_clan']['name']}**]({clan_share_link})")
         embed.set_thumbnail(url=event['new_clan']["badgeUrls"]["large"])
