@@ -917,7 +917,6 @@ class TicketCommands(commands.Cog):
                             res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
                         except:
                             raise Exception
-
                         if res.author.id != ctx.author.id:
                             await res.send(content="You must run the command to interact with components.", ephemeral=True)
                             continue
@@ -941,7 +940,9 @@ class TicketCommands(commands.Cog):
                                 linked_accounts = await self.bot.get_tags(ping=str(ctx.user.id))
                                 if linked_accounts != []:
                                     contin = True
-                                    valid_value = linked_accounts[0]
+                                    valid_value = linked_accounts[-1]
+                                    accounts = await self.bot.get_players(tags=linked_accounts, custom=True)
+                                    accounts.sort(key=lambda x: x.town_hall, reverse=True)
                                 else:
                                     await res.response.defer(ephemeral=True)
                                     await res.send(content="Please link an account first", ephemeral=True)
