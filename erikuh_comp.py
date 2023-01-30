@@ -38,9 +38,9 @@ class erikuh(commands.Cog):
         await player.track()
         await self.bot.erikuh.insert_one({"discord_id" : ctx.user.id, "player_tag" : player.tag})
         embed = disnake.Embed(
-            description=f"**Successfully signed up {player.name} ({player.tag}) for the September Legend League Tournament**",
+            description=f"**Successfully signed up {player.name} ({player.tag}) for the February Legend League Tournament**",
             color=disnake.Color.from_rgb(248,140,164))
-        embed.set_image(url="https://media.discordapp.net/attachments/1013897208111845509/1014331888883728445/September_Legends.png?width=1246&height=701")
+        embed.set_image(url="https://media.discordapp.net/attachments/1013897208111845509/1069282626176811038/legendleaguetournament2.jpg")
         return await ctx.edit_original_message(embed=embed)
 
     @commands.slash_command(name="signup-remove", description="remove signup for competition", guild_ids=[900783471708999700])
@@ -69,7 +69,7 @@ class erikuh(commands.Cog):
 
         await self.bot.erikuh.delete_one({"player_tag": player.tag})
         embed = disnake.Embed(
-            description=f"**Successfully removed {player.name} ({player.tag}) from the September Legend League Tournament**",
+            description=f"**Successfully removed {player.name} ({player.tag}) from the February Legend League Tournament**",
             color=disnake.Color.from_rgb(248, 140, 164))
         return await ctx.edit_original_message(embed=embed)
 
