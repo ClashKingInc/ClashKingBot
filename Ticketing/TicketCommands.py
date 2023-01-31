@@ -940,12 +940,13 @@ class TicketCommands(commands.Cog):
                                 linked_accounts = await self.bot.get_tags(ping=str(ctx.user.id))
                                 if linked_accounts != []:
                                     contin = True
-                                    valid_value = linked_accounts[-1]
-                                    accounts = await self.bot.get_players(tags=linked_accounts, custom=True)
+                                    valid_value = [linked_accounts[-1]]
+                                    accounts = await self.bot.get_players(tags=valid_value, custom=True)
                                     accounts.sort(key=lambda x: x.town_hall, reverse=True)
                                 else:
                                     await res.response.defer(ephemeral=True)
                                     await res.send(content="Please link an account first", ephemeral=True)
+
 
                     players = [coc.utils.get(accounts, tag=tag) for tag in valid_value]
                     await res.response.defer()
@@ -1005,7 +1006,7 @@ class TicketCommands(commands.Cog):
                 "thread" : thread.id if thread is not None else thread,
                 "status" : "open",
                 "number" : max(all_ticket_nums) + 1,
-                "apply_account" : players[0].name if players is not None else None,
+                "apply_account" : players[0].tag if players is not None else None,
                 "naming" : button_settings.get("naming", '{ticket_count}-{user}'),
                 "panel" : ctx.data.custom_id.split("_")[0],
                 "server" : ctx.guild.id
