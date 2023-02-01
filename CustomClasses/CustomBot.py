@@ -13,6 +13,7 @@ from CustomClasses.emoji_class import Emojis, EmojiType
 from urllib.request import urlopen
 from collections import defaultdict
 from utils.troop_methods import cwl_league_emojis
+from CustomClasses.PlayerHistory import COSPlayerHistory
 
 import dateutil.relativedelta
 import ast
@@ -26,6 +27,7 @@ import asyncio
 import collections
 import random
 import calendar
+import aiohttp
 
 utc = pytz.utc
 load_dotenv()
@@ -97,6 +99,7 @@ class CustomClient(commands.AutoShardedBot):
         self.user_name = "admin"
         self.cwl_db = self.looper_db.looper.cwl_db
         self.leveling = self.new_looper.leveling
+        self.clan_wars = self.looper_db.looper.clan_wars
 
         self.link_client = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
 
@@ -133,6 +136,7 @@ class CustomClient(commands.AutoShardedBot):
         self.bases = self.db_client.usafam.bases
         self.colors = self.db_client.usafam.colors
         self.level_cards = self.db_client.usafam.level_cards
+        self.autostrikes = self.db_client.usafam.autostrikes
 
         self.autoboard_db = self.db_client.usafam.autoboard_db
 
@@ -144,8 +148,6 @@ class CustomClient(commands.AutoShardedBot):
         self.emoji = emoji_class
         self.locations = locations
 
-
-
         self.MAX_FEED_LEN = 5
         self.FAQ_CHANNEL_ID = 1010727127806648371
 
@@ -153,6 +155,8 @@ class CustomClient(commands.AutoShardedBot):
         self.last_message = defaultdict(int)
         self.banned_global = [859653218979151892]
         self.global_webhooks = defaultdict(str)
+
+        self.feed_webhooks = {}
 
         self.clan_list = []
 
@@ -521,6 +525,20 @@ class CustomClient(commands.AutoShardedBot):
         channel = await self.fetch_channel(channel_id)
         return channel
 
+    async def getch_webhook(self, channel_id):
+        channel: disnake.TextChannel = await self.getch_channel(channel_id=channel_id)
+        try:
+            webhook = self.feed_webhooks[channel.id]
+        except:
+            webhooks = await channel.webhooks()
+            if len(webhooks) == 0:
+                bot_av = self.user.avatar.read().close()
+                webhook = await channel.create_webhook(name=self.user.name, avatar=bot_av, reason="Feed Webhook")
+            else:
+                webhook = next(webhook for webhook in webhooks if webhook.user.id == self.user.id)
+            self.feed_webhooks[channel.id] = webhook
+        return webhook
+
 
     #CLASH HELPERS
     async def player_handle(self, ctx, tag):
@@ -570,7 +588,7 @@ class CustomClient(commands.AutoShardedBot):
             task = asyncio.ensure_future(self.getClan(clan_tag=tag))
             tasks.append(task)
         responses = await asyncio.gather(*tasks)
-        return responses
+        return [response for response in responses if response is not None]
 
     async def getClan(self, clan_tag, raise_exceptions=False):
         try:
@@ -637,6 +655,15 @@ class CustomClient(commands.AutoShardedBot):
         responses = await asyncio.gather(*tasks)
         return responses
 
+    async def get_player_history(self, player_tag: str):
+        url = f"https://api.clashofstats.com/players/{player_tag.replace('#', '')}/history/clans"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                history = await resp.json()
+                await session.close()
+                return COSPlayerHistory(data=history)
+
+
     #SERVER HELPERS
     async def open_clan_capital_reminders(self):
         pass
@@ -645,6 +672,9 @@ class CustomClient(commands.AutoShardedBot):
         if ctx.author.id == 706149153431879760:
             return True
         member = ctx.author
+        roles = (await ctx.guild.getch_member(member_id=ctx.author.id)).roles
+        if disnake.utils.get(roles, name="ClashKing Perms") != None:
+            return True
 
         commandd = command_name
         guild = ctx.guild.id
@@ -757,3 +787,15 @@ class CustomClient(commands.AutoShardedBot):
                 full_name = base_command
                 commands.append(full_name)
         return commands
+
+    def is_cwl(self):
+        now = datetime.utcnow().replace(tzinfo=utc)
+        current_dayofweek = now.weekday()
+        if (current_dayofweek == 4 and now.hour >= 7) or (current_dayofweek == 5) or (current_dayofweek == 6) or (
+                current_dayofweek == 0 and now.hour < 7):
+            if current_dayofweek == 0:
+                current_dayofweek = 7
+            is_raids = True
+        else:
+            is_raids = False
+        return is_raids
