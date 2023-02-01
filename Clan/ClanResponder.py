@@ -133,7 +133,7 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking, previous_s
     else:
         response = response.get("data")
 
-    if "Not Found" not in str(response) and response is not None:
+    if "Not Found" not in str(response) and "'status': 500" not in str(response) and response is not None:
         text, year = response_to_line(response, clan)
         cwl_text = text
 
