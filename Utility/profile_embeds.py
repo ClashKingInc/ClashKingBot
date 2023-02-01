@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from numerize import numerize
+from CustomClasses.PlayerHistory import StayType
 
 async def create_profile_stats(bot: CustomClient, ctx, player: MyCustomPlayer):
 
@@ -96,101 +97,52 @@ async def create_profile_stats(bot: CustomClient, ctx, player: MyCustomPlayer):
                         value=f"Date: {date}\nReason: {notes}")
     return embed
 
-async def history(bot, ctx, result):
-    player = result
-    discordID = await bot.link_client.get_link(player.tag)
-    member = await bot.pingToMember(ctx, str(discordID))
-    join = None
-    try:
-        join = member.joined_at
-        day = str(join.day)
-        month = str(join.month)
-        year = str(join.year)
-    except:
-        pass
+async def history(bot: CustomClient, ctx, player):
 
-    result = player.tag.strip("#")
-    url = f'https://www.clashofstats.com/players/{result}/history/'
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            soup = BeautifulSoup(await response.text(), 'lxml')
-            clans = soup.find_all("a", class_="v-list-item v-list-item--link theme--dark")
-            test = soup.find_all("div", class_="subsection-title")
-            num_clans = test[1].text.strip()
-            text = ""
-            x = 0
-            for clan in clans:
-                try:
-                    #title_element = clan.find("div", class_="subsection-title")
-                    company_element = clan.find("span", class_="text--secondary caption")
-                    location_element = clan.find("div", class_="v-list-item__subtitle")
-                    #print(title_element.text.strip())
-                    #print(company_element.text.strip())
-                    t = company_element.text.strip()
-                    t = t.strip("-")
-                    c = await bot.getClan(t)
-                    t = f"[{c.name}]({c.share_link}), - "
-                    lstay = None
-                    for d in location_element.find_all("br"):
-                        lstay = "".join(d.previous_siblings)
-                    # print(location_element.text.strip())
-                    lstay = " ".join(lstay.split())
-                    lstay = lstay.strip("Total ")
-                    text += f"\u200e{t} \u200e{lstay}\n"
-                    x+=1
-                    if x == 5:
-                        break
-                except:
-                    pass
+    clan_history = await bot.get_player_history(player_tag=player.tag)
+    previous_clans = clan_history.previous_clans(limit=5)
+    clan_summary = clan_history.summary(limit=5)
 
-        embed = disnake.Embed(title=f"{player.name} History",
-                              description=f"{num_clans}",
-                              color=disnake.Color.green())
-        embed.add_field(name="**Top 5 Clans Player has stayed the most:**",
-                        value=text, inline=False)
+    top_5 = ""
+    if previous_clans == "Private History":
+        return disnake.Embed(title=f"{player.name} Clan History",description="This player has made their clash of stats history private.", color=disnake.Color.green())
+    embed = disnake.Embed(title=f"{player.name} Clan History", description=f"This player has been seen in a total of {clan_history.num_clans} different clans", color=disnake.Color.green())
 
+    for clan in clan_summary:
+        years = clan.duration.days // 365
+        # Calculating months
+        months = (clan.duration.days - years * 365) // 30
+        # Calculating days
+        days = (clan.duration.days - years * 365 - months * 30)
+        date_text = []
+        if years >= 1:
+            date_text.append(f"{years} Years")
+        if months >= 1:
+            date_text.append(f"{months} Months")
+        if days >= 1:
+            date_text.append(f"{days} Days")
+        top_5 += f"[{clan.clan_name}]({clan.share_link}) - {', '.join(date_text)}\n"
 
-        result = result.strip("#")
-        url = f'https://www.clashofstats.com/players/{result}/history/log'
-        async with session.get(url) as response:
-            soup = BeautifulSoup(await response.text(), 'lxml')
-            clans = soup.find_all("a", class_="v-list-item v-list-item--link theme--dark")
-            text = ""
-            x = 0
-            types = ["Member", "Elder", "Co-leader", "Leader"]
-            for clan in clans:
-                try:
-                    title_element = clan.find("div", class_="v-list-item__title")
-                    location_element = clan.find("div", class_="v-list-item__subtitle text--secondary")
-                    t = title_element.text.strip()
-                    t = " ".join(t.split())
-                    ttt = t.split("#", 1)
-                    clan = await bot.getClan(ttt[1])
-                    type = "No Role"
-                    for ty in types:
-                        if ty in t:
-                            type = ty
+    if top_5 == "":
+        top_5 = "No Clans Found"
+    embed.add_field(name="**Top 5 Clans Player has stayed the most:**",
+                        value=top_5, inline=False)
 
-                    t = f"\u200e[{clan.name}]({clan.share_link}), \u200e{type}"
+    last_5 = ""
+    for clan in previous_clans:
+        last_5 += f"[{clan.clan_name}]({clan.share_link}), {clan.role.in_game_name}\n"
+        if clan.stay_type == StayType.stay:
+            days = f" - {clan.stay_length.days} days" if clan.stay_length.days >= 1 else ""
+            last_5 += f"<t:{int(clan.start_stay.time.timestamp())}:D> to <t:{int(clan.end_stay.time.timestamp())}:D> {days}\n"
+        elif clan.stay_type == StayType.seen:
+            last_5 += f"Seen on <t:{int(clan.seen_date.time.timestamp())}:D>\n"
 
-                    lstay = location_element.text.strip()
-                    lstay = " ".join(lstay.split())
-                    text += f"{t} \n{lstay}\n"
-                    x += 1
-                    if x == 5:
-                        break
-                except:
-                    pass
+    if last_5 == "":
+        last_5 = "No Clans Found"
+    embed.add_field(name="**Last 5 Clans Player has been seen at:**", value=last_5, inline=False)
 
-        embed.add_field(name="**Last 5 Clans Player has been seen at:**",
-                        value=text, inline=False)
-
-        if join is not None:
-            embed.add_field(name="**Tenure:**", value=(f"{member.display_name} has been in this server since {month}/{day}/{year}"), inline=False)
-
-
-        embed.set_footer(text="Data from ClashofStats.com")
-        return embed
+    embed.set_footer(text="Data from ClashofStats.com")
+    return embed
 
 
 async def create_profile_troops(bot, result):
