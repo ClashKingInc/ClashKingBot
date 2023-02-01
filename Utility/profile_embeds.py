@@ -130,12 +130,12 @@ async def history(bot: CustomClient, ctx, player):
 
     last_5 = ""
     for clan in previous_clans:
-        last_5 += f"[{clan.clan_name}]({clan.share_link}), {clan.role.in_game_name}\n"
+        last_5 += f"[{clan.clan_name}]({clan.share_link}), {clan.role.in_game_name}"
         if clan.stay_type == StayType.stay:
-            days = f" - {clan.stay_length.days} days" if clan.stay_length.days >= 1 else ""
-            last_5 += f"<t:{int(clan.start_stay.time.timestamp())}:D> to <t:{int(clan.end_stay.time.timestamp())}:D> {days}\n"
+            last_5 += f", {clan.stay_length.days} days" if clan.stay_length.days >= 1 else ""
+            last_5 += f"\n<t:{int(clan.start_stay.time.timestamp())}:D> to <t:{int(clan.end_stay.time.timestamp())}:D>\n"
         elif clan.stay_type == StayType.seen:
-            last_5 += f"Seen on <t:{int(clan.seen_date.time.timestamp())}:D>\n"
+            last_5 += f"\nSeen on <t:{int(clan.seen_date.time.timestamp())}:D>\n"
 
     if last_5 == "":
         last_5 = "No Clans Found"
