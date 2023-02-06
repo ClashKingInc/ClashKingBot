@@ -22,6 +22,7 @@ from utils.discord_utils import interaction_handler
 import calendar
 from collections import defaultdict
 import operator
+from coc.raid import RaidMember, RaidLogEntry
 
 LEVELS_AND_XP = {
     '0': 0,
@@ -594,8 +595,8 @@ class profiles(commands.Cog, name="Profile"):
             num_accounts += 1
             for result in results:
                 member_result = next((item for item in result["data"]["members"] if item['tag'] == player), None)
-                member = coc.RaidMember(client=self.bot.coc_client, data=member_result,
-                                        raid_log_entry=coc.RaidLogEntry(client=self.bot.coc_client, data=result["data"],
+                member = RaidMember(client=self.bot.coc_client, data=member_result,
+                                        raid_log_entry=RaidLogEntry(client=self.bot.coc_client, data=result["data"],
                                                                         clan_tag=result["clan_tag"]))
                 member = member
                 raid: RaidLogEntry = member.raid_log_entry
