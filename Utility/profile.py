@@ -392,7 +392,7 @@ class profiles(commands.Cog, name="Profile"):
         await ctx.edit_original_message(file=disnake.File(image, filename="rank.png"))
 
     @player.sub_command(name="stats", description="Get stats for different areas of a player")
-    async def player_stats(self, ctx: disnake.ApplicationCommandInteraction, member: disnake.Member, type=commands.Param(choices=["CWL", "Raids"])):
+    async def player_stats(self, ctx: disnake.ApplicationCommandInteraction, member: disnake.Member, type:str =commands.Param(choices=["CWL", "Raids"])):
         if type == "Raids":
             return await self.raid_stalk(ctx=ctx, member=member)
         else:
@@ -574,7 +574,7 @@ class profiles(commands.Cog, name="Profile"):
         true_month = datetime.now().month
         month = calendar.month_name[true_month]
         if not tags:
-            await ctx.send(content="No players linked.")
+            return await ctx.send(content="No players linked.")
         embeds = []
         total_looted = 0
         total_medals = 0
