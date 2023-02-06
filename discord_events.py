@@ -136,7 +136,7 @@ class DiscordEvents(commands.Cog):
         await channel.send(embed=embed)
 
 
-    @commands.Cog.listener()
+    '''@commands.Cog.listener()
     async def on_slash_command_error(self, ctx: disnake.ApplicationCommandInteraction, error):
         if isinstance(error, disnake.ext.commands.ConversionError):
             error = error.original
@@ -208,7 +208,7 @@ class DiscordEvents(commands.Cog):
             embed = disnake.Embed(description=f"Custom Embed Code is Faulty - > be sure to use this site -> https://autocode.com/tools/discord/embed-builder/ , "
                                               f"create your embed, then click `copy code`",
                                   color=disnake.Color.red())
-            return await ctx.send(embed=embed, ephemeral=True)
+            return await ctx.send(embed=embed, ephemeral=True)'''
 
 
 
