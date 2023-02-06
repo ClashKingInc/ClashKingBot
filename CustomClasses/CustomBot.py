@@ -101,7 +101,7 @@ class CustomClient(commands.AutoShardedBot):
         self.leveling = self.new_looper.leveling
         self.clan_wars = self.looper_db.looper.clan_wars
 
-        self.link_client = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
+        self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
         self.clan_db = self.db_client.usafam.clans
@@ -140,8 +140,8 @@ class CustomClient(commands.AutoShardedBot):
 
         self.autoboard_db = self.db_client.usafam.autoboard_db
 
-        self.coc_client = coc.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD"), client=coc.EventsClient, key_count=10, key_names="DiscordBot", throttle_limit = 30,
-                                    cache_max_size=50000, load_game_data=coc.LoadGameData(always=True), stats_max_size=10000)
+        self.coc_client = coc.EventsClient(key_count=10, key_names="DiscordBot", throttle_limit = 250,cache_max_size=50000, load_game_data=coc.LoadGameData(always=True), stats_max_size=10000)
+        self.xyz = asyncio.get_event_loop().run_until_complete(self.coc_client.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD")))
 
         self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwarapi.login(username=os.getenv("FW_USER"), password=os.getenv("FW_PW"), clash_client=self.coc_client))
 
@@ -196,10 +196,11 @@ class CustomClient(commands.AutoShardedBot):
             elif color == "gold":
                 guild = self.get_guild(1042301195240357958)
         elif number >= 51:
+            print(color)
             if color == "white":
                 guild = self.get_guild(1042635651562086430)
             elif color == "blue":
-                guild = self.get_guild(1042301258167484426)
+                guild = self.get_guild(1042635521890992158)
             elif color == "gold":
                 guild = self.get_guild(1042635608088125491)
         all_emojis = guild.emojis

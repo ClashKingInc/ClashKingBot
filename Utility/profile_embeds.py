@@ -106,7 +106,8 @@ async def history(bot: CustomClient, ctx, player):
     top_5 = ""
     if previous_clans == "Private History":
         return disnake.Embed(title=f"{player.name} Clan History",description="This player has made their clash of stats history private.", color=disnake.Color.green())
-    embed = disnake.Embed(title=f"{player.name} Clan History", description=f"This player has been seen in a total of {clan_history.num_clans} different clans", color=disnake.Color.green())
+    embed = disnake.Embed(title=f"{player.name} Clan History", description=f"This player has been seen in a total of {clan_history.num_clans} different clans\n"
+                                        f"[Full History](https://www.clashofstats.com/players/{player.tag.strip('#')}/history/)", color=disnake.Color.green())
 
     for clan in clan_summary:
         years = clan.duration.days // 365
@@ -147,12 +148,12 @@ async def history(bot: CustomClient, ctx, player):
 
 async def create_profile_troops(bot, result):
     player = result
-    hero = heros(player)
-    pets = heroPets(player)
-    troop = troops(player)
-    deTroop = deTroops(player)
-    siege = siegeMachines(player)
-    spell = spells(player)
+    hero = heros(bot=bot, player=player)
+    pets = heroPets(bot=bot, player=player)
+    troop = troops(bot=bot, player=player)
+    deTroop = deTroops(bot=bot, player=player)
+    siege = siegeMachines(bot=bot, player=player)
+    spell = spells(bot=bot, player=player)
 
     embed = disnake.Embed(title="You are looking at " + player.name,
                            description="Troop, hero, & spell levels for this account.",

@@ -2,6 +2,7 @@ import coc
 
 from Assets.emojiDictionary import emojiDictionary
 from Assets.levelEmojis import levelEmojis, maxLevelEmojis
+#from CustomClasses.CustomBot import CustomClient
 
 DARK_ELIXIR = ["Minion", "Hog Rider", "Valkyrie", "Golem", "Witch", "Lava Hound", "Bowler", "Ice Golem", "Headhunter"]
 SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker", "Rocket Balloon", "Super Wizard", "Inferno Dragon",
@@ -25,23 +26,22 @@ async def superTroops(player, asArray=False):
     return str(boostedTroops)
 
 
-def heros(player):
-    heros = player.hero_cls
-    heros = player.heroes
-    if (heros == []):
+def heros(bot, player: coc.Player):
+    def get_emoji(hero: coc.Hero):
+        color = "blue"
+        if hero.level == hero.get_max_level_for_townhall(townhall=player.town_hall):
+            color = "gold"
+        return bot.get_number_emoji(color=color, number=hero.level)
+
+    hero_string = [f"{emojiDictionary(hero.name)}{get_emoji(hero)}" for hero in player.heroes if hero.is_home_base]
+
+    if not hero_string:
         return None
-    heroList = ""
 
-    for x in range(len(heros)):
-        hero = heros[x]
-        if (hero.is_home_base):
-            heroList += emojiDictionary(hero.name) + " " + str(hero.level)
-
-    # print(heroList)
-    return heroList
+    return "".join(hero_string)
 
 
-def spells(player):
+def spells(player, bot=None):
     spells = player.spell_cls
     spells = player.spells
     if (spells == []):
@@ -72,7 +72,7 @@ def spells(player):
     return spellList
 
 
-def troops(player):
+def troops(player, bot=None):
     troops = player.troop_cls
     troops = player.troops
     if (troops == []):
@@ -102,7 +102,7 @@ def troops(player):
     return troopList
 
 
-def deTroops(player):
+def deTroops(player, bot=None):
     troops = player.troop_cls
     troops = player.troops
     if (troops == []):
@@ -135,7 +135,7 @@ def deTroops(player):
     return troopList
 
 
-def siegeMachines(player):
+def siegeMachines(player, bot=None):
     sieges = player.troop_cls
     sieges = player.siege_machines
     if (sieges == []):
@@ -166,24 +166,23 @@ def siegeMachines(player):
     return siegeList
 
 
-def heroPets(player):
-    pets = player.hero_pets
-    # heros = player.heroes
-    if (pets == []):
+def heroPets(bot,player):
+    if not player.hero_pets:
         return None
-    petList = ""
-    pet_names = []
-    for x in range(len(pets)):
-        pet = pets[x]
-        if pet.name not in pet_names:
-            pet_names.append(pet.name)
-            if pet.level == pet.max_level:
-                petList += emojiDictionary(pet.name) + maxLevelEmojis(pet.level)
-            else:
-                petList += emojiDictionary(pet.name) + levelEmojis(pet.level)
-        if x == 3:
-            petList += "\n"
-    return petList
+
+    def get_emoji(pet: coc.Pet):
+        color = "blue"
+        if pet.level == pet.max_level:
+            color = "gold"
+        return bot.get_number_emoji(color=color, number=pet.level)
+
+    pet_string = ""
+    for count, pet in enumerate(player.hero_pets):
+        pet_string += f"{emojiDictionary(pet.name)}{get_emoji(pet)}"
+        if count == 3:
+            pet_string += "\n"
+
+    return pet_string
 
 
 def profileSuperTroops(player):

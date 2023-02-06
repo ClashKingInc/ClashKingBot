@@ -105,7 +105,7 @@ class Bases(commands.Cog):
 
             r1 = disnake.ui.ActionRow()
             link_button = disnake.ui.Button(label="Link", emoji="🔗", style=disnake.ButtonStyle.green, custom_id="link")
-            downloads = disnake.ui.Button(label=f"{count + 1} Downloads", emoji="📈", style=disnake.ButtonStyle.green,
+            downloads = disnake.ui.Button(label=f"{count} Downloads", emoji="📈", style=disnake.ButtonStyle.green,
                                           custom_id="who")
             r1.append_item(link_button)
             r1.append_item(downloads)
