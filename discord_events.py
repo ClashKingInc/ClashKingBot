@@ -79,54 +79,6 @@ class DiscordEvents(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_message(self, message : disnake.Message):
-        if "https://link.clashofclans.com/en?action=OpenPlayerProfile&tag=" in message.content:
-            m = message.content.replace("\n", " ")
-            spots = m.split(" ")
-            s = ""
-            for spot in spots:
-                if "https://link.clashofclans.com/en?action=OpenPlayerProfile&tag=" in spot:
-                    s = spot
-                    break
-            tag = s.replace("https://link.clashofclans.com/en?action=OpenPlayerProfile&tag=", "")
-            if "%23" in tag:
-                tag = tag.replace("%23", "")
-            player = await self.bot.getPlayer(tag)
-
-            clan = ""
-            try:
-                clan = player.clan.name
-                clan = f"{clan}"
-            except:
-                clan = "None"
-            hero = heros(player)
-            pets = heroPets(player)
-            if hero is None:
-                hero = ""
-            else:
-                hero = f"**Heroes:**\n{hero}\n"
-
-            if pets is None:
-                pets = ""
-            else:
-                pets = f"**Pets:**\n{pets}\n"
-
-            embed = disnake.Embed(title=f"Invite {player.name} to your clan:",
-                                  description=f"{player.name} - TH{player.town_hall}\n" +
-                                              f"Tag: {player.tag}\n" +
-                                              f"Clan: {clan}\n" +
-                                              f"Trophies: {player.trophies}\n"
-                                              f"War Stars: {player.war_stars}\n"
-                                              f"{hero}{pets}"
-                                              f'[View Stats](https://www.clashofstats.com/players/{player.tag}) | [Open in Game]({player.share_link})',
-                                  color=disnake.Color.green())
-            embed.set_thumbnail(url=thDictionary(player.town_hall))
-
-            channel = message.channel
-            await channel.send(embed=embed)
-
-
-    @commands.Cog.listener()
     async def on_guild_join(self, guild:disnake.Guild):
         results = await self.bot.server_db.find_one({"server": guild.id})
         if results is None:
@@ -184,7 +136,7 @@ class DiscordEvents(commands.Cog):
         await channel.send(embed=embed)
 
 
-    @commands.Cog.listener()
+    '''@commands.Cog.listener()
     async def on_slash_command_error(self, ctx: disnake.ApplicationCommandInteraction, error):
         if isinstance(error, disnake.ext.commands.ConversionError):
             error = error.original
@@ -256,7 +208,7 @@ class DiscordEvents(commands.Cog):
             embed = disnake.Embed(description=f"Custom Embed Code is Faulty - > be sure to use this site -> https://autocode.com/tools/discord/embed-builder/ , "
                                               f"create your embed, then click `copy code`",
                                   color=disnake.Color.red())
-            return await ctx.send(embed=embed, ephemeral=True)
+            return await ctx.send(embed=embed, ephemeral=True)'''
 
 
 
