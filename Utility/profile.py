@@ -610,7 +610,7 @@ class profiles(commands.Cog, name="Profile"):
                 if (raid.offensive_reward * member.attack_count) + raid.defensive_reward > highest_medals:
                     highest_medals = (raid.offensive_reward * member.attack_count) + raid.defensive_reward
                 member_medals += (raid.offensive_reward * member.attack_count) + raid.defensive_reward
-                clans.append(raid.clan_tag)
+                clans.append(result["clan_tag"])
 
             text = f"**Totals: {self.bot.emoji.capital_gold}{'{:,}'.format(member_looted)} | {self.bot.emoji.raid_medal}{member_medals}**\n{text}"
             embed = disnake.Embed(title=f"{member.name} Raid Performance", description=text,
