@@ -32,7 +32,7 @@ class DiscordEvents(commands.Cog):
                 self.bot.banned_global.append(banned.get("user"))
 
 
-        tags = await self.bot.clan_db.distinct("tag")
+        '''tags = await self.bot.clan_db.distinct("tag")
         self.bot.clan_list = tags
         reminder_tags = await self.bot.reminders.distinct("clan", filter={"type" : "War"})
         self.bot.coc_client.add_war_updates(*tags)
@@ -58,7 +58,7 @@ class DiscordEvents(commands.Cog):
                     scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[tag, reminder_time], id=f"{reminder_time}_{tag}", name=f"{tag}", misfire_grace_time=None)
                 except:
                     pass
-        scheduler.print_jobs()
+        scheduler.print_jobs()'''
 
         for g in self.bot.guilds:
             results = await self.bot.server_db.find_one({"server": g.id})
