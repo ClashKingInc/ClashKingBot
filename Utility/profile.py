@@ -438,12 +438,12 @@ class profiles(commands.Cog, name="Profile"):
                 star_str = ""
                 stars = result['stars']
                 for x in range(0, stars):
-                    star_str += self.bot.emoji.war_star.emoji_string
+                    star_str += "★"
                 for x in range(0, 3 - stars):
-                    star_str += self.bot.emoji.no_star.emoji_string
-                text += f"`Day {day} `| {star_str}`{result['destruction']:3}%`{emojiDictionary(result['townhall'])}" \
+                    star_str += "☆"
+                text += f"`Day {day} `| {star_str}`{result['destruction']:3}%`{self.bot.get_number_emoji(color='blue', number=result['townhall'])}{emojiDictionary(result['townhall'])}" \
                         f" **►** " \
-                        f"{emojiDictionary(result['defender_townhall'])}\n"
+                        f"{self.bot.get_number_emoji(color='blue', number=result['defender_townhall'])}{emojiDictionary(result['defender_townhall'])}\n"
                 townhall = result['townhall']
                 name = result['name']
                 clan_tag = result['clan']
@@ -461,12 +461,12 @@ class profiles(commands.Cog, name="Profile"):
                 star_str = ""
                 stars = result['stars']
                 for x in range(0, stars):
-                    star_str += self.bot.emoji.war_star.emoji_string
+                    star_str += "★"
                 for x in range(0, 3 - stars):
-                    star_str += self.bot.emoji.no_star.emoji_string
-                defense_text += f"`Day {day} `| {star_str}`{result['destruction']:3}%`{emojiDictionary(result['townhall'])}" \
+                    star_str += "☆"
+                defense_text += f"`Day {day} `| {star_str}`{result['destruction']:3}%`{self.bot.get_number_emoji(color='blue', number=result['townhall'])}{emojiDictionary(result['townhall'])}" \
                                 f" **►** " \
-                                f"{emojiDictionary(result['defender_townhall'])}\n"
+                                f"{self.bot.get_number_emoji(color='blue', number=result['defender_townhall'])}{emojiDictionary(result['defender_townhall'])}\n"
             if defense_text == "":
                 defense_text = "No Defenses Yet"
 
