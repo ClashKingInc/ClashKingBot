@@ -122,8 +122,8 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                 if joinlog_channel is None:
                     continue
                 async for player in self.bot.coc_client.get_players(new_tags):
-                    hero = heros(player)
-                    pets = heroPets(player)
+                    hero = heros(bot=self.bot, player=player)
+                    pets = heroPets(bot=self.bot, player=player)
                     if hero is None:
                         hero = ""
                     else:
@@ -145,8 +145,8 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                         continue
 
                 async for player in self.bot.coc_client.get_players(left_tags):
-                    hero = heros(player)
-                    pets = heroPets(player)
+                    hero = heros(bot=self.bot, player=player)
+                    pets = heroPets(bot=self.bot, player=player)
                     if hero is None:
                         hero = ""
                     else:
