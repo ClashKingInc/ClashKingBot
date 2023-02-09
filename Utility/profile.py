@@ -442,8 +442,8 @@ class profiles(commands.Cog, name="Profile"):
                 for x in range(0, 3 - stars):
                     star_str += self.bot.emoji.no_star.emoji_string
                 text += f"`Day {day} `| {star_str}`{result['destruction']:3}%`{emojiDictionary(result['townhall'])}" \
-                        f"{self.bot.get_number_emoji(color='blue', number=result['townhall'])} **►** " \
-                        f"{emojiDictionary(result['defender_townhall'])}{self.bot.get_number_emoji(color='blue', number=result['defender_townhall'])}\n"
+                        f" **►** " \
+                        f"{emojiDictionary(result['defender_townhall'])}\n"
                 townhall = result['townhall']
                 name = result['name']
                 clan_tag = result['clan']
@@ -465,8 +465,8 @@ class profiles(commands.Cog, name="Profile"):
                 for x in range(0, 3 - stars):
                     star_str += self.bot.emoji.no_star.emoji_string
                 defense_text += f"`Day {day} `| {star_str}`{result['destruction']:3}%`{emojiDictionary(result['townhall'])}" \
-                                f"{self.bot.get_number_emoji(color='blue', number=result['townhall'])} **►** " \
-                                f"{emojiDictionary(result['defender_townhall'])}{self.bot.get_number_emoji(color='blue', number=result['defender_townhall'])}\n"
+                                f" **►** " \
+                                f"{emojiDictionary(result['defender_townhall'])}\n"
             if defense_text == "":
                 defense_text = "No Defenses Yet"
 
@@ -586,8 +586,7 @@ class profiles(commands.Cog, name="Profile"):
         for player in tags:
             member_looted = 0
             member_medals = 0
-            results = await self.bot.raid_weekend_db.find({"data.members.tag": player}).sort("data.startTime",
-                                                                                             1).to_list(length=5)
+            results = await self.bot.raid_weekend_db.find({"data.members.tag": player}).sort("data.startTime",1).to_list(length=8)
             if not results:
                 continue
             text = ""
