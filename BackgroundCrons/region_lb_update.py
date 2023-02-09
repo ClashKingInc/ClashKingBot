@@ -9,9 +9,7 @@ class lb_updater(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.leaderboard_cron, 'interval', minutes=30)
-        scheduler.add_job(self.update_clan_badges, 'interval', minutes=240)
-        scheduler.add_job(self.update_servs, 'interval', minutes=1)
+        scheduler.add_job(self.leaderboard_cron, 'interval', minutes=60)
 
 
     async def leaderboard_cron(self):
