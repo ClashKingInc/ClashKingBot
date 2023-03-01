@@ -37,8 +37,9 @@ async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking, previous_s
     if clan.public_war_log:
         warloss = clan.war_losses
         if warloss == 0:
-            warloss = 1
-        winrate = round((warwin / warloss), 2)
+            winrate = warwin
+        else:
+            winrate = round((warwin / warloss), 2)
     else:
         warloss = "Hidden Log"
         winrate = "Hidden Log"
