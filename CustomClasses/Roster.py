@@ -180,20 +180,12 @@ class Roster():
             return str(player_dict.get("current_clan_tag"))
 
     def sort_(self, text_list):
-        master_col = ["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "Clan Tag",
+        master_col = ["Name", "Player Tag", "Heroes", "Townhall Level", "Current Clan", "Clan Tag", "Discord", "30 Day Hitrate",
          "War Opt Status", "Trophies"]
         spots = []
         for column in self.sort:
             spots.append(master_col.index(column))
-        if len(spots) == 1:
-            text_list = sorted(text_list, key=lambda l: (l[spots[0] + 1]), reverse=False)
-        if len(spots) == 2:
-            text_list = sorted(text_list, key=lambda l: (l[spots[0] + 1], l[spots[1] + 1]), reverse=False)
-        if len(spots) == 3:
-            text_list = sorted(text_list, key=lambda l: (l[spots[0] + 1], l[spots[1] + 1], l[spots[2] + 1]), reverse=False)
-        if len(spots) == 4:
-            text_list = sorted(text_list, key=lambda l: (l[spots[0] + 1], l[spots[1] + 1], l[spots[2] + 1], l[spots[3] + 1]), reverse=False)
-
+        text_list = sorted(text_list, key=lambda l: tuple(l[spot_idx + 1] for spot_idx in spots), reverse=False)
         return text_list
 
     def all_fields(self, player_dict):
