@@ -1167,14 +1167,13 @@ class TicketCommands(commands.Cog):
         def check(res: disnake.ModalInteraction):
             return ctx.author.id == res.author.id and res.custom_id == made_id
 
-        try:
-            modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
-                "modal_submit",
-                check=check,
-                timeout=300,
-            )
-        except:
-            return
+
+        modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
+            "modal_submit",
+            check=check,
+            timeout=300,
+        )
+
         await modal_inter.response.defer(ephemeral=True)
         message = await modal_inter.followup.send(content="Answers Submitted!")
         answers = [modal_inter.text_values[f"{x}"] for x in range(0, len(components))]
