@@ -44,63 +44,32 @@ class reddit_feed(commands.Cog):
                         text = submission.selftext
                         title = submission.title
 
-                        for x in range(4, 9):
-                            test = f"th{str(x + 6)}"
-                            test2 = f"th {str(x + 6)}"
-                            test3 = f"TH{str(x + 6)}"
-                            test4 = f"TH {str(x + 6)}"
-                            test5 = f"Townhall{str(x + 6)}"
-                            test6 = f"Townhall {str(x + 6)}"
-                            test7 = f"townhall{str(x + 6)}"
-                            test8 = f"townhall {str(x + 6)}"
-                            test9 = f"Town hall{str(x + 6)}"
-                            test10 = f"Town hall {str(x + 6)}"
-                            test11 = f"town hall{str(x + 6)}"
-                            test12 = f"town hall {str(x + 6)}"
-                            test13 = f"Th{str(x + 6)}"
-                            test14 = f"Th {str(x + 6)}"
+                        match = True
 
-                            a = test in text or test in title
-                            b = test2 in text or test2 in title
-                            c = test3 in text or test3 in title
-                            d = test4 in text or test4 in title
-                            e = test5 in text or test5 in title
-                            f = test6 in text or test6 in title
-                            g = test7 in text or test7 in title
-                            h = test8 in text or test8 in title
-                            i = test9 in text or test9 in title
-                            j = test10 in text or test10 in title
-                            k = test11 in text or test11 in title
-                            l = test12 in text or test12 in title
-                            m = test13 in text or test13 in title
-                            n = test14 in text or test14 in title
+                        if match:
+                            results = self.bot.server_db.find({"reddit_feed": {"$ne": None}})
+                            limit = await self.bot.server_db.count_documents(filter={"reddit_feed": {"$ne": None}})
+                            for r in await results.to_list(length=limit):
+                                try:
+                                    channel = r.get("reddit_feed")
+                                    channel = await self.bot.fetch_channel(channel)
+                                    role = r.get("reddit_role")
+                                    embed = disnake.Embed(title=f'{submission.title}',
+                                                          description=submission.selftext
+                                                                      + f'\n{submission.score} points | [Link]({submission.url}) | [Comments](https://www.reddit.com/r/{subreddit}/comments/{submission.id})',
+                                                          color=disnake.Color.green())
+                                    buttons = disnake.ui.ActionRow()
+                                    buttons.append_item(disnake.ui.Button(label="Post Link", emoji=self.bot.emoji.reddit_icon.partial_emoji, url=submission.url))
 
-                            match = a or b or c or d or e or f or g or h or i or j or k or l or m or n
+                                    if role is not None:
+                                        await channel.send(content=f"<@&{role}>",
+                                                       embed=embed, components=buttons)
+                                    else:
+                                        await channel.send(embed=embed, components=buttons)
 
-                            if match:
-                                results = self.bot.server_db.find({"reddit_feed": {"$ne": None}})
-                                limit = await self.bot.server_db.count_documents(filter={"reddit_feed": {"$ne": None}})
-                                for r in await results.to_list(length=limit):
-                                    try:
-                                        channel = r.get("reddit_feed")
-                                        channel = await self.bot.fetch_channel(channel)
-                                        role = r.get("reddit_role")
-                                        embed = disnake.Embed(title=f'{submission.title}',
-                                                              description=submission.selftext
-                                                                          + f'\n{submission.score} points | [Link]({submission.url}) | [Comments](https://www.reddit.com/r/{subreddit}/comments/{submission.id})',
-                                                              color=disnake.Color.green())
-                                        buttons = disnake.ui.ActionRow()
-                                        buttons.append_item(disnake.ui.Button(label="Post Link", emoji=self.bot.emoji.reddit_icon.partial_emoji, url=submission.url))
-
-                                        if role is not None:
-                                            await channel.send(content=f"<@&{role}>",
-                                                           embed=embed, components=buttons)
-                                        else:
-                                            await channel.send(embed=embed, components=buttons)
-
-                                    except (disnake.NotFound, disnake.Forbidden):
-                                        serv = r.get("server")
-                                        await self.bot.server_db.update_one({"server": serv}, {"$set": {"reddit_feed": None, "reddit_role" : None}})
+                                except (disnake.NotFound, disnake.Forbidden):
+                                    serv = r.get("server")
+                                    await self.bot.server_db.update_one({"server": serv}, {"$set": {"reddit_feed": None, "reddit_role" : None}})
             except Exception as e:
                 print(e)
                 continue
