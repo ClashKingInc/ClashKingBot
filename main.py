@@ -9,7 +9,7 @@ from disnake.ext import commands
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
-from EventHub.event_websockets import player_websocket, clan_websocket
+from EventHub.event_websockets import player_websocket, clan_websocket, war_websocket
 
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
@@ -128,4 +128,5 @@ if __name__ == "__main__":
             traceback.print_exc()
     bot.loop.create_task(player_websocket())
     bot.loop.create_task(clan_websocket())
+    bot.loop.create_task(war_websocket())
     bot.run(os.getenv("TOKEN"))
