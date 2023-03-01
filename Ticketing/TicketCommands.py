@@ -1139,7 +1139,8 @@ class TicketCommands(commands.Cog):
                 description += f"{self.bot.fetch_emoji(name=account.town_hall)} {account.name}\n"
 
         embed = disnake.Embed(title="**Questionnaire Panel**", description=description, color=disnake.Color.green())
-        await channel.send(embed=embed)
+        if thread is None:
+            await channel.send(embed=embed)
         if thread is not None:
             await thread.send(embed=embed)
 
@@ -1157,13 +1158,14 @@ class TicketCommands(commands.Cog):
         ]
         # await ctx.send(content="Modal Opened", ephemeral=True)
 
+        made_id = f"Answers-{ctx.user.id}-{int(datetime.now().timestamp())}"
         await ctx.response.send_modal(
             title="Questionnaire ",
-            custom_id = f"Answers-{ctx.user.id}",
+            custom_id = f"Answers-{ctx.user.id}-{int(datetime.now().timestamp())}",
             components=components)
 
-        def check(res):
-            return ctx.author.id == res.author.id
+        def check(res: disnake.ModalInteraction):
+            return ctx.author.id == res.author.id and res.custom_id == made_id
 
         try:
             modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
