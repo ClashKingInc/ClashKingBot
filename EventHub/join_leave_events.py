@@ -1,3 +1,4 @@
+import coc
 from disnake.ext import commands
 import disnake
 from utils.troop_methods import heros, heroPets
@@ -11,191 +12,122 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.clan_ee = clan_ee
-        self.clan_ee.on("memberList", self.join_leave_events)
+        self.clan_ee.on("member_join", self.player_join)
+        self.clan_ee.on("member_leave", self.player_leave)
 
-    async def join_leave_events(self, event):
-        previous_members = event["old_clan"]["memberList"]
-        current_members = event["new_clan"]["memberList"]
-        clan_tag = event["new_clan"]["tag"]
-        if not (clan_tag in self.bot.clan_list):
-            return
-        limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan_tag}"})
-        if limit == 0:
-            return
 
-        curr_tags = [member["tag"] for member in current_members]
-        prev_tag = [member["tag"] for member in previous_members]
+    async def player_join(self, event):
+        clan = coc.Clan(data=event["clan"], client=self.bot.coc_client)
+        member = coc.ClanMember(data=event["member"], client=self.bot.coc_client, clan=clan)
 
-        tag_to_name = {}
-        tag_to_share_link = {}
-        current_donated_dict = {}
-        current_received_dict = {}
-        for member in current_members:
-            tag_to_share_link[member["tag"]] = f"https://link.clashofclans.com/en?action=OpenPlayerProfile&tag=%23{member['tag'].strip('#')}"
-            tag_to_name[member["tag"]] = member["name"]
-            current_donated_dict[member["tag"]] = member["donations"]
-            current_received_dict[member["tag"]] = member["donationsReceived"]
 
-        donated = {}
-        received = {}
-        changes = []
-        for member in previous_members:
-            if member["tag"] in list(tag_to_name.keys()):
-                current_donation = current_donated_dict[member["tag"]]
-                current_received = current_received_dict[member["tag"]]
-                change_dono = current_donation - member["donations"]
-                change_rec = current_received - member["donationsReceived"]
-                if change_dono > 0:
-                    change_amount = 0.25
-                    if member["donations"] > 100000:
-                        change_amount = 0.05
-                    donated[member["tag"]] = change_dono
-                    changes.append(UpdateOne({"tag": member["tag"]}, {"$inc": {f"points": change_amount * change_dono}}, upsert=True))
-                if change_rec > 0:
-                    received[member["tag"]] = change_rec
-        if changes:
-            await self.bot.player_stats.bulk_write(changes)
-        clan_share_link = f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{event['new_clan']['tag'].strip('#')}"
-        embed = disnake.Embed(description=f"[**{event['new_clan']['name']}**]({clan_share_link})")
-        embed.set_thumbnail(url=event['new_clan']["badgeUrls"]["large"])
+        tracked = self.bot.clan_db.find({"tag": f"{clan.tag}"})
+        for cc in await tracked.to_list(length=10000):
+            server = cc.get("server")
+            joinlog_channel = cc.get("joinlog")
+            strike_ban_buttons = cc.get("strike_ban_buttons")
+            auto_eval = cc.get("auto_eval")
+            if joinlog_channel is None:
+                continue
+            try:
+                joinlog_channel = await self.bot.getch_channel(joinlog_channel)
+            except (disnake.Forbidden, disnake.NotFound):
+                await self.bot.clan_db.update_one({"$and": [
+                    {"tag": clan.tag},
+                    {"server": server}
+                ]}, {'$set': {"joinlog": None}})
 
-        donation_text = ""
-        for tag, donation in donated.items():
-            donation = f"{donation}".ljust(3)
-            donation_text += f"<:warwon:932212939899949176>`{donation}` | [**{tag_to_name[tag]}**]({tag_to_share_link[tag]})\n"
+            if joinlog_channel is None:
+                continue
 
-        if donation_text != "":
-            embed.add_field(name="Donated", value=donation_text, inline=False)
+            player = await self.bot.getPlayer(player_tag=member.tag)
+            hero = heros(bot=self.bot, player=player)
+            #pets = heroPets(bot=self.bot, player=player)
+            if hero is None:
+                hero = ""
+            else:
+                hero = f"{hero}"
 
-        received_text = ""
-        for tag, donation in received.items():
-            donation = f"{donation}".ljust(3)
-            received_text += f"<:warlost:932212154164183081>`{donation}` | [**{tag_to_name[tag]}**]({tag_to_share_link[tag]})\n"
+            th_emoji = self.bot.fetch_emoji(player.town_hall)
+            embed = disnake.Embed(description=f"[**{player.name}** ({player.tag})]({player.share_link})\n" +
+                                              f"**{th_emoji}{player.town_hall}{leagueAndTrophies(player)}<:star:825571962699907152>{player.war_stars}{hero}**\n"
+                                  , color=disnake.Color.green())
+            embed.set_footer(icon_url=clan.badge.url, text=f"Joined {clan.name} [{clan.member_count}/50]")
+            try:
+                await joinlog_channel.send(embed=embed)
+            except:
+                continue
 
-        if received_text != "":
-            embed.add_field(name="Received", value=received_text, inline=False)
 
-        if donation_text != "" or received_text != "":
-            tracked = self.bot.clan_db.find({"tag": f"{clan_tag}"})
-            for cc in await tracked.to_list(length=limit):
-                server = cc.get("server")
-                donolog_channel = cc.get("donolog")
-                if donolog_channel is None:
-                    continue
-                try:
-                    donolog_channel = await self.bot.getch_channel(donolog_channel)
-                except (disnake.Forbidden, disnake.NotFound):
-                    await self.bot.clan_db.update_one({"$and": [
-                        {"tag": clan_tag},
-                        {"server": server}
-                    ]}, {'$set': {"donolog": None}})
 
-                if donolog_channel is None:
-                    continue
+            """if auto_eval:
+                role_mode = cc.get("role_mode")
+                all_tags = new_tags + left_tags
+                links = await self.bot.link_client.get_links(*all_tags)
+                links = dict(links)
+                for tag in all_tags:
+                    evalua = self.bot.get_cog("Eval")
+                    embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                                                    test=False,
+                                                    change_nick="Off", return_embed=True)"""
 
-                try:
-                    await donolog_channel.send(embed=embed)
-                except:
-                    continue
+    async def player_leave(self, event):
+        clan = coc.Clan(data=event["clan"], client=self.bot.coc_client)
+        member = coc.ClanMember(data=event["member"], client=self.bot.coc_client, clan=clan)
 
-        new_tags = list(set(curr_tags).difference(prev_tag))
-        left_tags = list(set(prev_tag).difference(curr_tags))
+        tracked = self.bot.clan_db.find({"tag": f"{clan.tag}"})
+        for cc in await tracked.to_list(length=10000):
+            server = cc.get("server")
+            joinlog_channel = cc.get("joinlog")
+            strike_ban_buttons = cc.get("strike_ban_buttons")
+            auto_eval = cc.get("auto_eval")
+            if joinlog_channel is None:
+                continue
+            try:
+                joinlog_channel = await self.bot.getch_channel(joinlog_channel)
+            except (disnake.Forbidden, disnake.NotFound):
+                await self.bot.clan_db.update_one({"$and": [
+                    {"tag": clan.tag},
+                    {"server": server}
+                ]}, {'$set': {"joinlog": None}})
 
-        #if anyone joined or left, fetch clan, get channel then go thru the players & send embeds
-        if new_tags or left_tags:
-            tracked = self.bot.clan_db.find({"tag": f"{clan_tag}"})
-            for cc in await tracked.to_list(length=limit):
-                server = cc.get("server")
-                joinlog_channel = cc.get("joinlog")
-                strike_ban_buttons = cc.get("strike_ban_buttons")
-                auto_eval = cc.get("auto_eval")
-                if joinlog_channel is None:
-                    continue
-                try:
-                    joinlog_channel = await self.bot.getch_channel(joinlog_channel)
-                except (disnake.Forbidden, disnake.NotFound):
-                    await self.bot.clan_db.update_one({"$and": [
-                        {"tag": clan_tag},
-                        {"server": server}
-                    ]}, {'$set': {"joinlog": None}})
+            if joinlog_channel is None:
+                continue
 
-                if joinlog_channel is None:
-                    continue
-                async for player in self.bot.coc_client.get_players(new_tags):
-                    hero = heros(bot=self.bot, player=player)
-                    pets = heroPets(bot=self.bot, player=player)
-                    if hero is None:
-                        hero = ""
-                    else:
-                        hero = f"{hero}"
+            player = await self.bot.getPlayer(player_tag=member.tag)
+            hero = heros(bot=self.bot, player=player)
+            # pets = heroPets(bot=self.bot, player=player)
+            if hero is None:
+                hero = ""
+            else:
+                hero = f"{hero}"
 
-                    if pets is None:
-                        pets = ""
-                    else:
-                        pets = f"{pets}"
+            th_emoji = self.bot.fetch_emoji(player.town_hall)
+            embed = disnake.Embed(description=f"[**{player.name}** ({player.tag})]({player.share_link})\n" +
+                                              f"**{th_emoji}{player.town_hall}{leagueAndTrophies(player)}<:star:825571962699907152>{player.war_stars}{hero}**\n"
+                                  , color=disnake.Color.red())
+            if player.clan is not None:
+                embed.set_footer(icon_url=player.clan.badge.url,
+                                 text=f"Left {clan.name} [{clan.member_count}/50] and Joined {player.clan.name}")
+            else:
+                embed.set_footer(icon_url=event["new_clan"]["badgeUrls"]["large"],
+                                 text=f"Left {clan.name} [{clan.member_count}/50] ")
+            try:
+                components = []
+                if strike_ban_buttons:
+                    stat_buttons = [
+                        disnake.ui.Button(label="Ban", emoji="🔨", style=disnake.ButtonStyle.red,
+                                          custom_id=f"jlban_{player.tag}"),
+                        disnake.ui.Button(label="Strike", emoji="✏️", style=disnake.ButtonStyle.grey,
+                                          custom_id=f"jlstrike_{player.tag}")]
+                    buttons = disnake.ui.ActionRow()
+                    for button in stat_buttons:
+                        buttons.append_item(button)
+                    components = [buttons]
+                await joinlog_channel.send(embed=embed, components=components)
+            except:
+                continue
 
-                    th_emoji = self.bot.fetch_emoji(player.town_hall)
-                    embed = disnake.Embed(description=f"[**{player.name}** ({player.tag})]({player.share_link})\n" +
-                                                      f"**{th_emoji}{player.town_hall}{leagueAndTrophies(player)}<:star:825571962699907152>{player.war_stars}{hero}**\n"
-                                          , color=disnake.Color.green())
-                    embed.set_footer(icon_url=event["new_clan"]["badgeUrls"]["large"], text=f"Joined {event['new_clan']['name']} [{event['new_clan']['members']}/50]")
-                    try:
-                        await joinlog_channel.send(embed=embed)
-                    except:
-                        continue
-
-                async for player in self.bot.coc_client.get_players(left_tags):
-                    hero = heros(bot=self.bot, player=player)
-                    pets = heroPets(bot=self.bot, player=player)
-                    if hero is None:
-                        hero = ""
-                    else:
-                        hero = f"{hero}"
-
-                    if pets is None:
-                        pets = ""
-                    else:
-                        pets = f"{pets}"
-
-                    th_emoji = self.bot.fetch_emoji(player.town_hall)
-                    embed = disnake.Embed(description=f"[**{player.name}** ({player.tag})]({player.share_link})\n" +
-                                                      f"**{th_emoji}{player.town_hall}{leagueAndTrophies(player)}<:star:825571962699907152>{player.war_stars}{hero}**\n"
-                                          , color=disnake.Color.red())
-
-                    if player.clan is not None:
-                        # rclan = await self.bot.getClan(player.clan.tag)
-                        embed.set_footer(icon_url=player.clan.badge.url,
-                                         text=f"Left {event['new_clan']['name']} [{event['new_clan']['members']}/50] and Joined {player.clan.name}")
-                    else:
-                        embed.set_footer(icon_url=event["new_clan"]["badgeUrls"]["large"],
-                                         text=f"Left {event['new_clan']['name']} [{event['new_clan']['members']}/50]")
-
-                    try:
-                        components = []
-                        if strike_ban_buttons:
-                            stat_buttons = [
-                                disnake.ui.Button(label="Ban", emoji="🔨", style=disnake.ButtonStyle.red,
-                                                  custom_id=f"jlban_{player.tag}"),
-                                disnake.ui.Button(label="Strike", emoji="✏️", style=disnake.ButtonStyle.grey,
-                                                  custom_id=f"jlstrike_{player.tag}")]
-                            buttons = disnake.ui.ActionRow()
-                            for button in stat_buttons:
-                                buttons.append_item(button)
-                            components = [buttons]
-                        await joinlog_channel.send(embed=embed, components=components)
-                    except:
-                        continue
-
-                """if auto_eval:
-                    role_mode = cc.get("role_mode")
-                    all_tags = new_tags + left_tags
-                    links = await self.bot.link_client.get_links(*all_tags)
-                    links = dict(links)
-                    for tag in all_tags:
-                        evalua = self.bot.get_cog("Eval")
-                        embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
-                                                        test=False,
-                                                        change_nick="Off", return_embed=True)"""
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
