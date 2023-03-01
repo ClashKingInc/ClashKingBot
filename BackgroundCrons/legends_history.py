@@ -18,7 +18,7 @@ class LegendCron(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.legend_update, 'interval', hours=1)
+        scheduler.add_job(self.legend_update, 'interval', hours=12)
 
     async def legend_update(self):
         #keys = await self.create_keys()
