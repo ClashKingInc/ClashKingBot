@@ -22,20 +22,6 @@ class reminders(commands.Cog, name="Reminder Cron"):
         scheduler.add_job(self.clan_capital_reminder, "cron", args=["12 hr"], day_of_week="sun", hour=19, misfire_grace_time=None)
         scheduler.add_job(self.clan_capital_reminder, "cron", args=["24 hr"], day_of_week="sun", hour=7, misfire_grace_time=None)
 
-        #22nd to 28th of every month, at 8am
-        scheduler.add_job(self.clan_games_reminder, "cron", args=["144 hr"], day=22, hour=8, misfire_grace_time=None)
-        scheduler.add_job(self.clan_games_reminder, "cron", args=["120 hr"], day=23, hour=8, misfire_grace_time=None)
-        scheduler.add_job(self.clan_games_reminder, "cron", args=["96 hr"], day=24, hour=8, misfire_grace_time=None)
-        scheduler.add_job(self.clan_games_reminder, "cron", args=["72 hr"], day=25, hour=8, misfire_grace_time=None)
-        scheduler.add_job(self.clan_games_reminder, "cron", args=["48 hr"], day=26, hour=8, misfire_grace_time=None)
-        scheduler.add_job(self.clan_games_reminder, "cron", args=["36 hr"], day=26, hour=20, misfire_grace_time=None)
-        scheduler.add_job(self.clan_games_reminder, "cron", args=["24 hr"], day=27, hour=8, misfire_grace_time=None)
-        scheduler.add_job(self.clan_games_reminder, "cron", args=["12 hr"], day=27, hour=20, misfire_grace_time=None)
-        scheduler.add_job(self.clan_games_reminder, "cron", args=["6 hr"], day=28, hour=2, misfire_grace_time=None)
-        scheduler.add_job(self.clan_games_reminder, "cron", args=["4 hr"], day=28, hour=4, misfire_grace_time=None)
-        scheduler.add_job(self.clan_games_reminder, "cron", args=["2 hr"], day=28, hour=6, misfire_grace_time=None)
-        scheduler.add_job(self.clan_games_reminder, "cron", args=["1 hr"], day=28, hour=7, misfire_grace_time=None)
-
         scheduler.add_job(self.inactivity_reminder, 'interval', minutes=30, misfire_grace_time=None)
 
     #REMINDER SENDING UTILS
