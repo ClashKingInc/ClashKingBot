@@ -12,6 +12,7 @@ clan_ee = EventEmitter()
 war_ee = EventEmitter()
 
 WEBSOCKET_IP = os.getenv("WEBSOCKET_IP")
+NEW_WEBSOCKET_IP = os.getenv("NEW_WEBSOCKET_IP")
 WEBSOCKET_USER = os.getenv("WEBSOCKET_USER")
 WEBSOCKET_PW = os.getenv("WEBSOCKET_PW")
 
@@ -41,13 +42,7 @@ async def player_websocket():
 async def war_websocket():
     while True:
         try:
-            url = f"http://{WEBSOCKET_IP}/login"
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json={"username": f"{WEBSOCKET_USER}", "password": f"{WEBSOCKET_PW}"}) as response:
-                    token = await response.json()
-                    token = token["access_token"]
-                await session.close()
-            async with websockets.connect(f"ws://{WEBSOCKET_IP}/wars?token={token}", ping_timeout=None, ping_interval=None, open_timeout=None) as websocket:
+            async with websockets.connect(f"ws://{NEW_WEBSOCKET_IP}/wars?token=5", ping_timeout=None, ping_interval=None, open_timeout=None) as websocket:
                 async for message in websocket:
                     if "Login!" in str(message) or "decoded token" in str(message):
                         print(message)
@@ -64,13 +59,7 @@ async def war_websocket():
 async def clan_websocket():
     while True:
         try:
-            url = f"http://{WEBSOCKET_IP}/login"
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json={"username" : f"{WEBSOCKET_USER}", "password" : f"{WEBSOCKET_PW}"}) as response:
-                    token = await response.json()
-                    token = token["access_token"]
-
-            async with websockets.connect(f"ws://{WEBSOCKET_IP}/clans?token={token}", ping_timeout=None, ping_interval=None, open_timeout=None) as websocket:
+            async with websockets.connect(f"ws://{NEW_WEBSOCKET_IP}/clans?token=5", ping_timeout=None, ping_interval=None, open_timeout=None) as websocket:
                 async for message in websocket:
                     if "Login!" in str(message) or "decoded token" in str(message):
                         print(message)

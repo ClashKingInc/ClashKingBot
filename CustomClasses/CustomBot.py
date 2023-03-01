@@ -3,8 +3,8 @@ from datetime import datetime
 from datetime import timedelta
 from coc import utils
 from coc.ext import discordlinks
-#from coc.ext.fullwarapi import FullWarClient
-#from coc.ext import fullwarapi
+from coc.ext.fullwarapi import FullWarClient
+from coc.ext import fullwarapi
 from disnake.ext import commands
 from dotenv import load_dotenv
 from Assets.emojiDictionary import emojiDictionary, legend_emojis
@@ -143,7 +143,7 @@ class CustomClient(commands.AutoShardedBot):
         self.coc_client = coc.EventsClient(key_count=10, key_names="DiscordBot", throttle_limit = 25,cache_max_size=50000, load_game_data=coc.LoadGameData(always=True), stats_max_size=10000)
         self.xyz = asyncio.get_event_loop().run_until_complete(self.coc_client.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD")))
 
-        #self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwarapi.login(username=os.getenv("FW_USER"), password=os.getenv("FW_PW"), clash_client=self.coc_client))
+        self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwarapi.login(username=os.getenv("FW_USER"), password=os.getenv("FW_PW"), coc_client=self.coc_client))
 
         self.emoji = emoji_class
         self.locations = locations
