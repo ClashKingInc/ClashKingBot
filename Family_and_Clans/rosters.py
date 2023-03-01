@@ -1,3 +1,6 @@
+import asyncio
+import datetime
+
 import disnake
 import coc
 
@@ -8,6 +11,7 @@ from CustomClasses.Roster import Roster
 from main import check_commands
 from Exceptions import *
 from typing import List
+last_run = {}
 
 class Roster_Commands(commands.Cog, name="Rosters"):
 
@@ -377,6 +381,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="post", description="Post a roster")
     async def roster_post(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+        await ctx.response.defer()
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
         embed = await _roster.embed()
@@ -387,22 +392,48 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         buttons = disnake.ui.ActionRow()
         for button in signup_buttons:
             buttons.append_item(button)
-        await ctx.send(embed=embed, components=[buttons])
+        await ctx.edit_original_message(embed=embed, components=[buttons])
 
 
     @roster.sub_command(name="refresh", description="Refresh the data in a roster (townhall levels, hero levels)")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_refresh(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
-        _roster = Roster(bot=self.bot)
+    async def roster_refresh(self, ctx: disnake.ApplicationCommandInteraction, roster: str = commands.Param(name="roster_")):
         await ctx.response.defer()
-        await _roster.find_roster(guild=ctx.guild, alias=roster)
-        await _roster.refresh_roster()
-        embed = disnake.Embed(
-            description=f"Player data for **{_roster.roster_result.get('alias')}** roster has been refreshed.",
-            color=disnake.Color.green())
-        embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
-        await ctx.edit_original_message(embed=embed)
-
+        if roster != "REFRESH ALL":
+            _roster = Roster(bot=self.bot)
+            await _roster.find_roster(guild=ctx.guild, alias=roster)
+            await _roster.refresh_roster()
+            embed = disnake.Embed(
+                description=f"Player data for **{_roster.roster_result.get('alias')}** roster has been refreshed.",
+                color=disnake.Color.green())
+            embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
+            await ctx.edit_original_message(embed=embed)
+        else:
+            global last_run
+            l_run = 0
+            try:
+                l_run = last_run[ctx.guild_id]
+            except:
+                pass
+            if int(datetime.datetime.now().timestamp()) - l_run <= 1800:
+                diff = int(datetime.datetime.now().timestamp()) - l_run
+                diff = int(datetime.datetime.now().timestamp()) + (1800 - diff)
+                return await ctx.edit_original_message(embed=disnake.Embed(description=f"Bulk Refresh can only be run once every 30 minutes, please try again <t:{diff}:R>", color=disnake.Color.red()))
+            last_run[ctx.guild.id] = int(datetime.datetime.now().timestamp())
+            roster_list = await self.bot.rosters.find({"$and": [{"server_id": ctx.guild.id}]}).to_list(length=100)
+            await ctx.edit_original_message(f"Bulk Roster Refresh Has Been Added to Queue")
+            for count, roster in enumerate(roster_list, 1):
+                await asyncio.sleep(5)
+                await ctx.edit_original_message(f"Refreshing {roster.get('alias')} ({count}/{len(roster_list)})")
+                _roster = Roster(bot=self.bot)
+                await _roster.find_roster(guild=ctx.guild, alias=roster.get("alias"))
+                await _roster.refresh_roster()
+            embed = disnake.Embed(
+                description=f"Player data for all {len(roster_list)} rosters on this server have been refreshed.",
+                color=disnake.Color.green())
+            if ctx.guild.icon is not None:
+                embed.set_thumbnail(url=ctx.guild.icon.url)
+            await ctx.edit_original_message(content=None, embed=embed)
 
     @roster.sub_command(name="missing", description="Players that aren't in the clan tied to the roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -427,7 +458,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         if message != "":
             await _roster.set_missing_text(text=message)
         def check(res: disnake.MessageInteraction):
-            return (res.message.id == msg.id) and (res.author.guild_permissions.manage_guild) and (res.user == ctx.user)
+            return (res.message.id == msg.id) and (res.user == ctx.user)
 
         try:
             res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
@@ -712,7 +743,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster_delete.autocomplete("roster")
     @roster_create_signups.autocomplete("roster")
     @roster_post.autocomplete("roster")
-    @roster_refresh.autocomplete("roster")
+    @roster_refresh.autocomplete("roster_")
     @roster_missing.autocomplete("roster")
     @roster_add.autocomplete("roster")
     @roster_remove.autocomplete("roster")
@@ -730,6 +761,8 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     async def autocomp_rosters(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         aliases = await self.bot.rosters.distinct("alias", filter={"server_id": ctx.guild.id})
         alias_list = []
+        if ctx.data.focused_option.name == "roster_":
+            alias_list.append("REFRESH ALL")
         for alias in aliases:
             if query.lower() in alias.lower():
                 alias_list.append(f"{alias}")

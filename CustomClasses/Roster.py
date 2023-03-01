@@ -71,7 +71,7 @@ class Roster():
             text = ""
             all_fields = self.all_fields(member)
             for x, column in enumerate(columns):
-                col = self.column_to_item(member, column)
+                col = self.column_to_item(member, column, all_fields)
                 #if its the first column, and the column isnt an emoji, add tick
                 if columns[0] not in emojis_columns and x == 0:
                     text = f"`{text}"
@@ -136,7 +136,7 @@ class Roster():
         return embed
 
 
-    def column_to_item(self, player_dict, field):
+    def column_to_item(self, player_dict, field, all_fields):
         #["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "Clan Tag, "War Opt Status", "Trophies"]
 
         if field == "Name":
@@ -169,9 +169,15 @@ class Roster():
         elif field == "War Opt Status":
             wp = player_dict.get("war_pref")
             if wp is True:
-                return "<:opt_in:944905885367537685>"
+                if "Townhall Level" in all_fields:
+                    return "IN "
+                else:
+                    return "<:opt_in:944905885367537685>"
             elif wp is False:
-                return "<:opt_out:944905931265810432>"
+                if "Townhall Level" in all_fields:
+                    return "OUT"
+                else:
+                    return "<:opt_out:944905931265810432>"
             else:
                 return None
         elif field == "Trophies":
