@@ -166,8 +166,8 @@ def siegeMachines(player, bot=None):
     return siegeList
 
 
-def heroPets(bot,player):
-    if not player.hero_pets:
+def heroPets(bot,player: coc.Player):
+    if not player.pets:
         return None
 
     def get_emoji(pet: coc.Pet):
@@ -177,7 +177,7 @@ def heroPets(bot,player):
         return bot.get_number_emoji(color=color, number=pet.level)
 
     pet_string = ""
-    for count, pet in enumerate(player.hero_pets):
+    for count, pet in enumerate(player.pets):
         pet_string += f"{emojiDictionary(pet.name)}{get_emoji(pet)}"
         if count == 3:
             pet_string += "\n"
