@@ -1161,7 +1161,7 @@ class TicketCommands(commands.Cog):
         made_id = f"Answers-{ctx.user.id}-{int(datetime.now().timestamp())}"
         await ctx.response.send_modal(
             title="Questionnaire ",
-            custom_id = f"Answers-{ctx.user.id}-{int(datetime.now().timestamp())}",
+            custom_id = made_id,
             components=components)
 
         def check(res: disnake.ModalInteraction):
