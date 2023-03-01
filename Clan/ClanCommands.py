@@ -1699,7 +1699,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @activities.autocomplete("clan")
     @clan_ping.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id}).sort("name", 1)
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         clan_list = []
         for tClan in await tracked.to_list(length=limit):
@@ -1709,7 +1709,10 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 clan_list.append(f"{name} | {tag}")
 
         if clan_list == [] and len(query) >= 3:
-            clan = await self.bot.getClan(query)
+            if coc.utils.is_valid_tag(query):
+                clan = await self.bot.getClan(query)
+            else:
+                clan = None
             if clan is None:
                 results = await self.bot.coc_client.search_clans(name=query, limit=5)
                 for clan in results:
