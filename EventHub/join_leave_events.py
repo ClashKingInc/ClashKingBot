@@ -12,7 +12,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.clan_ee = clan_ee
-        self.clan_ee.on("member_join", self.player_join)
+        self.clan_ee.on("member_received", self.player_join)
         self.clan_ee.on("member_leave", self.player_leave)
 
 
