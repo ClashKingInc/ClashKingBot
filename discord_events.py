@@ -38,7 +38,19 @@ class DiscordEvents(commands.Cog):
         current_war_times = await self.bot.get_current_war_times(tags=reminder_tags)
         cog = self.bot.get_cog(name="Reminder Cron")
         for tag in current_war_times.keys():
-            war_end_time = current_war_times[tag]
+            new_war, war_end_time = current_war_times[tag]
+            try:
+                other_cog = self.bot.get_cog(name="War_Log")
+                if new_war.state == "preparation":
+                    scheduler.add_job(other_cog.send_or_update_war_start, 'date', run_date=new_war.start_time,
+                                      args=[new_war.clan.tag], id=f"war_start_{new_war.clan.tag}",
+                                      name=f"{new_war.clan.tag}_war_start", misfire_grace_time=None)
+                scheduler.add_job(other_cog.send_or_update_war_end, 'date', run_date=new_war.end_time,
+                                  args=[new_war.clan.tag], id=f"war_end_{new_war.clan.tag}",
+                                  name=f"{new_war.clan.tag}_war_end", misfire_grace_time=None)
+            except:
+                pass
+
             reminder_times = await self.bot.get_reminder_times(clan_tag=tag)
             try:
                 await self.bot.war_client.register_war(clan_tag=tag)

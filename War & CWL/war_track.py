@@ -221,7 +221,10 @@ class War_Log(commands.Cog):
                                       f" {star_str} **{attack.destruction}%** {emojiDictionary(attack.attacker.town_hall)}{self.create_superscript(num=attack.attacker.map_position)}"
                     await warlog_channel.send(content=hit_message)
                 else:
-                    await self.update_war_message(war=war, warlog_channel=warlog_channel, message_id=war_message, server=cc.get("server"), war_id=war_id)
+                    clan = None
+                    if war.type == "cwl":
+                        clan = await self.bot.getClan(war.clan.tag)
+                    await self.update_war_message(war=war, clan_result=cc, clan=clan)
             except Exception as e:
                 e = e[0:2000]
                 channel = await self.bot.fetch_channel(923767060977303552)
@@ -259,7 +262,6 @@ class War_Log(commands.Cog):
                         await war_webhook.send(embed=embed)
                 except:
                     pass
-
 
     async def send_or_update_war_end(self, clan_tag:str):
         war = await self.bot.get_clanwar(clanTag=clan_tag)

@@ -628,7 +628,7 @@ class CustomClient(commands.AutoShardedBot):
                 continue
             if war.end_time is None:
                 continue
-            times[war.clan.tag] = war.end_time
+            times[war.clan.tag] = (war, war.end_time)
         return times
 
     async def verifyPlayer(self, playerTag:str, playerToken:str):

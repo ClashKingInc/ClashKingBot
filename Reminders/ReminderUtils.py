@@ -323,7 +323,7 @@ async def create_war_reminder(bot, ctx: disnake.ApplicationCommandInteraction, c
 
     current_war_times = await bot.get_current_war_times(tags=[clan.tag])
     for tag in current_war_times.keys():
-        war_end_time = current_war_times[tag]
+        war, war_end_time = current_war_times[tag]
         reminder_times = await bot.get_reminder_times(clan_tag=tag)
         acceptable_times = bot.get_times_in_range(reminder_times=reminder_times, war_end_time=war_end_time)
         if not acceptable_times:
