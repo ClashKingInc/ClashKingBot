@@ -25,7 +25,7 @@ async def player_websocket():
                     token = await response.json()
                     token = token["access_token"]
                 await session.close()
-            async with websockets.connect(f"ws://{WEBSOCKET_IP}/players?token={token}", ping_timeout=None, ping_interval=None, open_timeout=None, max_queue=500000) as websocket:
+            async with websockets.connect(f"ws://{WEBSOCKET_IP}/players?token={token}", ping_timeout=None, ping_interval=None, open_timeout=None, max_queue=5000000) as websocket:
                 async for message in websocket:
                     if "Login!" in str(message) or "decoded token" in str(message):
                         print(message)
