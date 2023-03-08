@@ -94,7 +94,6 @@ class DiscordEvents(commands.Cog):
         if results is None:
             await self.bot.server_db.insert_one({
                 "server": guild.id,
-                "prefix": ".",
                 "banlist": None,
                 "greeting": None,
                 "cwlcount": None,
