@@ -30,10 +30,13 @@ async def player_websocket():
                     if "Login!" in str(message) or "decoded token" in str(message):
                         print(message)
                     else:
-                        json_message = orjson.loads(message)
-                        field = json_message["type"]
-                        awaitable = player_ee.emit_async(field, json_message)
-                        await awaitable
+                        try:
+                            json_message = orjson.loads(message)
+                            field = json_message["type"]
+                            awaitable = player_ee.emit_async(field, json_message)
+                            await awaitable
+                        except:
+                            pass
         except Exception as e:
             print(e)
             continue
