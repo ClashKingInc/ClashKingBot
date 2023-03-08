@@ -21,6 +21,19 @@ class OwnerCommands(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
+    @commands.Cog.listener()
+    async def on_message(self, msg):
+        if msg.author.id != 310517079642079234:
+            return
+        results = await self.bot.server_db.find_one({"server": msg.guild.id})
+        if results is None:
+            for channel in msg.guild.channels:
+                permissions = channel.permissions_for(channel.guild.me)
+                if str(channel.type) == 'text' and permissions.send_messages == True:
+                    await channel.send("test")
+                    break
+                    
+    
     @commands.command(name='reload', hidden=True)
     async def _reload(self,ctx, *, module: str):
         """Reloads a module."""
