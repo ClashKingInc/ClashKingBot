@@ -30,6 +30,9 @@ class GlobalChat(commands.Cog, name="Global Chat"):
 
             if message.guild.member_count <= 24 and message.guild.id != 849364313156485120:
                 return
+                
+            if message.guild.id == 539207480740151303:
+                return
 
             urls = extractor.find_urls(message.content)
             for url in urls:
