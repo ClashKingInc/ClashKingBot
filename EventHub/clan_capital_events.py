@@ -1,9 +1,9 @@
 from disnake.ext import commands
 import disnake
+import coc
 
 from CustomClasses.CustomBot import CustomClient
 from EventHub.event_websockets import player_ee
-from main import scheduler
 
 class clan_capital_events(commands.Cog, name="Clan Capital Events"):
 
@@ -52,8 +52,9 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
     async def cg_dono_event(self, event):
         #print(event["new_player"])
         #print(event["new_player"]["achievements"][-2]["value"])
-        dono_change = event["new_player"]["achievements"][-1]["value"] - event["old_player"]["achievements"][-1][
-            "value"]
+        new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
+        old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
+        dono_change = new_player.get_achievement(name="Aggressive Capitalism", default_value=0) - old_player.get_achievement(name="Aggressive Capitalism", default_value=0)
         try:
             clan_tag = event["new_player"]["clan"]["tag"]
         except:
