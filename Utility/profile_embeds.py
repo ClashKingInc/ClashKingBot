@@ -122,7 +122,11 @@ async def history(bot: CustomClient, ctx, player):
             date_text.append(f"{months} Months")
         if days >= 1:
             date_text.append(f"{days} Days")
-        top_5 += f"[{clan.clan_name}]({clan.share_link}) - {', '.join(date_text)}\n"
+        if date_text:
+            date_text = ', '.join(date_text)
+        else:
+            date_text = "N/A"
+        top_5 += f"[{clan.clan_name}]({clan.share_link}) - {date_text}\n"
 
     if top_5 == "":
         top_5 = "No Clans Found"
@@ -131,6 +135,8 @@ async def history(bot: CustomClient, ctx, player):
 
     last_5 = ""
     for clan in previous_clans:
+        if clan.stay_type == StayType.unknown:
+            continue
         last_5 += f"[{clan.clan_name}]({clan.share_link}), {clan.role.in_game_name}"
         if clan.stay_type == StayType.stay:
             last_5 += f", {clan.stay_length.days} days" if clan.stay_length.days >= 1 else ""

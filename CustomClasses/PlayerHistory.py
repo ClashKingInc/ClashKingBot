@@ -57,7 +57,10 @@ class SummaryClans():
 
     @property
     def clan_name(self):
-        return self._data["clansMap"][self.tag]["name"]
+        try:
+            return self._data["clansMap"][self.tag]["name"]
+        except:
+            return None
 
     @property
     def share_link(self):
@@ -83,11 +86,17 @@ class COSClan():
 
     @property
     def tag(self):
-        return self._clandata["tag"]
+        if self.stay_type != StayType.unknown:
+            return self._clandata["tag"]
+        else:
+            return None
 
     @property
     def role(self) -> Role:
-        return Role(value=self._clandata["role"])
+        if self.stay_type != StayType.unknown:
+            return Role(value=self._clandata["role"])
+        else:
+            return None
 
     @property
     def start_stay(self):
@@ -101,8 +110,11 @@ class COSClan():
 
     @property
     def seen_date(self):
-        _ = dt.strptime(self._clandata["date"].split(".")[0], "%Y-%m-%dT%H:%M:%S")
-        return Timestamp(data=_.strftime('%Y%m%dT%H%M%S.000Z'))
+        if self.stay_type != StayType.unknown:
+            _ = dt.strptime(self._clandata["date"].split(".")[0], "%Y-%m-%dT%H:%M:%S")
+            return Timestamp(data=_.strftime('%Y%m%dT%H%M%S.000Z'))
+        else:
+            return None
 
     @property
     def stay_length(self):
@@ -113,15 +125,24 @@ class COSClan():
 
     @property
     def clan_badge(self):
-        return self._data["clansMap"][self.tag]["badge"]
+        if self.stay_type != StayType.unknown:
+            return self._data["clansMap"][self.tag]["badge"]
+        else:
+            return None
 
     @property
     def clan_name(self):
-        return self._data["clansMap"][self.tag]["name"]
+        if self.stay_type != StayType.unknown:
+            return self._data["clansMap"][self.tag]["name"]
+        else:
+            return None
 
     @property
     def share_link(self):
-        return f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{self.tag.strip('#')}"
+        if self.stay_type != StayType.unknown:
+            return f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{self.tag.strip('#')}"
+        else:
+            return None
 
 class StayType(Enum):
     stay = "STAY"

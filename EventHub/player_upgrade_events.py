@@ -155,8 +155,7 @@ class UpgradeEvent(commands.Cog):
                     elif troop.level > old_troop.level:
                         leveled_up.append(troop)
 
-                for pet in new_player.troops:
-                    continue
+                for pet in new_player.pets:
                     old_pet = coc.utils.get(old_player.pets, name=pet.name)
                     if old_pet is None:
                         unlocked.append(pet)
