@@ -48,7 +48,8 @@ class UpgradeEvent(commands.Cog):
                 if upgrades_channel is None:
                     continue
                 try:
-                    await upgrades_channel.send(content=f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} moved to {league_emoji(new_player)}{new_player.league.name}")
+                    old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
+                    await upgrades_channel.send(content=f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} moved from {league_emoji(old_player)}{old_player.league.name} to {league_emoji(new_player)}{new_player.league.name}")
                 except:
                     continue
 
