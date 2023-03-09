@@ -7,7 +7,7 @@ from EventHub.event_websockets import clan_ee
 from utils.troop_methods import leagueAndTrophies
 from pymongo import UpdateOne
 autoroles_enabled = [789947161709379604, 359893876611350528]
-log = {789947161709379604 : 1080683358721425478}
+log = {789947161709379604 : 1080683358721425478,  359893876611350528 : 1080840352178634795}
 
 class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
 
@@ -73,6 +73,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                                                 change_nick="Off", return_embed=True)
                 log_channel = await self.bot.getch_channel(1080683358721425478)
                 await log_channel.send(embed=embed)
+
 
     async def player_leave(self, event):
         clan = coc.Clan(data=event["clan"], client=self.bot.coc_client)
