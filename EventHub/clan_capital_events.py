@@ -54,7 +54,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
         #print(event["new_player"]["achievements"][-2]["value"])
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
         old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
-        dono_change = new_player.get_achievement(name="Aggressive Capitalism", default_value=0) - old_player.get_achievement(name="Aggressive Capitalism", default_value=0)
+        dono_change = new_player.get_achievement(name="Most Valuable Clanmate", default_value=0).value - old_player.get_achievement(name="Most Valuable Clanmate", default_value=0).value
         try:
             clan_tag = event["new_player"]["clan"]["tag"]
         except:
