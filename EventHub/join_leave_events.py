@@ -6,8 +6,7 @@ from CustomClasses.CustomBot import CustomClient
 from EventHub.event_websockets import clan_ee
 from utils.troop_methods import leagueAndTrophies
 from pymongo import UpdateOne
-autoroles_enabled = [789947161709379604, 359893876611350528]
-log = {789947161709379604 : 1080683358721425478,  359893876611350528 : 1080840352178634795}
+
 
 class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
 
@@ -63,16 +62,23 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
             except:
                 continue
 
+            s_data = await self.bot.server_db.find_one({"server": joinlog_channel.guild.id})
+            if s_data.get("autoeval", False) is False:
+                continue
             link = await self.bot.link_client.get_link(player.tag)
-            global autoroles_enabled
-            if link is not None and joinlog_channel.guild.id in autoroles_enabled:
+            if link is not None:
                 evalua = self.bot.get_cog("Eval")
                 user = await joinlog_channel.guild.getch_member(link)
                 embed = await evalua.eval_logic(guild=joinlog_channel.guild, members_to_eval=[user], role_or_user=user,
                                                 test=False,
                                                 change_nick="Off", return_embed=True)
-                log_channel = await self.bot.getch_channel(1080683358721425478)
-                await log_channel.send(embed=embed)
+                log_channel = s_data.get("autoeval_log")
+                if log_channel is not None:
+                    try:
+                        log_channel = await self.bot.getch_channel(log_channel)
+                        await log_channel.send(embed=embed)
+                    except:
+                        pass
 
 
     async def player_leave(self, event):
