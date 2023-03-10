@@ -21,6 +21,8 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
         clan = coc.Clan(data=event["clan"], client=self.bot.coc_client)
         member = coc.ClanMember(data=event["member"], client=self.bot.coc_client, clan=clan)
 
+        if clan.tag not in self.bot.clan_list:
+            return
 
         tracked = self.bot.clan_db.find({"tag": f"{clan.tag}"})
         for cc in await tracked.to_list(length=10000):
@@ -28,6 +30,28 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
             cache_server = self.bot.get_guild(server)
             if cache_server is None:
                 continue
+
+            try:
+                s_data = await self.bot.server_db.find_one({"server": server})
+                if s_data.get("autoeval", False) is False:
+                    raise Exception
+                link = await self.bot.link_client.get_link(member.tag)
+                if link is not None:
+                    evalua = self.bot.get_cog("Eval")
+                    user = await cache_server.getch_member(link)
+                    embed = await evalua.eval_logic(guild=cache_server, members_to_eval=[user], role_or_user=user,
+                                                    test=False,
+                                                    change_nick="Off", return_embed=True)
+                    log_channel = s_data.get("autoeval_log")
+                    if log_channel is not None:
+                        try:
+                            log_channel = await self.bot.getch_channel(log_channel)
+                            await log_channel.send(embed=embed)
+                        except:
+                            pass
+            except:
+                pass
+
             joinlog_channel = cc.get("joinlog")
             strike_ban_buttons = cc.get("strike_ban_buttons")
             auto_eval = cc.get("auto_eval")
@@ -62,23 +86,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
             except:
                 continue
 
-            s_data = await self.bot.server_db.find_one({"server": joinlog_channel.guild.id})
-            if s_data.get("autoeval", False) is False:
-                continue
-            link = await self.bot.link_client.get_link(player.tag)
-            if link is not None:
-                evalua = self.bot.get_cog("Eval")
-                user = await joinlog_channel.guild.getch_member(link)
-                embed = await evalua.eval_logic(guild=joinlog_channel.guild, members_to_eval=[user], role_or_user=user,
-                                                test=False,
-                                                change_nick="Off", return_embed=True)
-                log_channel = s_data.get("autoeval_log")
-                if log_channel is not None:
-                    try:
-                        log_channel = await self.bot.getch_channel(log_channel)
-                        await log_channel.send(embed=embed)
-                    except:
-                        pass
+
 
 
     async def player_leave(self, event):
