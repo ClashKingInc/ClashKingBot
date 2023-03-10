@@ -17,7 +17,7 @@ from CustomClasses.Enums import TrophySort
 from collections import defaultdict
 tiz = pytz.utc
 
-leagues = ["Champion League I", "Champion League II", "Champion League III",
+leagues = [ "Titan League I" , "Titan League II" , "Titan League III" ,"Champion League I", "Champion League II", "Champion League III",
                    "Master League I", "Master League II", "Master League III",
                    "Crystal League I","Crystal League II", "Crystal League III",
                    "Gold League I","Gold League II", "Gold League III",
