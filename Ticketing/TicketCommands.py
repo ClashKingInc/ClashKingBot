@@ -1256,7 +1256,7 @@ class TicketCommands(commands.Cog):
             embed2 = await create_profile_troops(bot=self.bot, result=player)
             embed3 = upgrade_embed(bot=self.bot, player=player)
             try:
-                embed4 = await history(bot=self.bot, ctx=ctx, result=player)
+                embed4 = await history(bot=self.bot, ctx=ctx, player=player)
             except:
                 embed4 = disnake.Embed(description="This player has made their clash of stats history private.",
                                       color=disnake.Color.green())
