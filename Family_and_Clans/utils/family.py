@@ -686,7 +686,7 @@ class getFamily(commands.Cog):
 
             num_joined = len([i for i in join_len.values() if i == "Joined"])
             num_left = len([i for i in join_len.values() if i == "Left"])
-            text += f"{num_joined:2} Join {num_left:2} Left | {clan.name[13]:<16}\n"
+            text += f"{num_joined:2} Join {num_left:2} Left | {clan.name[:13]:<13}\n"
 
         embed = disnake.Embed(title=f"{guild.name} Clan History", description=f"```{text}```", colour=disnake.Color.green())
         return embed
