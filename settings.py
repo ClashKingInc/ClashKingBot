@@ -48,6 +48,18 @@ class misc(commands.Cog, name="Settings"):
                         f"{ctx.author.mention}, welcome to {ctx.guild.name}! {greet}",
                          allowed_mentions=disnake.AllowedMentions.none())
 
+    @set.sub_command(name="autoeval", description="Tuen autoeval on/off")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def autoeval(self, ctx: disnake.ApplicationCommandInteraction, option = commands.Param(choices=["On", "Off"]) , log: disnake.TextChannel = commands.Param(default=None, name="log")):
+
+        await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"autoeval": option == "On"}})
+        await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"autoeval_log": log.id}})
+        log_text = ""
+        if log is not None:
+            log_text =f"and will log in {log.mention}"
+        await ctx.edit_original_message(f"**Autoeval is now turned {option} {log_text}**",
+                                        allowed_mentions=disnake.AllowedMentions.none())
+
     @set.sub_command(name="clan-channel", description="Set a new clan channel for a clan")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def channel(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):

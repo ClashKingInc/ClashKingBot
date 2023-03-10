@@ -408,6 +408,20 @@ class family_commands(commands.Cog):
                               custom_id=f"summaryfam_"))
         await ctx.edit_original_message(embeds=embeds, components=buttons)
 
+    @family.sub_command(name="join-history", description="Summary of join/leave stats")
+    async def family_history(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        time = datetime.now()
+        embed: disnake.Embed = await self.create_joinhistory(guild=ctx.guild)
+        embed.timestamp = time
+        embed.set_footer(text="Last Refreshed:")
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
+                              custom_id=f"joinhistoryfam_"))
+        await ctx.edit_original_message(embed=embed, components=buttons)
+
+
     async def cwl_ranking_create(self, clan: coc.Clan):
         try:
             group = await self.bot.coc_client.get_league_group(clan.tag)
@@ -598,6 +612,13 @@ class family_commands(commands.Cog):
             embed.timestamp = datetime.now()
             await ctx.edit_original_message(embed=embed)
 
+        elif "joinhistoryfam_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            embed = await self.create_joinhistory(guild=ctx.guild)
+            embed.set_footer(text="Last Refreshed:")
+            embed.timestamp = datetime.now()
+            await ctx.edit_original_message(embed=embed)
+
         elif "warsfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             embed = await self.create_wars(guild=ctx.guild)
@@ -652,6 +673,7 @@ class family_commands(commands.Cog):
                                                   style=disnake.ButtonStyle.green if sort_type == TrophySort.capital else disnake.ButtonStyle.grey,
                                                   custom_id=f"capitaltrophiesfam_"))
             await ctx.edit_original_message(embed=embed, components=buttons)
+
 
 def setup(bot: CustomClient):
     bot.add_cog(family_commands(bot))

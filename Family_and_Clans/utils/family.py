@@ -638,7 +638,58 @@ class getFamily(commands.Cog):
         print(len(embed.description) + len(embed2.description))
         return [embed, embed2]
 
+    async def create_joinhistory(self, guild: disnake.Guild):
+        field = "clan"
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+        clans = await self.bot.get_clans(tags=clan_tags)
+        text = ""
 
+        class ItemHolder():
+            def __init__(self, tag: str, value: int, time: int, joined: bool):
+                self.tag = tag
+                self.value = value
+                self.time = time
+                self.joined = joined
+
+        clans.sort(key= lambda x : x.name.upper())
+        for clan in clans:
+            member_stats = await self.bot.new_looper[f"{self.bot.gen_season_date()}-history"].find({"clan.value.tag": clan.tag}).to_list(length=100)
+            all_items = []
+
+            for member in member_stats:
+                field_fetch = member.get(field)
+                if field_fetch is None:
+                    continue
+                tag = member["tag"]
+                if len(field_fetch) == 0:
+                    continue
+                freeze = False
+                for count, item in enumerate(field_fetch):
+                    if freeze and item["value"]["tag"] != clan.tag:
+                        continue
+                    all_items.append(ItemHolder(tag=tag, value=item["value"], time=item["time"],
+                                                joined=item["value"]["tag"] == clan.tag))
+                    if item["value"]["tag"] != clan.tag:
+                        freeze = True
+                    else:
+                        freeze = False
+
+            all_items = sorted(all_items, key=lambda x: x.time, reverse=True)
+
+            join_len = {}
+            for item in all_items:
+                if item.joined:
+                    join_text = "Joined"
+                else:
+                    join_text = "Left"
+                join_len[item.tag] = join_text
+
+            num_joined = len([i for i in join_len.values() if i == "Joined"])
+            num_left = len([i for i in join_len.values() if i == "Left"])
+            text += f"{num_joined:2} Joined {num_left:2} Left | {clan.name:<16}\n"
+
+        embed = disnake.Embed(title=f"{guild.name} Clan History", description=f"```{text}```", colour=disnake.Color.green())
+        return embed
 
 
 def setup(bot: CustomClient):
