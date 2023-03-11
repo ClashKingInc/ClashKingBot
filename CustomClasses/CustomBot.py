@@ -551,12 +551,15 @@ class CustomClient(commands.AutoShardedBot):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
-    async def getPlayer(self, player_tag, custom=False, raise_exceptions=False):
+    async def getPlayer(self, player_tag, custom=False, raise_exceptions=False, cache_data=False):
         if "|" in player_tag:
             player_tag = player_tag.split("|")[-1]
 
         player_tag = coc.utils.correct_tag(player_tag)
-        cache_data = await self.player_cache.find_one({"tag": player_tag})
+        if cache_data:
+            cache_data = await self.player_cache.find_one({"tag": player_tag})
+        else:
+            cache_data = None
 
         try:
             if custom is True:
