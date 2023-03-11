@@ -590,7 +590,7 @@ class CustomClient(commands.AutoShardedBot):
             else:
                 return None
 
-    async def get_players(self, tags: list, custom=True):
+    async def get_players(self, tags: list, custom=True, use_cache=True):
         import time
         t_ = time.time()
         if custom:
@@ -600,7 +600,10 @@ class CustomClient(commands.AutoShardedBot):
                 results_dict[item["tag"]] = item
         players = []
         tag_set = set(tags)
-        cache_data = await self.player_cache.find({"tag" : {"$in" : tags}}).to_list(length=2500)
+        if use_cache:
+            cache_data = await self.player_cache.find({"tag" : {"$in" : tags}}).to_list(length=2500)
+        else:
+            cache_data = []
         for data in cache_data:
             tag_set.remove(data.get("tag"))
             if not custom:
