@@ -543,7 +543,7 @@ class eval(commands.Cog, name="Eval"):
                 abbreviations_to_have = []
 
                 account_tags = await self.bot.get_tags(str(member.id))
-                players = await self.bot.get_players(tags=account_tags)
+                players = await self.bot.get_players(tags=account_tags, use_cache=False)
 
                 for player in players:
                     if isinstance(player, coc.errors.NotFound):
@@ -747,6 +747,7 @@ class eval(commands.Cog, name="Eval"):
                             removed = "Could not remove role(s)"
 
                 name_changes = "None"
+                #role_types_to_eval.remove("nicknames")
                 if "nicknames" in role_types_to_eval:
                     if len(family_accounts) >= 1:
                         if change_nick == "Clan Abbreviations":
@@ -810,6 +811,8 @@ class eval(commands.Cog, name="Eval"):
                             name_changes = "`Cannot Change`"
                             pass
 
+                if name_changes[1:-1] == member.display_name:
+                    name_changes = "None"
                 if added == "":
                     added = "None"
                 if removed == "":
@@ -820,11 +823,15 @@ class eval(commands.Cog, name="Eval"):
                     return changes
             except:
                 continue
-            if ((changes[0] != "None") or (changes[1] != "None") or (changes[2] != "None")) or len(members_to_eval) > 1:
-                if changes[0] == "None" and changes[1] == "None" and "nicknames" not in role_types_to_eval:
+            if ((changes[0] != "None") or (changes[1] != "None") or (changes[2] != "None")) or len(members_to_eval) >= 1:
+                if changes[0] == "None" and changes[1] == "None" and changes[2] == "None" and len(members_to_eval) >= 2:
                     pass
                 else:
-                    text += f"**{member.display_name}** | {member.mention}\nAdded: {changes[0]}\nRemoved: {changes[1]}"
+                    text += f"**{member.display_name}** | {member.mention}"
+                    if changes[0] != "None" or len(members_to_eval) == 1:
+                        text += f"\nAdded: {changes[0]}"
+                    if changes[1] != "None" or len(members_to_eval) == 1:
+                        text += f"\nRemoved: {changes[1]}"
                     if changes[2] != "None":
                         text += f"\nNick Change: {changes[2]}"
                     if len(members_to_eval) >= 2 and num != 9:
