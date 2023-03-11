@@ -12,7 +12,6 @@ class DiscordEvents(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-
     @commands.Cog.listener()
     async def on_ready(self):
         len_g = len(self.bot.guilds)
@@ -105,13 +104,13 @@ class DiscordEvents(commands.Cog):
                 "lbhour": None
             })
         # if there's a result and bot has admin permissions then no msg needed.
-        if results and botAdmin == True:
+        if results and botAdmin is True:
             return
-        
+
         # looping thorugh channels to find the first text channel with permissions to send message.
         for guildChannel in msg.guild.channels:
             permissions = guildChannel.permissions_for(guildChannel.guild.me)
-            if str(guildChannel.type) == 'text' and permissions.send_messages == True:
+            if str(guildChannel.type) == 'text' and permissions.send_messages is True:
                 firstChannel = guildChannel
                 break
         else:
@@ -120,11 +119,10 @@ class DiscordEvents(commands.Cog):
         embed = disnake.Embed(description=msg,color=disnake.Color.blue())
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         buttons = disnake.ui.ActionRow()
-        buttons.append_item(disnake.ui.Button(label=f"Support Server", emoji="🔗", url="https://discord.gg/clashking"))
-        buttons.append_item(disnake.ui.Button(label=f"Documentation",emoji="🔗", url="https://docs.clashking.xyz"))
-        await msg.channel.send(components=buttons, embed=embed) if results is None else ''
-        await msg.channel.send(f"I require admin permissions for full functionality. Please update my permissions, thank you!") if not botAdmin else ''
-        
+        buttons.append_item(disnake.ui.Button(label="Support Server", emoji="🔗", url="https://discord.gg/clashking"))
+        buttons.append_item(disnake.ui.Button(label="Documentation",emoji="🔗", url="https://docs.clashking.xyz"))
+        await firstChannel.send(components=buttons, embed=embed) if results is None else ''
+        await firstChannel.send(f"I require admin permissions for full functionality. Please update my permissions, thank you!") if not botAdmin else ''
         channel = self.bot.get_channel(937519135607373874)
         await channel.send(f"Just joined {guild.name}")
         len_g = len(self.bot.guilds)
