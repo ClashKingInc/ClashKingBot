@@ -90,7 +90,9 @@ class DiscordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild:disnake.Guild):
+        msg = "Thanks for inviting me to your server! I'm ClashKing, your friendly Clash of Clans bot. With me around, you can easily track legends, autoboards, clans/families, and much more. To get started, simply type in the /help command to see a list of available commands. If you need any further assistance, don't hesitate to check out our documentation or join our support server. We're always here to help you get the most out of your COC experience! Thanks again for having me on board."
         results = await self.bot.server_db.find_one({"server": guild.id})
+        botAdmin = guild.get_member(self.bot.user.id).guild_permissions.administrator
         if results is None:
             await self.bot.server_db.insert_one({
                 "server": guild.id,
@@ -102,9 +104,29 @@ class DiscordEvents(commands.Cog):
                 "lbboardChannel": None,
                 "lbhour": None
             })
+        # if there's a result and bot has admin permissions then no msg needed.
+        if results and botAdmin == True:
+            return
+        
+        # looping thorugh channels to find the first text channel with permissions to send message.
+        for guildChannel in msg.guild.channels:
+            permissions = guildChannel.permissions_for(guildChannel.guild.me)
+            if str(guildChannel.type) == 'text' and permissions.send_messages == True:
+                firstChannel = guildChannel
+                break
+        else:
+            return
+        
+        embed = disnake.Embed(description=msg,color=disnake.Color.blue())
+        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(label=f"Support Server", emoji="🔗", url="https://discord.gg/clashking"))
+        buttons.append_item(disnake.ui.Button(label=f"Documentation",emoji="🔗", url="https://docs.clashking.xyz"))
+        await msg.channel.send(components=buttons, embed=embed) if results is None else ''
+        await msg.channel.send(f"I require admin permissions for full functionality. Please update my permissions, thank you!") if not botAdmin else ''
+        
         channel = self.bot.get_channel(937519135607373874)
         await channel.send(f"Just joined {guild.name}")
-        owner = guild.owner
         len_g = len(self.bot.guilds)
         for count, shard in self.bot.shards.items():
             await self.bot.change_presence(
