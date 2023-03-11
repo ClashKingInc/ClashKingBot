@@ -103,11 +103,11 @@ class DiscordEvents(commands.Cog):
                 "lbboardChannel": None,
                 "lbhour": None
             })
-        # if there's a result and bot has admin permissions then no msg needed.
+        # if there's a result and bot has admin perms then no msg needed.
         if results and botAdmin is True:
             return
 
-        # looping thorugh channels to find the first text channel with permissions to send message.
+        # loop channels to find the first text channel with perms to send message.
         for guildChannel in msg.guild.channels:
             permissions = guildChannel.permissions_for(guildChannel.guild.me)
             if str(guildChannel.type) == 'text' and permissions.send_messages is True:
@@ -115,14 +115,13 @@ class DiscordEvents(commands.Cog):
                 break
         else:
             return
-        
-        embed = disnake.Embed(description=msg,color=disnake.Color.blue())
+        embed = disnake.Embed(description=msg, color=disnake.Color.blue())
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         buttons = disnake.ui.ActionRow()
         buttons.append_item(disnake.ui.Button(label="Support Server", emoji="🔗", url="https://discord.gg/clashking"))
-        buttons.append_item(disnake.ui.Button(label="Documentation",emoji="🔗", url="https://docs.clashking.xyz"))
-        await firstChannel.send(components=buttons, embed=embed) if results is None else ''
-        await firstChannel.send(f"I require admin permissions for full functionality. Please update my permissions, thank you!") if not botAdmin else ''
+        buttons.append_item(disnake.ui.Button(label="Documentation", emoji="🔗", url="https://docs.clashking.xyz"))
+        await firstChannel.send(components=buttons, embed=embed) if results is None else None
+        await firstChannel.send("I require admin permissions for full functionality. Please update my permissions, thank you!") if not botAdmin else None
         channel = self.bot.get_channel(937519135607373874)
         await channel.send(f"Just joined {guild.name}")
         len_g = len(self.bot.guilds)
