@@ -19,53 +19,7 @@ class OwnerCommands(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print("ready")
-
-
-    @commands.Cog.listener()
-    async def on_message(self, msg):
-        # if not Mcknight, do nothing
-        if msg.author.id != 310517079642079234:
-            return
-        message = "Thanks for inviting me to your server! I'm ClashKing, your friendly Clash of Clans bot. With me around, you can easily track legends, autoboards, clans/families, and much more. To get started, simply type in the `/help` command to see a list of available commands. If you need any further assistance, don't hesitate to check out our documentation or join our support server. We're always here to help you get the most out of your COC experience! Thanks again for having me on board."
-        results = await self.bot.server_db.find_one({"server": msg.guild.id})
-        botAdmin = msg.guild.get_member(self.bot.user.id).guild_permissions.administrator
-        if results is None:
-            pass
-            # await self.bot.server_db.insert_one({
-            #     "server": guild.id,
-            #     "banlist": None,
-            #     "greeting": None,
-            #     "cwlcount": None,
-            #     "topboardchannel": None,
-            #     "tophour": None,
-            #     "lbboardChannel": None,
-            #     "lbhour": None
-            # })
-        # if there's a result and bot has admin permissions then no msg needed.
-        if results and botAdmin == True:
-            return
-        # looping thorugh channels to find the first text channel where we have permissions to send message.
-        
-        for guildChannel in msg.guild.channels:
-            permissions = guildChannel.permissions_for(guildChannel.guild.me)
-            if str(guildChannel.type) == 'text' and permissions.send_messages == True:
-                firstChannel = guildChannel
-                break
-        else:
-            return
-        embed = disnake.Embed(description=message,color=disnake.Color.blue())
-        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-        buttons = disnake.ui.ActionRow()
-        buttons.append_item(disnake.ui.Button(label=f"Support Server", emoji="🔗", url="https://discord.gg/clashking"))
-        buttons.append_item(disnake.ui.Button(label=f"Documentation",emoji="🔗", url="https://docs.clashking.xyz"))
-        await msg.channel.send(components=buttons, embed=embed) if results is None else ''
-        await msg.channel.send(f"I require admin permissions for full functionality. Please update my permissions, thank you!") if not botAdmin else ''
-        
-        
+                
     @commands.command(name='reload', hidden=True)
     async def _reload(self,ctx, *, module: str):
         """Reloads a module."""
