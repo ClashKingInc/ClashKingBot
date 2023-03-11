@@ -100,6 +100,7 @@ class CustomClient(commands.AutoShardedBot):
         self.cwl_db = self.looper_db.looper.cwl_db
         self.leveling = self.new_looper.leveling
         self.clan_wars = self.looper_db.looper.clan_wars
+        self.player_cache = self.new_looper.player_cache
 
         self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
 
@@ -554,34 +555,71 @@ class CustomClient(commands.AutoShardedBot):
         if "|" in player_tag:
             player_tag = player_tag.split("|")[-1]
 
-        if raise_exceptions:
-            if custom is True:
-                player_tag = coc.utils.correct_tag(player_tag)
-                results = await self.player_stats.find_one({"tag": player_tag})
-                clashPlayer = await self.coc_client.get_player(player_tag=player_tag, cls=MyCustomPlayer, bot=self, results=results)
-            else:
-                clashPlayer: coc.Player = await self.coc_client.get_player(player_tag)
-            return clashPlayer
+        player_tag = coc.utils.correct_tag(player_tag)
+        cache_data = await self.player_cache.find_one({"tag": player_tag})
 
         try:
             if custom is True:
-                player_tag = coc.utils.correct_tag(player_tag)
                 results = await self.player_stats.find_one({"tag": player_tag})
-                clashPlayer = await self.coc_client.get_player(player_tag=player_tag, cls=MyCustomPlayer, bot=self,
-                                                          results=results)
+                if cache_data is None:
+                    clashPlayer = await self.coc_client.get_player(player_tag=player_tag, cls=MyCustomPlayer, bot=self,
+                                                                   results=results)
+                else:
+                    clashPlayer = MyCustomPlayer(data=cache_data.get("data"), client=self.coc_client, bot=self,
+                                                 results=results)
             else:
-                clashPlayer: coc.Player = await self.coc_client.get_player(player_tag)
+                if cache_data is None:
+                    clashPlayer: coc.Player = await self.coc_client.get_player(player_tag)
+                else:
+                    clashPlayer = coc.Player(data=cache_data.get("data"), client=self.coc_client)
+            try:
+                troops = clashPlayer.troops
+            except:
+                if custom is True:
+                    results = await self.player_stats.find_one({"tag": player_tag})
+                    clashPlayer = await self.coc_client.get_player(player_tag=player_tag, cls=MyCustomPlayer,bot=self,results=results)
+                else:
+                    clashPlayer: coc.Player = await self.coc_client.get_player(player_tag)
             return clashPlayer
-        except:
-            return None
+        except Exception as e:
+            if raise_exceptions:
+                raise e
+            else:
+                return None
 
     async def get_players(self, tags: list, custom=True):
+        import time
+        t_ = time.time()
+        if custom:
+            results_list = await self.player_stats.find({"tag" : {"$in" : tags}}).to_list(length=2500)
+            results_dict = {}
+            for item in results_list:
+                results_dict[item["tag"]] = item
+        players = []
+        tag_set = set(tags)
+        cache_data = await self.player_cache.find({"tag" : {"$in" : tags}}).to_list(length=2500)
+        for data in cache_data:
+            tag_set.remove(data.get("tag"))
+            if not custom:
+                player = coc.Player(data=data.get("data"), client=self.coc_client)
+            else:
+                player = MyCustomPlayer(data=data.get("data"), client=self.coc_client, bot=self, results=results_dict.get(data["tag"]))
+            try:
+                player.troops
+                players.append(player)
+            except:
+                tag_set.add(data.get("tag"))
+                continue
+
         tasks = []
-        for tag in tags:
+        for tag in tag_set:
             task = asyncio.ensure_future(self.getPlayer(player_tag=tag, custom=custom))
             tasks.append(task)
-        responses = await asyncio.gather(*tasks, return_exceptions=True)
-        return responses
+        if tasks:
+            responses = await asyncio.gather(*tasks, return_exceptions=True)
+            for response in responses:
+                players.append(response)
+        return [player for player in players if player is not None]
 
     async def get_clans(self, tags: list):
         tasks = []

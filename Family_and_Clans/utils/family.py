@@ -34,16 +34,11 @@ class getFamily(commands.Cog):
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
         tasks = []
         members = []
-        async for clan in self.bot.coc_client.get_clans(tags=clan_tags):
+        clans = await self.bot.get_clans(tags=clan_tags)
+        for clan in clans:
             members += [member.tag for member in clan.members]
 
-        for tag in members:
-            results = await self.bot.player_stats.find_one({"tag": tag})
-            task = asyncio.ensure_future(
-                self.bot.coc_client.get_player(player_tag=tag, cls=MyCustomPlayer, bot=self.bot,
-                                               results=results))
-            tasks.append(task)
-        responses = await asyncio.gather(*tasks, return_exceptions=True)
+        responses = await self.bot.get_players(tags=members, custom=True)
 
         donated_text = []
         received_text = []
@@ -53,7 +48,6 @@ class getFamily(commands.Cog):
 
         for player in responses:
             if isinstance(player, coc.errors.NotFound):
-                print()
                 continue
             player: MyCustomPlayer
             if player is None:
