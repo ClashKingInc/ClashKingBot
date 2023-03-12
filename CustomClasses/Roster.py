@@ -326,7 +326,7 @@ class Roster():
         #["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "Clan Tag", "War Opt Status", "Trophies"]
         await self.bot.rosters.update_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
                                           {"$push": {"members": {"name": player.name, "tag": player.tag,
-                                                                  "hero_lvs": hero_lvs, "townhall": player.town_hall, "discord" : discord_user, "hitrate" : None,
+                                                                  "hero_lvs": hero_lvs, "townhall": player.town_hall, "discord" : str(discord_user), "hitrate" : None,
                                                                  "current_clan": current_clan, "current_clan_tag" : clan_tag,
                                                                  "war_pref": war_pref, "trophies": player.trophies, "sub" : sub, "group" : group}}})
         roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]})
