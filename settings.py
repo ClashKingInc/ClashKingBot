@@ -680,6 +680,8 @@ class misc(commands.Cog, name="Settings"):
             clan: ServerClan
             ll_log = await clan.legend_log
             got_clan = await self.bot.getClan(clan.tag)
+            if got_clan is None:
+                continue
             embed = disnake.Embed(title=f"{clan.name}", color=disnake.Color.green())
             embed.set_thumbnail(url=got_clan.badge.url)
             embed.add_field(name="Member Role:", value=f"{clan.member_role}", inline=True)
