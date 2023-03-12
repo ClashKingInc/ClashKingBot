@@ -101,14 +101,25 @@ class DiscordEvents(commands.Cog):
                 "topboardchannel": None,
                 "tophour": None,
                 "lbboardChannel": None,
-                "lbhour": None
+                "lbhour": None,
             })
         # if there's a result and bot has admin perms then no msg needed.
         if results and botAdmin is True:
             return
 
+        channel = self.bot.get_channel(937519135607373874)
+        await channel.send(f"Just joined {guild.name}")
+        len_g = len(self.bot.guilds)
+        for count, shard in self.bot.shards.items():
+            await self.bot.change_presence(
+                activity=disnake.Activity(name=f'{len_g} servers | Shard {count + 1}',
+                                          type=3), shard_id=shard.id)  # type 3 watching type#1 - playing
+
+        channel = self.bot.get_channel(937528942661877851)
+        await channel.edit(name=f"ClashKing: {len_g} Servers")
+        
         # loop channels to find the first text channel with perms to send message.
-        for guildChannel in msg.guild.channels:
+        for guildChannel in guild.channels:
             permissions = guildChannel.permissions_for(guildChannel.guild.me)
             if str(guildChannel.type) == 'text' and permissions.send_messages is True:
                 firstChannel = guildChannel
@@ -122,16 +133,6 @@ class DiscordEvents(commands.Cog):
         buttons.append_item(disnake.ui.Button(label="Documentation", emoji="🔗", url="https://docs.clashking.xyz"))
         await firstChannel.send(components=buttons, embed=embed) if results is None else None
         await firstChannel.send("I require admin permissions for full functionality. Please update my permissions, thank you!") if not botAdmin else None
-        channel = self.bot.get_channel(937519135607373874)
-        await channel.send(f"Just joined {guild.name}")
-        len_g = len(self.bot.guilds)
-        for count, shard in self.bot.shards.items():
-            await self.bot.change_presence(
-                activity=disnake.Activity(name=f'{len_g} servers | Shard {count + 1}',
-                                          type=3), shard_id=shard.id)  # type 3 watching type#1 - playing
-
-        channel = self.bot.get_channel(937528942661877851)
-        await channel.edit(name=f"ClashKing: {len_g} Servers")
 
 
     @commands.Cog.listener()

@@ -19,6 +19,7 @@ class OwnerCommands(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
+
     @commands.command(name='reload', hidden=True)
     async def _reload(self,ctx, *, module: str):
         """Reloads a module."""
