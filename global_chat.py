@@ -28,15 +28,17 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             if message.author.id in self.bot.banned_global:
                 return
 
-            if message.guild.member_count <= 24 and message.guild.id != 849364313156485120:
+            if message.guild.member_count <= 14 and message.guild.id != 849364313156485120:
                 return
                 
             if message.guild.id == 539207480740151303:
                 return
 
             urls = extractor.find_urls(message.content)
+            if "discord.gg/" in message.content:
+                return
             for url in urls:
-                if "discord.gg" not in url and "tenor" not in url and "gif" not in url and "giphy" not in url:
+                if "tenor" not in url and "gif" not in url and "giphy" not in url:
                     message.content = message.content.replace(url, "")
 
             nlp = spacy.load('en')
