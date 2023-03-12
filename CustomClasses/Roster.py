@@ -321,10 +321,11 @@ class Roster():
         war_pref = player.war_opted_in
         if war_pref is None:
             war_pref = False
+        discord = await self.bot.link_client.get_link(player.tag)
         #["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "Clan Tag", "War Opt Status", "Trophies"]
         await self.bot.rosters.update_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
                                           {"$push": {"members": {"name": player.name, "tag": player.tag,
-                                                                  "hero_lvs": hero_lvs, "townhall": player.town_hall, "discord" : None, "hitrate" : None,
+                                                                  "hero_lvs": hero_lvs, "townhall": player.town_hall, "discord" : discord, "hitrate" : None,
                                                                  "current_clan": current_clan, "current_clan_tag" : clan_tag,
                                                                  "war_pref": war_pref, "trophies": player.trophies, "sub" : sub, "group" : group}}})
         roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]})
