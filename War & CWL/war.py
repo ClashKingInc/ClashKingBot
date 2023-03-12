@@ -275,11 +275,11 @@ class War(commands.Cog):
 
     async def attacks_embed(self, war: coc.ClanWar):
         attacks = ""
-        missing_attacks = ""
+        missing_attacks = []
         for player in war.members:
             if player not in war.opponent.members:
                 if player.attacks == []:
-                    missing_attacks += f"➼ {self.bot.fetch_emoji(name=player.town_hall)}{player.name}\n"
+                    missing_attacks.append(f"➼ {self.bot.fetch_emoji(name=player.town_hall)}{player.name}\n")
                     continue
                 name = player.name
                 attacks += f"\n{self.bot.fetch_emoji(name=player.town_hall)}**{name}**"
@@ -296,18 +296,20 @@ class War(commands.Cog):
 
         embed = disnake.Embed(title=f"{war.clan.name} War Attacks", description=attacks,
                               color=disnake.Color.green())
-        if missing_attacks != "":
-            embed.add_field(name="**No attacks done:**", value=missing_attacks)
+        if missing_attacks:
+            split = [missing_attacks[i:i + 20] for i in range(0, len(missing_attacks), 20)]
+            for item in split:
+                embed.add_field(name="**No attacks done:**", value="".join(item), inline=False)
         embed.set_thumbnail(url=war.clan.badge.large)
         return embed
 
     async def defenses_embed(self, war: coc.ClanWar):
         defenses = ""
-        missing_defenses = ""
+        missing_defenses = []
         for player in war.members:
             if player not in war.opponent.members:
                 if player.defenses == []:
-                    missing_defenses += f"➼ {self.bot.fetch_emoji(name=player.town_hall)}{player.name}\n"
+                    missing_defenses.append(f"➼ {self.bot.fetch_emoji(name=player.town_hall)}{player.name}\n")
                     continue
                 name = player.name
                 defenses += f"\n{self.bot.fetch_emoji(name=player.town_hall)}**{name}**"
@@ -324,8 +326,11 @@ class War(commands.Cog):
 
         embed = disnake.Embed(title=f"{war.clan.name} Defenses Taken", description=defenses,
                               color=disnake.Color.green())
-        if missing_defenses != "":
-            embed.add_field(name="**No defenses taken:**", value=missing_defenses)
+        if missing_defenses:
+            split = [missing_defenses[i:i + 20] for i in range(0, len(missing_defenses), 20)]
+            for item in split:
+                embed.add_field(name="**No defenses taken:**", value=item)
+
         embed.set_thumbnail(url=war.clan.badge.large)
         return embed
 
@@ -425,101 +430,6 @@ class War(commands.Cog):
             opp_stats += f"{th_emoji}`{th_count}` "
 
         return [stats, opp_stats]
-
-    @commands.slash_command(name="win-probability-beta", description="just testing this out")
-    async def test_this(self, ctx, clan):
-        clan = await self.bot.getClan(clan)
-        war = await self.bot.get_clanwar(clanTag=clan.tag)
-        all_odds = []
-        for x in range(0, max(2, len(war.attacks) + 1)):
-            ones = 0
-            twos = 0
-            threes = 0
-            stars = 0
-
-            opp_ones = 0
-            opp_twos = 0
-            opp_threes = 0
-            opp_stars = 0
-            for attack in war.attacks[0: x]:
-                if attack.attacker.clan == war.clan:
-                    stars += attack.stars
-                    if attack.stars == 1:
-                        ones += 1
-                    elif attack.stars == 2:
-                        twos += 1
-                    elif attack.stars == 3:
-                        threes += 1
-                else:
-                    opp_stars += attack.stars
-                    if attack.stars == 1:
-                        opp_ones += 1
-                    elif attack.stars == 2:
-                        opp_twos += 1
-                    elif attack.stars == 3:
-                        opp_threes += 1
-
-            clan_left = (war.attacks_per_member * war.team_size) - (ones + twos + threes)
-            opponent_left = (war.attacks_per_member * war.team_size) - (opp_ones + opp_twos + opp_threes)
-
-
-            our_potential = await self.calculate_potential_stars(num_ones=ones, num_twos=twos, num_threes=threes, done_amount=(ones + twos + threes), total_left=clan_left)
-            their_potential = await self.calculate_potential_stars(num_ones=opp_ones, num_twos=opp_twos, num_threes=opp_threes, done_amount=(opp_ones + opp_twos + opp_threes), total_left=opponent_left)
-
-            score_perc = (stars + our_potential) / (war.team_size * 3)
-            opp_score_perc = (opp_stars + their_potential) / (war.team_size * 3)
-
-            score_perc *= (ones + twos + threes)
-            opp_score_perc *= (opp_ones + opp_twos + opp_threes)
-
-            og_score = score_perc
-            try:
-                score_perc /= (og_score + opp_score_perc)
-            except:
-                score_perc = 0.5
-            try:
-                opp_score_perc /= (og_score + opp_score_perc)
-            except:
-                opp_score_perc = 0.5
-            all_odds.append([round(score_perc * 100), round(opp_score_perc * 100)])
-
-        import matplotlib.pyplot as plt
-        import numpy as np
-
-        time = np.arange(len(all_odds))
-        income = np.array([odd[0] for odd in all_odds])
-        expenses = np.array([odd[1] for odd in all_odds])
-
-        # Initialize figure and axis
-        fig, ax = plt.subplots(figsize=(10, 10))
-
-        # Plot lines
-        ax.plot(time, income, color="green")
-        ax.plot(time, expenses, color="red")
-        fig.suptitle(f"{war.clan.name} Win Probability", fontsize=20)
-
-        # Fill area when income > expenses with green
-        ax.fill_between(
-            time, income, expenses, where=(income > expenses),
-            interpolate=True, color="green", alpha=0.25,
-            label="Clan Win Probability"
-        )
-
-        # Fill area when income <= expenses with red
-        ax.fill_between(
-            time, income, expenses, where=(income <= expenses),
-            interpolate=True, color="red", alpha=0.25,
-            label="Opponent Win Probability"
-        )
-
-        import io
-        ax.legend()
-        temp = io.BytesIO()
-        plt.savefig(temp, format="png")
-        temp.seek(0)
-        file = disnake.File(fp=temp, filename="filename.png")
-
-        await ctx.send(file=file)
 
 
     async def calculate_potential_stars(self, num_ones, num_twos, num_threes, done_amount, total_left):
