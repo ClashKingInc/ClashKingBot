@@ -6,6 +6,7 @@ from Assets.thPicDictionary import thDictionary
 from utils.troop_methods import heros, heroPets
 from Exceptions import *
 from CustomClasses.CustomBot import CustomClient
+import sentry_sdk
 
 class DiscordEvents(commands.Cog):
 
@@ -219,6 +220,8 @@ class DiscordEvents(commands.Cog):
                                               f"create your embed, then click `copy code`",
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed, ephemeral=True)
+
+        sentry_sdk.capture_exception(error)
 
 
 

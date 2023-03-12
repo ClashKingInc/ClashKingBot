@@ -2,7 +2,7 @@ import os
 import disnake
 import traceback
 import motor.motor_asyncio
-
+import sentry_sdk
 from CustomClasses.CustomBot import CustomClient
 from disnake import Client
 from disnake.ext import commands
@@ -23,6 +23,8 @@ intents.emojis = True
 intents.messages = True
 intents.message_content = True
 bot = CustomClient(shard_count=2, command_prefix="$$",help_command=None, intents=intents, reload=True)
+
+
 
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
@@ -92,7 +94,7 @@ initial_extensions = [
     "settings",
     "owner_commands",
     "Ticketing.TicketCog",
-    "SetupNew.SetupCog"
+    "SetupNew.SetupCog",
 ]
 
 if not IS_BETA:
@@ -121,6 +123,16 @@ if not IS_BETA:
 
 
 if __name__ == "__main__":
+    sentry_sdk.init(
+        dsn=os.getenv("DSN"),
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        # We recommend adjusting this value in production.
+        traces_sample_rate=0.2,
+        _experiments={
+            "profiles_sample_rate": 0.2,
+        }
+    )
     for extension in initial_extensions:
         try:
             bot.load_extension(extension)
