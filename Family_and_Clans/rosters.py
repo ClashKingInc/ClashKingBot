@@ -945,7 +945,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                 await roster.remove_member(player_dict[account])
             await roster.find_roster(guild=ctx.guild, alias=alias)
             matching = [player for player in roster.players if player["discord"] == str(ctx.user)]
-            if roster.role is not None and len(matching) >= 1:
+            if roster.role is not None and not matching:
                 try:
                     role = ctx.guild.get_role(roster.role)
                     await res.user.remove_roles(*[role])
