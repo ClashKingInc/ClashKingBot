@@ -595,7 +595,7 @@ class profiles(commands.Cog, name="Profile"):
             for result in results:
                 member_result = next((item for item in result["data"]["members"] if item['tag'] == player), None)
                 member = RaidMember(client=self.bot.coc_client, data=member_result,
-                                        raid_log_entry=RaidLogEntry(client=self.bot.coc_client, data=result["data"]))
+                                        raid_log_entry=RaidLogEntry(client=self.bot.coc_client, data=result["data"], clan_tag=result["clan_tag"]))
                 member = member
                 raid: RaidLogEntry = member.raid_log_entry
                 text += f"{self.bot.emoji.capital_gold}`{member.capital_resources_looted:5} | `{self.bot.emoji.thick_sword}`{member.attack_count:1} " \

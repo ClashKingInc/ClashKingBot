@@ -62,12 +62,12 @@ async def get_raidlog_entry(clan: coc.Clan, weekend: str, bot, limit=0):
     else:
         raid_data = await bot.raid_weekend_db.find_one({"clan_tag" : clan.tag, "data.startTime" : f"{weekend_timestamp.time.strftime('%Y%m%dT%H%M%S.000Z')}"})
         if raid_data is not None:
-            entry: RaidLogEntry = RaidLogEntry(data=raid_data.get("data"), client=bot.coc_client)
+            entry: RaidLogEntry = RaidLogEntry(data=raid_data.get("data"), client=bot.coc_client, clan_tag=clan.tag)
             return entry
 
     raid_data = await player_results_to_json(clan=clan, weekend=weekend, player_stats=bot.player_stats)
     if raid_data is not None:
-        return RaidLogEntry(data=raid_data, client=bot.coc_client)
+        return RaidLogEntry(data=raid_data, client=bot.coc_client, clan_tag=clan.tag)
     return None
 
 async def player_results_to_json(clan: coc.Clan, weekend: str, player_stats):
