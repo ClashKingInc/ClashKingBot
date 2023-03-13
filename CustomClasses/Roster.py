@@ -2,6 +2,8 @@ import disnake
 import coc
 import emoji
 import io
+import random
+import string
 
 from urllib.request import Request, urlopen
 from CustomClasses.CustomBot import CustomClient
@@ -9,7 +11,6 @@ from CustomClasses.CustomPlayer import MyCustomPlayer, HitRate
 from datetime import datetime, timedelta
 from Exceptions import *
 from collections import defaultdict
-from disnake.ext import commands
 
 class Roster():
     def __init__(self, bot: CustomClient):
@@ -446,16 +447,17 @@ class Roster():
             {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
             {"$set": {"columns": columns}})
 
-    async def set_role(self, role: disnake.Role):
+    async def set_role(self, role: disnake.Role, group: (str, None)):
+        spot = f"{group}_" if group is not None else ""
         if role is not None:
             await self.bot.rosters.update_one(
                 {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
-                {"$set": {"role": role.id}})
+                {"$set": {f"{spot}role": role.id}})
         else:
             await self.bot.rosters.update_one(
                 {"$and": [{"server_id": self.roster_result.get("server_id")},
                           {"alias": self.roster_result.get("alias")}]},
-                {"$set": {"role": None}})
+                {"$set": {f"{spot}role": None}})
 
     async def set_sort(self, columns: list):
         await self.bot.rosters.update_one(
@@ -557,6 +559,21 @@ class Roster():
             dropdown = [dropdown[0], dropdown[-1]]
         return dropdown
 
+    async def export(self):
+        roster_id = self.roster_result.get("roster_id")
+        if roster_id is None:
+            source = string.ascii_letters
+            roster_id = str(''.join((random.choice(source) for i in range(5)))).upper()
+
+            is_used = await self.bot.rosters.find_one({"roster_id": roster_id})
+            while is_used is not None:
+                roster_id = str(''.join((random.choice(source) for i in range(5)))).upper()
+                is_used = await self.bot.rosters.find_one({"roster_id": roster_id})
+
+            await self.bot.rosters.update_one(
+                {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
+                {"$set": {"roster_id": roster_id}})
+        return roster_id
 
     @property
     def players(self):
@@ -612,6 +629,24 @@ class Roster():
     @property
     def role(self):
         return self.roster_result.get("role")
+
+    @property
+    async def roster_roles(self):
+        results = await self.bot.server_db.find_one({"server": self.roster_result.get("server_id")})
+        groups = results.get("player_groups", [])
+
+        group_to_role = {"No Group" : self.roster_result.get("role"), "Sub" : self.roster_result.get("role")}
+        for group in groups:
+            role = self.roster_result.get(f"{group}_role")
+            group_to_role[group] = role
+
+        return group_to_role
+
+
+    async def groups(self):
+        guild_id = self.roster_result.get("server_id")
+        results = await self.bot.server_db.find_one({"server": guild_id})
+        return results.get("player_groups", [])
 
     @property
     async def grouping(self):

@@ -11,6 +11,7 @@ from CustomClasses.Roster import Roster
 from main import check_commands
 from Exceptions import *
 from typing import List
+from collections import defaultdict
 last_run = {}
 
 class Roster_Commands(commands.Cog, name="Rosters"):
@@ -353,30 +354,34 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                     await res.send(embed=embed, ephemeral=True)
 
 
-    @roster.sub_command(name="player-groups", description="Create/Remove a group players can be placed in")
+    @roster.sub_command(name="groups", description="create/remove a group players can be placed in")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_create_player_group(self, ctx: disnake.ApplicationCommandInteraction, group_name: str, option = commands.Param(choices=["Add", "Remove"])):
+    async def roster_create_player_group(self, ctx: disnake.ApplicationCommandInteraction, add: str = None, remove: str = None):
         await ctx.response.defer()
         results = await self.bot.server_db.find_one({"server": ctx.guild.id})
-        groups = results.get("player_groups")
-        if groups is None:
-            groups = []
-        if len(groups) == 25:
+        groups = results.get("player_groups", [])
+
+        if add is not None and len(groups) == 25:
             embed = disnake.Embed(description="**Please remove a player group before you add another (limit 25).**", color=disnake.Color.red())
             return await ctx.edit_original_message(embed=embed)
 
-        if option == "Add":
-            if group_name not in groups:
-                await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$push" : {"player_groups" : group_name}})
-                embed = disnake.Embed(description=f"**{group_name} added as a player group.**",
-                                      color=disnake.Color.green())
-                return await ctx.edit_original_message(embed=embed)
-        elif option == "Remove":
-            if group_name in groups:
-                await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$pull": {"player_groups": group_name}})
-            embed = disnake.Embed(description=f"**{group_name} removed as a player group.**",
-                                  color=disnake.Color.green())
-            return await ctx.edit_original_message(embed=embed)
+        text = ""
+        if add is not None:
+            if len(add) >= 50:
+                text += f"**{add}** cannot be added as a player group, must be under 50 characters\n"
+            elif add not in groups:
+                await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$push" : {"player_groups" : add}})
+                text += f"**{add}** added as a player group.\n"
+
+        if remove is not None:
+            if remove in groups:
+                await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$pull": {"player_groups": remove}})
+                text += f"**{remove}** removed as a player group."
+            else:
+                text += f"**{remove}** not an existing player group."
+
+        embed = disnake.Embed(title="Roster Group Changes", description=text, color=disnake.Color.green())
+        return await ctx.edit_original_message(embed=embed)
 
 
     @roster.sub_command(name="post", description="Post a roster")
@@ -675,17 +680,24 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="role", description="Set a role that will be added when a person signs up & vice versa")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_role(self, ctx: disnake.ApplicationCommandInteraction, roster: str, role: disnake.Role, remove_role = commands.Param(default=None, choices=["True"])):
+    async def roster_role(self, ctx: disnake.ApplicationCommandInteraction, roster: str, role: disnake.Role, group: str = None, remove_role = commands.Param(default=None, choices=["True"])):
         _roster = Roster(bot=self.bot)
         await ctx.response.defer()
         await _roster.find_roster(guild=ctx.guild, alias=roster)
         if remove_role == "True":
             role = None
-        await _roster.set_role(role=role)
+        results = await self.bot.server_db.find_one({"server": ctx.guild.id})
+        groups = results.get("player_groups", [])
+        if group is not None and group not in groups:
+            embed = disnake.Embed(description=f"{group} does not exist as a group for {roster}", colour=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+        await _roster.set_role(role=role, group=group)
+
+        group_text = f"for {group} group " if group is not None else ""
         if role is not None:
-            embed = disnake.Embed(description=f"{roster} role set to {role.mention}", colour=disnake.Color.green())
+            embed = disnake.Embed(description=f"{roster} role {group_text}set to {role.mention}", colour=disnake.Color.green())
         else:
-            embed = disnake.Embed(description=f"{roster} role removed", colour=disnake.Color.green())
+            embed = disnake.Embed(description=f"{roster} role {group_text}removed", colour=disnake.Color.green())
         await ctx.edit_original_message(embed=embed)
 
     @roster.sub_command(name="role-refresh", description="Refresh the roles of those signed up to this roster")
@@ -694,36 +706,74 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         _roster = Roster(bot=self.bot)
         await ctx.response.defer()
         await _roster.find_roster(guild=ctx.guild, alias=roster)
-        if _roster.role is None:
-            embed = disnake.Embed(description="**No role set up for this roster. Use `/roster role` to get started.**",
+
+        all_roles = await _roster.roster_roles
+        for item in all_roles.values():
+            if item is not None:
+                break
+        else:
+            embed = disnake.Embed(description="**No roster roles set up for this roster. Use `/roster role` to get started.**",
                                   colour=disnake.Color.red())
             return await ctx.edit_original_message(embed=embed)
 
-        tags = [player.get("tag") for player in _roster.players]
-        tag_to_id = await self.bot.link_client.get_links(*tags)
-        tag_to_id = dict(tag_to_id)
-        role = ctx.guild.get_role(_roster.role)
-        ids = []
-        for member in role.members:
-            if member.id not in list(tag_to_id.values()):
-                try:
-                    await member.remove_roles(*[role])
-                except:
-                    pass
-            else:
-                ids.append(member.id)
+        assigned_by_other_group = defaultdict(list)
+        for group, role in all_roles.items():
+            if role is None:
+                continue
+            tags = [player.get("tag") for player in _roster.players if player.get("group") == group]
+            tag_to_id = await self.bot.link_client.get_links(*tags)
+            tag_to_id = dict(tag_to_id)
+            role = ctx.guild.get_role(role)
+            ids = []
+            for member in role.members:
+                if member.id not in tag_to_id.values() and member.id not in assigned_by_other_group[role.id]:
+                    try:
+                        await member.remove_roles(*[role])
+                    except:
+                        pass
+                else:
+                    ids.append(member.id)
 
-        for mem_id in list(tag_to_id.values()):
-            if mem_id not in ids:
-                member = await ctx.guild.get_or_fetch_member(mem_id)
-                try:
-                    await member.add_roles(*[role])
-                except:
-                    pass
+            for mem_id in tag_to_id.values():
+                assigned_by_other_group[role.id].append(mem_id)
+                if mem_id not in ids:
+                    member = await ctx.guild.get_or_fetch_member(mem_id)
+                    try:
+                        await member.add_roles(*[role])
+                    except:
+                        pass
 
         embed = disnake.Embed(description=f"**Roles updated for {roster} Roster**",
                               colour=disnake.Color.green())
         return await ctx.edit_original_message(embed=embed)
+
+    @roster.sub_command(name="copy", description="import/export/copy rosters")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def roster_copy(self, ctx: disnake.ApplicationCommandInteraction, export_roster: str = None, import_code: str = None):
+        await ctx.response.defer()
+        if export_roster == import_code == None:
+            return await ctx.edit_original_message(content="**Must select an option to import or export.")
+        if export_roster is not None:
+            _roster = Roster(bot=self.bot)
+            await _roster.find_roster(guild=ctx.guild, alias=export_roster)
+            code = await _roster.export()
+            embed = disnake.Embed(description=f"Here is your unique code to export this roster: `{code}`")
+        else:
+            result = await self.bot.rosters.find_one({"roster_id" : import_code.upper()})
+            name_result = await self.bot.rosters.find_one({"alias": f"Import {import_code}"})
+            num = ""
+            count = 0
+            while name_result is not None:
+                count += 1
+                num = f"{count}"
+                name_result = await self.bot.rosters.find_one({"alias": f"Import {import_code}{count}"})
+            del result["_id"]
+            result["alias"] = f"Import {import_code}{num}"
+            result["server_id"] = ctx.guild.id
+            await self.bot.rosters.insert_one(result)
+            embed = disnake.Embed(description=f"Roster imported as **Import {import_code}{num}** from `{import_code}`")
+
+        await ctx.edit_original_message(embed=embed)
 
 
     @roster_create.autocomplete("clan")
@@ -739,6 +789,12 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                 clan_list.append(f"{name} | {tag}")
         return clan_list[:25]
 
+    @roster_create_player_group.autocomplete("remove")
+    @roster_role.autocomplete("group")
+    async def autocomp_group(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        results = await self.bot.server_db.find_one({"server": ctx.guild.id})
+        groups = results.get("player_groups", [])
+        return [f"{group}" for group in groups if query.lower() in group.lower()]
 
     @roster_delete.autocomplete("roster")
     @roster_create_signups.autocomplete("roster")
@@ -758,6 +814,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster_image.autocomplete("roster")
     @roster_role.autocomplete("roster")
     @roster_role_refresh.autocomplete("roster")
+    @roster_copy.autocomplete("export_roster")
     async def autocomp_rosters(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         aliases = await self.bot.rosters.distinct("alias", filter={"server_id": ctx.guild.id})
         alias_list = []
@@ -944,7 +1001,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                 added.append(player_dict[account].name)
                 await roster.remove_member(player_dict[account])
             await roster.find_roster(guild=ctx.guild, alias=alias)
-            matching = [player for player in roster.players if player["discord"] == str(ctx.user)]
+            matching = [player for player in roster.players if player["discord"] == str(ctx.user) and player["group"] in ["No Group", "Sub"]]
             if roster.role is not None and not matching:
                 try:
                     role = ctx.guild.get_role(roster.role)
