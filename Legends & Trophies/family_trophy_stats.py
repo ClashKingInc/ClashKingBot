@@ -97,18 +97,17 @@ class FamilyStats(commands.Cog, name="Family Trophy Stats"):
             return await ctx.edit_original_message(content="No results were found.")
 
         rr = {}
-        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
-        for clan in await tracked.to_list(length=limit):
-            tag = clan.get("tag")
-            clan = await self.bot.getClan(tag)
+
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
+        clans = await self.bot.get_clans(tags=clan_tags)
+        for clan in clans:
             for player in clan.members:
                 try:
                     rr[player.tag] = player.trophies
                 except:
                     continue
 
-        sorted(rr, key=rr.get, reverse=True)
+        #sorted(rr, key=rr.get, reverse=True)
         rr = {key: rank for rank, key in enumerate(sorted(rr, key=rr.get, reverse=True), 1)}
 
         embeds = []
