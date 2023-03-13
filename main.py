@@ -24,11 +24,12 @@ intents.messages = True
 intents.message_content = True
 bot = CustomClient(shard_count=2, command_prefix="$$",help_command=None, intents=intents, reload=True)
 
-
-
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
         if ctx.author.id == 706149153431879760:
+            return True
+        roles = (await ctx.guild.getch_member(member_id=ctx.author.id)).roles
+        if disnake.utils.get(roles, name="ClashKing Perms") != None:
             return True
         db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
         whitelist = db_client.usafam.whitelist
@@ -38,6 +39,7 @@ def check_commands():
         if commandd == "unlink":
             return True
         guild = ctx.guild.id
+
         results =  whitelist.find({"$and" : [
                 {"command": commandd},
                 {"server" : guild}
@@ -95,6 +97,7 @@ initial_extensions = [
     "owner_commands",
     "Ticketing.TicketCog",
     "SetupNew.SetupCog",
+    #"War & CWL.war_track",
 ]
 
 if not IS_BETA:
@@ -117,7 +120,6 @@ if not IS_BETA:
         "discord_events",
         "erikuh_comp",
         "Setups.addclans",
-        "Setups.voice_countdowns",
         "global_chat"
     ]
 

@@ -5,6 +5,8 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer, ServerClan
 from main import check_commands
 from typing import Union
+from utils.General import calculate_time
+from utils.discord_utils import interaction_handler
 
 class misc(commands.Cog, name="Settings"):
 
@@ -660,6 +662,85 @@ class misc(commands.Cog, name="Settings"):
         embed= disnake.Embed(description=f"New Category Order: `{new_order}`", color=disnake.Color.green())
         await res.edit_original_message(embed=embed)
 
+    @set.sub_command(name="countdowns", description="Create countdowns for your server")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def voice_setup(self, ctx: disnake.ApplicationCommandInteraction):
+
+        types = ["CWL", "Clan Games", "Raid Weekend", "EOS", "Clan Member Count"]
+        emojis = [self.bot.emoji.cwl_medal, self.bot.emoji.clan_games, self.bot.emoji.raid_medal, self.bot.emoji.trophy,
+                  self.bot.emoji.person]
+        options = []
+        for type, emoji in zip(types, emojis):
+            options.append(
+                disnake.SelectOption(label=type if type != "EOS" else "EOS (End of Season)", emoji=emoji.partial_emoji,
+                                     value=type))
+
+        select = disnake.ui.Select(
+            options=options,
+            placeholder="Select Options",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=len(options),  # the maximum number of options a user can select
+        )
+        dropdown = [disnake.ui.ActionRow(select)]
+
+        await ctx.edit_original_message(content="**Select Countdowns/Statbars to Create Below**", components=dropdown)
+
+        res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, msg=(await ctx.original_message()))
+
+        type_channel_dict = {}
+        for countdown_type in res.values:
+            try:
+                if countdown_type == "Clan Games":
+                    time_ = await calculate_time(countdown_type)
+                    channel = await ctx.guild.create_voice_channel(name=f"CG {time_}")
+                elif countdown_type == "Raid Weekend":
+                    time_ = await calculate_time(countdown_type)
+                    channel = await ctx.guild.create_voice_channel(name=f"Raids {time_}")
+                elif countdown_type == "Clan Member Count":
+                    clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
+                    results = await self.bot.player_stats.count_documents(filter={"clan_tag": {"$in": clan_tags}})
+                    channel = await ctx.guild.create_voice_channel(name=f"{results} Clan Members")
+                else:
+                    time_ = await calculate_time(countdown_type)
+                    channel = await ctx.guild.create_voice_channel(name=f"{countdown_type} {time_}")
+
+                type_channel_dict[countdown_type] = channel
+            except disnake.Forbidden:
+                embed = disnake.Embed(
+                    description="Bot requires admin to create & set permissions for channel. **Channel will not update**",
+                    color=disnake.Color.red())
+                return await ctx.send(embed=embed)
+
+            overwrite = disnake.PermissionOverwrite()
+            overwrite.view_channel = True
+            overwrite.connect = False
+            try:
+                await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
+            except disnake.Forbidden:
+                embed = disnake.Embed(
+                    description="Bot requires admin to create & set permissions for channel. **Channel will not update**",
+                    color=disnake.Color.red())
+                return await ctx.send(embed=embed)
+
+        for type, channel in type_channel_dict.items():
+            if type == "CWL":
+                await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"cwlCountdown": channel.id}})
+            elif type == "Clan Games":
+                await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"gamesCountdown": channel.id}})
+            elif type == "Raid Weekend":
+                await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"raidCountdown": channel.id}})
+            elif type == "Clan Member Count":
+                await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"memberCount": channel.id}})
+            else:
+                await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"eosCountdown": channel.id}})
+
+        embed = disnake.Embed(description=f"`{', '.join(res.values)}` Stat Bars Created", color=disnake.Color.green())
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+        await res.edit_original_message(content="", embed=embed, components=[])
+
+
+
     @commands.slash_command(name="server-settings", description="Complete list of channels & roles set up on server")
     async def server_info(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
@@ -700,6 +781,11 @@ class misc(commands.Cog, name="Settings"):
                 await ctx.edit_original_message(embeds=embeds)
             else:
                 await ctx.followup.send(embeds=embeds)
+
+
+
+
+
 
     @commands.slash_command(name="whitelist")
     async def whitelist(self, ctx):

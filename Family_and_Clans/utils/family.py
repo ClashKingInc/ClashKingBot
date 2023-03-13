@@ -112,10 +112,7 @@ class getFamily(commands.Cog):
 
     async def create_last_online(self, guild: disnake.Guild):
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
-        clans = await self.bot.get_clans(tags=clan_tags)
-        member_tags = []
-        for clan in clans:
-            member_tags.extend(member.tag for member in clan.members)
+        member_tags = [r["tag"] for r in (await self.bot.player_stats.find({"clan_tag": {"$in": clan_tags}}).sort("last_online", -1).to_list(length=50))]
 
         players = await self.bot.get_players(tags=member_tags, custom=True)
         text = []
