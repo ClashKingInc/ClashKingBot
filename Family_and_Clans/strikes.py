@@ -287,7 +287,7 @@ class Strikes(commands.Cog, name="Strikes"):
 
         return embeds
 
-    @strike_add.autocomplete("clan")
+    @strike_list.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id}).sort("name", 1)
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
