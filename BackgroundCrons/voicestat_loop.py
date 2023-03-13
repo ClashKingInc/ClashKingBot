@@ -83,6 +83,7 @@ class VoiceStatCron(commands.Cog):
             channel = r.get("memberCount")
             if channel is not None:
                 try:
+                    channel = await self.bot.getch_channel(channel)
                     clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": server})
                     results = await self.bot.player_stats.count_documents(filter = {"clan_tag": {"$in": clan_tags}})
                     await channel.edit(name=f"{results} Clan Members")
