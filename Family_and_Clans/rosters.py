@@ -87,13 +87,18 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             disnake.ui.Button(label="Add", emoji=self.bot.emoji.yes.partial_emoji, style=disnake.ButtonStyle.green, custom_id=f"Signup_{roster}"),
             disnake.ui.Button(label="Remove", emoji=self.bot.emoji.no.partial_emoji, style=disnake.ButtonStyle.red,custom_id=f"RemoveMe_{roster}"),
             disnake.ui.Button(label="Sub", emoji=self.bot.emoji.switch.partial_emoji, style=disnake.ButtonStyle.blurple, custom_id=f"SubMe_{roster}"),
-            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,custom_id=f"Refresh_{roster}"),
-            disnake.ui.Button(label="", emoji=self.bot.emoji.menu.partial_emoji, style=disnake.ButtonStyle.grey,custom_id=f"Menu_{roster}")
         ]
+        ad_buttons = [disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,custom_id=f"Refresh_{roster}"),
+                      disnake.ui.Button(label="Clan Link", emoji="🔗", style=disnake.ButtonStyle.url,
+                              url=f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{_roster.roster_result.get('clan_tag').strip('#')}"),
+                      disnake.ui.Button(label="", emoji=self.bot.emoji.menu.partial_emoji, style=disnake.ButtonStyle.grey,custom_id=f"Menu_{roster}")]
         buttons = disnake.ui.ActionRow()
         for button in signup_buttons:
             buttons.append_item(button)
-        await ctx.edit_original_message(embed=embed, components=[buttons])
+        buttons2 = disnake.ui.ActionRow()
+        for button in ad_buttons:
+            buttons2.append_item(button)
+        await ctx.edit_original_message(embed=embed, components=[buttons, buttons2])
 
 
     @roster.sub_command(name="add-player", description="Add a player to a roster")
@@ -392,7 +397,8 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         embed = await _roster.embed()
         signup_buttons = [
             disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
-                              custom_id=f"Refresh_{roster}")
+                              custom_id=f"Refresh_{roster}"),
+            disnake.ui.Button(label="Clan Link", emoji="🔗", style=disnake.ButtonStyle.url, url=f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{_roster.roster_result.get('clan_tag').strip('#')}")
         ]
         buttons = disnake.ui.ActionRow()
         for button in signup_buttons:
@@ -775,6 +781,39 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
         await ctx.edit_original_message(embed=embed)
 
+    @roster.sub_command(name="search", description="Get a list of rosters a user or player is on")
+    async def roster_search(self, ctx: disnake.ApplicationCommandInteraction, user: disnake.Member = None, player: coc.Player= commands.Param(default=None, converter=player_convertor)):
+        await ctx.response.defer()
+        if user is None and player is None:
+            user = ctx.user
+        if user is not None:
+            tags = await self.bot.get_tags(ping=user.id)
+            roster_type_text = user.display_name
+        else:
+            tags = [player.tag]
+            roster_type_text = player.name
+
+        players = await self.bot.get_players(tags=tags, custom=False)
+        text = ""
+        for player in players:
+            if user is not None and user.id == ctx.user.id:
+                rosters_found = await self.bot.rosters.find({"members.tag": player.tag}).to_list(length=100)
+            else:
+                rosters_found = await self.bot.rosters.find(
+                    {"$and": [{"server_id": ctx.guild.id}, {"members.tag": player.tag}]}).to_list(length=100)
+
+            if not rosters_found:
+                continue
+            text += f"{self.bot.fetch_emoji(name=player.town_hall)}**{player.name}**\n"
+            for roster in rosters_found:
+                text += f"{roster['alias']} | {roster['clan_name']}\n"
+            text += "\n"
+
+        if text == "":
+            text = "Not Found on Any Rosters"
+        embed = disnake.Embed(title=f"Rosters for {roster_type_text}", description=text, color=disnake.Color.green())
+        await ctx.edit_original_message(embed=embed)
+
 
     @roster_create.autocomplete("clan")
     @roster_change_link.autocomplete("clan")
@@ -826,6 +865,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         return alias_list[:25]
 
     @roster_add.autocomplete("players")
+    @roster_search.autocomplete("player")
     async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         names = await self.bot.family_names(query=query, guild=ctx.guild)
         return names
