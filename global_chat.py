@@ -17,7 +17,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.send_rules, 'interval', minutes=120)
+        scheduler.add_job(self.send_rules, 'interval', minutes=720)
 
 
     @commands.Cog.listener()
