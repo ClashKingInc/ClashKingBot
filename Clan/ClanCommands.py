@@ -982,21 +982,28 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         links = await self.bot.link_client.get_links(*list(to_ping))
 
         # badge = await self.bot.create_new_badge_emoji(url=clan.badge.url)
-        missing_text = ""
+        missing_text = []
+        text = ""
         for player_tag, discord_id in links:
             name = tag_to_name[player_tag]
             discord_member = disnake.utils.get(
                 ctx.guild.members, id=discord_id)
 
             if discord_member is None:
-                missing_text += (
-                    f"{self.bot.fetch_emoji(tag_to_th[player_tag])}{name} | "
-                    f"{player_tag}\n")
-
+                new_text = f"{self.bot.fetch_emoji(tag_to_th[player_tag])}{name} | {player_tag}\n"
+                if len(missing_text) + len(new_text) >= 1990:
+                    missing_text.append(text)
+                    text = ""
+                text += new_text
             else:
-                missing_text += (
-                    f"{self.bot.fetch_emoji(tag_to_th[player_tag])}{name} | "
-                    f"{discord_member.mention}\n")
+                new_text= f"{self.bot.fetch_emoji(tag_to_th[player_tag])}{name} | {discord_member.mention}\n"
+                if len(missing_text) + len(new_text) >= 1990:
+                    missing_text.append(text)
+                    text = ""
+                text += new_text
+
+        if text != "":
+            missing_text.append(text)
 
         if missing_text == "":
             missing_text = "No Players Found"
@@ -1005,7 +1012,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             embed=None,
             components=[],
             content="||Ping Sent||")
-        await ctx.followup.send(content=missing_text)
+        for item in missing_text:
+            await ctx.followup.send(content=item)
 
 
 
