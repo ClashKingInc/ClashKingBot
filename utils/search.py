@@ -1,5 +1,4 @@
 
-
 async def search_results(bot, query):
 
     tags = []
@@ -10,18 +9,11 @@ async def search_results(bot, query):
         return tags
 
 
-    ttt = await bot.get_tags(query)
-    tags.extend(iter(ttt))
+    tag_list = await bot.get_tags(query)
+    tags.extend(iter(tag_list))
     if tags != []:
-        results = []
-        for tag in tags:
-            player = await bot.getPlayer(tag, custom=True)
-            if player is None:
-                continue
-            p = [player.trophies, player]
-            results.append(p)
-        results = sorted(results, key=lambda l: l[0], reverse=True)
-        return [result[1] for result in results]
+        players = await bot.get_players(tags=tags, custom=True)
+        return sorted(players, key=lambda l: l.trophies, reverse=True)
 
     return tags
 
