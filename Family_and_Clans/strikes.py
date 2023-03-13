@@ -204,7 +204,7 @@ class Strikes(commands.Cog, name="Strikes"):
                 if strike_clan is not None:
                     if player.clan is None:
                         continue
-                    if player.clan.tag != clan.tag:
+                    if player.clan.tag != strike_clan.tag:
                         continue
                 name = player.name
                 for char in ["`", "*", "_", "~", "´"]:
@@ -244,7 +244,7 @@ class Strikes(commands.Cog, name="Strikes"):
                 if strike_clan is not None:
                     if player.clan is None:
                         continue
-                    if player.clan.tag != clan.tag:
+                    if player.clan.tag != strike_clan.tag:
                         continue
                 name = player.name
                 for char in ["`", "*", "_", "~", "´"]:
@@ -287,7 +287,32 @@ class Strikes(commands.Cog, name="Strikes"):
 
         return embeds
 
+    @strike_add.autocomplete("clan")
+    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id}).sort("name", 1)
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
+        clan_list = []
+        for tClan in await tracked.to_list(length=limit):
+            name = tClan.get("name")
+            tag = tClan.get("tag")
+            if query.lower() in name.lower():
+                clan_list.append(f"{name} | {tag}")
 
+        if clan_list == [] and len(query) >= 3:
+            if coc.utils.is_valid_tag(query):
+                clan = await self.bot.getClan(query)
+            else:
+                clan = None
+            if clan is None:
+                results = await self.bot.coc_client.search_clans(name=query, limit=5)
+                for clan in results:
+                    league = str(clan.war_league).replace("League ", "")
+                    clan_list.append(
+                        f"{clan.name} | {clan.member_count}/50 | LV{clan.level} | {league} | {clan.tag}")
+            else:
+                clan_list.append(f"{clan.name} | {clan.tag}")
+                return clan_list
+        return clan_list[0:25]
 
 def setup(bot: CustomClient):
     bot.add_cog(Strikes(bot))
