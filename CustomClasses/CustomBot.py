@@ -223,13 +223,14 @@ class CustomClient(commands.AutoShardedBot):
         return tracked_list
 
     async def get_tags(self, ping):
+        ping = str(ping)
         if (ping.startswith('<@') and ping.endswith('>')):
             ping = ping[2:len(ping) - 1]
 
         if (ping.startswith('!')):
             ping = ping[1:len(ping)]
         id = ping
-        tags = await self.link_client.get_linked_players(id)
+        tags = await self.link_client.get_linked_players(int(id))
         return tags
 
     def gen_raid_date(self):
@@ -527,15 +528,20 @@ class CustomClient(commands.AutoShardedBot):
         channel = await self.fetch_channel(channel_id)
         return channel
 
-    async def getch_webhook(self, channel_id):
-        channel: disnake.TextChannel = await self.getch_channel(channel_id=channel_id)
+    async def getch_webhook(self, channel_id, force_fetch=False):
+        channel = await self.getch_channel(channel_id=channel_id)
+        print(channel.permissionsactual_for(self.user))
+
+        print(channel)
         try:
             webhook = self.feed_webhooks[channel.id]
+            if force_fetch:
+                raise Exception
         except:
+            channel: disnake.TextChannel
             webhooks = await channel.webhooks()
             if len(webhooks) == 0:
-                bot_av = self.user.avatar.read().close()
-                webhook = await channel.create_webhook(name=self.user.name, avatar=bot_av, reason="Feed Webhook")
+                webhook = await channel.create_webhook(name=self.user.name, avatar=self.user.avatar, reason="Feed Webhook")
             else:
                 webhook = next(webhook for webhook in webhooks if webhook.user.id == self.user.id)
             self.feed_webhooks[channel.id] = webhook
@@ -591,8 +597,6 @@ class CustomClient(commands.AutoShardedBot):
                 return None
 
     async def get_players(self, tags: list, custom=True, use_cache=True):
-        import time
-        t_ = time.time()
         if custom:
             results_list = await self.player_stats.find({"tag" : {"$in" : tags}}).to_list(length=2500)
             results_dict = {}
