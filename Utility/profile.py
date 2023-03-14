@@ -367,7 +367,7 @@ class profiles(commands.Cog, name="Profile"):
 
         linked_accounts: List[MyCustomPlayer] = await search_results(self.bot, str(member.id))
         if linked_accounts == []:
-            await ctx.send(content="No Linked Acccounts")
+            return await ctx.send(content="No Linked Acccounts")
 
         top_account = max(linked_accounts, key=attrgetter('level_points'))
         print(f"{top_account.name} | {top_account.tag}")
