@@ -22,7 +22,7 @@ class VoiceStatCron(commands.Cog):
             server = r.get("server")
             if channel is not None:
                 try:
-                    channel = await self.bot.getch_channel(channel)
+                    channel = await self.bot.getch_channel(channel_id=channel, raise_exception=True)
                     time_ = await calculate_time("CWL")
                     prev_name = channel.name
                     text = f"CWL {time_}"
@@ -37,7 +37,7 @@ class VoiceStatCron(commands.Cog):
             channel = r.get("gamesCountdown")
             if channel is not None:
                 try:
-                    channel = await self.bot.getch_channel(channel)
+                    channel = await self.bot.getch_channel(channel_id=channel, raise_exception=True)
                     time_ = await calculate_time("Clan Games")
                     prev_name = channel.name
                     text = f"CG {time_}"
@@ -52,7 +52,7 @@ class VoiceStatCron(commands.Cog):
             channel = r.get("raidCountdown")
             if channel is not None:
                 try:
-                    channel = await self.bot.getch_channel(channel)
+                    channel = await self.bot.getch_channel(channel_id=channel, raise_exception=True)
                     time_ = await calculate_time("Raid Weekend")
                     prev_name = channel.name
                     text = f"Raids {time_}"
@@ -67,7 +67,7 @@ class VoiceStatCron(commands.Cog):
             channel = r.get("eosCountdown")
             if channel is not None:
                 try:
-                    channel = await self.bot.getch_channel(channel)
+                    channel = await self.bot.getch_channel(channel_id=channel, raise_exception=True)
                     time_ = await calculate_time("EOS")
                     prev_name = channel.name
                     text = f"EOS {time_}"
@@ -83,7 +83,7 @@ class VoiceStatCron(commands.Cog):
             channel = r.get("memberCount")
             if channel is not None:
                 try:
-                    channel = await self.bot.getch_channel(channel)
+                    channel = await self.bot.getch_channel(channel_id=channel, raise_exception=True)
                     clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": server})
                     results = await self.bot.player_stats.count_documents(filter = {"clan_tag": {"$in": clan_tags}})
                     await channel.edit(name=f"{results} Clan Members")

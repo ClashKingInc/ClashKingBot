@@ -519,9 +519,11 @@ class CustomClient(commands.AutoShardedBot):
         except:
             return None
 
-    async def getch_channel(self, channel_id):
+    async def getch_channel(self, channel_id, raise_exception=False):
         try:
             channel = self.get_channel(channel_id)
+            if raise_exception and channel is None:
+                raise Exception
             return channel
         except:
             pass
