@@ -21,8 +21,8 @@ class LegendCron(commands.Cog):
         scheduler.add_job(self.legend_update, 'interval', hours=12)
 
     async def legend_update(self):
-        #keys = await self.create_keys()
-        key= "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6IjdiM2I3ZjQ0LTM4YzQtNGU2My04ZjIzLTViNjIxZTcwYWU1MCIsImlhdCI6MTY2NjIzMzIzMCwic3ViIjoiZGV2ZWxvcGVyL2Y5ZjA0OWVmLTZjZWQtYTkzYi1hM2ViLTg5N2FiMmUwZDQ1ZiIsInNjb3BlcyI6WyJjbGFzaCJdLCJsaW1pdHMiOlt7InRpZXIiOiJkZXZlbG9wZXIvc2lsdmVyIiwidHlwZSI6InRocm90dGxpbmcifSx7ImNpZHJzIjpbIjIzLjkyLjY1LjIxMyJdLCJ0eXBlIjoiY2xpZW50In1dfQ.bQA-aj09Ztg4P5C2B5hcXkkbT9RPayn2EZ0lctTMB-5d16-dXNNwVQfn1XYIe-pPLHjRWNqpeCTMZnwzCC6i_w"
+        keys = await self.create_keys()
+        key = keys[0]
 
         names = await self.bot.history_db.list_collection_names()
         for name in names:
