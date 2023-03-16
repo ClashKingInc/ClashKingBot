@@ -173,7 +173,6 @@ class War_Log(commands.Cog):
             await self.bot.player_stats.update_one({"tag": attack.attacker_tag}, {"$inc": {f"points": points_earned}})
 
         #is an attack
-        print(attack)
         for cc in await self.bot.clan_db.find({"tag": f"{war.clan.tag}"}).to_list(length=500):
             try:
                 warlog_channel = cc.get("war_log")
@@ -330,7 +329,7 @@ class War_Log(commands.Cog):
         except:
             button = self.war_buttons(new_war=war)
             war_channel = await self.bot.getch_channel(channel_id=clan_result.get("war_log"), raise_exception=True)
-            await war_channel.send(embed=embed, components=button)
+            message = await war_channel.send(embed=embed, components=button)
             war_id = f"{war.clan.tag}v{war.opponent.tag}-{int(war.start_time.time.timestamp())}"
             await self.bot.clan_db.update_one({"$and": [{"tag": war.clan.tag},{"server": server}]}, {'$set': {"war_message": message.id, "war_id": war_id}})
 
