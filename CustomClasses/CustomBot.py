@@ -560,7 +560,7 @@ class CustomClient(commands.AutoShardedBot):
 
 
     async def getch_webhook(self, channel_id, force_fetch=False):
-        channel: disnake.TextChannel = await self.getch_channel(channel_id=channel_id, raise_exception=True)
+        channel = await self.getch_channel(channel_id=channel_id, raise_exception=True)
         guild = await self.getch_guild(channel.guild.id)
         member = await guild.get_or_fetch_member(self.user.id)
         perms = channel.permissions_for(member)
@@ -572,7 +572,9 @@ class CustomClient(commands.AutoShardedBot):
             if force_fetch:
                 raise Exception
         except Exception:
-            channel: disnake.TextChannel
+            is_thread = "thread" in str(channel.type)
+            if is_thread:
+                channel = channel.parent
             webhooks = await channel.webhooks()
             if len(webhooks) == 0:
                 webhook = await channel.create_webhook(name=self.user.name, avatar=self.user.avatar, reason="Feed Webhook")
