@@ -97,7 +97,9 @@ initial_extensions = [
     "owner_commands",
     "Ticketing.TicketCog",
     "SetupNew.SetupCog",
+    "Utility.link_parsers"
     #"War & CWL.war_track",
+    #"War & CWL.lineups"
 ]
 
 if not IS_BETA:
