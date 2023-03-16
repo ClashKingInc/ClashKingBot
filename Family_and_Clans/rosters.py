@@ -534,7 +534,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
         await ctx.send(embed=embed)
 
-    @roster.sub_command(name="edit-layout", description="Edit roster name of description")
+    @roster.sub_command(name="edit-layout", description="Edit roster name, description")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_edit_layout(self, ctx: disnake.ApplicationCommandInteraction, roster: str, clear = commands.Param(default=None, choices=["Description", "Image"])):
         if clear is not None:
@@ -693,7 +693,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         await _roster.set_time(time=timestamp)
         embed = disnake.Embed(description=f"{roster} Roster time set to <t:{timestamp}:F>", color=disnake.Color.green())
         await modal_inter.edit_original_message(embed=embed)
-
 
     @roster.sub_command(name="change-link", description="Change linked clan for roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
