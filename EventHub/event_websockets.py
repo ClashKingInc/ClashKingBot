@@ -5,6 +5,7 @@ import os
 
 from dotenv import load_dotenv
 from pymitter import EventEmitter
+import sentry_sdk
 load_dotenv()
 
 player_ee = EventEmitter()
@@ -38,14 +39,14 @@ async def player_websocket():
                         except:
                             pass
         except Exception as e:
-            print(e)
+            sentry_sdk.capture_exception(e)
             continue
 
 
 async def war_websocket():
     while True:
         try:
-            async with websockets.connect(f"ws://{NEW_WEBSOCKET_IP}/wars?token=5", ping_timeout=None, ping_interval=None, open_timeout=None) as websocket:
+            async with websockets.connect(f"ws://{NEW_WEBSOCKET_IP}/wars?token=5", ping_timeout=None, ping_interval=None, open_timeout=None, max_queue=10000) as websocket:
                 async for message in websocket:
                     if "Login!" in str(message) or "decoded token" in str(message):
                         print(message)
@@ -55,14 +56,14 @@ async def war_websocket():
                         awaitable = war_ee.emit_async(field, json_message)
                         await awaitable
         except Exception as e:
-            print(e)
+            sentry_sdk.capture_exception(e)
             continue
 
 
 async def clan_websocket():
     while True:
         try:
-            async with websockets.connect(f"ws://{NEW_WEBSOCKET_IP}/clans?token=5", ping_timeout=None, ping_interval=None, open_timeout=None) as websocket:
+            async with websockets.connect(f"ws://{NEW_WEBSOCKET_IP}/clans?token=5", ping_timeout=None, ping_interval=None, open_timeout=None, max_queue=10000) as websocket:
                 async for message in websocket:
                     if "Login!" in str(message) or "decoded token" in str(message):
                         print(message)
@@ -76,5 +77,5 @@ async def clan_websocket():
                             pass
 
         except Exception as e:
-            print(e)
+            sentry_sdk.capture_exception(e)
             continue
