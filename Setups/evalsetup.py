@@ -39,6 +39,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
             database = self.bot.ignoredroles
 
         embed = await self.family_role_add(database=database, role=role, guild=ctx.guild, type=type)
+
         await ctx.edit_original_message(embed=embed)
 
     @family_roles.sub_command(name="remove", description="Remove Family Based Eval Roles")
