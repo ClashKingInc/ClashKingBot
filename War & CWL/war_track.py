@@ -61,7 +61,7 @@ class War_Log(commands.Cog):
                 continue
 
             try:
-                war_channel = await self.bot.getch_channel(clan_result.get("war_log"))
+                war_channel = await self.bot.getch_channel(clan_result.get("war_log"), raise_exception=True)
                 is_thread = "thread" in str(war_channel.type)
                 war_webhook: disnake.Webhook = await self.bot.getch_webhook(channel_id=clan_result.get("war_log"))
                 feed_type = clan_result.get("attack_feed", "Continuous Feed")  # other is "Update Feed"
@@ -195,7 +195,7 @@ class War_Log(commands.Cog):
                 if warlog_channel is None:
                     continue
 
-                war_channel = await self.bot.getch_channel(cc.get("war_log"))
+                war_channel = await self.bot.getch_channel(cc.get("war_log"), raise_exception=True)
                 is_thread = "thread" in str(war_channel.type)
                 war_webhook: disnake.Webhook = await self.bot.getch_webhook(warlog_channel)
 
@@ -253,7 +253,7 @@ class War_Log(commands.Cog):
                 try:
                     if clan_result.get("war_log") is None:
                         continue
-                    war_channel = await self.bot.getch_channel(clan_result.get("war_log"))
+                    war_channel = await self.bot.getch_channel(clan_result.get("war_log"), raise_exception=True)
                     is_thread = "thread" in str(war_channel.type)
                     war_webhook: disnake.Webhook = await self.bot.getch_webhook(channel_id=clan_result.get("war_log"))
                     feed_type = clan_result.get("attack_feed", "Continuous Feed")  # other is "Update Feed"
@@ -293,7 +293,7 @@ class War_Log(commands.Cog):
                 try:
                     if clan_result.get("war_log") is None:
                         continue
-                    war_channel = await self.bot.getch_channel(clan_result.get("war_log"))
+                    war_channel = await self.bot.getch_channel(clan_result.get("war_log"), raise_exception=True)
                     is_thread = "thread" in str(war_channel.type)
                     war_webhook: disnake.Webhook = await self.bot.getch_webhook(channel_id=clan_result.get("war_log"))
 
@@ -363,12 +363,12 @@ class War_Log(commands.Cog):
         war_cog = self.bot.get_cog(name="War")
         embed = await war_cog.main_war_page(war=war, clan=clan)
         try:
-            warlog_channel = await self.bot.getch_channel(channel_id=warlog_channel)
+            warlog_channel = await self.bot.getch_channel(channel_id=warlog_channel, raise_exception=True)
             message = await warlog_channel.fetch_message(message_id)
             await message.edit(embed=embed)
         except:
             button = self.war_buttons(new_war=war)
-            war_channel = await self.bot.getch_channel(warlog_channel)
+            war_channel = await self.bot.getch_channel(warlog_channel, raise_exception=True)
             is_thread = "thread" in str(war_channel.type)
             war_webhook = await self.bot.getch_webhook(channel_id=warlog_channel)
             if is_thread:
