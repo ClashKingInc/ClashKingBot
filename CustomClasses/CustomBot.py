@@ -14,6 +14,7 @@ from urllib.request import urlopen
 from collections import defaultdict
 from utils.troop_methods import cwl_league_emojis
 from CustomClasses.PlayerHistory import COSPlayerHistory
+#from odmantic import AIOEngine
 
 import dateutil.relativedelta
 import ast
@@ -105,6 +106,7 @@ class CustomClient(commands.AutoShardedBot):
         self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
+        #self.static_engine = AIOEngine(client=self.db_client, database="usafam")
         self.clan_db = self.db_client.usafam.clans
         self.banlist = self.db_client.usafam.banlist
         self.server_db = self.db_client.usafam.server
@@ -138,6 +140,7 @@ class CustomClient(commands.AutoShardedBot):
         self.colors = self.db_client.usafam.colors
         self.level_cards = self.db_client.usafam.level_cards
         self.autostrikes = self.db_client.usafam.autostrikes
+        self.lineups = self.db_client.usafam.lineups
 
         self.autoboard_db = self.db_client.usafam.autoboard_db
 
@@ -230,7 +233,10 @@ class CustomClient(commands.AutoShardedBot):
         if (ping.startswith('!')):
             ping = ping[1:len(ping)]
         id = ping
-        tags = await self.link_client.get_linked_players(int(id))
+        try:
+            tags = await self.link_client.get_linked_players(int(id))
+        except Exception:
+            tags = []
         return tags
 
     def gen_raid_date(self):
@@ -520,26 +526,51 @@ class CustomClient(commands.AutoShardedBot):
             return None
 
     async def getch_channel(self, channel_id, raise_exception=False):
+        channel = None
         try:
             channel = self.get_channel(channel_id)
-            if raise_exception and channel is None:
+            if channel is None:
                 raise Exception
             return channel
-        except:
+        except Exception:
             pass
-        channel = await self.fetch_channel(channel_id)
+        try:
+            channel = await self.fetch_channel(channel_id)
+        except Exception as e:
+            if raise_exception:
+                raise e
         return channel
 
-    async def getch_webhook(self, channel_id, force_fetch=False):
-        channel = await self.getch_channel(channel_id=channel_id)
-        print(channel.permissionsactual_for(self.user))
+    async def getch_guild(self, guild_id, raise_exception=False):
+        guild = None
+        try:
+            guild = self.get_guild(guild_id)
+            if guild is None:
+                raise Exception
+            return guild
+        except Exception:
+            pass
+        try:
+            guild = await self.fetch_guild(guild_id)
+        except Exception as e:
+            if raise_exception:
+                raise e
+        return guild
 
-        print(channel)
+
+    async def getch_webhook(self, channel_id, force_fetch=False):
+        channel: disnake.TextChannel = await self.getch_channel(channel_id=channel_id, raise_exception=True)
+        guild = await self.getch_guild(channel.guild.id)
+        member = await guild.get_or_fetch_member(self.user.id)
+        perms = channel.permissions_for(member)
+        if not perms.manage_webhooks:
+            raise disnake.NotFound
+
         try:
             webhook = self.feed_webhooks[channel.id]
             if force_fetch:
                 raise Exception
-        except:
+        except Exception:
             channel: disnake.TextChannel
             webhooks = await channel.webhooks()
             if len(webhooks) == 0:
