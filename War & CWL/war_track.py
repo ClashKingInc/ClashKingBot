@@ -19,7 +19,7 @@ class War_Log(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.war_ee = war_ee
-        self.war_ee.on("new_war", self.new_war)
+        #self.war_ee.on("new_war", self.new_war)
         self.war_ee.on("war_attack", self.war_attack)
 
     async def new_war(self, event):
@@ -173,6 +173,7 @@ class War_Log(commands.Cog):
             await self.bot.player_stats.update_one({"tag": attack.attacker_tag}, {"$inc": {f"points": points_earned}})
 
         #is an attack
+        print(attack)
         for cc in await self.bot.clan_db.find({"tag": f"{war.clan.tag}"}).to_list(length=500):
             try:
                 warlog_channel = cc.get("war_log")
@@ -216,10 +217,6 @@ class War_Log(commands.Cog):
                     await self.update_war_message(war=war, clan_result=cc, clan=clan)
 
             except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
-                try:
-                    del self.bot.feed_webhooks[warlog_channel]
-                except:
-                    pass
                 await self.bot.clan_db.update_one({"server": cc.get("server")}, {'$set': {"war_log": None}})
                 continue
 
@@ -321,20 +318,19 @@ class War_Log(commands.Cog):
         message_id = clan_result.get("war_message")
         war_id = clan_result.get("war_id")
         server = clan_result.get("server")
-        warlog_channel = clan_result.get("war_log")
 
         if war_id != f"{war.clan.tag}v{war.opponent.tag}-{int(war.start_time.time.timestamp())}":
             message_id = None
         war_cog = self.bot.get_cog(name="War")
         embed = await war_cog.main_war_page(war=war, clan=clan)
         try:
-            warlog_channel = await self.bot.getch_channel(channel_id=warlog_channel, raise_exception=True)
+            warlog_channel = await self.bot.getch_channel(channel_id=clan_result.get("war_log"), raise_exception=True)
             message = await warlog_channel.fetch_message(message_id)
             await message.edit(embed=embed)
         except:
             button = self.war_buttons(new_war=war)
-            war_channel = await self.bot.getch_channel(warlog_channel, raise_exception=True)
-            await war_channel.send(embed=embed)
+            war_channel = await self.bot.getch_channel(channel_id=clan_result.get("war_log"), raise_exception=True)
+            await war_channel.send(embed=embed, components=button)
             war_id = f"{war.clan.tag}v{war.opponent.tag}-{int(war.start_time.time.timestamp())}"
             await self.bot.clan_db.update_one({"$and": [{"tag": war.clan.tag},{"server": server}]}, {'$set': {"war_message": message.id, "war_id": war_id}})
 

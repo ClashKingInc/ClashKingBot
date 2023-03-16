@@ -527,19 +527,15 @@ class CustomClient(commands.AutoShardedBot):
             return None
 
     async def getch_channel(self, channel_id, raise_exception=False):
-        channel = None
-        try:
-            channel = self.get_channel(channel_id)
-            if channel is None:
-                raise Exception
+        channel = self.get_channel(channel_id)
+        if channel is not None:
             return channel
-        except Exception:
-            pass
         try:
             channel = await self.fetch_channel(channel_id)
-        except Exception as e:
+        except Exception:
             if raise_exception:
-                raise e
+                raise
+            return None
         return channel
 
     async def getch_guild(self, guild_id, raise_exception=False):
@@ -571,6 +567,7 @@ class CustomClient(commands.AutoShardedBot):
             webhook = self.feed_webhooks[channel.id]
             if force_fetch:
                 raise Exception
+            return webhook
         except Exception:
             is_thread = "thread" in str(channel.type)
             if is_thread:
