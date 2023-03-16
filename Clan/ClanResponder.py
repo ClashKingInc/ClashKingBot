@@ -342,7 +342,7 @@ async def player_townhall_sort(clan: coc.Clan):
     return embed
 
 
-async def opt_status(clan: coc.Clan):
+async def opt_status(bot: CustomClient, clan: coc.Clan):
     opted_in = []
     opted_out = []
     in_count = 0
@@ -350,25 +350,33 @@ async def opt_status(clan: coc.Clan):
     thcount = defaultdict(int)
     out_thcount = defaultdict(int)
 
+    member_stats = await bot.new_looper[f"{bot.gen_season_date()}-history"].find({"tag": {"$in" : [member.tag for member in clan.members]}}).to_list(length=100)
+    member_stats_to_dict = {}
+    for stat in member_stats:
+        war_pref = stat.get("warPreference")
+        if war_pref is None:
+            member_stats_to_dict[stat["tag"]] = 1678662000
+        else:
+            member_stats_to_dict[stat["tag"]] = war_pref[-1]["time"]
+
     async for player in clan.get_detailed_members():
+        war_opt_time = member_stats_to_dict.get(player.tag)
+        if war_opt_time is not None:
+            war_opt_time = f"`<t:{war_opt_time}:R>"
+        else:
+            war_opt_time = "N/A`"
         if player.war_opted_in:
             th_emoji = fetch_emoji(player.town_hall)
-            opted_in.append(
-                (player.town_hall, f"<:opt_in:944905885367537685>{th_emoji}"
-                 f"\u200e{player.name}\n", player.name))
+            opted_in.append((player.town_hall, f"<:opt_in:944905885367537685>{th_emoji}\u200e`{emoji.replace_emoji(player.name)[:15]:15}{war_opt_time}\n", player.name))
             thcount[player.town_hall] += 1
             in_count += 1
-
         else:
             th_emoji = fetch_emoji(player.town_hall)
-            opted_out.append(
-                (player.town_hall, f"<:opt_out:944905931265810432>{th_emoji}"
-                 f"\u200e{player.name}\n", player.name))
+            opted_out.append((player.town_hall, f"<:opt_out:944905931265810432>{th_emoji}\u200e`{emoji.replace_emoji(player.name)[:15]:15}{war_opt_time}\n", player.name))
             out_thcount[player.town_hall] += 1
             out_count += 1
 
-    opted_in = sorted(opted_in, key=lambda opted_in_member: (
-        opted_in_member[0], opted_in_member[2]), reverse=True)
+    opted_in = sorted(opted_in, key=lambda opted_in_member: (opted_in_member[0], opted_in_member[2]), reverse=True)
     opted_in = "".join([i[1] for i in opted_in])
 
     opted_out = sorted(
@@ -381,27 +389,17 @@ async def opt_status(clan: coc.Clan):
     if not opted_out:
         opted_out = "None"
 
-    in_string = ", ".join(f"Th{index}: {th} " for index, th in sorted(
-        thcount.items(), reverse=True) if th != 0)
-    out_string = ", ".join(f"Th{index}: {th} " for index, th in sorted(
-        out_thcount.items(), reverse=True) if th != 0)
+    in_string = ", ".join(f"Th{index}: {th} " for index, th in sorted(thcount.items(), reverse=True) if th != 0)
+    out_string = ", ".join(f"Th{index}: {th} " for index, th in sorted(out_thcount.items(), reverse=True) if th != 0)
 
-    embed = Embed(
-        title=f"**{clan.name} War Opt Statuses**",
-        description=(
-            f"**Players Opted In - {in_count}:**\n"
-            f"{opted_in}\n"
-            f"**Players Opted Out - {out_count}:**\n"
-            f"{opted_out}\n"),
-        color=Color.green())
+    embed = Embed(title=f"**{clan.name} War Opt Statuses**",
+        description=f"**Players Opted In - {in_count}:**\n{opted_in}\n", color=Color.green())
+
+    embed2 = Embed(description=f"**Players Opted Out - {out_count}:**\n{opted_out}\n", color=Color.green())
 
     embed.set_thumbnail(url=clan.badge.large)
-    embed.set_footer(
-        text=(
-            f"In: {in_string}\n"
-            f"Out: {out_string}"))
-
-    return embed
+    embed2.set_footer(text=f"In: {in_string}\nOut: {out_string}")
+    return [embed, embed2]
 
 
 def war_log(clan: coc.Clan, war_log):

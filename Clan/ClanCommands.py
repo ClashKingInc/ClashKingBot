@@ -14,12 +14,14 @@ import disnake
 import asyncio
 import pytz
 import calendar
+
 tiz = pytz.utc
-#import excel2img
+# import excel2img
 import xlsxwriter
 from ImageGen import ClanCapitalResult as capital_gen
 
-#TODO- FIX CLAN GAMES SEASON CHOOSING
+
+# TODO- FIX CLAN GAMES SEASON CHOOSING
 
 class ClanCommands(commands.Cog, name="Clan Commands"):
 
@@ -61,7 +63,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         embed = await clan_responder.clan_overview(
             clan=clan, db_clan=db_clan,
-            clan_legend_ranking=clan_legend_ranking, previous_season = self.bot.gen_previous_season_date(),
+            clan_legend_ranking=clan_legend_ranking, previous_season=self.bot.gen_previous_season_date(),
             season=self.bot.gen_season_date(), bot=self.bot)
 
         emoji = partial_emoji_gen(self.bot, "<:discord:840749695466864650>")
@@ -283,7 +285,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             clan: Use clan tag or select an option from the autocomplete
         """
 
-        embed = await clan_responder.opt_status(clan)
+        embed = await clan_responder.opt_status(bot=self.bot, clan=clan)
         embed.description += f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
         buttons = disnake.ui.ActionRow()
@@ -383,7 +385,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         embed = await clan_responder.clan_overview(
             clan=clan, db_clan=db_clan,
-            clan_legend_ranking=clan_legend_ranking, previous_season = self.bot.gen_previous_season_date(),
+            clan_legend_ranking=clan_legend_ranking, previous_season=self.bot.gen_previous_season_date(),
             season=self.bot.gen_season_date(), bot=self.bot)
 
         values = (
@@ -392,7 +394,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         embed.set_field_at(len(
             embed.fields) - 1, name="**Boosted Super Troops:**",
-            value=values, inline=False)
+                           value=values, inline=False)
 
         if image is not None:
             embed.set_image(url=image.url)
@@ -446,23 +448,25 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @clan.sub_command(
         name="capital",
         description=(
-            "Get stats on raids & donations "
-            "during selected time period"))
+                "Get stats on raids & donations "
+                "during selected time period"))
     async def clan_capital_stats(
-            self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), weekend: str = commands.Param(default=None, name="weekend")):
+            self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
+            weekend: str = commands.Param(default=None, name="weekend")):
         """
             Parameters
             ----------
             clan: Use clan tag or select an option from the autocomplete
         """
-        #await ctx.response.defer()
+        # await ctx.response.defer()
         limit = 25
         if weekend is None:
             limit = 2
             weekend = gen_raid_weekend_datestrings(number_of_weeks=1)[0]
         weekend_raid_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot, limit=limit)
 
-        (raid_embed, total_looted, total_attacks) = clan_responder.clan_raid_weekend_raid_stats(clan=clan, raid_log_entry=weekend_raid_entry)
+        (raid_embed, total_looted, total_attacks) = clan_responder.clan_raid_weekend_raid_stats(clan=clan,
+                                                                                                raid_log_entry=weekend_raid_entry)
         donation_embed = await clan_responder.clan_raid_weekend_donation_stats(clan=clan, weekend=weekend, bot=self.bot)
 
         buttons = raid_buttons(self.bot, [])
@@ -530,7 +534,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             elif res.data.custom_id == "raids":
                 await res.edit_original_message(embed=raid_embed, attachments=[])
 
-
     @clan.sub_command(
         name="last-online",
         description="List of most recently online players in clan")
@@ -558,7 +561,9 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @clan.sub_command(
         name="activities",
         description="Activity count of how many times a player has been seen online")
-    async def activities(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), season=commands.Param(default=None, name="season")):
+    async def activities(self, ctx: disnake.ApplicationCommandInteraction,
+                         clan: coc.Clan = commands.Param(converter=clan_converter),
+                         season=commands.Param(default=None, name="season")):
         member_tags = [member.tag for member in clan.members]
         members = await self.bot.get_players(tags=member_tags, custom=True)
 
@@ -669,7 +674,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             month = list(calendar.month_name).index(season.split(" ")[0])
             year = season.split(" ")[1]
             end_date = coc.utils.get_season_end(
-                month=int(month-1), year=int(year))
+                month=int(month - 1), year=int(year))
 
             month = end_date.month
             if month <= 9:
@@ -800,19 +805,19 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             month = list(calendar.month_name).index(season.split(" ")[0])
             year = season.split(" ")[1]
             start_date = int(coc.utils.get_season_start(
-                month=int(month-1), year=int(year)).timestamp())
+                month=int(month - 1), year=int(year)).timestamp())
             end_date = int(coc.utils.get_season_end(
-                month=int(month-1), year=int(year)).timestamp())
+                month=int(month - 1), year=int(year)).timestamp())
 
         else:
             start_date = int(coc.utils.get_season_start().timestamp())
             end_date = int(coc.utils.get_season_end().timestamp())
 
-
         members = [member.tag for member in clan.members]
         players = await self.bot.get_players(tags=members, custom=True)
-        off_hr_embed = await clan_responder.create_offensive_hitrate(bot=self.bot, clan=clan, players=players, start_timestamp=start_date,
-                                                           end_timestamp=end_date)
+        off_hr_embed = await clan_responder.create_offensive_hitrate(bot=self.bot, clan=clan, players=players,
+                                                                     start_timestamp=start_date,
+                                                                     end_timestamp=end_date)
         components = clan_responder.stat_components(bot=self.bot)
         await ctx.edit_original_message(embed=off_hr_embed, components=components)
         msg = await ctx.original_message()
@@ -834,16 +839,19 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 th_levels = [int(value) for value in res.values]
                 if board_type == "Offensive Hitrate":
                     embed = await clan_responder.create_offensive_hitrate(bot=self.bot, clan=clan, players=players,
-                                                                start_timestamp=start_date, end_timestamp=end_date,
-                                                                townhall_level=th_levels)
+                                                                          start_timestamp=start_date,
+                                                                          end_timestamp=end_date,
+                                                                          townhall_level=th_levels)
                 elif board_type == "Defensive Rate":
                     embed = await clan_responder.create_defensive_hitrate(bot=self.bot, clan=clan, players=players,
-                                                                start_timestamp=start_date, end_timestamp=end_date,
-                                                                townhall_level=th_levels)
+                                                                          start_timestamp=start_date,
+                                                                          end_timestamp=end_date,
+                                                                          townhall_level=th_levels)
                 elif board_type == "Stars Leaderboard":
                     embed = await clan_responder.create_stars_leaderboard(clan=clan, players=players,
-                                                                start_timestamp=start_date, end_timestamp=end_date,
-                                                                townhall_level=th_levels)
+                                                                          start_timestamp=start_date,
+                                                                          end_timestamp=end_date,
+                                                                          townhall_level=th_levels)
                 await res.edit_original_message(embed=embed)
             # is a filter type
             elif res.values[0] in ["Fresh Hits", "Non-Fresh", "random", "cwl", "friendly"]:
@@ -862,38 +870,42 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                     war_types = ["random", "cwl", "friendly"]
                 if board_type == "Offensive Hitrate":
                     embed = await clan_responder.create_offensive_hitrate(bot=self.bot, clan=clan, players=players,
-                                                                start_timestamp=start_date, end_timestamp=end_date,
-                                                                fresh_type=fresh_type, war_types=war_types)
+                                                                          start_timestamp=start_date,
+                                                                          end_timestamp=end_date,
+                                                                          fresh_type=fresh_type, war_types=war_types)
                 elif board_type == "Defensive Rate":
                     embed = await clan_responder.create_defensive_hitrate(bot=self.bot, clan=clan, players=players,
-                                                                start_timestamp=start_date, end_timestamp=end_date,
-                                                                fresh_type=fresh_type, war_types=war_types)
+                                                                          start_timestamp=start_date,
+                                                                          end_timestamp=end_date,
+                                                                          fresh_type=fresh_type, war_types=war_types)
                 elif board_type == "Stars Leaderboard":
                     embed = await clan_responder.create_stars_leaderboard(clan=clan, players=players,
-                                                                start_timestamp=start_date, end_timestamp=end_date,
-                                                                fresh_type=fresh_type, war_types=war_types)
+                                                                          start_timestamp=start_date,
+                                                                          end_timestamp=end_date,
+                                                                          fresh_type=fresh_type, war_types=war_types)
                 await res.edit_original_message(embed=embed)
             # changing the board type
             elif res.values[0] in ["Offensive Hitrate", "Defensive Rate", "Stars Leaderboard"]:
                 board_type = res.values[0]
                 if board_type == "Offensive Hitrate":
                     embed = await clan_responder.create_offensive_hitrate(bot=self.bot, clan=clan, players=players,
-                                                                start_timestamp=start_date, end_timestamp=end_date)
+                                                                          start_timestamp=start_date,
+                                                                          end_timestamp=end_date)
                 elif board_type == "Defensive Rate":
                     embed = await clan_responder.create_defensive_hitrate(bot=self.bot, clan=clan, players=players,
-                                                                start_timestamp=start_date, end_timestamp=end_date)
+                                                                          start_timestamp=start_date,
+                                                                          end_timestamp=end_date)
                 elif board_type == "Stars Leaderboard":
                     embed = await clan_responder.create_stars_leaderboard(clan=clan, players=players,
-                                                                start_timestamp=start_date, end_timestamp=end_date)
+                                                                          start_timestamp=start_date,
+                                                                          end_timestamp=end_date)
                 await res.edit_original_message(embed=embed)
-
-
 
     @clan.sub_command(
         name="ping",
         description=(
-            "Ping members in the clan "
-            "based on different characteristics"))
+                "Ping members in the clan "
+                "based on different characteristics"))
     async def clan_ping(
             self, ctx: disnake.ApplicationCommandInteraction,
             clan: coc.Clan = commands.Param(converter=clan_converter)):
@@ -915,8 +927,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             ths.add(member.town_hall)
 
         characteristic_types = [
-            "War Opted In",  "War Opted Out",
-            "War Attacks Remaining"] + [f"Townhall {th}" for th in list(ths)]
+                                   "War Opted In", "War Opted Out",
+                                   "War Attacks Remaining"] + [f"Townhall {th}" for th in list(ths)]
 
         for type in characteristic_types:
             options.append(disnake.SelectOption(label=type, value=type))
@@ -996,7 +1008,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                     text = ""
                 text += new_text
             else:
-                new_text= f"{self.bot.fetch_emoji(tag_to_th[player_tag])}{name} | {discord_member.mention}\n"
+                new_text = f"{self.bot.fetch_emoji(tag_to_th[player_tag])}{name} | {discord_member.mention}\n"
                 if len(missing_text) + len(new_text) >= 1990:
                     missing_text.append(text)
                     text = ""
@@ -1014,8 +1026,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             content="||Ping Sent||")
         for item in missing_text:
             await ctx.followup.send(content=item)
-
-
 
     '''    @clan.sub_command(name="export", description="Export info about this clan")
     async def clan_export(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
@@ -1369,7 +1379,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             col = og_col
     '''
 
-
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
         time = datetime.now().timestamp()
@@ -1422,10 +1431,10 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
 
-            embed = await clan_responder.opt_status(clan)
-            embed.description += f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>"
+            embeds = await clan_responder.opt_status(self.bot, clan)
+            embeds[-1].description += f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
-            await ctx.edit_original_message(embed=embed)
+            await ctx.edit_original_message(embeds=embeds)
 
         elif "warlog_" in str(ctx.data.custom_id):
             await ctx.response.defer()
@@ -1470,9 +1479,9 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 {"tag": clan.tag})
 
             embed = await clan_responder.clan_overview(
-            clan=clan, db_clan=db_clan,
-            clan_legend_ranking=clan_legend_ranking, previous_season = self.bot.gen_previous_season_date(),
-            season=self.bot.gen_season_date(), bot=self.bot)
+                clan=clan, db_clan=db_clan,
+                clan_legend_ranking=clan_legend_ranking, previous_season=self.bot.gen_previous_season_date(),
+                season=self.bot.gen_season_date(), bot=self.bot)
 
             values = (
                 f"{embed.fields[-1].value}"
@@ -1480,7 +1489,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
             embed.set_field_at(len(
                 embed.fields) - 1, name="**Boosted Super Troops:**",
-                value=values, inline=False)
+                               value=values, inline=False)
 
             try:
                 embed.set_image(url=ctx.message.embeds[0].image.url)
@@ -1740,5 +1749,3 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             if query.lower() in tz.lower():
                 return_list.append(tz)
         return return_list[:25]
-
-
