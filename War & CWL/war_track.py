@@ -62,8 +62,6 @@ class War_Log(commands.Cog):
 
             try:
                 war_channel = await self.bot.getch_channel(clan_result.get("war_log"), raise_exception=True)
-                is_thread = "thread" in str(war_channel.type)
-                war_webhook: disnake.Webhook = await self.bot.getch_webhook(channel_id=clan_result.get("war_log"))
                 feed_type = clan_result.get("attack_feed", "Continuous Feed")  # other is "Update Feed"
                 war_cog = self.bot.get_cog(name="War")
 
@@ -76,20 +74,15 @@ class War_Log(commands.Cog):
                         await self.update_war_message(war=new_war, clan_result=clan_result, clan=clan)
                     else:
                         embed = self.war_start_embed(new_war=new_war)
-                        if is_thread:
-                            await war_webhook.send(embed=embed, thread=war_channel)
-                        else:
-                            await war_webhook.send(embed=embed)
+                        await war_channel.send(embed=embed)
+
 
                 elif new_war.state == "inWar":
                     if feed_type == "Update Feed":
                         await self.update_war_message(war=new_war, clan_result=clan_result, clan=clan)
                     else:
                         embed = self.war_start_embed(new_war=new_war)
-                        if is_thread:
-                            await war_webhook.send(embed=embed, thread=war_channel)
-                        else:
-                            await war_webhook.send(embed=embed)
+                        await war_channel.send(embed=embed)
 
                 elif new_war.state == "warEnded":
                     embed = await war_cog.main_war_page(war=new_war, clan=clan)
@@ -98,16 +91,10 @@ class War_Log(commands.Cog):
                     if feed_type == "Update Feed":
                         await self.update_war_message(war=new_war, clan_result=clan_result, clan=clan)
                     else:
-                        if is_thread:
-                            await war_webhook.send(embed=embed, thread=war_channel)
-                        else:
-                            await war_webhook.send(embed=embed)
+                        await war_channel.send(embed=embed)
 
                     file = await war_gen.generate_war_result_image(new_war)
-                    if is_thread:
-                        await war_webhook.send(file=file, thread=war_channel)
-                    else:
-                        await war_webhook.send(file=file)
+                    await war_channel.send(file=file)
                     # calculate missed attacks
                     one_hit_missed = []
                     two_hit_missed = []
@@ -127,10 +114,7 @@ class War_Log(commands.Cog):
                         embed.add_field(name="Two Hits Missed", value="\n".join(two_hit_missed))
                     embed.set_thumbnail(url=new_war.clan.badge.url)
                     if len(embed.fields) != 0:
-                        if is_thread:
-                            await war_webhook.send(embed=embed, thread=war_channel)
-                        else:
-                            await war_webhook.send(embed=embed)
+                        await war_channel.send(embed=embed)
 
                     await self.store_war(war=new_war)
 
@@ -196,8 +180,6 @@ class War_Log(commands.Cog):
                     continue
 
                 war_channel = await self.bot.getch_channel(cc.get("war_log"), raise_exception=True)
-                is_thread = "thread" in str(war_channel.type)
-                war_webhook: disnake.Webhook = await self.bot.getch_webhook(warlog_channel)
 
                 attack_feed = cc.get("attack_feed", "Continuous Feed")
 
@@ -225,10 +207,8 @@ class War_Log(commands.Cog):
                         # is a defense
                         hit_message = f"{self.bot.emoji.shield} {emojiDictionary(attack.defender.town_hall)}**{attack.defender.name}{self.create_superscript(num=attack.defender.map_position)}**" \
                                       f" {star_str} **{attack.destruction}%** {emojiDictionary(attack.attacker.town_hall)}{self.create_superscript(num=attack.attacker.map_position)}"
-                    if is_thread:
-                        await war_webhook.send(content=hit_message, thread=war_channel)
-                    else:
-                        await war_webhook.send(content=hit_message)
+                    await war_channel.send(content=hit_message)
+
                 else:
                     clan = None
                     if war.type == "cwl":
@@ -254,8 +234,6 @@ class War_Log(commands.Cog):
                     if clan_result.get("war_log") is None:
                         continue
                     war_channel = await self.bot.getch_channel(clan_result.get("war_log"), raise_exception=True)
-                    is_thread = "thread" in str(war_channel.type)
-                    war_webhook: disnake.Webhook = await self.bot.getch_webhook(channel_id=clan_result.get("war_log"))
                     feed_type = clan_result.get("attack_feed", "Continuous Feed")  # other is "Update Feed"
                     clan = None
                     if war.type == "cwl":
@@ -264,10 +242,8 @@ class War_Log(commands.Cog):
                         await self.update_war_message(war=war, clan_result=clan_result, clan=clan)
                     else:
                         embed = self.war_start_embed(new_war=war)
-                        if is_thread:
-                            await war_webhook.send(embed=embed, thread=war_channel)
-                        else:
-                            await war_webhook.send(embed=embed)
+                        await war_channel.send(embed=embed)
+
                 except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                     await self.bot.clan_db.update_one({"$and": [
                         {"tag": war.clan.tag},
@@ -294,8 +270,6 @@ class War_Log(commands.Cog):
                     if clan_result.get("war_log") is None:
                         continue
                     war_channel = await self.bot.getch_channel(clan_result.get("war_log"), raise_exception=True)
-                    is_thread = "thread" in str(war_channel.type)
-                    war_webhook: disnake.Webhook = await self.bot.getch_webhook(channel_id=clan_result.get("war_log"))
 
                     feed_type = clan_result.get("attack_feed", "Continuous Feed")  # other is "Update Feed"
                     war_cog = self.bot.get_cog(name="War")
@@ -310,16 +284,10 @@ class War_Log(commands.Cog):
                     if feed_type == "Update Feed":
                         await self.update_war_message(war=war, clan_result=clan_result, clan=clan)
                     else:
-                        if is_thread:
-                            await war_webhook.send(embed=embed, thread=war_channel)
-                        else:
-                            await war_webhook.send(embed=embed)
+                        await war_channel.send(embed=embed)
 
                     file = await war_gen.generate_war_result_image(war)
-                    if is_thread:
-                        await war_webhook.send(file=file, thread=war_channel)
-                    else:
-                        await war_webhook.send(file=file)
+                    await war_channel.send(file=file)
                     # calculate missed attacks
                     one_hit_missed = []
                     two_hit_missed = []
@@ -339,10 +307,7 @@ class War_Log(commands.Cog):
                         embed.add_field(name="Two Hits Missed", value="\n".join(two_hit_missed))
                     embed.set_thumbnail(url=war.clan.badge.url)
                     if len(embed.fields) != 0:
-                        if is_thread:
-                            await war_webhook.send(embed=embed, thread=war_channel)
-                        else:
-                            await war_webhook.send(embed=embed)
+                        await war_channel.send(embed=embed)
 
                     await self.store_war(war=war)
                 except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
@@ -369,12 +334,7 @@ class War_Log(commands.Cog):
         except:
             button = self.war_buttons(new_war=war)
             war_channel = await self.bot.getch_channel(warlog_channel, raise_exception=True)
-            is_thread = "thread" in str(war_channel.type)
-            war_webhook = await self.bot.getch_webhook(channel_id=warlog_channel)
-            if is_thread:
-                message = await war_webhook.send(embed=embed, components=button, thread=war_channel, wait=True)
-            else:
-                message = await war_webhook.send(embed=embed, components=button, wait=True)
+            await war_channel.send(embed=embed)
             war_id = f"{war.clan.tag}v{war.opponent.tag}-{int(war.start_time.time.timestamp())}"
             await self.bot.clan_db.update_one({"$and": [{"tag": war.clan.tag},{"server": server}]}, {'$set': {"war_message": message.id, "war_id": war_id}})
 
