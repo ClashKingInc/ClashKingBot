@@ -28,7 +28,9 @@ class Roster():
             "members" : [],
             "alias" : alias,
             "server_id" : guild.id,
-            "th_restriction" : "1-max"
+            "th_restriction" : "1-max",
+            "time" : None,
+            "description" : None
         })
         inserted_id = roster_result.inserted_id
         roster_result = await self.bot.rosters.find_one({"_id" : inserted_id})
@@ -56,9 +58,20 @@ class Roster():
 
     async def embed(self, move_text: str = ""):
         members = self.roster_result.get("members")
+        pre_description = self.roster_result.get("description")
+        time = self.roster_result.get("time")
+        if pre_description is None:
+            pre_description = ""
+        else:
+            pre_description = f"**Info:** `{pre_description[:100]}`\n"
+        if time is None:
+            time = ""
+        else:
+            time = f"**Starts:** <t:{time}:f>\n\n"
         if not members:
-            embed = disnake.Embed(title=f"__{self.roster_result.get('alias')} Roster__", description="No roster members.")
-            embed.set_footer(text=f"Linked to {self.roster_result.get('clan_name')}", icon_url=self.roster_result.get("clan_badge"))
+            embed = disnake.Embed(description=f"{pre_description}{time}No roster members.")
+            embed.set_author(icon_url=self.roster_result.get("clan_badge"),
+                             name=f"{self.roster_result.get('clan_name')} | {self.roster_result.get('alias')} Roster")
             return embed
 
         roster_text = []
@@ -129,9 +142,13 @@ class Roster():
                     s_text += f"{co}{text}"
                 roster_text = f"{roster_text}\n**{group_name}**\n{s_text}"
 
-        embed = disnake.Embed(title=f"__{self.roster_result.get('alias')} Roster__", description=roster_text)
+        embed = disnake.Embed(title=f"__{self.roster_result.get('alias')} Roster__", description=f"{pre_description}{time}{roster_text}")
         footer_text = "".join(f"Th{index}: {th} " for index, th in sorted(thcount.items(), reverse=True) if th != 0)
-        embed.set_footer(text=f"{footer_text}\nLinked to {self.roster_result.get('clan_name')}\nTh{self.th_min}-Th{self.th_max} | {self.roster_size} Account Limit\n{move_text}", icon_url=self.roster_result.get("clan_badge"))
+        embed.set_footer(text=f"{footer_text}\nTh{self.th_min}-Th{self.th_max} | {self.roster_size} Account Limit\n{move_text}")
+        embed.set_author(icon_url=self.roster_result.get("clan_badge"),
+                         name=f"{self.roster_result.get('clan_name')} | {self.roster_result.get('alias')} Roster")
+        embed.title = ""
+        embed.timestamp = datetime.now()
         if self.image is not None and move_text == "":
             embed.set_image(url=self.image)
         return embed
@@ -413,6 +430,9 @@ class Roster():
             {"$set": {"roster_size": roster_size}})
 
     async def rename(self, new_name):
+        roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": new_name}]})
+        if roster_result is not None:
+            raise RosterAliasAlreadyExists
         await self.bot.rosters.update_one(
             {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
             {"$set": {"alias": new_name}})
@@ -441,6 +461,7 @@ class Roster():
         await self.bot.rosters.update_one(
             {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
             {"$set": {"image": pic}})
+        return pic
 
     async def set_columns(self, columns: list):
         await self.bot.rosters.update_one(
@@ -463,6 +484,16 @@ class Roster():
         await self.bot.rosters.update_one(
             {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
             {"$set": {"sort": columns}})
+
+    async def set_time(self, time: (int, None)):
+        await self.bot.rosters.update_one(
+            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
+            {"$set": {"time": time}})
+
+    async def set_description(self, description: (str, None)):
+        await self.bot.rosters.update_one(
+            {"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.roster_result.get("alias")}]},
+            {"$set": {"description": description}})
 
     async def other_rosters(self):
         guild = self.roster_result.get("server_id")
