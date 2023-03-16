@@ -285,8 +285,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             clan: Use clan tag or select an option from the autocomplete
         """
 
-        embed = await clan_responder.opt_status(bot=self.bot, clan=clan)
-        embed.description += f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>"
+        embeds = await clan_responder.opt_status(bot=self.bot, clan=clan)
+        embeds[-1].description += f"Last Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
         buttons = disnake.ui.ActionRow()
         buttons.append_item(disnake.ui.Button(
@@ -294,7 +294,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             style=disnake.ButtonStyle.grey,
             custom_id=f"waropt_{clan.tag}"))
 
-        await ctx.edit_original_message(embed=embed, components=buttons)
+        await ctx.edit_original_message(embeds=embeds, components=buttons)
 
     @clan.sub_command(
         name="war-log",
