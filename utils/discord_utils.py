@@ -39,7 +39,10 @@ async def permanent_image(bot, url: str):
     pic = msg.attachments[0].url
     return pic
 
-async def interaction_handler(bot, ctx: disnake.ApplicationCommandInteraction, msg:disnake.Message, function: Callable = None, no_defer = False):
+async def interaction_handler(bot, ctx: disnake.ApplicationCommandInteraction, msg:disnake.Message = None, function: Callable = None, no_defer = False):
+    if msg is None:
+        msg = await ctx.original_message()
+
     async def return_res(res):
         return res
 
