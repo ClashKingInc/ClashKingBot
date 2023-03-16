@@ -22,54 +22,45 @@ class War_Log(commands.Cog):
         self.war_ee.on("war_attack", self.war_attack)
 
     async def new_war(self, event):
-        new_war = coc.ClanWar(data=event["war"], client=self.bot.coc_client)
-        tracked = self.bot.clan_db.find({"tag": f"{new_war.clan.tag}"})
-        limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_war.clan.tag}"})
+        cwl_group = event.get("league_group")
+        if cwl_group:
+            new_war = coc.ClanWar(data=event["war"], client=self.bot.coc_client, league_group=coc.ClanWarLeagueGroup(data=cwl_group, client=self.bot.coc_client))
+        else:
+            new_war = coc.ClanWar(data=event["war"], client=self.bot.coc_client)
 
-        for clan_result in await tracked.to_list(length=limit):
-            #a new war, insert reminders
-            cog = self.bot.get_cog(name="Reminder Cron")
-            reminder_times = await self.bot.get_reminder_times(clan_tag=new_war.clan.tag)
-            acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times,
-                                                           war_end_time=new_war.end_time)
-            if acceptable_times:
-                for time in acceptable_times:
-                    reminder_time = time[0] / 3600
-                    if reminder_time.is_integer():
-                        reminder_time = int(reminder_time)
-                    send_time = time[1]
-
-                    scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[new_war.clan.tag, reminder_time],
-                                      id=f"{reminder_time}_{new_war.clan.tag}", name=f"{new_war.clan.tag}", misfire_grace_time=None)
-
-            if new_war.state == "preparation" or new_war.state == "inWar":
-                if new_war.state == "preparation":
-                    scheduler.add_job(self.send_or_update_war_start, 'date', run_date=new_war.start_time,
+        cog = self.bot.get_cog(name="Reminder Cron")
+        reminder_times = await self.bot.get_reminder_times(clan_tag=new_war.clan.tag)
+        acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times, war_end_time=new_war.end_time)
+        if acceptable_times:
+            for time in acceptable_times:
+                reminder_time = time[0] / 3600
+                if reminder_time.is_integer():
+                    reminder_time = int(reminder_time)
+                send_time = time[1]
+                scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[new_war.clan.tag, reminder_time],
+                                  id=f"{reminder_time}_{new_war.clan.tag}", name=f"{new_war.clan.tag}",
+                                  misfire_grace_time=None)
+        if new_war.state == "preparation" or new_war.state == "inWar":
+            if new_war.state == "preparation":
+                scheduler.add_job(self.send_or_update_war_start, 'date', run_date=new_war.start_time,
                                   args=[new_war.clan.tag], id=f"war_start_{new_war.clan.tag}",
                                   name=f"{new_war.clan.tag}_war_start", misfire_grace_time=None)
-                scheduler.add_job(self.send_or_update_war_end, 'date', run_date=new_war.end_time,
-                                  args=[new_war.clan.tag], id=f"war_end_{new_war.clan.tag}",
-                                  name=f"{new_war.clan.tag}_war_end", misfire_grace_time=None)
+            scheduler.add_job(self.send_or_update_war_end, 'date', run_date=new_war.end_time,
+                              args=[new_war.clan.tag], id=f"war_end_{new_war.clan.tag}",
+                              name=f"{new_war.clan.tag}_war_end", misfire_grace_time=None)
 
-            #if war is not a cwl war, add to fw tracking
-            if not new_war.is_cwl:
-                try:
-                    await self.bot.war_client.register_war(clan_tag=new_war.clan_tag)
-                except:
-                    pass
+        if not new_war.is_cwl:
+            try:
+                await self.bot.war_client.register_war(clan_tag=new_war.clan_tag)
+            except:
+                pass
+
+        for clan_result in await self.bot.clan_db.find({"tag": f"{new_war.clan.tag}"}).to_list(length=500):
+            if clan_result.get("war_log") is None:
+                continue
 
             try:
-                if clan_result.get("war_log") is None:
-                    continue
-                try:
-                    war_webhook: disnake.Webhook = await self.bot.getch_webhook(channel_id=clan_result.get("war_log"))
-                except (disnake.NotFound, disnake.Forbidden):
-                    await self.bot.clan_db.update_one({"$and": [
-                        {"tag": new_war.clan.tag},
-                        {"server": clan_result.get("server")}
-                    ]}, {'$set': {"war_log": None}})
-                    continue
-
+                war_webhook: disnake.Webhook = await self.bot.getch_webhook(channel_id=clan_result.get("war_log"))
                 feed_type = clan_result.get("attack_feed", "Continuous Feed")  # other is "Update Feed"
                 war_cog = self.bot.get_cog(name="War")
 
@@ -85,7 +76,6 @@ class War_Log(commands.Cog):
                         await war_webhook.send(embed=embed)
 
                 elif new_war.state == "inWar":
-
                     if feed_type == "Update Feed":
                         await self.update_war_message(war=new_war, clan_result=clan_result, clan=clan)
                     else:
@@ -93,7 +83,6 @@ class War_Log(commands.Cog):
                         await war_webhook.send(embed=embed)
 
                 elif new_war.state == "warEnded":
-
                     embed = await war_cog.main_war_page(war=new_war, clan=clan)
                     embed.set_footer(text=f"{new_war.type.capitalize()} War")
 
@@ -127,11 +116,21 @@ class War_Log(commands.Cog):
 
                     await self.store_war(war=new_war)
 
-            except:
+            except (disnake.NotFound, disnake.Forbidden):
+                await self.bot.clan_db.update_one({"$and": [
+                    {"tag": new_war.clan.tag},
+                    {"server": clan_result.get("server")}
+                ]}, {'$set': {"war_log": None}})
                 continue
 
+
     async def war_attack(self, event):
-        war = coc.ClanWar(data=event["war"], client=self.bot.coc_client)
+        cwl_group = event.get("league_group")
+        if cwl_group:
+            war = coc.ClanWar(data=event["war"], client=self.bot.coc_client,
+                                  league_group=coc.ClanWarLeagueGroup(data=cwl_group, client=self.bot.coc_client))
+        else:
+            war = coc.ClanWar(data=event["war"], client=self.bot.coc_client)
         attack = coc.WarAttack(data=event["attack"], client=self.bot.coc_client, war=war)
 
         current_time = int(datetime.now().timestamp())
@@ -168,23 +167,14 @@ class War_Log(commands.Cog):
             await self.bot.player_stats.update_one({"tag": attack.attacker_tag}, {"$inc": {f"points": points_earned}})
 
         #is an attack
-        tracked = self.bot.clan_db.find({"tag": f"{war.clan.tag}"})
-        limit = await self.bot.clan_db.count_documents(filter={"tag": f"{war.clan.tag}"})
-        for cc in await tracked.to_list(length=limit):
+        for cc in await self.bot.clan_db.find({"tag": f"{war.clan.tag}"}).to_list(length=500):
             try:
                 warlog_channel = cc.get("war_log")
                 if warlog_channel is None:
                     continue
-                try:
-                    warlog_channel = await self.bot.fetch_channel(warlog_channel)
-                    if warlog_channel is None:
-                        continue
-                except (disnake.NotFound, disnake.Forbidden):
-                    await self.bot.clan_db.update_one({"server": cc.get("server")}, {'$set': {"war_log": None}})
-                    continue
-                attack_feed = cc.get("attack_feed")
-                war_message = cc.get("war_message")
-                war_id = cc.get("war_id")
+                war_webhook: disnake.Webhook = await self.bot.getch_webhook(warlog_channel)
+
+                attack_feed = cc.get("attack_feed", "Continuous Feed")
 
                 #only update last online if its an attack (is on the war clan side)
                 if attack.attacker.clan.tag == war.clan.tag:
@@ -195,8 +185,6 @@ class War_Log(commands.Cog):
                         await self.bot.player_stats.update_one({"tag": attack.attacker.tag}, {"$set": {"last_online": _time}})
                         await self.bot.player_stats.update_one({"tag": attack.attacker.tag}, {"$push": {f"last_online_times.{season}": _time}})
 
-                if attack_feed is None:
-                    attack_feed = "Continuous Feed"
                 if attack_feed == "Continuous Feed":
                     star_str = ""
                     stars = attack.stars
@@ -205,13 +193,6 @@ class War_Log(commands.Cog):
                     for x in range(0, 3 - stars):
                         star_str += self.bot.emoji.no_star.emoji_string
 
-                    if attack.is_fresh_attack:
-                        fresh_emoji = self.bot.emoji.yes
-                    else:
-                        fresh_emoji = self.bot.emoji.no
-                    war_cog = self.bot.get_cog(name="War")
-                    stats = await war_cog.calculate_stars_percent(war)
-
                     if attack.attacker.clan.tag == war.clan.tag:
                         hit_message = f"{self.bot.emoji.thick_sword} {emojiDictionary(attack.attacker.town_hall)}**{attack.attacker.name}{self.create_superscript(num=attack.attacker.map_position)}**" \
                                       f" {star_str} **{attack.destruction}%** {emojiDictionary(attack.defender.town_hall)}{self.create_superscript(num=attack.defender.map_position)}"
@@ -219,55 +200,49 @@ class War_Log(commands.Cog):
                         # is a defense
                         hit_message = f"{self.bot.emoji.shield} {emojiDictionary(attack.defender.town_hall)}**{attack.defender.name}{self.create_superscript(num=attack.defender.map_position)}**" \
                                       f" {star_str} **{attack.destruction}%** {emojiDictionary(attack.attacker.town_hall)}{self.create_superscript(num=attack.attacker.map_position)}"
-                    await warlog_channel.send(content=hit_message)
+                    await war_webhook.send(content=hit_message)
                 else:
                     clan = None
                     if war.type == "cwl":
                         clan = await self.bot.getClan(war.clan.tag)
                     await self.update_war_message(war=war, clan_result=cc, clan=clan)
-            except Exception as e:
-                e = e[0:2000]
-                channel = await self.bot.fetch_channel(923767060977303552)
-                await channel.send(content= e)
+
+            except (disnake.NotFound, disnake.Forbidden):
+                await self.bot.clan_db.update_one({"server": cc.get("server")}, {'$set': {"war_log": None}})
+                continue
+
+
 
     async def send_or_update_war_start(self, clan_tag:str):
-        war = await self.bot.get_clanwar(clanTag=clan_tag)
+        war: coc.ClanWar = await self.bot.get_clanwar(clanTag=clan_tag)
+        war.state = "inWar"
         if war is not None:
-            tracked = self.bot.clan_db.find({"tag": f"{clan_tag}"})
-            limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan_tag}"})
-
-            for clan_result in await tracked.to_list(length=limit):
+            for clan_result in await self.bot.clan_db.find({"tag": f"{clan_tag}"}).to_list(length=500):
                 try:
                     if clan_result.get("war_log") is None:
                         continue
-                    try:
-                        war_webhook: disnake.Webhook = await self.bot.getch_webhook(channel_id=clan_result.get("war_log"))
-                    except (disnake.NotFound, disnake.Forbidden):
-                        await self.bot.clan_db.update_one({"$and": [
-                            {"tag": war.clan.tag},
-                            {"server": clan_result.get("server")}
-                        ]}, {'$set': {"war_log": None}})
-                        continue
-
+                    war_webhook: disnake.Webhook = await self.bot.getch_webhook(channel_id=clan_result.get("war_log"))
                     feed_type = clan_result.get("attack_feed", "Continuous Feed")  # other is "Update Feed"
-
                     clan = None
                     if war.type == "cwl":
                         clan = await self.bot.getClan(war.clan.tag)
-
                     if feed_type == "Update Feed":
                         await self.update_war_message(war=war, clan_result=clan_result, clan=clan)
                     else:
                         embed = self.war_start_embed(new_war=war)
                         await war_webhook.send(embed=embed)
-                except:
-                    pass
+                except (disnake.NotFound, disnake.Forbidden):
+                    await self.bot.clan_db.update_one({"$and": [
+                        {"tag": war.clan.tag},
+                        {"server": clan_result.get("server")}
+                    ]}, {'$set': {"war_log": None}})
+                    continue
 
     async def send_or_update_war_end(self, clan_tag:str):
         war = await self.bot.get_clanwar(clanTag=clan_tag)
         if war is not None:
             if war.state != "warEnded":
-                await asyncio.sleep(60)
+                await asyncio.sleep(90)
                 client_war = await self.bot.war_client.war_result(clan_tag=war.clan_tag, preparation_start=int(war.preparation_start_time.time.timestamp()))
                 if client_war is None:
                     await asyncio.sleep(300)
@@ -277,21 +252,11 @@ class War_Log(commands.Cog):
                 else:
                     war = client_war
 
-            tracked = self.bot.clan_db.find({"tag": f"{clan_tag}"})
-            limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan_tag}"})
-
-            for clan_result in await tracked.to_list(length=limit):
+            for clan_result in await self.bot.clan_db.find({"tag": f"{clan_tag}"}).to_list(length=500):
                 try:
                     if clan_result.get("war_log") is None:
                         continue
-                    try:
-                        war_webhook: disnake.Webhook = await self.bot.getch_webhook(channel_id=clan_result.get("war_log"))
-                    except (disnake.NotFound, disnake.Forbidden):
-                        await self.bot.clan_db.update_one({"$and": [
-                            {"tag": war.clan.tag},
-                            {"server": clan_result.get("server")}
-                        ]}, {'$set': {"war_log": None}})
-                        continue
+                    war_webhook: disnake.Webhook = await self.bot.getch_webhook(channel_id=clan_result.get("war_log"))
 
                     feed_type = clan_result.get("attack_feed", "Continuous Feed")  # other is "Update Feed"
                     war_cog = self.bot.get_cog(name="War")
@@ -332,8 +297,12 @@ class War_Log(commands.Cog):
                         await war_webhook.send(embed=embed)
 
                     await self.store_war(war=war)
-                except:
-                    pass
+                except (disnake.NotFound, disnake.Forbidden):
+                    await self.bot.clan_db.update_one({"$and": [
+                        {"tag": war.clan.tag},
+                        {"server": clan_result.get("server")}
+                    ]}, {'$set': {"war_log": None}})
+                    continue
 
     async def update_war_message(self, war: coc.ClanWar, clan_result: dict, clan: coc.Clan):
         message_id = clan_result.get("war_message")
@@ -351,10 +320,11 @@ class War_Log(commands.Cog):
             await message.edit(embed=embed)
         except:
             button = self.war_buttons(new_war=war)
-            war_webhook = await self.bot.getch_webhook(channel_id=warlog_channel)
+            war_webhook = await self.bot.getch_webhook(channel_id=1066744497838505994)
             message = await war_webhook.send(embed=embed, components=button, wait=True)
             war_id = f"{war.clan.tag}v{war.opponent.tag}-{int(war.start_time.time.timestamp())}"
             await self.bot.clan_db.update_one({"$and": [{"tag": war.clan.tag},{"server": server}]}, {'$set': {"war_message": message.id, "war_id": war_id}})
+
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
@@ -362,13 +332,26 @@ class War_Log(commands.Cog):
             await ctx.response.defer(ephemeral=True)
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             war = await self.bot.get_clanwar(clan)
+            if war is None:
+                war = await self.bot.war_client.war_result(clan_tag=clan, preparation_start=int(str(ctx.data.custom_id).split("_")[1]))
+            if war is None:
+                return await ctx.send(content="No War Found", ephemeral=True)
             war_cog = self.bot.get_cog(name="War")
-            attack_embed = await war_cog.attacks_embed(war)
+            attack_embed: disnake.Embed = await war_cog.attacks_embed(war)
+            len(attack_embed.description)
+            try:
+                len(attack_embed.fields[0].value)
+            except:
+                pass
             await ctx.send(embed=attack_embed, ephemeral=True)
         elif "listwardefenses_" in str(ctx.data.custom_id):
             await ctx.response.defer(ephemeral=True)
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             war = await self.bot.get_clanwar(clan)
+            if war is None:
+                war = await self.bot.war_client.war_result(clan_tag=clan, preparation_start=int(str(ctx.data.custom_id).split("_")[1]))
+            if war is None:
+                return await ctx.send(content="No War Found", ephemeral=True)
             war_cog = self.bot.get_cog(name="War")
             attack_embed = await war_cog.defenses_embed(war)
             await ctx.send(embed=attack_embed, ephemeral=True)
@@ -396,7 +379,12 @@ class War_Log(commands.Cog):
                               custom_id=f"listwarattacks_{int(new_war.preparation_start_time.time.timestamp())}_{new_war.clan.tag}"),
             disnake.ui.Button(label="Defenses", emoji=self.bot.emoji.shield.partial_emoji,
                               style=disnake.ButtonStyle.grey,
-                              custom_id=f"listwardefenses_{int(new_war.preparation_start_time.time.timestamp())}_{new_war.clan.tag}"))]
+                              custom_id=f"listwardefenses_{int(new_war.preparation_start_time.time.timestamp())}_{new_war.clan.tag}"),
+            disnake.ui.Button(label="", emoji="✏️",
+                              style=disnake.ButtonStyle.green,
+                              disabled=True,
+                              custom_id=f"listlineup_{int(new_war.preparation_start_time.time.timestamp())}_{new_war.clan.tag}"))
+        ]
         return button
 
     def create_superscript(self, num):
