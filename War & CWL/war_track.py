@@ -19,7 +19,7 @@ class War_Log(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.war_ee = war_ee
-        #self.war_ee.on("new_war", self.new_war)
+        self.war_ee.on("new_war", self.new_war)
         self.war_ee.on("war_attack", self.war_attack)
 
     async def new_war(self, event):
@@ -173,7 +173,7 @@ class War_Log(commands.Cog):
             await self.bot.player_stats.update_one({"tag": attack.attacker_tag}, {"$inc": {f"points": points_earned}})
 
         #is an attack
-        for cc in await self.bot.clan_db.find({"tag": f"{war.clan.tag}"}).to_list(length=500):
+        for cc in await self.bot.clan_db.find({"tag": f"{attack.attacker.clan.tag}"}).to_list(length=500):
             try:
                 warlog_channel = cc.get("war_log")
                 if warlog_channel is None:
