@@ -10,15 +10,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
 
     ###Command Groups
     @commands.slash_command(name="family-roles")
-    async def general_fam_roles(self, ctx):
-        pass
-
-    @commands.slash_command(name="notfamily-roles")
-    async def not_fam_roles(self, ctx):
-        pass
-
-    @commands.slash_command(name="ignored-roles")
-    async def ignored_roles(self, ctx):
+    async def family_roles(self, ctx):
         pass
 
     @commands.slash_command(name="townhall-roles")
@@ -33,203 +25,102 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
     async def builderhall_roles(self, ctx):
         pass
 
-    ###General Family Role Section
-    @general_fam_roles.sub_command(name="add", description="Add a role to be given to family members")
+    @family_roles.sub_command(name="add", description="Add Family Based Eval Roles")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def general_fam_roles_add(self, ctx: disnake.ApplicationCommandInteraction, role:disnake.Role):
+    async def family_roles_add(self, ctx: disnake.ApplicationCommandInteraction, type = commands.Param(choices=["Only-Family Roles", "Not-Family Roles", "Ignored Roles"]),
+                               role: disnake.Role = commands.Param(name="role")):
 
-        results = await self.bot.generalfamroles.find_one({"$and": [
+        await ctx.response.defer()
+        if type == "Only-Family Roles":
+            database = self.bot.generalfamroles
+        elif type == "Not-Family Roles":
+            database = self.bot.notfamroles
+        elif type == "Ignored Roles":
+            database = self.bot.ignoredroles
+
+        embed = await self.family_role_add(database=database, role=role, guild=ctx.guild, type=type)
+        await ctx.edit_original_message(embed=embed)
+
+    @family_roles.sub_command(name="remove", description="Remove Family Based Eval Roles")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def family_roles_remove(self, ctx: disnake.ApplicationCommandInteraction, type = commands.Param(choices=["Only-Family Roles", "Not-Family Roles", "Ignored Roles"]),
+                               role: disnake.Role = commands.Param(name="role")):
+
+        await ctx.response.defer()
+        if type == "Only-Family Roles":
+            database = self.bot.generalfamroles
+        elif type == "Not-Family Roles":
+            database = self.bot.notfamroles
+        elif type == "Ignored Roles":
+            database = self.bot.ignoredroles
+
+        embed = await self.family_role_remove(database=database, role=role, guild=ctx.guild, type=type)
+        await ctx.edit_original_message(embed=embed)
+
+
+    async def family_role_add(self, database, type: str, role: disnake.Role, guild: disnake.Guild) -> disnake.Embed:
+        results = await database.find_one({"$and": [
             {"role": role.id},
-            {"server": ctx.guild.id}
+            {"server": guild.id}
         ]})
         if results is not None:
-            embed = disnake.Embed(description=f"{role.mention} is already in the general family roles list.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            return disnake.Embed(description=f"{role.mention} is already in the {type} list.", color=disnake.Color.red())
 
-        await self.bot.generalfamroles.insert_one({
-            "server": ctx.guild.id,
+        if role.is_default():
+            return disnake.Embed(description=f"Cannot use the @everyone role for {type}", color=disnake.Color.red())
+
+        await database.insert_one({
+            "server": guild.id,
             "role": role.id
         })
 
         embed = disnake.Embed(
-            description=f"{role.mention} added to the general family role list.",
+            description=f"{role.mention} added to the {type} list.",
             color=disnake.Color.green())
-        return await ctx.send(embed=embed)
+        return embed
 
-    @general_fam_roles.sub_command(name="remove", description="Remove a role from general family role list")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def general_fam_roles_remove(self, ctx: disnake.ApplicationCommandInteraction, role: disnake.Role):
 
-        results = await self.bot.generalfamroles.find_one({"$and": [
+    async def family_role_remove(self, database, type: str, role: disnake.Role, guild: disnake.Guild) -> disnake.Embed:
+        results = await database.find_one({"$and": [
             {"role": role.id},
-            {"server": ctx.guild.id}
-        ]})
-        if results is None:
-            embed = disnake.Embed(description=f"{role.mention} is not currently in the general family roles list.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
-
-        await self.bot.generalfamroles.find_one_and_delete({"role": role.id})
-
-        embed = disnake.Embed(
-            description=f"{role.mention} removed from the general family roles list.",
-            color=disnake.Color.green())
-        return await ctx.send(embed=embed)
-
-    @general_fam_roles.sub_command(name="list", description="List of roles that are given to family members")
-    async def general_fam_roles_list(self, ctx: disnake.ApplicationCommandInteraction):
-        text = ""
-        all = self.bot.generalfamroles.find({"server": ctx.guild.id})
-        limit = await self.bot.generalfamroles.count_documents(filter={"server": ctx.guild.id})
-        for role in await all.to_list(length=limit):
-            r = role.get("role")
-            text += f"<@&{r}>\n"
-
-        if text == "":
-            text = "No General Family roles."
-
-        embed = disnake.Embed(title=f"General Family Roles",
-                              description=text,
-                              color=disnake.Color.green())
-
-        await ctx.send(embed=embed)
-
-
-
-
-
-
-    ###Not Family Role Section
-    @not_fam_roles.sub_command(name="add", description="Add a role to be given to non family members")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def not_fam_roles_add(self, ctx: disnake.ApplicationCommandInteraction, role:disnake.Role):
-
-        results = await self.bot.notfamroles.find_one({"$and": [
-            {"role": role.id},
-            {"server": ctx.guild.id}
+            {"server": guild.id}
         ]})
         if results is not None:
-            embed = disnake.Embed(description=f"{role.mention} is already in the not family roles list.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            return disnake.Embed(description=f"{role.mention} is not currently in the {type} list.", color=disnake.Color.red())
 
-        await self.bot.notfamroles.insert_one({
-            "server": ctx.guild.id,
-            "role": role.id
-        })
+        if role.is_default():
+            return disnake.Embed(description=f"Cannot use the @everyone role for {type}", color=disnake.Color.red())
 
-        embed = disnake.Embed(
-            description=f"{role.mention} added to the not family roles list.",
-            color=disnake.Color.green())
-        return await ctx.send(embed=embed)
+        await database.find_one_and_delete({"role": role.id})
 
-    @not_fam_roles.sub_command(name="remove", description="Remove a role from non family role list")
+        return disnake.Embed(description=f"{role.mention} removed from the {type} list.", color=disnake.Color.green())
+
+
+    @family_roles.sub_command(name="list", description="List Family Based Eval Roles")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def not_fam_roles_remove(self, ctx: disnake.ApplicationCommandInteraction, role: disnake.Role):
+    async def family_role_list(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
 
-        results = await self.bot.notfamroles.find_one({"$and": [
-            {"role": role.id},
-            {"server": ctx.guild.id}
-        ]})
-        if results is None:
-            embed = disnake.Embed(description=f"{role.mention} is not currently in the not family roles list.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+        family_roles = await self.bot.generalfamroles.find({"server": ctx.guild.id}).to_list(length=100)
+        not_family_roles = await self.bot.notfamroles.find({"server": ctx.guild.id}).to_list(length=100)
+        ignored_roles = await self.bot.ignoredroles.find({"server" : ctx.guild.id}).to_list(length=100)
 
-        await self.bot.notfamroles.find_one_and_delete({"role": role.id})
+        list_roles = [family_roles, not_family_roles, ignored_roles]
+        role_names = ["Only-Family Roles", "Not-Family Roles", "Ignored Roles"]
 
-        embed = disnake.Embed(
-            description=f"{role.mention} removed from the not family roles list.",
-            color=disnake.Color.green())
-        return await ctx.send(embed=embed)
+        embed = disnake.Embed(title=f"{ctx.guild.name} Family Role List", color= disnake.Color.green())
+        for role_list, role_name in zip(list_roles, role_names):
+            text = ""
+            for result in role_list:
+                role = ctx.guild.get_role(result.get("role"))
+                if role is None:
+                    continue
+                text += f"{role.mention}\n"
+            if text == "":
+                text = "No Roles"
+            embed.add_field(name=f"**{role_name}**", value=text)
 
-    @not_fam_roles.sub_command(name="list", description="List of roles that are given to non family members")
-    async def not_fam_roles_list(self, ctx: disnake.ApplicationCommandInteraction):
-        text = ""
-        all = self.bot.notfamroles.find({"server": ctx.guild.id})
-        limit = await self.bot.notfamroles.count_documents(filter={"server": ctx.guild.id})
-        for role in await all.to_list(length=limit):
-            r = role.get("role")
-            text += f"<@&{r}>\n"
-
-        if text == "":
-            text = "No Not Family Roles."
-
-        embed = disnake.Embed(title=f"Not Family Roles",
-                              description=text,
-                              color=disnake.Color.green())
-
-        await ctx.send(embed=embed)
-
-
-
-
-
-
-    ###Ignored Roles Section
-    @ignored_roles.sub_command(name="add", description="Add a role to be ignored during eval for family members")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def ignored_roles_add(self, ctx: disnake.ApplicationCommandInteraction, role: disnake.Role):
-
-        results = await self.bot.ignoredroles.find_one({"$and": [
-            {"role": role.id},
-            {"server": ctx.guild.id}
-        ]})
-        if results is not None:
-            embed = disnake.Embed(description=f"{role.mention} role is already ignored during eval.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
-
-        await self.bot.ignoredroles.insert_one({
-            "server": ctx.guild.id,
-            "role" : role.id
-        })
-
-        embed = disnake.Embed(
-            description=f"{role.mention} added as a role to ignore during evaluation for family members.",
-            color=disnake.Color.green())
-        return await ctx.send(embed=embed)
-
-    @ignored_roles.sub_command(name="remove", description="Removes a role from the ignore during eval role list")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def ignored_roles_remove(self, ctx: disnake.ApplicationCommandInteraction, role: disnake.Role):
-
-        results = await self.bot.ignoredroles.find_one({"$and": [
-            {"role": role.id},
-            {"server": ctx.guild.id}
-        ]})
-        if results is None:
-            embed = disnake.Embed(description=f"{role.mention} is not currently ignored during eval.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
-
-        await self.bot.ignoredroles.find_one_and_delete({"role" : role.id})
-
-        embed = disnake.Embed(
-            description=f"{role.mention} removed as a role to ignore during evaluation for family members.",
-            color=disnake.Color.green())
-        return await ctx.send(embed=embed)
-
-    @ignored_roles.sub_command(name="list", description="List of roles that are ignored for family members during eval")
-    async def ignored_roles_list(self, ctx: disnake.ApplicationCommandInteraction):
-        text = ""
-        all = self.bot.ignoredroles.find({"server" : ctx.guild.id})
-        limit = await self.bot.ignoredroles.count_documents(filter={"server": ctx.guild.id})
-        for role in await all.to_list(length=limit):
-            r = role.get("role")
-            text += f"<@&{r}>\n"
-
-        if text == "":
-            text = "No Eval Ignored Roles."
-
-        embed = disnake.Embed(title=f"Eval Ignored Roles",
-                              description=text,
-                              color=disnake.Color.green())
-
-        await ctx.send(embed=embed)
-
-
+        await ctx.edit_original_message(embed=embed)
 
 
 
