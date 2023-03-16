@@ -89,7 +89,7 @@ class DiscordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild:disnake.Guild):
-        msg = "Thanks for inviting me to your server! I'm ClashKing, your friendly Clash of Clans bot. With me around, you can easily track legends, autoboards, clans/families, and much more. To get started, simply type in the /help command to see a list of available commands. If you need any further assistance, don't hesitate to check out our documentation or join our support server. We're always here to help you get the most out of your COC experience! Thanks again for having me on board."
+        msg = "Thanks for inviting me to your server! I'm ClashKing, your friendly Clash of Clans bot. With me around, you can easily track legends, create autoboards, and fully manage your clan & families with everything from rosters to ticketing. To get started, simply type in the `/help` command to see a list of available commands. If you need any further assistance, don't hesitate to check out our documentation (in progress) or join our support server. We're always here to help you get the most out of your Clash experience! Thanks again for having me on board."
         results = await self.bot.server_db.find_one({"server": guild.id})
         botAdmin = guild.get_member(self.bot.user.id).guild_permissions.administrator
         if results is None:
@@ -131,8 +131,9 @@ class DiscordEvents(commands.Cog):
         buttons = disnake.ui.ActionRow()
         buttons.append_item(disnake.ui.Button(label="Support Server", emoji="🔗", url="https://discord.gg/clashking"))
         buttons.append_item(disnake.ui.Button(label="Documentation", emoji="🔗", url="https://docs.clashking.xyz"))
+        embed.set_footer(text="Admin permissions are recommended for full functionality & easier set up, thank you!") if not botAdmin else None
         await firstChannel.send(components=buttons, embed=embed) if results is None else None
-        await firstChannel.send("I require admin permissions for full functionality. Please update my permissions, thank you!") if not botAdmin else None
+        
 
 
     @commands.Cog.listener()
