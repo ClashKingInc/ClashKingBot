@@ -42,10 +42,10 @@ class War_Log(commands.Cog):
                                   misfire_grace_time=None)
         if new_war.state == "preparation" or new_war.state == "inWar":
             if new_war.state == "preparation":
-                scheduler.add_job(self.send_or_update_war_start, 'date', run_date=new_war.start_time,
+                scheduler.add_job(self.send_or_update_war_start, 'date', run_date=new_war.start_time.time,
                                   args=[new_war.clan.tag], id=f"war_start_{new_war.clan.tag}",
                                   name=f"{new_war.clan.tag}_war_start", misfire_grace_time=None)
-            scheduler.add_job(self.send_or_update_war_end, 'date', run_date=new_war.end_time,
+            scheduler.add_job(self.send_or_update_war_end, 'date', run_date=new_war.end_time.time,
                               args=[new_war.clan.tag], id=f"war_end_{new_war.clan.tag}",
                               name=f"{new_war.clan.tag}_war_end", misfire_grace_time=None)
 

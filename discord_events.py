@@ -42,10 +42,10 @@ class DiscordEvents(commands.Cog):
             try:
                 other_cog = self.bot.get_cog(name="War_Log")
                 if new_war.state == "preparation":
-                    scheduler.add_job(other_cog.send_or_update_war_start, 'date', run_date=new_war.start_time,
+                    scheduler.add_job(other_cog.send_or_update_war_start, 'date', run_date=new_war.start_time.time,
                                       args=[new_war.clan.tag], id=f"war_start_{new_war.clan.tag}",
                                       name=f"{new_war.clan.tag}_war_start", misfire_grace_time=None)
-                scheduler.add_job(other_cog.send_or_update_war_end, 'date', run_date=new_war.end_time,
+                scheduler.add_job(other_cog.send_or_update_war_end, 'date', run_date=new_war.end_time.time,
                                   args=[new_war.clan.tag], id=f"war_end_{new_war.clan.tag}",
                                   name=f"{new_war.clan.tag}_war_end", misfire_grace_time=None)
             except:
