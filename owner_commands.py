@@ -10,7 +10,6 @@ import asyncio
 from CustomClasses.CustomBot import CustomClient
 from pymongo import UpdateOne
 from PIL import Image, ImageDraw, ImageFont
-import io
 #import chat_exporter
 from ImageGen import WarEndResult as war_gen
 from ImageGen import ClanCapitalResult as capital_gen
