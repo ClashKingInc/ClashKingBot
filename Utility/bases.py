@@ -1,6 +1,7 @@
 
-
 import coc
+from urllib.request import Request, urlopen
+import io
 import disnake
 from disnake.ext import commands
 from datetime import datetime
@@ -36,7 +37,15 @@ class Bases(commands.Cog):
         r2.append_item(feedback)
         r2.append_item(feedback_button)
 
-        await ctx.edit_original_message(content=f"[➼]({photo.url}) {description}", components=[r1, r2])
+
+        req = Request(url=photo.url, headers={'User-Agent': 'Mozilla/5.0'})
+        f = io.BytesIO(urlopen(req).read())
+        file = disnake.File(fp=f, filename="pic.png")
+        pic_channel = await self.bot.fetch_channel(884951195406458900)
+        msg = await pic_channel.send(file=file)
+        pic = msg.attachments[0].url
+
+        await ctx.edit_original_message(content=f"[➼]({pic}) {description}", components=[r1, r2])
         msg = await ctx.original_message()
         await self.bot.bases.insert_one({
             "link": base_link,
