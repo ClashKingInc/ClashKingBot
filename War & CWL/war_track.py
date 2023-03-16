@@ -268,7 +268,7 @@ class War_Log(commands.Cog):
                             await war_webhook.send(embed=embed, thread=war_channel)
                         else:
                             await war_webhook.send(embed=embed)
-                except (disnake.NotFound, disnake.Forbidden):
+                except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                     await self.bot.clan_db.update_one({"$and": [
                         {"tag": war.clan.tag},
                         {"server": clan_result.get("server")}
@@ -345,7 +345,7 @@ class War_Log(commands.Cog):
                             await war_webhook.send(embed=embed)
 
                     await self.store_war(war=war)
-                except (disnake.NotFound, disnake.Forbidden):
+                except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                     await self.bot.clan_db.update_one({"$and": [
                         {"tag": war.clan.tag},
                         {"server": clan_result.get("server")}
