@@ -12,6 +12,7 @@ from main import scheduler
 tiz = pytz.utc
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 from EventHub.event_websockets import war_ee
+from Exceptions import MissingWebhookPerms
 
 class War_Log(commands.Cog):
 
@@ -116,7 +117,7 @@ class War_Log(commands.Cog):
 
                     await self.store_war(war=new_war)
 
-            except (disnake.NotFound, disnake.Forbidden):
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await self.bot.clan_db.update_one({"$and": [
                     {"tag": new_war.clan.tag},
                     {"server": clan_result.get("server")}
@@ -207,7 +208,7 @@ class War_Log(commands.Cog):
                         clan = await self.bot.getClan(war.clan.tag)
                     await self.update_war_message(war=war, clan_result=cc, clan=clan)
 
-            except (disnake.NotFound, disnake.Forbidden):
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await self.bot.clan_db.update_one({"server": cc.get("server")}, {'$set': {"war_log": None}})
                 continue
 

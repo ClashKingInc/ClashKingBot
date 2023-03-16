@@ -32,3 +32,6 @@ class PanelAlreadyExists(Exception):
 
 class FaultyJson(Exception):
     pass
+
+class MissingWebhookPerms(Exception):
+    pass

@@ -15,6 +15,7 @@ from collections import defaultdict
 from utils.troop_methods import cwl_league_emojis
 from CustomClasses.PlayerHistory import COSPlayerHistory
 #from odmantic import AIOEngine
+from Exceptions import MissingWebhookPerms
 
 import dateutil.relativedelta
 import ast
@@ -564,7 +565,7 @@ class CustomClient(commands.AutoShardedBot):
         member = await guild.get_or_fetch_member(self.user.id)
         perms = channel.permissions_for(member)
         if not perms.manage_webhooks:
-            raise disnake.NotFound
+            raise MissingWebhookPerms
 
         try:
             webhook = self.feed_webhooks[channel.id]
