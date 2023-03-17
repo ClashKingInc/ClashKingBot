@@ -25,9 +25,9 @@ class War_Log(commands.Cog):
     async def new_war(self, event):
         cwl_group = event.get("league_group")
         if cwl_group:
-            new_war = coc.ClanWar(data=event["war"], client=self.bot.coc_client, league_group=coc.ClanWarLeagueGroup(data=cwl_group, client=self.bot.coc_client))
+            new_war = coc.ClanWar(data=event["war"], client=self.bot.coc_client, league_group=coc.ClanWarLeagueGroup(data=cwl_group, client=self.bot.coc_client), clan_tag=event.get("clan_tag"))
         else:
-            new_war = coc.ClanWar(data=event["war"], client=self.bot.coc_client)
+            new_war = coc.ClanWar(data=event["war"], client=self.bot.coc_client, clan_tag=event.get("clan_tag"))
 
         cog = self.bot.get_cog(name="Reminder Cron")
         reminder_times = await self.bot.get_reminder_times(clan_tag=new_war.clan.tag)
@@ -134,9 +134,9 @@ class War_Log(commands.Cog):
         cwl_group = event.get("league_group")
         if cwl_group:
             war = coc.ClanWar(data=event["war"], client=self.bot.coc_client,
-                                  league_group=coc.ClanWarLeagueGroup(data=cwl_group, client=self.bot.coc_client))
+                                  league_group=coc.ClanWarLeagueGroup(data=cwl_group, client=self.bot.coc_client), clan_tag=event.get("clan_tag"))
         else:
-            war = coc.ClanWar(data=event["war"], client=self.bot.coc_client)
+            war = coc.ClanWar(data=event["war"], client=self.bot.coc_client, clan_tag=event.get("clan_tag"))
         attack = coc.WarAttack(data=event["attack"], client=self.bot.coc_client, war=war)
 
         current_time = int(datetime.now().timestamp())
@@ -318,7 +318,7 @@ class War_Log(commands.Cog):
         war_id = clan_result.get("war_id")
         server = clan_result.get("server")
 
-        if war_id != f"{war.clan.tag}v{war.opponent.tag}-{int(war.start_time.time.timestamp())}":
+        if war_id != f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}":
             message_id = None
         war_cog = self.bot.get_cog(name="War")
         embed = await war_cog.main_war_page(war=war, clan=clan)
@@ -330,8 +330,8 @@ class War_Log(commands.Cog):
             button = self.war_buttons(new_war=war)
             war_channel = await self.bot.getch_channel(channel_id=clan_result.get("war_log"), raise_exception=True)
             message = await war_channel.send(embed=embed, components=button)
-            war_id = f"{war.clan.tag}v{war.opponent.tag}-{int(war.start_time.time.timestamp())}"
-            await self.bot.clan_db.update_one({"$and": [{"tag": war.clan.tag},{"server": server}]}, {'$set': {"war_message": message.id, "war_id": war_id}})
+            war_id = f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}"
+            await self.bot.clan_db.update_one({"$and": [{"tag": war.clan.tag}, {"server": server}]}, {'$set': {"war_message": message.id, "war_id": war_id}})
 
 
     @commands.Cog.listener()
@@ -339,7 +339,7 @@ class War_Log(commands.Cog):
         if "listwarattacks_" in str(ctx.data.custom_id):
             await ctx.response.defer(ephemeral=True)
             clan = (str(ctx.data.custom_id).split("_"))[-1]
-            war = await self.bot.get_clanwar(clan)
+            war = await self.bot.get_clanwar(clanTag=clan)
             if war is None:
                 war = await self.bot.war_client.war_result(clan_tag=clan, preparation_start=int(str(ctx.data.custom_id).split("_")[1]))
             if war is None:
@@ -355,7 +355,7 @@ class War_Log(commands.Cog):
         elif "listwardefenses_" in str(ctx.data.custom_id):
             await ctx.response.defer(ephemeral=True)
             clan = (str(ctx.data.custom_id).split("_"))[-1]
-            war = await self.bot.get_clanwar(clan)
+            war = await self.bot.get_clanwar(clanTag=clan)
             if war is None:
                 war = await self.bot.war_client.war_result(clan_tag=clan, preparation_start=int(str(ctx.data.custom_id).split("_")[1]))
             if war is None:
