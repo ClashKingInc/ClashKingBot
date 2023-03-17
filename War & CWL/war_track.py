@@ -173,7 +173,7 @@ class War_Log(commands.Cog):
             await self.bot.player_stats.update_one({"tag": attack.attacker_tag}, {"$inc": {f"points": points_earned}})
 
         #is an attack
-        for cc in await self.bot.clan_db.find({"tag": f"{attack.attacker.clan.tag}"}).to_list(length=500):
+        for cc in await self.bot.clan_db.find({"tag": f"{war.clan.tag}"}).to_list(length=500):
             try:
                 warlog_channel = cc.get("war_log")
                 if warlog_channel is None:
