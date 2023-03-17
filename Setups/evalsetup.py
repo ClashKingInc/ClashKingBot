@@ -497,19 +497,19 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
         commands.Param(choices=["legends_league", "trophies_5500", "trophies_5700", "trophies_6000"])):
 
         results = await self.bot.legendleagueroles.find_one({"$and": [
-            {"type": f"{legend_role_type}"},
+            {"type": f"{league_role_type}"},
             {"server": ctx.guild.id}
         ]})
         if results is None:
-            return await ctx.send("That legend role type does not have a role assigned to it for eval currently.")
+            return await ctx.send("That league role type does not have a role assigned to it for eval currently.")
         else:
             mention = results.get("role")
             await self.bot.legendleagueroles.find_one_and_delete({"$and": [
-                {"type": f"{legend_role_type}"},
+                {"type": f"{league_role_type}"},
                 {"server": ctx.guild.id}
             ]})
 
-        embed = disnake.Embed(description=f"{legend_role_type} eval role removed - <@&{mention}>",
+        embed = disnake.Embed(description=f"{league_role_type} eval role removed - <@&{mention}>",
                               color=disnake.Color.green())
         return await ctx.send(embed=embed)
 
