@@ -38,9 +38,12 @@ class War_Log(commands.Cog):
                 if reminder_time.is_integer():
                     reminder_time = int(reminder_time)
                 send_time = time[1]
-                scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[new_war.clan.tag, reminder_time],
+                try:
+                    scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[new_war.clan.tag, reminder_time],
                                   id=f"{reminder_time}_{new_war.clan.tag}", name=f"{new_war.clan.tag}",
                                   misfire_grace_time=None)
+                except:
+                    pass
         if new_war.state == "preparation" or new_war.state == "inWar":
             if new_war.state == "preparation":
                 scheduler.add_job(self.send_or_update_war_start, 'date', run_date=new_war.start_time.time,
@@ -173,7 +176,7 @@ class War_Log(commands.Cog):
             await self.bot.player_stats.update_one({"tag": attack.attacker_tag}, {"$inc": {f"points": points_earned}})
 
         #is an attack
-        for cc in await self.bot.clan_db.find({"tag": f"{attack.attacker.clan.tag}"}).to_list(length=500):
+        for cc in await self.bot.clan_db.find({"tag": f"{war.clan.tag}"}).to_list(length=500):
             try:
                 warlog_channel = cc.get("war_log")
                 if warlog_channel is None:
