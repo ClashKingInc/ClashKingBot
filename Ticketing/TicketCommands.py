@@ -311,11 +311,11 @@ class TicketCommands(commands.Cog):
         components = [
             disnake.ui.TextInput(
                 label=f"Question {x}",
-                placeholder="Question you would like to ask",
+                placeholder="Question (under 100 characters)",
                 custom_id=f"question_{x}",
                 required=(x == 1),
                 style=disnake.TextInputStyle.single_line,
-                max_length=120,
+                max_length=99,
             )
             for x in range(1, 6)
         ]
@@ -1148,7 +1148,7 @@ class TicketCommands(commands.Cog):
         components = [
             disnake.ui.TextInput(
                 label=f"Question #{count+1}:",
-                placeholder=f"{question}",
+                placeholder=f"{question[:100]}",
                 custom_id=f"{count}",
                 required=True,
                 style=disnake.TextInputStyle.paragraph,
