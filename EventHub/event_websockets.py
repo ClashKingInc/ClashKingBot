@@ -39,7 +39,7 @@ async def player_websocket():
                         except:
                             pass
         except Exception as e:
-            sentry_sdk.capture_exception(e)
+            #sentry_sdk.capture_exception(e)
             continue
 
 
@@ -56,7 +56,7 @@ async def war_websocket():
                         awaitable = war_ee.emit_async(field, json_message)
                         await awaitable
         except Exception as e:
-            sentry_sdk.capture_exception(e)
+            #sentry_sdk.capture_exception(e)
             continue
 
 
@@ -77,5 +77,5 @@ async def clan_websocket():
                             pass
 
         except Exception as e:
-            sentry_sdk.capture_exception(e)
+            #sentry_sdk.capture_exception(e)
             continue
