@@ -390,10 +390,10 @@ class War_Log(commands.Cog):
             disnake.ui.Button(label="Defenses", emoji=self.bot.emoji.shield.partial_emoji,
                               style=disnake.ButtonStyle.grey,
                               custom_id=f"listwardefenses_{int(new_war.preparation_start_time.time.timestamp())}_{new_war.clan.tag}"),
-            disnake.ui.Button(label="", emoji="✏️",
+            disnake.ui.Button(label="", emoji=self.bot.emoji.menu.partial_emoji,
                               style=disnake.ButtonStyle.green,
                               disabled=True,
-                              custom_id=f"listlineup_{int(new_war.preparation_start_time.time.timestamp())}_{new_war.clan.tag}"))
+                              custom_id=f"menu_{int(new_war.preparation_start_time.time.timestamp())}_{new_war.clan.tag}"))
         ]
         return button
 
