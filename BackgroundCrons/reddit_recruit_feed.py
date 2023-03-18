@@ -1,8 +1,11 @@
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
+from Utility.pagination import button_pagination
+
 import asyncpraw
 import os
 import disnake
+import re
 
 subreddit = "ClashOfClansRecruit"
 secret = os.getenv("SECRET")
@@ -41,38 +44,54 @@ class reddit_feed(commands.Cog):
                     self.sent.append(submission.id)
 
                     if submission.link_flair_text == 'Searching':
-                        text = submission.selftext
-                        title = submission.title
+                        text = f"{submission.selftext} {submission.title}"
+                        tags = re.findall('[#PYLQGRJCUVOpylqgrjcuvo0289]{5,11}', text)
+                        player = None
+                        for tag in tags:
+                            player = await self.bot.getPlayer(player_tag=tag)
+                            if player is not None:
+                                break
 
-                        match = True
+                        results = self.bot.server_db.find({"reddit_feed": {"$ne": None}})
+                        limit = await self.bot.server_db.count_documents(filter={"reddit_feed": {"$ne": None}})
+                        for r in await results.to_list(length=limit):
+                            try:
+                                channel = await self.bot.getch_channel(r.get("reddit_feed"), raise_exception=True)
+                                role = r.get("reddit_role")
+                                embed = disnake.Embed(title=f'{submission.title}',
+                                                      description=submission.selftext
+                                                                  + f'\n{submission.score} points | [Link]({submission.url}) | [Comments](https://www.reddit.com/r/{subreddit}/comments/{submission.id})',
+                                                      color=disnake.Color.green())
+                                buttons = disnake.ui.ActionRow()
+                                buttons.append_item(disnake.ui.Button(label="Post Link", emoji=self.bot.emoji.reddit_icon.partial_emoji, url=submission.url))
+                                if tags and player is not None:
+                                    buttons.append_item(disnake.ui.Button(label="Player Profile", emoji=self.bot.emoji.troop.partial_emoji, style=disnake.ButtonStyle.green, custom_id=f"redditplayer_{player.tag}"))
 
-                        if match:
-                            results = self.bot.server_db.find({"reddit_feed": {"$ne": None}})
-                            limit = await self.bot.server_db.count_documents(filter={"reddit_feed": {"$ne": None}})
-                            for r in await results.to_list(length=limit):
-                                try:
-                                    channel = r.get("reddit_feed")
-                                    channel = await self.bot.fetch_channel(channel)
-                                    role = r.get("reddit_role")
-                                    embed = disnake.Embed(title=f'{submission.title}',
-                                                          description=submission.selftext
-                                                                      + f'\n{submission.score} points | [Link]({submission.url}) | [Comments](https://www.reddit.com/r/{subreddit}/comments/{submission.id})',
-                                                          color=disnake.Color.green())
-                                    buttons = disnake.ui.ActionRow()
-                                    buttons.append_item(disnake.ui.Button(label="Post Link", emoji=self.bot.emoji.reddit_icon.partial_emoji, url=submission.url))
+                                if role is not None:
+                                    await channel.send(content=f"<@&{role}>",
+                                                   embed=embed, components=buttons)
+                                else:
+                                    await channel.send(embed=embed, components=buttons)
 
-                                    if role is not None:
-                                        await channel.send(content=f"<@&{role}>",
-                                                       embed=embed, components=buttons)
-                                    else:
-                                        await channel.send(embed=embed, components=buttons)
+                            except (disnake.NotFound, disnake.Forbidden):
+                                serv = r.get("server")
+                                await self.bot.server_db.update_one({"server": serv}, {"$set": {"reddit_feed": None, "reddit_role" : None}})
 
-                                except (disnake.NotFound, disnake.Forbidden):
-                                    serv = r.get("server")
-                                    await self.bot.server_db.update_one({"server": serv}, {"$set": {"reddit_feed": None, "reddit_role" : None}})
             except Exception as e:
                 print(e)
                 continue
+
+    @commands.Cog.listener()
+    async def on_button_click(self, ctx: disnake.MessageInteraction):
+        if "redditplayer_" in str(ctx.data.custom_id):
+            await ctx.response.defer(ephemeral=True, with_message=True)
+            tag = (str(ctx.data.custom_id).split("_"))[-1]
+            msg = await ctx.original_message()
+            player = await self.bot.getPlayer(player_tag=tag, custom=True)
+            if player is None:
+                return await ctx.edit_original_response(content="No player found.")
+            await button_pagination(self.bot, ctx, msg, [player])
+
 
 def setup(bot: CustomClient):
     bot.add_cog(reddit_feed(bot))
