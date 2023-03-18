@@ -50,7 +50,7 @@ class War_Log(commands.Cog):
                                   args=[new_war.clan.tag], id=f"war_start_{new_war.clan.tag}",
                                   name=f"{new_war.clan.tag}_war_start", misfire_grace_time=None)
             scheduler.add_job(self.send_or_update_war_end, 'date', run_date=new_war.end_time.time,
-                              args=[new_war.clan.tag], id=f"war_end_{new_war.clan.tag}",
+                              args=[new_war.clan.tag, int(new_war.preparation_start_time.time.timestamp())], id=f"war_end_{new_war.clan.tag}",
                               name=f"{new_war.clan.tag}_war_end", misfire_grace_time=None)
 
         if not new_war.is_cwl:
@@ -76,7 +76,8 @@ class War_Log(commands.Cog):
                     if feed_type == "Update Feed":
                         await self.update_war_message(war=new_war, clan_result=clan_result, clan=clan)
                     else:
-                        embed = self.war_start_embed(new_war=new_war)
+                        embed = await war_cog.main_war_page(war=new_war, clan=clan)
+                        embed.set_footer(text=f"{new_war.type.capitalize()} War")
                         await war_channel.send(embed=embed)
 
 
@@ -250,71 +251,69 @@ class War_Log(commands.Cog):
                     ]}, {'$set': {"war_log": None}})
                     continue
 
-    async def send_or_update_war_end(self, clan_tag:str):
-        war = await self.bot.get_clanwar(clanTag=clan_tag)
-        if war is not None:
+    async def send_or_update_war_end(self, clan_tag:str, preparation_start_time:int):
+        await asyncio.sleep(60)
+        war = await self.bot.war_client.war_result(clan_tag=clan_tag, preparation_start=preparation_start_time)
+        if war is None:
+            war = await self.bot.get_clanwar(clanTag=clan_tag)
             if war.state != "warEnded":
-                await asyncio.sleep(90)
-                client_war = await self.bot.war_client.war_result(clan_tag=war.clan_tag, preparation_start=int(war.preparation_start_time.time.timestamp()))
-                if client_war is None:
-                    await asyncio.sleep(300)
-                    test_war = await self.bot.get_clanwar(clanTag=clan_tag)
-                    if test_war.preparation_start_time == war.preparation_start_time:
-                        war = test_war
-                else:
-                    war = client_war
+                await asyncio.sleep(300)
+                war = await self.bot.get_clanwar(clanTag=clan_tag)
 
-            for clan_result in await self.bot.clan_db.find({"tag": f"{clan_tag}"}).to_list(length=500):
-                try:
-                    if clan_result.get("war_log") is None:
-                        continue
-                    war_channel = await self.bot.getch_channel(clan_result.get("war_log"), raise_exception=True)
+        if war is None:
+            return
 
-                    feed_type = clan_result.get("attack_feed", "Continuous Feed")  # other is "Update Feed"
-                    war_cog = self.bot.get_cog(name="War")
-
-                    clan = None
-                    if war.type == "cwl":
-                        clan = await self.bot.getClan(war.clan.tag)
-
-                    embed = await war_cog.main_war_page(war=war, clan=clan)
-                    embed.set_footer(text=f"{war.type.capitalize()} War")
-
-                    if feed_type == "Update Feed":
-                        await self.update_war_message(war=war, clan_result=clan_result, clan=clan)
-                    else:
-                        await war_channel.send(embed=embed)
-
-                    file = await war_gen.generate_war_result_image(war)
-                    await war_channel.send(file=file)
-                    # calculate missed attacks
-                    one_hit_missed = []
-                    two_hit_missed = []
-                    for player in war.clan.members:
-                        if len(player.attacks) < war.attacks_per_member:
-                            th_emoji = self.bot.fetch_emoji(name=player.town_hall)
-                            if war.attacks_per_member - len(player.attacks) == 1:
-                                one_hit_missed.append(f"{th_emoji}{player.name}")
-                            else:
-                                two_hit_missed.append(f"{th_emoji}{player.name}")
-
-                    embed = disnake.Embed(title=f"{war.clan.name} vs {war.opponent.name}",
-                                          description="Missed Hits", color=disnake.Color.orange())
-                    if one_hit_missed:
-                        embed.add_field(name="One Hit Missed", value="\n".join(one_hit_missed))
-                    if two_hit_missed:
-                        embed.add_field(name="Two Hits Missed", value="\n".join(two_hit_missed))
-                    embed.set_thumbnail(url=war.clan.badge.url)
-                    if len(embed.fields) != 0:
-                        await war_channel.send(embed=embed)
-
-                    await self.store_war(war=war)
-                except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
-                    await self.bot.clan_db.update_one({"$and": [
-                        {"tag": war.clan.tag},
-                        {"server": clan_result.get("server")}
-                    ]}, {'$set': {"war_log": None}})
+        for clan_result in await self.bot.clan_db.find({"tag": f"{clan_tag}"}).to_list(length=500):
+            try:
+                if clan_result.get("war_log") is None:
                     continue
+                war_channel = await self.bot.getch_channel(clan_result.get("war_log"), raise_exception=True)
+
+                feed_type = clan_result.get("attack_feed", "Continuous Feed")  # other is "Update Feed"
+                war_cog = self.bot.get_cog(name="War")
+
+                clan = None
+                if war.type == "cwl":
+                    clan = await self.bot.getClan(war.clan.tag)
+
+                embed = await war_cog.main_war_page(war=war, clan=clan)
+                embed.set_footer(text=f"{war.type.capitalize()} War")
+
+                if feed_type == "Update Feed":
+                    await self.update_war_message(war=war, clan_result=clan_result, clan=clan)
+                else:
+                    await war_channel.send(embed=embed)
+
+                file = await war_gen.generate_war_result_image(war)
+                await war_channel.send(file=file)
+                # calculate missed attacks
+                one_hit_missed = []
+                two_hit_missed = []
+                for player in war.clan.members:
+                    if len(player.attacks) < war.attacks_per_member:
+                        th_emoji = self.bot.fetch_emoji(name=player.town_hall)
+                        if war.attacks_per_member - len(player.attacks) == 1:
+                            one_hit_missed.append(f"{th_emoji}{player.name}")
+                        else:
+                            two_hit_missed.append(f"{th_emoji}{player.name}")
+
+                embed = disnake.Embed(title=f"{war.clan.name} vs {war.opponent.name}",
+                                      description="Missed Hits", color=disnake.Color.orange())
+                if one_hit_missed:
+                    embed.add_field(name="One Hit Missed", value="\n".join(one_hit_missed))
+                if two_hit_missed:
+                    embed.add_field(name="Two Hits Missed", value="\n".join(two_hit_missed))
+                embed.set_thumbnail(url=war.clan.badge.url)
+                if len(embed.fields) != 0:
+                    await war_channel.send(embed=embed)
+
+                await self.store_war(war=war)
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
+                await self.bot.clan_db.update_one({"$and": [
+                    {"tag": war.clan.tag},
+                    {"server": clan_result.get("server")}
+                ]}, {'$set': {"war_log": None}})
+                continue
 
     async def update_war_message(self, war: coc.ClanWar, clan_result: dict, clan: coc.Clan):
         message_id = clan_result.get("war_message")

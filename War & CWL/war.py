@@ -1,3 +1,5 @@
+import datetime
+
 import coc
 import disnake
 import pytz
@@ -208,6 +210,7 @@ class War(commands.Cog):
             embed.add_field(name="­\nLast 5 attacks/defenses",
                             value=text)
 
+        embed.timestamp = datetime.datetime.now()
         embed.set_thumbnail(url=war.clan.badge.large)
         embed.set_footer(text=f"{war.type.capitalize()} War")
         return embed
