@@ -27,7 +27,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
         tracked = self.bot.clan_db.find({"tag": f"{clan.tag}"})
         for cc in await tracked.to_list(length=10000):
             server = cc.get("server")
-            cache_server = self.bot.get_guild(server)
+            cache_server = await self.bot.getch_guild(server)
             if cache_server is None:
                 continue
 
@@ -58,12 +58,13 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
             if joinlog_channel is None:
                 continue
             try:
-                joinlog_channel: disnake.TextChannel = await self.bot.getch_channel(joinlog_channel)
+                joinlog_channel: disnake.TextChannel = await self.bot.getch_channel(joinlog_channel, raise_exception=True)
             except (disnake.Forbidden, disnake.NotFound):
                 await self.bot.clan_db.update_one({"$and": [
                     {"tag": clan.tag},
                     {"server": server}
                 ]}, {'$set': {"joinlog": None}})
+                continue
 
             if joinlog_channel is None:
                 continue
@@ -93,10 +94,9 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
         clan = coc.Clan(data=event["clan"], client=self.bot.coc_client)
         member = coc.ClanMember(data=event["member"], client=self.bot.coc_client, clan=clan)
 
-        tracked = self.bot.clan_db.find({"tag": f"{clan.tag}"})
-        for cc in await tracked.to_list(length=10000):
+        for cc in await self.bot.clan_db.find({"tag": f"{clan.tag}"}).to_list(length=10000):
             server = cc.get("server")
-            cache_server = self.bot.get_guild(server)
+            cache_server = await self.bot.getch_guild(server)
             if cache_server is None:
                 continue
                 
@@ -123,21 +123,23 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
 
             joinlog_channel = cc.get("joinlog")
             strike_ban_buttons = cc.get("strike_ban_buttons")
-            auto_eval = cc.get("auto_eval")
             if joinlog_channel is None:
                 continue
             try:
-                joinlog_channel = await self.bot.getch_channel(joinlog_channel)
+                joinlog_channel = await self.bot.getch_channel(joinlog_channel, raise_exception=True)
             except (disnake.Forbidden, disnake.NotFound):
                 await self.bot.clan_db.update_one({"$and": [
                     {"tag": clan.tag},
                     {"server": server}
                 ]}, {'$set': {"joinlog": None}})
+                continue
 
             if joinlog_channel is None:
                 continue
 
             player = await self.bot.getPlayer(player_tag=member.tag)
+            if player is None:
+                continue
             hero = heros(bot=self.bot, player=player)
             # pets = heroPets(bot=self.bot, player=player)
             if hero is None:
@@ -149,11 +151,12 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
             embed = disnake.Embed(description=f"[**{player.name}** ({player.tag})]({player.share_link})\n" +
                                               f"**{th_emoji}{player.town_hall}{leagueAndTrophies(player)}<:star:825571962699907152>{player.war_stars}{hero}**\n"
                                   , color=disnake.Color.red())
-            if player.clan is not None:
+
+            if player.clan is not None and player.clan.tag != clan.tag:
                 embed.set_footer(icon_url=player.clan.badge.url,
                                  text=f"Left {clan.name} [{clan.member_count}/50] and Joined {player.clan.name}")
             else:
-                embed.set_footer(icon_url=event["new_clan"]["badgeUrls"]["large"],
+                embed.set_footer(icon_url=clan.badge.url,
                                  text=f"Left {clan.name} [{clan.member_count}/50] ")
             try:
                 components = []
