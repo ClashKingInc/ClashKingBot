@@ -1,4 +1,6 @@
 import os
+
+import aiohttp
 import disnake
 import traceback
 import motor.motor_asyncio
@@ -97,7 +99,7 @@ initial_extensions = [
     "owner_commands",
     "Ticketing.TicketCog",
     "SetupNew.SetupCog",
-    "Utility.link_parsers"
+    "Utility.link_parsers",
     #"War & CWL.war_track",
     #"War & CWL.lineups"
 ]
@@ -125,6 +127,13 @@ if not IS_BETA:
         "global_chat"
     ]
 
+def before_send(event, hint):
+    try:
+        if "unclosed client session" in str(event["logentry"]["message"]).lower() or "unclosed connector" in str(event["logentry"]["message"]).lower():
+            return None
+    except:
+        pass
+    return event
 
 if __name__ == "__main__":
     sentry_sdk.init(
@@ -135,14 +144,16 @@ if __name__ == "__main__":
         traces_sample_rate=0.2,
         _experiments={
             "profiles_sample_rate": 0.2,
-        }
+        },
+        before_send=before_send
     )
     for extension in initial_extensions:
         try:
             bot.load_extension(extension)
         except Exception as extension:
             traceback.print_exc()
-    bot.loop.create_task(player_websocket())
-    bot.loop.create_task(clan_websocket())
-    bot.loop.create_task(war_websocket())
+    if not IS_BETA:
+        bot.loop.create_task(player_websocket())
+        bot.loop.create_task(clan_websocket())
+        bot.loop.create_task(war_websocket())
     bot.run(os.getenv("TOKEN"))
