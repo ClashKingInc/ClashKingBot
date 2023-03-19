@@ -683,7 +683,8 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
         tz = pytz.timezone(timezone)
         try:
-            timestamp = int(datetime.datetime.strptime(f"{date}T{time}", "%Y-%m-%dT%H:%M").astimezone(tz=tz).timestamp())
+            timestamp = pytz.timezone(timezone).localize(datetime.datetime.strptime(f"{date}T{time}", "%Y-%m-%dT%H:%M"))
+            timestamp = int(timestamp.timestamp())
         except:
             return await modal_inter.send(content="**Invalid Date/Time**", ephemeral=True)
 
