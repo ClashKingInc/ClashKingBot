@@ -54,6 +54,7 @@ class LegendCron(commands.Cog):
                             after = items["paging"]["cursors"]["after"]
                         except:
                             after = None
+                    await session.close()
 
                 results = await self.bot.history_db[f"{year}"].bulk_write(changes)
 
