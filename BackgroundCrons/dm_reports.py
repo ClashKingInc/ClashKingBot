@@ -79,55 +79,57 @@ class DMFeed(commands.Cog, name="DM Feed & Reports"):
         return [[st2], text]
 
     async def dm_check(self):
-
         results = self.bot.legend_profile.find({"opt": "Opt-In"})
         limit = await self.bot.legend_profile.count_documents(filter={"opt": "Opt-In"})
         for document in await results.to_list(length=limit):
-            tracked_players = document.get("profile_tags")
-            user_id = document.get("discord_id")
-            button = disnake.ui.Button(label="Opt Out", style=disnake.ButtonStyle.red, custom_id=f"dm_{user_id}")
-            buttons = disnake.ui.ActionRow()
-            buttons.append_item(button)
-            if len(tracked_players) == 0:
-                continue
-
-            ranking = []
-
-            players = await self.bot.get_players(tags=tracked_players, custom=True)
-            for player in players:
-                player: MyCustomPlayer
-                if player is None:
-                    continue
-                legend_day = player.legend_day()
-
-                if not player.is_legends():
-                    continue
-
-                name = player.name
-                name = emoji.get_emoji_regexp().sub('', name)
-
-                ranking.append([name, player.trophy_start(), legend_day.attack_sum, legend_day.num_attacks.superscript, legend_day.defense_sum, legend_day.num_defenses.superscript, player.trophies])
-
-            ranking = sorted(ranking, key=lambda l: l[6], reverse=True)
-
-            text = ""
-            initial = f"__**Quick Check Daily Report**__"
-            for person in ranking:
-                name = person[0]
-                hits = person[2]
-                hits = person[2]
-                numHits = person[3]
-                defs = person[4]
-                numDefs = person[5]
-                trophies = person[6]
-                text += f"\u200e**<:trophyy:849144172698402817>{trophies} | \u200e{name}**\n➼ <:cw:948845649229647952> {hits}{numHits} <:sh:948845842809360424> {defs}{numDefs}\n"
-
-            embed = disnake.Embed(title=initial,
-                                  description=text)
-            embed.set_footer(text="Opt out at any time.")
-            user = await self.bot.get_or_fetch_user(user_id=user_id)
             try:
-                await user.send(embed=embed, components=[buttons])
+                tracked_players = document.get("profile_tags")
+                user_id = document.get("discord_id")
+                button = disnake.ui.Button(label="Opt Out", style=disnake.ButtonStyle.red, custom_id=f"dm_{user_id}")
+                buttons = disnake.ui.ActionRow()
+                buttons.append_item(button)
+                if len(tracked_players) == 0:
+                    continue
+
+                ranking = []
+
+                players = await self.bot.get_players(tags=tracked_players, custom=True, use_cache=True)
+                for player in players:
+                    player: MyCustomPlayer
+                    if player is None:
+                        continue
+                    legend_day = player.legend_day()
+
+                    if not player.is_legends():
+                        continue
+
+                    name = player.name
+                    name = emoji.get_emoji_regexp().sub('', name)
+
+                    ranking.append([name, player.trophy_start(), legend_day.attack_sum, legend_day.num_attacks.superscript, legend_day.defense_sum, legend_day.num_defenses.superscript, player.trophies])
+
+                ranking = sorted(ranking, key=lambda l: l[6], reverse=True)
+
+                text = ""
+                initial = f"__**Quick Check Daily Report**__"
+                for person in ranking:
+                    name = person[0]
+                    hits = person[2]
+                    hits = person[2]
+                    numHits = person[3]
+                    defs = person[4]
+                    numDefs = person[5]
+                    trophies = person[6]
+                    text += f"\u200e**<:trophyy:849144172698402817>{trophies} | \u200e{name}**\n➼ <:cw:948845649229647952> {hits}{numHits} <:sh:948845842809360424> {defs}{numDefs}\n"
+
+                embed = disnake.Embed(title=initial,
+                                      description=text)
+                embed.set_footer(text="Opt out at any time.")
+                user = await self.bot.get_or_fetch_user(user_id=user_id)
+                try:
+                    await user.send(embed=embed, components=[buttons])
+                except:
+                    continue
             except:
                 continue
 
