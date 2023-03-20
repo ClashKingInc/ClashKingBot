@@ -392,12 +392,13 @@ async def opt_status(bot: CustomClient, clan: coc.Clan):
     in_string = ", ".join(f"Th{index}: {th} " for index, th in sorted(thcount.items(), reverse=True) if th != 0)
     out_string = ", ".join(f"Th{index}: {th} " for index, th in sorted(out_thcount.items(), reverse=True) if th != 0)
 
-    embed = Embed(title=f"**{clan.name} War Opt Statuses**",
+    embed = Embed(title=f"**War Opt Statuses**",
         description=f"**Players Opted In - {in_count}:**\n{opted_in}\n", color=Color.green())
 
     embed2 = Embed(description=f"**Players Opted Out - {out_count}:**\n{opted_out}\n", color=Color.green())
 
-    embed.set_thumbnail(url=clan.badge.large)
+    #embed.set_thumbnail(url=clan.badge.large)
+    embed.set_author(name=f"{clan.name}", icon_url=clan.badge.url)
     embed2.set_footer(text=f"In: {in_string}\nOut: {out_string}")
     return [embed, embed2]
 
@@ -894,25 +895,25 @@ def clan_donations(clan: coc.Clan, type: str, season_date, player_list):
         name = name[:13]
 
         donated_text.append([(
-            f"{str(player.donos(season_date).donated).ljust(5)} | "
-            f"{str(player.donos(season_date).received).ljust(5)} | {name}"),
+            f"{str(player.donos(season_date).donated).ljust(5)}  "
+            f"{str(player.donos(season_date).received).ljust(5)}  {name}"),
             player.donos(season_date).donated])
 
         received_text.append([(
-            f"{str(player.donos(season_date).received).ljust(5)} | "
-            f"{str(player.donos(season_date).donated).ljust(5)} | {name}"),
+            f"{str(player.donos(season_date).received).ljust(5)}  "
+            f"{str(player.donos(season_date).donated).ljust(5)}  {name}"),
             player.donos(season_date).received])
 
         ratio_text.append([(
-            f"{str(player.donation_ratio(season_date)).ljust(5)} | {name}"),
+            f"{str(player.donation_ratio(season_date)).ljust(5)}  {name}"),
             player.donation_ratio(season_date)])
 
     if type == "donated":
         donated_text = sorted(
             donated_text, key=lambda l: l[1], reverse=True)
-        donated_text = [line[0] for line in donated_text]
+        donated_text = [f"{count:2} {line[0]}" for count, line in enumerate(donated_text, 1)]
         donated_text = "\n".join(donated_text)
-        donated_text = "DON   | REC   | Name\n" + donated_text
+        donated_text = " # DON    REC    Name\n" + donated_text
 
         donation_embed = Embed(
             title=f"**{clan.name} Donations**",
@@ -930,9 +931,9 @@ def clan_donations(clan: coc.Clan, type: str, season_date, player_list):
     elif type == "received":
         received_text = sorted(
             received_text, key=lambda l: l[1], reverse=True)
-        received_text = [line[0] for line in received_text]
+        received_text = [f"{count:2} {line[0]}" for count, line in enumerate(received_text, 1)]
         received_text = "\n".join(received_text)
-        received_text = "REC   | DON   | Name\n" + received_text
+        received_text = " # REC    DON    Name\n" + received_text
         received_embed = Embed(
             title=f"**{clan.name} Received**",
             description=f"```{received_text}```",
@@ -947,9 +948,9 @@ def clan_donations(clan: coc.Clan, type: str, season_date, player_list):
 
     else:
         ratio_text = sorted(ratio_text, key=lambda l: l[1], reverse=True)
-        ratio_text = [line[0] for line in ratio_text]
+        ratio_text = [f"{count:2} {line[0]}" for count, line in enumerate(ratio_text, 1)]
         ratio_text = "\n".join(ratio_text)
-        ratio_text = "Ratio | Name\n" + ratio_text
+        ratio_text = " # Ratio | Name\n" + ratio_text
         ratio_embed = Embed(
             title=f"**{clan.name} Ratios**", description=f"```{ratio_text}```",
             color=Color.green())

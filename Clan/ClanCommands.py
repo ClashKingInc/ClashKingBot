@@ -39,9 +39,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         await ctx.response.defer()
 
     @clan.sub_command(name="search", description="lookup clan by tag")
-    async def get_clan(
-            self, ctx: disnake.ApplicationCommandInteraction,
-            clan: coc.Clan = commands.Param(converter=clan_converter)):
+    async def get_clan(self, ctx: disnake.ApplicationCommandInteraction,clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
@@ -190,12 +188,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 # embed = await self.cwl_performance(clan)
                 await res.edit_original_message(embed=embed)
 
-    @clan.sub_command(
-        name="player-links",
-        description="List of un/linked players in clan")
-    async def linked_clans(
-            self, ctx: disnake.ApplicationCommandInteraction,
-            clan: coc.Clan = commands.Param(converter=clan_converter)):
+    @clan.sub_command(name="player-links",description="List of un/linked players in clan")
+    async def linked_clans(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
@@ -225,12 +219,38 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             embeds=[linked_players_embed, unlinked_players_embed],
             components=buttons)
 
-    @clan.sub_command(
-        name="sorted-trophies",
-        description="List of clan members, sorted by trophies")
-    async def player_trophy(
-            self, ctx: disnake.ApplicationCommandInteraction,
-            clan: coc.Clan = commands.Param(converter=clan_converter)):
+    @clan.sub_command(name="hero-progress", description="List of hero progress for clan")
+    async def hero_progress(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+        member_stats = await self.bot.new_looper[f"{self.bot.gen_season_date()}-history"].find({"tag": {"$in" : [member.tag for member in clan.members]}}).to_list(length=100)
+        class ItemHolder():
+            def __init__(self, tag, king, queen, warden, rc):
+                self.tag = tag
+                self.king = len(king)
+                self.queen = len(queen)
+                self.warden = len(warden)
+                self.rc = len(rc)
+                self.total_upgraded = self.king + self.queen + self.warden + self.rc
+
+        all_items = []
+        for member_data in member_stats:
+            all_items.append(
+                ItemHolder(tag=member_data.get("tag"),
+                           king=member_data.get("Barbarian King", []),
+                           queen=member_data.get("Archer Queen", []),
+                           warden=member_data.get("Grand Warden", []),
+                           rc=member_data.get("Royal Champion", []))
+            )
+        all_items = sorted(all_items, key=lambda x: x.total_upgraded, reverse=True)
+        text = f"BK AQ WD RC Name          \n"
+        for item in all_items:
+            text += f"{item.king:<2} {item.queen:<2} {item.warden:<2} {item.rc:<2} {coc.utils.get(clan.members, tag=item.tag).name[:13]}\n"
+        embed = disnake.Embed(title=f"{clan.name} Season Hero Progress", description=f"```{text}```",colour=disnake.Color.green())
+        await ctx.edit_original_message(embed=embed)
+
+
+
+    @clan.sub_command(name="sorted-trophies",description="List of clan members, sorted by trophies")
+    async def player_trophy(self, ctx: disnake.ApplicationCommandInteraction,clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
@@ -248,12 +268,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.edit_original_message(embed=embed, components=buttons)
 
-    @clan.sub_command(
-        name="sorted-townhall",
-        description="List of clan members, sorted by townhall")
-    async def player_th(
-            self, ctx: disnake.ApplicationCommandInteraction,
-            clan: coc.Clan = commands.Param(converter=clan_converter)):
+    @clan.sub_command(name="sorted-townhall",description="List of clan members, sorted by townhall")
+    async def player_th(self, ctx: disnake.ApplicationCommandInteraction,clan: coc.Clan = commands.Param(converter=clan_converter)):
         """
             Parameters
             ----------
@@ -296,9 +312,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.edit_original_message(embeds=embeds, components=buttons)
 
-    @clan.sub_command(
-        name="war-log",
-        description="List of clan's last 25 war win & losses")
+    @clan.sub_command(name="war-log", description="List of clan's last 25 war win & losses")
     async def clan_war_log(
             self, ctx: disnake.ApplicationCommandInteraction,
             clan: coc.Clan = commands.Param(converter=clan_converter)):
@@ -686,15 +700,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             _season = ""
             season_date = clan_utils.gen_season_date()
 
-        tasks = []
-        for member in clan.members:
-            results = await self.bot.player_stats.find_one({"tag": member.tag})
-            task = asyncio.ensure_future(
-                self.bot.coc_client.get_player(
-                    player_tag=member.tag, cls=MyCustomPlayer, bot=self.bot,
-                    results=results))
-            tasks.append(task)
-        player_responses = await asyncio.gather(*tasks)
+        player_responses = await self.bot.get_players(tags=[member.tag for member in clan.members])
 
         embed = clan_responder.clan_donations(
             clan=clan, type="donated",
@@ -722,10 +728,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @clan.sub_command(
         name='activity-graph',
         description="Get a graph showing average clan members on per an hour")
-    async def activity_graph(
-            self, ctx: disnake.ApplicationCommandInteraction,
-            clan: coc.Clan = commands.Param(converter=clan_converter),
-            timezone=commands.Param(name="timezone")):
+    async def activity_graph(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), timezone=commands.Param(name="timezone")):
 
         if timezone not in pytz.common_timezones:
             return await ctx.edit_original_message(content=(
@@ -906,9 +909,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         description=(
                 "Ping members in the clan "
                 "based on different characteristics"))
-    async def clan_ping(
-            self, ctx: disnake.ApplicationCommandInteraction,
-            clan: coc.Clan = commands.Param(converter=clan_converter)):
+    async def clan_ping(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
 
         embed = disnake.Embed(
             description=(
@@ -1715,6 +1716,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @war_stats_clan.autocomplete("clan")
     @activities.autocomplete("clan")
     @clan_ping.autocomplete("clan")
+    @hero_progress.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id}).sort("name", 1)
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
