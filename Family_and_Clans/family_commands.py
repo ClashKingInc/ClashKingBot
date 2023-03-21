@@ -13,6 +13,7 @@ from collections import defaultdict
 from collections import Counter
 from datetime import datetime
 from CustomClasses.Enums import TrophySort
+from utils.constants import item_to_name
 
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 tiz = pytz.utc
@@ -144,9 +145,8 @@ class family_commands(commands.Cog):
         if len(clan_tags) == 0:
             return await ctx.edit_original_message(content="No clans linked to this server.", embed=None)
 
-        for tag in clan_tags:
-            clan = await self.bot.getClan(tag)
-            clan_list.append(clan)
+        clan_list = await self.bot.get_clans(tags=clan_tags)
+
 
         thcount = defaultdict(int)
         total = 0
@@ -205,7 +205,8 @@ class family_commands(commands.Cog):
 
         if ctx.guild.icon is not None:
             embed.set_thumbnail(url=ctx.guild.icon.url)
-        embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
+        #embed2 = await self.generate_townhall_lines(master_compo_dict=compos, names=names)
+        #embed2.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts")
         await ctx.edit_original_message(embed=embed, components=dropdown)
 
         msg = await ctx.original_message()
@@ -244,8 +245,29 @@ class family_commands(commands.Cog):
 
             if ctx.guild.icon is not None:
                 embed.set_thumbnail(url=ctx.guild.icon.url)
+
             embed.set_footer(text=f"Average Th: {average}\nTotal: {total} accounts\nClans: {', '.join(name_clans)}")
             await res.response.edit_message(embed=embed)
+
+    async def generate_townhall_lines(self, master_compo_dict: dict, names: dict):
+        master_string = "".join(f"{x:2} " for x in reversed(range(10, 16))) + "\n"
+        for clan_tag, compo_dict in master_compo_dict.items():
+            try:
+                name = names[clan_tag]
+            except:
+                pass
+            for x in reversed(range(10, 16)):
+                #number = compo_dict.get(x, 0)
+                master_string += f"{compo_dict.get(x, 0):2} "
+                '''if number >= 1:
+                    master_string += f"{self.bot.get_number_emoji(color='white', number=number)}"
+                else:
+                    master_string += f"<:blanke:838574915095101470>"'''
+            master_string += f"{name[:13]:13}\n"
+        master_string = f"```{master_string}```"
+        embed = disnake.Embed(description=master_string, color=disnake.Color.green())
+        return embed
+
 
     @family.sub_command(name="wars", description="List of current wars by family clans")
     async def family_wars(self, ctx: disnake.ApplicationCommandInteraction):
@@ -420,6 +442,19 @@ class family_commands(commands.Cog):
             disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
                               custom_id=f"joinhistoryfam_"))
         await ctx.edit_original_message(embed=embed, components=buttons)
+
+    @family.sub_command(name="sorted", description="Sort family members in different ways")
+    async def family_sorted(self, ctx: disnake.ApplicationCommandInteraction, sort_by: str = commands.Param(choices=sorted(item_to_name.keys()))):
+        await ctx.response.defer()
+        time = datetime.now()
+        embed: disnake.Embed = await self.create_sorted(guild=ctx.guild, sort_by=sort_by)
+        embed.timestamp = time
+        embed.set_footer(text="Last Refreshed:")
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
+                              custom_id=f"sortfam_"))
+        await ctx.edit_original_message(embed=embed, components=[])
 
 
     async def cwl_ranking_create(self, clan: coc.Clan):

@@ -257,7 +257,10 @@ class War_Log(commands.Cog):
         if war is None:
             war = await self.bot.get_clanwar(clanTag=clan_tag)
             if war.state != "warEnded":
-                await asyncio.sleep(300)
+                try:
+                    await asyncio.sleep(war._response_retry + 10)
+                except:
+                    await asyncio.sleep(540)
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
 
         if war is None:

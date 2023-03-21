@@ -47,7 +47,7 @@ class DiscordEvents(commands.Cog):
                                       name=f"{new_war.clan.tag}_war_start", misfire_grace_time=None)
                 if new_war.end_time.seconds_until >= 0:
                     scheduler.add_job(other_cog.send_or_update_war_end, 'date', run_date=new_war.end_time.time,
-                                      args=[new_war.clan.tag], id=f"war_end_{new_war.clan.tag}",
+                                      args=[new_war.clan.tag, int(new_war.preparation_start_time.time.timestamp())], id=f"war_end_{new_war.clan.tag}",
                                       name=f"{new_war.clan.tag}_war_end", misfire_grace_time=None)
             except:
                 pass

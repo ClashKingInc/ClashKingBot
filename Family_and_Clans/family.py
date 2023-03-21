@@ -13,10 +13,11 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer, ClanCapitalWeek
 from utils.General import create_superscript
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry, calc_raid_medals
+from utils.constants import item_to_name
 from CustomClasses.Enums import TrophySort
 from collections import defaultdict
-tiz = pytz.utc
 
+tiz = pytz.utc
 leagues = [ "Titan League I" , "Titan League II" , "Titan League III" ,"Champion League I", "Champion League II", "Champion League III",
                    "Master League I", "Master League II", "Master League III",
                    "Crystal League I","Crystal League II", "Crystal League III",
@@ -682,6 +683,109 @@ class getFamily(commands.Cog):
         embed = disnake.Embed(title=f"{guild.name} Clan History", description=f"```{text}```", colour=disnake.Color.green())
         return embed
 
+    async def create_sorted(self, guild: disnake.Guild, sort_by: str):
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+        results = await self.bot.player_stats.distinct("tag", filter = {"clan_tag": {"$in": clan_tags}})
+
+        def get_longest(players, attribute):
+            longest = 0
+            for player in players:
+                if "ach_" not in attribute and attribute not in ["season_rank", "heroes"]:
+                    spot = len(str(player.__getattribute__(sort_by)))
+                elif "ach_" in sort_by:
+                    spot = len(str(player.get_achievement(name=sort_by.split('_')[-1], default_value=0).value))
+                elif sort_by == "season_rank":
+                    def sort_func(a_player):
+                        try:
+                            a_rank = a_player.legend_statistics.best_season.rank
+                        except:
+                            return 0
+
+                    spot = len(str(sort_func(player))) + 1
+                else:
+                    spot = len(str(sum([hero.level for hero in player.heroes if hero.is_home_base])))
+                if spot > longest:
+                    longest = spot
+            return longest
+
+        og_sort = sort_by
+        sort_by = item_to_name[sort_by]
+        players: list[coc.Player] = await self.bot.get_players(tags=results, custom=False)
+        if "ach_" not in sort_by and sort_by not in ["season_rank", "heroes"]:
+            attr = players[0].__getattribute__(sort_by)
+            if isinstance(attr, str) or isinstance(attr, coc.Role) or isinstance(attr, coc.League):
+                players = sorted(players, key=lambda x: str(x.__getattribute__(sort_by)))
+            else:
+                players = sorted(players, key=lambda x: x.__getattribute__(sort_by), reverse=True)
+        elif "ach_" in sort_by:
+            players = sorted(players, key=lambda x: x.get_achievement(name=sort_by.split('_')[-1], default_value=0).value,
+                             reverse=True)
+        elif sort_by == "season_rank":
+            def sort_func(a_player):
+                try:
+                    a_rank = a_player.legend_statistics.best_season.rank
+                    return a_rank
+                except:
+                    return 10000000
+
+            players = sorted(players, key=sort_func, reverse=False)
+        else:
+            longest = 3
+
+            def sort_func(a_player):
+                a_rank = sum([hero.level for hero in a_player.heroes if hero.is_home_base])
+                return a_rank
+
+            players = sorted(players, key=sort_func, reverse=True)
+
+        players = players[:50]
+        longest = get_longest(players=players, attribute=sort_by)
+
+        text = ""
+        for count, player in enumerate(players, 1):
+            if sort_by in ["role", "tag", "heroes", "ach_Friend in Need"]:
+                emoji = self.bot.fetch_emoji(player.town_hall)
+            elif sort_by in ["versus_trophies", "versus_attack_wins", "ach_Champion Builder"]:
+                emoji = self.bot.emoji.versus_trophy
+            elif sort_by in ["trophies", "ach_Sweet Victory!"]:
+                emoji = self.bot.emoji.trophy
+            elif sort_by in ["season_rank"]:
+                emoji = self.bot.emoji.legends_shield
+            elif sort_by in ["clan_capital_contributions", "ach_Aggressive Capitalism"]:
+                emoji = self.bot.emoji.capital_gold
+            elif sort_by in ["exp_level"]:
+                emoji = self.bot.emoji.xp
+            elif sort_by in ["ach_Nice and Tidy"]:
+                emoji = self.bot.emoji.clock
+            elif sort_by in ["ach_Heroic Heist"]:
+                emoji = self.bot.emoji.dark_elixir
+            elif sort_by in ["ach_War League Legend", "war_stars"]:
+                emoji = self.bot.emoji.war_star
+            elif sort_by in ["ach_Conqueror", "attack_wins"]:
+                emoji = self.bot.emoji.thick_sword
+            elif sort_by in ["ach_Unbreakable"]:
+                emoji = self.bot.emoji.shield
+            elif sort_by in ["ach_Games Champion"]:
+                emoji = self.bot.emoji.clan_games
+
+            spot = f"{count}."
+            if "ach_" not in sort_by and sort_by not in ["season_rank", "heroes"]:
+                text += f"`{spot:3}`{emoji}`{player.__getattribute__(sort_by):{longest}} {player.name[:15]}`\n"
+            elif "ach_" in sort_by:
+                text += f"`{spot:3}`{emoji}`{player.get_achievement(name=sort_by.split('_')[-1], default_value=0).value:{longest}} {player.name[:13]}`\n"
+            elif sort_by == "season_rank":
+                try:
+                    rank = player.legend_statistics.best_season.rank
+                except:
+                    rank = " N/A"
+                text += f"`{spot:3}`{emoji}`#{rank:<{longest}} {player.name[:15]}`\n"
+            else:
+                cum_heroes = sum([hero.level for hero in player.heroes if hero.is_home_base])
+                text += f"`{spot:3}`{emoji}`{cum_heroes:3} {player.name[:15]}`\n"
+
+        embed = disnake.Embed(title=f"{guild.name} sorted by {og_sort}", description=text, color=disnake.Color.green())
+
+        return embed
 
 def setup(bot: CustomClient):
     bot.add_cog(getFamily(bot))

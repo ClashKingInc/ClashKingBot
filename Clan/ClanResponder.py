@@ -23,7 +23,9 @@ from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis
 from CustomClasses.CustomBot import CustomClient
 from utils.ClanCapital import gen_raid_weekend_datestrings, calc_raid_medals
+from utils.troop_methods import cwl_league_emojis
 from typing import List
+
 import emoji
 import math
 import re
@@ -1226,4 +1228,43 @@ async def cwl_performance(clan: coc.Clan, dates):
     if not not_empty:
         embed.description = "No prior cwl data"
 
+    return embed
+
+
+def simple_clan_embed(clan: coc.Clan):
+    leader = coc.utils.get(clan.members, role=coc.Role.leader)
+
+    if clan.public_war_log:
+        warwin = clan.war_wins
+        warloss = clan.war_losses
+        if warloss == 0:
+            warloss = 1
+        winstreak = clan.war_win_streak
+        winrate = round((warwin / warloss), 2)
+    else:
+        warwin = clan.war_wins
+        warloss = "Hidden Log"
+        winstreak = clan.war_win_streak
+        winrate = "Hidden Log"
+
+    flag = ""
+    if str(clan.location) == "International":
+        flag = "<a:earth:861321402909327370>"
+    else:
+        flag = f":flag_{clan.location.country_code.lower()}:"
+    embed = disnake.Embed(title=f"**{clan.name}**",
+                          description=f"Tag: [{clan.tag}]({clan.share_link})\n"
+                                      f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.versus_points}\n"
+                                      f"Required Trophies: <:trophy:825563829705637889> {clan.required_trophies}\n"
+                                      f"Location: {flag} {clan.location}\n\n"
+                                      f"Leader: {leader.name}\n"
+                                      f"Level: {clan.level} \n"
+                                      f"Members: <:people:932212939891552256>{clan.member_count}/50\n\n"
+                                      f"CWL: {cwl_league_emojis(str(clan.war_league))}{str(clan.war_league)}\n"
+                                      f"Wars Won: <:warwon:932212939899949176>{warwin}\nWars Lost: <:warlost:932212154164183081>{warloss}\n"
+                                      f"War Streak: <:warstreak:932212939983847464>{winstreak}\nWinratio: <:winrate:932212939908337705>{winrate}\n\n"
+                                      f"Description: {clan.description}",
+                          color=disnake.Color.green())
+
+    embed.set_thumbnail(url=clan.badge.large)
     return embed
