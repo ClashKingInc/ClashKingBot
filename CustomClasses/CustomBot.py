@@ -269,6 +269,13 @@ class CustomClient(commands.AutoShardedBot):
                 dates.append(f"{calendar.month_name[end.date().month]} {end.date().year}")
             return dates
 
+    def gen_games_season(self):
+        now = datetime.utcnow()
+        month = now.month
+        if month <= 9:
+            month = f"0{month}"
+        return f"{now.year}-{month}"
+
     def gen_previous_season_date(self):
         end = coc.utils.get_season_start().replace(tzinfo=utc).date()
         month = end.month

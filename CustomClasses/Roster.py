@@ -323,6 +323,12 @@ class Roster():
             for player in members:
                 await self.update_member(player=player)
 
+        all_tags = [m.get("tag") for m in self.players]
+        need_to_remove = list(set([x for x in all_tags if all_tags.count(x) > 1]))
+        for tag in need_to_remove:
+            player = coc.utils.get(members, tag=tag)
+            await self.remove_member(player=player)
+
     async def add_member(self, player: coc.Player, sub=False, group="No Group"):
         roster_members = self.roster_result.get("members")
         roster_member_tags = [member.get("tag") for member in roster_members]

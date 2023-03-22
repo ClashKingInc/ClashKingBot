@@ -451,10 +451,19 @@ class family_commands(commands.Cog):
         embed.timestamp = time
         embed.set_footer(text="Last Refreshed:")
         buttons = disnake.ui.ActionRow()
-        buttons.append_item(
-            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
+        buttons.append_item(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
                               custom_id=f"sortfam_"))
         await ctx.edit_original_message(embed=embed, components=[])
+
+    @family.sub_command(name="clan-games", description="Show top clan games points in family")
+    async def family_clan_games(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        time = datetime.now()
+        embed: disnake.Embed = await self.create_clan_games(guild=ctx.guild)
+        embed.timestamp = time
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=f"clangamesfam_"))
+        await ctx.edit_original_message(embed=embed, components=buttons)
 
 
     async def cwl_ranking_create(self, clan: coc.Clan):
@@ -644,6 +653,12 @@ class family_commands(commands.Cog):
             await ctx.response.defer()
             embed = await self.create_raids(guild=ctx.guild)
             embed.set_footer(text="Last Refreshed:")
+            embed.timestamp = datetime.now()
+            await ctx.edit_original_message(embed=embed)
+
+        elif "clangamesfam_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            embed = await self.create_clan_games(guild=ctx.guild)
             embed.timestamp = datetime.now()
             await ctx.edit_original_message(embed=embed)
 

@@ -833,9 +833,7 @@ def create_activities(bot, clan: coc.Clan, clan_members, season):
     return embed
 
 
-def create_clan_games(
-        clan: coc.Clan, player_list,
-        member_tags, season_date):
+def create_clan_games(clan: coc.Clan, player_list, member_tags, season_date):
 
     point_text_list = []
     total_points = sum(player.clan_games(season_date) for player in player_list)
@@ -850,16 +848,15 @@ def create_clan_games(
 
         if player.tag in member_tags:
             point_text_list.append([
-                f"{Emojis().clan_games}`{str(points).ljust(4)}`: {name}",
+                f"{Emojis().clan_games}`{str(points).ljust(4)}` {name}",
                 points])
 
         else:
             point_text_list.append([
-                f"{Emojis().deny_mark}`{str(points).ljust(4)}`: {name}",
+                f"{Emojis().deny_mark}`{str(points).ljust(4)}` {name}",
                 points])
 
-    point_text_list_sorted = sorted(
-        point_text_list, key=lambda l: l[1], reverse=True)
+    point_text_list_sorted = sorted(point_text_list, key=lambda l: l[1], reverse=True)
 
     point_text = [line[0] for line in point_text_list_sorted]
     point_text = "\n".join(point_text)

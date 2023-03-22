@@ -1,11 +1,11 @@
 import datetime
-
 import disnake
 import coc
 import pytz
 import emoji
 import asyncio
 import statistics
+import re
 
 from coc.raid import RaidLogEntry
 from disnake.ext import commands
@@ -235,7 +235,57 @@ class getFamily(commands.Cog):
         return main_embed
 
     async def create_clan_games(self, guild: disnake.Guild):
-        pass
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+
+        season_date = self.bot.gen_games_season()
+        members = await self.bot.player_stats.distinct("tag", filter={f"clan_tag": {"$in" : clan_tags}})
+        tags = await self.bot.player_stats.distinct("tag", filter={f"clan_games.{season_date}.clan": {"$in" : clan_tags}})
+        all_tags = (members + tags)
+        all_tags = [r["tag"] for r in (await self.bot.player_stats.find({"tag" : {"$in" : all_tags}}).sort(f"clan_games.{season_date}.clan", -1).to_list(length=50))]
+
+        members = set(members)
+        player_list = await self.bot.get_players(tags=list(set(all_tags)))
+
+        member_stats = await self.bot.new_looper[f"{self.bot.gen_season_date()}-history"].find({"tag": {"$in" : all_tags}}).to_list(length=100)
+        member_stat_dict = {}
+        for m in member_stats:
+            member_stat_dict[m["tag"]] = m
+
+        total_points = sum(player.clan_games(season_date) for player in player_list)
+        player_list = sorted(player_list, key=lambda l: l.clan_games(season_date), reverse=True)[:50]
+
+        point_text_list = []
+        for player in player_list:
+            name = player.name
+            name = re.sub('[*_`~/]', '', name)
+            points = player.clan_games(season_date)
+
+            time = ""
+            stats = member_stat_dict.get(player.tag)
+            if stats is not None:
+                stats = stats.get("Games Champion", [])
+                if points < 4000:
+                    stats.append({"time" : int(datetime.datetime.utcnow().timestamp())})
+                if len(stats) >= 2:
+                    first_time = datetime.datetime.fromtimestamp(stats[0].get("time"))
+                    last_time = datetime.datetime.fromtimestamp(stats[-1].get("time"))
+                    diff = (last_time - first_time)
+                    m, s = divmod(diff.total_seconds(), 60)
+                    h, m = divmod(m, 60)
+                    time = f"{int(h)}h {int(m)}m"
+
+            if player.tag in members:
+                point_text_list.append([f"{self.bot.emoji.clan_games}`{str(points).ljust(4)} {time:7}` {name}"])
+            else:
+                point_text_list.append([f"{self.bot.emoji.deny_mark}`{str(points).ljust(4)} {time:7}` {name}"])
+
+        point_text = [line[0] for line in point_text_list]
+        point_text = "\n".join(point_text)
+
+        cg_point_embed = disnake.Embed(title=f"**{guild.name} Clan Game Totals**",description=point_text,color=disnake.Color.green())
+
+        cg_point_embed.set_footer(text=f"Total Points: {'{:,}'.format(total_points)}")
+        return cg_point_embed
 
     async def create_raids(self, guild: disnake.Guild):
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})

@@ -606,64 +606,37 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.edit_original_message(embed=embed, components=buttons)
 
-    '''@clan.sub_command(
-        name="games",
-        description="Points earned in clan games by clan members")
-    async def clan_games(
-            self, ctx: disnake.ApplicationCommandInteraction,
-            clan: coc.Clan = commands.Param(converter=clan_converter),
+    @clan.sub_command(name="games", description="Points earned in clan games by clan members")
+    async def clan_games(self, ctx: disnake.ApplicationCommandInteraction,clan: coc.Clan = commands.Param(converter=clan_converter),
             season=commands.Param(default=None, name="season")):
 
         member_tags = [member.tag for member in clan.members]
 
         _season = ""
         if season is not None:
-            month = list(calendar.month_name).index(season.split(" ")[0])
+            month = int(list(calendar.month_name).index(season.split(" ")[0]))
             year = season.split(" ")[1]
-            end_date = coc.utils.get_season_end(
-                month=int(month-1), year=int(year))
-            month = end_date.month
 
             if month <= 9:
                 month = f"0{month}"
 
-            season_date = f"{end_date.year}-{month}"
-
-            _season = f"_{end_date.year}-{month}"
+            season_date = f"{year}-{month}"
+            _season = f"_{year}-{month}"
 
         else:
-            diff_days = datetime.utcnow().replace(tzinfo=tiz) - coc.utils.get_season_end().replace(tzinfo=tiz)
-            if diff_days.days <= 3:
-                sea = coc.utils.get_season_start().replace(tzinfo=tiz).date()
-                season_date = f"{sea.year}-{sea.month}"
-            else:
-                season_date = clan_utils.gen_season_date()
+            season_date = self.bot.gen_games_season()
 
-        tags = await self.bot.player_stats.distinct(
-            "tag", filter={f"clan_games.{season_date}.clan": clan.tag})
+        tags = await self.bot.player_stats.distinct("tag", filter={f"clan_games.{season_date}.clan": clan.tag})
         all_tags = list(set(member_tags + tags))
 
-        tasks = []
-        for tag in all_tags:
-            results = await self.bot.player_stats.find_one(
-                {"tag": tag})
-
-            task = asyncio.ensure_future(
-                self.bot.coc_client.get_player(
-                    player_tag=tag, cls=MyCustomPlayer,
-                    bot=self.bot, results=results))
-
-            tasks.append(task)
-
-        player_responses = await asyncio.gather(*tasks)
+        players = await self.bot.get_players(tags=all_tags)
 
         embed = clan_responder.create_clan_games(
-            clan=clan, player_list=player_responses,
+            clan=clan, player_list=players,
             member_tags=member_tags,
             season_date=season_date)
 
-        embed.description += (
-            f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>")
+        embed.description += f"\nLast Refreshed: <t:{int(datetime.now().timestamp())}:R>"
 
         buttons = disnake.ui.ActionRow()
         buttons.append_item(
@@ -672,7 +645,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                 style=disnake.ButtonStyle.grey,
                 custom_id=f"clangames{_season}_{clan.tag}"))
 
-        await ctx.edit_original_message(embed=embed, components=buttons)'''
+        await ctx.edit_original_message(embed=embed, components=buttons)
 
     @clan.sub_command(name="donations", description="Donations given & received by clan members")
     async def clan_donations(self, ctx: disnake.ApplicationCommandInteraction,clan: coc.Clan = commands.Param(converter=clan_converter), season=commands.Param(default=None, name="season")):
@@ -1672,6 +1645,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @war_stats_clan.autocomplete("season")
     @clan_donations.autocomplete("season")
     @activities.autocomplete("season")
+    @clan_games.autocomplete("season")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
         return [season for season in seasons if query.lower() in season.lower()]
@@ -1701,6 +1675,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @activities.autocomplete("clan")
     @clan_ping.autocomplete("clan")
     @progress.autocomplete("clan")
+    @clan_games.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id}).sort("name", 1)
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})

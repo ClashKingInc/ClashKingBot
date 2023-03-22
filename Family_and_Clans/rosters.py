@@ -1113,6 +1113,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                 return await msg.edit(components=[])
 
             await res.response.defer()
+            await roster.find_roster(guild=ctx.guild, alias=alias)
             accounts_to_add = res.values
             added = []
             for account in accounts_to_add:
