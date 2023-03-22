@@ -220,11 +220,7 @@ class reminders(commands.Cog, name="Reminder Cron"):
             point_threshold = reminder.get("point_threshold")
             clan_member_tags = [member.tag for member in clan.members]
             clan_members_stats = await self.bot.player_stats.find({f"tag": {"$in": clan_member_tags}}).to_list(length=100)
-            current_season = self.bot.gen_season_date()
-            diff_days = datetime.datetime.utcnow().replace(tzinfo=utc) - coc.utils.get_season_end().replace(tzinfo=utc)
-            if diff_days.days <= 3:
-                sea = coc.utils.get_season_start().replace(tzinfo=utc).date()
-                current_season = f"{sea.year}-{sea.month}"
+            current_season = self.bot.gen_games_season()
             under_point_tags = []
             names = {}
             missing = {}
