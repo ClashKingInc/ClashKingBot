@@ -265,7 +265,7 @@ class getFamily(commands.Cog):
             if stats is not None:
                 stats = stats.get("Games Champion", [])
                 if points < 4000:
-                    stats.append({"time" : int(datetime.datetime.utcnow().timestamp())})
+                    stats.append({"time" : int(datetime.datetime.now().timestamp())})
                 if len(stats) >= 2:
                     first_time = datetime.datetime.fromtimestamp(stats[0].get("time"))
                     last_time = datetime.datetime.fromtimestamp(stats[-1].get("time"))
