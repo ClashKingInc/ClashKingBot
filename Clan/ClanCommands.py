@@ -1488,15 +1488,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             clan = (str(ctx.data.custom_id).split("_"))[-1]
             clan = await self.bot.getClan(clan)
 
-            if len(str(ctx.data.custom_id).split("_")) == 3:
-                season_date = (str(ctx.data.custom_id).split("_"))[-2]
-            else:
-                diff_days = datetime.utcnow().replace(tzinfo=tiz) - coc.utils.get_season_end().replace(tzinfo=tiz)
-                if diff_days.days <= 3:
-                    sea = coc.utils.get_season_start().replace(tzinfo=tiz).date()
-                    season_date = f"{sea.year}-{sea.month}"
-                else:
-                    season_date = clan_utils.gen_season_date()
+            season_date = self.bot.gen_games_season()
 
             member_tags = [member.tag for member in clan.members]
 
