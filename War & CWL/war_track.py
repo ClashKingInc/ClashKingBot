@@ -256,7 +256,7 @@ class War_Log(commands.Cog):
         war = await self.bot.war_client.war_result(clan_tag=clan_tag, preparation_start=preparation_start_time)
         if war is None:
             war = await self.bot.get_clanwar(clanTag=clan_tag)
-            if war.state != "warEnded":
+            if str(war.state) != "warEnded":
                 x = 0
                 while True:
                     try:
@@ -265,10 +265,10 @@ class War_Log(commands.Cog):
                         await asyncio.sleep(120)
                     war = await self.bot.get_clanwar(clanTag=clan_tag)
                     x += 1
-                    if x == 3:
+                    if x == 3 or str(war.state) == "warEnded":
                       break
 
-        if war is None or war != "warEnded":
+        if war is None or str(war.state) != "warEnded":
             return
 
         for clan_result in await self.bot.clan_db.find({"tag": f"{clan_tag}"}).to_list(length=500):
