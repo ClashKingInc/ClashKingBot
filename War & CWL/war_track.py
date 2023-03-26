@@ -349,9 +349,9 @@ class War_Log(commands.Cog):
         if "listwarattacks_" in str(ctx.data.custom_id):
             await ctx.response.defer(ephemeral=True)
             clan = (str(ctx.data.custom_id).split("_"))[-1]
-            war = await self.bot.get_clanwar(clanTag=clan)
+            war = await self.bot.war_client.war_result(clan_tag=clan, preparation_start=int(str(ctx.data.custom_id).split("_")[1]))
             if war is None:
-                war = await self.bot.war_client.war_result(clan_tag=clan, preparation_start=int(str(ctx.data.custom_id).split("_")[1]))
+                war = await self.bot.get_clanwar(clanTag=clan)
             if war is None:
                 return await ctx.send(content="No War Found", ephemeral=True)
             war_cog = self.bot.get_cog(name="War")
@@ -365,9 +365,9 @@ class War_Log(commands.Cog):
         elif "listwardefenses_" in str(ctx.data.custom_id):
             await ctx.response.defer(ephemeral=True)
             clan = (str(ctx.data.custom_id).split("_"))[-1]
-            war = await self.bot.get_clanwar(clanTag=clan)
+            war = await self.bot.war_client.war_result(clan_tag=clan, preparation_start=int(str(ctx.data.custom_id).split("_")[1]))
             if war is None:
-                war = await self.bot.war_client.war_result(clan_tag=clan, preparation_start=int(str(ctx.data.custom_id).split("_")[1]))
+                war = await self.bot.get_clanwar(clanTag=clan)
             if war is None:
                 return await ctx.send(content="No War Found", ephemeral=True)
             war_cog = self.bot.get_cog(name="War")
