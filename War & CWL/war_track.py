@@ -271,6 +271,7 @@ class War_Log(commands.Cog):
         if war is None or str(war.state) != "warEnded":
             return
 
+        await self.store_war(war=war)
         for clan_result in await self.bot.clan_db.find({"tag": f"{clan_tag}"}).to_list(length=500):
             try:
                 if clan_result.get("war_log") is None:
@@ -314,8 +315,6 @@ class War_Log(commands.Cog):
                 embed.set_thumbnail(url=war.clan.badge.url)
                 if len(embed.fields) != 0:
                     await war_channel.send(embed=embed)
-
-                await self.store_war(war=war)
             except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await self.bot.clan_db.update_one({"$and": [
                     {"tag": war.clan.tag},
@@ -349,23 +348,38 @@ class War_Log(commands.Cog):
         if "listwarattacks_" in str(ctx.data.custom_id):
             await ctx.response.defer(ephemeral=True)
             clan = (str(ctx.data.custom_id).split("_"))[-1]
-            war = await self.bot.war_client.war_result(clan_tag=clan, preparation_start=int(str(ctx.data.custom_id).split("_")[1]))
+            prep_time = 0
+            try:
+                prep_time = int(str(ctx.data.custom_id).split('_')[1])
+            except:
+                pass
+            war_data = await self.bot.clan_wars.find_one({"war_id" : f"{clan}-{prep_time}"})
+            war = None
+            if war_data is not None:
+                war = coc.ClanWar(data=war_data["data"], client=self.bot.coc_client, clan_tag=clan)
+            if war is None:
+                war = await self.bot.war_client.war_result(clan_tag=clan, preparation_start=prep_time)
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan)
             if war is None:
                 return await ctx.send(content="No War Found", ephemeral=True)
             war_cog = self.bot.get_cog(name="War")
             attack_embed: disnake.Embed = await war_cog.attacks_embed(war)
-            len(attack_embed.description)
-            try:
-                len(attack_embed.fields[0].value)
-            except:
-                pass
             await ctx.send(embed=attack_embed, ephemeral=True)
         elif "listwardefenses_" in str(ctx.data.custom_id):
             await ctx.response.defer(ephemeral=True)
             clan = (str(ctx.data.custom_id).split("_"))[-1]
-            war = await self.bot.war_client.war_result(clan_tag=clan, preparation_start=int(str(ctx.data.custom_id).split("_")[1]))
+            prep_time = 0
+            try:
+                prep_time = int(str(ctx.data.custom_id).split('_')[1])
+            except:
+                pass
+            war_data = await self.bot.clan_wars.find_one({"war_id": f"{clan}-{prep_time}"})
+            war = None
+            if war_data is not None:
+                war = coc.ClanWar(data=war_data["data"], client=self.bot.coc_client, clan_tag=clan)
+            if war is None:
+                war = await self.bot.war_client.war_result(clan_tag=clan, preparation_start=prep_time)
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan)
             if war is None:
