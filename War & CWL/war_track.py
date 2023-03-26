@@ -391,7 +391,7 @@ class War_Log(commands.Cog):
     async def store_war(self, war: coc.ClanWar):
         await self.bot.clan_wars.insert_one({
             "war_id" : f"{war.clan.tag}-{int(war.preparation_start_time.time.timestamp())}",
-            "data" : f"{war._raw_data}"
+            "data" : war._raw_data
         })
 
     def war_start_embed(self, new_war: coc.ClanWar):
