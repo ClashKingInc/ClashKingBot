@@ -86,7 +86,7 @@ class EvalSetup(commands.Cog, name="Eval Setup"):
             {"role": role.id},
             {"server": guild.id}
         ]})
-        if results is not None:
+        if results is None:
             return disnake.Embed(description=f"{role.mention} is not currently in the {type} list.", color=disnake.Color.red())
 
         if role.is_default():
