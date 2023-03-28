@@ -12,7 +12,7 @@ asyncpraw==7.5.0
 asyncprawcore==2.3.0
 attrs==21.4.0
 Babel==2.10.3
-backports.zoneinfo==0.2.1
+backports.zoneinfo==0.2.1;python_version<"3.9"
 beautifulsoup4==4.10.0
 blis==0.7.9
 bs4==0.0.1
