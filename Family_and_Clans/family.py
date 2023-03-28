@@ -411,8 +411,8 @@ class getFamily(commands.Cog):
         embed.timestamp = datetime.datetime.now()
         return embed
 
-    async def create_summary(self, guild: disnake.Guild):
-        date = self.bot.gen_season_date()
+    async def create_summary(self, guild: disnake.Guild, season:str):
+        date = season
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
 
         results = await self.bot.player_stats.find({"clan_tag": {"$in": clan_tags}}).to_list(length=2000)

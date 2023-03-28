@@ -4,6 +4,7 @@ import pytz
 import operator
 import json
 import asyncio
+import calendar
 
 from disnake.ext import commands
 from coc import utils
@@ -418,10 +419,25 @@ class family_commands(commands.Cog):
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     @family.sub_command(name="summary", description="Summary of family stats")
-    async def family_summary(self, ctx: disnake.ApplicationCommandInteraction):
+    async def family_summary(self, ctx: disnake.ApplicationCommandInteraction, season=commands.Param(default=None, name="season")):
         await ctx.response.defer()
+        _season = ""
+        if season is not None:
+            month = list(calendar.month_name).index(season.split(" ")[0])
+            year = season.split(" ")[1]
+            end_date = coc.utils.get_season_end(month=int(month - 1), year=int(year))
+            month = end_date.month
+            if month <= 9:
+                month = f"0{month}"
+
+            season_date = f"{end_date.year}-{month}"
+            _season = f"_{end_date.year}-{month}"
+
+        else:
+            season_date = self.bot.gen_season_date()
+
         time = datetime.now()
-        embeds = await self.create_summary(guild=ctx.guild)
+        embeds = await self.create_summary(guild=ctx.guild, season=season_date)
         embeds[-1].timestamp = time
         embeds[-1].set_footer(text="Last Refreshed:")
         buttons = disnake.ui.ActionRow()
@@ -583,6 +599,10 @@ class family_commands(commands.Cog):
 
         return emoji
 
+    @family_summary.autocomplete("season")
+    async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
+        return [season for season in seasons if query.lower() in season.lower()]
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
@@ -620,7 +640,7 @@ class family_commands(commands.Cog):
         elif "summaryfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             time = datetime.now()
-            embeds = await self.create_summary(guild=ctx.guild)
+            embeds = await self.create_summary(guild=ctx.guild, season=self.bot.gen_season_date())
             embeds[-1].timestamp = time
             embeds[-1].set_footer(text="Last Refreshed:")
             await ctx.edit_original_message(embeds=embeds)
