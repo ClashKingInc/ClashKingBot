@@ -352,7 +352,7 @@ async def opt_status(bot: CustomClient, clan: coc.Clan):
     thcount = defaultdict(int)
     out_thcount = defaultdict(int)
 
-    member_stats = await bot.new_looper[f"{bot.gen_season_date()}-history"].find({"tag": {"$in" : [member.tag for member in clan.members]}}).to_list(length=100)
+    member_stats = await bot.new_looper[f"2023-03-history"].find({"tag": {"$in" : [member.tag for member in clan.members]}}).to_list(length=100)
     member_stats_to_dict = {}
     for stat in member_stats:
         war_pref = stat.get("warPreference")
