@@ -277,6 +277,80 @@ class misc(commands.Cog, name="Other"):
             "embed" : embed.to_dict()})
         await ctx.send(embed=embed)
 
+    @custom_embed.sub_command(name="edit", description="Edit a Custom Embed")
+    async def custom_embed_edit(self, ctx: disnake.ApplicationCommandInteraction, embed_name: str, title: str = None,
+                                  description: str = None, color: str = disnake.Color.dark_grey(),
+                                  image: disnake.Attachment = None,
+                                  thumbnail: disnake.Attachment = None, footer_text: str = None,
+                                  footer_icon: disnake.Attachment = None, author_text: str = None,
+                                  author_icon: disnake.Attachment = None,
+                                  field_1_name: str = None, field_1_text: str = None,
+                                  field_1_inline=commands.Param(default="False", choices=["True", "False"]),
+                                  field_2_name: str = None, field_2_text: str = None,
+                                  field_2_inline=commands.Param(default="False", choices=["True", "False"]),
+                                  field_3_name: str = None, field_3_text: str = None,
+                                  field_3_inline=commands.Param(default="False", choices=["True", "False"]),
+                                  field_4_name: str = None, field_4_text: str = None,
+                                  field_4_inline=commands.Param(default="False", choices=["True", "False"])):
+
+        await ctx.response.defer()
+        result = await self.bot.custom_embeds.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": embed_name}]})
+        if result is None:
+            return await ctx.send(content=f"Custom Embed - `{embed_name}` does not exist")
+
+        if (field_1_name is not None and field_1_text is None) or (field_1_name is None and field_1_text is not None):
+            return await ctx.send(content="Fields must have `name` and `text`")
+
+        if (field_2_name is not None and field_2_text is None) or (field_2_name is None and field_2_text is not None):
+            return await ctx.send(content="Fields must have `name` and `text`")
+
+        if (field_3_name is not None and field_3_text is None) or (field_3_name is None and field_3_text is not None):
+            return await ctx.send(content="Fields must have `name` and `text`")
+
+        if (field_4_name is not None and field_4_text is None) or (field_4_name is None and field_4_text is not None):
+            return await ctx.send(content="Fields must have `name` and `text`")
+
+        if footer_icon is not None and footer_text is None:
+            return await ctx.send(content="Footer cannot be an icon alone, must use `footer_text`")
+
+        if author_icon is not None and author_text is None:
+            return await ctx.send(content="Author cannot be an icon alone, must use `author_text`")
+
+        if image is not None:
+            image = await permanent_image(bot=self.bot, url=image.url)
+        if thumbnail is not None:
+            thumbnail = await permanent_image(bot=self.bot, url=thumbnail.url)
+        if footer_icon is not None:
+            footer_icon = await permanent_image(bot=self.bot, url=footer_icon.url)
+
+        if isinstance(color, str):
+            try:
+                color_result = await self.bot.colors.find_one({"name": color})
+                color_rgb = color_result.get("rgb")
+                color = disnake.Color.from_rgb(r=color_rgb[0], g=color_rgb[1], b=color_rgb[2])
+            except:
+                pass
+            if isinstance(color, str):
+                try:
+                    r, g, b = tuple(int(color.replace("#","")[i:i+2], 16) for i in (0, 2, 4))
+                    color = disnake.Color.from_rgb(r=r, g=g, b=b)
+                except:
+                    return await ctx.send("Invalid Hex Code, or Please choose one of the 900 colors from the autocomplete")
+
+
+        our_embed = {"title": title, "description": description, "footer": {"icon": footer_icon, "text": footer_text},
+                     "author": {"icon": author_icon, "text": author_text}, "image.url": image,
+                     "thumbnail.url": thumbnail, "color": color,
+                     "field_1": {"name": field_1_name, "value": field_1_text, "inline": field_1_inline == "True"},
+                     "field_2": {"name": field_2_name, "value": field_2_text, "inline": field_2_inline == "True"},
+                     "field_3": {"name": field_3_name, "value": field_3_text, "inline": field_3_inline == "True"},
+                     "field_4": {"name": field_4_name, "value": field_4_text, "inline": field_4_inline == "True"}}
+
+        embed = await self.generate_embed(our_embed=our_embed, embed=disnake.Embed.from_dict(data=result.get("embed")))
+        await self.bot.custom_embeds.update_one({"$and": [{"server_id": ctx.guild.id}, {"name": embed_name}]}, {"$set" : {"embed" : embed.to_dict()}})
+        await ctx.send(embed=embed)
+
+
     @custom_embed.sub_command(name="import", description="Import a Custom Embed")
     async def custom_embed_import(self, ctx: disnake.ApplicationCommandInteraction, embed_name: str, embed_link: str):
         """
@@ -535,6 +609,7 @@ class misc(commands.Cog, name="Other"):
         return questions
 
     @custom_embed_create.autocomplete("color")
+    @custom_embed_edit.autocomplete("color")
     async def faq_color(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         all_colors = await self.bot.colors.distinct("name")
         return_list = []
@@ -547,6 +622,7 @@ class misc(commands.Cog, name="Other"):
 
     @custom_embed_post.autocomplete("embed_name")
     @custom_embed_delete.autocomplete("embed_name")
+    @custom_embed_edit.autocomplete("embed_name")
     async def embed_names(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         results = await self.bot.custom_embeds.distinct("name", filter={"server_id": ctx.guild.id})
         return_list = []
