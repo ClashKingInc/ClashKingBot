@@ -20,13 +20,7 @@ WEBSOCKET_PW = os.getenv("WEBSOCKET_PW")
 async def player_websocket():
     while True:
         try:
-            url = f"http://{WEBSOCKET_IP}/login"
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json={"username": f"{WEBSOCKET_USER}", "password": f"{WEBSOCKET_PW}"}) as response:
-                    token = await response.json()
-                    token = token["access_token"]
-                await session.close()
-            async with websockets.connect(f"ws://{WEBSOCKET_IP}/players?token={token}", ping_timeout=None, ping_interval=None, open_timeout=None, max_queue=5000000) as websocket:
+            async with websockets.connect(f"ws://{WEBSOCKET_IP}/players?token=5", ping_timeout=None, ping_interval=None, open_timeout=None, max_queue=5000000) as websocket:
                 async for message in websocket:
                     if "Login!" in str(message) or "decoded token" in str(message):
                         print(message)
