@@ -300,7 +300,7 @@ class Roster():
         if not members:
             return
         columns = self.columns
-        members = await self.bot.get_players(tags=[member.get("tag") for member in members], custom=("30 Day Hitrate" in columns))
+        members = await self.bot.get_players(tags=[member.get("tag") for member in members], custom=("30 Day Hitrate" in columns), use_cache=False)
         has_ran = False
         if "Discord" in columns:
             has_ran = True
