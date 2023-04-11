@@ -1,11 +1,8 @@
-import coc
-import disnake
-from coc.raid import RaidLogEntry
 from datetime import date, timedelta, datetime
 from disnake.ext import commands
-from Utility.profile_embeds import *
+from BoardCommands.Player.profile_embeds import *
 from Assets.emojiDictionary import emojiDictionary
-from Utility.pagination import button_pagination
+from BoardCommands.Player.pagination import button_pagination
 from utils.search import search_results
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from utils.troop_methods import heros, heroPets
@@ -13,120 +10,18 @@ from Assets.thPicDictionary import thDictionary
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from typing import List
-import pytz
-utc = pytz.utc
 from DiscordLevelingCard import RankCard, Settings
 from operator import attrgetter
-import asyncio
 from utils.discord_utils import interaction_handler
-import calendar
 from collections import defaultdict
-import operator
 from coc.raid import RaidMember, RaidLogEntry
+from utils.constants import LEVELS_AND_XP
 
-LEVELS_AND_XP = {
-    '0': 0,
-    '1': 100,
-    '2': 255,
-    '3': 475,
-    '4': 770,
-    '5': 1150,
-    '6': 1625,
-    '7': 2205,
-    '8': 2900,
-    '9': 3720,
-    '10': 4675,
-    '11': 5775,
-    '12': 7030,
-    '13': 8450,
-    '14': 10045,
-    '15': 11825,
-    '16': 13800,
-    '17': 15980,
-    '18': 18375,
-    '19': 20995,
-    '20': 23850,
-    '21': 26950,
-    '22': 30305,
-    '23': 33925,
-    '24': 37820,
-    '25': 42000,
-    '26': 46475,
-    '27': 51255,
-    '28': 56350,
-    '29': 61770,
-    '30': 67525,
-    '31': 73625,
-    '32': 80080,
-    '33': 86900,
-    '34': 94095,
-    '35': 101675,
-    '36': 109650,
-    '37': 118030,
-    '38': 126825,
-    '39': 136045,
-    '40': 145700,
-    '41': 155800,
-    '42': 166355,
-    '43': 177375,
-    '44': 188870,
-    '45': 200850,
-    '46': 213325,
-    '47': 226305,
-    '48': 239800,
-    '49': 253820,
-    '50': 268375,
-    '51': 283475,
-    '52': 299130,
-    '53': 315350,
-    '54': 332145,
-    '55': 349525,
-    '56': 367500,
-    '57': 386080,
-    '58': 405275,
-    '59': 425095,
-    '60': 445550,
-    '61': 466650,
-    '62': 488405,
-    '63': 510825,
-    '64': 533920,
-    '65': 557700,
-    '66': 582175,
-    '67': 607355,
-    '68': 633250,
-    '69': 659870,
-    '70': 687225,
-    '71': 715325,
-    '72': 744180,
-    '73': 773800,
-    '74': 804195,
-    '75': 835375,
-    '76': 867350,
-    '77': 900130,
-    '78': 933725,
-    '79': 968145,
-    '80': 1003400,
-    '81': 1039500,
-    '82': 1076455,
-    '83': 1114275,
-    '84': 1152970,
-    '85': 1192550,
-    '86': 1233025,
-    '87': 1274405,
-    '88': 1316700,
-    '89': 1359920,
-    '90': 1404075,
-    '91': 1449175,
-    '92': 1495230,
-    '93': 1542250,
-    '94': 1590245,
-    '95': 1639225,
-    '96': 1689200,
-    '97': 1740180,
-    '98': 1792175,
-    '99': 1845195,
-    '100': 1899250
-}
+import asyncio
+import operator
+import calendar
+import pytz
+utc = pytz.utc
 
 class profiles(commands.Cog, name="Profile"):
 

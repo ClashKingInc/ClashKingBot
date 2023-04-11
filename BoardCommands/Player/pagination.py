@@ -1,4 +1,4 @@
-from Utility.profile_embeds import *
+from BoardCommands.Player.profile_embeds import *
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 

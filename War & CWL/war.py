@@ -4,7 +4,7 @@ import coc
 import disnake
 import pytz
 import asyncio
-
+import time as te
 from utils.search import search_results
 from disnake.ext import commands
 from Assets.emojiDictionary import emojiDictionary
@@ -13,6 +13,7 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from coc import utils
 from utils.troop_methods import cwl_league_emojis
+from coc.miscmodels import Timestamp
 
 tiz = pytz.utc
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
@@ -29,13 +30,21 @@ class War(commands.Cog):
         return clan
 
     @commands.slash_command(name= "war", description="Stats & info for a clans current war")
-    async def clan_war(self, ctx: disnake.ApplicationCommandInteraction, clan:str):
+    async def clan_war(self, ctx: disnake.ApplicationCommandInteraction, clan:str, previous_wars:str = None):
         await ctx.response.defer()
         clan = await self.bot.getClan(clan_tag=clan)
         if clan is None:
             return await ctx.send("Not a valid clan tag.")
-
-        war = await self.bot.get_clanwar(clan.tag)
+        if previous_wars is not None:
+            war_data = await self.bot.clan_wars.find_one({"custom_id" : previous_wars.split("|")[-1].replace(" ","")})
+            if war_data is None:
+                embed = disnake.Embed(description=f"Previous war for [**{clan.name}**]({clan.share_link}) not found.",
+                                      color=disnake.Color.green())
+                embed.set_thumbnail(url=clan.badge.large)
+                return await ctx.send(embed=embed)
+            war = coc.ClanWar(data=war_data.get("data"), client=self.bot.coc_client, clan_tag=clan.tag)
+        else:
+            war = await self.bot.get_clanwar(clan.tag)
         if war is None or war.start_time is None:
             if not clan.public_war_log:
                 embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) has a private war log.",
@@ -332,7 +341,7 @@ class War(commands.Cog):
         if missing_defenses:
             split = [missing_defenses[i:i + 20] for i in range(0, len(missing_defenses), 20)]
             for item in split:
-                embed.add_field(name="**No defenses taken:**", value=item)
+                embed.add_field(name="**No defenses taken:**", value="".join(item))
 
         embed.set_thumbnail(url=war.clan.badge.large)
         return embed
@@ -516,6 +525,64 @@ class War(commands.Cog):
                 clan_list.append(f"{clan.name} | {clan.tag}")
                 return clan_list
         return clan_list[0:25]
+
+    @clan_war.autocomplete("previous_wars")
+    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        if ctx.filled_options["clan"] != "":
+            clan = await self.bot.getClan(ctx.filled_options["clan"])
+            results = await self.bot.clan_wars.find({"$or" : [{"data.clan.tag" : clan.tag}, {"data.opponent.tag" : clan.tag}]}).sort("data.endTime", -1).limit(25).to_list(length=25)
+            options = []
+            previous = set()
+            prep_list = [
+                5 * 60,
+                15 * 60,
+                30 * 60,
+                60 * 60,
+                2 * 60 * 60,
+                4 * 60 * 60,
+                6 * 60 * 60,
+                8 * 60 * 60,
+                12 * 60 * 60,
+                16 * 60 * 60,
+                20 * 60 * 60,
+                24 * 60 * 60,
+            ]
+
+            for result in results:
+                custom_id = result.get("custom_id")
+                clan_name = result.get("data").get("clan").get("name")
+                clan_tag = result.get("data").get("clan").get("tag")
+                opponent_name = result.get("data").get("opponent").get("name")
+                end_time = result.get("data").get("endTime")
+                end_time = Timestamp(data=end_time)
+                unique_id = result.get("war_id")
+                if unique_id in previous:
+                    continue
+                previous.add(unique_id)
+                days_ago = abs(end_time.seconds_until) // (24 * 3600)
+                if days_ago == 0:
+                    t = days_ago % (24 * 3600)
+                    hour = t // 3600
+                    time_text = f"{hour}H ago"
+                else:
+                    time_text = f"{days_ago}D ago"
+
+                if result.get("data").get("tag") is not None:
+                    type = "CWL"
+                elif (Timestamp(data=result.get("data").get("startTime")).time - Timestamp(data=result.get("data").get("preparationStartTime")).time).seconds in prep_list:
+                    type = "FW"
+                else:
+                    type = "REG"
+
+                if clan_tag == clan.tag:
+                    text = f"{opponent_name} | {time_text} | {type} | {custom_id}"
+                else:
+                    text = f"{clan_name} | \u200e{time_text} | {type} | {custom_id}"
+                if query.lower() in text.lower():
+                    options.append(text)
+            return options
+
+
 
 def setup(bot: CustomClient):
     bot.add_cog(War(bot))

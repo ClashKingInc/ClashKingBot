@@ -1,29 +1,30 @@
-from disnake.ext.commands.cog import _cog_special_method
+import coc
+import disnake
+import chat_exporter
+import io
+import pytz
+
+from operator import attrgetter
 from typing import List, Union
 from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
-from coc import utils
-import requests
-import coc
-import disnake
-import asyncio
 from datetime import datetime
-import pytz
-tiz = pytz.utc
-from Exceptions import PanelNotFound, ButtonNotFound, ButtonAlreadyExists, PanelAlreadyExists, FaultyJson
-import chat_exporter
-import io
+from utils.discord_utils import permanent_image
+from Exceptions.CustomExceptions import *
+from BoardCommands.Player.profile_embeds import create_profile_stats, create_profile_troops, history, upgrade_embed
+from main import check_commands
+from CustomClasses.CustomPlayer import MyCustomPlayer
+from utils.discord_utils import interaction_handler
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from SetupNew.SetupCog import SetupCog
     cog_class = SetupCog
 else:
     cog_class = commands.Cog
 
-from Utility.profile_embeds import create_profile_stats, create_profile_troops, history, upgrade_embed
-from main import check_commands
-from CustomClasses.CustomPlayer import MyCustomPlayer
-from utils.discord_utils import interaction_handler
+tiz = pytz.utc
+
 
 class TicketCommands(commands.Cog):
 
@@ -38,31 +39,39 @@ class TicketCommands(commands.Cog):
     #PANELS
     @ticket.sub_command(name="panel-create", description="Get started here! Create your first ticket panel")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def ticket_panel_create(self, ctx: disnake.ApplicationCommandInteraction, panel_name:str, custom_embed:str = None):
+    async def ticket_panel_create(self, ctx: disnake.ApplicationCommandInteraction, panel_name:str, embed_link:str = None):
         """
             Parameters
             ----------
             panel_name: name for panel
-            custom_embed: choose a custom embed (/embed create)
+            embed_link: message link to an existing embed to copy
         """
-
-        panel_name = panel_name.lower()
-        await ctx.response.defer(ephemeral=False)
 
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is not None:
             raise PanelAlreadyExists
 
-        if custom_embed is None:
-            embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**", description="To create a ticket, use the button(s) below", color=disnake.Color.from_rgb(255, 255, 255))
-            if ctx.guild.icon is not None:
-                embed.set_thumbnail(url=ctx.guild.icon.url)
+        if embed_link is None:
+            modal_inter, embed = await self.basic_embed_modal(ctx=ctx)
+            ctx = modal_inter
         else:
-            result = await self.bot.custom_embeds.find_one(
-                {"$and": [{"server_id": ctx.guild.id}, {"name": custom_embed}]})
-            if result is None:
-                return await ctx.send(content=f"Custom Embed - `{custom_embed}` does not exist")
-            embed = disnake.Embed.from_dict(data=result.get("embed"))
+            await ctx.response.defer()
+            try:
+                if "discord.com" not in embed_link:
+                    return await ctx.send(content="Not a valid message link", ephemeral=True)
+                link_split = embed_link.split("/")
+                message_id = link_split[-1]
+                channel_id = link_split[-2]
+
+                channel = await self.bot.getch_channel(channel_id=int(channel_id))
+                if channel is None:
+                    return await ctx.send(content="Cannot access the channel this embed is in", ephemeral=True)
+                message = await channel.fetch_message(int(message_id))
+                if not message.embeds:
+                    return await ctx.send(content="Message has no embeds", ephemeral=True)
+                embed = message.embeds[0]
+            except:
+                return await ctx.send(content=f"Something went wrong :/ An error occured with the message link.", ephemeral=True)
 
         button = disnake.ui.Button(label="Open Ticket", emoji="📩", style=disnake.ButtonStyle.grey, custom_id=f"{panel_name}_0")
 
@@ -86,6 +95,7 @@ class TicketCommands(commands.Cog):
         })
 
         await ctx.edit_original_message(content="This is what your panel will look like. (You can change it later with `/ticket panel-edit`)", embed=embed, components=None)
+
 
     @ticket.sub_command(name="panel-post", description="Post your created ticket panels anywhere!")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -135,28 +145,42 @@ class TicketCommands(commands.Cog):
 
     @ticket.sub_command(name="panel-edit", description="Edit the embed portion of your existing panels")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def ticket_panel_edit(self, ctx: disnake.ApplicationCommandInteraction, panel_name:str, custom_embed: str):
+    async def ticket_panel_edit(self, ctx: disnake.ApplicationCommandInteraction, panel_name:str, embed_link: str = None):
         """
             Parameters
             ----------
-            panel_name: name for panel
-            custom_embed: which embed to switch to
+            panel_name: name of panel
+            embed_link: message link to an existing embed to copy
         """
-        await ctx.response.defer()
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:
             raise PanelNotFound
 
-        result = await self.bot.custom_embeds.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": custom_embed}]})
-        if result is None:
-            return await ctx.send(content=f"Custom Embed - `{custom_embed}` does not exist")
-        embed = disnake.Embed.from_dict(data=result.get("embed"))
+        if embed_link is None:
+            modal_inter, embed = await self.basic_embed_modal(ctx=ctx, previous_embed=disnake.Embed.from_dict(data=result.get("embed")))
+            ctx = modal_inter
+        else:
+            await ctx.response.defer()
+            try:
+                if "discord.com" not in embed_link:
+                    return await ctx.send(content="Not a valid message link", ephemeral=True)
+                link_split = embed_link.split("/")
+                message_id = link_split[-1]
+                channel_id = link_split[-2]
+
+                channel = await self.bot.getch_channel(channel_id=int(channel_id))
+                if channel is None:
+                    return await ctx.send(content="Cannot access the channel this embed is in", ephemeral=True)
+                message = await channel.fetch_message(int(message_id))
+                if not message.embeds:
+                    return await ctx.send(content="Message has no embeds", ephemeral=True)
+                embed = message.embeds[0]
+            except:
+                return await ctx.send(content=f"Something went wrong :/ An error occured with the message link.", ephemeral=True)
 
         await self.bot.tickets.update_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}, {"$set" : {"embed" : embed.to_dict()}})
-        await ctx.edit_original_message(
-            content="This is what your panel will look like.",
-            embed=embed, components=None)
+        await ctx.edit_original_message(content="This is what your panel will look like.", embed=embed, components=None)
+
 
     @ticket.sub_command(name="panel-delete", description="Delete a panel (and everything attached to it)")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -443,8 +467,7 @@ class TicketCommands(commands.Cog):
             return await ctx.send(embed=disnake.Embed(description=f"Apply Clans removed for {button} button on {panel_name} panel", color=disnake.Color.green()))
 
 
-        clan_tags = await self.bot.clan_db.distinct(
-            "tag", filter={"server": ctx.guild.id})
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
 
         if not clan_tags:
             # TO-DO, use command id & new name
@@ -1350,17 +1373,6 @@ class TicketCommands(commands.Cog):
                 alias_list.append(f"{alias}")
         return alias_list[:25]
 
-    @ticket_panel_create.autocomplete("custom_embed")
-    @ticket_panel_edit.autocomplete("custom_embed")
-    async def embed_names(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        results = await self.bot.custom_embeds.distinct("name", filter={"server_id": ctx.guild.id})
-        return_list = []
-        for result in results:
-            if query.lower() in result.lower():
-                return_list.append(result)
-                if len(return_list) == 25:
-                    break
-        return return_list
 
     @ticket_questionaire.autocomplete("button")
     @ticket_apply_clans.autocomplete("button")
@@ -1396,6 +1408,127 @@ class TicketCommands(commands.Cog):
                 "clan-weights": {},
                 "questions" : {},
             })
+
+    async def basic_embed_modal(self, ctx: disnake.ApplicationCommandInteraction, previous_embed=None):
+        components = [
+            disnake.ui.TextInput(
+                label=f"Embed Title",
+                custom_id=f"title",
+                required=False,
+                style=disnake.TextInputStyle.single_line,
+                max_length=75,
+            ),
+            disnake.ui.TextInput(
+                label=f"Embed Description",
+                custom_id=f"desc",
+                required=False,
+                style=disnake.TextInputStyle.paragraph,
+                max_length=500,
+            ),
+            disnake.ui.TextInput(
+                label=f"Embed Thumbnail",
+                custom_id=f"thumbnail",
+                placeholder="Must be a valid url",
+                required=False,
+                style=disnake.TextInputStyle.single_line,
+                max_length=200,
+            ),
+            disnake.ui.TextInput(
+                label=f"Embed Image",
+                custom_id=f"image",
+                placeholder="Must be a valid url",
+                required=False,
+                style=disnake.TextInputStyle.single_line,
+                max_length=200,
+            ),
+            disnake.ui.TextInput(
+                label=f"Embed Color (Hex Color)",
+                custom_id=f"color",
+                required=False,
+                style=disnake.TextInputStyle.short,
+                max_length=10,
+            )
+        ]
+        t_ = int(datetime.now().timestamp())
+        await ctx.response.send_modal(
+            title="Basic Embed Creator ",
+            custom_id=f"basicembed-{t_}",
+            components=components)
+
+        def check(res: disnake.ModalInteraction):
+
+            return ctx.author.id == res.author.id and res.custom_id == f"basicembed-{t_}"
+
+        try:
+            modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
+                "modal_submit",
+                check=check,
+                timeout=300,
+            )
+        except:
+            return None
+
+        color = disnake.Color.dark_grey()
+        if modal_inter.text_values.get("color") != "":
+            try:
+                r, g, b = tuple(
+                    int(modal_inter.text_values.get("color").replace("#", "")[i:i + 2], 16) for i in (0, 2, 4))
+                color = disnake.Color.from_rgb(r=r, g=g, b=b)
+            except:
+                raise InvalidHexCode
+
+        our_embed = {"title": modal_inter.text_values.get("title"), "description": modal_inter.text_values.get("desc"),
+                     "image.url": modal_inter.text_values.get("image"),
+                     "thumbnail.url": modal_inter.text_values.get("thumbnail"), "color": color}
+
+        embed = await self.generate_embed(our_embed=our_embed, embed=previous_embed)
+        await modal_inter.response.defer()
+
+        return (modal_inter, embed)
+
+    async def generate_embed(self, our_embed: dict, embed=None):
+        print(embed.to_dict())
+        if embed is None:
+            embed = disnake.Embed()
+        for attribute, embed_field in our_embed.items():
+            if embed_field is None or embed_field == "":
+                continue
+            attribute: str
+            if "field" in attribute:
+                if embed_field["name"] is None or embed_field == "":
+                    continue
+                embed.insert_field_at(index=int(attribute.split("_")[1]) - 1, name=embed_field["name"],
+                                      value=embed_field["value"], inline=embed_field["inline"])
+            elif "image" in attribute:
+                if embed_field != "" and embed_field != "None":
+                    embed_field = await permanent_image(self.bot, embed_field)
+                if embed_field == "None":
+                    embed._image = None
+                else:
+                    embed.set_image(url=embed_field)
+            elif "thumbnail" in attribute:
+                if embed_field != "" and embed_field != "None":
+                    embed_field = await permanent_image(self.bot, embed_field)
+                if embed_field == "None":
+                    embed._thumbnail = None
+                else:
+                    embed.set_thumbnail(url=embed_field)
+            elif "footer" in attribute:
+                if embed_field["text"] is None:
+                    continue
+                embed.set_footer(icon_url=embed_field["icon"], text=embed_field["text"])
+            elif "author" in attribute:
+                if embed_field["text"] is None:
+                    continue
+                embed.set_author(icon_url=embed_field["icon"], name=embed_field["text"])
+            else:
+                if len(attribute.split(".")) == 2:
+                    obj = attrgetter(attribute.split(".")[0])(embed)
+                    setattr(obj, attribute.split(".")[1], embed_field)
+                else:
+                    setattr(embed, attribute, embed_field)
+
+        return embed
 
 
 

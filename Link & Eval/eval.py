@@ -106,6 +106,11 @@ class eval(commands.Cog, name="Eval"):
         await self.eval_logic(ctx=ctx, members_to_eval=[user], role_or_user=user, test=test,
                                         change_nick=change_nick)
 
+    @eval.sub_command(name="settings", description="Change settings for autoeval")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def eval_settings(self, ctx: disnake.ApplicationCommandInteraction, options = commands.Param(choices=["Blacklist Roles", "Role Treatment", "Nickname Change"])):
+        pass
+
     @commands.user_command(name="Nickname", description="Change nickname of a user")
     async def auto_nick(self, ctx: disnake.ApplicationCommandInteraction, user: disnake.User):
         await ctx.response.defer(ephemeral=True)

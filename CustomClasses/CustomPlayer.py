@@ -5,14 +5,12 @@ from coc import utils
 from Assets.emojiDictionary import emojiDictionary
 from Assets.thPicDictionary import thDictionary
 from datetime import datetime, timedelta
-from pymongo import MongoClient
 from CustomClasses.emoji_class import EmojiType
 from collections import defaultdict
 from utils.ClanCapital import gen_raid_weekend_datestrings
-
-sync_client = MongoClient("mongodb://localhost:27017")
-new_looper = sync_client.new_looper
-player_stats = new_looper.player_stats
+import emoji
+import re
+from functools import lru_cache
 
 utc = pytz.utc
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
@@ -31,6 +29,12 @@ class MyCustomPlayer(coc.Player):
         self.streak = 0
         self.results = kwargs.pop("results")
         self.town_hall_cls = CustomTownHall(self.town_hall)
+        self.name = self.get_name()
+
+    def get_name(self):
+        name = emoji.replace_emoji(self.name)
+        name = re.sub('[*_`~/]', '', name)
+        return f"\u200e{name}"
 
 
     def clan_badge_link(self):
@@ -190,7 +194,6 @@ class MyCustomPlayer(coc.Player):
                     continue
                 cc_results.append(ClanCapitalWeek(week_result))
             return cc_results
-
 
     def donos(self, date = None):
         if date is None:

@@ -345,7 +345,7 @@ class Linking(commands.Cog):
         await ctx.edit_original_message(embed=embed)
 
     @commands.slash_command(name="buttons", description="Create a message that has buttons for easy eval/link/refresh actions.")
-    async def buttons(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Link Button", "Refresh Button", "To-Do Button"]), ping: disnake.User = None):
+    async def buttons(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Link Button", "Refresh Button", "To-Do Button", "Roster Button"]), ping: disnake.User = None):
         await ctx.response.defer()
         if type == "Link Button":
             embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
@@ -400,6 +400,21 @@ class Linking(commands.Cog):
             else:
                 content = ""
             await ctx.send(content=content, embed=embed, components=[buttons])
+        elif type == "Roster Button":
+            embed = disnake.Embed(description=f"To view all the rosters you are on & the what group (Main, Benched, etc) & clans your accounts are in, press the button below.",
+                                  color=disnake.Color.green())
+            stat_buttons = [disnake.ui.Button(label="My Rosters", emoji=self.bot.emoji.calendar.partial_emoji,
+                                              style=disnake.ButtonStyle.green, custom_id="MyRosters")]
+            buttons = disnake.ui.ActionRow()
+            for button in stat_buttons:
+                buttons.append_item(button)
+            if ctx.guild.icon is not None:
+                embed.set_thumbnail(url=ctx.guild.icon.url)
+            if ping is not None:
+                content = ping.mention
+            else:
+                content = ""
+            await ctx.send(content=content, embed=embed, components=[buttons])
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
@@ -420,6 +435,32 @@ class Linking(commands.Cog):
             discord_user = ctx.author
             linked_accounts = await search_results(self.bot, str(discord_user.id))
             embed = await cog.to_do_embed(discord_user=discord_user, linked_accounts=linked_accounts)
+            await ctx.send(embed=embed, ephemeral=True)
+
+        elif ctx.data.custom_id == "MyRosters":
+            await ctx.response.defer(ephemeral=True)
+
+            tags = await self.bot.get_tags(ping=ctx.user.id)
+            roster_type_text = ctx.user.display_name
+            players = await self.bot.get_players(tags=tags, custom=False)
+            text = ""
+            for player in players:
+                rosters_found = await self.bot.rosters.find({"members.tag": player.tag}).to_list(length=100)
+                if not rosters_found:
+                    continue
+                text += f"{self.bot.fetch_emoji(name=player.town_hall)}**{player.name}**\n"
+                for roster in rosters_found:
+                    our_member = next(member for member in roster["members"] if member["tag"] == player.tag)
+                    group = our_member["group"]
+                    if group == "No Group":
+                        group = "Main"
+                    text += f"{roster['alias']} | {roster['clan_name']} | {group}\n"
+                text += "\n"
+
+            if text == "":
+                text = "Not Found on Any Rosters"
+            embed = disnake.Embed(title=f"Rosters for {roster_type_text}", description=text,
+                                  color=disnake.Color.green())
             await ctx.send(embed=embed, ephemeral=True)
 
     @modlink.autocomplete("player_tag")

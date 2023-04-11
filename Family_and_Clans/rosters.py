@@ -9,7 +9,7 @@ from CustomClasses.CustomBot import CustomClient
 from Assets.emojiDictionary import emojiDictionary
 from CustomClasses.Roster import Roster
 from main import check_commands
-from Exceptions import *
+from Exceptions.CustomExceptions import *
 from typing import List
 from collections import defaultdict
 last_run = {}
@@ -936,7 +936,11 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                 continue
             text += f"{self.bot.fetch_emoji(name=player.town_hall)}**{player.name}**\n"
             for roster in rosters_found:
-                text += f"{roster['alias']} | {roster['clan_name']}\n"
+                our_member = next(member for member in roster["members"] if member["tag"] == player.tag)
+                group = our_member["group"]
+                if group == "No Group":
+                    group = "Main"
+                text += f"{roster['alias']} | {roster['clan_name']} | {group}\n"
             text += "\n"
 
         if text == "":

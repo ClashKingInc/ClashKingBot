@@ -12,7 +12,9 @@ from main import scheduler
 tiz = pytz.utc
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 from EventHub.event_websockets import war_ee
-from Exceptions import MissingWebhookPerms
+from Exceptions.CustomExceptions import MissingWebhookPerms
+import string
+import random
 
 class War_Log(commands.Cog):
 
@@ -65,7 +67,7 @@ class War_Log(commands.Cog):
 
             try:
                 war_channel = await self.bot.getch_channel(clan_result.get("war_log"), raise_exception=True)
-                feed_type = clan_result.get("attack_feed", "Continuous Feed")  # other is "Update Feed"
+                feed_type = clan_result.get("attack_feed", "Update Feed")  # other is "Update Feed"
                 war_cog = self.bot.get_cog(name="War")
 
                 clan = None
@@ -238,7 +240,7 @@ class War_Log(commands.Cog):
                     clan = None
                     if war.type == "cwl":
                         clan = await self.bot.getClan(war.clan.tag)
-                    if feed_type == "Update Feed":
+                    if feed_type == "Continuous Feed":
                         await self.update_war_message(war=war, clan_result=clan_result, clan=clan)
                     else:
                         embed = self.war_start_embed(new_war=war)
@@ -389,8 +391,17 @@ class War_Log(commands.Cog):
             await ctx.send(embed=attack_embed, ephemeral=True)
 
     async def store_war(self, war: coc.ClanWar):
+        source = string.ascii_letters
+        custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
+
+        is_used = await self.bot.clan_wars.find_one({"custom_id": custom_id})
+        while is_used is not None:
+            custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
+            is_used = await self.bot.clan_wars.find_one({"custom_id": custom_id})
+
         await self.bot.clan_wars.insert_one({
             "war_id" : f"{war.clan.tag}-{int(war.preparation_start_time.time.timestamp())}",
+            "custom_id" : custom_id,
             "data" : war._raw_data
         })
 

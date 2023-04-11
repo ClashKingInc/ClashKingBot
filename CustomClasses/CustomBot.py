@@ -1,4 +1,4 @@
-import json
+import time
 from datetime import datetime
 from datetime import timedelta
 from coc import utils
@@ -14,8 +14,9 @@ from urllib.request import urlopen
 from collections import defaultdict
 from utils.troop_methods import cwl_league_emojis
 from CustomClasses.PlayerHistory import COSPlayerHistory
-#from odmantic import AIOEngine
-from Exceptions import MissingWebhookPerms
+from Exceptions.CustomExceptions import MissingWebhookPerms
+from utils.constants import locations, BADGE_GUILDS
+from utils.login import coc_client
 
 import dateutil.relativedelta
 import ast
@@ -30,60 +31,9 @@ import collections
 import random
 import calendar
 import aiohttp
-
 utc = pytz.utc
 load_dotenv()
-emoji_class = Emojis()
-locations = ["global", 32000007, 32000008, 32000009, 32000010, 32000011, 32000012, 32000013, 32000014, 32000015, 32000016,
-             32000017,
-             32000018, 32000019, 32000020, 32000021, 32000022, 32000023, 32000024, 32000025, 32000026, 32000027,
-             32000028,
-             32000029, 32000030, 32000031, 32000032, 32000033, 32000034, 32000035, 32000036, 32000037, 32000038,
-             32000039,
-             32000040, 32000041, 32000042, 32000043, 32000044, 32000045, 32000046, 32000047, 32000048, 32000049,
-             32000050,
-             32000051, 32000052, 32000053, 32000054, 32000055, 32000056, 32000057, 32000058, 32000059, 32000060,
-             32000061,
-             32000062, 32000063, 32000064, 32000065, 32000066, 32000067, 32000068, 32000069, 32000070, 32000071,
-             32000072,
-             32000073, 32000074, 32000075, 32000076, 32000077, 32000078, 32000079, 32000080, 32000081, 32000082,
-             32000083,
-             32000084, 32000085, 32000086, 32000087, 32000088, 32000089, 32000090, 32000091, 32000092, 32000093,
-             32000094,
-             32000095, 32000096, 32000097, 32000098, 32000099, 32000100, 32000101, 32000102, 32000103, 32000104,
-             32000105,
-             32000106, 32000107, 32000108, 32000109, 32000110, 32000111, 32000112, 32000113, 32000114, 32000115,
-             32000116,
-             32000117, 32000118, 32000119, 32000120, 32000121, 32000122, 32000123, 32000124, 32000125, 32000126,
-             32000127,
-             32000128, 32000129, 32000130, 32000131, 32000132, 32000133, 32000134, 32000135, 32000136, 32000137,
-             32000138,
-             32000139, 32000140, 32000141, 32000142, 32000143, 32000144, 32000145, 32000146, 32000147, 32000148,
-             32000149,
-             32000150, 32000151, 32000152, 32000153, 32000154, 32000155, 32000156, 32000157, 32000158, 32000159,
-             32000160,
-             32000161, 32000162, 32000163, 32000164, 32000165, 32000166, 32000167, 32000168, 32000169, 32000170,
-             32000171,
-             32000172, 32000173, 32000174, 32000175, 32000176, 32000177, 32000178, 32000179, 32000180, 32000181,
-             32000182,
-             32000183, 32000184, 32000185, 32000186, 32000187, 32000188, 32000189, 32000190, 32000191, 32000192,
-             32000193,
-             32000194, 32000195, 32000196, 32000197, 32000198, 32000199, 32000200, 32000201, 32000202, 32000203,
-             32000204,
-             32000205, 32000206, 32000207, 32000208, 32000209, 32000210, 32000211, 32000212, 32000213, 32000214,
-             32000215,
-             32000216, 32000217, 32000218, 32000219, 32000220, 32000221, 32000222, 32000223, 32000224, 32000225,
-             32000226,
-             32000227, 32000228, 32000229, 32000230, 32000231, 32000232, 32000233, 32000234, 32000235, 32000236,
-             32000237,
-             32000238, 32000239, 32000240, 32000241, 32000242, 32000243, 32000244, 32000245, 32000246, 32000247,
-             32000248,
-             32000249, 32000250, 32000251, 32000252, 32000253, 32000254, 32000255, 32000256, 32000257, 32000258,
-             32000259, 32000260]
-BADGE_GUILDS = [1029631304817451078, 1029631182196977766, 1029631107240562689, 1029631144641183774, 1029629452403097651,
-                             1029629694854828082, 1029629763087777862, 1029629811221610516, 1029629853017841754, 1029629905903833139,
-                             1029629953907634286, 1029629992830783549, 1029630376911581255, 1029630455202455563, 1029630702125318144,
-                             1029630796966932520, 1029630873588469760, 1029630918106824754, 1029630974025277470, 1029631012084396102]
+
 
 
 class CustomClient(commands.AutoShardedBot):
@@ -103,11 +53,15 @@ class CustomClient(commands.AutoShardedBot):
         self.leveling = self.new_looper.leveling
         self.clan_wars = self.looper_db.looper.clan_wars
         self.player_cache = self.new_looper.player_cache
+        self.command_stats = self.new_looper.command_stats
+        self.player_history = self.new_looper.player_history
+        self.clan_history = self.new_looper.clan_history
+        self.clan_cache = self.new_looper.clan_cache
+        self.excel_templates = self.looper_db.clashking.excel_templates
 
         self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
-        #self.static_engine = AIOEngine(client=self.db_client, database="usafam")
         self.clan_db = self.db_client.usafam.clans
         self.banlist = self.db_client.usafam.banlist
         self.server_db = self.db_client.usafam.server
@@ -142,15 +96,16 @@ class CustomClient(commands.AutoShardedBot):
         self.level_cards = self.db_client.usafam.level_cards
         self.autostrikes = self.db_client.usafam.autostrikes
         self.lineups = self.db_client.usafam.lineups
+        self.user_settings = self.db_client.usafam.user_settings
+        self.custom_boards = self.db_client.usafam.custom_boards
 
         self.autoboard_db = self.db_client.usafam.autoboard_db
 
-        self.coc_client = coc.EventsClient(key_count=10, key_names="DiscordBot", throttle_limit = 25,cache_max_size=50000, load_game_data=coc.LoadGameData(always=True), stats_max_size=10000, raw_attribute=True)
-        self.xyz = asyncio.get_event_loop().run_until_complete(self.coc_client.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD")))
+        self.coc_client = coc_client
 
         self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwarapi.login(username=os.getenv("FW_USER"), password=os.getenv("FW_PW"), coc_client=self.coc_client))
 
-        self.emoji = emoji_class
+        self.emoji = Emojis()
         self.locations = locations
 
         self.MAX_FEED_LEN = 5
@@ -671,36 +626,49 @@ class CustomClient(commands.AutoShardedBot):
                 players.append(response)
         return [player for player in players if player is not None]
 
-    async def get_clans(self, tags: list):
+    async def get_clans(self, tags: list, use_cache=True):
+        tag_set = set(tags)
+
+        if use_cache:
+            cache_data = await self.clan_cache.find({"tag" : {"$in" : tags}}).to_list(length=2500)
+        else:
+            cache_data = []
+        clans = []
+        for data in cache_data:
+            tag_set.remove(data.get("tag"))
+            clans.append(coc.Clan(data=data.get("data"), client=self.coc_client))
+
         tasks = []
-        for tag in tags:
+        for tag in tag_set:
             task = asyncio.ensure_future(self.getClan(clan_tag=tag))
             tasks.append(task)
-        responses = await asyncio.gather(*tasks)
-        return [response for response in responses if response is not None]
+        if tasks:
+            responses = await asyncio.gather(*tasks, return_exceptions=True)
+            for response in responses:
+                clans.append(response)
+        return [clan for clan in clans if clan is not None]
 
     async def getClan(self, clan_tag, raise_exceptions=False):
-        try:
-            if "|" in clan_tag:
-                search = clan_tag.split("|")
-                try:
-                    tag = search[4]
-                except:
-                    tag = search[1]
-                clan = await self.coc_client.get_clan(tag)
-                return clan
-        except:
-            pass
-        if raise_exceptions:
-            clan = await self.coc_client.get_clan(clan_tag)
-        else:
+        if "|" in clan_tag:
+            search = clan_tag.split("|")
             try:
-                clan = await self.coc_client.get_clan(clan_tag)
+                clan_tag = search[4]
             except:
-                return None
-        if not raise_exceptions:
-            if clan.member_count == 0:
-                return None
+                clan_tag = search[1]
+
+        clan_tag = coc.utils.correct_tag(clan_tag)
+        clan_data = await self.clan_cache.find_one({"tag": clan_tag})
+        try:
+            if clan_data is None:
+                clan = await self.coc_client.get_clan(clan_tag)
+            else:
+                clan = coc.Clan(data=clan_data.get("data"), client=self.coc_client)
+        except:
+            if raise_exceptions:
+                raise
+            return None
+        if clan.member_count == 0:
+            return None
         return clan
 
     async def get_current_war_times(self, tags: list):

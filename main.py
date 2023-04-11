@@ -16,7 +16,7 @@ from EventHub.event_websockets import player_websocket, clan_websocket, war_webs
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
 
-IS_BETA = False
+IS_BETA = True
 discClient = Client()
 intents = disnake.Intents().none()
 intents.members = True
@@ -72,10 +72,8 @@ def check_commands():
     return commands.check(predicate)
 
 initial_extensions = [
-    "Clan.ClanCog",
     "Family_and_Clans.bans",
     "Family_and_Clans.strikes",
-    "Family_and_Clans.familycog",
     "Family_and_Clans.rosters",
     "Legends & Trophies.family_trophy_stats",
     "Legends & Trophies.Check.maincheck",
@@ -89,7 +87,6 @@ initial_extensions = [
     "Utility.army",
     "Utility.awards",
     "Utility.boost",
-    "Utility.profile",
     "War & CWL.cwl",
     "War & CWL.war",
     "help",
@@ -101,7 +98,13 @@ initial_extensions = [
     "SetupNew.SetupCog",
     "Utility.link_parsers",
     #"War & CWL.war_track",
-    #"War & CWL.lineups"
+    #"War & CWL.lineups",
+    #"Exceptions.ExceptionHandler",
+    "BoardCommands.Player.PlayerCog",
+    "BoardCommands.Clan.ClanCog",
+    "BoardCommands.BoardCog",
+    "Export.ExportsCog",
+    "BoardCommands.Family.FamilyCog"
 ]
 
 if not IS_BETA:
@@ -136,7 +139,7 @@ def before_send(event, hint):
     return event
 
 if __name__ == "__main__":
-    sentry_sdk.init(
+    '''sentry_sdk.init(
         dsn=os.getenv("DSN"),
         # Set traces_sample_rate to 1.0 to capture 100%
         # of transactions for performance monitoring.
@@ -146,7 +149,7 @@ if __name__ == "__main__":
             "profiles_sample_rate": 0.2,
         },
         before_send=before_send
-    )
+    )'''
     for extension in initial_extensions:
         try:
             bot.load_extension(extension)

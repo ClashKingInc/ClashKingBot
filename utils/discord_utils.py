@@ -1,7 +1,7 @@
 import disnake
 from Assets.emojiDictionary import emojiDictionary, legend_emojis
 from typing import Callable
-from Exceptions import ExpiredComponents
+from Exceptions.CustomExceptions import ExpiredComponents
 from urllib.request import Request, urlopen
 import io
 import concurrent.futures
@@ -27,13 +27,11 @@ def fetch_emoji(emoji_name):
 
 async def permanent_image(bot, url: str):
     def request(url):
-        req = Request(url=url, headers={'User-Agent': 'Mozilla/5.0'})
+        req = Request(url=url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64)'})
         f = io.BytesIO(urlopen(req).read())
         file = disnake.File(fp=f, filename="pic.png")
         return file
-    with concurrent.futures.ThreadPoolExecutor() as pool:
-        loop = asyncio.get_event_loop()
-        file = await loop.run_in_executor(pool, request, url)
+    file = request(url)
     pic_channel = await bot.getch_channel(884951195406458900)
     msg = await pic_channel.send(file=file)
     pic = msg.attachments[0].url
@@ -68,3 +66,6 @@ async def interaction_handler(bot, ctx: disnake.ApplicationCommandInteraction, m
         valid_value = await function(res=res)
 
     return valid_value
+
+
+

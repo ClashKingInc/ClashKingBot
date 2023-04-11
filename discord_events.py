@@ -1,10 +1,9 @@
+import datetime
+
 import disnake
 import coc
 from main import scheduler
 from disnake.ext import commands
-from Assets.thPicDictionary import thDictionary
-from utils.troop_methods import heros, heroPets
-from Exceptions import *
 from CustomClasses.CustomBot import CustomClient
 import sentry_sdk
 
@@ -153,98 +152,18 @@ class DiscordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_application_command(self, ctx:disnake.ApplicationCommandInteraction):
-        channel = self.bot.get_channel(960972432993304616)
-        try:
-            server = ctx.guild.name
-        except:
-            server = "None"
-
-        user = ctx.author
-        command = ctx.application_command
-        embed = disnake.Embed(
-            description=f"</{command.qualified_name}:{ctx.data.id}> **{ctx.filled_options}** \nused by {user.mention} [{user.name}] in {server} server",
-            color=disnake.Color.blue())
-        embed.set_thumbnail(url=user.display_avatar.url)
-        await channel.send(embed=embed)
-
-
-    @commands.Cog.listener()
-    async def on_slash_command_error(self, ctx: disnake.ApplicationCommandInteraction, error):
-        if isinstance(error, disnake.ext.commands.ConversionError):
-            error = error.original
-
-        if isinstance(error, coc.errors.NotFound):
-            embed = disnake.Embed(description="Not a valid clan/player tag.", color=disnake.Color.red())
-            return await ctx.send(embed=embed)
-
-        if isinstance(error, coc.errors.Maintenance):
-            embed = disnake.Embed(description=f"Game is currently in Maintenance.", color=disnake.Color.red())
-            return await ctx.send(embed=embed)
-
-        if isinstance(error, disnake.ext.commands.CheckAnyFailure):
-            if isinstance(error.errors[0], disnake.ext.commands.MissingPermissions):
-                embed = disnake.Embed(description=error.errors[0], color=disnake.Color.red())
-                return await ctx.send(embed=embed)
-
-        if isinstance(error, disnake.ext.commands.MissingPermissions):
-            embed = disnake.Embed(description=error, color=disnake.Color.red())
-            return await ctx.send(embed=embed)
-
-        if isinstance(error, disnake.ext.commands.CommandError):
-            error = error.original
-
-        if isinstance(error, RosterAliasAlreadyExists):
-            embed = disnake.Embed(description=f"Roster with this alias already exists.", color=disnake.Color.red())
-            return await ctx.send(embed=embed, ephemeral=True)
-
-        if isinstance(error, RosterDoesNotExist):
-            embed = disnake.Embed(description=f"Roster with this alias does not exist. Use `/roster create`", color=disnake.Color.red())
-            return await ctx.send(embed=embed, ephemeral=True)
-
-        if isinstance(error, PlayerAlreadyInRoster):
-            embed = disnake.Embed(description=f"Player has already been added to this roster.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed, ephemeral=True)
-
-        if isinstance(error, PlayerNotInRoster):
-            embed = disnake.Embed(description=f"Player not found in this roster.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed, ephemeral=True)
-
-        if isinstance(error, RosterSizeLimit):
-            embed = disnake.Embed(description=f"Roster has hit max size limit",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed, ephemeral=True)
-
-        if isinstance(error, PanelNotFound):
-            embed = disnake.Embed(description=f"Panel not found!",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed, ephemeral=True)
-
-        if isinstance(error, ButtonNotFound):
-            embed = disnake.Embed(description=f"Button not found!",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed, ephemeral=True)
-
-        if isinstance(error, PanelAlreadyExists):
-            embed = disnake.Embed(description=f"Panel of this name already exists!",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed, ephemeral=True)
-
-        if isinstance(error, ButtonAlreadyExists):
-            embed = disnake.Embed(description=f"Button of this name already exists!",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed, ephemeral=True)
-
-        if isinstance(error, FaultyJson):
-            embed = disnake.Embed(description=f"Custom Embed Code is Faulty - > be sure to use this site -> https://autocode.com/tools/discord/embed-builder/ , "
-                                              f"create your embed, then click `copy code`",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed, ephemeral=True)
-
-        sentry_sdk.capture_exception(error)
-
-
+        await self.bot.command_stats.insert_one({
+            "user": ctx.author.id,
+            "command_name" : ctx.application_command.qualified_name,
+            "server": ctx.guild.id if ctx.guild is not None else None,
+            "server_name" : ctx.guild.name if ctx.guild is not None else None,
+            "time" : int(datetime.datetime.now().timestamp()),
+            "guild_size" : ctx.guild.member_count if ctx.guild is not None else 0,
+            "channel" : ctx.channel_id,
+            "channel_name" : ctx.channel.name if ctx.channel is not None else None,
+            "len_mutual" : len(ctx.user.mutual_guilds),
+            "is_bot_dev" : (ctx.user.public_flags.verified_bot_developer or ctx.user.public_flags.active_developer)
+        })
 
 def setup(bot: CustomClient):
     bot.add_cog(DiscordEvents(bot))

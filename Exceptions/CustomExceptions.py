@@ -35,3 +35,15 @@ class FaultyJson(Exception):
 
 class MissingWebhookPerms(Exception):
     pass
+
+class NoLinkedAccounts(Exception):
+    pass
+
+class PlayerNotFound(Exception):
+    pass
+
+class InvalidHexCode(Exception):
+    pass
+
+class InvalidGuildID(Exception):
+    pass

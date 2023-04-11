@@ -7,9 +7,9 @@ import string
 
 from urllib.request import Request, urlopen
 from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer, HitRate
+from CustomClasses.CustomPlayer import MyCustomPlayer
 from datetime import datetime, timedelta
-from Exceptions import *
+from Exceptions.CustomExceptions import *
 from collections import defaultdict
 
 class Roster():

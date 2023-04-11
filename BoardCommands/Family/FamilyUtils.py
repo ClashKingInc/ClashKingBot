@@ -2,10 +2,7 @@ import datetime
 import disnake
 import coc
 import pytz
-import emoji
 import asyncio
-import statistics
-import re
 
 from coc.raid import RaidLogEntry
 from disnake.ext import commands
@@ -13,279 +10,107 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer, ClanCapitalWeek
 from utils.General import create_superscript
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry, calc_raid_medals
-from utils.constants import item_to_name
+from utils.constants import item_to_name, CK_API_ROUTE, leagues
 from CustomClasses.Enums import TrophySort
 from collections import defaultdict
+from typing import List
 
 tiz = pytz.utc
-leagues = [ "Titan League I" , "Titan League II" , "Titan League III" ,"Champion League I", "Champion League II", "Champion League III",
-                   "Master League I", "Master League II", "Master League III",
-                   "Crystal League I","Crystal League II", "Crystal League III",
-                   "Gold League I","Gold League II", "Gold League III",
-                   "Silver League I","Silver League II","Silver League III",
-                   "Bronze League I", "Bronze League II", "Bronze League III", "Unranked"]
 
-class getFamily(commands.Cog):
+
+class FamilyUtils(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    async def create_donations(self, guild: disnake.Guild, type: str):
-        date = self.bot.gen_season_date()
-        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
-        tasks = []
-        members = []
+    async def create_family_clans(self, guild: disnake.Guild):
+        categories: list = await self.bot.clan_db.distinct("category", filter={"server": guild.id})
+        server_db = await self.bot.server_db.find_one({"server": guild.id})
+        sorted_categories = server_db.get("category_order")
+        if sorted_categories is not None:
+            missing_cats = list(set(categories).difference(sorted_categories))
+            categories = sorted_categories + missing_cats
+        categories.insert(0, "All Clans")
+
+        results = await self.bot.clan_db.find({"server": guild.id}).sort([("category", 1), ("name", 1)]).to_list(length=100)
+        results_dict = defaultdict(list)
+        clan_tags = []
+        for result in results:
+            results_dict[result.get("category")].append(result)
+            clan_tags.append(result.get("tag"))
+
+        text = ""
+        member_count = 0
         clans = await self.bot.get_clans(tags=clan_tags)
-        for clan in clans:
-            members += [member.tag for member in clan.members]
-
-        responses = await self.bot.get_players(tags=members, custom=True)
-
-        donated_text = []
-        received_text = []
-        ratio_text = []
-        total_donated = sum(player.donos().donated for player in responses if not isinstance(player, coc.errors.NotFound))
-        total_received = sum(player.donos().received for player in responses if not isinstance(player, coc.errors.NotFound))
-
-        for player in responses:
-            if isinstance(player, coc.errors.NotFound):
+        for category in categories:
+            if category == "All Clans":
                 continue
-            player: MyCustomPlayer
-            if player is None:
+            clan_result = results_dict.get(category, [])
+            if not clan_result:
                 continue
-            if player.clan is None:
-                continue
-            for char in ["`", "*", "_", "~"]:
-                name = player.name.replace(char, "", 10)
-            name = emoji.replace_emoji(name, "")
-            name = name[:13]
-            name = name.ljust(13)
-            donated_text.append(
-                [f"`{str(player.donos().donated).ljust(5)} | {str(player.donos().received).ljust(5)} | \u200e{name}`",
-                 player.donos().donated])
-            received_text.append(
-                [f"`{str(player.donos().received).ljust(5)} | {str(player.donos().donated).ljust(5)} | \u200e{name}`",
-                 player.donos().received])
-            ratio_text.append([f"`{str(player.donation_ratio()).ljust(5)} | \u200e{name}`", player.donation_ratio()])
+            use_link = True
+            if len(clan_result) > 15:
+                use_link = False
+            text += f"__**{category}**__\n"
+            for clan in clan_result:
+                clan = coc.utils.get(clans, tag=clan.get("tag"))
+                if clan is None:
+                    continue
+                leader = coc.utils.get(clan.members, role=coc.Role.leader)
+                #text += f"[{clan.name}]({clan.share_link}) | ({clan.member_count}/50)\n" \
+                        #f"**Leader:** {leader.name}\n\n"
+                flag = "🏳️"
+                if clan.location is not None and clan.location.is_country:
+                    flag = f":flag_{clan.location.country_code.lower()}:"
+                elif clan.location is not None and clan.location.name == "International":
+                    flag = "🌎"
+                if use_link:
+                    text += f"{flag}[{clan.name}]({CK_API_ROUTE}{clan.tag.replace('#', '')}) | ({clan.member_count}/50)\n"
+                else:
+                    text += f"{flag}{clan.name} | ({clan.member_count}/50)\n"
+                member_count += clan.member_count
 
-        if type == "donated":
-            donated_text = sorted(donated_text, key=lambda l: l[1], reverse=True)
-            donated_text = [f"{self.bot.get_number_emoji(color='gold', number=count)} {line[0]}" for count, line in enumerate(donated_text[:50], 1)]
-            donated_text = "\n".join(donated_text)
-            donated_text = "<:un:1036115340360429628>` DON   | REC   | Name` \n" + donated_text
-            donation_embed = disnake.Embed(title=f"**{guild.name} Top 50 Donated**", description=f"{donated_text}",
-                                           color=disnake.Color.green())
-            if guild.icon is not None:
-                icon = guild.icon.url
-            else:
-                icon = self.bot.user.avatar.url
-            donation_embed.set_footer(icon_url=icon,
-                                      text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {date}")
-            return donation_embed
-        elif type == "received":
-            received_text = sorted(received_text, key=lambda l: l[1], reverse=True)
-            received_text = [f"{self.bot.get_number_emoji(color='gold', number=count)} {line[0]}" for count, line in enumerate(received_text[:50], 1)]
-            received_text = "\n".join(received_text)
-            received_text = "<:un:1036115340360429628>` REC   | DON   | Name`\n" + received_text
-            received_embed = disnake.Embed(title=f"**{guild.name} Top 50 Received**", description=f"{received_text}",
-                                           color=disnake.Color.green())
-            if guild.icon is not None:
-                icon = guild.icon.url
-            else:
-                icon = self.bot.user.avatar.url
-            received_embed.set_footer(icon_url=icon,
-                                      text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {date}")
-            return received_embed
-        else:
-            ratio_text = sorted(ratio_text, key=lambda l: l[1], reverse=True)
-            ratio_text = [f"{self.bot.get_number_emoji(color='gold', number=count)} {line[0]}" for count, line in enumerate(ratio_text[:50], 1)]
-            ratio_text = "\n".join(ratio_text)
-            ratio_text = "<:un:1036115340360429628>` Ratio | Name`\n" + ratio_text
-            ratio_embed = disnake.Embed(title=f"**{guild.name} Top 50 Ratios**", description=f"{ratio_text}",
-                                        color=disnake.Color.green())
-            if guild.icon is not None:
-                icon = guild.icon.url
-            else:
-                icon = self.bot.user.avatar.url
-            ratio_embed.set_footer(icon_url=icon,
-                                   text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {date}")
-            return ratio_embed
+            #master_embed.add_field(name=, value=text, inline=False)
+        master_embed = disnake.Embed(description=text, color=disnake.Color.green())
+        if guild.icon is not None:
+            master_embed.set_thumbnail(url=guild.icon.url)
+        master_embed.set_footer(icon_url=guild.icon.url if guild.icon is not None else self.bot.user.avatar.url,
+                                text=f"{guild.name} Server | {member_count} Accounts")
+        return master_embed
 
-    async def create_last_online(self, guild: disnake.Guild):
+    async def create_leagues(self, guild: disnake.Guild, type: str):
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
-        member_tags = [r["tag"] for r in (await self.bot.player_stats.find({"clan_tag": {"$in": clan_tags}}).sort("last_online", -1).to_list(length=50))]
+        clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
 
-        players = await self.bot.get_players(tags=member_tags, custom=True)
-        text = []
-        avg_time = []
-        for member in players:
-            last_online = member.last_online
-            last_online_sort = last_online
-            if last_online is None:
-                last_online_sort = 0
-                text.append([f"Not Seen `{member.name}`", last_online_sort])
-            else:
-                avg_time.append(last_online)
-                text.append([f"<t:{last_online}:R> `{member.name}`", last_online_sort])
+        if not clans:
+            return disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
 
-        text = sorted(text, key=lambda l: l[1], reverse=True)
-        text = text[0:50]
-        text = [line[0] for line in text]
-        text = "\n".join(text)
-        if avg_time != []:
-            avg_time.sort()
-            avg_time = statistics.median(avg_time)
-            avg_time = f"\n\n**Median L.O.** <t:{int(avg_time)}:R>"
-        else:
-            avg_time = ""
-        embed = disnake.Embed(title=f"**{guild.name} Last 50 Online**",
-                              description=text + avg_time,
-                              color=disnake.Color.green())
-        return embed
+        clans_by_league = defaultdict(list)
+        if type == "Capital":
+            clans = sorted(clans, key=lambda l:  l.capital_points, reverse=True)
+            [clans_by_league[clan.capital_league.name].append(clan) for clan in clans]
+        elif type == "CWL":
+            [clans_by_league[clan.war_league.name].append(clan) for clan in clans]
 
-    async def create_activities(self, guild: disnake.Guild):
-        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
-        clans = await self.bot.get_clans(tags=clan_tags)
-        member_tags = []
-        for clan in clans:
-            member_tags.extend(member.tag for member in clan.members)
-        clan_members = await self.bot.get_players(tags=member_tags, custom=True)
-
-        embed_description_list = []
-        for member in clan_members:
-            member: MyCustomPlayer
-            last_online = member.season_last_online()
-            embed_description_list.append([f"{str(len(last_online)).ljust(4)} | {member.name}", len(last_online)])
-
-        embed_description_list_sorted = sorted(embed_description_list, key=lambda l: l[1], reverse=True)
-        embed_description = [line[0] for line in embed_description_list_sorted[:50]]
-        embed_description = "\n".join(embed_description)
-
-        embed = disnake.Embed(
-            title=f"**{guild.name} Activity Leaderboard**",
-            description=f"```#     NAME\n{embed_description}```",
-            color=disnake.Color.green())
-        return embed
-
-    async def create_capital_leagues(self, guild: disnake.Guild):
-        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
-        if not clan_tags:
-            embed = disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
-            return embed
-
-        clans = await self.bot.get_clans(tags=clan_tags)
-        clan_list = []
-        for clan in clans:
-            if clan is None:
-                continue
-            clan: coc.Clan
-            clan_list.append([clan.name, clan.capital_league.name])
-
-        clans_list = sorted(clan_list, key=lambda l: l[0], reverse=False)
-
-        main_embed = disnake.Embed(title=f"__**{guild.name} Capital Leagues**__",
+        main_embed = disnake.Embed(title=f"__**{guild.name} {type} Leagues**__",
                                    color=disnake.Color.green())
         if guild.icon is not None:
             main_embed.set_thumbnail(url=guild.icon.url)
 
-        leagues_present = ["All"]
         for league in leagues:
             text = ""
-            for clan in clans_list:
-                if clan[1] == league:
-                    text += clan[0] + "\n"
-                if (clan[0] == clans_list[len(clans_list) - 1][0]) and (text != ""):
-                    leagues_present.append(league)
-                    main_embed.add_field(name=f"**{league}**", value=text, inline=False)
-                    text = ""
-
-        return main_embed
-
-    async def create_cwl_leagues(self, guild: disnake.Guild):
-        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server" : guild.id})
-        if not clan_tags:
-            embed = disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
-            return embed
-
-        clans = await self.bot.get_clans(tags=clan_tags)
-        cwl_list = []
-        for clan in clans:
-            if clan is None:
+            league_clans: List[coc.Clan] = clans_by_league.get(league, [])
+            if not league_clans:
                 continue
-            cwl_list.append([clan.name, clan.war_league.name])
-
-        clans_list = sorted(cwl_list, key=lambda l: l[0], reverse=False)
-
-        main_embed = disnake.Embed(title=f"__**{guild.name} CWL Leagues**__",
-                                   color=disnake.Color.green())
-        if guild.icon is not None:
-            main_embed.set_thumbnail(url=guild.icon.url)
-
-        leagues_present = ["All"]
-        for league in leagues:
-            text = ""
-            for clan in clans_list:
-                if clan[1] == league:
-                    text += clan[0] + "\n"
-                if (clan[0] == clans_list[len(clans_list) - 1][0]) and (text != ""):
-                    leagues_present.append(league)
-                    main_embed.add_field(name=f"**{league}**", value=text, inline=False)
-                    text = ""
+            for clan in league_clans:
+                if type == "Capital":
+                    text += f"{self.bot.emoji.capital_trophy}`{clan.capital_points:4}` {clan.name}\n"
+                elif type == "CWL":
+                    text += f"{clan.name}\n"
+            main_embed.add_field(name=f"**{league}**", value=text, inline=False)
 
         return main_embed
 
-    async def create_clan_games(self, guild: disnake.Guild):
-        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
-
-        season_date = self.bot.gen_games_season()
-        members = await self.bot.player_stats.distinct("tag", filter={f"clan_tag": {"$in" : clan_tags}})
-        tags = await self.bot.player_stats.distinct("tag", filter={f"clan_games.{season_date}.clan": {"$in" : clan_tags}})
-        all_tags = (members + tags)
-        all_tags = [r["tag"] for r in (await self.bot.player_stats.find({"tag" : {"$in" : all_tags}}).sort(f"clan_games.{season_date}.clan", -1).to_list(length=50))]
-
-        members = set(members)
-        player_list = await self.bot.get_players(tags=list(set(all_tags)))
-
-        member_stats = await self.bot.new_looper[f"{self.bot.gen_season_date()}-history"].find({"tag": {"$in" : all_tags}}).to_list(length=100)
-        member_stat_dict = {}
-        for m in member_stats:
-            member_stat_dict[m["tag"]] = m
-
-        total_points = sum(player.clan_games(season_date) for player in player_list)
-        player_list = sorted(player_list, key=lambda l: l.clan_games(season_date), reverse=True)[:50]
-
-        point_text_list = []
-        for player in player_list:
-            name = player.name
-            name = re.sub('[*_`~/]', '', name)
-            points = player.clan_games(season_date)
-
-            time = ""
-            stats = member_stat_dict.get(player.tag)
-            if stats is not None:
-                stats = stats.get("Games Champion", [])
-                if points < 4000:
-                    stats.append({"time" : int(datetime.datetime.now().timestamp())})
-                if len(stats) >= 2:
-                    first_time = datetime.datetime.fromtimestamp(stats[0].get("time"))
-                    last_time = datetime.datetime.fromtimestamp(stats[-1].get("time"))
-                    diff = (last_time - first_time)
-                    m, s = divmod(diff.total_seconds(), 60)
-                    h, m = divmod(m, 60)
-                    time = f"{int(h)}h {int(m)}m"
-
-            if player.tag in members:
-                point_text_list.append([f"{self.bot.emoji.clan_games}`{str(points).ljust(4)} {time:7}` {name}"])
-            else:
-                point_text_list.append([f"{self.bot.emoji.deny_mark}`{str(points).ljust(4)} {time:7}` {name}"])
-
-        point_text = [line[0] for line in point_text_list]
-        point_text = "\n".join(point_text)
-
-        cg_point_embed = disnake.Embed(title=f"**{guild.name} Clan Game Totals**",description=point_text,color=disnake.Color.green())
-
-        cg_point_embed.set_footer(text=f"Total Points: {'{:,}'.format(total_points)}")
-        return cg_point_embed
 
     async def create_raids(self, guild: disnake.Guild):
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
@@ -680,59 +505,6 @@ class getFamily(commands.Cog):
         print(len(embed.description) + len(embed2.description))
         return [embed, embed2]
 
-    async def create_joinhistory(self, guild: disnake.Guild):
-        field = "clan"
-        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
-        clans = await self.bot.get_clans(tags=clan_tags)
-        text = ""
-
-        class ItemHolder():
-            def __init__(self, tag: str, value: int, time: int, joined: bool):
-                self.tag = tag
-                self.value = value
-                self.time = time
-                self.joined = joined
-
-        clans.sort(key= lambda x : x.name.upper())
-        for clan in clans:
-            member_stats = await self.bot.new_looper[f"{self.bot.gen_season_date()}-history"].find({"clan.value.tag": clan.tag}).to_list(length=100)
-            all_items = []
-
-            for member in member_stats:
-                field_fetch = member.get(field)
-                if field_fetch is None:
-                    continue
-                tag = member["tag"]
-                if len(field_fetch) == 0:
-                    continue
-                freeze = False
-                for count, item in enumerate(field_fetch):
-                    if freeze and item["value"]["tag"] != clan.tag:
-                        continue
-                    all_items.append(ItemHolder(tag=tag, value=item["value"], time=item["time"],
-                                                joined=item["value"]["tag"] == clan.tag))
-                    if item["value"]["tag"] != clan.tag:
-                        freeze = True
-                    else:
-                        freeze = False
-
-            all_items = sorted(all_items, key=lambda x: x.time, reverse=True)
-
-            join_len = {}
-            for item in all_items:
-                if item.joined:
-                    join_text = "Joined"
-                else:
-                    join_text = "Left"
-                join_len[item.tag] = join_text
-
-            num_joined = len([i for i in join_len.values() if i == "Joined"])
-            num_left = len([i for i in join_len.values() if i == "Left"])
-            text += f"{num_joined:2} Join {num_left:2} Left | {clan.name[:13]}\n"
-
-        embed = disnake.Embed(title=f"{guild.name} Clan History", description=f"```{text}```", colour=disnake.Color.green())
-        return embed
-
     async def create_sorted(self, guild: disnake.Guild, sort_by: str):
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
         results = await self.bot.player_stats.distinct("tag", filter = {"clan_tag": {"$in": clan_tags}})
@@ -836,6 +608,3 @@ class getFamily(commands.Cog):
         embed = disnake.Embed(title=f"{guild.name} sorted by {og_sort}", description=text, color=disnake.Color.green())
 
         return embed
-
-def setup(bot: CustomClient):
-    bot.add_cog(getFamily(bot))

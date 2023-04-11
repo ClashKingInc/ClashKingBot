@@ -2,7 +2,7 @@ import disnake
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from typing import Callable
-from Exceptions import ExpiredComponents
+from Exceptions.Exceptions import ExpiredComponents
 
 class SetupUtils(commands.Cog, name="SetupUtils"):
 

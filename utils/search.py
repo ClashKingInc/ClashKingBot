@@ -1,5 +1,6 @@
+from CustomClasses.CustomBot import CustomClient
 
-async def search_results(bot, query):
+async def search_results(bot: CustomClient, query, use_cache=True):
 
     tags = []
     #if search is a player tag, pull stats of the player tag
@@ -12,7 +13,7 @@ async def search_results(bot, query):
     tag_list = await bot.get_tags(query)
     tags.extend(iter(tag_list))
     if tags != []:
-        players = await bot.get_players(tags=tags, custom=True)
+        players = await bot.get_players(tags=tags, custom=True, use_cache=use_cache)
         return sorted(players, key=lambda l: l.trophies, reverse=True)
 
     return tags

@@ -1,139 +1,4 @@
-import disnake
-import coc
-import pytz
-import operator
-import json
-import asyncio
-import calendar
 
-from disnake.ext import commands
-from coc import utils
-from Assets.emojiDictionary import emojiDictionary
-from CustomClasses.CustomBot import CustomClient
-from collections import defaultdict
-from collections import Counter
-from datetime import datetime
-from CustomClasses.Enums import TrophySort
-from utils.constants import item_to_name
-
-SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
-tiz = pytz.utc
-leagues = ["Champion League I", "Champion League II", "Champion League III",
-                   "Master League I", "Master League II", "Master League III",
-                   "Crystal League I","Crystal League II", "Crystal League III",
-                   "Gold League I","Gold League II", "Gold League III",
-                   "Silver League I","Silver League II","Silver League III",
-                   "Bronze League I", "Bronze League II", "Bronze League III", "Unranked"]
-
-class family_commands(commands.Cog):
-
-    def __init__(self, bot: CustomClient):
-        self.bot = bot
-
-    @commands.slash_command(name="family")
-    async def family(self, ctx):
-        pass
-
-    @family.sub_command(name="clans", description="List of family clans")
-    async def family_clan(self, ctx: disnake.ApplicationCommandInteraction):
-        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
-        if limit == 0:
-            return await ctx.send("No clans linked to this server.")
-        categoryTypesList = []
-        categoryTypesList.append("All Clans")
-
-        categories = await self.bot.clan_db.distinct("category", filter={"server": ctx.guild.id})
-        server_db = await self.bot.server_db.find_one({"server": ctx.guild.id})
-        sorted_categories = server_db.get("category_order")
-        if sorted_categories is not None:
-            missing_cats = list(set(categories).difference(sorted_categories))
-            categories = sorted_categories + missing_cats
-        categoryTypesList += categories
-
-        embeds = []
-        master_embed = disnake.Embed(description=f"__**{ctx.guild.name} Clans**__",
-                                     color=disnake.Color.green())
-        if ctx.guild.icon is not None:
-            master_embed.set_thumbnail(url=ctx.guild.icon.url)
-        for category in categoryTypesList:
-            if category == "All Clans":
-                continue
-            text = ""
-            other_text = ""
-
-            results = self.bot.clan_db.find({"$and": [
-                {"category": category},
-                {"server": ctx.guild.id}
-            ]}).sort("name", 1)
-            if results is None:
-                continue
-            limit = await self.bot.clan_db.count_documents(filter={"$and": [
-                {"category": category},
-                {"server": ctx.guild.id}
-            ]})
-            for result in await results.to_list(length=limit):
-                tag = result.get("tag")
-                clan = await self.bot.getClan(tag)
-                try:
-                    leader = utils.get(clan.members, role=coc.Role.leader)
-                except:
-                    continue
-                if clan is None:
-                    continue
-                if clan.member_count == 0:
-                    continue
-                text += f"[{clan.name}]({clan.share_link}) | ({clan.member_count}/50)\n" \
-                        f"**Leader:** {leader.name}\n\n"
-                other_text += f"{clan.name} | ({clan.member_count}/50)\n"
-
-            embed = disnake.Embed(title=f"__**{category} Clans**__",
-                                  description=text,
-                                  color=disnake.Color.green())
-            if ctx.guild.icon is not None:
-                embed.set_thumbnail(url=ctx.guild.icon.url)
-            master_embed.add_field(name=f"__**{category} Clans**__", value=other_text, inline=False)
-            embeds.append(embed)
-
-        embeds.append(master_embed)
-
-
-        options = []
-        for category in categoryTypesList:
-            options.append(disnake.SelectOption(label=f"{category}", value=f"{category}"))
-
-        select1 = disnake.ui.Select(
-            options=options,
-            placeholder="Choose clan category",
-            min_values=1,  # the minimum number of options a user must select
-            max_values=1  # the maximum number of options a user can select
-        )
-        action_row = disnake.ui.ActionRow()
-        action_row.append_item(select1)
-
-        await ctx.send(embed=embeds[len(embeds)-1], components=[action_row])
-
-        msg = await ctx.original_message()
-
-        def check(res: disnake.MessageInteraction):
-            return res.message.id == msg.id
-
-        while True:
-            try:
-                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
-                                                                          timeout=600)
-            except:
-                await msg.edit(components=[])
-                break
-
-            if res.author.id != ctx.author.id:
-                await res.send(content="You must run the command to interact with components.", ephemeral=True)
-                continue
-
-            value = res.values[0]
-
-            current_page = categoryTypesList.index(value)-1
-
-            await res.response.edit_message(embed=embeds[current_page])
 
     @family.sub_command(name='compo', description="Compo of an all clans in server")
     async def family_compo(self, ctx: disnake.ApplicationCommandInteraction):
@@ -522,8 +387,6 @@ class family_commands(commands.Cog):
         sorted_list = sorted(star_list, key=operator.itemgetter(1, 2), reverse=True)
         place= 1
         for item in sorted_list:
-            war_leagues = open(f"Assets/war_leagues.json")
-            war_leagues = json.load(war_leagues)
             promo = [x["promo"] for x in war_leagues["items"] if x["name"] == clan.war_league.name][0]
             demo = [x["demote"] for x in war_leagues["items"] if x["name"] == clan.war_league.name][0]
             if place <= promo:
@@ -547,6 +410,7 @@ class family_commands(commands.Cog):
                 tier = str(clan.war_league.name).count("I")
                 return {clan.tag : f"{emoji}`{rank}` {self.leagueAndTrophies(clan.war_league.name)}{SUPER_SCRIPTS[tier]}"}
             place += 1
+        return {clan.tag: None}
 
     def leagueAndTrophies(self, league):
 
@@ -743,7 +607,3 @@ class family_commands(commands.Cog):
                                                   style=disnake.ButtonStyle.green if sort_type == TrophySort.capital else disnake.ButtonStyle.grey,
                                                   custom_id=f"capitaltrophiesfam_"))
             await ctx.edit_original_message(embed=embed, components=buttons)
-
-
-def setup(bot: CustomClient):
-    bot.add_cog(family_commands(bot))
