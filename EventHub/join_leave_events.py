@@ -33,7 +33,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
 
             try:
                 s_data = await self.bot.server_db.find_one({"server": server})
-                if s_data.get("autoeval", False) is False:
+                if s_data.get("autololeval", False) is False:
                     raise Exception
                 link = await self.bot.link_client.get_link(member.tag)
                 if link is not None:
@@ -102,7 +102,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                 
             try:
                 s_data = await self.bot.server_db.find_one({"server": server})
-                if s_data.get("autoeval", False) is False:
+                if s_data.get("autololeval", False) is False:
                     raise Exception
                 link = await self.bot.link_client.get_link(member.tag)
                 if link is not None:
