@@ -77,7 +77,7 @@ initial_extensions = [
     "Family_and_Clans.rosters",
     "Legends & Trophies.family_trophy_stats",
     "Legends & Trophies.Check.maincheck",
-    "Legends & Trophies.leaderboards",
+    #"Legends & Trophies.leaderboards",
     "Link & Eval.link",
     "Link & Eval.eval",
     "Setups.autoboard",
@@ -104,7 +104,8 @@ initial_extensions = [
     "BoardCommands.Clan.ClanCog",
     "BoardCommands.BoardCog",
     "Export.ExportsCog",
-    "BoardCommands.Family.FamilyCog"
+    "BoardCommands.Family.FamilyCog",
+    "BoardCommands.Top.TopCog"
 ]
 
 if not IS_BETA:

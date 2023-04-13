@@ -76,7 +76,7 @@ class FamilyButtons(family_cog):
 
         elif "cwlleaguesfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
-            embed = await self.cre(guild=ctx.guild)
+            embed = await self.create_leagues(guild=ctx.guild, type="CWL")
             buttons = disnake.ui.ActionRow()
             buttons.append_item(
                 disnake.ui.Button(label="CWL", emoji=self.bot.emoji.cwl_medal.partial_emoji,
@@ -89,7 +89,7 @@ class FamilyButtons(family_cog):
 
         elif "capitalleaguesfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
-            embed = await self.create_capital_leagues(guild=ctx.guild)
+            embed = await self.create_leagues(guild=ctx.guild, type="Capital")
             buttons = disnake.ui.ActionRow()
             buttons.append_item(
                 disnake.ui.Button(label="CWL", emoji=self.bot.emoji.cwl_medal.partial_emoji,

@@ -34,18 +34,20 @@ class FamCommands(family_cog):
 
     @commands.slash_command(name="family")
     async def family(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
+        result = await self.bot.user_settings.find_one({"discord_user": ctx.author.id})
+        ephemeral = False
+        if result is not None:
+            ephemeral = result.get("private_mode", False)
+        await ctx.response.defer(ephemeral=ephemeral)
 
     @family.sub_command(name="clans", description="Overview list of all family clans")
     async def family_clans(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
-        await ctx.response.defer()
         guild = server if server is not None else ctx.guild
         embed = await self.create_family_clans(guild=guild)
         await ctx.edit_original_message(embed=embed)
 
     @family.sub_command(name="leagues", description="List of clans by cwl or capital league")
     async def family_leagues(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
-        await ctx.response.defer()
         guild = server if server is not None else ctx.guild
         embed = await self.create_leagues(guild=guild, type="CWL")
         buttons = disnake.ui.ActionRow()

@@ -66,7 +66,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         players = await self.bot.get_players(tags=[member.tag for member in clan.members])
 
         board_cog: BoardCog = self.bot.get_cog("BoardCog")
-        embed: disnake.Embed = await board_cog.donation_board(players=players, season=season, footer_icon=clan.badge.url, title_name=f"{clan.name}")
+        embed: disnake.Embed = await board_cog.donation_board(players=players, season=season, footer_icon=clan.badge.url, title_name=f"{clan.name}", type="donations")
 
         buttons = disnake.ui.ActionRow()
         buttons.append_item(disnake.ui.Button(
