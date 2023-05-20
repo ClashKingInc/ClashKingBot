@@ -1221,6 +1221,7 @@ class TicketCommands(commands.Cog):
     async def open_ticket(self, panel_settings, ctx: disnake.MessageInteraction, mod_roles: List[int]):
         overwrite = disnake.PermissionOverwrite()
         overwrite.view_channel = False
+        overwrite.external_emojis = True
         overwrite_dict = {}
         overwrite_dict.update({ctx.guild.default_role : overwrite})
 
@@ -1235,6 +1236,7 @@ class TicketCommands(commands.Cog):
         mod_overwrite.manage_channels = True
         mod_overwrite.send_messages_in_threads = True
         mod_overwrite.manage_channels = True
+        mod_overwrite.use_application_commands = True
 
         user_overwrite = disnake.PermissionOverwrite()
         user_overwrite.view_channel = True

@@ -16,6 +16,7 @@ class EmojiType():
 
 class Emojis():
     def __init__(self):
+        self.discord = EmojiType("<:discord:840749695466864650>")
         self.clan_castle = EmojiType("<:clan_castle:855688168816377857>")
         self.shield = EmojiType("<:sh:948845842809360424>")
         self.trophy = EmojiType("<:trophyy:849144172698402817>")
@@ -81,6 +82,8 @@ class Emojis():
         self.green_status = EmojiType("<:status_green:948031949140799568>")
         self.toggle_on = EmojiType("<:toggle_on:1067254915438739456>")
         self.toggle_off = EmojiType("<:toggle_off:1067254958698803230>")
+        self.unranked = EmojiType("<:Unranked:601618883853680653>")
+        self.hashmark = EmojiType("<:hash:1097685290132459602>")
 
 
 

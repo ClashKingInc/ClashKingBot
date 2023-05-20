@@ -43,10 +43,10 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="create", description="Create a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_create(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), roster_alias: str = commands.Param(name="roster_alias"), add_members_to_roster: str = commands.Param(default="No", choices=["Yes", "No"])):
+    async def roster_create(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), roster_alias: str = commands.Param(name="roster_alias", max_length=100), add_members_to_roster: str = commands.Param(default="No", choices=["Yes", "No"])):
         await ctx.response.defer()
         roster = Roster(bot=self.bot)
-        await roster.create_roster(guild=ctx.guild, clan=clan, alias=roster_alias, add_members=(add_members_to_roster == "Yes"))
+        await roster.create_roster(guild=ctx.guild, clan=clan, alias=roster_alias[:100], add_members=(add_members_to_roster == "Yes"))
         embed = disnake.Embed(description=f"**{roster.roster_result.get('alias')}** Roster created & tied to {roster.roster_result.get('clan_name')}", color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.url)
         await ctx.edit_original_message(embed=embed)
@@ -989,7 +989,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster_copy.autocomplete("export_roster")
     @roster_time.autocomplete("roster")
     async def autocomp_rosters(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        aliases = await self.bot.rosters.distinct("alias", filter={"server_id": ctx.guild.id})
+        aliases = await self.bot.rosters.distinct("alias", filter={"server_id": ctx.guild_id })
         alias_list = []
         if ctx.data.focused_option.name == "roster_":
             alias_list.append("REFRESH ALL")
@@ -1018,6 +1018,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
+        print(ctx.data.custom_id)
         if "Refresh_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             alias = str(ctx.data.custom_id).split("_")[1]

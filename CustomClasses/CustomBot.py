@@ -17,6 +17,7 @@ from CustomClasses.PlayerHistory import COSPlayerHistory
 from Exceptions.CustomExceptions import MissingWebhookPerms
 from utils.constants import locations, BADGE_GUILDS
 from utils.login import coc_client
+from datawrapper import Datawrapper
 
 import dateutil.relativedelta
 import ast
@@ -104,6 +105,7 @@ class CustomClient(commands.AutoShardedBot):
         self.coc_client = coc_client
 
         self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwarapi.login(username=os.getenv("FW_USER"), password=os.getenv("FW_PW"), coc_client=self.coc_client))
+        self.data_wrapper: Datawrapper = Datawrapper(access_token=os.getenv("DATAWRAPPER_TOKEN"))
 
         self.emoji = Emojis()
         self.locations = locations
@@ -615,7 +617,6 @@ class CustomClient(commands.AutoShardedBot):
             except:
                 tag_set.add(data.get("tag"))
                 continue
-
         tasks = []
         for tag in tag_set:
             task = asyncio.ensure_future(self.getPlayer(player_tag=tag, custom=custom))

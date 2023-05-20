@@ -10,7 +10,7 @@ import pandas as pd
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from collections import defaultdict
-from utils.constants import CK_API_ROUTE
+from utils.constants import SHORT_PLAYER_LINK
 
 if TYPE_CHECKING:
     from BoardCommands.BoardCog import BoardCog
@@ -22,65 +22,32 @@ class BoardCreator(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    async def donation_board(self, players: List[MyCustomPlayer], season: str, footer_icon: str, title_name: str, type: str,
+    async def donation_board(self, players: List[MyCustomPlayer], season: str, footer_icon: str, title_name: str, type: str, limit:int = 50,
                              embed_color: disnake.Color = disnake.Color.green()) -> disnake.Embed:
-
-        look_type = "donations"
-        if type == "received":
-            look_type = "donationsReceived"
-        pipeline = [{"$match" : {"$and" : [
-                    {"tag" : {"$in" : [player.tag for player in players]}},
-                    {"type" : look_type},
-                    ]}},
-                    { "$sort": {"tag": 1, "time": -1} },
-                    { "$group": {
-                        "_id": "$tag",
-                        "matched_doc": { "$first": "$$ROOT" }
-                    }} ]
-        history_results = await self.bot.player_history.aggregate(pipeline).to_list(length=None)
-        history_result_dict = {}
-        for result in history_results:
-            history_result_dict[result.get("_id")] = result.get("matched_doc").get("time")
-
         if type == "donations":
             players.sort(key=lambda x: x.donos(date=season).donated, reverse=True)
         elif type == "received":
             players.sort(key=lambda x: x.donos(date=season).received, reverse=True)
 
         if type == "donations":
-            text = "`  # DON     LT NAME       `\n"
+            text = "`  # DON     REC     NAME       `\n"
         else:
-            text = "`  # REC     LT NAME       `\n"
+            text = "`  # REC     DON     NAME       `\n"
 
         total_donated = 0
         total_received = 0
         for count, player in enumerate(players, 1):
             tag = player.tag.strip("#")
-            if count <= 50:
-                last_date = history_result_dict.get(player.tag)
-                if last_date is not None:
-                    last_date = datetime.datetime.fromtimestamp(last_date)
-                    diff = (datetime.datetime.now() - last_date)
-                    days = int(diff.days)
-                    hours = int(diff.total_seconds()//3600)
-                    mins = int((diff.total_seconds()//60)%60)
-                    if days != 0:
-                        last_date = f"{days:>2}d"
-                    elif hours != 0:
-                        last_date = f"{hours:>2}h"
-                    else:
-                        last_date = f"{mins:>2}m"
-                else:
-                    last_date = "30d"
+            if count <= limit:
                 if type == "donations":
-                    text += f"[⌕]({CK_API_ROUTE}{tag})`{count:2} {player.donos(date=season).donated:5} {last_date} {player.name[:13]:13}`\n"
+                    text += f"[⌕]({SHORT_PLAYER_LINK}{tag})`{count:2} {player.donos(date=season).donated:5} {player.donos(date=season).received:5} {player.name[:13]:13}`\n"
                 else:
-                    text += f"[⌕]({CK_API_ROUTE}{tag})`{count:2} {player.donos(date=season).received:5} {last_date} {player.name[:13]:13}`\n"
+                    text += f"[⌕]({SHORT_PLAYER_LINK}{tag})`{count:2} {player.donos(date=season).received:5} {player.donos(date=season).donated:5} {player.name[:13]:13}`\n"
 
             total_donated += player.donos(date=season).donated
             total_received += player.donos(date=season).received
 
-        embed = disnake.Embed(title=f"**{title_name} Top {len(players)} {type.capitalize()}**", description=f"{text}", color=embed_color)
+        embed = disnake.Embed(title=f"**{title_name} Top {min(limit, len(players))} {type.capitalize()}**", description=f"{text}", color=embed_color)
         if footer_icon is None:
             footer_icon = self.bot.user.avatar.url
         embed.set_footer(icon_url=footer_icon, text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {season}")

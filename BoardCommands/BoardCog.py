@@ -1,8 +1,7 @@
 from disnake.ext import commands
 from BoardCommands import Boards
-from BoardCommands import Graphs
 
-class BoardCog(Boards.BoardCreator, Graphs.GraphCreator, commands.Cog):
+class BoardCog(Boards.BoardCreator, commands.Cog):
     def __init__(self, bot):
         super().__init__(bot)
         self.bot = bot

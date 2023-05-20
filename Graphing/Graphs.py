@@ -71,6 +71,8 @@ class GraphCreator(commands.Cog):
         df = pd.DataFrame(list_, columns=["Date", "Total Activity", "Clan"])
         df.sort_values(by="Date", inplace=True)'''
 
+
+
         fig = px.imshow(l,
                         labels=dict(x="Time", y="League", color="Activity"),
                         x=times,

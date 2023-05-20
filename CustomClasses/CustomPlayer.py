@@ -89,6 +89,7 @@ class MyCustomPlayer(coc.Player):
         delta = season_end - season_start
         days = [season_start + timedelta(days=i) for i in range(delta.days + 1)]
         days = [day.strftime("%Y-%m-%d") for day in days]
+
         try:
             legends = self.results.get("legends")
         except:

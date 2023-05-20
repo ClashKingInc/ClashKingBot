@@ -779,6 +779,7 @@ class eval(commands.Cog, name="Eval"):
                 removed += r.mention + " "
 
             if not test:
+                current_member_roles = member.roles
                 if FINAL_ROLES_TO_ADD != [] and ("Add" in role_treatment):
                     invalid = not bot_member.guild_permissions.manage_roles
                     if invalid:
@@ -789,7 +790,8 @@ class eval(commands.Cog, name="Eval"):
                                 invalid = True
                                 break
                         if not invalid:
-                            tasks.append(asyncio.ensure_future(member.add_roles(*FINAL_ROLES_TO_ADD)))
+                            current_member_roles += FINAL_ROLES_TO_ADD
+                            #tasks.append(asyncio.ensure_future(member.add_roles(*FINAL_ROLES_TO_ADD)))
                         else:
                             added = "Could not add role(s)"
 
@@ -804,7 +806,10 @@ class eval(commands.Cog, name="Eval"):
                                 invalid = True
                                 break
                         if not invalid:
-                            tasks.append(asyncio.ensure_future(member.remove_roles(*FINAL_ROLES_TO_REMOVE)))
+                            for role in FINAL_ROLES_TO_REMOVE:
+                                if role not in FINAL_ROLES_TO_ADD:
+                                    current_member_roles.remove(role)
+                            #tasks.append(asyncio.ensure_future(member.remove_roles(*FINAL_ROLES_TO_REMOVE)))
                         else:
                             removed = "Could not remove role(s)"
 

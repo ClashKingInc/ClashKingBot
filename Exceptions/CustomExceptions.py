@@ -47,3 +47,6 @@ class InvalidHexCode(Exception):
 
 class InvalidGuildID(Exception):
     pass
+
+class ExportTemplateAlreadyExists(Exception):
+    pass

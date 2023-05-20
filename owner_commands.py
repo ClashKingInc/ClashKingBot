@@ -363,12 +363,17 @@ class OwnerCommands(commands.Cog):
     @commands.slash_command(name="get_lb")
     @commands.is_owner()
     async def get_lb(self, ctx: disnake.ApplicationCommandInteraction):
+        r = await self.bot.link_client.get_link("UC22UUU8")
+        print(r)
+        return r
         dates = await self.bot.coc_client.get_seasons(29000022)
         dates.append(self.bot.gen_season_date())
         dates = reversed(dates)
         for season in dates:
-            await self.bot.player_stats.create_index([(f"donations.{season}.donated", 1)], background=True)
-            await self.bot.player_stats.create_index([(f"donations.{season}.received", 1)], background=True)
+            #await self.bot.player_stats.create_index([(f"donations.{season}.donated", 1)], background=True)
+            #await self.bot.player_stats.create_index([(f"donations.{season}.received", 1)], background=True)
+            pass
+
 
     @commands.slash_command(name="html")
     @commands.is_owner()

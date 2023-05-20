@@ -1,24 +1,49 @@
 import datetime
-import aiohttp
 import disnake
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from main import check_commands
 from urlextract import URLExtract
 extractor = URLExtract()
-import spacy
-from profanity_filter import ProfanityFilter
 import asyncio
 from main import scheduler
 from collections import defaultdict
 last_ping = defaultdict(int)
 staff_webhook = 0
+from better_profanity import profanity
+profanity.load_censor_words()
+
 class GlobalChat(commands.Cog, name="Global Chat"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.send_rules, 'interval', minutes=720)
+        scheduler.add_job(self.send_rules, 'interval', minutes=240)
+        self.bot.global_channels = [1060857976505761792, 863133347601842226]
 
+
+    async def send_message(self, message: disnake.Message):
+        tasks = []
+        other_message_link_dict = {}
+        try:
+            msg_id = message.reference.message_id
+            r = await self.bot.webhook_message_db.find_one({"messages" : msg_id})
+            message_ids = r.get("messages")
+            message_channels = r.get("channels")
+            for count, channel in enumerate(message_channels):
+                other_message_link_dict[channel] = f"{channel}/{message_ids[count]}"
+        except:
+            pass
+        for channel_id in self.bot.global_channels:
+            if message.channel.id == channel_id:
+                continue
+            if channel_id is None:
+                continue
+            task = asyncio.ensure_future(self.webhook_task(channel_id, message, other_message_link=other_message_link_dict.get(channel_id)))
+            tasks.append(task)
+        results = await asyncio.gather(*tasks)
+        message_ids = [m.id for m in results if m is not None] + [message.id]
+        message_channels = [m.channel.id for m in results if m is not None] + [message.channel.id]
+        await self.bot.webhook_message_db.insert_one({"op_message": message.id, "op_channel": message.channel.id, "messages": message_ids,"channels": message_channels})
 
     @commands.Cog.listener()
     async def on_message(self, message: disnake.Message):
@@ -41,37 +66,12 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 if "tenor" not in url and "gif" not in url and "giphy" not in url:
                     message.content = message.content.replace(url, "")
 
-            nlp = spacy.load('en')
-            profanity_filter = ProfanityFilter(nlps={'en': nlp})  # reuse spacy Language (optional)
-            nlp.add_pipe(profanity_filter.spacy_component, last=True)
+            message.content = profanity.censor(message.content, '-')
 
-            message.content = profanity_filter.censor(message.content)
             if message.content == "" and message.attachments == [] and message.stickers == []:
                 return
 
-            embed = None
-            try:
-                msg_id = message.reference.message_id
-                rep = await message.channel.fetch_message(msg_id)
-                embed = disnake.Embed(description=f"**⤺** {rep.content}")
-                embed.set_author(name=rep.author.display_name, icon_url=rep.author.display_avatar)
-            except:
-                pass
-
-            tasks = []
-            for channel in self.bot.global_channels:
-                if message.channel.id == channel:
-                    continue
-                if channel is None:
-                    continue
-                task = asyncio.ensure_future(self.webhook_task(channel, message, embed))
-                tasks.append(task)
-            results = await asyncio.gather(*tasks)
-            message_ids = [m.id for m in results if m is not None]
-            message_channels = [m.channel.id for m in results if m is not None]
-            await self.bot.webhook_message_db.insert_one({"op_message" : message.id, "op_channel" : message.channel.id,"messages" : message_ids, "channels" : message_channels})
-
-
+            await self.send_message(message)
             try:
                 staff_channel: disnake.TextChannel = self.bot.get_channel(1046572580200525894)
             except:
@@ -194,27 +194,23 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 tasks.append(task)
             await asyncio.gather(*tasks)
 
-    async def webhook_task(self, channel, message: disnake.Message, embed):
-        if self.bot.global_webhooks[channel] == "":
+    async def webhook_task(self, channel, message: disnake.Message, other_message_link:str):
+        if self.bot.global_webhooks[channel] == "" or self.bot.global_webhooks[channel].user.id != self.bot.user.id:
             try:
-                glob_channel: disnake.TextChannel = self.bot.get_channel(channel)
-            except:
-                try:
-                    glob_channel: disnake.TextChannel = await self.bot.fetch_channel(channel)
-                except (disnake.NotFound, disnake.Forbidden):
-                    result = await self.bot.global_chat_db.find_one({"channel": channel})
-                    await self.bot.global_chat_db.update_one({"server": result.get("server")},
-                                                             {'$set': {"channel": None}})
-                    self.bot.global_channels.remove(channel)
-                    return None
-
+                glob_channel: disnake.TextChannel = await self.bot.getch_channel(channel, raise_exception=True)
+            except (disnake.NotFound, disnake.Forbidden):
+                result = await self.bot.global_chat_db.find_one({"channel": channel})
+                await self.bot.global_chat_db.update_one({"server": result.get("server")},
+                                                         {'$set': {"channel": None}})
+                self.bot.global_channels.remove(channel)
+                return None
             try:
                 webhooks = await glob_channel.webhooks()
             except:
                 return None
             glob_webhook = None
             for webhook in webhooks:
-                if webhook.name == "Global Chat":
+                if webhook.user.id == self.bot.user.id:
                     glob_webhook = webhook
                     break
             if glob_webhook is None:
@@ -223,16 +219,16 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 except:
                     return None
             self.bot.global_webhooks[channel] = glob_webhook
-            return await self.send_web(glob_webhook, message, embed, channel)
+            return await self.send_web(glob_webhook, message, other_message_link, channel)
         else:
             try:
                 webhook = self.bot.global_webhooks[channel]
-                return await self.send_web(webhook, message, embed, channel)
+                return await self.send_web(webhook, message, other_message_link, channel)
             except:
                 self.bot.global_webhooks[channel] = ""
                 return None
 
-    async def send_web(self, webhook, message, embed, channel):
+    async def send_web(self, webhook: disnake.Webhook, message, other_message_link: str, channel):
         files = [await attachment.to_file() for attachment in message.attachments]
         files += [await sticker.to_file() for sticker in message.stickers]
         files = files[:10]
@@ -244,23 +240,31 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         web_name = web_name.replace("discord", "")
         web_name = web_name.replace("Discord", "")
         web_name = web_name.replace("clyde", "")
-        try:
-            if str(message.guild.explicit_content_filter) == "all_members":
-                web_msg = await webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar,
-                                   content=message.content, files=files, embed=embed,
-                                   allowed_mentions=disnake.AllowedMentions.none(), wait=True)
+        buttons = []
+        if other_message_link is not None:
+            stat_buttons = [
+                disnake.ui.Button(label=f"", emoji=self.bot.partial_emoji_gen("<:back:1095895335202738216>"),
+                                  url=f"https://canary.discord.com/channels/{webhook.guild_id}/{other_message_link}")]
+            buttons = disnake.ui.ActionRow()
+            for button in stat_buttons:
+                buttons.append_item(button)
+        #try:
+        if str(message.guild.explicit_content_filter) == "all_members":
+            web_msg = await webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar,
+                               content=message.content, files=files,
+                               allowed_mentions=disnake.AllowedMentions.none(), components=buttons, wait=True)
+        else:
+            if message.content != "":
+                web_msg = await webhook.send(username=web_name[:80],
+                                   avatar_url=message.author.display_avatar,
+                                   content=message.content,
+                                   allowed_mentions=disnake.AllowedMentions.none(), components=buttons, wait=True)
             else:
-                if message.content != "":
-                    web_msg = await webhook.send(username=web_name[:80],
-                                       avatar_url=message.author.display_avatar,
-                                       content=message.content, embed=embed,
-                                       allowed_mentions=disnake.AllowedMentions.none(), wait=True)
-                else:
-                    return None
-            return web_msg
-        except:
+                return None
+        return web_msg
+        '''except:
             self.bot.global_webhooks[channel] = ""
-            return None
+            return None'''
 
     @commands.slash_command(name="global-chat", description="Global Chat")
     async def global_chat(self, ctx):
@@ -285,12 +289,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             return await ctx.edit_original_message(embed=embed)
         if result is None:
             await self.bot.global_chat_db.insert_one({"server" : ctx.guild.id, "channel" : channel.id})
-            embed = disnake.Embed(description=f"Global Chat set to {channel.mention}\n"
-                                              f"**In order to have the best experience and show emojis, you will have to create your own webhook for the bot to use**\n"
-                                              f"1. Go into your channel settings\n"
-                                              f"2. Go to Integrations -> Webhooks\n"
-                                              f"3. Create Webhook, *important*, set it's name to `Global Chat`\n"
-                                              f"If you don't do this, the bot will create it's own webhook & will function normally but won't show emojis.")
+            embed = disnake.Embed(description=f"Global Chat set to {channel.mention}")
         else:
             await self.bot.global_chat_db.update_one({"server" : ctx.guild.id}, {"$set": {"channel" : channel.id}})
             embed = disnake.Embed(description=f"Global Chat set to {channel.mention}")

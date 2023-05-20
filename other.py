@@ -299,17 +299,6 @@ class misc(commands.Cog, name="Other"):
             choices = await self.auto_clan(ctx=ctx, query=query)
             await ctx.response.autocomplete(choices=choices)'''
 
-    @commands.Cog.listener()
-    async def on_button_click(self, ctx: disnake.MessageInteraction):
-        command_name = ctx.data.custom_id.split("_")
-        result = await self.bot.custom_commands.find_one({"$and": [{"guild": ctx.guild.id}, {"name": command_name[0]}]})
-        if result is not None:
-            await ctx.response.defer()
-            embed_data = result.get("embed_data")
-            clan = await self.bot.getClan(clan_tag=command_name[-1])
-            embed = await self.bot.parse_to_embed(custom_json=embed_data, clan=clan)
-            await ctx.edit_original_message(embed=embed)
-
 
     '''
     @commands.slash_command(name="custom-bot", description="Create your custom bot")

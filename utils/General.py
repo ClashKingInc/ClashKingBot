@@ -3,6 +3,8 @@ from coc import utils
 from datetime import datetime
 import datetime as dt
 import pytz
+import coc
+from typing import List
 utc = pytz.utc
 
 async def fetch(url, session):
@@ -179,3 +181,10 @@ async def calculate_time(type):
 
 
     return text
+
+def get_clan_member_tags(clans: List[coc.Clan]) -> List[str]:
+    clan_member_tags = []
+    for clan in clans:
+        for member in clan.members:
+            clan_member_tags.append(member.tag)
+    return clan_member_tags

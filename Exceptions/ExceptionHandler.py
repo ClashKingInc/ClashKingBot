@@ -35,6 +35,10 @@ class ExceptionHandler(commands.Cog):
         if isinstance(error, disnake.ext.commands.CommandError):
             error = error.original
 
+        if isinstance(error, ExportTemplateAlreadyExists):
+            embed = disnake.Embed(description=f"Export Template with this name already exists.", color=disnake.Color.red())
+            return await ctx.send(embed=embed, ephemeral=False)
+
         if isinstance(error, RosterAliasAlreadyExists):
             embed = disnake.Embed(description=f"Roster with this alias already exists.", color=disnake.Color.red())
             return await ctx.send(embed=embed, ephemeral=True)

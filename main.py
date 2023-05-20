@@ -24,7 +24,8 @@ intents.guilds = True
 intents.emojis = True
 intents.messages = True
 intents.message_content = True
-bot = CustomClient(shard_count=2, command_prefix="$$",help_command=None, intents=intents, reload=True)
+intents.presences = True
+bot = CustomClient(shard_count=2, command_prefix="$$",help_command=None, intents=intents, reload=True, sync_commands_debug=True)
 
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
@@ -92,10 +93,10 @@ initial_extensions = [
     "help",
     "other",
     "Utility.bases",
-    "settings",
+    #"settings",
     "owner_commands",
     "Ticketing.TicketCog",
-    "SetupNew.SetupCog",
+    #"SetupNew.SetupCog",
     "Utility.link_parsers",
     #"War & CWL.war_track",
     #"War & CWL.lineups",
@@ -103,9 +104,10 @@ initial_extensions = [
     "BoardCommands.Player.PlayerCog",
     "BoardCommands.Clan.ClanCog",
     "BoardCommands.BoardCog",
-    "Export.ExportsCog",
     "BoardCommands.Family.FamilyCog",
-    "BoardCommands.Top.TopCog"
+    "BoardCommands.Top.TopCog",
+    "Export.ExportsCog",
+    "Graphing.GraphCog"
 ]
 
 if not IS_BETA:
@@ -126,7 +128,7 @@ if not IS_BETA:
         "Link & Eval.link_button",
         "War & CWL.war_track",
         "discord_events",
-        "erikuh_comp",
+        "Other.erikuh_comp",
         "Setups.addclans",
         "global_chat"
     ]

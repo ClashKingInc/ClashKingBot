@@ -10,7 +10,7 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer, ClanCapitalWeek
 from utils.General import create_superscript
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry, calc_raid_medals
-from utils.constants import item_to_name, CK_API_ROUTE, leagues
+from utils.constants import item_to_name, SHORT_PLAYER_LINK, leagues
 from CustomClasses.Enums import TrophySort
 from collections import defaultdict
 from typing import List
@@ -65,7 +65,7 @@ class FamilyUtils(commands.Cog):
                 elif clan.location is not None and clan.location.name == "International":
                     flag = "🌎"
                 if use_link:
-                    text += f"{flag}[{clan.name}]({CK_API_ROUTE}{clan.tag.replace('#', '')}) | ({clan.member_count}/50)\n"
+                    text += f"{flag}[{clan.name}]({SHORT_PLAYER_LINK}{clan.tag.replace('#', '')}) | ({clan.member_count}/50)\n"
                 else:
                     text += f"{flag}{clan.name} | ({clan.member_count}/50)\n"
                 member_count += clan.member_count

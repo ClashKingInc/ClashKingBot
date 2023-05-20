@@ -1,27 +1,37 @@
+import asyncio
+import datetime
+import time
+
 import disnake
 import pytz
+import coc
+import calendar
 
 from disnake.ext import commands
-
 from CustomClasses.CustomBot import CustomClient
 from Exceptions.CustomExceptions import InvalidGuildID
-
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
+from utils.General import get_clan_member_tags
 
 tiz = pytz.utc
 if TYPE_CHECKING:
     from BoardCommands.BoardCog import BoardCog
     from FamilyCog import FamilyCog
-    board_cog = BoardCog
+    from Graphing import GraphCog
+    boardcog = BoardCog
     family_cog = FamilyCog
+    graphcog = GraphCog.GraphCog
 else:
-    board_cog = commands.Cog
+    boardcog = commands.Cog
     family_cog = commands.Cog
+    graphcog = commands.Cog
 
 class FamCommands(family_cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
+        self.board_cog: boardcog = bot.get_cog("BoardCog")
+        self.graph_cog: graphcog = bot.get_cog("Graphing")
 
     async def server_converter(self, server: str):
         try:
@@ -32,6 +42,25 @@ class FamCommands(family_cog):
             raise InvalidGuildID
         return guild
 
+    async def season_convertor(self, season: str):
+        if season is not None:
+            month = list(calendar.month_name).index(season.split(" ")[0])
+            year = season.split(" ")[1]
+            end_date = coc.utils.get_season_end(month=int(month - 1), year=int(year))
+            month = end_date.month
+            if month <= 9:
+                month = f"0{month}"
+            season_date = f"{end_date.year}-{month}"
+        else:
+            season_date = self.bot.gen_season_date()
+        return season_date
+
+    async def th_convertor(self, th: str):
+        if th is not None:
+            return [int(th)]
+        else:
+            return list(range(2, 17))
+
     @commands.slash_command(name="family")
     async def family(self, ctx: disnake.ApplicationCommandInteraction):
         result = await self.bot.user_settings.find_one({"discord_user": ctx.author.id})
@@ -39,6 +68,8 @@ class FamCommands(family_cog):
         if result is not None:
             ephemeral = result.get("private_mode", False)
         await ctx.response.defer(ephemeral=ephemeral)
+        self.board_cog: boardcog = self.bot.get_cog("BoardCog")
+        self.graph_cog: graphcog = self.bot.get_cog("Graphing")
 
     @family.sub_command(name="clans", description="Overview list of all family clans")
     async def family_clans(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
@@ -59,9 +90,37 @@ class FamCommands(family_cog):
                                               style=disnake.ButtonStyle.grey, custom_id=f"capitalleaguesfam_"))
         await ctx.edit_original_message(embed=embed, components=buttons)
 
+    @family.sub_command(name="donations", description="Top 50 donators in family")
+    async def family_donations(self, ctx: disnake.ApplicationCommandInteraction,
+                               season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor),
+                               townhall: List[str] = commands.Param(default=None, convert_defaults=True, converter=th_convertor),
+                               server: disnake.Guild = commands.Param(converter=server_converter, default=None), limit: int = 50):
+
+        guild = server if server is not None else ctx.guild
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+        clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
+        member_tags = get_clan_member_tags(clans=clans)
+        #players = await self.bot.player_stats.find({"$and" : [{"tag" : {"$in" : member_tags }}]}, {"tag": 1}).sort(f"donations.{season}.donated", -1).limit(50).to_list(length=50)
+        #players = await self.bot.get_players(tags=[result.get("tag") for result in players])
+        distinct = await self.bot.player_stats.distinct("tag", filter={"tag": {"$in": member_tags}})
+        players = await self.bot.get_players(tags=distinct)
+        footer_icon = ctx.guild.icon.url if ctx.guild.icon is not None else self.bot.user.avatar.url
+        embed = await self.board_cog.donation_board(players=[player for player in players if player.town_hall in townhall], season=season, footer_icon=footer_icon, title_name=f"{guild.name}", type="donations", limit=limit)
+
+        graph = await self.graph_cog.create_clan_donation_graph(all_players=players, clans=clans, season=season, type="donations", server_id=guild.id)
+        embed.set_image(url=f"{graph}?{int(datetime.datetime.now().timestamp())}")
+
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,custom_id=f"donationfam_"))
+        buttons.append_item(disnake.ui.Button(label="Received", emoji=self.bot.emoji.clan_castle.partial_emoji,style=disnake.ButtonStyle.grey, custom_id=f"receivedfam_"))
+        buttons.append_item(disnake.ui.Button(label="Ratio", emoji=self.bot.emoji.ratio.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=f"ratiofam_"))
+        await ctx.edit_original_message(embed=embed, components=[buttons])
+
+
 
     @family_clans.autocomplete("server")
     @family_leagues.autocomplete("server")
+    @family_donations.autocomplete("server")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         matches = []
         for guild in self.bot.guilds:
@@ -72,6 +131,11 @@ class FamCommands(family_cog):
             if len(matches) == 25:
                 break
         return matches
+
+    @family_donations.autocomplete("season")
+    async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
+        return [season for season in seasons if query.lower() in season.lower()]
 
 
 

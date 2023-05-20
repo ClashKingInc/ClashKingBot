@@ -1,6 +1,7 @@
 import json
 
-CK_API_ROUTE = "https://api.clashking.xyz/"
+SHORT_PLAYER_LINK = "https://api.clashking.xyz/p"
+SHORT_CLAN_LINK = "https://api.clashking.xyz/c"
 
 item_to_name = {"Player Tag" : "tag", "Role" : "role",
                 "Versus Trophies" : "versus_trophies", "Trophies" : "trophies",

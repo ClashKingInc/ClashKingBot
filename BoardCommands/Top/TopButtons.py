@@ -24,8 +24,9 @@ class TopButtons(top_cog):
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
-        await ctx.response.defer()
+
         if str(ctx.data.custom_id) == "topdonatedplayer_":
+            await ctx.response.defer()
             season = self.bot.gen_season_date()
             players = await self.bot.player_stats.find({}, {"tag": 1}).sort(f"donations.{season}.donated", -1).limit(50).to_list(length=50)
             players = await self.bot.get_players(tags=[result.get("tag") for result in players])
@@ -37,6 +38,7 @@ class TopButtons(top_cog):
             await ctx.edit_original_message(embed=embed)
 
         if str(ctx.data.custom_id) == "topreceivedplayer_":
+            await ctx.response.defer()
             season = self.bot.gen_season_date()
             players = await self.bot.player_stats.find({}, {"tag": 1}).sort(f"donations.{season}.received", -1).limit(50).to_list(length=50)
             players = await self.bot.get_players(tags=[result.get("tag") for result in players])
