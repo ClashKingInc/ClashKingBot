@@ -29,7 +29,7 @@ class MyCustomPlayer(coc.Player):
         self.streak = 0
         self.results = kwargs.pop("results")
         self.town_hall_cls = CustomTownHall(self.town_hall)
-        self.name = self.get_name()
+        self.clear_name = self.get_name()
 
     def get_name(self):
         name = emoji.replace_emoji(self.name)

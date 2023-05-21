@@ -1,22 +1,13 @@
 import disnake
 import coc
 import pytz
-import operator
-import json
-import asyncio
-import calendar
 
 from disnake.ext import commands
-from coc import utils
-from Assets.emojiDictionary import emojiDictionary
 from CustomClasses.CustomBot import CustomClient
-from collections import defaultdict
-from collections import Counter
 from datetime import datetime
 from CustomClasses.Enums import TrophySort
-from utils.constants import item_to_name
-
-from typing import TYPE_CHECKING
+from utils.General import get_clan_member_tags
+from typing import TYPE_CHECKING, List
 
 tiz = pytz.utc
 if TYPE_CHECKING:
@@ -32,6 +23,7 @@ class FamilyButtons(family_cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
+        self.graph_cog = None
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
@@ -174,3 +166,66 @@ class FamilyButtons(family_cog):
                                                   style=disnake.ButtonStyle.green if sort_type == TrophySort.capital else disnake.ButtonStyle.grey,
                                                   custom_id=f"capitaltrophiesfam_"))
             await ctx.edit_original_message(embed=embed, components=buttons)
+
+        elif "famcapd_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            self.graph_cog = self.bot.get_cog("Graphing")
+            split = str(ctx.data.custom_id).split("_")
+            week = split[1]
+            limit = int(split[2])
+            guild_id = split[3]
+            townhall = split[4]
+            if townhall != "None":
+                townhall = [int(townhall)]
+            else:
+                townhall = list(range(2, 17))
+            guild = await self.bot.getch_guild(guild_id)
+            if week == "None":
+                week = self.bot.gen_raid_date()
+
+            clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
+            clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
+            member_tags = get_clan_member_tags(clans=clans)
+            distinct = await self.bot.player_stats.distinct("tag", filter={"tag": {"$in": member_tags}})
+            players = await self.bot.get_players(tags=distinct)
+            embed: disnake.Embed = await self.board_cog.capital_donation_board(players=[player for player in players if player.town_hall in townhall], week=week,
+                                                                               title_name=f"{guild.name} Top",
+                                                                               footer_icon=guild.icon.url if guild.icon is not None else None,
+                                                                               limit=limit)
+
+            graph = await self.graph_cog.create_capital_graph(all_players=players, clans=clans, week=week,
+                                                              type="donations", server_id=guild.id)
+            embed.set_image(url=f"{graph}?{int(datetime.now().timestamp())}")
+            await ctx.edit_original_message(embed=embed)
+
+        elif "famcapr_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            self.graph_cog = self.bot.get_cog("Graphing")
+            split = str(ctx.data.custom_id).split("_")
+            week = split[1]
+            limit = int(split[2])
+            guild_id = split[3]
+            townhall = split[4]
+            if townhall != "None":
+                townhall = [int(townhall)]
+            else:
+                townhall = list(range(2, 17))
+            guild = await self.bot.getch_guild(guild_id)
+            if week == "None":
+                week = self.bot.gen_raid_date()
+
+            clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+            clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
+            member_tags = get_clan_member_tags(clans=clans)
+            distinct = await self.bot.player_stats.distinct("tag", filter={"tag": {"$in": member_tags}})
+            players = await self.bot.get_players(tags=distinct)
+            embed: disnake.Embed = await self.board_cog.capital_raided_board(
+                players=[player for player in players if player.town_hall in townhall], week=week,
+                title_name=f"{guild.name} Top",
+                footer_icon=guild.icon.url if guild.icon is not None else None,
+                limit=limit)
+
+            graph = await self.graph_cog.create_capital_graph(all_players=players, clans=clans, week=week,
+                                                              type="raided", server_id=guild.id)
+            embed.set_image(url=f"{graph}?{int(datetime.now().timestamp())}")
+            await ctx.edit_original_message(embed=embed)

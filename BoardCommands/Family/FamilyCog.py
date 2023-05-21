@@ -1,6 +1,6 @@
 from disnake.ext import commands
 from .FamilyCommands import FamCommands
-from .FamilyUtils import FamilyUtils
+from .FamilyEmbeds import FamilyUtils
 from .FamilyButtons import FamilyButtons
 
 class FamilyCog(FamCommands, FamilyUtils, FamilyButtons, commands.Cog):

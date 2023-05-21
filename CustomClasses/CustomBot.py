@@ -119,8 +119,8 @@ class CustomClient(commands.AutoShardedBot):
         self.global_webhooks = defaultdict(str)
 
         self.feed_webhooks = {}
-
         self.clan_list = []
+        self.player_cache_dict = {}
 
     async def create_new_badge_emoji(self, url:str):
         new_url = url.replace(".png", "")

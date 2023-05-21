@@ -66,6 +66,12 @@ class PlayerCommands(commands.Cog):
 
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
+    @player.sub_command(name="capital", description="Capital stats for a player or a user's accounts")
+    async def capital(self, ctx: disnake.ApplicationCommandInteraction, player_tag: str= None, discord_user: disnake.Member = None):
+        pass
+
+
+
     @player.sub_command(name="search", description="Search for players")
     async def search(self, ctx: disnake.ApplicationCommandInteraction, clan:str = commands.Param(choices=["No Clan", "In Clan"], default=None),
                      league: str = commands.Param(choices=["No League", "Has League"], default=None),

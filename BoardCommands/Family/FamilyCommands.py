@@ -1,7 +1,4 @@
-import asyncio
 import datetime
-import time
-
 import disnake
 import pytz
 import coc
@@ -12,6 +9,7 @@ from CustomClasses.CustomBot import CustomClient
 from Exceptions.CustomExceptions import InvalidGuildID
 from typing import TYPE_CHECKING, List
 from utils.General import get_clan_member_tags
+from utils.ClanCapital import gen_raid_weekend_datestrings
 
 tiz = pytz.utc
 if TYPE_CHECKING:
@@ -94,14 +92,13 @@ class FamCommands(family_cog):
     async def family_donations(self, ctx: disnake.ApplicationCommandInteraction,
                                season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor),
                                townhall: List[str] = commands.Param(default=None, convert_defaults=True, converter=th_convertor),
-                               server: disnake.Guild = commands.Param(converter=server_converter, default=None), limit: int = 50):
+                               server: disnake.Guild = commands.Param(converter=server_converter, default=None),
+                               limit: int = commands.Param(default=50, max_value=50)):
 
         guild = server if server is not None else ctx.guild
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
         clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
         member_tags = get_clan_member_tags(clans=clans)
-        #players = await self.bot.player_stats.find({"$and" : [{"tag" : {"$in" : member_tags }}]}, {"tag": 1}).sort(f"donations.{season}.donated", -1).limit(50).to_list(length=50)
-        #players = await self.bot.get_players(tags=[result.get("tag") for result in players])
         distinct = await self.bot.player_stats.distinct("tag", filter={"tag": {"$in": member_tags}})
         players = await self.bot.get_players(tags=distinct)
         footer_icon = ctx.guild.icon.url if ctx.guild.icon is not None else self.bot.user.avatar.url
@@ -116,11 +113,41 @@ class FamCommands(family_cog):
         buttons.append_item(disnake.ui.Button(label="Ratio", emoji=self.bot.emoji.ratio.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=f"ratiofam_"))
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
+    @family.sub_command(name="capital", description="Top 50 capital contributors in family")
+    async def family_capital(self, ctx: disnake.ApplicationCommandInteraction,
+                             weekend: str = None,
+                             townhall: List[str] = commands.Param(default=None, convert_defaults=True, converter=th_convertor),
+                             server: disnake.Guild = commands.Param(converter=server_converter, default=None),
+                             limit: int = commands.Param(default=50, max_value=50)):
+        guild = server if server is not None else ctx.guild
+        if weekend is None:
+            week = self.bot.gen_raid_date()
+        else:
+            week = weekend
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+        clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
+        member_tags = get_clan_member_tags(clans=clans)
+        distinct = await self.bot.player_stats.distinct("tag", filter={"tag": {"$in": member_tags}})
+        players = await self.bot.get_players(tags=distinct)
+        embed: disnake.Embed = await self.board_cog.capital_donation_board(players=[player for player in players if player.town_hall in townhall], week=week,
+                                                                           title_name=f"{guild.name} Top",
+                                                                           footer_icon=guild.icon.url if guild.icon is not None else None, limit=limit)
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(
+            label="Donated", emoji=self.bot.emoji.capital_gold.partial_emoji,
+            style=disnake.ButtonStyle.grey, custom_id=f"famcapd_{weekend}_{limit}_{guild.id}_{None if len(townhall) >= 2 else townhall[0]}"))
+        buttons.append_item(disnake.ui.Button(
+            label="Raided", emoji=self.bot.emoji.thick_sword.partial_emoji,
+            style=disnake.ButtonStyle.grey, custom_id=f"famcapr_{weekend}_{limit}_{guild.id}_{None if len(townhall) >= 2 else townhall[0]}"))
 
+        graph = await self.graph_cog.create_capital_graph(all_players=players, clans=clans, week=week, type="donations", server_id=guild.id)
+        embed.set_image(url=f"{graph}?{int(datetime.datetime.now().timestamp())}")
+        await ctx.send(embed=embed, components=[buttons])
 
     @family_clans.autocomplete("server")
     @family_leagues.autocomplete("server")
     @family_donations.autocomplete("server")
+    @family_capital.autocomplete("server")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         matches = []
         for guild in self.bot.guilds:
@@ -137,5 +164,13 @@ class FamCommands(family_cog):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
         return [season for season in seasons if query.lower() in season.lower()]
 
+    @family_capital.autocomplete("weekend")
+    async def weekend(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        weekends = gen_raid_weekend_datestrings(number_of_weeks=25)
+        matches = []
+        for weekend in weekends:
+            if query.lower() in weekend.lower():
+                matches.append(weekend)
+        return matches
 
 

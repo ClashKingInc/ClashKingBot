@@ -40,14 +40,15 @@ class BoardCreator(commands.Cog):
             tag = player.tag.strip("#")
             if count <= limit:
                 if type == "donations":
-                    text += f"[⌕]({SHORT_PLAYER_LINK}{tag})`{count:2} {player.donos(date=season).donated:5} {player.donos(date=season).received:5} {player.name[:13]:13}`\n"
+                    text += f"[⌕]({SHORT_PLAYER_LINK}{tag})`{count:2} {player.donos(date=season).donated:5} {player.donos(date=season).received:5} {player.clear_name[:13]:13}`\n"
                 else:
-                    text += f"[⌕]({SHORT_PLAYER_LINK}{tag})`{count:2} {player.donos(date=season).received:5} {player.donos(date=season).donated:5} {player.name[:13]:13}`\n"
+                    text += f"[⌕]({SHORT_PLAYER_LINK}{tag})`{count:2} {player.donos(date=season).received:5} {player.donos(date=season).donated:5} {player.clear_name[:13]:13}`\n"
 
             total_donated += player.donos(date=season).donated
             total_received += player.donos(date=season).received
 
-        embed = disnake.Embed(title=f"**{title_name} Top {min(limit, len(players))} {type.capitalize()}**", description=f"{text}", color=embed_color)
+        embed = disnake.Embed(description=f"{text}", color=embed_color)
+        embed.set_author(name=f"{title_name} Top {min(limit, len(players))} {type.capitalize()}", icon_url=self.bot.emoji.clan_castle.partial_emoji.url)
         if footer_icon is None:
             footer_icon = self.bot.user.avatar.url
         embed.set_footer(icon_url=footer_icon, text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {season}")
@@ -90,11 +91,43 @@ class BoardCreator(commands.Cog):
             list_.append([pd.to_datetime(int(date_time.split("_")[0]), unit="s", utc=True).tz_convert(time_zone), amount, date_time.split("_")[1]])
         df = pd.DataFrame(list_, columns=["Date", "Total Activity", "Clan"])
         df.sort_values(by="Date", inplace=True)
-        print(df)
         board_cog: BoardCog = self.bot.get_cog("BoardCog")
         return (await board_cog.graph_creator(df=df, x="Date", y="Total Activity", title=title))
 
+    async def capital_donation_board(self, players: List[MyCustomPlayer], week: str, title_name: str, limit: int = 60, footer_icon: str = None, embed_color: disnake.Color = disnake.Color.green()):
+        players.sort(key=lambda x: sum(x.clan_capital_stats(week=week).donated), reverse=True)
+        total_donated = 0
+        text = ""
+        for count, player in enumerate(players, 1):
+            tag = player.tag.strip("#")
+            if count <= limit:
+                text += f"[⌕]({SHORT_PLAYER_LINK}{tag})`{count:2} {sum(player.clan_capital_stats(week=week).donated):5} {player.clear_name[:13]:13}`\n"
+            total_donated += sum(player.clan_capital_stats(week=week).donated)
+        if text == "":
+            text = "No Results Found"
+        embed = disnake.Embed(description=f"{text}", color=embed_color)
+        embed.set_author(name=f"{title_name} Clan Capital Donations", icon_url=self.bot.emoji.capital_gold.partial_emoji.url)
+        if footer_icon is None:
+            footer_icon = self.bot.user.avatar.url
+        embed.set_footer(icon_url=footer_icon, text=f"Donated: {'{:,}'.format(total_donated)} | {week}")
+        embed.timestamp = datetime.datetime.now()
+        return embed
 
-
-
-
+    async def capital_raided_board(self, players: List[MyCustomPlayer], week: str, title_name: str, limit: int = 60, footer_icon: str = None, embed_color: disnake.Color = disnake.Color.green()):
+        players.sort(key=lambda x: sum(x.clan_capital_stats(week=week).raided), reverse=True)
+        total_donated = 0
+        text = ""
+        for count, player in enumerate(players, 1):
+            tag = player.tag.strip("#")
+            if count <= limit:
+                text += f"[⌕]({SHORT_PLAYER_LINK}{tag})`{count:2} {sum(player.clan_capital_stats(week=week).raided):5} {player.clear_name[:13]:13}`\n"
+            total_donated += sum(player.clan_capital_stats(week=week).raided)
+        if text == "":
+            text = "No Results Found"
+        embed = disnake.Embed(description=f"{text}", color=embed_color)
+        embed.set_author(name=f"{title_name} Clan Capital Raid Totals", icon_url=self.bot.emoji.capital_gold.partial_emoji.url)
+        if footer_icon is None:
+            footer_icon = self.bot.user.avatar.url
+        embed.set_footer(icon_url=footer_icon, text=f"Raided: {'{:,}'.format(total_donated)} | {week}")
+        embed.timestamp = datetime.datetime.now()
+        return embed

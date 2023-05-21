@@ -25,7 +25,7 @@ intents.emojis = True
 intents.messages = True
 intents.message_content = True
 intents.presences = True
-bot = CustomClient(shard_count=2, command_prefix="$$",help_command=None, intents=intents, reload=True, sync_commands_debug=True)
+bot = CustomClient(shard_count=2, command_prefix="$$",help_command=None, intents=intents)
 
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
@@ -107,7 +107,8 @@ initial_extensions = [
     "BoardCommands.Family.FamilyCog",
     "BoardCommands.Top.TopCog",
     "Export.ExportsCog",
-    "Graphing.GraphCog"
+    "Graphing.GraphCog",
+    "BackgroundCrons.background_cache"
 ]
 
 if not IS_BETA:

@@ -15,6 +15,7 @@ from collections import Counter
 from datetime import datetime
 from CustomClasses.Enums import TrophySort
 from utils.constants import item_to_name
+from utils.ClanCapital import gen_raid_weekend_datestrings
 
 from typing import TYPE_CHECKING
 
@@ -57,7 +58,7 @@ class TopCommands(top_cog):
         await ctx.response.defer(ephemeral=ephemeral)
 
 
-    @top.sub_command(name="donations", description="Top donators across the entire bot")
+    @top.sub_command(name="donations", description="Top donators across the bot")
     async def donations(self, ctx: disnake.ApplicationCommandInteraction, season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor)):
         players = await self.bot.player_stats.find({}, {"tag" : 1}).sort(f"donations.{season}.donated", -1).limit(50).to_list(length=50)
         players = await self.bot.get_players(tags=[result.get("tag") for result in players])
@@ -76,7 +77,36 @@ class TopCommands(top_cog):
             style=disnake.ButtonStyle.grey, custom_id=f"topratioplayer_"))
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
+    @top.sub_command(name="capital", description="Top capital contributors across the bot")
+    async def capital(self, ctx: disnake.ApplicationCommandInteraction, weekend: str = None):
+        if weekend is None:
+            week = self.bot.gen_raid_date()
+        else:
+            week = weekend
+        pipeline = [{"$project" : {"tag" : "$tag", "capital_sum" : {"$sum" : { "$ifNull": [f"$capital_gold.{week}.donate", [] ]}}}}, {"$sort":{"capital_sum":-1}}, {"$limit" : 50}]
+        players = await self.bot.player_stats.aggregate(pipeline).to_list(length=None)
+        players = await self.bot.get_players(tags=[result.get("tag") for result in players])
+        embed: disnake.Embed = await self.board_cog.capital_donation_board(players=players, week=week, title_name="Top", footer_icon=self.bot.user.avatar.url)
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(
+            label="Donated", emoji=self.bot.emoji.capital_gold.partial_emoji,
+            style=disnake.ButtonStyle.grey, custom_id=f"topcapitaldonatedplayer_{weekend}"))
+        buttons.append_item(disnake.ui.Button(
+            label="Raided", emoji=self.bot.emoji.thick_sword.partial_emoji,
+            style=disnake.ButtonStyle.grey, custom_id=f"topcapitalraidplayer_{weekend}"))
+        await ctx.send(embed=embed, components=[buttons])
+
+
     @donations.autocomplete("season")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
         return [season for season in seasons if query.lower() in season.lower()]
+
+    @capital.autocomplete("weekend")
+    async def weekend(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        weekends = gen_raid_weekend_datestrings(number_of_weeks=25)
+        matches = []
+        for weekend in weekends:
+            if query.lower() in weekend.lower():
+                matches.append(weekend)
+        return matches

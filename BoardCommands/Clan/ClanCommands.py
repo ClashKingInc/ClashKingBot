@@ -124,6 +124,10 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         file, buttons = await board_cog.activity_graph(players=players, season=season, title=f"{clan.name} Activity ({season})", granularity=granularity, time_zone=timezone)
         await ctx.send(file=file, components=[buttons])
 
+    @clan.sub_command(name="capital", description="Clan capital info for a clan")
+    async def clan_capital(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), weekend: str = None):
+        # 3 types - overview, donations, & raids
+
 
     @donations.autocomplete("season")
     @activity.autocomplete("season")
@@ -169,4 +173,13 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             if query.lower() in tz.lower():
                 return_list.append(tz)
         return return_list[:25]
+
+    @clan_capital.autocomplete("weekend")
+    async def weekend(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        weekends = gen_raid_weekend_datestrings(number_of_weeks=25)
+        matches = []
+        for weekend in weekends:
+            if query.lower() in weekend.lower():
+                matches.append(weekend)
+        return matches
 
