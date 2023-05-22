@@ -59,11 +59,11 @@ class FamilyUtils(commands.Cog):
                 leader = coc.utils.get(clan.members, role=coc.Role.leader)
                 #text += f"[{clan.name}]({clan.share_link}) | ({clan.member_count}/50)\n" \
                         #f"**Leader:** {leader.name}\n\n"
-                flag = "🏳️"
+                flag = "ðŸ�³ï¸�"
                 if clan.location is not None and clan.location.is_country:
                     flag = f":flag_{clan.location.country_code.lower()}:"
                 elif clan.location is not None and clan.location.name == "International":
-                    flag = "🌎"
+                    flag = "ðŸŒŽ"
                 if use_link:
                     text += f"{flag}[{clan.name}]({SHORT_PLAYER_LINK}{clan.tag.replace('#', '')}) | ({clan.member_count}/50)\n"
                 else:
@@ -110,7 +110,6 @@ class FamilyUtils(commands.Cog):
             main_embed.add_field(name=f"**{league}**", value=text, inline=False)
 
         return main_embed
-
 
     async def create_raids(self, guild: disnake.Guild):
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
@@ -607,4 +606,17 @@ class FamilyUtils(commands.Cog):
 
         embed = disnake.Embed(title=f"{guild.name} sorted by {og_sort}", description=text, color=disnake.Color.green())
 
+        return embed
+
+    async def create_search(self, guild: disnake.Guild):
+        text = f"Owner: {guild.owner.mention}\n"
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+        clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
+        text += "**Clans:**\n"
+        for clan in clans:
+            war_league = str(clan.war_league).split(" ")
+            war_league = f"{war_league[0][0]}{war_league[0][-1]}".capitalize() + f"{len(war_league[-1])}"
+            text += f"{clan.name} {war_league}\n"
+
+        embed = disnake.Embed(title=f"{guild.name}", description=text, color=disnake.Color.green())
         return embed

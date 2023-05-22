@@ -144,10 +144,19 @@ class FamCommands(family_cog):
         embed.set_image(url=f"{graph}?{int(datetime.datetime.now().timestamp())}")
         await ctx.send(embed=embed, components=[buttons])
 
+
+    @family.sub_command(name="search", description="Overview Panel of a Family")
+    async def family_search(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
+        guild = server if server is not None else ctx.guild
+        embed = await self.create_search(guild=guild)
+        await ctx.send(embed=embed)
+
+
     @family_clans.autocomplete("server")
     @family_leagues.autocomplete("server")
     @family_donations.autocomplete("server")
     @family_capital.autocomplete("server")
+    @family_search.autocomplete("server")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         matches = []
         for guild in self.bot.guilds:

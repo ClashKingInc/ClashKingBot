@@ -12,15 +12,6 @@ from disnake import Embed, Color, SelectOption
 from disnake.utils import get
 from utils.discord_utils import fetch_emoji
 from collections import defaultdict
-from Clan.ClanUtils import (
-    SUPER_TROOPS,
-    SUPER_SCRIPTS,
-    clan_th_comp,
-    clan_super_troop_comp,
-    league_and_trophies_emoji,
-    tiz,
-    response_to_line
-)
 from utils.General import fetch
 from coc.raid import RaidLogEntry
 from datetime import datetime
@@ -28,15 +19,18 @@ from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis
 from CustomClasses.CustomBot import CustomClient
 from utils.ClanCapital import gen_raid_weekend_datestrings, calc_raid_medals
-from utils.troop_methods import cwl_league_emojis
+from utils.clash import cwl_league_emojis, leagueAndTrophies
 from typing import List
+from ballpark import ballpark as B
+from statistics import mean
+from utils.General import create_superscript
 
 class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    async def clan_overview(clan: coc.Clan, db_clan, clan_legend_ranking, previous_season, season, bot: CustomClient):
+    async def clan_overview(self, clan: coc.Clan, db_clan, clan_legend_ranking, previous_season, season, bot: CustomClient):
         clan_leader = get(clan.members, role=coc.Role.leader)
         warwin = clan.war_wins
         winstreak = clan.war_win_streak
@@ -56,7 +50,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
             try:
                 flag = f":flag_{clan.location.country_code.lower()}:"
             except:
-                flag = "🏳️"
+                flag = "ðŸ�³ï¸�"
 
         ranking = LegendRanking(clan_legend_ranking)
         rank_text = f"<a:earth:861321402909327370> {ranking.global_ranking} | "
@@ -68,7 +62,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
 
         if clan.location is not None:
             if clan.location.name == "International":
-                rank_text += f"🌍 {ranking.local_ranking}"
+                rank_text += f"ðŸŒ� {ranking.local_ranking}"
             else:
                 rank_text += f"{flag} {ranking.local_ranking}"
         else:
@@ -78,8 +72,8 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         else:
             rank_text = f"Rankings: {rank_text}\n"
 
-        cwl_league_emoji = league_and_trophies_emoji(str(clan.war_league))
-        capital_league_emoji = league_and_trophies_emoji(str(clan.capital_league))
+        cwl_league_emoji = leagueAndTrophies(str(clan.war_league))
+        capital_league_emoji = leagueAndTrophies(str(clan.capital_league))
 
         hall_level = 0 if coc.utils.get(clan.capital_districts, id=70000000) is None else coc.utils.get(clan.capital_districts, id=70000000).hall_level
         hall_level_emoji = 1 if hall_level == 0 else hall_level
@@ -195,7 +189,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return embed
 
 
-    def linked_players(server_members, clan: coc.Clan, player_links):
+    def linked_players(self,server_members, clan: coc.Clan, player_links):
 
         green_check_emoji = "<:greentick:601900670823694357>"
         discord_emoji = "<:discord:840749695466864650>"
@@ -217,7 +211,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
             name = player.name
 
             ol_name = name
-            for char in ["`", "*", "_", "~", "ッ"]:
+            for char in ["`", "*", "_", "~", "ãƒƒ"]:
                 name = name.replace(char, "", 10)
             name = emoji.replace_emoji(name, "")
             name = name[:14]
@@ -254,7 +248,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return embed
 
 
-    def unlinked_players(clan: coc.Clan, player_links):
+    def unlinked_players(self,clan: coc.Clan, player_links):
 
         red_x_emoji = "<:redtick:601900691312607242>"
         discord_emoji = "<:discord:840749695466864650>"
@@ -274,7 +268,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
                 continue
 
             ol_name = name
-            for char in ["`", "*", "_", "~", "ッ"]:
+            for char in ["`", "*", "_", "~", "ãƒƒ"]:
                 name = name.replace(char, "", 10)
             name = emoji.replace_emoji(name, "")
             name = name[:14]
@@ -300,7 +294,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return embed
 
 
-    def player_trophy_sort(clan: coc.Clan):
+    def player_trophy_sort(self,clan: coc.Clan):
         embed_description = ""
         place_index = 0
 
@@ -322,7 +316,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return embed
 
 
-    async def player_townhall_sort(clan: coc.Clan):
+    async def player_townhall_sort(self,clan: coc.Clan):
         ranking = []
         thcount = defaultdict(int)
 
@@ -348,7 +342,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return embed
 
 
-    async def opt_status(bot: CustomClient, clan: coc.Clan):
+    async def opt_status(self,bot: CustomClient, clan: coc.Clan):
         opted_in = []
         opted_out = []
         in_count = 0
@@ -409,7 +403,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return [embed, embed2]
 
 
-    def war_log(clan: coc.Clan, war_log):
+    def war_log(self,clan: coc.Clan, war_log):
 
         embed_description = ""
         wars_counted = 0
@@ -464,7 +458,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return embed
 
 
-    async def super_troop_list(clan: coc.Clan):
+    async def super_troop_list(self,clan: coc.Clan):
         boosted = ""
         none_boosted = ""
 
@@ -516,7 +510,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return embed
 
 
-    def clan_th_composition(clan: coc.Clan, member_list):
+    def clan_th_composition(self,clan: coc.Clan, member_list):
         th_count_dict = defaultdict(int)
         th_sum = 0
 
@@ -550,69 +544,114 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return embed
 
 
-    async def clan_raid_weekend_donation_stats(clan: coc.Clan, weekend: str, bot: CustomClient):
+    async def clan_capital_overview(self, clan: coc.Clan, raid_log_entry: RaidLogEntry):
+        attack_count = 0
+        for member in raid_log_entry.members:
+            attack_count += member.attack_count
+        embed = disnake.Embed(title=f"{clan.name} Raid Weekend Overview", color=disnake.Color.green())
+        embed.set_footer(text=f"{str(raid_log_entry.start_time.time.date()).replace('-','/')}-{str(raid_log_entry.end_time.time.date()).replace('-','/')}", icon_url=clan.badge.url)
+        embed.add_field(name="Overview",
+                        value=f"- {self.bot.emoji.capital_gold}{'{:,}'.format(raid_log_entry.total_loot)} Looted\n"
+                              f"- {self.bot.fetch_emoji('District_Hall5')}{raid_log_entry.destroyed_district_count} Districts Destroyed\n"
+                              f"- {self.bot.emoji.thick_sword}{attack_count}/300 Attacks Complete\n"
+                              f"- {self.bot.emoji.person}{len(raid_log_entry.members)}/50 Participants\n"
+                              f"- Start {self.bot.timestamper(raid_log_entry.start_time.time.timestamp()).relative}, End {self.bot.timestamper(raid_log_entry.end_time.time.timestamp()).relative}\n",
+                        inline=False)
+        atk_stats_by_district = defaultdict(list)
+        for clan in raid_log_entry.attack_log:
+            for district in clan.districts:
+                atk_stats_by_district[district.name].append(len(district.attacks))
 
+        offense_district_stats = "```"
+        for district, list_atks in atk_stats_by_district.items():
+            offense_district_stats += f"{round(mean(list_atks), 2):4} {district}\n"
+        offense_district_stats += "```"
+
+        def_stats_by_district = defaultdict(list)
+        for clan in raid_log_entry.defense_log:
+            for district in clan.districts:
+                def_stats_by_district[district.name].append(len(district.attacks))
+
+        def_district_stats = "```"
+        for district, list_atks in def_stats_by_district.items():
+            def_district_stats += f"{round(mean(list_atks), 2):4} {district}\n"
+        def_district_stats += "```"
+
+        embed.add_field("Detailed Stats (Offense)",
+                        value=f"- Avg Loot/Raid : {B(int(raid_log_entry.total_loot/len(raid_log_entry.attack_log)))}\n"
+                              f"- Avg Loot/Player: {B(int(raid_log_entry.total_loot/len(raid_log_entry.members)))}\n"
+                              f"- Avg Hits/Clan: {round(raid_log_entry.attack_count/len(raid_log_entry.attack_log), 2)}\n",
+                        inline=False)
+        embed.add_field(name="(Avg Atks By District, Off)", value=offense_district_stats)
+        embed.add_field(name="(Avg Atks By District, Def)", value=def_district_stats)
+
+        attack_summary_text = f"```a=atks, d=districts, l=loot\n"
+        for clan in raid_log_entry.attack_log:
+            #badge = await self.bot.create_new_badge_emoji(url=clan.badge.url)
+            attack_summary_text += f"- {clan.name[:12]:12} {clan.attack_count:2}a {clan.destroyed_district_count:1}d {B(sum([d.looted for d in clan.districts])):3}l\n"
+
+        defense_summary_text = "```"
+        for clan in raid_log_entry.defense_log:
+            #badge = await self.bot.create_new_badge_emoji(url=clan.badge.url)
+            defense_summary_text += f"- {clan.name[:12]:12} {clan.attack_count:2}a {clan.destroyed_district_count:1}d {B(sum([d.looted for d in clan.districts])):3}l\n"
+
+        attack_summary_text += "```"
+        defense_summary_text += "```"
+        embed.add_field(name=f"Attack Summary", value=attack_summary_text, inline=False)
+        embed.add_field(name="Defense Summary", value=defense_summary_text, inline=False)
+
+        members = sorted(list(raid_log_entry.members), key=lambda x : x.capital_resources_looted, reverse=True)
+        top_text = ""
+        for count, member in enumerate(members[:3], 1):
+            member: coc.raid.RaidMember
+            count_conv = {1 : "gold",
+                          2: "white",
+                          3 : "blue"}
+            top_text += f"{self.bot.get_number_emoji(color=count_conv[count], number=count)}{self.bot.clean_string(member.name)} {self.bot.emoji.capital_gold}{member.capital_resources_looted}{create_superscript(member.attack_count)}\n"
+        embed.add_field(name="Top 3 Raiders", value=top_text, inline=False)
+        return embed
+
+
+    async def clan_raid_weekend_donation_stats(self, clan: coc.Clan, weekend: str):
         member_tags = [member.tag for member in clan.members]
-        capital_raid_member_tags = await bot.player_stats.distinct("tag", filter={f"capital_gold.{weekend}.raided_clan": clan.tag})
-        all_tags = list(set(member_tags + capital_raid_member_tags))
-
-        tasks = []
-        for tag in all_tags:
-            results = await bot.player_stats.find_one({"tag": tag})
-            task = asyncio.ensure_future(
-                bot.coc_client.get_player(player_tag=tag, cls=MyCustomPlayer, bot=bot, results=results))
-            tasks.append(task)
-        capital_raid_members = await asyncio.gather(*tasks, return_exceptions=True)
+        capital_raiders = await self.bot.player_stats.distinct("tag", filter={"$or" : [{f"capital_gold.{weekend}.raided_clan": clan.tag}, {"tag" : {"$in" : member_tags}}]})
+        players = await self.bot.get_players(tags=capital_raiders)
 
         donated_data = {}
         number_donated_data = {}
-        donation_text = []
+        donation_text = ""
 
-        for player in capital_raid_members:
-            if isinstance(player, coc.errors.NotFound):
-                continue
-            player: MyCustomPlayer
-            name = re.sub('[*_`~/]', '', player.name)
-
+        players.sort(key=lambda x: sum(x.clan_capital_stats(week=weekend).donated), reverse=True)
+        for player in players: #type: MyCustomPlayer
             sum_donated = 0
             len_donated = 0
             cc_stats = player.clan_capital_stats(week=weekend)
             sum_donated += sum(cc_stats.donated)
             len_donated += len(cc_stats.donated)
 
-            donation = f"{sum_donated}".ljust(6)
-
             donated_data[player.tag] = sum_donated
             number_donated_data[player.tag] = len_donated
 
             if player.tag in member_tags:
-                donation_text.append(
-                    [f"{Emojis().capital_gold}`{donation}`: {name}", sum_donated])
-
+                donation_text += f"{self.bot.emoji.capital_gold}`{sum_donated:6} {player.clear_name[:15]:15}`\n"
             else:
-                donation_text.append(
-                    [f"{Emojis().deny_mark}`{donation}`: {name}", sum_donated])
-
-        donation_text = sorted(donation_text, key=lambda l: l[1], reverse=True)
-        donation_text = [line[0] for line in donation_text]
-        donation_text = "\n".join(donation_text)
+                donation_text += f"{self.bot.emoji.deny_mark}`{sum_donated:6} {player.clear_name[:15]:15}`\n"
 
         donation_embed = Embed(
             title=f"**{clan.name} Donation Totals**",
             description=donation_text, color=Color.green())
 
-        donation_embed.set_footer(
-            text=f"Donated: {'{:,}'.format(sum(donated_data.values()))}")
+        donation_embed.set_footer(text=f"Donated: {'{:,}'.format(sum(donated_data.values()))} | Week: {weekend}")
         return donation_embed
 
 
-    def clan_raid_weekend_raid_stats(clan: coc.Clan, raid_log_entry: RaidLogEntry):
+    async def clan_raid_weekend_raid_stats(self,clan: coc.Clan, raid_log_entry: RaidLogEntry):
 
         if raid_log_entry is None:
             embed = Embed(
                 title=f"**{clan.name} Raid Totals**",
                 description="No raid found!", color=Color.green())
-            return (embed, None, None)
+            return embed
 
         total_medals = 0
         total_attacks = defaultdict(int)
@@ -641,28 +680,26 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
 
         raid_text = []
         for tag, amount in total_looted.items():
-            raided_amount = f"{amount}".ljust(5)
             name = name_list[tag]
-            name = re.sub('[*_`~/]', '', name)
-            name= name[:13]
+            name= self.bot.clean_string(name)[:13]
             if tag in member_tags:
                 raid_text.append([
-                    f"\u200e{Emojis().capital_gold}`"
+                    f"\u200e{self.bot.emoji.capital_gold}`"
                     f"{total_attacks[tag]}/{attack_limit[tag]} "
-                    f"{raided_amount}` \u200e{name}", amount])
+                    f"{amount:5} {name[:15]:15}`", amount])
             else:
                 raid_text.append([
-                    f"\u200e{Emojis().deny_mark}`"
+                    f"\u200e{self.bot.emoji.deny_mark}`"
                     f"{total_attacks[tag]}/{attack_limit[tag]} "
-                    f"{raided_amount}`\u200e{name}", amount])
+                    f"{amount} {name[:15]:15}`", amount])
 
         more_to_show =  55 - len(total_attacks.values())
         for member in members_not_looted[:more_to_show]:
             member = coc.utils.get(clan.members, tag=member)
-            name = re.sub('[*_`~/]', '', member.name)
+            name = self.bot.clean_string(member.name)
             raid_text.append([
-                f"{Emojis().capital_gold}`{0}"
-                f"/{6} {0}`: {name}",
+                f"{self.bot.emoji.capital_gold}`{0}"
+                f"/{6} {0:5} {name[:15]:15}`",
                 0])
 
         raid_text = sorted(raid_text, key=lambda l: l[1], reverse=True)
@@ -679,101 +716,10 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
             f"Attacks: {sum(total_attacks.values())}/300 | "
             f"Looted: {'{:,}'.format(sum(total_looted.values()))} | {raid_log_entry.start_time.time.date()}"))
 
-        return (raid_embed, total_looted, total_attacks)
+        return raid_embed
 
 
-    async def clan_raid_weekend_raids(
-            clan: coc.Clan, raid_log_entry, client_emojis,
-            partial_emoji_gen, create_new_badge_emoji):
-
-
-        embed = Embed(
-            description=f"**{clan.name} Clan Capital Raids**",
-            color=Color.green())
-
-
-
-        if raid_log_entry is None:
-            return (None, None)
-
-        raids = raid_log_entry.attack_log
-
-        select_menu_options = [SelectOption(
-            label="Overview",
-            emoji=Emojis().sword_clash.partial_emoji,
-            value="Overview")]
-
-        embeds = {}
-
-        total_attacks = 0
-        total_looted = 0
-
-        for raid_clan in raids:
-            url = raid_clan.badge.url.replace(".png", "")
-            emoji = get(
-                client_emojis, name=url[-15:].replace("-", ""))
-
-            if emoji is None:
-                emoji = await create_new_badge_emoji(url=raid_clan.badge.url)
-            else:
-                emoji = f"<:{emoji.name}:{emoji.id}>"
-
-            looted = sum(district.looted for district in raid_clan.districts)
-            total_looted += looted
-            total_attacks += raid_clan.attack_count
-
-            embed.add_field(
-                name=f"{emoji}\u200e{raid_clan.name}",
-                value=(
-                    f"> {Emojis().sword} "
-                    f"Attacks: {raid_clan.attack_count}\n"
-                    f"> {Emojis().capital_gold} "
-                    f"Looted: {'{:,}'.format(looted)}"),
-                inline=False)
-
-            select_menu_options.append(SelectOption(
-                label=raid_clan.name,
-                emoji=partial_emoji_gen(emoji_string=emoji),
-                value=raid_clan.tag))
-
-            # create detailed embeds
-
-            detail_embed = Embed(
-                description=f"**Attacks on {raid_clan.name}**",
-                color=Color.green())
-
-            for district in raid_clan.districts:
-                attack_text = ""
-                for attack in district.attacks:
-                    attack_text += (
-                        f"> \u200e{attack.destruction}% - "
-                        f"\u200e{attack.attacker_name}\n")
-
-                if district.id == 70000000:
-                    emoji = fetch_emoji(f"Capital_Hall{district.hall_level}")
-
-                else:
-                    emoji = fetch_emoji(f"District_Hall{district.hall_level}")
-
-                if attack_text == "":
-                    attack_text = "None"
-
-                detail_embed.add_field(
-                    name=f"{emoji}{district.name}",
-                    value=attack_text, inline=False)
-
-            embeds[raid_clan.tag] = detail_embed
-
-        embed.set_footer(text=(
-            f"Attacks: {total_attacks}/300 | "
-            f"Looted: {'{:,}'.format(total_looted)}"))
-
-        embeds["Overview"] = embed
-
-        return (embeds, select_menu_options)
-
-
-    def create_last_online(clan: coc.Clan, clan_members):
+    def create_last_online(self,clan: coc.Clan, clan_members):
 
         embed_description_list = []
         last_online_sum = 0
@@ -812,7 +758,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return embed
 
 
-    def create_activities(bot, clan: coc.Clan, clan_members, season):
+    def create_activities(self,bot, clan: coc.Clan, clan_members, season):
         embed_description_list = []
         for member in clan_members:
             member: MyCustomPlayer
@@ -837,7 +783,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return embed
 
 
-    def create_clan_games(clan: coc.Clan, player_list, member_tags, season_date):
+    def create_clan_games(self,clan: coc.Clan, player_list, member_tags, season_date):
 
         point_text_list = []
         total_points = sum(player.clan_games(season_date) for player in player_list)
@@ -845,7 +791,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         for player in player_list:
             player: MyCustomPlayer
             name = player.name
-            for char in ["`", "*", "_", "~", "´"]:
+            for char in ["`", "*", "_", "~", "Â´"]:
                 name = name.replace(char, "", len(player.name))
 
             points = player.clan_games(season_date)
@@ -876,7 +822,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return cg_point_embed
 
 
-    def clan_donations(clan: coc.Clan, type: str, season_date, player_list):
+    def clan_donations(self,clan: coc.Clan, type: str, season_date, player_list):
 
         donated_text = []
         received_text = []
@@ -891,7 +837,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
             player: MyCustomPlayer
             name = player.name
 
-            for char in ["`", "*", "_", "~", "´"]:
+            for char in ["`", "*", "_", "~", "Â´"]:
                 name = name.replace(char, "", len(player.name))
 
             name = emoji.replace_emoji(name, "")
@@ -967,7 +913,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
             return ratio_embed
 
 
-    def stat_components(bot):
+    def stat_components(self,bot):
         options = []
         for townhall in reversed(range(6, 16)):
             options.append(disnake.SelectOption(
@@ -1011,7 +957,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return dropdown
 
 
-    async def create_offensive_hitrate(bot, clan: coc.Clan, players,
+    async def create_offensive_hitrate(self,bot, clan: coc.Clan, players,
                                        townhall_level: list = [], fresh_type: list = [False, True],
                                        start_timestamp: int = 0, end_timestamp: int = 9999999999,
                                        war_types: list = ["random", "cwl", "friendly"],
@@ -1066,7 +1012,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return embed
 
 
-    async def create_defensive_hitrate(bot, clan: coc.Clan, players,
+    async def create_defensive_hitrate(self,bot, clan: coc.Clan, players,
                                        townhall_level: list = [], fresh_type: list = [False, True],
                                        start_timestamp: int = 0, end_timestamp: int = 9999999999,
                                        war_types: list = ["random", "cwl", "friendly"],
@@ -1121,7 +1067,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return embed
 
 
-    async def create_stars_leaderboard(clan: coc.Clan, players,
+    async def create_stars_leaderboard(self,clan: coc.Clan, players,
                                        townhall_level: list = [], fresh_type: list = [False, True],
                                        start_timestamp: int = 0, end_timestamp: int = 9999999999,
                                        war_types: list = ["random", "cwl", "friendly"],
@@ -1151,7 +1097,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         ranked = [response for response in responses if response is not None]
         ranked = sorted(
             ranked, key=lambda l: (-l[-2], -l[1], l[2]), reverse=False)
-        text = "```#   ★     DSTR%  NAME       \n"
+        text = "```#   â˜…     DSTR%  NAME       \n"
         for count, rank in enumerate(ranked, 1):
             # spot_emoji = self.bot.get_number_emoji(color="gold", number=count)
             count = f"{count}.".ljust(3)
@@ -1177,7 +1123,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return embed
 
 
-    async def cwl_performance(clan: coc.Clan, dates):
+    async def cwl_performance(self,clan: coc.Clan, dates):
         tasks = []
         async with aiohttp.ClientSession() as session:
             tag = clan.tag.replace("#", "")
@@ -1232,7 +1178,7 @@ class ClanEmbedGenerator(commands.Cog, name="Clan Commands"):
         return embed
 
 
-    def simple_clan_embed(clan: coc.Clan):
+    def simple_clan_embed(self, clan: coc.Clan):
         leader = coc.utils.get(clan.members, role=coc.Role.leader)
 
         if clan.public_war_log:

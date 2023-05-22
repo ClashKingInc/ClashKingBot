@@ -1,3 +1,8 @@
+import coc
+import disnake
+import pytz
+import calendar
+
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from utils.components import raid_buttons
 from utils.discord_utils import partial_emoji_gen
@@ -6,25 +11,23 @@ from datetime import datetime
 from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
 from typing import TYPE_CHECKING, List
-from coc import utils
-
-import coc
-import disnake
-import pytz
-import calendar
+from ImageGen import ClanCapitalResult as capital_gen
 
 tiz = pytz.utc
 if TYPE_CHECKING:
     from BoardCommands.BoardCog import BoardCog
     cog_class = BoardCog
+    from ClanCog import ClanCog
+    clancog = ClanCog
 else:
     cog_class = commands.Cog
+    clancog = commands.Cog
 
 from utils.constants import item_to_name
 from disnake.ext.commands import Converter
 
 
-class ClanCommands(commands.Cog, name="Clan Commands"):
+class ClanCommands(clancog, name="Clan Commands"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
@@ -124,11 +127,36 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         file, buttons = await board_cog.activity_graph(players=players, season=season, title=f"{clan.name} Activity ({season})", granularity=granularity, time_zone=timezone)
         await ctx.send(file=file, components=[buttons])
 
-    @clan.sub_command(name="capital", description="Clan capital info for a clan")
+    @clan.sub_command(name="capital", description="Clan capital info for a clan for a week")
     async def clan_capital(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), weekend: str = None):
-        # 3 types - overview, donations, & raids
+        #3 types - overview, donations, & raids
+        week = weekend
+        if weekend is None:
+            week = gen_raid_weekend_datestrings(number_of_weeks=1)[0]
+
+        weekend_raid_entry = await get_raidlog_entry(clan=clan, weekend=week, bot=self.bot, limit=1)
+        embed = await self.clan_capital_overview(clan=clan, raid_log_entry=weekend_raid_entry)
+        file = await capital_gen.generate_raid_result_image(raid_entry=weekend_raid_entry, clan=clan)
+        embed.set_image(file=file)
+
+        page_buttons = [
+            disnake.ui.Button(label="", emoji=self.bot.emoji.menu.partial_emoji,
+                              style=disnake.ButtonStyle.grey,
+                              custom_id=f"capitaloverview_{clan.tag}_{weekend}"),
+            disnake.ui.Button(label="Raids", emoji=self.bot.emoji.sword_clash.partial_emoji, style=disnake.ButtonStyle.grey,
+                              custom_id=f"capitalraids_{clan.tag}_{weekend}"),
+            disnake.ui.Button(label="Donos", emoji=self.bot.emoji.capital_gold.partial_emoji,
+                              style=disnake.ButtonStyle.grey,
+                              custom_id=f"capitaldonos_{clan.tag}_{weekend}")
+        ]
+        buttons = disnake.ui.ActionRow()
+        for button in page_buttons:
+            buttons.append_item(button)
+
+        return await ctx.send(embed=embed, components=[buttons])
 
 
+    #AUTOCOMPLETES
     @donations.autocomplete("season")
     @activity.autocomplete("season")
     @activity_graph.autocomplete("season")
@@ -139,6 +167,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @donations.autocomplete("clan")
     @activity.autocomplete("clan")
     @activity_graph.autocomplete("clan")
+    @clan_capital.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id}).sort("name", 1)
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
