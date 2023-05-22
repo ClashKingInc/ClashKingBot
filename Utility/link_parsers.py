@@ -1,9 +1,9 @@
 import disnake
 from disnake.ext import commands
 from Assets.thPicDictionary import thDictionary
-from utils.troop_methods import heros, heroPets
+from utils.clash import heros, heroPets
 from CustomClasses.CustomBot import CustomClient
-from utils.troop_methods import cwl_league_emojis
+from utils.clash import cwl_league_emojis
 import coc
 
 class LinkParsing(commands.Cog):
@@ -68,6 +68,7 @@ class LinkParsing(commands.Cog):
             await message.channel.send(embed=embed, components=[buttons])
 
         elif "https://link.clashofclans.com/" in message.content and "OpenClanProfile" in message.content:
+            return
             m = message.content.replace("\n", " ")
             spots = m.split(" ")
             s = ""

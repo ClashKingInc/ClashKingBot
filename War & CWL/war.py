@@ -12,7 +12,7 @@ from collections import defaultdict
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from coc import utils
-from utils.troop_methods import cwl_league_emojis
+from utils.clash import cwl_league_emojis
 from coc.miscmodels import Timestamp
 
 tiz = pytz.utc

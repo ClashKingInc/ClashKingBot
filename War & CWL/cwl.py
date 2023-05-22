@@ -3,7 +3,7 @@ import coc
 import disnake
 from disnake.ext import commands, tasks
 from datetime import datetime
-from utils.troop_methods import cwl_league_emojis
+from utils.clash import cwl_league_emojis
 from utils.discord_utils import partial_emoji_gen
 from Assets.emojiDictionary import emojiDictionary
 from collections import defaultdict

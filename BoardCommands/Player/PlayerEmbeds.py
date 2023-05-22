@@ -120,9 +120,6 @@ class PlayerEmbeds(commands.Cog):
         siege_machines = ""
         bb_troops = ""
 
-        troop = self.bot.coc_client.get_troop("Archer", level=5, townhall=13)
-        #print(troop)
-        print(troop.get_max_level_for_townhall(13))
         troops_found = []
         troop_levels = 0
         troop_levels_missing = 0
@@ -140,6 +137,7 @@ class PlayerEmbeds(commands.Cog):
             troop_levels_missing += (th_max - troop.level)
             th_max = f"{th_max}".ljust(2)
             level = f"{troop.level}".rjust(2)
+            print(troop.name)
             days = f"{int(troop.upgrade_time.hours / 24)}".rjust(2)
             hours = f"{(int(troop.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
             time = f"{days}D {hours}"

@@ -16,7 +16,6 @@ from utils.clash import cwl_league_emojis
 from CustomClasses.PlayerHistory import COSPlayerHistory
 from Exceptions.CustomExceptions import MissingWebhookPerms
 from utils.constants import locations, BADGE_GUILDS
-from utils.login import coc_client
 from datawrapper import Datawrapper
 
 import dateutil.relativedelta
