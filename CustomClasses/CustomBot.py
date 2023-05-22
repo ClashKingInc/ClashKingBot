@@ -12,7 +12,7 @@ from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis, EmojiType
 from urllib.request import urlopen
 from collections import defaultdict
-from utils.troop_methods import cwl_league_emojis
+from utils.clash import cwl_league_emojis
 from CustomClasses.PlayerHistory import COSPlayerHistory
 from Exceptions.CustomExceptions import MissingWebhookPerms
 from utils.constants import locations, BADGE_GUILDS
@@ -32,6 +32,7 @@ import collections
 import random
 import calendar
 import aiohttp
+import emoji
 utc = pytz.utc
 load_dotenv()
 
@@ -102,7 +103,11 @@ class CustomClient(commands.AutoShardedBot):
 
         self.autoboard_db = self.db_client.usafam.autoboard_db
 
-        self.coc_client = coc_client
+        self.coc_client = coc.EventsClient(key_count=10, key_names="DiscordBot", throttle_limit=25,
+                                           cache_max_size=50000, load_game_data=coc.LoadGameData(always=True),
+                                           stats_max_size=10000)
+        self.xyz = asyncio.get_event_loop().run_until_complete(
+            self.coc_client.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD")))
 
         self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwarapi.login(username=os.getenv("FW_USER"), password=os.getenv("FW_PW"), coc_client=self.coc_client))
         self.data_wrapper: Datawrapper = Datawrapper(access_token=os.getenv("DATAWRAPPER_TOKEN"))
@@ -121,6 +126,21 @@ class CustomClient(commands.AutoShardedBot):
         self.feed_webhooks = {}
         self.clan_list = []
         self.player_cache_dict = {}
+
+    def clean_string(self, text: str):
+        text = emoji.replace_emoji(text)
+        text = re.sub('[*_`~/]', '', text)
+        return f"\u200e{text}"
+
+    def timestamper(self, unix_time: int):
+        class TimeStamp():
+            def __init__(self, unix_time):
+                self.slash_date = f"<t:{int(unix_time)}:d>"
+                self.text_date = f"<t:{int(unix_time)}:D>"
+                self.time_only = f"<t:{int(unix_time)}:t>"
+                self.cal_date = f"<t:{int(unix_time)}:F>"
+                self.relative = f"<t:{int(unix_time)}:R>"
+        return TimeStamp(unix_time)
 
     async def create_new_badge_emoji(self, url:str):
         new_url = url.replace(".png", "")
@@ -518,7 +538,6 @@ class CustomClient(commands.AutoShardedBot):
                 raise e
         return guild
 
-
     async def getch_webhook(self, channel_id, force_fetch=False):
         channel = await self.getch_channel(channel_id=channel_id, raise_exception=True)
         guild = await self.getch_guild(channel.guild.id)
@@ -763,7 +782,6 @@ class CustomClient(commands.AutoShardedBot):
                     return True
 
         return perms
-
 
     async def parse_to_embed(self, custom_json: str, clan: coc.Clan=None, guild: disnake.Guild = None):
         custom_json = custom_json.replace("true", "True")

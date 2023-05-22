@@ -25,7 +25,7 @@ intents.emojis = True
 intents.messages = True
 intents.message_content = True
 intents.presences = True
-bot = CustomClient(shard_count=2, command_prefix="$$",help_command=None, intents=intents)
+bot = CustomClient(shard_count=1, command_prefix="$$",help_command=None, intents=intents, reload=True)
 
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
