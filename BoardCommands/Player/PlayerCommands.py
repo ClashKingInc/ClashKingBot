@@ -2,7 +2,7 @@ import disnake
 import calendar
 import coc
 
-from utils.troop_methods import heros, heroPets
+from utils.clash import heros, heroPets
 from disnake.ext import commands
 from typing import TYPE_CHECKING, List
 from utils.search import search_results
@@ -13,10 +13,13 @@ from Exceptions.CustomExceptions import *
 if TYPE_CHECKING:
     from BoardCommands.BoardCog import BoardCog
     cog_class = BoardCog
+    from PlayerCog import PlayerCog
+    player_cog = PlayerCog
 else:
     cog_class = commands.Cog
+    player_cog = commands.Cog
 
-class PlayerCommands(commands.Cog):
+class PlayerCommands(player_cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
@@ -70,6 +73,50 @@ class PlayerCommands(commands.Cog):
     async def capital(self, ctx: disnake.ApplicationCommandInteraction, player_tag: str= None, discord_user: disnake.Member = None):
         pass
 
+    @player.sub_command(name="upgrades", description="Show upgrades left for an account")
+    async def upgrades(self, ctx: disnake.ApplicationCommandInteraction, player_tag: str= None, discord_user: disnake.Member = None):
+        if player_tag is None and discord_user is None:
+            search_query = str(ctx.author.id)
+        elif player_tag is not None:
+            search_query = player_tag
+        else:
+            search_query = str(discord_user.id)
+
+        results = await search_results(self.bot, search_query)
+        embed = self.create_upgrade_embed(results[0])
+        components = []
+        if len(results) > 1:
+            player_results = []
+            for count, player in enumerate(results):
+                player_results.append(
+                    disnake.SelectOption(label=f"{player.name}", emoji=player.town_hall_cls.emoji.partial_emoji,
+                                         value=f"{count}"))
+            profile_select = disnake.ui.Select(options=player_results, placeholder="Accounts", max_values=1)
+            st2 = disnake.ui.ActionRow()
+            st2.append_item(profile_select)
+            components = [st2]
+        await ctx.send(embeds=embed, components=components)
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        while True:
+            try:
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                     timeout=600)
+            except:
+                try:
+                    await ctx.edit_original_message(components=[])
+                except:
+                    pass
+                break
+
+            await res.response.defer()
+            current_page = int(res.values[0])
+            embed = upgrade_embed(self.bot, results[current_page])
+            await res.edit_original_message(embeds=embed)
+
 
 
     @player.sub_command(name="search", description="Search for players")
@@ -87,98 +134,7 @@ class PlayerCommands(commands.Cog):
                 await msg.edit(components=[])
 
 
-    async def create_search(self, clan, townhall, trophies, war_stars, clan_capital_donos, league, attacks):
-        queries = {}
-        queries['$and'] = []
-        if clan == "No Clan":
-            queries['$and'].append({'data.clan.tag': {"$eq": None}})
-        elif clan == "In Clan":
-            queries['$and'].append({'data.clan.tag': {"$ne": None}})
 
-        if league == "No League":
-            queries['$and'].append({'data.league.name': {"$eq": None}})
-        elif league == "Has League":
-            queries['$and'].append({'data.league.name': {"$ne": None}})
-
-        if townhall is not None:
-            queries['$and'].append({"data.townHallLevel" : int(townhall)})
-
-        if trophies is not None:
-            queries['$and'].append({"data.trophies" : {"$gte": int(trophies)}})
-
-        if attacks is not None:
-            queries['$and'].append({"data.attackWins" : {"$gte": int(attacks)}})
-
-        if war_stars is not None:
-            queries['$and'].append({"data.warStars" : {"$gte": int(war_stars)}})
-
-        if clan_capital_donos is not None:
-            queries['$and'].append({"data.clanCapitalContributions" : {"$gte": int(clan_capital_donos)}})
-
-        if queries["$and"] == []:
-            queries = {}
-
-        player = []
-        tries = 0
-        while player == []:
-            pipeline = [{"$match": queries}, {"$sample": {"size": 3}}]
-            player_list = await self.bot.player_cache.aggregate(pipeline).to_list(length=3)
-            if player_list == [] or tries == 3:
-                return disnake.Embed(description="**No Results Found**", color=disnake.Color.red()), []
-            players = await self.bot.get_players(tags=[player.get("tag") for player in player_list], custom=True, use_cache=False)
-            player = [player for player in players if player.results is not None]
-            if player == []:
-                tries += 1
-        player = player[:1][0]
-        #players = [MyCustomPlayer(data=data.get("data"), client=self.bot.coc_client, bot=self.bot, results=None) for data in player_list]
-        player_links = await self.bot.link_client.get_links(*[player.tag])
-        player_link_dict = dict(player_links)
-
-        hero = heros(bot=self.bot, player=player)
-        pets = heroPets(bot=self.bot, player=player)
-        if hero is None:
-            hero = ""
-        else:
-            hero = f"**Heroes:**\n{hero}\n"
-
-        if pets is None:
-            pets = ""
-        else:
-            pets = f"**Pets:**\n{pets}\n"
-
-        if player.last_online is not None:
-            lo = f"<t:{player.last_online}:R>"
-        else:
-            lo = "`N/A`"
-
-        discord = self.bot.emoji.green_status if player_link_dict.get(player.tag) is not None else self.bot.emoji.red_status
-
-        embed = disnake.Embed(title=f"**Invite {player.name} to your clan:**",
-                              description=f"{player.town_hall_cls.emoji}{player.name} - TH{player.town_hall}\n" +
-                                          f"{self.bot.emoji.hashmark}Tag: {player.tag}\n" +
-                                          f"{self.bot.emoji.clan_castle}Clan: {player.clan_name()}\n" +
-                                          f"{self.bot.emoji.trophy}Trophies: {player.trophies} | Attacks: {player.attack_wins}\n"
-                                          f"{self.bot.emoji.war_star}War Stars: {player.war_stars}\n"
-                                          f"{self.bot.emoji.capital_gold}Capital Donos: {player.clan_capital_contributions}\n"
-                                          f"{self.bot.emoji.clock}{lo} {self.bot.emoji.discord}{discord}\n"
-                                          f"{hero}{pets}",
-                              color=disnake.Color.green())
-        if str(player.league) != "Unranked":
-            embed.set_thumbnail(url=player.league.icon.url)
-        else:
-            embed.set_thumbnail(url=self.bot.emoji.unranked.partial_emoji.url)
-
-        stat_buttons = [
-            disnake.ui.Button(label=f"Open In-Game",
-                              url=player.share_link),
-            disnake.ui.Button(label=f"Clash of Stats",
-                              url=f"https://www.clashofstats.com/players/{player.tag.strip('#')}/summary"),
-            disnake.ui.Button(label=f"Next", emoji=self.bot.emoji.right_green_arrow.partial_emoji, custom_id="NextSearch")]
-        buttons = disnake.ui.ActionRow()
-        for button in stat_buttons:
-            buttons.append_item(button)
-
-        return embed, [buttons]
 
 
 
