@@ -79,5 +79,22 @@ class TopButtons(top_cog):
                                                                                footer_icon=self.bot.user.avatar.url)
             await ctx.edit_original_message(embed=embed)
 
+        elif "topactivityplayer_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            season = str(ctx.data.custom_id).split("_")[-1]
+            if season == "None":
+                season = self.bot.gen_raid_date()
+            pipeline = [
+                {"$project": {"tag": "$tag",
+                              "activity_len": {"$size": {"$ifNull": [f"last_online_times.{season}", 0]}}}},
+                {"$sort": {"activity_len": -1}}, {"$limit": 50}]
+            players = await self.bot.player_stats.aggregate(pipeline).to_list(length=None)
+            players = await self.bot.get_players(tags=[result.get("tag") for result in players])
+
+            footer_icon = self.bot.user.avatar.url
+            embed: disnake.Embed = await self.board_cog.activity_board(players=players, season=season,
+                                                                       footer_icon=footer_icon, title_name="ClashKing")
+            await ctx.edit_original_message(embed=embed)
+
 
 

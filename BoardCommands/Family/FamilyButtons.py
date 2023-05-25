@@ -30,20 +30,91 @@ class FamilyButtons(family_cog):
         time = datetime.now().timestamp()
         if "donationfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
-            embed: disnake.Embed = await self.create_donations(ctx.guild, type="donated")
-            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+            self.graph_cog = self.bot.get_cog("Graphing")
+            split = str(ctx.data.custom_id).split("_")
+            season = split[1]
+            limit = int(split[2])
+            guild_id = split[3]
+            townhall = split[4]
+            if townhall != "None":
+                townhall = [int(townhall)]
+            else:
+                townhall = list(range(2, 17))
+            guild = await self.bot.getch_guild(guild_id)
+            if season == "None":
+                season = self.bot.gen_raid_date()
+
+            clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+            clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
+            member_tags = get_clan_member_tags(clans=clans)
+            distinct = await self.bot.player_stats.distinct("tag", filter={"tag": {"$in": member_tags}})
+            players = await self.bot.get_players(tags=distinct)
+            footer_icon = ctx.guild.icon.url if ctx.guild.icon is not None else self.bot.user.avatar.url
+            embed = await self.board_cog.donation_board(
+                players=[player for player in players if player.town_hall in townhall], season=season,
+                footer_icon=footer_icon, title_name=f"{guild.name}", type="donations", limit=limit)
+
+            graph = await self.graph_cog.create_clan_donation_graph(all_players=players, clans=clans, season=season,
+                                                                    type="donations", server_id=guild.id)
+            embed.set_image(url=f"{graph}?{int(datetime.now().timestamp())}")
             await ctx.edit_original_message(embed=embed)
 
         elif "receivedfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
-            embed: disnake.Embed = await self.create_donations(ctx.guild, type="received")
-            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+            self.graph_cog = self.bot.get_cog("Graphing")
+            split = str(ctx.data.custom_id).split("_")
+            season = split[1]
+            limit = int(split[2])
+            guild_id = split[3]
+            townhall = split[4]
+            if townhall != "None":
+                townhall = [int(townhall)]
+            else:
+                townhall = list(range(2, 17))
+            guild = await self.bot.getch_guild(guild_id)
+            if season == "None":
+                season = self.bot.gen_raid_date()
+
+            clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+            clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
+            member_tags = get_clan_member_tags(clans=clans)
+            distinct = await self.bot.player_stats.distinct("tag", filter={"tag": {"$in": member_tags}})
+            players = await self.bot.get_players(tags=distinct)
+            footer_icon = ctx.guild.icon.url if ctx.guild.icon is not None else self.bot.user.avatar.url
+            embed = await self.board_cog.donation_board(
+                players=[player for player in players if player.town_hall in townhall], season=season,
+                footer_icon=footer_icon, title_name=f"{guild.name}", type="received", limit=limit)
+
+            graph = await self.graph_cog.create_clan_donation_graph(all_players=players, clans=clans, season=season,
+                                                                    type="received", server_id=guild.id)
+            embed.set_image(url=f"{graph}?{int(datetime.now().timestamp())}")
             await ctx.edit_original_message(embed=embed)
 
         elif "ratiofam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
-            embed: disnake.Embed = await self.create_donations(ctx.guild, type="ratio")
-            embed.description += f"\nLast Refreshed: <t:{int(time)}:R>"
+            self.graph_cog = self.bot.get_cog("Graphing")
+            split = str(ctx.data.custom_id).split("_")
+            season = split[1]
+            limit = int(split[2])
+            guild_id = split[3]
+            townhall = split[4]
+            if townhall != "None":
+                townhall = [int(townhall)]
+            else:
+                townhall = list(range(2, 17))
+            guild = await self.bot.getch_guild(guild_id)
+            if season == "None":
+                season = self.bot.gen_raid_date()
+
+            clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+            clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
+            member_tags = get_clan_member_tags(clans=clans)
+            distinct = await self.bot.player_stats.distinct("tag", filter={"tag": {"$in": member_tags}})
+            players = await self.bot.get_players(tags=distinct)
+            footer_icon = ctx.guild.icon.url if ctx.guild.icon is not None else self.bot.user.avatar.url
+            embed = await self.board_cog.donation_board(
+                players=[player for player in players if player.town_hall in townhall], season=season,
+                footer_icon=footer_icon, title_name=f"{guild.name}", type="ratio", limit=limit)
             await ctx.edit_original_message(embed=embed)
 
         elif "lastonlinefam_" in str(ctx.data.custom_id):

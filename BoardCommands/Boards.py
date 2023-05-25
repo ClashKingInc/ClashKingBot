@@ -40,9 +40,9 @@ class BoardCreator(commands.Cog):
             tag = player.tag.strip("#")
             if count <= limit:
                 if type == "donations":
-                    text += f"[âŒ•]({SHORT_PLAYER_LINK}{tag})`{count:2} {player.donos(date=season).donated:5} {player.donos(date=season).received:5} {player.clear_name[:13]:13}`\n"
+                    text += f"[⌕]({SHORT_PLAYER_LINK}{tag})`{count:2} {player.donos(date=season).donated:5} {player.donos(date=season).received:5} {player.clear_name[:13]:13}`\n"
                 else:
-                    text += f"[âŒ•]({SHORT_PLAYER_LINK}{tag})`{count:2} {player.donos(date=season).received:5} {player.donos(date=season).donated:5} {player.clear_name[:13]:13}`\n"
+                    text += f"[⌕]({SHORT_PLAYER_LINK}{tag})`{count:2} {player.donos(date=season).received:5} {player.donos(date=season).donated:5} {player.clear_name[:13]:13}`\n"
 
             total_donated += player.donos(date=season).donated
             total_received += player.donos(date=season).received
@@ -101,7 +101,7 @@ class BoardCreator(commands.Cog):
         for count, player in enumerate(players, 1):
             tag = player.tag.strip("#")
             if count <= limit:
-                text += f"[âŒ•]({SHORT_PLAYER_LINK}{tag})`{count:2} {sum(player.clan_capital_stats(week=week).donated):5} {player.clear_name[:13]:13}`\n"
+                text += f"[⌕]({SHORT_PLAYER_LINK}{tag})`{count:2} {sum(player.clan_capital_stats(week=week).donated):5} {player.clear_name[:13]:13}`\n"
             total_donated += sum(player.clan_capital_stats(week=week).donated)
         if text == "":
             text = "No Results Found"
@@ -120,7 +120,7 @@ class BoardCreator(commands.Cog):
         for count, player in enumerate(players, 1):
             tag = player.tag.strip("#")
             if count <= limit:
-                text += f"[âŒ•]({SHORT_PLAYER_LINK}{tag})`{count:2} {sum(player.clan_capital_stats(week=week).raided):5} {player.clear_name[:13]:13}`\n"
+                text += f"[⌕]({SHORT_PLAYER_LINK}{tag})`{count:2} {sum(player.clan_capital_stats(week=week).raided):5} {player.clear_name[:13]:13}`\n"
             total_donated += sum(player.clan_capital_stats(week=week).raided)
         if text == "":
             text = "No Results Found"

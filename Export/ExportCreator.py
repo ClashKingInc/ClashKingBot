@@ -2,7 +2,7 @@ import coc
 import disnake
 import openpyxl.worksheet.worksheet
 import io
-
+import calendar
 from datetime import datetime
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
@@ -12,6 +12,12 @@ from coc import utils
 from openpyxl import load_workbook, Workbook
 from pytz import utc
 
+'''feel free to change the naming or structure of anything. This is just what i have come up with upon implementing one export
+things may have to be changed to accomodate other types or even to make it easier  to understand. my *only* ask is to not change formatting
+too aggresively xD (flashbacks)
+1111152142057754714.xlsx
+^ this file in TemplateStorage is a "template", you can upload & test it with /export template
+and see what exactly these do, you can see how template r uploaded & saved, how they change data, and how custom built stuff can build upon this'''
 class ExportCreator(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
@@ -29,27 +35,53 @@ class ExportCreator(commands.Cog):
         return worksheet
 
     async def export_manager(self, player_tags: List[str], season: str = None, template: str = None):
+        #get list of custom players (which have lots of db info), use the cache since not time sensitive
         players: List[MyCustomPlayer] = await self.bot.get_players(tags=player_tags, custom=True, use_cache=True)
         output = io.BytesIO()
+        #if the "template" is just the name of a default type (raw data), just export the 1 sheet
         if template in self.DEFAULT_EXPORT_TYPES:
             workbook = Workbook()
             if template == "Legend Stats":
-                await self.create_legend_export(players=players, workbook=workbook, season=season)
+                await self.create_legend_export(players=players, workbook=workbook, season=season, sheet_name="legend_stats")
         else:
+            # if it is not, then it is a template
+            # 1. load the template
+            # 2. look for sheet names that match export types so they can be removed & replaced with an updated version
+            # 3. look if they have a number to find what season that is being exported, else it is just the current
             workbook = load_workbook(template)
-            for sheet in workbook.sheetnames:
-                if sheet in self.EXPORT_LABELS:
-                    std = workbook.get_sheet_by_name(sheet)
-                    workbook.remove(std)
-                    if sheet == "legend_stats":
-                        await self.create_legend_export(players=players, workbook=workbook, season=season)
+            for sheet_name in workbook.sheetnames:
+                season_for_sheet = season
+                #this code assumes that all export type names are 2 parts seperated by underscore. if this is different, then other logic can apply
+                #i.e. could split & check if the last item is an integer
+                #also as a sidenote, a lot of functions of mine, assume that if "season" is None, then it defaults to the current season
+                #whether this is in helper functions, core code, or even button mechanics for users
+                if len(sheet_name.split("_")) == 3:
+                    season_spot = int(sheet_name.split("_")[-1])
+                    #generate this number of seasons
+                    #since we generate the *exact amount* the one we need will always be the last one
+                    season_for_sheet = self.bot.gen_season_date(season_spot)[-1]
+                    #however this returns it as Month Year & we need YYYY-MM
+                    #not convenient, but we have written the code once before (exports.py - season convertor)
+                    #could skip this all by writting a season generator that actually gives the right thing, if u feel inclined xD
+                    #or we could switch all generators to give back datetimes which would allow us to create whatever we want with them...hindsight is 20/20 lol
+                    month = list(calendar.month_name).index(season_for_sheet.split(" ")[0])
+                    year = season_for_sheet.split(" ")[1]
+                    end_date = coc.utils.get_season_end(month=int(month - 1), year=int(year))
+                    month = end_date.month
+                    if month <= 9:
+                        month = f"0{month}"
+                    season_for_sheet = f"{end_date.year}-{month}"
+                if "legend_stats" in sheet_name:
+                    workbook.remove(workbook.get_sheet_by_name(sheet_name))
+                    await self.create_legend_export(players=players, workbook=workbook, season=season_for_sheet, sheet_name=sheet_name)
+                #more if statements to find other export types
         workbook.save(output)
         xlsx_data = output
         xlsx_data.seek(0)
         return xlsx_data
 
-    async def create_legend_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook ,season: str = None):
-        legend_stats_page = workbook.create_sheet("legend_stats")
+    async def create_legend_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str ,season: str = None):
+        legend_stats_page = workbook.create_sheet(sheet_name)
         start = utils.get_season_start().replace(tzinfo=utc).date()
         now = datetime.now(tz=utc).date()
         current_season_progress = now - start
@@ -72,8 +104,22 @@ class ExportCreator(commands.Cog):
     async def war_hit_export(self, player: List[MyCustomPlayer], workbook: openpyxl.Workbook, season: str = None):
         pass
 
+    '''other export types
+    - activity history, basically the "new_looper" > "player_history" database that record every single action taken
+    - raid weekends (db - new_looper.raid_weekends), for clans & families pretty straight forward (a flattened view of all stats in a raid weekend), but for players you
+    will have to go into their player_stats & there is a raid clan field (object.capital_gold.date.raided_clan) & then use that list of clans to pull this info
+    - season trophies finish export, basically an export of how everyone in the player list finished their legends season (the one below can be inspiration fs)
+    - "player export" everything, and i mean everything (things not directly in api too like clan games, capital, loot, last online, activity), 
+    you can even go as far as putting what country the account is from (another db), but not troops & achievements. 
+    - on the above^ (i have no function to convert a season to its equivalent raid weekends, we need this :/)
+    - troops, self explanatory
+    - achievements, self explanatory
+    - war hit export
+    - thats all of the top of my head, but def encourage to look thru db & see if anything else
+    - ofc things like war hit rate calculation seem obvious, but thats what the user-made templates will be for :), we just want to supply *as much* raw data as possible
+    '''
 
-
+    #THESE ARE JUST PROTOTYPES, MAY HAVE SOME GOOD STUFF, MAY NOT.
     async def create_last_season_trophies_export(self, ctx, clan):
         workbook = xlsxwriter.Workbook(f'{clan.tag}_last_season_end.xlsx', {'in_memory' : True})
         worksheet = workbook.add_worksheet("Legend_Trophies")

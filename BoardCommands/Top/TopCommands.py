@@ -77,6 +77,24 @@ class TopCommands(top_cog):
             style=disnake.ButtonStyle.grey, custom_id=f"topratioplayer_"))
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
+    @top.sub_command(name="activities", description="Members with the highest activity on the bot")
+    async def activities(self, ctx: disnake.ApplicationCommandInteraction, season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor)):
+        pipeline = [
+            {"$project": {"tag": "$tag", "activity_len": {"$size": {"$ifNull": [f"$last_online_times.{season}", []]}}}},
+            {"$sort": {"activity_len": -1}}, {"$limit": 50}]
+        players = await self.bot.player_stats.aggregate(pipeline).to_list(length=None)
+        players = await self.bot.get_players(tags=[result.get("tag") for result in players])
+
+        footer_icon = self.bot.user.avatar.url
+        embed: disnake.Embed = await self.board_cog.activity_board(players=players, season=season,
+                                                                   footer_icon=footer_icon, title_name="ClashKing")
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey, custom_id=f"topactivityplayer_{season}"))
+        await ctx.edit_original_message(embed=embed, components=[buttons])
+
+
     @top.sub_command(name="capital", description="Top capital contributors across the bot")
     async def capital(self, ctx: disnake.ApplicationCommandInteraction, weekend: str = None):
         if weekend is None:
