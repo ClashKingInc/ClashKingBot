@@ -1,11 +1,14 @@
 import disnake
 import coc
+import calendar
 # import excel2img
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-from Exceptions.CustomExceptions import ExportTemplateAlreadyExists
-from typing import TYPE_CHECKING
+from CustomClasses.CustomPlayer import MyCustomPlayer
+from Exceptions.CustomExceptions import ExportTemplateAlreadyExists, NoLinkedAccounts
+from typing import TYPE_CHECKING, List
+from utils.search import search_results
 if TYPE_CHECKING:
     from ExportsCog import ExportCog
     cog_class = ExportCog
@@ -71,24 +74,25 @@ class ExportCommands(cog_class):
 
     # I copied the discord user part from PlayerCommands.py
     # This is where I tried to implement discord user instaead of tag, I tried passing in players but that didn't work either 
-    @export.sub_command(name="player", description="Export info for a player")
-    async def export_player(self, ctx: disnake.ApplicationCommandInteraction, discord_user: disnake.Member = None, type=commands.Param(choices=["Legend Stats"])):
-        if discord_user is None:
-            discord_user = ctx.author
-        players: list[MyCustomPlayer] = await search_results(self.bot, str(discord_user.id))
-        if not players:
-            raise NoLinkedAccounts
-        xlsx_data = await self.export_manager(player_tags=players, season=None, template=None)
-        file = disnake.File(fp=xlsx_data, filename="test.xlsx")
-        await ctx.send(file=file)
+    # @export.sub_command(name="player", description="Export info for a player")
+    # async def export_player(self, ctx: disnake.ApplicationCommandInteraction, discord_user: disnake.Member = None, type=commands.Param(choices=["Legend Stats"])):
+    #     if discord_user is None:
+    #         discord_user = ctx.author
+    #     players: list[MyCustomPlayer] = await search_results(self.bot, str(discord_user.id))
+    #     if not players:
+    #         raise NoLinkedAccounts
+    #     xlsx_data = await self.export_manager(player_tags=players, season=None, template=None)
+    #     file = disnake.File(fp=xlsx_data, filename="test.xlsx")
+    #     await ctx.send(file=file)
 
 
     @export.sub_command(name="player", description="Export info for a player")
     async def export_player(self, ctx: disnake.ApplicationCommandInteraction, player_tag: str, type=commands.Param(choices=["Legend Stats"])):
         # I changed the function from create_legend_export to export manager because the parameters were for export manager
-        xlsx_data = await self.export_manager(player_tags=[player_tag], season=None, template=None)
+        xlsx_data = await self.export_manager(player_tags=[player_tag], season=None, template=type)
         file = disnake.File(fp=xlsx_data, filename="test.xlsx")
         await ctx.send(file=file)
+
 
     @export_clan.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
