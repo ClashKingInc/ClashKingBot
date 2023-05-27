@@ -70,8 +70,6 @@ class ExportCommands(cog_class):
     @export.sub_command(name="player", description="Export info for a player")
     async def export_player(self, ctx: disnake.ApplicationCommandInteraction, discord_user: disnake.Member,
                             type=commands.Param(choices=["Legend Stats"])):
-        if discord_user is None:
-            discord_user = ctx.author
         players: List[MyCustomPlayer] = await search_results(self.bot, str(discord_user.id))
         if not players:
             raise NoLinkedAccounts
