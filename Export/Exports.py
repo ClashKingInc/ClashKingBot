@@ -4,8 +4,10 @@ import calendar
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-from Exceptions.CustomExceptions import ExportTemplateAlreadyExists
-from typing import TYPE_CHECKING
+from CustomClasses.CustomPlayer import MyCustomPlayer
+from Exceptions.CustomExceptions import ExportTemplateAlreadyExists, NoLinkedAccounts
+from typing import TYPE_CHECKING, List
+from utils.search import search_results
 if TYPE_CHECKING:
     from ExportsCog import ExportCog
     cog_class = ExportCog
@@ -66,10 +68,22 @@ class ExportCommands(cog_class):
         await ctx.send(file=file)
 
     @export.sub_command(name="player", description="Export info for a player")
-    async def export_player(self, ctx: disnake.ApplicationCommandInteraction, player_tag: str, type=commands.Param(choices=["Legend Stats"])):
-        xlsx_data = await self.create_legend_export(player_tags=[player_tag], season=None, template=None)
+    async def export_player(self, ctx: disnake.ApplicationCommandInteraction, discord_user: disnake.Member,
+                            type=commands.Param(choices=["Legend Stats"])):
+        if discord_user is None:
+            discord_user = ctx.author
+        players: List[MyCustomPlayer] = await search_results(self.bot, str(discord_user.id))
+        if not players:
+            raise NoLinkedAccounts
+        if type in self.DEFAULT_EXPORT_TYPES:
+            template = type
+        else:
+            file_path = await self.bot.excel_templates.find_one({"$and": [{"server_id": ctx.guild.id}, {"export_name": type}]})
+            template = file_path.get("path")
+        xlsx_data = await self.export_manager(player_tags=[player.tag for player in players], season=None, template=template)
         file = disnake.File(fp=xlsx_data, filename="test.xlsx")
         await ctx.send(file=file)
+
 
     @export_clan.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
