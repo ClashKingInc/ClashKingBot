@@ -1,6 +1,6 @@
 import disnake
 import coc
-import calendar
+# import excel2img
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
@@ -11,7 +11,11 @@ if TYPE_CHECKING:
     cog_class = ExportCog
 else:
     cog_class = commands.Cog
-
+    
+# McKnight's imports for testing
+from utils.search import search_results
+from CustomClasses.CustomPlayer import MyCustomPlayer
+from Exceptions.CustomExceptions import *
 
 class ExportCommands(cog_class):
     def __init__(self, bot: CustomClient):
@@ -65,9 +69,24 @@ class ExportCommands(cog_class):
         file = disnake.File(fp=xlsx_data, filename=f"{clan.name}-{type}.xlsx")
         await ctx.send(file=file)
 
+    # I copied the discord user part from PlayerCommands.py
+    # This is where I tried to implement discord user instaead of tag, I tried passing in players but that didn't work either 
+    @export.sub_command(name="player", description="Export info for a player")
+    async def export_player(self, ctx: disnake.ApplicationCommandInteraction, discord_user: disnake.Member = None, type=commands.Param(choices=["Legend Stats"])):
+        if discord_user is None:
+            discord_user = ctx.author
+        players: list[MyCustomPlayer] = await search_results(self.bot, str(discord_user.id))
+        if not players:
+            raise NoLinkedAccounts
+        xlsx_data = await self.export_manager(player_tags=players, season=None, template=None)
+        file = disnake.File(fp=xlsx_data, filename="test.xlsx")
+        await ctx.send(file=file)
+
+
     @export.sub_command(name="player", description="Export info for a player")
     async def export_player(self, ctx: disnake.ApplicationCommandInteraction, player_tag: str, type=commands.Param(choices=["Legend Stats"])):
-        xlsx_data = await self.create_legend_export(player_tags=[player_tag], season=None, template=None)
+        # I changed the function from create_legend_export to export manager because the parameters were for export manager
+        xlsx_data = await self.export_manager(player_tags=[player_tag], season=None, template=None)
         file = disnake.File(fp=xlsx_data, filename="test.xlsx")
         await ctx.send(file=file)
 

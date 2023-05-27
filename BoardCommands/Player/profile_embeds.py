@@ -4,7 +4,8 @@ import aiohttp
 
 from Assets.emojiDictionary import emojiDictionary
 from Assets.thPicDictionary import thDictionary
-from utils.clash import *
+from utils.clash import profileSuperTroops, league_emoji
+from utils.clash import heros, heroPets, troops, deTroops, siegeMachines, spells
 from bs4 import BeautifulSoup
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer

@@ -5,7 +5,7 @@ from Assets.emojiDictionary import emojiDictionary
 from BoardCommands.Player.pagination import button_pagination
 from utils.search import search_results
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
-from utils.troop_methods import heros, heroPets
+from utils.clash import heros, heroPets
 from Assets.thPicDictionary import thDictionary
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer

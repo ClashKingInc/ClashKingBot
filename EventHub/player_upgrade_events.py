@@ -7,7 +7,7 @@ import re
 
 from CustomClasses.CustomBot import CustomClient
 from EventHub.event_websockets import player_ee
-from utils.troop_methods import league_emoji
+from utils.clash import league_emoji
 
 class UpgradeEvent(commands.Cog):
 
