@@ -41,8 +41,11 @@ class ExportCreator(commands.Cog):
         #if the "template" is just the name of a default type (raw data), just export the 1 sheet
         if template in self.DEFAULT_EXPORT_TYPES:
             workbook = Workbook()
+            workbook.remove_sheet(workbook["Sheet"])
             if template == "Legend Stats":
                 await self.create_legend_export(players=players, workbook=workbook, season=season, sheet_name="legend_stats")
+            elif template == "War Hits":
+                await self.create_warhit_export(players=players, workbook=workbook, season=season, sheet_name="war_hits")
         else:
             # if it is not, then it is a template
             # 1. load the template
@@ -80,6 +83,34 @@ class ExportCreator(commands.Cog):
         xlsx_data.seek(0)
         return xlsx_data
 
+    async def create_warhit_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str ,season: str = None):
+        warhit_stat_page = workbook.create_sheet(sheet_name)
+        year = season[:4]
+        month = season[-2:]
+        SEASON_START = utils.get_season_start(month=int(month) - 1, year=int(year)).timestamp()
+        SEASON_END = utils.get_season_end(month=int(month) - 1, year=int(year)).timestamp()
+        attacks = await self.bot.warhits.find({"$and" : [{"tag" : {"$in" : [player.tag for player in players]}},{"_time" : {"$gte" : SEASON_START}}, {"_time" : {"$lte" : SEASON_END}}]}).to_list(length=None)
+        defends =  await self.bot.warhits.find({"$and" : [{"defender_tag": {"$in" : [player.tag for player in players]}},{"_time" : {"$gte" : SEASON_START}}, {"_time" : {"$lte" : SEASON_END}}]}).to_list(length=None)
+        data = []
+        for attack in attacks:
+            data.append(["Attack", attack['name'], attack['tag'], attack['townhall'], datetime.fromtimestamp(attack['_time'], tz=utc).strftime("%Y-%m-%d-%H:%M:%S"), 
+                         attack['destruction'], attack['stars'], attack['fresh'], datetime.fromtimestamp(attack['war_start'], tz=utc).strftime("%Y-%m-%d-%H:%M:%S"), 
+                         attack['defender_tag'],attack['defender_name'],attack['defender_townhall'],attack['war_type'],attack['war_status'],attack['attack_order'],
+                         attack['map_position'], attack.get('war_size', 0), attack.get('clan', 'No Clan'), ])
+        
+        for defense in defends:
+            data.append(["Defense", defense['name'], defense['tag'], defense['townhall'], datetime.fromtimestamp(defense['_time'], tz=utc).strftime("%Y-%m-%d-%H:%M:%S"), 
+                         defense['destruction'], defense['stars'], defense['fresh'], datetime.fromtimestamp(defense['war_start'], tz=utc).strftime("%Y-%m-%d-%H:%M:%S"), 
+                         defense['defender_tag'],defense['defender_name'],defense['defender_townhall'],defense['war_type'],defense['war_status'],defense['attack_order'],
+                         defense['map_position'], defense.get('war_size', 0), defense.get('clan', 'No Clan'), ])
+        
+        columns = ["Hit Type", "Player Name", "Player Tag", "Townhall", "Time", "Destruction", "Stars", "Fresh", "War Start", "Defender Tag", "Defender Name", 
+                   "Defender Townhall", "War Type", "War Status", "Attack Order", "Map Position", "War Size", "Clan"]
+
+        await self.write_data(worksheet=warhit_stat_page, column_names=columns, data=data)
+        return workbook
+    
+    
     async def create_legend_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str ,season: str = None):
         legend_stats_page = workbook.create_sheet(sheet_name)
         start = utils.get_season_start().replace(tzinfo=utc).date()
