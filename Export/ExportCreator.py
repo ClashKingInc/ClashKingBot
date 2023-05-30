@@ -23,14 +23,12 @@ class ExportCreator(commands.Cog):
         self.bot = bot
 
     async def write_data(self, worksheet: openpyxl.worksheet.worksheet.Worksheet, column_names: List[str], data: List[List]):
-        row = 1
         col = 1
         data.insert(0, column_names)
-        for d in data:
+        for row, d in enumerate(data, start=1):
             for item in d:
                 worksheet.cell(row=row, column=col).value = item
                 col += 1
-            row += 1
             col = 1
         return worksheet
 
@@ -46,6 +44,9 @@ class ExportCreator(commands.Cog):
                 await self.create_legend_export(players=players, workbook=workbook, season=season, sheet_name="legend_stats")
             elif template == "War Hits":
                 await self.create_warhit_export(players=players, workbook=workbook, season=season, sheet_name="war_hits")
+            elif template == "Season Trophies":
+                await self.create_season_trophies_export(players=players, workbook=workbook, season=season, sheet_name="season_trophies")
+
         else:
             # if it is not, then it is a template
             # 1. load the template
@@ -83,7 +84,25 @@ class ExportCreator(commands.Cog):
         xlsx_data.seek(0)
         return xlsx_data
 
-    async def create_warhit_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str ,season: str = None):
+    async def create_season_trophies_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
+        season_trophies_page = workbook.create_sheet(sheet_name)
+        season_data = await self.bot.history_db.find({
+            "$and": [
+                {"tag": { "$in" : [player.tag for player in players]}},
+                {"season": season}
+                ]}).to_list(length=None)
+        # I just skipped the for loop and did it in one line hope this isn't too ugly
+        data = [
+            [entry['name'],entry['tag'],entry['expLevel'],entry['trophies'],entry['attackWins'],entry['defenseWins'],
+             entry['rank'],entry['clan']['name'],entry['clan']['tag'],entry['season']] 
+            for entry in season_data]
+        
+        columns = ["Player Name", "Player Tag", "Exp Level", "Trophies", "Attack Wins", "Defense Wins", "Rank", "Clan Name", "Clan Tag", "Season"]
+
+        await self.write_data(worksheet=season_trophies_page, column_names=columns, data=data)
+        return workbook
+
+    async def create_warhit_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
         warhit_stat_page = workbook.create_sheet(sheet_name)
         year = season[:4]
         month = season[-2:]
@@ -142,9 +161,6 @@ class ExportCreator(commands.Cog):
 
         await self.write_data(worksheet=legend_stats_page, column_names=columns, data=data)
         return workbook
-
-    async def war_hit_export(self, player: List[MyCustomPlayer], workbook: openpyxl.Workbook, season: str = None):
-        pass
 
     '''other export types
     - activity history, basically the "new_looper" > "player_history" database that record every single action taken
