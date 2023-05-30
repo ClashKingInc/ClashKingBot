@@ -74,7 +74,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         file = None
         if image is not None:
-            file = f"TemplateStorage/{image.id}.png"
+            file = image.id
             await image.save(f"TemplateStorage/{image.id}.png")
             embed.set_image(file=disnake.File(f"TemplateStorage/{image.id}.png"))
 

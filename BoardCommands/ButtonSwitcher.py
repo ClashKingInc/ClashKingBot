@@ -37,7 +37,7 @@ async def clan_parser(bot: CustomClient, ctx: disnake.MessageInteraction, custom
         else:
             embed = await clan_embeds.clan_overview(bot=bot, clan=clan, guild=ctx.guild)
         if image != "None":
-            embed.set_image(file=disnake.File(image))
+            embed.set_image(file=disnake.File(f"TemplateStorage/{image}.png"))
     elif "clanwarcwlhist_" in custom_id:
         war_log_embed = await clan_embeds.war_log(bot=bot, clan=clan)
         cwl_history = await clan_embeds.cwl_performance(bot=bot, clan=clan)
