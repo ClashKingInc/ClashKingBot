@@ -25,7 +25,8 @@ ipython==8.13.2
 datawrapper==0.5
 msgspec==0.15.1
 openpyxl==3.1.2
-
-
+ballpark==1.4.0
+stringcase==1.2.0
+openai==0.27.7
 Wand==0.6.7
 asyncpraw==7.5.0
