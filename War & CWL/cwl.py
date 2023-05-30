@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import List
 from coc import utils
 from CustomClasses.CustomBot import CustomClient
-from utils.General import create_superscript
+from utils.general import create_superscript
 
 import operator
 import aiohttp

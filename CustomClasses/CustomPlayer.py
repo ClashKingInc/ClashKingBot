@@ -200,25 +200,31 @@ class MyCustomPlayer(coc.Player):
         if date is None:
             date = self.bot.gen_season_date()
         if self.results is None:
-            return Donations(donated=self.donations, received=self.received)
+            if date != self.bot.gen_season_date():
+                return Donations(donated=0, received=0)
+            else:
+                return Donations(donated=self.donations, received=self.received)
 
         donations = self.results.get("donations")
         if donations is None:
-            return Donations(donated=self.donations, received=self.received)
+            if date != self.bot.gen_season_date():
+                return Donations(donated=0, received=0)
+            else:
+                return Donations(donated=self.donations, received=self.received)
 
         season_donos = donations.get(f"{date}")
         if season_donos is None:
-            return Donations(donated=self.donations, received=self.received)
+            if date != self.bot.gen_season_date():
+                return Donations(donated=0, received=0)
+            else:
+                return Donations(donated=self.donations, received=self.received)
 
-        received = season_donos.get("received")
-        given = season_donos.get("donated")
-        if received is None:
-            received = self.received
-        if given is None:
-            given = self.donations
+        received = season_donos.get("received", 0)
+        given = season_donos.get("donated", 0)
+        if date == self.bot.gen_season_date():
+            given = max(given, self.donations)
+            received = max(received, self.received)
 
-        given = max(given, self.donations)
-        received = max(received, self.received)
         return Donations(donated=given, received=received)
 
     @property

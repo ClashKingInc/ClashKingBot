@@ -42,6 +42,31 @@ SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 from chat_exporter.construct.assets.embed import Embed
 import string
 import random
+import os
+import openai
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+
+class ChatBot:
+    def __init__(self, system=""):
+        self.system = system
+        self.messages = []
+        if self.system:
+            self.messages.append({"role": "system", "content": system})
+
+    def __call__(self, message):
+        self.messages.append({"role": "user", "content": message})
+        result = self.execute()
+        self.messages.append({"role": "assistant", "content": result})
+        return result
+
+    def execute(self):
+        completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=self.messages)
+        # Uncomment this to print out token usage each time, e.g.
+        # {"completion_tokens": 86, "prompt_tokens": 26, "total_tokens": 112}
+        # print(completion.usage)
+        return completion.choices[0].message.content
+
 
 class OwnerCommands(commands.Cog):
 
@@ -53,9 +78,32 @@ class OwnerCommands(commands.Cog):
     @commands.Cog.listener()
     async def on_connect(self):
         print("connected")
-        tags = await self.bot.clan_db.distinct("tag")
-        #tags = tags[:500]
-        self.bot.coc_client.add_raid_updates(*tags)
+
+
+    @commands.slash_command(name="summary")
+    async def summary(self, ctx: disnake.ApplicationCommandInteraction, num_messages: int = 100):
+        await ctx.response.defer(ephemeral=True)
+        channel: disnake.TextChannel = ctx.channel
+        message_text = "Please summarize this conversation:\n"
+        try:
+            messages = await channel.history(limit=num_messages).flatten()
+        except:
+            messages = []
+        if not messages:
+            return await ctx.edit_original_message(content="I don't have permission to view this channel")
+        for message in reversed(messages):
+            if message.webhook_id is None and message.author.bot:
+                continue
+            if message.content == "":
+                continue
+            if len(message_text) + len(f"{message.author.display_name} said: {message.content}\n") > 4000:
+                continue
+            message_text += f"{message.author.display_name} said: {message.content}\n"
+        magicbot = ChatBot(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. Use up to 25 bullet points.")
+        message = magicbot(message_text)
+
+        await ctx.edit_original_message(content=f"Summary of the last {num_messages} messages in {channel.name}:\n {message}")
+
 
     @commands.slash_command(name="owner_anniversary", guild_ids=[923764211845312533])
     @commands.is_owner()

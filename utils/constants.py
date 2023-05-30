@@ -4,13 +4,13 @@ SHORT_PLAYER_LINK = "https://api.clashking.xyz/p"
 SHORT_CLAN_LINK = "https://api.clashking.xyz/c"
 
 item_to_name = {"Player Tag" : "tag", "Role" : "role",
-                "Versus Trophies" : "versus_trophies", "Trophies" : "trophies",
-                "Clan Capital Contributions" : "clan_capital_contributions", "Clan Capital Raided" : "ach_Aggressive Capitalism",
-                "XP Level" : "exp_level", "Combined Heroes" : "heroes", "Obstacles Removed" : "ach_Nice and Tidy", "War Stars" : "war_stars",
-                "DE Looted" : "ach_Heroic Heist", "CWL Stars" : "ach_War League Legend", "Attacks Won (all time)" : "ach_Conqueror",
-                "Attacks Won (season)" : "attack_wins", "Defenses Won (all time)" : "ach_Unbreakable", "Total Donated" : "ach_Friend in Need",
-                "Versus Trophy Record" : "ach_Champion Builder", "Trophy Record" : "ach_Sweet Victory!",
-                "Clan Games Points" : "ach_Games Champion", "Versus Battles Won" : "versus_attack_wins", "Best Season Rank" : "season_rank", "Townhall Level" : "town_hall"}
+                "Versus Trophies" : "versus-trophies", "Trophies" : "trophies",
+                "Clan Capital Contributions" : "clan-capital-contributions", "Clan Capital Raided" : "ach-Aggressive Capitalism",
+                "XP Level" : "exp-level", "Combined Heroes" : "heroes", "Obstacles Removed" : "ach-Nice and Tidy", "War Stars" : "war-stars",
+                "DE Looted" : "ach-Heroic Heist", "CWL Stars" : "ach-War League Legend", "Attacks Won (all time)" : "ach-Conqueror",
+                "Attacks Won (season)" : "attack-wins", "Defenses Won (all time)" : "ach-Unbreakable", "Total Donated" : "ach-Friend in Need",
+                "Versus Trophy Record" : "ach-Champion Builder", "Trophy Record" : "ach-Sweet Victory!",
+                "Clan Games Points" : "ach-Games Champion", "Versus Battles Won" : "versus-attack-wins", "Best Season Rank" : "legendStatistics.bestSeason.rank", "Townhall Level" : "town-hall"}
 
 locations = ["global", 32000007, 32000008, 32000009, 32000010, 32000011, 32000012, 32000013, 32000014, 32000015, 32000016,
              32000017,
@@ -169,6 +169,10 @@ LEVELS_AND_XP = {
 }
 
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
+
+DARK_ELIXIR = ["Minion", "Hog Rider", "Valkyrie", "Golem", "Witch", "Lava Hound", "Bowler", "Ice Golem", "Headhunter"]
+SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker", "Rocket Balloon", "Super Wizard", "Inferno Dragon",
+                "Super Minion", "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", "Super Dragon", "Super Miner"]
 
 leagues = ["Legend League", "Titan League I" , "Titan League II" , "Titan League III" ,"Champion League I", "Champion League II", "Champion League III",
                    "Master League I", "Master League II", "Master League III",

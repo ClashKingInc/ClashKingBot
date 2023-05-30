@@ -101,14 +101,11 @@ initial_extensions = [
     #"War & CWL.war_track",
     #"War & CWL.lineups",
     #"Exceptions.ExceptionHandler",
-    "BoardCommands.Player.PlayerCog",
-    "BoardCommands.Clan.ClanCog",
-    "BoardCommands.BoardCog",
-    "BoardCommands.Family.FamilyCog",
-    "BoardCommands.Top.TopCog",
+    "BoardCommands.ClanCommands",
+    "BoardCommands.TopCommands",
     "Export.ExportsCog",
-    "Graphing.GraphCog",
-    "BackgroundCrons.background_cache"
+    "BoardCommands.Utils.Buttons",
+    "BackgroundCrons.refresh_boards"
 ]
 
 if not IS_BETA:

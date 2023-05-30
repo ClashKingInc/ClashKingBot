@@ -84,6 +84,10 @@ class Emojis():
         self.toggle_off = EmojiType("<:toggle_off:1067254958698803230>")
         self.unranked = EmojiType("<:Unranked:601618883853680653>")
         self.hashmark = EmojiType("<:hash:1097685290132459602>")
+        self.red_tick = EmojiType("<:redtick:601900691312607242>")
+        self.green_tick = EmojiType("<:greentick:601900670823694357>")
+        self.opt_in = EmojiType("<:opt_in:944905885367537685>")
+        self.opt_out = EmojiType("<:opt_out:944905931265810432>")
 
 
 

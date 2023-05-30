@@ -1,4 +1,3 @@
-import time
 from datetime import datetime
 from datetime import timedelta
 from coc import utils
@@ -17,6 +16,11 @@ from CustomClasses.PlayerHistory import COSPlayerHistory
 from Exceptions.CustomExceptions import MissingWebhookPerms
 from utils.constants import locations, BADGE_GUILDS
 from datawrapper import Datawrapper
+from typing import Tuple, List
+from utils import logins as login
+from utils.general import fetch
+from math import ceil
+from CustomClasses.DatabaseClasses import CustomClan
 
 import dateutil.relativedelta
 import ast
@@ -35,78 +39,76 @@ import emoji
 utc = pytz.utc
 load_dotenv()
 
-
-
 class CustomClient(commands.AutoShardedBot):
     def __init__(self, **options):
         super().__init__(**options)
         self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
-        self.new_looper = self.looper_db.new_looper
-        self.user_db = self.new_looper.user_db
-        self.player_stats = self.new_looper.player_stats
-        self.leaderboard_db = self.new_looper.leaderboard_db
-        self.clan_leaderboard_db = self.new_looper.clan_leaderboard_db
-        self.history_db = self.looper_db.legend_history
-        self.warhits = self.looper_db.looper.warhits
-        self.webhook_message_db = self.looper_db.looper.webhook_messages
-        self.user_name = "admin"
-        self.cwl_db = self.looper_db.looper.cwl_db
-        self.leveling = self.new_looper.leveling
-        self.clan_wars = self.looper_db.looper.clan_wars
-        self.player_cache = self.new_looper.player_cache
-        self.command_stats = self.new_looper.command_stats
-        self.player_history = self.new_looper.player_history
-        self.clan_history = self.new_looper.clan_history
-        self.clan_cache = self.new_looper.clan_cache
-        self.excel_templates = self.looper_db.clashking.excel_templates
+        self.new_looper = self.looper_db.get_database("new_looper")
+        self.user_db = self.new_looper.get_collection("user_db")
+        collection_class = self.user_db.__class__
 
-        self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
+        self.player_stats: collection_class = self.new_looper.player_stats
+        self.leaderboard_db: collection_class = self.new_looper.leaderboard_db
+        self.clan_leaderboard_db: collection_class = self.new_looper.clan_leaderboard_db
+
+        self.history_db = self.looper_db.legend_history
+        self.warhits: collection_class = self.looper_db.looper.warhits
+        self.webhook_message_db: collection_class = self.looper_db.looper.webhook_messages
+        self.user_name = "admin"
+        self.cwl_db: collection_class = self.looper_db.looper.cwl_db
+        self.leveling: collection_class = self.new_looper.leveling
+        self.clan_wars: collection_class = self.looper_db.looper.clan_wars
+        self.player_cache: collection_class = self.new_looper.player_cache
+        self.command_stats: collection_class = self.new_looper.command_stats
+        self.player_history: collection_class = self.new_looper.player_history
+        self.clan_history: collection_class = self.new_looper.clan_history
+        self.clan_cache: collection_class = self.new_looper.clan_cache
+        self.excel_templates: collection_class = self.looper_db.clashking.excel_templates
+        self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(
+            discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
-        self.clan_db = self.db_client.usafam.clans
-        self.banlist = self.db_client.usafam.banlist
-        self.server_db = self.db_client.usafam.server
-        self.profile_db = self.db_client.usafam.profile_db
-        self.ignoredroles = self.db_client.usafam.evalignore
-        self.generalfamroles = self.db_client.usafam.generalrole
-        self.notfamroles = self.db_client.usafam.linkrole
-        self.townhallroles = self.db_client.usafam.townhallroles
-        self.builderhallroles = self.db_client.usafam.builderhallroles
-        self.legendleagueroles = self.db_client.usafam.legendleagueroles
-        self.donationroles = self.db_client.usafam.donationroles
-        self.welcome = self.db_client.usafam.welcome
-        self.autoboards = self.db_client.usafam.autoboards
-        self.erikuh = self.db_client.usafam.erikuh
-        self.button_db = self.db_client.usafam.button_db
-        self.legend_profile = self.db_client.usafam.legend_profile
-        self.youtube_channels = self.db_client.usafam.youtube_channels
-        self.reminders = self.db_client.usafam.reminders
-        self.whitelist = self.db_client.usafam.whitelist
-        self.rosters = self.db_client.usafam.rosters
-        self.credentials = self.db_client.usafam.credentials
-        self.global_chat_db = self.db_client.usafam.global_chats
-        self.global_reports = self.db_client.usafam.reports
-        self.strikelist = self.db_client.usafam.strikes
-        self.raid_weekend_db = self.db_client.usafam.raid_weekends
-        self.tickets = self.db_client.usafam.tickets
-        self.open_tickets = self.db_client.usafam.open_tickets
-        self.custom_embeds = self.db_client.usafam.custom_embeds
-        self.custom_commands = self.db_client.usafam.custom_commands
-        self.bases = self.db_client.usafam.bases
-        self.colors = self.db_client.usafam.colors
-        self.level_cards = self.db_client.usafam.level_cards
-        self.autostrikes = self.db_client.usafam.autostrikes
-        self.lineups = self.db_client.usafam.lineups
-        self.user_settings = self.db_client.usafam.user_settings
-        self.custom_boards = self.db_client.usafam.custom_boards
+        self.clan_db: collection_class = self.db_client.usafam.clans
+        self.banlist: collection_class = self.db_client.usafam.banlist
+        self.server_db: collection_class = self.db_client.usafam.server
+        self.profile_db: collection_class = self.db_client.usafam.profile_db
+        self.ignoredroles: collection_class = self.db_client.usafam.evalignore
+        self.generalfamroles: collection_class = self.db_client.usafam.generalrole
+        self.notfamroles: collection_class = self.db_client.usafam.linkrole
+        self.townhallroles: collection_class = self.db_client.usafam.townhallroles
+        self.builderhallroles: collection_class = self.db_client.usafam.builderhallroles
+        self.legendleagueroles: collection_class = self.db_client.usafam.legendleagueroles
+        self.donationroles: collection_class = self.db_client.usafam.donationroles
+        self.welcome: collection_class = self.db_client.usafam.welcome
+        self.autoboards: collection_class = self.db_client.usafam.autoboards
+        self.erikuh: collection_class = self.db_client.usafam.erikuh
+        self.button_db: collection_class = self.db_client.usafam.button_db
+        self.legend_profile: collection_class = self.db_client.usafam.legend_profile
+        self.youtube_channels: collection_class = self.db_client.usafam.youtube_channels
+        self.reminders: collection_class = self.db_client.usafam.reminders
+        self.whitelist: collection_class = self.db_client.usafam.whitelist
+        self.rosters: collection_class = self.db_client.usafam.rosters
+        self.credentials: collection_class = self.db_client.usafam.credentials
+        self.global_chat_db: collection_class = self.db_client.usafam.global_chats
+        self.global_reports: collection_class = self.db_client.usafam.reports
+        self.strikelist: collection_class = self.db_client.usafam.strikes
+        self.raid_weekend_db: collection_class = self.db_client.usafam.raid_weekends
+        self.tickets: collection_class = self.db_client.usafam.tickets
+        self.open_tickets: collection_class = self.db_client.usafam.open_tickets
+        self.custom_embeds: collection_class = self.db_client.usafam.custom_embeds
+        self.custom_commands: collection_class = self.db_client.usafam.custom_commands
+        self.bases: collection_class = self.db_client.usafam.bases
+        self.colors: collection_class = self.db_client.usafam.colors
+        self.level_cards: collection_class = self.db_client.usafam.level_cards
+        self.autostrikes: collection_class = self.db_client.usafam.autostrikes
+        self.lineups: collection_class = self.db_client.usafam.lineups
+        self.user_settings: collection_class = self.db_client.usafam.user_settings
+        self.custom_boards: collection_class = self.db_client.usafam.custom_boards
 
-        self.autoboard_db = self.db_client.usafam.autoboard_db
+        self.autoboard_db: collection_class = self.db_client.usafam.autoboard_db
 
-        self.coc_client = coc.EventsClient(key_count=10, key_names="DiscordBot", throttle_limit=25,
-                                           cache_max_size=50000, load_game_data=coc.LoadGameData(always=True),
-                                           stats_max_size=10000)
-        self.xyz = asyncio.get_event_loop().run_until_complete(
-            self.coc_client.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD")))
+
+        self.coc_client = login.coc_client
 
         self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwarapi.login(username=os.getenv("FW_USER"), password=os.getenv("FW_PW"), coc_client=self.coc_client))
         self.data_wrapper: Datawrapper = Datawrapper(access_token=os.getenv("DATAWRAPPER_TOKEN"))
@@ -231,7 +233,7 @@ class CustomClient(commands.AutoShardedBot):
             raidDate = (now + timedelta(forward)).date()
             return str(raidDate)
 
-    def gen_season_date(self, seasons_ago = None):
+    def gen_season_date(self, seasons_ago = None, as_text=True):
         if seasons_ago is None:
             end = coc.utils.get_season_end().replace(tzinfo=utc).date()
             month = end.month
@@ -242,7 +244,13 @@ class CustomClient(commands.AutoShardedBot):
             dates = []
             for x in range(0, seasons_ago + 1):
                 end = coc.utils.get_season_end().replace(tzinfo=utc) - dateutil.relativedelta.relativedelta(months=x)
-                dates.append(f"{calendar.month_name[end.date().month]} {end.date().year}")
+                if as_text:
+                    dates.append(f"{calendar.month_name[end.date().month]} {end.date().year}")
+                else:
+                    month = end.month
+                    if end.month <= 9:
+                        month = f"0{month}"
+                    dates.append(f"{end.year}-{month}")
             return dates
 
     def gen_games_season(self):
@@ -564,6 +572,32 @@ class CustomClient(commands.AutoShardedBot):
 
 
     #CLASH HELPERS
+    async def store_all_cwls(self, clan: coc.Clan):
+        await asyncio.sleep(0.1)
+        from datetime import date
+        diff = ceil((datetime.now().date() - date(2016, 12, 1)).days / 30)
+        dates = self.gen_season_date(seasons_ago=diff, as_text=False)
+        names = await self.cwl_db.distinct("season", filter={"clan_tag" : clan.tag})
+        missing = set(dates) - set(names)
+        tasks = []
+        async with aiohttp.ClientSession() as session:
+            tag = clan.tag.replace("#", "")
+            for date in missing:
+                url = f"https://api.clashofstats.com/clans/{tag}/cwl/seasons/{date}"
+                task = asyncio.ensure_future(fetch(url, session, extra=date))
+                tasks.append(task)
+            responses = await asyncio.gather(*tasks)
+            await session.close()
+
+        for response, date in responses:
+            try:
+                if "Not Found" not in str(response) and "'status': 500" not in str(response) and response is not None:
+                    await self.cwl_db.insert_one({"clan_tag": clan.tag, "season": date, "data": response})
+                else:
+                    await self.cwl_db.insert_one({"clan_tag": clan.tag, "season": date, "data": None})
+            except:
+                pass
+
     async def player_handle(self, ctx, tag):
         try:
             clashPlayer = await self.coc_client.get_player(tag)
@@ -611,14 +645,18 @@ class CustomClient(commands.AutoShardedBot):
             else:
                 return None
 
-    async def get_players(self, tags: list, custom=True, use_cache=True):
-        if custom:
+    async def get_players(self, tags: list, custom=True, use_cache=True, fake_results=False):
+        if custom and fake_results is False:
             results_list = await self.player_stats.find({"tag" : {"$in" : tags}}).to_list(length=2500)
             results_dict = {}
             for item in results_list:
                 results_dict[item["tag"]] = item
+        elif custom and fake_results:
+            results_dict = {tag: {} for tag in tags}
+
         players = []
         tag_set = set(tags)
+
         if use_cache:
             cache_data = await self.player_cache.find({"tag" : {"$in" : tags}}).to_list(length=2500)
         else:
@@ -848,6 +886,20 @@ class CustomClient(commands.AutoShardedBot):
         embed = disnake.Embed.from_dict(embed_json["embeds"][0])
         return embed
 
+    async def split_family_buttons(self, button_text: str) -> Tuple[str, int, List[int], disnake.Guild]:
+        split = str(button_text).split("_")
+        season = split[1]
+        limit = int(split[2])
+        guild_id = split[3]
+        townhall = split[4]
+        if townhall != "None":
+            townhall = [int(townhall)]
+        else:
+            townhall = list(range(2, 17))
+        guild = await self.getch_guild(guild_id)
+        if season == "None":
+            season = self.gen_raid_date()
+        return season, limit, townhall, guild
 
     def command_names(self):
         commands = []
@@ -875,3 +927,15 @@ class CustomClient(commands.AutoShardedBot):
         else:
             is_raids = False
         return is_raids
+
+
+    #OTHER
+    async def get_custom_clans(self, tags: List[str], server = disnake.Guild, add_clan=False):
+        if add_clan:
+            pass
+
+        clan_db_results = await self.clan_db.find({"$and" : [{"tag" : {"$in" : tags}}, {"server" : server.id}]}).to_list(length=None)
+        reminder_results = await self.clan_db.find({"$and" : [{"clan" : {"$in" : tags}}, {"server" : server.id}]})
+
+
+

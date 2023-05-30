@@ -1,15 +1,22 @@
-SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
+import coc
+import json
+import calendar
+import datetime as dt
+
 from coc import utils
 from datetime import datetime
-import datetime as dt
-import pytz
-import coc
+from utils.constants import war_leagues, SUPER_SCRIPTS
+from utils.clash import league_to_emoji
+from pytz import utc
 from typing import List
-utc = pytz.utc
 
-async def fetch(url, session):
+
+async def fetch(url, session, **kwargs):
     async with session.get(url) as response:
-        return await response.json()
+        if kwargs.get("extra") is not None:
+            return [(await response.json()), kwargs.get("extra")]
+        else:
+            return await response.json()
 
 def create_superscript(num):
     digits = [int(num) for num in str(num)]
@@ -188,3 +195,82 @@ def get_clan_member_tags(clans: List[coc.Clan]) -> List[str]:
         for member in clan.members:
             clan_member_tags.append(member.tag)
     return clan_member_tags
+
+def response_to_line(response, clan):
+    te = json.dumps(response)
+    clans = response["clans"]
+    season = response["season"]
+    tags = [x["tag"] for x in clans]
+    stars = {}
+    for tag in tags:
+        stars[tag] = 0
+    rounds = response["rounds"]
+    for round in rounds:
+        wars = round["wars"]
+        for war in wars:
+            main_stars = war["clan"]["stars"]
+            main_destruction = war["clan"]["destructionPercentage"]
+            stars[war["clan"]["tag"]] += main_stars
+
+            opp_stars = war["opponent"]["stars"]
+            opp_destruction = war["opponent"]["destructionPercentage"]
+            stars[war["opponent"]["tag"]] += opp_stars
+
+            if main_stars > opp_stars:
+                stars[war["clan"]["tag"]] += 10
+            elif opp_stars > main_stars:
+                stars[war["opponent"]["tag"]] += 10
+            elif main_destruction > opp_destruction:
+                stars[war["clan"]["tag"]] += 10
+            elif opp_destruction > main_destruction:
+                stars[war["opponent"]["tag"]] += 10
+    stars = dict(sorted(stars.items(), key=lambda item: item[1], reverse=True))
+    place = list(stars.keys()).index(clan.tag) + 1
+    league = response["leagueId"]
+    league_name = [x["name"]
+                   for x in war_leagues["items"] if x["id"] == league][0]
+    promo = [x["promo"]
+             for x in war_leagues["items"] if x["id"] == league][0]
+    demo = [x["demote"]
+            for x in war_leagues["items"] if x["id"] == league][0]
+
+    if place <= promo:
+        emoji = "<:warwon:932212939899949176>"
+    elif place >= demo:
+        emoji = "<:warlost:932212154164183081>"
+    else:
+        emoji = "<:dash:933150462818021437>"
+
+    end = "th"
+    ends = {1: "st", 2: "nd", 3: "rd"}
+    if place <= 3:
+        end = ends[place]
+
+    year = season[0:4]
+    month = season[5:]
+    month = calendar.month_name[int(month)]
+    #month = month.ljust(9)
+    date = f"`{month}`"
+    league = str(league_name).replace('League ', '')
+    league = league.ljust(14)
+    league = f"{league}"
+
+    tier = str(league_name).count("I")
+
+    return (f"{emoji} {league_to_emoji(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n", year)
+
+def notate_number(number: int, zero=False):
+    if number == 0 and not zero:
+        return ""
+    if number / 1000000 >= 1:
+        rounded = round(number / 1000000, 1)
+        if len(str(rounded)) >= 4:
+            rounded = round(number / 1000000, None)
+        return f"{rounded}M"
+    elif number / 1000 >= 1:
+        rounded = round(number / 1000, 1)
+        if len(str(rounded)) >= 4:
+            rounded = round(number / 1000, None)
+        return f"{rounded}K"
+    else:
+        return number

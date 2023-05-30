@@ -6,24 +6,14 @@ from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from datetime import datetime
 from CustomClasses.Enums import TrophySort
-from utils.General import get_clan_member_tags
-from typing import TYPE_CHECKING, List
+from utils.general import get_clan_member_tags
+from typing import  List
 
-tiz = pytz.utc
-if TYPE_CHECKING:
-    from BoardCommands.BoardCog import BoardCog
-    from FamilyCog import FamilyCog
-    board_cog = BoardCog
-    family_cog = FamilyCog
-else:
-    board_cog = commands.Cog
-    family_cog = commands.Cog
 
-class FamilyButtons(family_cog):
+class FamilyButtons(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        self.graph_cog = None
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
@@ -62,18 +52,7 @@ class FamilyButtons(family_cog):
         elif "receivedfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
             self.graph_cog = self.bot.get_cog("Graphing")
-            split = str(ctx.data.custom_id).split("_")
-            season = split[1]
-            limit = int(split[2])
-            guild_id = split[3]
-            townhall = split[4]
-            if townhall != "None":
-                townhall = [int(townhall)]
-            else:
-                townhall = list(range(2, 17))
-            guild = await self.bot.getch_guild(guild_id)
-            if season == "None":
-                season = self.bot.gen_raid_date()
+            season, limit, townhall, guild = await self.bot.split_family_buttons(ctx.data.custom_id)
 
             clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
             clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
@@ -271,7 +250,7 @@ class FamilyButtons(family_cog):
 
         elif "famcapr_" in str(ctx.data.custom_id):
             await ctx.response.defer()
-            self.graph_cog = self.bot.get_cog("Graphing")
+            graph_cog = self.bot.get_cog("Graphing")
             split = str(ctx.data.custom_id).split("_")
             week = split[1]
             limit = int(split[2])

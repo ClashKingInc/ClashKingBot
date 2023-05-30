@@ -1,4 +1,5 @@
 import disnake
+import asyncio
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 
@@ -80,6 +81,7 @@ class addClan(commands.Cog, name="Clan Setup"):
                               color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.large)
         await ctx.edit_original_message(embed=embed)
+        asyncio.create_task(self.bot.store_all_cwls(clan=clan))
 
 
     async def get_clan_role(self, ctx: disnake.ApplicationCommandInteraction):
