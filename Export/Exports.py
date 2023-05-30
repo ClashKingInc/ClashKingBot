@@ -87,7 +87,7 @@ class ExportCommands(cog_class):
             template = file_path.get("path")
         xlsx_data = await self.export_manager(player_tags=[player.tag for player in players], season=season, template=template)
         file = disnake.File(fp=xlsx_data, filename="test.xlsx")
-        await ctx.send(file=file),
+        await ctx.send(file=file)
 
 
     @export_clan.autocomplete("clan")

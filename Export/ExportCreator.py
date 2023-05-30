@@ -89,8 +89,19 @@ class ExportCreator(commands.Cog):
         month = season[-2:]
         SEASON_START = utils.get_season_start(month=int(month) - 1, year=int(year)).timestamp()
         SEASON_END = utils.get_season_end(month=int(month) - 1, year=int(year)).timestamp()
-        attacks = await self.bot.warhits.find({"$and" : [{"tag" : {"$in" : [player.tag for player in players]}},{"_time" : {"$gte" : SEASON_START}}, {"_time" : {"$lte" : SEASON_END}}]}).to_list(length=None)
-        defends =  await self.bot.warhits.find({"$and" : [{"defender_tag": {"$in" : [player.tag for player in players]}},{"_time" : {"$gte" : SEASON_START}}, {"_time" : {"$lte" : SEASON_END}}]}).to_list(length=None)
+        attacks = await self.bot.warhits.find(
+            {"$and" : [
+                {"tag" : {"$in" : [player.tag for player in players]}},
+                {"_time" : {"$gte" : SEASON_START}},
+                {"_time" : {"$lte" : SEASON_END}}
+                ]}).to_list(length=None)
+        
+        defends =  await self.bot.warhits.find(
+            {"$and" : [
+                {"defender_tag": {"$in" : [player.tag for player in players]}},
+                {"_time" : {"$gte" : SEASON_START}},
+                {"_time" : {"$lte" : SEASON_END}}
+                ]}).to_list(length=None)
         data = []
         for attack in attacks:
             data.append(["Attack", attack['name'], attack['tag'], attack['townhall'], datetime.fromtimestamp(attack['_time'], tz=utc).strftime("%Y-%m-%d-%H:%M:%S"), 
