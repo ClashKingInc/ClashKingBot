@@ -63,6 +63,11 @@ class misc(commands.Cog, name="Settings"):
         await ctx.edit_original_message(f"**Autoeval is now turned {option} {log_text}**",
                                         allowed_mentions=disnake.AllowedMentions.none())
 
+    @set.sub_command(name="refresh-board", description="Set up a refresh board")
+    async def refresh_board(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.send("Read tutorial here")
+
+
     @set.sub_command(name="clan-channel", description="Set a new clan channel for a clan")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def channel(self, ctx: disnake.ApplicationCommandInteraction, clan: str, channel: disnake.TextChannel):
@@ -353,7 +358,6 @@ class misc(commands.Cog, name="Settings"):
             description=f"Strike Ban Buttons for {clan.name} Join/Leave Log set to {option}",
             color=disnake.Color.green())
         await ctx.edit_original_message(embed=embed)
-
 
     @set.sub_command(name="leadership-eval", description="Have eval assign leadership role to clan coleads & leads (on default)")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())

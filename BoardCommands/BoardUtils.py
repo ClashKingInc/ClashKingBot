@@ -47,49 +47,6 @@ SUPER_SCRIPTS = [
 tiz = pytz.utc
 
 
-def clan_th_comp(clan_members):
-    thcount = defaultdict(int)
-
-    for player in clan_members:
-        thcount[player.town_hall] += 1
-
-    th_comp_string = ""
-    for th_level, th_count in sorted(thcount.items(), reverse=True):
-        th_emoji = fetch_emoji(th_level)
-        th_comp_string += f"{th_emoji}`{th_count}` "
-
-    return th_comp_string
-
-
-def clan_super_troop_comp(clan_members):
-
-    # initializing the super troop dict to count active super troops
-    super_troop_comp_dict = {}
-    for super_troop in SUPER_TROOPS:
-        super_troop_comp_dict[super_troop] = 0
-
-    for player in clan_members:
-        for troop in player.troops:
-            if troop.is_active:
-                try:
-                    super_troop_comp_dict[troop.name] += 1
-                except:
-                    pass
-
-    return_string = ""
-
-    for troop in SUPER_TROOPS:
-        nu = super_troop_comp_dict[troop]
-        super_troop_emoji = fetch_emoji(emoji_name=troop)
-        if nu != 0:
-            return_string += f"{super_troop_emoji}`x{nu} `"
-
-    if return_string == "":
-        return_string = "None"
-
-    return return_string
-
-
 def league_and_trophies_emoji(league):
 
     if (league == "Bronze League III"):

@@ -1,13 +1,19 @@
 from disnake.ext import commands
 import disnake
 from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer
+import coc
 import plotly.express as px
 import plotly.io as pio
 import io
 import pandas as pd
 import datetime as dt
+import plotly.graph_objects as go
+
 from collections import defaultdict, Counter
+from typing import List, TYPE_CHECKING
+from utils.General import create_superscript
+
+
 LEAGUES = ["Legend League", "Titan League I" , "Titan League II" , "Titan League III" ,"Champion League I", "Champion League II", "Champion League III",
                    "Master League I", "Master League II", "Master League III",
                    "Crystal League I","Crystal League II", "Crystal League III",
@@ -106,3 +112,7 @@ class GraphCreator(commands.Cog):
         buttons = disnake.ui.ActionRow()
         buttons.append_item(disnake.ui.Button(label="Online View", url=f"https://api.clashking.xyz/render/?url={html}"))
         return(file, buttons)
+
+
+def setup(bot):
+    bot.add_cog(GraphCreator(bot))

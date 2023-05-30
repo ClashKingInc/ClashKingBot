@@ -14,11 +14,6 @@ import pytz
 import calendar
 
 tiz = pytz.utc
-if TYPE_CHECKING:
-    from BoardCommands.BoardCog import BoardCog
-    cog_class = BoardCog
-else:
-    cog_class = commands.Cog
 
 
 
@@ -29,7 +24,7 @@ class ClanButtons(commands.Cog):
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
-        board_cog: BoardCog = self.bot.get_cog("BoardCog")
+        board_cog = self.bot.get_cog("BoardCog")
 
 
         if "act_" in str(ctx.data.custom_id):

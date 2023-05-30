@@ -14,20 +14,13 @@ from typing import TYPE_CHECKING, List
 from ImageGen import ClanCapitalResult as capital_gen
 
 tiz = pytz.utc
-if TYPE_CHECKING:
-    from BoardCommands.BoardCog import BoardCog
-    cog_class = BoardCog
-    from ClanCog import ClanCog
-    clancog = ClanCog
-else:
-    cog_class = commands.Cog
-    clancog = commands.Cog
 
 from utils.constants import item_to_name
 from disnake.ext.commands import Converter
+from BoardCommands.Utils import Clan as clan_embeds
+from BoardCommands.Utils import Shared as shared_embeds
 
-
-class ClanCommands(clancog, name="Clan Commands"):
+class ClanCommands(commands.Cog, name="Clan Commands"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
@@ -61,6 +54,128 @@ class ClanCommands(clancog, name="Clan Commands"):
             ephemeral = result.get("private_mode", False)
         await ctx.response.defer(ephemeral=ephemeral)
 
+    @clan.sub_command(name="search", description="look up a clan by tag")
+    async def search(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
+                     simple: str = commands.Param(default=False, choices=["True"])):
+
+        if not simple:
+            embed = await clan_embeds.clan_overview(clan=clan, bot=self.bot, guild=ctx.guild)
+        else:
+            embed = await clan_embeds.simple_clan_embed(bot=self.bot, clan=clan)
+
+        page_buttons = [
+            disnake.ui.Button(label="", emoji=self.bot.partial_emoji_gen((await self.bot.create_new_badge_emoji(url=clan.badge.url))),
+                              style=disnake.ButtonStyle.grey,
+                              custom_id=f"clanoverview_{clan.tag}_{simple}"),
+            disnake.ui.Button(label="", emoji=self.bot.emoji.thick_sword.partial_emoji,
+                              style=disnake.ButtonStyle.grey,
+                              custom_id=f"clanwarcwlhist_{clan.tag}"),
+            disnake.ui.Button(label="", emoji=self.bot.emoji.opt_in.partial_emoji,
+                          style=disnake.ButtonStyle.grey,
+                          custom_id=f"clanwaropt_{clan.tag}"),
+            disnake.ui.Button(label="", emoji=self.bot.emoji.discord.partial_emoji,
+                          style=disnake.ButtonStyle.grey,
+                          custom_id=f"clanlinked_{clan.tag}"),
+        ]
+        buttons = disnake.ui.ActionRow()
+        for button in page_buttons:
+            buttons.append_item(button)
+        await ctx.edit_original_message(embed=embed, components=[buttons])
+
+    @clan.sub_command(name="links", description="List of un/linked players in clan")
+    async def links(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+        player_links = await self.bot.link_client.get_links(*[member.tag for member in clan.members])
+
+        linked_players_embed = await clan_embeds.linked_players(bot=self.bot, clan=clan, player_links=player_links, guild=ctx.guild)
+        unlinked_players_embed = await clan_embeds.unlinked_players(bot=self.bot, clan=clan, player_links=player_links)
+
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey, custom_id=f"clanlinked_{clan.tag}"))
+
+        await ctx.edit_original_message(embeds=[linked_players_embed, unlinked_players_embed], components=buttons)
+
+
+    @clan.sub_command(name="progress", description="Progress by clan ")
+    async def progress(self, ctx: disnake.ApplicationCommandInteraction,
+                       clan: coc.Clan = commands.Param(converter=clan_converter),
+                       type=commands.Param(choices=["Heroes & Pets", "Troops, Spells, & Sieges", "Home Trophies", "Builder Trophies", "Loot"]),
+                       season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor),
+                       limit: int = commands.Param(default=50, min_value=1, max_value=50)):
+        if type == "Heroes & Pets":
+            embed = await shared_embeds.hero_progress(bot=self.bot, player_tags=[member.tag for member in clan.members], season=season,
+                                                      footer_icon=clan.badge.url, title_name=f"{clan.name} {type} Progress", limit=limit)
+        elif type == "Troops, Spells, & Sieges":
+            embed = await shared_embeds.troops_spell_siege_progress(bot=self.bot, player_tags=[member.tag for member in clan.members],
+                                                      season=season,
+                                                      footer_icon=clan.badge.url,
+                                                      title_name=f"{clan.name} {type} Progress", limit=limit)
+        elif type == "Home Trophies":
+            embed = await shared_embeds.trophies_progress(bot=self.bot,
+                                                                    player_tags=[member.tag for member in clan.members],
+                                                                    season=season,
+                                                                    footer_icon=clan.badge.url,
+                                                                    title_name=f"{clan.name} {type} Progress",
+                                                                    limit=limit, type="home")
+        elif type == "Builder Trophies":
+            embed = await shared_embeds.trophies_progress(bot=self.bot,
+                                                                    player_tags=[member.tag for member in clan.members],
+                                                                    season=season,
+                                                                    footer_icon=clan.badge.url,
+                                                                    title_name=f"{clan.name} {type} Progress",
+                                                                    limit=limit, type="builder")
+        elif type == "Loot":
+            embed = await shared_embeds.loot_progress(bot=self.bot,
+                                                          player_tags=[member.tag for member in clan.members],
+                                                          season=season,
+                                                          footer_icon=clan.badge.url,
+                                                          title_name=f"{clan.name} {type} Progress",
+                                                          limit=limit)
+
+        await ctx.edit_original_message(embed=embed)
+
+    @clan.sub_command(name="sorted", description="List of clan members, sorted by any attribute")
+    async def sorted(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
+                     sort_by: str = commands.Param(choices=sorted(item_to_name.keys())),
+                     limit: int = commands.Param(default=50, min_value=1, max_value=50)):
+        """
+            Parameters
+            ----------
+            clan: Use clan tag or select an option from the autocomplete
+            sort_by: Sort by any attribute
+        """
+
+        embed = await shared_embeds.player_sort(bot=self.bot, player_tags=[member.tag for member in clan.members], sort_by=sort_by,
+                                                footer_icon=clan.badge.url, title_name=f"{clan.name} sorted by {sort_by}", limit=limit)
+
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey,
+            custom_id=f"clansort_{clan.tag}_{sort_by}"))
+
+        await ctx.edit_original_message(embed=embed, components=[buttons])
+
+
+
+    @clan.sub_command(name="war-preferences", description="List of player's war preferences")
+    async def war_preferences(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
+        """
+            Parameters
+            ----------
+            clan: Use clan tag or select an option from the autocomplete
+        """
+
+        embeds = await clan_embeds.opt_status(bot=self.bot, clan=clan)
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey,
+            custom_id=f"waropt_{clan.tag}"))
+
+        await ctx.edit_original_message(embeds=embeds, components=buttons)
+
 
     @clan.sub_command(name="donations", description="Donations given & received by clan members")
     async def donations(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
@@ -68,8 +183,7 @@ class ClanCommands(clancog, name="Clan Commands"):
 
         players = await self.bot.get_players(tags=[member.tag for member in clan.members])
 
-        board_cog: BoardCog = self.bot.get_cog("BoardCog")
-        embed: disnake.Embed = await board_cog.donation_board(players=players, season=season, footer_icon=clan.badge.url, title_name=f"{clan.name}", type="donations")
+        embed: disnake.Embed = await shared_embeds.donation_board(bot=self.bot, players=players, season=season, footer_icon=clan.badge.url, title_name=f"{clan.name}", type="donations")
 
         buttons = disnake.ui.ActionRow()
         buttons.append_item(disnake.ui.Button(
@@ -90,9 +204,8 @@ class ClanCommands(clancog, name="Clan Commands"):
 
         players = await self.bot.get_players(tags=[member.tag for member in clan.members])
 
-        board_cog: BoardCog = self.bot.get_cog("BoardCog")
         footer_icon = clan.badge.url
-        embed: disnake.Embed = await board_cog.activity_board(players=players, season=season, footer_icon=footer_icon, title_name=f"{clan.name}")
+        embed: disnake.Embed = await shared_embeds.activity_board(players=players, season=season, footer_icon=footer_icon, title_name=f"{clan.name}")
 
         buttons = disnake.ui.ActionRow()
         buttons.append_item(disnake.ui.Button(
@@ -122,9 +235,7 @@ class ClanCommands(clancog, name="Clan Commands"):
             members += [member.tag for member in clan.members]
 
         players = await self.bot.get_players(tags=members)
-
-        board_cog: BoardCog = self.bot.get_cog("BoardCog")
-        file, buttons = await board_cog.activity_graph(players=players, season=season, title=f"{clan.name} Activity ({season})", granularity=granularity, time_zone=timezone)
+        file, buttons = await shared_embeds.activity_graph(players=players, season=season, title=f"{clan.name} Activity ({season})", granularity=granularity, time_zone=timezone)
         await ctx.send(file=file, components=[buttons])
 
     @clan.sub_command(name="capital", description="Clan capital info for a clan for a week")
@@ -160,6 +271,7 @@ class ClanCommands(clancog, name="Clan Commands"):
     @donations.autocomplete("season")
     @activity.autocomplete("season")
     @activity_graph.autocomplete("season")
+    @progress.autocomplete("season")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
         return [season for season in seasons if query.lower() in season.lower()]
@@ -168,6 +280,11 @@ class ClanCommands(clancog, name="Clan Commands"):
     @activity.autocomplete("clan")
     @activity_graph.autocomplete("clan")
     @clan_capital.autocomplete("clan")
+    @war_preferences.autocomplete("clan")
+    @search.autocomplete("clan")
+    @links.autocomplete("clan")
+    @progress.autocomplete("clan")
+    @sorted.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id}).sort("name", 1)
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
@@ -211,4 +328,7 @@ class ClanCommands(clancog, name="Clan Commands"):
             if query.lower() in weekend.lower():
                 matches.append(weekend)
         return matches
+
+def setup(bot):
+    bot.add_cog(ClanCommands(bot))
 

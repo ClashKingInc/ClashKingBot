@@ -1,6 +1,7 @@
 import datetime
+import time
+
 import disnake
-import pytz
 import coc
 import calendar
 
@@ -8,28 +9,15 @@ from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from Exceptions.CustomExceptions import InvalidGuildID
 from typing import TYPE_CHECKING, List
-from utils.General import get_clan_member_tags
+from utils.general import get_clan_member_tags
 from utils.ClanCapital import gen_raid_weekend_datestrings
+from pytz import utc
 
-tiz = pytz.utc
-if TYPE_CHECKING:
-    from BoardCommands.BoardCog import BoardCog
-    from FamilyCog import FamilyCog
-    from Graphing import GraphCog
-    boardcog = BoardCog
-    family_cog = FamilyCog
-    graphcog = GraphCog.GraphCog
-else:
-    boardcog = commands.Cog
-    family_cog = commands.Cog
-    graphcog = commands.Cog
 
-class FamCommands(family_cog):
+class FamCommands(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        self.board_cog: boardcog = bot.get_cog("BoardCog")
-        self.graph_cog: graphcog = bot.get_cog("Graphing")
 
     async def server_converter(self, server: str):
         try:
@@ -99,13 +87,15 @@ class FamCommands(family_cog):
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
         clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
         member_tags = get_clan_member_tags(clans=clans)
-        distinct = await self.bot.player_stats.distinct("tag", filter={"tag": {"$in": member_tags}})
-        players = await self.bot.get_players(tags=distinct)
-        footer_icon = ctx.guild.icon.url if ctx.guild.icon is not None else self.bot.user.avatar.url
-        embed = await self.board_cog.donation_board(players=[player for player in players if player.town_hall in townhall], season=season, footer_icon=footer_icon, title_name=f"{guild.name}", type="donations", limit=limit)
 
-        graph = await self.graph_cog.create_clan_donation_graph(all_players=players, clans=clans, season=season, type="donations", server_id=guild.id)
-        embed.set_image(url=f"{graph}?{int(datetime.datetime.now().timestamp())}")
+
+        top_50 = await self.bot.player_stats.find({"$and" : [{"tag" :  {"$in": member_tags}}, {"townhall" : {"$in" : townhall}}]}, {"tag" : 1}).sort(f"donations.{season}.donated", -1).limit(limit).to_list(length=50)
+        players = await self.bot.get_players(tags=[p["tag"] for p in top_50])
+        graph, total_donos, total_received = await self.graph_cog.create_clan_donation_graph(clans=clans, season=season, type="donated", townhalls=townhall)
+        embed = await self.board_cog.donation_board(players=players, season=season, title_name=f"{guild.name}", type="donations",
+                                                    footer_icon=ctx.guild.icon.url if ctx.guild.icon is not None else self.bot.user.avatar.url,
+                                                    total_donos=total_donos, total_received=total_received)
+        embed.set_image(file=graph)
 
         buttons = disnake.ui.ActionRow()
         buttons.append_item(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,custom_id=f"donationfam_{season}_{limit}_{guild.id}_{None if len(townhall) >= 2 else townhall[0]}"))

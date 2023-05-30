@@ -2,11 +2,9 @@ import coc
 
 from Assets.emojiDictionary import emojiDictionary
 from Assets.levelEmojis import levelEmojis, maxLevelEmojis
-#from CustomClasses.CustomBot import CustomClient
-
-DARK_ELIXIR = ["Minion", "Hog Rider", "Valkyrie", "Golem", "Witch", "Lava Hound", "Bowler", "Ice Golem", "Headhunter"]
-SUPER_TROOPS = ["Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker", "Rocket Balloon", "Super Wizard", "Inferno Dragon",
-                "Super Minion", "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", "Super Dragon", "Super Miner"]
+from collections import defaultdict
+from utils.discord_utils import fetch_emoji
+from utils.constants import DARK_ELIXIR, SUPER_TROOPS
 
 async def superTroops(player, asArray=False):
     troops = player.troop_cls
@@ -202,6 +200,38 @@ def profileSuperTroops(player):
     return boostedTroops
 
 
+def clan_th_comp(clan_members):
+    thcount = defaultdict(int)
+
+    for player in clan_members:
+        thcount[player.town_hall] += 1
+
+    th_comp_string = ""
+    for th_level, th_count in sorted(thcount.items(), reverse=True):
+        th_emoji = fetch_emoji(th_level)
+        th_comp_string += f"{th_emoji}`{th_count}` "
+
+    return th_comp_string
+
+
+def clan_super_troop_comp(clan_members):
+    super_troop_comp_dict = defaultdict(int)
+    for player in clan_members:
+        for troop in player.troops:
+            if troop.is_active:
+                super_troop_comp_dict[troop.name] += 1
+
+    return_string = ""
+    for troop, count in super_troop_comp_dict.items():
+        super_troop_emoji = fetch_emoji(emoji_name=troop)
+        return_string += f"{super_troop_emoji}`x{count} `"
+
+    if return_string == "":
+        return_string = "None"
+
+    return return_string
+
+
 def leagueAndTrophies(player):
     emoji = ""
     league = str(player.league)
@@ -255,6 +285,7 @@ def leagueAndTrophies(player):
         emoji = "<:Unranked:601618883853680653>"
 
     return emoji + str(player.trophies)
+
 
 def league_emoji(player):
     league = str(player.league)

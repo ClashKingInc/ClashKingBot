@@ -1,40 +1,19 @@
 import disnake
 import coc
-import pytz
-import operator
-import json
-import asyncio
 import calendar
 
 from disnake.ext import commands
-from coc import utils
-from Assets.emojiDictionary import emojiDictionary
 from CustomClasses.CustomBot import CustomClient
-from collections import defaultdict
-from collections import Counter
-from datetime import datetime
-from CustomClasses.Enums import TrophySort
 from utils.constants import item_to_name
 from utils.ClanCapital import gen_raid_weekend_datestrings
 
-from typing import TYPE_CHECKING
+from BoardCommands.Utils import Shared as shared_embeds
 
-tiz = pytz.utc
-if TYPE_CHECKING:
-    from BoardCommands.BoardCog import BoardCog
-    from TopCog import TopCog
-    board_cog = BoardCog
-    top_cog = TopCog
-else:
-    board_cog = commands.Cog
-    top_cog = commands.Cog
 
-class TopCommands(top_cog):
+class TopCommands(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        self.board_cog: BoardCog = bot.get_cog("BoardCog")
-
 
     async def season_convertor(self, season: str):
         if season is not None:
@@ -94,6 +73,23 @@ class TopCommands(top_cog):
             style=disnake.ButtonStyle.grey, custom_id=f"topactivityplayer_{season}"))
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
+    @top.sub_command(name="sorted", description="Top players by attribute")
+    async def sorted(self, ctx: disnake.ApplicationCommandInteraction,
+                     sort_by: str = commands.Param(choices=sorted(item_to_name.keys())),
+                     limit: int = commands.Param(default=50, min_value=1, max_value=50)):
+
+        embed = await shared_embeds.player_sort(bot=self.bot, player_tags=[],
+                                                sort_by=sort_by,
+                                                footer_icon=self.bot.user.avatar.url,
+                                                title_name=f"All Players sorted by {sort_by}", limit=limit)
+
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey,
+            custom_id=f"topsort_{sort_by}"))
+
+        await ctx.edit_original_message(embed=embed, components=[buttons])
 
     @top.sub_command(name="capital", description="Top capital contributors across the bot")
     async def capital(self, ctx: disnake.ApplicationCommandInteraction, weekend: str = None):
@@ -128,3 +124,7 @@ class TopCommands(top_cog):
             if query.lower() in weekend.lower():
                 matches.append(weekend)
         return matches
+
+
+def setup(bot):
+    bot.add_cog(TopCommands(bot))
