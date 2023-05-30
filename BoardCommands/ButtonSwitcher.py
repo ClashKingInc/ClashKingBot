@@ -7,10 +7,13 @@ from CustomClasses.CustomBot import CustomClient
 import disnake
 
 clan_triggers = {
-    "clanoverview_",
-    "clanwarcwlhist_",
-    "clanwaropt_",
-    "clanlinked_",
+    "clanoverview",
+    "clanwarcwlhist",
+    "clanwaropt",
+    "clanlinked",
+    "clansort",
+    "clanwarlog",
+    "clanstroops"
 }
 
 async def button_click_to_embed(bot: CustomClient, ctx: disnake.MessageInteraction):
@@ -28,10 +31,13 @@ async def clan_parser(bot: CustomClient, ctx: disnake.MessageInteraction, custom
     clan = await bot.getClan(clan_tag=clan_tag)
     embed = None
     if "clanoverview_" in custom_id:
-        if split[-1] == "True":
+        image = split[-1]
+        if split[-2] == "True":
             embed = await clan_embeds.simple_clan_embed(bot, clan)
         else:
             embed = await clan_embeds.clan_overview(bot=bot, clan=clan, guild=ctx.guild)
+        if image != "None":
+            embed.set_image(file=disnake.File(image))
     elif "clanwarcwlhist_" in custom_id:
         war_log_embed = await clan_embeds.war_log(bot=bot, clan=clan)
         cwl_history = await clan_embeds.cwl_performance(bot=bot, clan=clan)
@@ -43,6 +49,16 @@ async def clan_parser(bot: CustomClient, ctx: disnake.MessageInteraction, custom
         linked_players_embed = await clan_embeds.linked_players(bot=bot, clan=clan, player_links=player_links, guild=ctx.guild)
         unlinked_players_embed = await clan_embeds.unlinked_players(bot=bot, clan=clan, player_links=player_links)
         embed = [linked_players_embed, unlinked_players_embed]
+    elif "clansort_" in custom_id:
+        sort_by = split[-1]
+        limit = int(split[-2])
+        embed = await shared_embeds.player_sort(bot=bot, player_tags=[member.tag for member in clan.members],
+                                                sort_by=sort_by,
+                                                footer_icon=clan.badge.url,
+                                                title_name=f"{clan.name} sorted by {sort_by}", limit=limit)
+    elif "clanstroops_" in custom_id:
+        embed = await clan_embeds.super_troop_list(bot=bot, clan=clan)
+
     return embed
 
 

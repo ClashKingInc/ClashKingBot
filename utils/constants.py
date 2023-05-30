@@ -1,5 +1,6 @@
 import json
 
+MAX_NUM_SUPERS = 2
 SHORT_PLAYER_LINK = "https://api.clashking.xyz/p"
 SHORT_CLAN_LINK = "https://api.clashking.xyz/c"
 

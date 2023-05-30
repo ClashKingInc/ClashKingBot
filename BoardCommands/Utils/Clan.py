@@ -19,7 +19,7 @@ from utils.ClanCapital import gen_raid_weekend_datestrings, calc_raid_medals
 from utils.clash import cwl_league_emojis, clan_super_troop_comp, clan_th_comp
 from utils.discord_utils import fetch_emoji
 from utils.general import create_superscript, response_to_line, fetch
-from utils.constants import SUPER_SCRIPTS
+from utils.constants import SUPER_SCRIPTS, MAX_NUM_SUPERS
 from pytz import utc
 
 async def clan_overview(bot: CustomClient, clan: coc.Clan, guild: disnake.Guild):
@@ -116,14 +116,19 @@ async def clan_overview(bot: CustomClient, clan: coc.Clan, guild: disnake.Guild)
         {"$match": {f"clan_games.{season}.clan" : clan.tag}},
         {"$group": {"_id": f"$clan_games.{season}.clan", "total_points": {"$sum": f"$clan_games.{season}.points"}}}
     ]
-    clangames_season_stats = (await bot.player_stats.aggregate(pipeline).to_list(length=None))[0].get("total_points")
-    if clangames_season_stats == 0:
+    clangames_season_stats = await bot.player_stats.aggregate(pipeline).to_list(length=None)
+    if clangames_season_stats:
+        clangames_season_stats = clangames_season_stats[0].get("total_points")
+    if clangames_season_stats == 0 or not clangames_season_stats:
         pipeline = [
             {"$match": {f"clan_games.{previous_season}.clan": clan.tag}},
             {"$group": {"_id": f"$clan_games.{previous_season}.clan", "total_points": {"$sum": f"$clan_games.{previous_season}.points"}}}
         ]
-        clangames_season_stats = (await bot.player_stats.aggregate(pipeline).to_list(length=None))[0].get("total_points")
-
+        clangames_season_stats = await bot.player_stats.aggregate(pipeline).to_list(length=None)
+        if clangames_season_stats:
+            clangames_season_stats = clangames_season_stats[0].get("total_points")
+        else:
+            clangames_season_stats = 0
     cwl_text = "No Recent CWL\n"
     asyncio.create_task(bot.store_all_cwls(clan=clan))
     response = (await bot.cwl_db.find({"$and" : [{"clan_tag": clan.tag}, {"data" : {"$ne" : None}}]}).sort("season", -1).limit(1).to_list(length=1))
@@ -394,55 +399,45 @@ async def war_log(bot: CustomClient, clan: coc.Clan, limit=25):
     return embed
 
 
-async def super_troop_list(bot: CustomClient,   clan: coc.Clan):
+async def super_troop_list(bot: CustomClient, clan: coc.Clan):
     boosted = ""
     none_boosted = ""
 
     async for player in clan.get_detailed_members():
-        troops = player.troop_cls
-        troops = player.troops
-        text = f"{player.name}"
-
+        text = ""
         if player.town_hall < 11:
             continue
 
-        num = 0
-
-        for troop in troops:
+        num_super_troops = 0
+        for troop in player.troops:
             if troop.is_active:
-                try:
-                    if troop.name in SUPER_TROOPS:
-                        text = f"{fetch_emoji(troop.name)} " + text
+                text = f"{fetch_emoji(troop.name)} {text}"
+                num_super_troops += 1
+            if num_super_troops == MAX_NUM_SUPERS:
+                break
 
-                        num += 1
-                except:
-                    pass
+        if num_super_troops == 1:
+            text = f"{bot.emoji.blank} {text}"
 
-        if num == 1:
-            text = "<:blanke:838574915095101470> " + text
-
-        if text == player.name:
+        if text == "":
             none_boosted += f"{player.name}\n"
-
         else:
-            boosted += f"{text}\n"
+            boosted += f"{text} {player.name}\n"
 
     if boosted == "":
         boosted = "None"
 
     embed = Embed(
-        title=f"**{clan.name} Boosting Statuses**",
         description=f"\n**Boosting:**\n{boosted}",
         color=Color.green())
-
-    embed.set_thumbnail(url=clan.badge.large)
 
     if none_boosted == "":
         none_boosted = "None"
 
-    # embed.add_field(name="Boosting", value=boosted)
+    embed.set_author(name=f"{clan.name} Boosting Statuses", icon_url=clan.badge.url)
     embed.add_field(name="Not Boosting:", value=none_boosted)
-
+    embed.set_footer(text="Last Refreshed")
+    embed.timestamp = datetime.now()
     return embed
 
 
