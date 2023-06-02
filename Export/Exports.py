@@ -23,7 +23,7 @@ from Exceptions.CustomExceptions import *
 class ExportCommands(cog_class):
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        self.DEFAULT_EXPORT_TYPES = ["Legend Stats", "War Hits", "Season Trophies"]
+        self.DEFAULT_EXPORT_TYPES = ["Legend Stats", "War Hits", "Season Trophies","Season Troops", "Achievements"]
 
     async def clan_converter(self, clan: str):
         clan = await self.bot.getClan(clan_tag=clan, raise_exceptions=True)
@@ -86,7 +86,7 @@ class ExportCommands(cog_class):
             file_path = await self.bot.excel_templates.find_one({"$and": [{"server_id": ctx.guild.id}, {"export_name": type}]})
             template = file_path.get("path")
         xlsx_data = await self.export_manager(player_tags=[player.tag for player in players], season=season, template=template)
-        file = disnake.File(fp=xlsx_data, filename="test.xlsx")
+        file = disnake.File(fp=xlsx_data, filename=f"{discord_user}-{type}.xlsx")
         await ctx.send(file=file)
 
 
