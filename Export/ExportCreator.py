@@ -46,7 +46,10 @@ class ExportCreator(commands.Cog):
                 await self.create_warhit_export(players=players, workbook=workbook, season=season, sheet_name="war_hits")
             elif template == "Season Trophies":
                 await self.create_season_trophies_export(players=players, workbook=workbook, season=season, sheet_name="season_trophies")
-
+            elif template == "Season Troops":
+                await self.create_troops_export(players=players, workbook=workbook, sheet_name="season_troops")
+            elif template == "Achievements":
+                await self.create_achievements_export(players=players, workbook=workbook, sheet_name="achievements_data")
         else:
             # if it is not, then it is a template
             # 1. load the template
@@ -78,24 +81,42 @@ class ExportCreator(commands.Cog):
                 if "legend_stats" in sheet_name:
                     workbook.remove(workbook.get_sheet_by_name(sheet_name))
                     await self.create_legend_export(players=players, workbook=workbook, season=season_for_sheet, sheet_name=sheet_name)
+                elif "war_hits" in sheet_name:
+                    workbook.remove(workbook.get_sheet_by_name(sheet_name))
+                    await self.create_warhit_export(players=players, workbook=workbook, season=season_for_sheet, sheet_name=sheet_name)
+                elif "season_trophies" in sheet_name:
+                    workbook.remove(workbook.get_sheet_by_name(sheet_name))
+                    await self.create_season_trophies_export(players=players, workbook=workbook, season=season_for_sheet, sheet_name=sheet_name)
+                elif template == "season_troops":
+                    workbook.remove(workbook.get_sheet_by_name(sheet_name))
+                    await self.create_troops_export(players=players, workbook=workbook, sheet_name="season_troops")
+                elif template == "achievements":
+                    workbook.remove(workbook.get_sheet_by_name(sheet_name))
+                    await self.create_achievements_export(players=players, workbook=workbook, sheet_name="achievements_data")
                 #more if statements to find other export types
         workbook.save(output)
         xlsx_data = output
         xlsx_data.seek(0)
         return xlsx_data
 
+    async def create_troops_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str):
+        troops_page = workbook.create_sheet(sheet_name)
+        pass           
+
+    async def create_achievements_export(self, players: List[MyCustomPlayer], workbook: openpyxl.workbook, sheet_name: str):
+        achievement_page = workbook.create_sheet(sheet_name)
+        playersData = await self.bot.get_players(tags=[player.tag for player in players], custom=True)
+        for player in playersData:
+            achievements = list(player.achievements)
+            achievement_order = coc.enums.ACHIEVEMENT_ORDER
+            
+
     async def create_season_trophies_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
         season_trophies_page = workbook.create_sheet(sheet_name)
-        season_data = await self.bot.history_db.find({
-            "$and": [
-                {"tag": { "$in" : [player.tag for player in players]}},
-                {"season": season}
-                ]}).to_list(length=None)
-        # I just skipped the for loop and did it in one line hope this isn't too ugly
-        data = [
-            [entry['name'],entry['tag'],entry['expLevel'],entry['trophies'],entry['attackWins'],entry['defenseWins'],
-             entry['rank'],entry['clan']['name'],entry['clan']['tag'],entry['season']] 
-            for entry in season_data]
+        season_data = await self.bot.history_db.find({"$and": [{"tag": { "$in" : [player.tag for player in players]}},{"season": season}]}).to_list(length=None)
+        data = [[entry['name'],entry['tag'],entry['expLevel'],entry['trophies'],entry['attackWins'],entry['defenseWins'],
+                entry['rank'],entry['clan']['name'],entry['clan']['tag'],entry['season']] 
+                for entry in season_data]
         
         columns = ["Player Name", "Player Tag", "Exp Level", "Trophies", "Attack Wins", "Defense Wins", "Rank", "Clan Name", "Clan Tag", "Season"]
 
