@@ -5,7 +5,7 @@ import os
 
 from dotenv import load_dotenv
 from pymitter import EventEmitter
-# import sentry_sdk
+import sentry_sdk
 load_dotenv()
 
 player_ee = EventEmitter()

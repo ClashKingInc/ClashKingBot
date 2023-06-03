@@ -4,7 +4,7 @@ import aiohttp
 import disnake
 import traceback
 import motor.motor_asyncio
-# import sentry_sdk
+import sentry_sdk
 from CustomClasses.CustomBot import CustomClient
 from disnake import Client
 from disnake.ext import commands
