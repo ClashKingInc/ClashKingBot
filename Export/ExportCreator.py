@@ -106,11 +106,23 @@ class ExportCreator(commands.Cog):
     async def create_achievements_export(self, players: List[MyCustomPlayer], workbook: openpyxl.workbook, sheet_name: str):
         achievement_page = workbook.create_sheet(sheet_name)
         playersData = await self.bot.get_players(tags=[player.tag for player in players], custom=True)
+        data = []
+        achievement_order = coc.enums.ACHIEVEMENT_ORDER
         for player in playersData:
-            achievements = list(player.achievements)
-            achievement_order = coc.enums.ACHIEVEMENT_ORDER
-            
-
+            achievements = []
+            entry = [player.name, player.tag]
+            for achievement in player.achievements:
+                achievements.append(achievement.name)
+                entry.append(achievement.value)
+            if "Get those Goblins!" not in achievements:
+                entry.insert(33,0)
+            data.append(entry)
+        columns = ["Player Name", "Player Tag"] + achievement_order
+        columns.remove("Get those other Goblins!")
+        # columns.remove("Get even more Goblins!")
+        await self.write_data(worksheet=achievement_page, column_names=columns, data=data)
+        return workbook
+        
     async def create_season_trophies_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
         season_trophies_page = workbook.create_sheet(sheet_name)
         season_data = await self.bot.history_db.find({"$and": [{"tag": { "$in" : [player.tag for player in players]}},{"season": season}]}).to_list(length=None)
