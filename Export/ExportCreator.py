@@ -113,26 +113,25 @@ class ExportCreator(commands.Cog):
         month = season[-2:]
         SEASON_START = utils.get_season_start(month=int(month) - 1, year=int(year)).timestamp()
         SEASON_END = utils.get_season_end(month=int(month) - 1, year=int(year)).timestamp()
-        # I really only need player_data for the name of the player, is there a better way to do this?
-        players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=False)
-        all_history = await self.bot.new_looper.player_history.find({"$and": [
-            {"tag" : {"$in" : [player.tag for player in players]}},
-            {"time" : {"$gte" : SEASON_START}},
-            {"time" : {"$lte" : SEASON_END}}]}).to_list(length=None)
+        pipeline = [{"$match": {"$and": [
+            {"tag": {"$in": [player.tag for player in players]}},{"time": {"$gte": SEASON_START}},{"time": {"$lte": SEASON_END}}]}},
+            {"$sort" : {"type" : 1}},
+            {"$group": {"_id": "$tag", "changes" : {"$push" : {"type" : "$type", "clan" : "$clan", "time" : "$time", "value" : "$value", "p_value" : "$p_value"}}}},
+            {"$lookup": {"from": "player_stats", "localField": "_id", "foreignField": "tag", "as": "name"}},
+            {"$set": {"name": "$name.name"}}]
+        results: List[dict] = await self.bot.player_history.aggregate(pipeline).to_list(length=None)
         data = []
         leagues = ['builderBaseLeague', 'league']
-        # Trying hard to just use one loop rather than two
-        for entry, player in zip(all_history,players_data):
-            time = datetime.fromtimestamp(entry['time'], tz=utc).strftime("%Y-%m-%d-%H:%M:%S")
-            p_value = entry.get('p_value', 0)
-            value = entry['value']
-            # trying not to loop through leagues twice
-            if entry['type'] in leagues:
-                value = entry['value']['name']
-                if p_value != 0:
-                    p_value = entry['p_value']['name'] 
-            # print([player.name, entry['tag'], entry['type'], p_value ,value, time, entry['clan']])
-            data.append([player.name, entry['tag'], entry['type'], p_value ,value, time, entry['clan']])
+        for result in results:
+            for change in result['changes']:
+                p_value = change.get('p_value', 0)
+                value = change['value']
+                if change['type'] in leagues:
+                    value = change['value']['name']
+                    if p_value != 0:
+                        p_value = change['p_value']['name'] 
+                time = datetime.fromtimestamp(change['time'], tz=utc).strftime("%Y-%m-%d-%H:%M:%S")
+                data.append([result['name'][0], result['_id'], change['type'], p_value, value, time, change['clan']])
         columns = ['Player Name', 'Player Tag', 'Type', 'Previous Value', 'Value', 'Time', 'Clan Tag']
         await self.write_data(worksheet=activity_page, column_names=columns, data=data)
         
@@ -158,10 +157,10 @@ class ExportCreator(commands.Cog):
         
     async def create_season_trophies_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
         season_trophies_page = workbook.create_sheet(sheet_name)
-        season_data = await self.bot.history_db.find({"$and": [{"tag": { "$in" : [player.tag for player in players]}},{"season": season}]}).to_list(length=None)
+        trophies_data = await self.bot.history_db.find({"$and": [{"tag": { "$in" : [player.tag for player in players]}},{"season": season}]}).to_list(length=None)
         data = [[entry['name'],entry['tag'],entry['expLevel'],entry['trophies'],entry['attackWins'],entry['defenseWins'],
                 entry['rank'],entry['clan']['name'],entry['clan']['tag'],entry['season']] 
-                for entry in season_data]
+                for entry in trophies_data]
         
         columns = ["Player Name", "Player Tag", "Exp Level", "Trophies", "Attack Wins", "Defense Wins", "Rank", "Clan Name", "Clan Tag", "Season"]
 
