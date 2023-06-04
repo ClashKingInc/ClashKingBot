@@ -69,6 +69,7 @@ class ChatBot:
         return completion.choices[0].message.content
 
 
+
 class OwnerCommands(commands.Cog):
 
     def __init__(self, bot: CustomClient):
@@ -127,19 +128,23 @@ class OwnerCommands(commands.Cog):
     async def hitrate(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
         text = ""
-        for th in TOWNHALL_LEVELS:
-            num_total = await self.bot.warhits.count_documents({"$and": [{ "townhall": th}, {"defender_townhall" : th}]})
-            if num_total == 0:
+        pipeline = [
+            {"$match": {"$and" : [{"type" : "clanCapitalContributions"}, {"clan" : "#2GYQ02JYP"}]}},
+            {"$sort": {"time": 1}},
+            {"$limit" : 50},
+            {"$lookup": {"from": "player_stats", "localField": "tag", "foreignField": "tag", "as": "name"}},
+            {"$set": {"name": "$name.name"}}
+        ]
+        results = await self.bot.player_history.aggregate(pipeline).to_list(length=None)
+        missing = 0
+        for result in results:
+            if result.get("p_value") is None:
+                missing += 1
                 continue
-            num_zeros = await self.bot.warhits.count_documents({"$and": [{ "townhall": th}, {"stars": 0}, {"defender_townhall" : th}]})
-            num_ones = await self.bot.warhits.count_documents({"$and": [{ "townhall": th}, {"stars": 1}, {"defender_townhall" : th}]})
-            num_twos = await self.bot.warhits.count_documents({"$and": [{ "townhall": th}, {"stars": 2}, {"defender_townhall" : th}]})
-            num_triples = await self.bot.warhits.count_documents({"$and": [{ "townhall": th}, {"stars": 3}, {"defender_townhall" : th}]})
-            text += f"{self.bot.fetch_emoji(name=th)}\n" \
-                    f"- 0{self.bot.emoji.war_star} {round((num_zeros/num_total)* 100, 2)}%" \
-                    f"| 1{self.bot.emoji.war_star}{round((num_ones/num_total)* 100, 2)}%" \
-                    f"| 2{self.bot.emoji.war_star}{round((num_twos/num_total)* 100, 2)}%" \
-                    f"| 3{self.bot.emoji.war_star}{round((num_triples/num_total)* 100, 2)}%\n"
+            diff = result.get("value") - result.get("p_value", 0)
+            name = result.get("name")[0]
+            text += f"<t:{result.get('time')}:R> {diff} {name}\n"
+        print(missing)
         embed = disnake.Embed(description=text)
         await ctx.send(embed=embed)
 

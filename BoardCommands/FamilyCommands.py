@@ -128,7 +128,6 @@ class FamCommands(commands.Cog):
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
         clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
         member_tags = get_clan_member_tags(clans=clans)
-
         top_50 = await self.bot.player_stats.find({"$and" : [{"tag" :  {"$in": member_tags}}, {"townhall" : {"$in" : townhall}}]}, {"tag" : 1}).sort(f"donations.{season}.donated", -1).limit(limit).to_list(length=50)
         players = await self.bot.get_players(tags=[p["tag"] for p in top_50])
         graph, total_donos, total_received = await graph_creator.create_clan_donation_graph(bot=self.bot, clans=clans, season=season, type="donated", townhalls=townhall)
@@ -154,9 +153,7 @@ class FamCommands(commands.Cog):
             week = self.bot.gen_raid_date()
         else:
             week = weekend
-        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
-        clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
-        member_tags = get_clan_member_tags(clans=clans)
+        member_tags = self.bot.get_family_member_tags(guild_id=guild.id)
         distinct = await self.bot.player_stats.distinct("tag", filter={"tag": {"$in": member_tags}})
         players = await self.bot.get_players(tags=distinct)
         embed: disnake.Embed = await shared_embeds.capital_donation_board(bot=self.bot, players=[player for player in players if player.town_hall in townhall], week=week,
@@ -174,6 +171,53 @@ class FamCommands(commands.Cog):
         embed.set_image(url=f"{graph}?{int(datetime.datetime.now().timestamp())}")
         await ctx.send(embed=embed, components=[buttons])
 
+    @family.sub_command(name="progress", description="Top 50 Progress for family members")
+    async def progress(self, ctx: disnake.ApplicationCommandInteraction,
+                       type=commands.Param(choices=["Heroes & Pets", "Troops, Spells, & Sieges", "Loot"]),
+                       season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor),
+                       server: disnake.Guild = commands.Param(converter=server_converter, default=None),
+                       limit: int = commands.Param(default=50, min_value=1, max_value=50)):
+        """
+            Parameters
+            ----------
+            type: progress type
+            season: clash season to view data for
+            server: server to view
+            limit: change amount of results shown
+        """
+        buttons = []
+        guild = server if server is not None else ctx.guild
+        footer_icon = guild.icon.url if guild.icon is not None else self.bot.user.avatar.url
+        member_tags = await self.bot.get_family_member_tags(guild_id=guild.id)
+        if type == "Heroes & Pets":
+            embed = await shared_embeds.hero_progress(bot=self.bot, player_tags=member_tags,
+                                                      season=season,
+                                                      footer_icon=footer_icon,
+                                                      title_name=f"{guild.name} {type} Progress", limit=limit)
+            buttons = disnake.ui.ActionRow()
+            buttons.append_item(disnake.ui.Button(
+                label="", emoji=self.bot.emoji.magnify_glass.partial_emoji,
+                style=disnake.ButtonStyle.grey, custom_id=f"fmp_{season}_{limit}_{guild.id}_heroes"))
+        elif type == "Troops, Spells, & Sieges":
+            embed = await shared_embeds.troops_spell_siege_progress(bot=self.bot,
+                                                                    player_tags=member_tags,
+                                                                    season=season,
+                                                                    footer_icon=footer_icon,
+                                                                    title_name=f"{guild.name} {type} Progress",
+                                                                    limit=limit)
+            buttons = disnake.ui.ActionRow()
+            buttons.append_item(disnake.ui.Button(
+                label="", emoji=self.bot.emoji.magnify_glass.partial_emoji,
+                style=disnake.ButtonStyle.grey, custom_id=f"fmp_{season}_{limit}_{guild.id}_troopsspells"))
+        elif type == "Loot":
+            embed = await shared_embeds.loot_progress(bot=self.bot,
+                                                      player_tags=member_tags,
+                                                      season=season,
+                                                      footer_icon=footer_icon,
+                                                      title_name=f"{guild.name} {type} Progress",
+                                                      limit=limit)
+
+        await ctx.edit_original_message(embed=embed, components=[buttons] if buttons else [])
 
     @family.sub_command(name="search", description="Overview Panel of a Family")
     async def family_search(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
@@ -188,6 +232,7 @@ class FamCommands(commands.Cog):
     @family_capital.autocomplete("server")
     @family_search.autocomplete("server")
     @countries.autocomplete("server")
+    @progress.autocomplete("server")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         matches = []
         for guild in self.bot.guilds:
@@ -200,6 +245,7 @@ class FamCommands(commands.Cog):
         return matches
 
     @family_donations.autocomplete("season")
+    @progress.autocomplete("season")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
         return [season for season in seasons if query.lower() in season.lower()]

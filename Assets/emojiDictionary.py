@@ -5,6 +5,8 @@ def emojiDictionary(emojiName):
         "Archer Queen": "<:ArcherQueen:701626158487175270>",
         "Grand Warden": "<:GrandWarden:701933765450268672>",
         "Royal Champion": "<:RoyalChampion:701933810648088606>",
+        "Battle Copter" : "<:battle_copter:1109716293696888852>",
+        "ElectroFire Wizard" : "<:electro_wiz:1109716130735587358>",
         "Archer": "<:Archer:701626909498409040>",
         "Baby Dragon": "<:BabyDragon:701626909586358364>",
         "Barbarian": "<:Barbarian:701626910207115274>",

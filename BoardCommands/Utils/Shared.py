@@ -154,7 +154,41 @@ async def troops_spell_siege_progress(bot: CustomClient, player_tags: List[str],
             text += f"{item.troops:<2} {item.spells:<2} {item.sieges:<2} {item.builder_troops:<2} {item.name[:13]}\n"
         embed = disnake.Embed(title=title_name, description=f"```{text}```",
                               colour=embed_color)
-        embed.set_footer(icon_url=footer_icon, text="HT=Home Troops, SP=Spells, SG=Sieges, BT=Builder Troops")
+    embed.set_footer(icon_url=footer_icon, text=f"HT=Home Troops, SP=Spells, SG=Sieges, BT=Builder Troops | {season}")
+    embed.timestamp = datetime.now()
+    return embed
+
+
+async def total_character_progress(bot: CustomClient, player_tags: List[str], season: str, footer_icon: str, title_name: str, type: str, embed_color: disnake.Color = disnake.Color.green()):
+    year = season[:4]
+    month = season[-2:]
+    season_start = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
+    season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
+
+    if type == "heroes":
+        enums = coc.enums.HERO_ORDER + coc.enums.PETS_ORDER
+    elif type == "troopsspells":
+        enums = coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER
+    pipeline = [
+        {"$match": {"$and": [{"tag": {"$in": player_tags}},
+                             {"type": {"$in": enums}},
+                             {"time": {"$gte": season_start.timestamp()}},
+                             {"time": {"$lte": season_end.timestamp()}}]}},
+        {"$group": {"_id": {"type": "$type"}, "num": {"$sum": 1}}},
+        {"$sort": {"num": -1}},
+    ]
+    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
+    text = f"{bot.emoji.blank}`Name{'':14}#`\n"
+    total_upgrades = 0
+    for result in results:
+        type = result.get("_id").get("type")
+        emoji = bot.fetch_emoji(type)
+        amount = result.get("num")
+        total_upgrades += amount
+        text += f"{emoji}`{type:15} {amount:3}`\n"
+
+    embed = disnake.Embed(title=title_name, description=f"{text}", colour=embed_color)
+    embed.set_footer(icon_url=footer_icon, text=f"{total_upgrades} Total Upgrades")
     embed.timestamp = datetime.now()
     embed.set_footer(text=season, icon_url=footer_icon)
     return embed

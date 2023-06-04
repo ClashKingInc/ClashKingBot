@@ -123,7 +123,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @clan.sub_command(name="progress", description="Progress by clan ")
     async def progress(self, ctx: disnake.ApplicationCommandInteraction,
                        clan: coc.Clan = commands.Param(converter=clan_converter),
-                       type=commands.Param(choices=["Heroes & Pets", "Troops, Spells, & Sieges", "Home Trophies", "Builder Trophies", "Loot"]),
+                       type=commands.Param(choices=["Heroes & Pets", "Troops, Spells, & Sieges", "Loot"]),
                        season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor),
                        limit: int = commands.Param(default=50, min_value=1, max_value=50)):
         """
@@ -134,14 +134,23 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             season: clash season to view data for
             limit: change amount of results shown
         """
+        buttons = []
         if type == "Heroes & Pets":
             embed = await shared_embeds.hero_progress(bot=self.bot, player_tags=[member.tag for member in clan.members], season=season,
                                                       footer_icon=clan.badge.url, title_name=f"{clan.name} {type} Progress", limit=limit)
+            buttons = disnake.ui.ActionRow()
+            buttons.append_item(disnake.ui.Button(
+                label="", emoji=self.bot.emoji.magnify_glass.partial_emoji,
+                style=disnake.ButtonStyle.grey, custom_id=f"clanmoreprogress_{clan.tag}_{season}_heroes"))
         elif type == "Troops, Spells, & Sieges":
             embed = await shared_embeds.troops_spell_siege_progress(bot=self.bot, player_tags=[member.tag for member in clan.members],
                                                       season=season,
                                                       footer_icon=clan.badge.url,
                                                       title_name=f"{clan.name} {type} Progress", limit=limit)
+            buttons = disnake.ui.ActionRow()
+            buttons.append_item(disnake.ui.Button(
+                label="", emoji=self.bot.emoji.magnify_glass.partial_emoji,
+                style=disnake.ButtonStyle.grey, custom_id=f"clanmoreprogress_{clan.tag}_{season}_troopsspells"))
         elif type == "Home Trophies":
             embed = await shared_embeds.trophies_progress(bot=self.bot,
                                                                     player_tags=[member.tag for member in clan.members],
@@ -164,7 +173,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                                                           title_name=f"{clan.name} {type} Progress",
                                                           limit=limit)
 
-        await ctx.edit_original_message(embed=embed)
+        await ctx.edit_original_message(embed=embed, components=[buttons] if buttons else [])
 
 
     @clan.sub_command(name="sorted", description="List of clan members, sorted by any attribute")

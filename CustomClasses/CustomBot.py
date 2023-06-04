@@ -18,7 +18,7 @@ from utils.constants import locations, BADGE_GUILDS
 from datawrapper import Datawrapper
 from typing import Tuple, List
 from utils import logins as login
-from utils.general import fetch
+from utils.general import fetch, get_clan_member_tags
 from math import ceil
 from CustomClasses.DatabaseClasses import CustomClan
 
@@ -454,6 +454,11 @@ class CustomClient(commands.AutoShardedBot):
                 accepted_times.append([time ,reminder_time])
         return accepted_times
 
+    async def get_family_member_tags(self, guild_id):
+        clan_tags = await self.clan_db.distinct("tag", filter={"server": guild_id})
+        clans: List[coc.Clan] = await self.get_clans(tags=clan_tags)
+        member_tags = get_clan_member_tags(clans=clans)
+        return member_tags
 
     def create_link(self, tag):
         tag = tag.replace("#", "%23")
@@ -473,6 +478,8 @@ class CustomClient(commands.AutoShardedBot):
         emoji = emojiDictionary(name)
         if emoji is None:
             emoji = legend_emojis(name)
+        if emoji is None:
+            return None
         return EmojiType(emoji_string=emoji)
 
     async def pingToMember(self, ctx, ping, no_fetch=False):

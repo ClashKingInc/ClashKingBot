@@ -27,11 +27,18 @@ clan_triggers = {
     "capitaldonos",
     "clanactgraph",
     "clanhrcompo",
-    "clanact"
+    "clanact",
+    "clanmoreprogress"
+}
+
+ephemeral = {
+    "clanmoreprogress",
+    "fmp"
 }
 
 family_triggers = {
-    "donationfam"
+    "donationfam",
+    "fmp"
 }
 
 async def button_click_to_embed(bot: CustomClient, ctx: disnake.MessageInteraction):
@@ -39,12 +46,12 @@ async def button_click_to_embed(bot: CustomClient, ctx: disnake.MessageInteracti
     embed = None
     first = custom_id.split("_")[0]
     if first in clan_triggers:
-        await ctx.response.defer()
+        await ctx.response.defer(ephemeral=first in ephemeral)
         embed = await clan_parser(bot, ctx, custom_id)
     elif first in family_triggers:
-        await ctx.response.defer()
+        await ctx.response.defer(ephemeral=first in ephemeral)
         embed = await family_parser(bot, ctx, custom_id)
-    return embed
+    return embed, first in ephemeral
 
 async def clan_parser(bot: CustomClient, ctx: disnake.MessageInteraction, custom_id: str):
     split = custom_id.split("_")
@@ -148,6 +155,11 @@ async def clan_parser(bot: CustomClient, ctx: disnake.MessageInteraction, custom
                                                            tier=f"clanactgraph_{clan.tag}", no_html=True)
         embed.set_image(file=file)
 
+    elif "clanmoreprogress_" in custom_id:
+        season = split[-2]
+        type = split[-1]
+        embed = await shared_embeds.total_character_progress(bot=bot, player_tags=[member.tag for member in clan.members], season=season,
+                                                             footer_icon=clan.badge.url, type=type, title_name=f"{clan.name} Total Progress")
     return embed
 
 
@@ -156,9 +168,9 @@ async def family_parser(bot: CustomClient, ctx: disnake.MessageInteraction, cust
     season = split[1]
     limit = int(split[2])
     guild = await bot.getch_guild(int(split[3]))
-    townhall = TOWNHALL_LEVELS if split[-1] == "None" else [int(split[-1])]
     embed = None
     if "donationfam_" in custom_id:
+        townhall = TOWNHALL_LEVELS if split[-1] == "None" else [int(split[-1])]
         clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
         clans: List[coc.Clan] = await bot.get_clans(tags=clan_tags)
         member_tags = get_clan_member_tags(clans=clans)
@@ -177,6 +189,15 @@ async def family_parser(bot: CustomClient, ctx: disnake.MessageInteraction, cust
                                                    total_donos=total_donos, total_received=total_received)
         embed.set_image(file=graph)
 
+    elif "fmp_" in custom_id:
+        type = split[-1]
+        footer_icon = guild.icon.url if guild.icon is not None else bot.user.avatar.url
+        member_tags = await bot.get_family_member_tags(guild_id=guild.id)
+        embed = await shared_embeds.total_character_progress(bot=bot,
+                                                             player_tags=member_tags,
+                                                             season=season,
+                                                             footer_icon=footer_icon, type=type,
+                                                             title_name=f"{guild.name} Total Progress")
     return embed
 
 
