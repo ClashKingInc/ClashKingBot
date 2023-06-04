@@ -23,7 +23,7 @@ from Exceptions.CustomExceptions import *
 class ExportCommands(cog_class):
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        self.DEFAULT_EXPORT_TYPES = ["Legend Stats", "War Hits", "Season Trophies","Season Troops", "Achievements"]
+        self.DEFAULT_EXPORT_TYPES = ["Legend Stats", "War Hits", "Season Trophies","Season Troops", "Achievements", "Player Activity"]
 
     async def clan_converter(self, clan: str):
         clan = await self.bot.getClan(clan_tag=clan, raise_exceptions=True)
