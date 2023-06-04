@@ -50,6 +50,8 @@ class ExportCreator(commands.Cog):
                 await self.create_troops_export(players=players, workbook=workbook, sheet_name="season_troops")
             elif template == "Achievements":
                 await self.create_achievements_export(players=players, workbook=workbook, sheet_name="achievements_data")
+            elif template == "Player Activity":
+                await self.create_player_activity_export(players=players, workbook=workbook, season=season, sheet_name="player_activity")
         else:
             # if it is not, then it is a template
             # 1. load the template
@@ -93,6 +95,9 @@ class ExportCreator(commands.Cog):
                 elif template == "achievements":
                     workbook.remove(workbook.get_sheet_by_name(sheet_name))
                     await self.create_achievements_export(players=players, workbook=workbook, sheet_name="achievements_data")
+                elif template == "player_activity":
+                    workbook.remove(workbook.get_sheet_by_name(sheet_name))
+                    await self.create_player_activity_export(players=players, workbook=workbook, season=season_for_sheet, sheet_name="player_activity")
                 #more if statements to find other export types
         workbook.save(output)
         xlsx_data = output
@@ -101,14 +106,42 @@ class ExportCreator(commands.Cog):
 
     async def create_troops_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str):
         troops_page = workbook.create_sheet(sheet_name)
-        pass           
 
+    async def create_player_activity_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
+        activity_page = workbook.create_sheet(sheet_name)
+        year = season[:4]
+        month = season[-2:]
+        SEASON_START = utils.get_season_start(month=int(month) - 1, year=int(year)).timestamp()
+        SEASON_END = utils.get_season_end(month=int(month) - 1, year=int(year)).timestamp()
+        # I really only need player_data for the name of the player, is there a better way to do this?
+        players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=False)
+        all_history = await self.bot.new_looper.player_history.find({"$and": [
+            {"tag" : {"$in" : [player.tag for player in players]}},
+            {"time" : {"$gte" : SEASON_START}},
+            {"time" : {"$lte" : SEASON_END}}]}).to_list(length=None)
+        data = []
+        leagues = ['builderBaseLeague', 'league']
+        # Trying hard to just use one loop rather than two
+        for entry, player in zip(all_history,players_data):
+            time = datetime.fromtimestamp(entry['time'], tz=utc).strftime("%Y-%m-%d-%H:%M:%S")
+            p_value = entry.get('p_value', 0)
+            value = entry['value']
+            # trying not to loop through leagues twice
+            if entry['type'] in leagues:
+                value = entry['value']['name']
+                if p_value != 0:
+                    p_value = entry['p_value']['name'] 
+            # print([player.name, entry['tag'], entry['type'], p_value ,value, time, entry['clan']])
+            data.append([player.name, entry['tag'], entry['type'], p_value ,value, time, entry['clan']])
+        columns = ['Player Name', 'Player Tag', 'Type', 'Previous Value', 'Value', 'Time', 'Clan Tag']
+        await self.write_data(worksheet=activity_page, column_names=columns, data=data)
+        
     async def create_achievements_export(self, players: List[MyCustomPlayer], workbook: openpyxl.workbook, sheet_name: str):
         achievement_page = workbook.create_sheet(sheet_name)
-        playersData = await self.bot.get_players(tags=[player.tag for player in players], custom=True)
+        players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=False)
         data = []
         achievement_order = coc.enums.ACHIEVEMENT_ORDER
-        for player in playersData:
+        for player in players_data:
             achievements = []
             entry = [player.name, player.tag]
             for achievement in player.achievements:
@@ -172,7 +205,6 @@ class ExportCreator(commands.Cog):
 
         await self.write_data(worksheet=warhit_stat_page, column_names=columns, data=data)
         return workbook
-    
     
     async def create_legend_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str ,season: str = None):
         legend_stats_page = workbook.create_sheet(sheet_name)
