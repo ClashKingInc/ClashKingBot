@@ -394,6 +394,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         await ctx.response.defer()
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
+        print(_roster.roster_result)
         embed = await _roster.embed()
         signup_buttons = [
             disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,

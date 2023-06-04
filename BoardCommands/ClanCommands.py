@@ -4,10 +4,6 @@ import pytz
 import calendar
 
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
-from utils.components import raid_buttons
-from utils.discord_utils import partial_emoji_gen
-from CustomClasses.CustomPlayer import MyCustomPlayer
-from datetime import datetime
 from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
 from typing import TYPE_CHECKING, List
@@ -98,7 +94,11 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         if button_text is not None and button_link is not None:
             buttons.append_item(disnake.ui.Button(label=button_text, url=button_link))
 
-        await ctx.edit_original_message(embed=embed, components=[buttons])
+        try:
+            await ctx.edit_original_message(embed=embed, components=buttons)
+        except disnake.errors.HTTPException:
+            embed = disnake.Embed(description="Not a valid button link.",color=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
 
     @clan.sub_command(name="links", description="List of un/linked players in clan")
     async def links(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
@@ -286,46 +286,73 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         await ctx.edit_original_message(embed=embed, components=buttons)
 
 
+    @clan.sub_command(name="compo", description="Composition of a clan. (with a twist?)")
+    async def compo(self, ctx: disnake.ApplicationCommandInteraction,
+                         clan: coc.Clan = commands.Param(converter=clan_converter),
+                        type: str = commands.Param(default="Totals", choices=["Totals", "Hitrate"])):
+        """
+            Parameters
+            ----------
+            clan: Use clan tag or select an option from the autocomplete
+            type: type of compo calculation
+        """
+        if type == "Totals":
+            embed = await shared_embeds.th_composition(bot=self.bot, player_tags=[member.tag for member in clan.members],
+                                                       title=f"{clan.name} Townhall Composition", thumbnail=clan.badge.url)
+            custom_id = f"clancompo_{clan.tag}"
+        elif type == "Hitrate":
+            embed = await shared_embeds.th_hitrate(bot=self.bot,
+                                                       player_tags=[member.tag for member in clan.members],
+                                                       title=f"{clan.name} TH Hitrate Compo",
+                                                       thumbnail=clan.badge.url)
+            custom_id = f"clanhrcompo_{clan.tag}"
+
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(
+                label="", emoji=self.bot.emoji.refresh.partial_emoji,
+                style=disnake.ButtonStyle.grey,
+                custom_id=custom_id))
+
+        await ctx.edit_original_message(embed=embed, components=buttons)
+
+
+
     @clan.sub_command(name="activity", description="Activity stats for all of a player's accounts")
     async def activity(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
-                       season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor)):
+                       season: str = commands.Param(default=None, converter=season_convertor)):
+
+        s = season
+        season = season if season is not None else self.bot.gen_season_date()
 
         players = await self.bot.get_players(tags=[member.tag for member in clan.members])
-
-        footer_icon = clan.badge.url
-        embed: disnake.Embed = await shared_embeds.activity_board(players=players, season=season, footer_icon=footer_icon, title_name=f"{clan.name}")
-
+        embed: disnake.Embed = await shared_embeds.activity_board(bot=self.bot, players=players, season=season, footer_icon=clan.badge.url, title_name=f"{clan.name}")
+        file, buttons = await shared_embeds.activity_graph(bot=self.bot, players=players, season=season,
+                                                           title=f"{clan.name} Activity ({season}) | UTC",
+                                                           granularity="day", time_zone="UTC", tier=f"clanactgraph_{clan.tag}", no_html=True)
+        embed.set_image(file=file)
         buttons = disnake.ui.ActionRow()
         buttons.append_item(disnake.ui.Button(
             label="", emoji=self.bot.emoji.refresh.partial_emoji,
-            style=disnake.ButtonStyle.grey, custom_id=f"act_{season}_{clan.tag}"))
+            style=disnake.ButtonStyle.grey, custom_id=f"clanact_{clan.tag}_{s}"))
         buttons.append_item(disnake.ui.Button(
             label="Last Online", emoji=self.bot.emoji.clock.partial_emoji,
-            style=disnake.ButtonStyle.grey, custom_id=f"lo_{season}_{clan.tag}"))
-        buttons.append_item(disnake.ui.Button(
-            label="Graph", emoji=self.bot.emoji.ratio.partial_emoji,
-            style=disnake.ButtonStyle.grey, custom_id=f"actgraphclan_{season}_{clan.tag}"))
+            style=disnake.ButtonStyle.grey, custom_id=f"lo_{clan.tag}_{s}"))
 
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
 
-    @clan.sub_command(name="activity-graph")
+    @clan.sub_command(name="graphs")
     async def activity_graph(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
-                       season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor),
-                       granularity: str = commands.Param(default="Day", choices=["Hour", "Quarter-Day", "Day"]),
+                       type: str = commands.Param(choices=["Activity"]),
+                       season: str = commands.Param(default=None, converter=season_convertor),
                        timezone: str = "UTC"):
-
-        players = await self.bot.get_players(tags=[member.tag for member in clan.members])
-
-        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
-        members = []
-        clans = await self.bot.get_clans(tags=clan_tags)
-        for clan in clans:
-            members += [member.tag for member in clan.members]
-
-        players = await self.bot.get_players(tags=members)
-        file, buttons = await shared_embeds.activity_graph(players=players, season=season, title=f"{clan.name} Activity ({season})", granularity=granularity, time_zone=timezone)
-        await ctx.send(file=file, components=[buttons])
+        s = season if season is not None else self.bot.gen_season_date()
+        if type == "Activity":
+            players = await self.bot.get_players(tags=[member.tag for member in clan.members])
+            file, buttons = await shared_embeds.activity_graph(bot=self.bot, players=players, season=season, title=f"{clan.name} Activity ({s}) | {timezone}",
+                                                               granularity="day", time_zone=timezone, tier=f"clanactgraph_{clan.tag}")
+            await ctx.send(file=file, components=[buttons])
 
 
     @clan.sub_command(name="capital", description="Clan capital info for a clan for a week")
@@ -336,9 +363,12 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             week = gen_raid_weekend_datestrings(number_of_weeks=1)[0]
 
         weekend_raid_entry = await get_raidlog_entry(clan=clan, weekend=week, bot=self.bot, limit=1)
-        embed = await self.clan_capital_overview(clan=clan, raid_log_entry=weekend_raid_entry)
-        file = await capital_gen.generate_raid_result_image(raid_entry=weekend_raid_entry, clan=clan)
-        embed.set_image(file=file)
+        if weekend_raid_entry is None:
+            embed = await clan_embeds.clan_raid_weekend_donation_stats(bot=self.bot, clan=clan, weekend=week)
+        else:
+            embed = await clan_embeds.clan_capital_overview(bot=self.bot, clan=clan, raid_log_entry=weekend_raid_entry)
+            file = await capital_gen.generate_raid_result_image(raid_entry=weekend_raid_entry, clan=clan)
+            embed.set_image(file=file)
 
         page_buttons = [
             disnake.ui.Button(label="", emoji=self.bot.emoji.menu.partial_emoji,
@@ -377,6 +407,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @sorted.autocomplete("clan")
     @war_log.autocomplete("clan")
     @super_troops.autocomplete("clan")
+    @compo.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id}).sort("name", 1)
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})

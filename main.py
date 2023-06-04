@@ -103,6 +103,7 @@ initial_extensions = [
     #"Exceptions.ExceptionHandler",
     "BoardCommands.ClanCommands",
     "BoardCommands.TopCommands",
+    "BoardCommands.FamilyCommands",
     "Export.ExportsCog",
     "BoardCommands.Utils.Buttons",
     "BackgroundCrons.refresh_boards"

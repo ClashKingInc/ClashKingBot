@@ -8,11 +8,12 @@ import calendar
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from Exceptions.CustomExceptions import InvalidGuildID
-from typing import TYPE_CHECKING, List
+from typing import List
 from utils.general import get_clan_member_tags
 from utils.ClanCapital import gen_raid_weekend_datestrings
 from pytz import utc
-
+from BoardCommands.Utils import Shared as shared_embeds
+from BoardCommands.Utils import Graphs as graph_creator
 
 class FamCommands(commands.Cog):
 
@@ -54,8 +55,48 @@ class FamCommands(commands.Cog):
         if result is not None:
             ephemeral = result.get("private_mode", False)
         await ctx.response.defer(ephemeral=ephemeral)
-        self.board_cog: boardcog = self.bot.get_cog("BoardCog")
-        self.graph_cog: graphcog = self.bot.get_cog("Graphing")
+
+    @commands.slash_command(name="countries")
+    async def countries(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
+        await ctx.response.defer()
+        guild = ctx.guild if server is None else server
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+        clans = await self.bot.get_clans(tags=clan_tags)
+        tags = []
+        for clan in clans:
+            for player in clan.members:
+                tags.append(player.tag)
+
+        pipeline = [
+            {"$match": {"tag": {"$in": tags}}},
+            {"$sort": {"country_name": 1}},
+            {"$lookup": {"from": "player_stats", "localField": "tag", "foreignField": "tag", "as": "name"}},
+            {"$set": {"name": "$name.name"}}
+        ]
+        results = await self.bot.leaderboard_db.aggregate(pipeline).to_list(length=None)
+        text = ""
+        x = 0
+        embeds: list[disnake.Embed] = []
+        for result in results:
+            cc: str = result.get('country_code')
+            flag = f":flag_{cc.lower()}:"
+            name = result.get('name')
+            if not name:
+                continue
+            text += f"`{self.bot.clean_string(text=result.get('name')[0])[:15]:15}`{flag}{result.get('country_name')}\n"
+            x += 1
+            if x == 50:
+                x = 0
+                embeds.append(disnake.Embed(title=f"{ctx.guild.name} Player Countries", description=text))
+                text = ""
+
+        if x != 0:
+            embeds.append(disnake.Embed(title=f"{ctx.guild.name} Player Countries", description=text))
+        if sum([len(embed.description) for embed in embeds] + [len(embed.title) for embed in embeds]) >= 5950:
+            for embed in embeds:
+                await ctx.followup.send(embed=embed)
+        else:
+            await ctx.send(embeds=embeds)
 
     @family.sub_command(name="clans", description="Overview list of all family clans")
     async def family_clans(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
@@ -79,7 +120,7 @@ class FamCommands(commands.Cog):
     @family.sub_command(name="donations", description="Top 50 donators in family")
     async def family_donations(self, ctx: disnake.ApplicationCommandInteraction,
                                season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor),
-                               townhall: List[str] = commands.Param(default=None, convert_defaults=True, converter=th_convertor),
+                               townhall: List[int] = commands.Param(default=None, convert_defaults=True, converter=th_convertor),
                                server: disnake.Guild = commands.Param(converter=server_converter, default=None),
                                limit: int = commands.Param(default=50, max_value=50)):
 
@@ -88,11 +129,10 @@ class FamCommands(commands.Cog):
         clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
         member_tags = get_clan_member_tags(clans=clans)
 
-
         top_50 = await self.bot.player_stats.find({"$and" : [{"tag" :  {"$in": member_tags}}, {"townhall" : {"$in" : townhall}}]}, {"tag" : 1}).sort(f"donations.{season}.donated", -1).limit(limit).to_list(length=50)
         players = await self.bot.get_players(tags=[p["tag"] for p in top_50])
-        graph, total_donos, total_received = await self.graph_cog.create_clan_donation_graph(clans=clans, season=season, type="donated", townhalls=townhall)
-        embed = await self.board_cog.donation_board(players=players, season=season, title_name=f"{guild.name}", type="donations",
+        graph, total_donos, total_received = await graph_creator.create_clan_donation_graph(bot=self.bot, clans=clans, season=season, type="donated", townhalls=townhall)
+        embed = await shared_embeds.donation_board(bot=self.bot, players=players, season=season, title_name=f"{guild.name}", type="donations",
                                                     footer_icon=ctx.guild.icon.url if ctx.guild.icon is not None else self.bot.user.avatar.url,
                                                     total_donos=total_donos, total_received=total_received)
         embed.set_image(file=graph)
@@ -119,7 +159,7 @@ class FamCommands(commands.Cog):
         member_tags = get_clan_member_tags(clans=clans)
         distinct = await self.bot.player_stats.distinct("tag", filter={"tag": {"$in": member_tags}})
         players = await self.bot.get_players(tags=distinct)
-        embed: disnake.Embed = await self.board_cog.capital_donation_board(players=[player for player in players if player.town_hall in townhall], week=week,
+        embed: disnake.Embed = await shared_embeds.capital_donation_board(bot=self.bot, players=[player for player in players if player.town_hall in townhall], week=week,
                                                                            title_name=f"{guild.name} Top",
                                                                            footer_icon=guild.icon.url if guild.icon is not None else None, limit=limit)
         buttons = disnake.ui.ActionRow()
@@ -147,6 +187,7 @@ class FamCommands(commands.Cog):
     @family_donations.autocomplete("server")
     @family_capital.autocomplete("server")
     @family_search.autocomplete("server")
+    @countries.autocomplete("server")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         matches = []
         for guild in self.bot.guilds:
@@ -171,5 +212,8 @@ class FamCommands(commands.Cog):
             if query.lower() in weekend.lower():
                 matches.append(weekend)
         return matches
+
+def setup(bot: CustomClient):
+    bot.add_cog(FamCommands(bot))
 
 

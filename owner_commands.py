@@ -46,6 +46,7 @@ import os
 import openai
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+from utils.constants import TOWNHALL_LEVELS
 
 class ChatBot:
     def __init__(self, system=""):
@@ -104,6 +105,43 @@ class OwnerCommands(commands.Cog):
 
         await ctx.edit_original_message(content=f"Summary of the last {num_messages} messages in {channel.name}:\n {message}")
 
+    #@commands.command(name="example")
+    @commands.command(name="example")
+    async def example(self, ctx: disnake.ApplicationCommandInteraction):
+        clan = await self.bot.getClan("#280U89YQR")
+        embed = disnake.Embed(title=f"{clan.name} Week 5/23-5/30 Summary",
+              description=f"`Trophies        `{self.bot.emoji.trophy}`{clan.points}  `{self.bot.emoji.up_green_arrow}`+500  `{self.bot.emoji.globe}`#254 `{self.bot.emoji.discord}`#2`\n"
+                          f"`Builder Trophies`{self.bot.emoji.trophy}`{clan.versus_points}  `{self.bot.emoji.up_green_arrow}`+25   `{self.bot.emoji.globe}`#3457`{self.bot.emoji.discord}`#1`\n"
+                          f"`Donations       `{self.bot.emoji.clan_castle}`500,103`{self.bot.emoji.up_green_arrow}`+14265`{self.bot.emoji.globe}`#23  `{self.bot.emoji.discord}`#1`\n"
+                          f"`TH Compo        `{self.bot.fetch_emoji(15)}`14.97  `{self.bot.emoji.up_green_arrow}`+0.5  `{self.bot.emoji.discord}`#2   `\n"
+                          f"`War Stars       `{self.bot.emoji.war_star}`387    `{self.bot.emoji.up_green_arrow}`+23   `{self.bot.emoji.discord}`#8   `\n"
+                          f"`Attack Wins     `{self.bot.emoji.thick_sword}`2,903  `{self.bot.emoji.up_green_arrow}`+492  `{self.bot.emoji.globe}`#201 `{self.bot.emoji.discord}`#4`\n"
+                          f"`Activity        `{self.bot.emoji.clock}`5,607  `{self.bot.emoji.up_green_arrow}`+1003 `{self.bot.emoji.globe}`#1   `{self.bot.emoji.discord}`#1`\n"
+                          f"`Wars Won        `{self.bot.emoji.war_star}`3      `{self.bot.emoji.up_green_arrow}`+0    `{self.bot.emoji.discord}`#1   `\n",
+              color=disnake.Color.green())
+        embed.set_thumbnail(url=clan.badge.url)
+        await ctx.send(embed=embed)
+
+
+    @commands.slash_command(name="hitrate")
+    async def hitrate(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        text = ""
+        for th in TOWNHALL_LEVELS:
+            num_total = await self.bot.warhits.count_documents({"$and": [{ "townhall": th}, {"defender_townhall" : th}]})
+            if num_total == 0:
+                continue
+            num_zeros = await self.bot.warhits.count_documents({"$and": [{ "townhall": th}, {"stars": 0}, {"defender_townhall" : th}]})
+            num_ones = await self.bot.warhits.count_documents({"$and": [{ "townhall": th}, {"stars": 1}, {"defender_townhall" : th}]})
+            num_twos = await self.bot.warhits.count_documents({"$and": [{ "townhall": th}, {"stars": 2}, {"defender_townhall" : th}]})
+            num_triples = await self.bot.warhits.count_documents({"$and": [{ "townhall": th}, {"stars": 3}, {"defender_townhall" : th}]})
+            text += f"{self.bot.fetch_emoji(name=th)}\n" \
+                    f"- 0{self.bot.emoji.war_star} {round((num_zeros/num_total)* 100, 2)}%" \
+                    f"| 1{self.bot.emoji.war_star}{round((num_ones/num_total)* 100, 2)}%" \
+                    f"| 2{self.bot.emoji.war_star}{round((num_twos/num_total)* 100, 2)}%" \
+                    f"| 3{self.bot.emoji.war_star}{round((num_triples/num_total)* 100, 2)}%\n"
+        embed = disnake.Embed(description=text)
+        await ctx.send(embed=embed)
 
     @commands.slash_command(name="owner_anniversary", guild_ids=[923764211845312533])
     @commands.is_owner()
@@ -421,6 +459,7 @@ class OwnerCommands(commands.Cog):
             #await self.bot.player_stats.create_index([(f"donations.{season}.donated", 1)], background=True)
             #await self.bot.player_stats.create_index([(f"donations.{season}.received", 1)], background=True)
             pass
+
 
 
     @commands.slash_command(name="html")

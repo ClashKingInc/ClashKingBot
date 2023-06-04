@@ -475,7 +475,9 @@ def clan_th_composition(bot: CustomClient,   clan: coc.Clan, member_list):
     return embed
 
 
-async def clan_capital_overview(bot: CustomClient,   clan: coc.Clan, raid_log_entry: RaidLogEntry):
+async def clan_capital_overview(bot: CustomClient, clan: coc.Clan, raid_log_entry: RaidLogEntry):
+    if raid_log_entry is None:
+        return Embed(description="No Raid Weekend Entry Found. Donation info may be available.", color=disnake.Color.green())
     attack_count = 0
     for member in raid_log_entry.members:
         attack_count += member.attack_count
@@ -484,11 +486,11 @@ async def clan_capital_overview(bot: CustomClient,   clan: coc.Clan, raid_log_en
         text=f"{str(raid_log_entry.start_time.time.date()).replace('-', '/')}-{str(raid_log_entry.end_time.time.date()).replace('-', '/')}",
         icon_url=clan.badge.url)
     embed.add_field(name="Overview",
-                    value=f"- {self.bot.emoji.capital_gold}{'{:,}'.format(raid_log_entry.total_loot)} Looted\n"
-                          f"- {self.bot.fetch_emoji('District_Hall5')}{raid_log_entry.destroyed_district_count} Districts Destroyed\n"
-                          f"- {self.bot.emoji.thick_sword}{attack_count}/300 Attacks Complete\n"
-                          f"- {self.bot.emoji.person}{len(raid_log_entry.members)}/50 Participants\n"
-                          f"- Start {self.bot.timestamper(raid_log_entry.start_time.time.timestamp()).relative}, End {self.bot.timestamper(raid_log_entry.end_time.time.timestamp()).relative}\n",
+                    value=f"- {bot.emoji.capital_gold}{'{:,}'.format(raid_log_entry.total_loot)} Looted\n"
+                          f"- {bot.fetch_emoji('District_Hall5')}{raid_log_entry.destroyed_district_count} Districts Destroyed\n"
+                          f"- {bot.emoji.thick_sword}{attack_count}/300 Attacks Complete\n"
+                          f"- {bot.emoji.person}{len(raid_log_entry.members)}/50 Participants\n"
+                          f"- Start {bot.timestamper(raid_log_entry.start_time.time.timestamp()).relative}, End {bot.timestamper(raid_log_entry.end_time.time.timestamp()).relative}\n",
                     inline=False)
     atk_stats_by_district = defaultdict(list)
     for clan in raid_log_entry.attack_log:
@@ -540,16 +542,16 @@ async def clan_capital_overview(bot: CustomClient,   clan: coc.Clan, raid_log_en
         count_conv = {1: "gold",
                       2: "white",
                       3: "blue"}
-        top_text += f"{self.bot.get_number_emoji(color=count_conv[count], number=count)}{self.bot.clean_string(member.name)} {self.bot.emoji.capital_gold}{member.capital_resources_looted}{create_superscript(member.attack_count)}\n"
+        top_text += f"{bot.get_number_emoji(color=count_conv[count], number=count)}{bot.clean_string(member.name)} {bot.emoji.capital_gold}{member.capital_resources_looted}{create_superscript(member.attack_count)}\n"
     embed.add_field(name="Top 3 Raiders", value=top_text, inline=False)
     return embed
 
 
-async def clan_raid_weekend_donation_stats(bot: CustomClient,   clan: coc.Clan, weekend: str):
+async def clan_raid_weekend_donation_stats(bot: CustomClient, clan: coc.Clan, weekend: str):
     member_tags = [member.tag for member in clan.members]
-    capital_raiders = await self.bot.player_stats.distinct("tag", filter={
+    capital_raiders = await bot.player_stats.distinct("tag", filter={
         "$or": [{f"capital_gold.{weekend}.raided_clan": clan.tag}, {"tag": {"$in": member_tags}}]})
-    players = await self.bot.get_players(tags=capital_raiders)
+    players = await bot.get_players(tags=capital_raiders)
 
     donated_data = {}
     number_donated_data = {}
@@ -567,9 +569,9 @@ async def clan_raid_weekend_donation_stats(bot: CustomClient,   clan: coc.Clan, 
         number_donated_data[player.tag] = len_donated
 
         if player.tag in member_tags:
-            donation_text += f"{self.bot.emoji.capital_gold}`{sum_donated:6} {player.clear_name[:15]:15}`\n"
+            donation_text += f"{bot.emoji.capital_gold}`{sum_donated:6} {player.clear_name[:15]:15}`\n"
         else:
-            donation_text += f"{self.bot.emoji.deny_mark}`{sum_donated:6} {player.clear_name[:15]:15}`\n"
+            donation_text += f"{bot.emoji.deny_mark}`{sum_donated:6} {player.clear_name[:15]:15}`\n"
 
     donation_embed = Embed(
         title=f"**{clan.name} Donation Totals**",
@@ -579,11 +581,11 @@ async def clan_raid_weekend_donation_stats(bot: CustomClient,   clan: coc.Clan, 
     return donation_embed
 
 
-async def clan_raid_weekend_raid_stats(bot: CustomClient,   clan: coc.Clan, raid_log_entry: RaidLogEntry):
+async def clan_raid_weekend_raid_stats(bot: CustomClient, clan: coc.Clan, raid_log_entry: RaidLogEntry):
     if raid_log_entry is None:
         embed = Embed(
             title=f"**{clan.name} Raid Totals**",
-            description="No raid found!", color=Color.green())
+            description="No raid found! Donation info may be available.", color=Color.green())
         return embed
 
     total_medals = 0
@@ -614,24 +616,24 @@ async def clan_raid_weekend_raid_stats(bot: CustomClient,   clan: coc.Clan, raid
     raid_text = []
     for tag, amount in total_looted.items():
         name = name_list[tag]
-        name = self.bot.clean_string(name)[:13]
+        name = bot.clean_string(name)[:13]
         if tag in member_tags:
             raid_text.append([
-                f"\u200e{self.bot.emoji.capital_gold}`"
+                f"\u200e{bot.emoji.capital_gold}`"
                 f"{total_attacks[tag]}/{attack_limit[tag]} "
                 f"{amount:5} {name[:15]:15}`", amount])
         else:
             raid_text.append([
-                f"\u200e{self.bot.emoji.deny_mark}`"
+                f"\u200e{bot.emoji.deny_mark}`"
                 f"{total_attacks[tag]}/{attack_limit[tag]} "
                 f"{amount} {name[:15]:15}`", amount])
 
     more_to_show = 55 - len(total_attacks.values())
     for member in members_not_looted[:more_to_show]:
         member = coc.utils.get(clan.members, tag=member)
-        name = self.bot.clean_string(member.name)
+        name = bot.clean_string(member.name)
         raid_text.append([
-            f"{self.bot.emoji.capital_gold}`{0}"
+            f"{bot.emoji.capital_gold}`{0}"
             f"/{6} {0:5} {name[:15]:15}`",
             0])
 

@@ -274,3 +274,13 @@ def notate_number(number: int, zero=False):
         return f"{rounded}K"
     else:
         return number
+
+def custom_round(number: int, add_percent=None):
+    number = round(number, 1)
+    if len(str(number)) <= 3:
+        number = format(number, '.2f')
+    elif number == 100.0:
+        number = 100
+    if add_percent:
+        return f"{number}%"
+    return number
