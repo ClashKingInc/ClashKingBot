@@ -15,7 +15,6 @@ from utils.clash import cwl_league_emojis
 from CustomClasses.PlayerHistory import COSPlayerHistory
 from Exceptions.CustomExceptions import MissingWebhookPerms
 from utils.constants import locations, BADGE_GUILDS
-from datawrapper import Datawrapper
 from typing import Tuple, List
 from utils import logins as login
 from utils.general import fetch, get_clan_member_tags
@@ -111,7 +110,6 @@ class CustomClient(commands.AutoShardedBot):
         self.coc_client = login.coc_client
 
         self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwarapi.login(username=os.getenv("FW_USER"), password=os.getenv("FW_PW"), coc_client=self.coc_client))
-        self.data_wrapper: Datawrapper = Datawrapper(access_token=os.getenv("DATAWRAPPER_TOKEN"))
 
         self.emoji = Emojis()
         self.locations = locations
