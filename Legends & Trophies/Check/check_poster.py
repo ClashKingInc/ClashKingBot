@@ -67,7 +67,9 @@ class CheckPoster(commands.Cog):
         for spot in range(0, len(season_stats)):
             x.append(spot)
 
-        plt.plot(x, y, color='white', linestyle='dashed', linewidth=3,
+        fig = plt.figure(dpi=100)
+        ax = plt.subplot()
+        ax.plot(x, y, color='white', linestyle='dashed', linewidth=3,
                  marker="*", markerfacecolor="white", markeredgecolor="yellow", markersize=20)
         plt.ylim(min(y) - 100, max(y) + 100)
 
@@ -87,9 +89,8 @@ class CheckPoster(commands.Cog):
         plt.ylabel('Trophies', color="yellow", fontsize=14)
         # encoded_string = name.encode("ascii", "ignore")
         # decode_string = encoded_string.decode()
-        plt.savefig("poster/poster_graph.png", transparent=True)
-        plt.clf()
-        plt.close("all")
+        fig.savefig("poster/poster_graph.png", transparent=True)
+        plt.close(fig)
 
         graph = Image.open("poster/poster_graph.png")
 
