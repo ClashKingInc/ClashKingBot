@@ -11,6 +11,7 @@ known_streak = []
 count = 0
 list_size = 0
 import asyncio
+from typing import List
 from CustomClasses.CustomBot import CustomClient
 from pymongo import UpdateOne
 from PIL import Image, ImageDraw, ImageFont
@@ -32,6 +33,8 @@ war_leagues = json.load(open(f"Assets/war_leagues.json"))
 from Assets.emojiDictionary import emojiDictionary
 from utils.discord_utils import interaction_handler
 from utils.ClanCapital import calc_raid_medals
+
+from urllib import request
 leagues = ["Champion League I", "Champion League II", "Champion League III",
                    "Master League I", "Master League II", "Master League III",
                    "Crystal League I","Crystal League II", "Crystal League III",
@@ -45,8 +48,13 @@ import random
 import os
 import openai
 openai.api_key = os.getenv("OPENAI_API_KEY")
-
+import matplotlib.pyplot as plt
+from PIL import Image, ImageDraw, ImageFont
+import io
+import pandas as pd
+from CustomClasses.CustomPlayer import MyCustomPlayer
 from utils.constants import TOWNHALL_LEVELS
+import numpy as np
 
 class ChatBot:
     def __init__(self, system=""):
@@ -123,6 +131,12 @@ class OwnerCommands(commands.Cog):
         embed.set_thumbnail(url=clan.badge.url)
         await ctx.send(embed=embed)
 
+    @commands.slash_command(name="sample")
+    async def sample(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+
+
+
 
     @commands.slash_command(name="hitrate")
     async def hitrate(self, ctx: disnake.ApplicationCommandInteraction):
@@ -130,13 +144,14 @@ class OwnerCommands(commands.Cog):
         text = ""
         pipeline = [
             {"$match": {"$and" : [{"type" : "clanCapitalContributions"}, {"clan" : "#2GYQ02JYP"}]}},
-            {"$sort": {"time": 1}},
-            {"$limit" : 50},
+            {"$sort": {"time": -1}},
+            {"$limit" : 150},
             {"$lookup": {"from": "player_stats", "localField": "tag", "foreignField": "tag", "as": "name"}},
             {"$set": {"name": "$name.name"}}
         ]
         results = await self.bot.player_history.aggregate(pipeline).to_list(length=None)
         missing = 0
+        add = 0
         for result in results:
             if result.get("p_value") is None:
                 missing += 1
@@ -144,9 +159,12 @@ class OwnerCommands(commands.Cog):
             diff = result.get("value") - result.get("p_value", 0)
             name = result.get("name")[0]
             text += f"<t:{result.get('time')}:R> {diff} {name}\n"
-        print(missing)
-        embed = disnake.Embed(description=text)
-        await ctx.send(embed=embed)
+            add += 1
+            if add == 25 or result == results[-1]:
+                embed = disnake.Embed(description=text)
+                await ctx.channel.send(embed=embed)
+                add = 0; text = ""
+
 
     @commands.slash_command(name="owner_anniversary", guild_ids=[923764211845312533])
     @commands.is_owner()

@@ -89,7 +89,7 @@ class Emojis():
         self.opt_in = EmojiType("<:opt_in:944905885367537685>")
         self.opt_out = EmojiType("<:opt_out:944905931265810432>")
         self.globe = EmojiType("<:globe:1113285560715444274>")
-
+        self.wood_swords = EmojiType("<:wood_swords:1109716092647112787>")
 
 
 

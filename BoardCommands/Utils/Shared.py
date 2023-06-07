@@ -12,6 +12,65 @@ from collections import defaultdict
 from utils.constants import SHORT_PLAYER_LINK, item_to_name, TOWNHALL_LEVELS
 from utils.graphing import graph_creator
 import stringcase
+from utils.general import convert_seconds, download_image
+import matplotlib.pyplot as plt
+from PIL import Image, ImageDraw, ImageFont
+import io
+import aiohttp
+import ujson
+
+
+async def image_board(bot: CustomClient, players: List[MyCustomPlayer], logo_url: str, title: str, type: str, **kwargs):
+
+    data = []
+
+    if type == "legend":
+        columns = ['Name', "Start", "Atk", "Def", "Net", "Current"]
+        badges = [player.clan_badge_link() for player in players]
+        count = len(players) + 1
+        for player in players:
+            count -= 1
+            c = f"{count}."
+            day = player.legend_day()
+            if day.net_gain >= 0:
+                net_gain = f"+{day.net_gain}"
+            else:
+                net_gain = f"{day.net_gain}"
+            data.append([f"{c:3} {player.name}", player.trophy_start(), f"{day.attack_sum}{day.num_attacks.superscript}", f"{day.defense_sum}{day.num_defenses.superscript}", net_gain, player.trophies])
+
+    elif type == "trophies":
+        columns = ['Name', "Trophies", "League"]
+        badges = [player.clan_badge_link() for player in players]
+        count = len(players) + 1
+        for player in players:
+            count -= 1
+            c = f"{count}."
+            data.append([f"{c:3} {player.name}", player.trophies, str(player.league)])
+
+    elif type == "activities":
+        columns = ['Name', "Donated", "Received", "Last Online", "Activity"]
+        badges = [player.clan_badge_link() for player in players]
+        count = len(players) + 1
+        for player in players:
+            count -= 1
+            c = f"{count}."
+            data.append([f"{c:3} {player.name}", player.donos().donated, player.donos().received, convert_seconds(player.last_online), len(player.season_last_online())])
+
+    data = {
+        "columns" : columns,
+        "data" : data,
+        "logo" : logo_url,
+        "badge_columns" : badges,
+        "title" : title
+    }
+    async with aiohttp.ClientSession(json_serialize=ujson.dumps) as session:
+        async with session.post("https://api.clashking.xyz/table", json=data) as response:
+            temp = io.BytesIO(await response.read())
+            temp.seek(0)
+        await session.close()
+    file = disnake.File(fp=temp, filename="filename.png")
+    return file
+
 
 async def donation_board(bot: CustomClient, players: List[MyCustomPlayer], season: str, footer_icon: str, title_name: str, type: str,
                          limit: int = 50,
@@ -54,6 +113,7 @@ async def donation_board(bot: CustomClient, players: List[MyCustomPlayer], seaso
                      text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {season}")
     embed.timestamp = datetime.now()
     return embed
+
 
 async def hero_progress(bot: CustomClient, player_tags: List[str], season: str, footer_icon: str, title_name: str, limit: int = 50, embed_color: disnake.Color = disnake.Color.green()):
     year = season[:4]
@@ -178,6 +238,7 @@ async def total_character_progress(bot: CustomClient, player_tags: List[str], se
         {"$sort": {"num": -1}},
     ]
     results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
+
     text = f"{bot.emoji.blank}`Name{'':14}#`\n"
     total_upgrades = 0
     for result in results:

@@ -14,6 +14,8 @@ from utils.ClanCapital import gen_raid_weekend_datestrings
 from pytz import utc
 from BoardCommands.Utils import Shared as shared_embeds
 from BoardCommands.Utils import Graphs as graph_creator
+from BoardCommands.Utils import Family as family_embeds
+
 
 class FamCommands(commands.Cog):
 
@@ -54,6 +56,8 @@ class FamCommands(commands.Cog):
         ephemeral = False
         if result is not None:
             ephemeral = result.get("private_mode", False)
+        if "board" in ctx.filled_options.keys():
+            ephemeral = True
         await ctx.response.defer(ephemeral=ephemeral)
 
     @commands.slash_command(name="countries")
@@ -101,8 +105,59 @@ class FamCommands(commands.Cog):
     @family.sub_command(name="clans", description="Overview list of all family clans")
     async def family_clans(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
         guild = server if server is not None else ctx.guild
-        embed = await self.create_family_clans(guild=guild)
+        embed = await family_embeds.create_family_clans(bot=self.bot, guild=guild)
         await ctx.edit_original_message(embed=embed)
+
+    @family.sub_command(name="board", description="Image Board")
+    async def board(self, ctx: disnake.ApplicationCommandInteraction,
+                    board: str = commands.Param(choices=["Activity", "Legends", "Trophies"]),
+                    server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
+
+        guild = server if server is not None else ctx.guild
+        guild_icon = guild.icon.url if guild.icon else self.bot.user.avatar.url
+
+        if board == "Activity":
+            clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+            clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
+            member_tags = get_clan_member_tags(clans=clans)
+            top_50 = await self.bot.player_stats.find({"tag": {"$in": member_tags}}, {"tag": 1}).sort(f"donations.{self.bot.gen_season_date()}.donated", -1).limit(30).to_list(length=50)
+            players = await self.bot.get_players(tags=[p["tag"] for p in top_50], custom=True)
+            players.sort(key=lambda x: x.donos().donated, reverse=False)
+            file = await shared_embeds.image_board(bot=self.bot, players=players, logo_url=guild_icon,
+                                                   title=f'{guild.name} Activity/Donation Board',
+                                                   season=self.bot.gen_season_date(), type="activities")
+            board_type = "famboardact"
+        elif board == "Legends":
+            clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+            clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
+            member_tags = get_clan_member_tags(clans=clans)
+            top_50 = await self.bot.player_cache.find({"$and" : [{"tag": {"$in": member_tags}}, {"data.league.name" : "Legend League"}]},
+                                                      {"tag": 1}).sort(f"data.trophies", -1).limit(30).to_list(length=40)
+            players = await self.bot.get_players(tags=[p["tag"] for p in top_50], custom=True)
+            players.sort(key=lambda x: x.trophies, reverse=False)
+            file = await shared_embeds.image_board(bot=self.bot, players=players, logo_url=guild_icon,
+                                                   title=f'{guild.name} Legend Board', type="legend")
+            board_type = "famboardlegend"
+
+        elif board == "Trophies":
+            clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+            clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
+            member_tags = get_clan_member_tags(clans=clans)
+            top_50 = await self.bot.player_cache.find({"tag": {"$in": member_tags}}, {"tag": 1}).sort(f"data.trophies", -1).limit(30).to_list(length=50)
+            players = await self.bot.get_players(tags=[p["tag"] for p in top_50], custom=True)
+            players.sort(key=lambda x: x.trophies, reverse=False)
+            file = await shared_embeds.image_board(bot=self.bot, players=players, logo_url=guild_icon,
+                                                   title=f'{guild.name} Trophy Board', type="trophies")
+            board_type = "famboardtrophies"
+
+        await ctx.edit_original_message(content="Image Board Created!")
+
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey, custom_id=f"{board_type}_{guild.id}"))
+        await ctx.channel.send(file=file, components=[buttons])
+
 
     @family.sub_command(name="leagues", description="List of clans by cwl or capital league")
     async def family_leagues(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
@@ -233,6 +288,7 @@ class FamCommands(commands.Cog):
     @family_search.autocomplete("server")
     @countries.autocomplete("server")
     @progress.autocomplete("server")
+    @board.autocomplete("server")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         matches = []
         for guild in self.bot.guilds:

@@ -1,20 +1,19 @@
 import coc
 import disnake
-import pytz
 import calendar
 
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
-from typing import TYPE_CHECKING, List
+from typing import List
 from ImageGen import ClanCapitalResult as capital_gen
-
-tiz = pytz.utc
-
-from utils.constants import item_to_name
-from disnake.ext.commands import Converter
+from pytz import utc
+import pytz
+from utils.constants import item_to_name, TOWNHALL_LEVELS
+from CustomClasses.CustomPlayer import MyCustomPlayer
 from BoardCommands.Utils import Clan as clan_embeds
 from BoardCommands.Utils import Shared as shared_embeds
+
 
 class ClanCommands(commands.Cog, name="Clan Commands"):
 
@@ -48,6 +47,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         ephemeral = False
         if result is not None:
             ephemeral = result.get("private_mode", False)
+        if "board" in ctx.filled_options.keys():
+            ephemeral = True
         await ctx.response.defer(ephemeral=ephemeral)
 
     @clan.sub_command(name="search", description="look up a clan by tag")
@@ -325,6 +326,35 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.edit_original_message(embed=embed, components=buttons)
 
+    @clan.sub_command(name="board", description="Image Board")
+    async def board(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan= commands.Param(converter=clan_converter),
+                    board: str = commands.Param(choices=["Activity", "Legends", "Trophies"])):
+
+        players: List[MyCustomPlayer] = await self.bot.get_players(tags=[member.tag for member in clan.members], custom=True)
+
+        if board == "Activity":
+            players.sort(key=lambda x: x.donos().donated, reverse=False)
+            file = await shared_embeds.image_board(bot=self.bot, players=players, logo_url=clan.badge.url, title=f'{clan.name} Activity/Donation Board',
+                                                            season=self.bot.gen_season_date(), type="activities")
+            board_type = "clanboardact"
+        elif board == "Legends":
+            players = [player for player in players if player.is_legends()]
+            players.sort(key=lambda x: x.trophies, reverse=False)
+            file = await shared_embeds.image_board(bot=self.bot, players=players, logo_url=clan.badge.url, title=f'{clan.name} Legend Board', type="legend")
+            board_type = "clanboardlegend"
+        elif board == "Trophies":
+            players.sort(key=lambda x: x.trophies, reverse=False)
+            file = await shared_embeds.image_board(bot=self.bot, players=players, logo_url=clan.badge.url, title=f'{clan.name} Trophy Board', type="trophies")
+            board_type = "clanboardtrophies"
+
+        await ctx.edit_original_message(content="Image Board Created!")
+
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey, custom_id=f"{board_type}_{clan.tag}"))
+        await ctx.channel.send(file=file, components=[buttons])
+
 
 
     @clan.sub_command(name="activity", description="Activity stats for all of a player's accounts")
@@ -417,6 +447,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @war_log.autocomplete("clan")
     @super_troops.autocomplete("clan")
     @compo.autocomplete("clan")
+    @board.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id}).sort("name", 1)
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})

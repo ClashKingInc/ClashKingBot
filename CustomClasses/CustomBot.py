@@ -20,7 +20,7 @@ from typing import Tuple, List
 from utils import logins as login
 from utils.general import fetch, get_clan_member_tags
 from math import ceil
-from CustomClasses.DatabaseClasses import CustomClan
+from expiring_dict import ExpiringDict
 
 import dateutil.relativedelta
 import ast
@@ -127,6 +127,7 @@ class CustomClient(commands.AutoShardedBot):
         self.feed_webhooks = {}
         self.clan_list = []
         self.player_cache_dict = {}
+        self.IMAGE_CACHE = ExpiringDict()
 
     def clean_string(self, text: str):
         text = emoji.replace_emoji(text)
@@ -585,6 +586,7 @@ class CustomClient(commands.AutoShardedBot):
         diff = ceil((datetime.now().date() - date(2016, 12, 1)).days / 30)
         dates = self.gen_season_date(seasons_ago=diff, as_text=False)
         names = await self.cwl_db.distinct("season", filter={"clan_tag" : clan.tag})
+        await self.cwl_db.delete_many({"data.statusCode" : 404})
         missing = set(dates) - set(names)
         tasks = []
         async with aiohttp.ClientSession() as session:
