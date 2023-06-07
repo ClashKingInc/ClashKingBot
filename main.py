@@ -1,5 +1,4 @@
 import os
-
 import disnake
 import traceback
 import motor.motor_asyncio
