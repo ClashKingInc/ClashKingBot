@@ -5,10 +5,10 @@ import datetime as dt
 import aiohttp
 import io
 
-from coc import utils
 from datetime import datetime
-from utils.constants import war_leagues, SUPER_SCRIPTS
-from utils.clash import league_to_emoji
+from .constants import war_leagues, SUPER_SCRIPTS
+from .clash import league_to_emoji
+from coc import utils
 from pytz import utc
 from typing import List
 from expiring_dict import ExpiringDict
