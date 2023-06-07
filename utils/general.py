@@ -6,8 +6,8 @@ import aiohttp
 import io
 
 from datetime import datetime
-from .constants import war_leagues, SUPER_SCRIPTS
-from .clash import league_to_emoji
+from utils.constants import war_leagues, SUPER_SCRIPTS
+from utils.clash import league_to_emoji
 from coc import utils
 from pytz import utc
 from typing import List
