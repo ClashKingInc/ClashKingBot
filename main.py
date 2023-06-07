@@ -1,6 +1,5 @@
 import os
 
-import aiohttp
 import disnake
 import traceback
 import motor.motor_asyncio

@@ -4,7 +4,6 @@ import calendar
 import datetime as dt
 import aiohttp
 import io
-import apyio
 
 from coc import utils
 from datetime import datetime
