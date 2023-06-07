@@ -1,7 +1,7 @@
 
 import coc
 import disnake
-from disnake.ext import commands, tasks
+from disnake.ext import commands
 from datetime import datetime
 from utils.clash import cwl_league_emojis
 from utils.discord_utils import partial_emoji_gen
@@ -11,20 +11,15 @@ from typing import List
 from coc import utils
 from CustomClasses.CustomBot import CustomClient
 from utils.general import create_superscript
-
+from pytz import utc
+from utils.constants import leagues, war_leagues
 import operator
-import aiohttp
+import asyncio
 import re
+import calendar
 
-leagues = ["Champion League I", "Champion League II", "Champion League III",
-                   "Master League I", "Master League II", "Master League III",
-                   "Crystal League I","Crystal League II", "Crystal League III",
-                   "Gold League I","Gold League II", "Gold League III",
-                   "Silver League I","Silver League II","Silver League III",
-                   "Bronze League I", "Bronze League II", "Bronze League III", "Unranked"]
 
-import pytz
-tiz = pytz.utc
+
 
 
 class Cwl(commands.Cog, name="CWL"):
@@ -38,11 +33,27 @@ class Cwl(commands.Cog, name="CWL"):
             raise coc.errors.NotFound
         return clan
 
-    @commands.slash_command(name="cwl", description="Stats, stars, and more for a clan's cwl")
-    async def cwl(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
-        await ctx.response.defer()
+    async def season_convertor(self, season: str):
+        if season is not None:
+            if len(season.split("|")) == 2:
+                season = season.split("|")[0]
+            month = list(calendar.month_name).index(season.split(" ")[0])
+            year = season.split(" ")[1]
+            end_date = coc.utils.get_season_end(month=int(month - 1), year=int(year))
+            month = end_date.month
+            if month <= 9:
+                month = f"0{month}"
+            season_date = f"{end_date.year}-{month}"
+        else:
+            season_date = self.bot.gen_season_date()
+        return season_date
 
-        (group, clan_league_wars) = await self.get_cwl_wars(clan=clan)
+    @commands.slash_command(name="cwl", description="Stats, stars, and more for a clan's cwl")
+    async def cwl(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
+                  season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor)):
+        await ctx.response.defer()
+        asyncio.create_task(self.bot.store_all_cwls(clan=clan))
+        (group, clan_league_wars, fetched_clan, war_league) = await self.get_cwl_wars(clan=clan, season=season)
 
         if not clan_league_wars:
             embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) is not in CWL.",
@@ -50,11 +61,12 @@ class Cwl(commands.Cog, name="CWL"):
             embed.set_thumbnail(url=clan.badge.large)
             return await ctx.send(embed=embed)
 
-        ROUND = 0; CLAN = clan; PAGE = "cwlround_overview"
+        overview_round = self.get_latest_war(clan_league_wars=clan_league_wars)
+        ROUND = overview_round; CLAN = clan; PAGE = "cwlround_overview"
 
         (current_war, next_war) = self.get_wars_at_round(clan_league_wars=clan_league_wars, round=ROUND)
-        dropdown = await self.component_handler(page=PAGE, current_war=current_war, next_war=next_war, group=group, league_wars=clan_league_wars)
-        embeds = await self.page_manager(page=PAGE, group=group, war=current_war, next_war=next_war, league_wars=clan_league_wars, clan=CLAN)
+        dropdown = await self.component_handler(page=PAGE, current_war=current_war, next_war=next_war, group=group, league_wars=clan_league_wars, fetched_clan=fetched_clan)
+        embeds = await self.page_manager(page=PAGE, group=group, war=current_war, next_war=next_war, league_wars=clan_league_wars, clan=CLAN, fetched_clan=fetched_clan, war_league=war_league)
 
         await ctx.send(embeds=embeds, components=dropdown)
         msg = await ctx.original_message()
@@ -74,19 +86,18 @@ class Cwl(commands.Cog, name="CWL"):
                 break
 
             await res.response.defer()
-
             if "cwlchoose_" in res.values[0]:
                 clan_tag = (str(res.values[0]).split("_"))[-1]
                 CLAN = await self.bot.getClan(clan_tag)
-                (group, clan_league_wars) = await self.get_cwl_wars(clan=CLAN)
-                PAGE = "cwlround_overview"; ROUND = 0
+                (group, clan_league_wars, x, y) = await self.get_cwl_wars(clan=CLAN, season=season, group=group, fetched_clan=fetched_clan)
+                PAGE = "cwlround_overview"; ROUND = self.get_latest_war(clan_league_wars=clan_league_wars)
 
             elif "cwlround_" in res.values[0]:
                 round = res.values[0].split("_")[-1]
                 if round != "overview":
                     PAGE = "round"; ROUND = int(round) - 1
                 else:
-                    PAGE = "cwlround_overview"; ROUND = 0
+                    PAGE = "cwlround_overview"; ROUND = overview_round
 
             elif res.values[0] == "excel":
                 await res.send(content="Coming Soon!", ephemeral=True)
@@ -95,11 +106,25 @@ class Cwl(commands.Cog, name="CWL"):
                 PAGE = res.values[0]
 
             (current_war, next_war) = self.get_wars_at_round(clan_league_wars=clan_league_wars, round=ROUND)
-            embeds = await self.page_manager(page=PAGE, group=group, war=current_war, next_war=next_war, league_wars=clan_league_wars, clan=CLAN)
-            dropdown = await self.component_handler(page=PAGE, current_war=current_war, next_war=next_war, group=group, league_wars=clan_league_wars)
+            embeds = await self.page_manager(page=PAGE, group=group, war=current_war, next_war=next_war, league_wars=clan_league_wars,
+                                             clan=CLAN, fetched_clan=fetched_clan, war_league=war_league)
+            dropdown = await self.component_handler(page=PAGE, current_war=current_war, next_war=next_war, group=group, league_wars=clan_league_wars, fetched_clan=fetched_clan)
 
             await res.edit_original_message(embeds=embeds, components=dropdown)
 
+    def get_latest_war(self, clan_league_wars: List[coc.ClanWar]):
+        last_prep = None
+        last_current = None
+        for count, war in enumerate(clan_league_wars):
+            if war.state == "preperation":
+                last_prep = count
+            elif war.state == "inWar":
+                last_current = count
+        if last_current is None:
+            last_current = last_prep
+        if last_current is None:
+            last_current = len(clan_league_wars) - 1
+        return last_current
 
     def get_wars_at_round(self, clan_league_wars: List[coc.ClanWar], round: int):
         current_war = clan_league_wars[round]
@@ -109,54 +134,50 @@ class Cwl(commands.Cog, name="CWL"):
             next_war = None
         return (current_war, next_war)
 
-    async def get_cwl_wars(self, clan: coc.Clan, group=None):
-        season = self.bot.gen_season_date()
-
+    async def get_cwl_wars(self, clan: coc.Clan, season: str, group=None, fetched_clan=None):
         clan_league_wars = []
+        clan_tag = clan.tag
         try:
             if group is None:
                 group = await self.bot.coc_client.get_league_group(clan.tag)
+            if group.season != season:
+                raise Exception
             async for w in group.get_wars_for_clan(clan.tag):
                 clan_league_wars.append(w)
             if clan_league_wars:
-                return (group, clan_league_wars)
+                return (group, clan_league_wars, None, clan.war_league)
         except:
             pass
 
+        print("here")
         if not clan_league_wars:
-            try:
-                response = await self.bot.cwl_db.find_one({"clan_tag": clan.tag, "season": season})
-                if response is None:
-                    async with aiohttp.ClientSession() as session:
-                        async with session.get(
-                                f"https://api.clashofstats.com/clans/{clan.tag.replace('#', '')}/cwl/seasons/{season}") as response:
-                            response = await response.json()
-                            if "Not Found" not in str(response):
-                                await self.bot.cwl_db.insert_one(
-                                    {"clan_tag": clan.tag, "season": response["season"], "data": response})
-                        await session.close()
-                else:
-                    response = response.get("data")
-                group = coc.ClanWarLeagueGroup(data=response, client=self.bot.coc_client)
-                async for w in group.get_wars_for_clan(clan.tag):
-                    clan_league_wars.append(w)
+            if fetched_clan is not None:
+                clan_tag = fetched_clan
+            response = await self.bot.cwl_db.find_one({"clan_tag": clan_tag, "season": season})
+            if fetched_clan is not None:
+                print(response)
+            if response is not None:
+                group = coc.ClanWarLeagueGroup(data=response.get("data"), client=self.bot.coc_client)
+                clan_league_wars = self.wars_from_group(data=response.get("data"), clan_tag=clan.tag, group=group)
                 if clan_league_wars:
-                    return (group, clan_league_wars)
-            except:
-                return (None, [])
+                    league_name = [x["name"]for x in war_leagues["items"] if x["id"] == response.get("data").get("leagueId")][0]
+                    return (group, clan_league_wars, clan.tag, league_name)
+            else:
+                return (None, [], None, None)
 
-    async def page_manager(self, page:str, group: coc.ClanWarLeagueGroup, war: coc.ClanWar, next_war: coc.ClanWar, league_wars: List[coc.ClanWar], clan: coc.Clan):
+    async def page_manager(self, page:str, group: coc.ClanWarLeagueGroup, war: coc.ClanWar, next_war: coc.ClanWar,
+                           league_wars: List[coc.ClanWar], clan: coc.Clan, fetched_clan: str, war_league: str):
         if page == "cwlround_overview":
             war_cog = self.bot.get_cog(name="War")
-            embed = await war_cog.main_war_page(war=war, clan=clan)
+            embed = await war_cog.main_war_page(war=war, war_league=war_league)
             return [embed]
         elif page == "round":
             war_cog = self.bot.get_cog(name="War")
-            embed = await war_cog.main_war_page(war=war, clan=clan)
+            embed = await war_cog.main_war_page(war=war, war_league=war_league)
             return [embed]
         elif page == "nextround":
             war_cog = self.bot.get_cog(name="War")
-            embed = await war_cog.main_war_page(war=next_war, clan=clan)
+            embed = await war_cog.main_war_page(war=next_war, war_league=war_league)
             return [embed]
         elif page == "lineup":
             embed1 = await self.roster_embed(next_war)
@@ -167,7 +188,7 @@ class Cwl(commands.Cog, name="CWL"):
             embed2 = await self.star_lb(league_wars, clan, defense=True)
             return[embed, embed2]
         elif page == "rankings":
-            embed = await self.ranking_lb(group)
+            embed = await self.ranking_lb(group, fetched_clan)
             return [embed]
         elif page == "allrounds":
             embed = await self.all_rounds(league_wars, clan)
@@ -192,21 +213,54 @@ class Cwl(commands.Cog, name="CWL"):
             embed = await self.missed_hits(league_wars=league_wars, clan=clan)
             return [embed]
 
+    def wars_from_group(self, group: coc.ClanWarLeagueGroup, data: dict, clan_tag=None):
+        rounds = data.get("rounds")
+        list_wars = []
+        for round in rounds:
+            for war in round.get("wars"):
+                if clan_tag is None or war.get("clan").get("tag") == clan_tag or war.get("opponent").get("tag") == clan_tag:
+                    #print(war["endTime"])
+                    war["endTime"] = datetime.fromtimestamp(war["endTime"]/1000).strftime('%Y%m%dT%H%M%S.000Z')
+                    war["startTime"] = datetime.fromtimestamp(war["startTime"]/1000).strftime('%Y%m%dT%H%M%S.000Z')
+                    war["preparationStartTime"] = datetime.fromtimestamp(war["preparationStartTime"]/1000).strftime('%Y%m%dT%H%M%S.000Z')
+                    for member in (war.get("clan").get("members") + war.get("opponent").get("members")):
+                        if member.get("bestOpponentAttack") is None:
+                            member["bestOpponentAttack"] = {}
+                        member["townhallLevel"] = member["townHallLevel"]
+                        if member.get("mapPosition") is None:
+                            member["mapPosition"] = 1
+                        if member.get("attack"):
+                            attack = member.get("attack")
+                            attack["duration"] = 0
+                            member["attacks"] = [attack]
+                    list_wars.append(coc.ClanWar(data=war, clan_tag=clan_tag, client=self.bot.coc_client, league_group=group))
+        return list_wars
+
+    def get_league_war_by_tag(self, league_wars: List[coc.ClanWar], war_tag: str):
+        for war in league_wars:
+            if war.war_tag == war_tag:
+                return war
+
+
     #COMPONENTS
-    async def component_handler(self, page: str, current_war: coc.ClanWar, next_war: coc.ClanWar, group: coc.ClanWarLeagueGroup, league_wars: List[coc.ClanWar]):
+    async def component_handler(self, page: str, current_war: coc.ClanWar, next_war: coc.ClanWar, group: coc.ClanWarLeagueGroup, league_wars: List[coc.ClanWar], fetched_clan):
         round_stat_dropdown = await self.stat_components(war=current_war, next_war=next_war)
         overall_stat_dropdown = await self.overall_stat_components()
         clan_dropdown = await self.clan_components(group=group)
         round_dropdown = await self.round_components(league_wars=league_wars)
-
+        r = None
         if "cwlround_" in page:
             round = page.split("_")[-1]
             if round == "overview":
-                return [overall_stat_dropdown, round_dropdown, clan_dropdown]
+                r = [overall_stat_dropdown, round_dropdown, clan_dropdown]
         elif page in ["stars", "rankings", "allrounds", "all_members", "excel", "missedhits"]:
-            return [overall_stat_dropdown, round_dropdown, clan_dropdown]
+            r =  [overall_stat_dropdown, round_dropdown, clan_dropdown]
         else:
-            return [round_stat_dropdown, round_dropdown, clan_dropdown]
+            r =  [round_stat_dropdown, round_dropdown, clan_dropdown]
+        if fetched_clan is not None:
+            r = r[:-1]
+        return r
+
 
     async def overall_stat_components(self):
         map = partial_emoji_gen(self.bot, "<:map:944913638500761600>")
@@ -576,15 +630,15 @@ class Cwl(commands.Cog, name="CWL"):
             war_state = "In Prep"
             war_pos = "Starting"
             if war_time >= 0:
-                war_time = war.start_time.time.replace(tzinfo=tiz).timestamp()
+                war_time = war.start_time.time.replace(tzinfo=utc).timestamp()
             else:
                 war_time = war.end_time.seconds_until
                 if war_time <= 0:
-                    war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
+                    war_time = war.end_time.time.replace(tzinfo=utc).timestamp()
                     war_pos = "Ended"
                     war_state = "War Over | "
                 else:
-                    war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
+                    war_time = war.end_time.time.replace(tzinfo=utc).timestamp()
                     war_pos = "Ending"
                     war_state = "In War |"
             team_hits = f"{len(war.attacks) - len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".ljust(
@@ -631,15 +685,22 @@ class Cwl(commands.Cog, name="CWL"):
 
         return embed
 
-    async def ranking_lb(self, group: coc.ClanWarLeagueGroup):
+    async def ranking_lb(self, group: coc.ClanWarLeagueGroup, fetched_clan: str = None):
         star_dict = defaultdict(int)
         dest_dict = defaultdict(int)
         tag_to_name = defaultdict(str)
 
+        league_wars = []
+        if fetched_clan is not None:
+            data = (await self.bot.cwl_db.find_one({"clan_tag": fetched_clan, "season": group.season})).get("data")
+            league_wars = self.wars_from_group(group=group, data=data)
         rounds = group.rounds
         for round in rounds:
             for war_tag in round:
-                war = await self.bot.coc_client.get_league_war(war_tag)
+                if not league_wars:
+                    war = await self.bot.coc_client.get_league_war(war_tag)
+                else:
+                    war = self.get_league_war_by_tag(league_wars=league_wars, war_tag=war_tag)
                 if str(war.status) == "won":
                     star_dict[war.clan.tag] += 10
                 elif str(war.status) == "lost":
@@ -791,19 +852,6 @@ class Cwl(commands.Cog, name="CWL"):
 
         return emoji
 
-    @cwl.autocomplete("clan")
-    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
-        clan_list = []
-        for tClan in await tracked.to_list(length=limit):
-            name = tClan.get("name")
-            tag = tClan.get("tag")
-            if query.lower() in name.lower():
-                clan_list.append(f"{name} | {tag}")
-        return clan_list[0:25]
-
-
     @commands.slash_command(name="cwl-status", description="CWL spin status of clans in family")
     async def cwl_status(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
@@ -817,7 +865,6 @@ class Cwl(commands.Cog, name="CWL"):
     async def create_cwl_status(self, guild: disnake.Guild):
         now = datetime.now()
         season = self.bot.gen_season_date()
-        #print(dt)
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
         if len(clan_tags) == 0:
             embed = disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
@@ -868,6 +915,36 @@ class Cwl(commands.Cog, name="CWL"):
         main_embed.timestamp = now
         main_embed.set_footer(text="Last Refreshed:")
         return main_embed
+
+    @cwl.autocomplete("clan")
+    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
+        clan_list = []
+        for tClan in await tracked.to_list(length=limit):
+            name = tClan.get("name")
+            tag = tClan.get("tag")
+            if query.lower() in name.lower():
+                clan_list.append(f"{name} | {tag}")
+        return clan_list[0:25]
+
+    @cwl.autocomplete("season")
+    async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        if "|" in ctx.filled_options["clan"]:
+            clan = await self.bot.getClan(clan_tag=ctx.filled_options["clan"])
+            if clan is None:
+                seasons = self.bot.gen_season_date(seasons_ago=25)[0:]
+                return [season for season in seasons if query.lower() in season.lower()]
+            dates = [f"{self.bot.gen_season_date(seasons_ago=1)[0]} | {clan.war_league}"]
+            cwls = await self.bot.cwl_db.find({"$and" : [{"clan_tag" : clan.tag}, {"data" : {"$ne" : None}}]},
+                                              {"data.leagueId" : 1, "season" : 1}).limit(24).to_list(length=None)
+            for cwl in cwls:
+                league_name = next((x["name"] for x in war_leagues["items"] if x["id"] == cwl.get("data").get("leagueId")), "Unknown")
+                dates.append(f"{calendar.month_name[int(cwl.get('season').split('-')[-1])]} {int(cwl.get('season').split('-')[0])} | {league_name}")
+            return dates[:25]
+        else:
+            seasons = self.bot.gen_season_date(seasons_ago=25)[0:]
+            return [season for season in seasons if query.lower() in season.lower()]
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):

@@ -143,7 +143,7 @@ class War(commands.Cog):
                 embed = await self.opp_defenses_embed(war)
                 await res.response.edit_message(embed=embed)
 
-    async def main_war_page(self, war: coc.ClanWar, clan: coc.Clan = None):
+    async def main_war_page(self, war: coc.ClanWar, war_league = None):
         war_time = war.start_time.seconds_until
         war_state = "In Prep"
         war_pos = "Starting"
@@ -183,7 +183,7 @@ class War(commands.Cog):
                         inline=False)
         if war.type == "cwl":
             embed.add_field(name=f"**War State**",
-                            value=f"{cwl_league_emojis(str(clan.war_league))}{str(clan.war_league)}\n"
+                            value=f"{cwl_league_emojis(str(war_league))}{str(war_league)}\n"
                                   f"{war_state} ({war.team_size} vs {war.team_size})\n"
                                   f"{war_pos}: <t:{int(war_time)}:R>\n­\n", inline=False)
         else:
@@ -426,11 +426,10 @@ class War(commands.Cog):
         thcount = defaultdict(int)
         opp_thcount = defaultdict(int)
 
-        for player in war.members:
-            if player not in war.opponent.members:
-                thcount[player.town_hall] += 1
-            else:
-                opp_thcount[player.town_hall] += 1
+        for player in war.clan.members:
+            thcount[player.town_hall] += 1
+        for player in war.opponent.members:
+            opp_thcount[player.town_hall] += 1
 
         stats = ""
         for th_level, th_count in sorted(thcount.items(), reverse=True):
