@@ -68,7 +68,7 @@ class Emojis():
         self.hitrate = EmojiType("<:hitrate:1046114606151630918>")
         self.avg_stars = EmojiType("<:avg_stars:1046114668139270234>")
         self.war_stars = EmojiType("<:war_stars:1046114735059378236>")
-        self.versus_trophy = EmojiType("<:versustrophy:1046117900907450399>")
+        self.versus_trophy = EmojiType("<:builder_trophies:1109716019573964820>")
         self.up_green_arrow = EmojiType("<:warwon:932212939899949176>")
         self.down_red_arrow = EmojiType("<:warlost:932212154164183081>")
         self.capital_trophy = EmojiType("<:capital_trophy:1054056202864177232>")
@@ -88,7 +88,8 @@ class Emojis():
         self.green_tick = EmojiType("<:greentick:601900670823694357>")
         self.opt_in = EmojiType("<:opt_in:944905885367537685>")
         self.opt_out = EmojiType("<:opt_out:944905931265810432>")
-
+        self.globe = EmojiType("<:globe:1113285560715444274>")
+        self.wood_swords = EmojiType("<:wood_swords:1109716092647112787>")
 
 
 

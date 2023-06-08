@@ -1,6 +1,4 @@
 import os
-
-import aiohttp
 import disnake
 import traceback
 import motor.motor_asyncio
@@ -103,6 +101,7 @@ initial_extensions = [
     #"Exceptions.ExceptionHandler",
     "BoardCommands.ClanCommands",
     "BoardCommands.TopCommands",
+    "BoardCommands.FamilyCommands",
     "Export.ExportsCog",
     "BoardCommands.Utils.Buttons",
     "BackgroundCrons.refresh_boards"
@@ -140,7 +139,7 @@ def before_send(event, hint):
     return event
 
 if __name__ == "__main__":
-    '''sentry_sdk.init(
+    sentry_sdk.init(
         dsn=os.getenv("DSN"),
         # Set traces_sample_rate to 1.0 to capture 100%
         # of transactions for performance monitoring.
@@ -150,7 +149,7 @@ if __name__ == "__main__":
             "profiles_sample_rate": 0.2,
         },
         before_send=before_send
-    )'''
+    )
     for extension in initial_extensions:
         try:
             bot.load_extension(extension)

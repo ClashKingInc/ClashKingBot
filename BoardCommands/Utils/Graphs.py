@@ -9,9 +9,9 @@ import datetime as dt
 import plotly.graph_objects as go
 
 from collections import defaultdict, Counter
-from typing import List, TYPE_CHECKING
+from typing import List
 from utils.general import create_superscript
-
+from CustomClasses.CustomPlayer import MyCustomPlayer
 
 async def create_clan_donation_graph(bot: CustomClient, clans: List[coc.Clan], townhalls: List[int], season: str, type: str):
     pipeline = [
@@ -42,18 +42,59 @@ async def create_clan_donation_graph(bot: CustomClient, clans: List[coc.Clan], t
                 y.append(f"{name}{create_superscript(names_plotted[name] + 1)}")
             else:
                 y.append(f"{name}")
-            text.append(f"{perc}%")
+            r = "{:,}".format(result[f'total_{type}'])
+            text.append(f"{r} | {perc}%")
             names_plotted[name] += 1
 
     fig = go.Figure(go.Bar(
         x=x,
         y=y,
         text=text,
-        textposition="outside",
-        textfont=dict(color="black"),
+        textposition="inside",
+        textfont=dict(color="white"),
         orientation='h'))
+    fig.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
+
     fig.update_layout(barmode="overlay", template="plotly_white", margin=dict(l=50, r=25, b=25, t=25, pad=4), width=750,
                       height=500)
     img = pio.to_image(fig, format="png", scale=3.0)
     file = disnake.File(fp=io.BytesIO(img), filename="test.png")
     return file, sums["total_donated"], sums["total_received"]
+
+
+async def create_capital_graph(self, server_id: int, all_players: List[MyCustomPlayer], clans: List[coc.Clan], week: str, type: str):
+    clan_tags = set([clan.tag for clan in clans])
+    dono_dict = defaultdict(int)
+    rec_dict = defaultdict(int)
+    clan_tag_to_name = {}
+    for member in all_players:
+        if member.clan is not None and member.clan_capital_stats(week=week).raid_clan in clan_tags:
+            dono_dict[member.clan.tag] += sum(member.clan_capital_stats(week=week).donated)
+            rec_dict[member.clan.tag] += sum(member.clan_capital_stats(week=week).raided)
+            clan_tag_to_name[member.clan.tag] = member.clan.name
+
+    list_ = []
+    num = defaultdict(int)
+    for tag, name in clan_tag_to_name.items():
+        if dono_dict.get(tag, 0) == 0 and rec_dict.get(tag, 0) == 0:
+            continue
+        num[name] += 1
+        if num[name] >= 2:
+            list_.append([f"{name}{create_superscript(num[name])}", dono_dict.get(tag, 0), rec_dict.get(tag, 0)])
+        else:
+            list_.append([f"{name}", dono_dict.get(tag, 0), rec_dict.get(tag, 0)])
+
+    df = pd.DataFrame(list_, columns=["Clan", "Donations", "Raided"])
+
+    if type == "donations":
+        df.sort_values(ascending=False, by="Donations", inplace=True)
+    elif type == "raided":
+        df.sort_values(ascending=False, by="Raided", inplace=True)
+
+    metadata = {"describe": {"byline": "Created by ClashKing"}}
+
+    return (await self.create_and_publish_chart(server_id=server_id, title="Capital Contributions",
+                                                chart_type="d3-bars-split", data=df, metadata=metadata,
+                                                gtype=f"familycapital_{type}", season=week))
+
+

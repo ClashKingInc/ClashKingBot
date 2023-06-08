@@ -5,13 +5,72 @@ from typing import List, TYPE_CHECKING
 import coc
 from datetime import datetime
 import pandas as pd
-import calendar
-from utils.general import notate_number as B
+from utils.general import notate_number as B, custom_round
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from collections import defaultdict
-from utils.constants import SHORT_PLAYER_LINK, item_to_name
+from utils.constants import SHORT_PLAYER_LINK, item_to_name, TOWNHALL_LEVELS
+from utils.graphing import graph_creator
 import stringcase
+from utils.general import convert_seconds, download_image
+import matplotlib.pyplot as plt
+from PIL import Image, ImageDraw, ImageFont
+import io
+import aiohttp
+import ujson
+
+
+async def image_board(bot: CustomClient, players: List[MyCustomPlayer], logo_url: str, title: str, type: str, **kwargs):
+
+    data = []
+
+    if type == "legend":
+        columns = ['Name', "Start", "Atk", "Def", "Net", "Current"]
+        badges = [player.clan_badge_link() for player in players]
+        count = len(players) + 1
+        for player in players:
+            count -= 1
+            c = f"{count}."
+            day = player.legend_day()
+            if day.net_gain >= 0:
+                net_gain = f"+{day.net_gain}"
+            else:
+                net_gain = f"{day.net_gain}"
+            data.append([f"{c:3} {player.name}", player.trophy_start(), f"{day.attack_sum}{day.num_attacks.superscript}", f"{day.defense_sum}{day.num_defenses.superscript}", net_gain, player.trophies])
+
+    elif type == "trophies":
+        columns = ['Name', "Trophies", "League"]
+        badges = [player.clan_badge_link() for player in players]
+        count = len(players) + 1
+        for player in players:
+            count -= 1
+            c = f"{count}."
+            data.append([f"{c:3} {player.name}", player.trophies, str(player.league)])
+
+    elif type == "activities":
+        columns = ['Name', "Donated", "Received", "Last Online", "Activity"]
+        badges = [player.clan_badge_link() for player in players]
+        count = len(players) + 1
+        for player in players:
+            count -= 1
+            c = f"{count}."
+            data.append([f"{c:3} {player.name}", player.donos().donated, player.donos().received, convert_seconds(player.last_online), len(player.season_last_online())])
+
+    data = {
+        "columns" : columns,
+        "data" : data,
+        "logo" : logo_url,
+        "badge_columns" : badges,
+        "title" : title
+    }
+    async with aiohttp.ClientSession(json_serialize=ujson.dumps) as session:
+        async with session.post("https://api.clashking.xyz/table", json=data) as response:
+            temp = io.BytesIO(await response.read())
+            temp.seek(0)
+        await session.close()
+    file = disnake.File(fp=temp, filename="filename.png")
+    return file
+
 
 async def donation_board(bot: CustomClient, players: List[MyCustomPlayer], season: str, footer_icon: str, title_name: str, type: str,
                          limit: int = 50,
@@ -22,9 +81,9 @@ async def donation_board(bot: CustomClient, players: List[MyCustomPlayer], seaso
         players.sort(key=lambda x: x.donos(date=season).received, reverse=True)
 
     if type == "donations":
-        text = "`  # DON     REC     NAME       `\n"
+        text = "`  #  DON     REC     NAME     `\n"
     else:
-        text = "`  # REC     DON     NAME       `\n"
+        text = "`  #  REC     DON     NAME     `\n"
 
     total_donated = 0
     total_received = 0
@@ -52,8 +111,9 @@ async def donation_board(bot: CustomClient, players: List[MyCustomPlayer], seaso
         footer_icon = bot.user.avatar.url
     embed.set_footer(icon_url=footer_icon,
                      text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {season}")
-    embed.timestamp = datetime.datetime.now()
+    embed.timestamp = datetime.now()
     return embed
+
 
 async def hero_progress(bot: CustomClient, player_tags: List[str], season: str, footer_icon: str, title_name: str, limit: int = 50, embed_color: disnake.Color = disnake.Color.green()):
     year = season[:4]
@@ -154,7 +214,42 @@ async def troops_spell_siege_progress(bot: CustomClient, player_tags: List[str],
             text += f"{item.troops:<2} {item.spells:<2} {item.sieges:<2} {item.builder_troops:<2} {item.name[:13]}\n"
         embed = disnake.Embed(title=title_name, description=f"```{text}```",
                               colour=embed_color)
-        embed.set_footer(icon_url=footer_icon, text="HT=Home Troops, SP=Spells, SG=Sieges, BT=Builder Troops")
+    embed.set_footer(icon_url=footer_icon, text=f"HT=Home Troops, SP=Spells, SG=Sieges, BT=Builder Troops | {season}")
+    embed.timestamp = datetime.now()
+    return embed
+
+
+async def total_character_progress(bot: CustomClient, player_tags: List[str], season: str, footer_icon: str, title_name: str, type: str, embed_color: disnake.Color = disnake.Color.green()):
+    year = season[:4]
+    month = season[-2:]
+    season_start = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
+    season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
+
+    if type == "heroes":
+        enums = coc.enums.HERO_ORDER + coc.enums.PETS_ORDER
+    elif type == "troopsspells":
+        enums = coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER
+    pipeline = [
+        {"$match": {"$and": [{"tag": {"$in": player_tags}},
+                             {"type": {"$in": enums}},
+                             {"time": {"$gte": season_start.timestamp()}},
+                             {"time": {"$lte": season_end.timestamp()}}]}},
+        {"$group": {"_id": {"type": "$type"}, "num": {"$sum": 1}}},
+        {"$sort": {"num": -1}},
+    ]
+    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
+
+    text = f"{bot.emoji.blank}`Name{'':14}#`\n"
+    total_upgrades = 0
+    for result in results:
+        type = result.get("_id").get("type")
+        emoji = bot.fetch_emoji(type)
+        amount = result.get("num")
+        total_upgrades += amount
+        text += f"{emoji}`{type:15} {amount:3}`\n"
+
+    embed = disnake.Embed(title=title_name, description=f"{text}", colour=embed_color)
+    embed.set_footer(icon_url=footer_icon, text=f"{total_upgrades} Total Upgrades")
     embed.timestamp = datetime.now()
     embed.set_footer(text=season, icon_url=footer_icon)
     return embed
@@ -281,11 +376,12 @@ async def loot_progress(bot: CustomClient, player_tags: List[str], season: str, 
 
 async def activity_board(bot: CustomClient, players: List[MyCustomPlayer], season: str, footer_icon: str, title_name: str, embed_color: disnake.Color = disnake.Color.green()) -> disnake.Embed:
     players.sort(key=lambda x: len(x.season_last_online(season_date=season)), reverse=True)
-    text = "`#  ACT   NAME      `\n"
+    text = "`  #  ACT NAME      `\n"
     total_activities = 0
     for count, player in enumerate(players, 1):
+        tag = player.tag.strip("#")
         if count <= 50:
-            text += f"{bot.get_number_emoji(color='gold', number=count)}`{len(player.season_last_online(season_date=season)):4} {player.name[:15]:15}`\n"
+            text += f"[⌕]({SHORT_PLAYER_LINK}{tag})`{count:2} {len(player.season_last_online(season_date=season)):4} {player.clear_name[:15]:15}`\n"
         total_activities += len(player.season_last_online(season_date=season))
 
     embed = disnake.Embed(title=f"**{title_name} Top {len(players)} Activities**", description=f"{text}",
@@ -293,7 +389,7 @@ async def activity_board(bot: CustomClient, players: List[MyCustomPlayer], seaso
     if footer_icon is None:
         footer_icon = bot.user.avatar.url
     embed.set_footer(icon_url=footer_icon, text=f"Activities: {'{:,}'.format(total_activities)} | {season}")
-    embed.timestamp = datetime.datetime.now()
+    embed.timestamp = datetime.now()
     return embed
 
 
@@ -413,32 +509,150 @@ async def player_sort(bot: CustomClient, player_tags: List[str], sort_by: str, f
     return embed
 
 
-async def activity_graph(players: List[MyCustomPlayer], season: str, title: str, granularity: str,
-                         time_zone: str) -> (disnake.File, disnake.ActionRow):
+async def th_composition(bot: CustomClient, player_tags: List[str], title: str, thumbnail: str, embed_color: disnake.Color = disnake.Color.green()):
+    pipeline = [
+        {"$match": {"tag": {"$in": player_tags}}},
+        {"$group": {"_id": "$data.townHallLevel", "count" : {"$sum" : 1}, "list_tags" : {"$push" : "$tag"}}},
+        {"$sort" : {"_id" : -1}}
+    ]
+    results = await bot.player_cache.aggregate(pipeline=pipeline).to_list(length=None)
+
+    th_count_dict = defaultdict(int)
+    th_sum = 0
+    for result in results:
+        th_sum += (result["_id"] * result["count"])
+        th_count_dict[result["_id"]] += result["count"]
+
+    tags_found = []
+    for t in results:
+        tags_found += t["list_tags"]
+    missing = set(player_tags) - set(tags_found)
+    players = await bot.get_players(tags=list(missing), custom=False, use_cache=False)
+    for player in players:
+        th_sum += player.town_hall
+        th_count_dict[player.town_hall] += 1
+
+    embed_description = ""
+    for th_level, th_count in sorted(th_count_dict.items(), reverse=True):
+        if th_level <= 9:
+            th_emoji = bot.fetch_emoji(th_level)
+            embed_description += f"{th_emoji} `TH{th_level} ` {th_count}\n"
+
+        else:
+            th_emoji = bot.fetch_emoji(th_level)
+            embed_description += f"{th_emoji} `TH{th_level}` {th_count}\n"
+
+    th_average = round((th_sum / len(player_tags)), 2)
+
+    embed = disnake.Embed(title=title, description=embed_description, color=embed_color)
+
+    embed.set_thumbnail(url=thumbnail)
+    embed.set_footer(text=f"Average Th: {th_average}\nTotal: {len(player_tags)} accounts")
+
+    return embed
+
+
+async def th_hitrate(bot: CustomClient, player_tags: List[str], title: str, thumbnail: str, embed_color: disnake.Color = disnake.Color.green()):
+    text = f""
+    for th in TOWNHALL_LEVELS:
+        num_total = await bot.warhits.count_documents({"$and": [{"tag" : {"$in" : player_tags}}, {"townhall": th}, {"defender_townhall": th}]})
+        if num_total == 0:
+            continue
+        num_zeros = await bot.warhits.count_documents(
+            {"$and": [{"tag" : {"$in" : player_tags}}, {"townhall": th}, {"stars": 0}, {"defender_townhall": th}]})
+        num_ones = await bot.warhits.count_documents(
+            {"$and": [{"tag" : {"$in" : player_tags}}, {"townhall": th}, {"stars": 1}, {"defender_townhall": th}]})
+        num_twos = await bot.warhits.count_documents(
+            {"$and": [{"tag" : {"$in" : player_tags}}, {"townhall": th}, {"stars": 2}, {"defender_townhall": th}]})
+        num_triples = await bot.warhits.count_documents(
+            {"$and": [{"tag" : {"$in" : player_tags}}, {"townhall": th}, {"stars": 3}, {"defender_townhall": th}]})
+        text += f"{bot.fetch_emoji(name=th)}`{custom_round((num_zeros / num_total) * 100):>4}% ☆☆☆` |" \
+                f" `{custom_round((num_ones / num_total) * 100):>4}% ★☆☆`\n" \
+                f"{bot.emoji.blank}`{custom_round((num_twos / num_total) * 100):>4}% ★★☆` |" \
+                f" `{custom_round((num_triples / num_total) * 100):>4}% ★★★`\n"
+    if not text:
+        text = "No Results Found"
+    embed = disnake.Embed(title=title, description=text, color=embed_color)
+    embed.set_thumbnail(url=thumbnail)
+    return embed
+
+
+    pipeline = [
+        {"$match": {"tag": {"$in": player_tags}}},
+        {"$group": {"_id": "$data.townHallLevel", "count" : {"$sum" : 1}, "list_tags" : {"$push" : "$tag"}}},
+        {"$sort" : {"_id" : -1}}
+    ]
+    results = await bot.player_cache.aggregate(pipeline=pipeline).to_list(length=None)
+
+    th_count_dict = defaultdict(int)
+    th_sum = 0
+    for result in results:
+        th_sum += (result["_id"] * result["count"])
+        th_count_dict[result["_id"]] += result["count"]
+
+    tags_found = []
+    for t in results:
+        tags_found += t["list_tags"]
+    missing = set(player_tags) - set(tags_found)
+    players = await bot.get_players(tags=list(missing), custom=False, use_cache=False)
+    for player in players:
+        th_sum += player.town_hall
+        th_count_dict[player.town_hall] += 1
+
+    embed_description = ""
+    for th_level, th_count in sorted(th_count_dict.items(), reverse=True):
+        if th_level <= 9:
+            th_emoji = bot.fetch_emoji(th_level)
+            embed_description += f"{th_emoji} `TH{th_level} ` {th_count}\n"
+
+        else:
+            th_emoji = bot.fetch_emoji(th_level)
+            embed_description += f"{th_emoji} `TH{th_level}` {th_count}\n"
+
+    th_average = round((th_sum / len(player_tags)), 2)
+
+    embed = disnake.Embed(title=title, description=embed_description, color=embed_color)
+
+    embed.set_thumbnail(url=thumbnail)
+    embed.set_footer(text=f"Average Th: {th_average}\nTotal: {len(player_tags)} accounts")
+
+    return embed
+
+
+async def activity_graph(bot: CustomClient, players: List[MyCustomPlayer], season: str, title: str, granularity: str, time_zone: str, tier: str, no_html:bool = False) -> (disnake.File, disnake.ActionRow):
+    s = season
+    if season is None:
+        season = bot.gen_season_date()
     list_ = []
     days = defaultdict(int)
     for player in players:
         all_lo = player.season_last_online(season_date=season)
         for time in all_lo:
-            if granularity == "Day":
+            if granularity == "day":
                 time = datetime.fromtimestamp(time).replace(hour=0, minute=0, second=0)
-            elif granularity == "Hour":
+            elif granularity == "hour":
                 time = datetime.fromtimestamp(time).replace(minute=0, second=0)
-            elif granularity == "Quarter-Day":
+            elif granularity == "quarterday":
                 time = datetime.fromtimestamp(time)
                 time = time.replace(hour=(time.hour // 6) * 6, minute=0, second=0)
             if player.clan is None:
                 continue
             days[f"{int(time.timestamp())}_{player.clan.name}"] += 1
     for date_time, amount in days.items():
-        list_.append([pd.to_datetime(int(date_time.split("_")[0]), unit="s", utc=True).tz_convert(time_zone), amount,
-                      date_time.split("_")[1]])
+        list_.append([pd.to_datetime(int(date_time.split("_")[0]), unit="s", utc=True).tz_convert(time_zone), amount, date_time.split("_")[1]])
     df = pd.DataFrame(list_, columns=["Date", "Total Activity", "Clan"])
     df.sort_values(by="Date", inplace=True)
-    return (await board_cog.graph_creator(df=df, x="Date", y="Total Activity", title=title))
+    file, buttons = (await graph_creator(bot=bot, df=df, x="Date", y="Total Activity", title=title, footer="Choose Granularity Below", no_html=no_html))
+    if buttons:
+        buttons.append_item(disnake.ui.Button(label="1d", style=disnake.ButtonStyle.grey, custom_id=f"{tier}_day_{s}_{time_zone}"))
+        buttons.append_item(disnake.ui.Button(label="6h", style=disnake.ButtonStyle.grey, custom_id=f"{tier}_quarterday_{s}_{time_zone}"))
+        buttons.append_item(disnake.ui.Button(label="1h", style=disnake.ButtonStyle.grey, custom_id=f"{tier}_hour_{s}_{time_zone}"))
+    return file, buttons
 
 
-async def capital_donation_board(players: List[MyCustomPlayer], week: str, title_name: str, limit: int = 60,
+
+
+async def capital_donation_board(bot: CustomClient, players: List[MyCustomPlayer], week: str, title_name: str, limit: int = 60,
                                  footer_icon: str = None, embed_color: disnake.Color = disnake.Color.green()):
     players.sort(key=lambda x: sum(x.clan_capital_stats(week=week).donated), reverse=True)
     total_donated = 0
@@ -452,15 +666,15 @@ async def capital_donation_board(players: List[MyCustomPlayer], week: str, title
         text = "No Results Found"
     embed = disnake.Embed(description=f"{text}", color=embed_color)
     embed.set_author(name=f"{title_name} Clan Capital Donations",
-                     icon_url=self.bot.emoji.capital_gold.partial_emoji.url)
+                     icon_url=bot.emoji.capital_gold.partial_emoji.url)
     if footer_icon is None:
-        footer_icon = self.bot.user.avatar.url
+        footer_icon = bot.user.avatar.url
     embed.set_footer(icon_url=footer_icon, text=f"Donated: {'{:,}'.format(total_donated)} | {week}")
-    embed.timestamp = datetime.datetime.now()
+    embed.timestamp = datetime.now()
     return embed
 
 
-async def capital_raided_board(   players: List[MyCustomPlayer], week: str, title_name: str, limit: int = 60,
+async def capital_raided_board(bot: CustomClient, players: List[MyCustomPlayer], week: str, title_name: str, limit: int = 60,
                                footer_icon: str = None, embed_color: disnake.Color = disnake.Color.green()):
     players.sort(key=lambda x: sum(x.clan_capital_stats(week=week).raided), reverse=True)
     total_donated = 0
@@ -474,9 +688,9 @@ async def capital_raided_board(   players: List[MyCustomPlayer], week: str, titl
         text = "No Results Found"
     embed = disnake.Embed(description=f"{text}", color=embed_color)
     embed.set_author(name=f"{title_name} Clan Capital Raid Totals",
-                     icon_url=self.bot.emoji.capital_gold.partial_emoji.url)
+                     icon_url=bot.emoji.capital_gold.partial_emoji.url)
     if footer_icon is None:
-        footer_icon = self.bot.user.avatar.url
+        footer_icon = bot.user.avatar.url
     embed.set_footer(icon_url=footer_icon, text=f"Raided: {'{:,}'.format(total_donated)} | {week}")
-    embed.timestamp = datetime.datetime.now()
+    embed.timestamp = datetime.now()
     return embed

@@ -11,6 +11,7 @@ known_streak = []
 count = 0
 list_size = 0
 import asyncio
+from typing import List
 from CustomClasses.CustomBot import CustomClient
 from pymongo import UpdateOne
 from PIL import Image, ImageDraw, ImageFont
@@ -32,6 +33,8 @@ war_leagues = json.load(open(f"Assets/war_leagues.json"))
 from Assets.emojiDictionary import emojiDictionary
 from utils.discord_utils import interaction_handler
 from utils.ClanCapital import calc_raid_medals
+
+from urllib import request
 leagues = ["Champion League I", "Champion League II", "Champion League III",
                    "Master League I", "Master League II", "Master League III",
                    "Crystal League I","Crystal League II", "Crystal League III",
@@ -45,7 +48,13 @@ import random
 import os
 import openai
 openai.api_key = os.getenv("OPENAI_API_KEY")
-
+import matplotlib.pyplot as plt
+from PIL import Image, ImageDraw, ImageFont
+import io
+import pandas as pd
+from CustomClasses.CustomPlayer import MyCustomPlayer
+from utils.constants import TOWNHALL_LEVELS
+import numpy as np
 
 class ChatBot:
     def __init__(self, system=""):
@@ -66,6 +75,7 @@ class ChatBot:
         # {"completion_tokens": 86, "prompt_tokens": 26, "total_tokens": 112}
         # print(completion.usage)
         return completion.choices[0].message.content
+
 
 
 class OwnerCommands(commands.Cog):
@@ -103,6 +113,57 @@ class OwnerCommands(commands.Cog):
         message = magicbot(message_text)
 
         await ctx.edit_original_message(content=f"Summary of the last {num_messages} messages in {channel.name}:\n {message}")
+
+    #@commands.command(name="example")
+    @commands.command(name="example")
+    async def example(self, ctx: disnake.ApplicationCommandInteraction):
+        clan = await self.bot.getClan("#280U89YQR")
+        embed = disnake.Embed(title=f"{clan.name} Week 5/23-5/30 Summary",
+              description=f"`Trophies        `{self.bot.emoji.trophy}`{clan.points}  `{self.bot.emoji.up_green_arrow}`+500  `{self.bot.emoji.globe}`#254 `{self.bot.emoji.discord}`#2`\n"
+                          f"`Builder Trophies`{self.bot.emoji.trophy}`{clan.versus_points}  `{self.bot.emoji.up_green_arrow}`+25   `{self.bot.emoji.globe}`#3457`{self.bot.emoji.discord}`#1`\n"
+                          f"`Donations       `{self.bot.emoji.clan_castle}`500,103`{self.bot.emoji.up_green_arrow}`+14265`{self.bot.emoji.globe}`#23  `{self.bot.emoji.discord}`#1`\n"
+                          f"`TH Compo        `{self.bot.fetch_emoji(15)}`14.97  `{self.bot.emoji.up_green_arrow}`+0.5  `{self.bot.emoji.discord}`#2   `\n"
+                          f"`War Stars       `{self.bot.emoji.war_star}`387    `{self.bot.emoji.up_green_arrow}`+23   `{self.bot.emoji.discord}`#8   `\n"
+                          f"`Attack Wins     `{self.bot.emoji.thick_sword}`2,903  `{self.bot.emoji.up_green_arrow}`+492  `{self.bot.emoji.globe}`#201 `{self.bot.emoji.discord}`#4`\n"
+                          f"`Activity        `{self.bot.emoji.clock}`5,607  `{self.bot.emoji.up_green_arrow}`+1003 `{self.bot.emoji.globe}`#1   `{self.bot.emoji.discord}`#1`\n"
+                          f"`Wars Won        `{self.bot.emoji.war_star}`3      `{self.bot.emoji.up_green_arrow}`+0    `{self.bot.emoji.discord}`#1   `\n",
+              color=disnake.Color.green())
+        embed.set_thumbnail(url=clan.badge.url)
+        await ctx.send(embed=embed)
+
+    @commands.slash_command(name="sample")
+    async def sample(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+
+
+
+
+    @commands.slash_command(name="hitrate")
+    async def hitrate(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        text = ""
+        pipeline = [
+            {"$match": {"$and" : [{"type" : "clanCapitalContributions"}, {"clan" : "#2GYQ02JYP"}]}},
+            {"$sort": {"time": -1}},
+            {"$limit" : 150},
+            {"$lookup": {"from": "player_stats", "localField": "tag", "foreignField": "tag", "as": "name"}},
+            {"$set": {"name": "$name.name"}}
+        ]
+        results = await self.bot.player_history.aggregate(pipeline).to_list(length=None)
+        missing = 0
+        add = 0
+        for result in results:
+            if result.get("p_value") is None:
+                missing += 1
+                continue
+            diff = result.get("value") - result.get("p_value", 0)
+            name = result.get("name")[0]
+            text += f"<t:{result.get('time')}:R> {diff} {name}\n"
+            add += 1
+            if add == 25 or result == results[-1]:
+                embed = disnake.Embed(description=text)
+                await ctx.channel.send(embed=embed)
+                add = 0; text = ""
 
 
     @commands.slash_command(name="owner_anniversary", guild_ids=[923764211845312533])
@@ -421,6 +482,7 @@ class OwnerCommands(commands.Cog):
             #await self.bot.player_stats.create_index([(f"donations.{season}.donated", 1)], background=True)
             #await self.bot.player_stats.create_index([(f"donations.{season}.received", 1)], background=True)
             pass
+
 
 
     @commands.slash_command(name="html")

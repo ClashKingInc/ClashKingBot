@@ -1,5 +1,6 @@
 import json
 
+TOWNHALL_LEVELS = [x for x in range(1, 16)]
 MAX_NUM_SUPERS = 2
 SHORT_PLAYER_LINK = "https://api.clashking.xyz/p"
 SHORT_CLAN_LINK = "https://api.clashking.xyz/c"

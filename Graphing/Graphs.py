@@ -99,19 +99,7 @@ class GraphCreator(commands.Cog):
         await ctx.edit_original_message(file=file, components=[buttons])
 
 
-    async def graph_creator(self, df: pd.DataFrame, x:str, y:str, title:str):
-        fig = px.line(df, x=x, y=y, title=title, line_shape="spline", color="Clan")
 
-        pio.write_html(fig, file="index.html", auto_open=False)
-        img = pio.to_image(fig, format="png", scale=3.0)
-        file = disnake.File(fp="index.html", filename="test.html")
-        channel = await self.bot.getch_channel(884951195406458900)
-        msg = await channel.send(file=file)
-        html = msg.attachments[0].url
-        file = disnake.File(fp=io.BytesIO(img), filename="test.png")
-        buttons = disnake.ui.ActionRow()
-        buttons.append_item(disnake.ui.Button(label="Online View", url=f"https://api.clashking.xyz/render/?url={html}"))
-        return(file, buttons)
 
 
 def setup(bot):

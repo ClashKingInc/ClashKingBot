@@ -87,7 +87,7 @@ class MyCustomPlayer(coc.Player):
         season_start = utils.get_season_start(month=int(month) - 1, year=int(year))
         season_end = utils.get_season_end(month=int(month) - 1, year=int(year))
         delta = season_end - season_start
-        days = [season_start + timedelta(days=i) for i in range(delta.days + 1)]
+        days = [season_start + timedelta(days=i) for i in range(delta.days)]
         days = [day.strftime("%Y-%m-%d") for day in days]
 
         try:

@@ -74,8 +74,11 @@ class ExportCreator(commands.Cog):
                     #could skip this all by writting a season generator that actually gives the right thing, if u feel inclined xD
                     #or we could switch all generators to give back datetimes which would allow us to create whatever we want with them...hindsight is 20/20 lol
                     month = list(calendar.month_name).index(season_for_sheet.split(" ")[0])
-                    year = season_for_sheet.split(" ")[1]
-                    end_date = coc.utils.get_season_end(month=int(month - 1), year=int(year))
+                    year = int(season_for_sheet.split(" ")[1])
+                    if month == 1:
+                        month = 13
+                        year -= 1
+                    end_date = coc.utils.get_season_end(month=int(month - 1), year=year)
                     month = end_date.month
                     if month <= 9:
                         month = f"0{month}"
@@ -211,7 +214,8 @@ class ExportCreator(commands.Cog):
         now = datetime.now(tz=utc).date()
         current_season_progress = now - start
         current_season_progress = current_season_progress.days
-
+        if season != self.bot.gen_season_date():
+            current_season_progress = 100
         data = []
         for player in players:
             season_stats: Dict[str, LegendDay] = player.season_of_legends(season=season)

@@ -2,14 +2,18 @@ import coc
 import json
 import calendar
 import datetime as dt
+import aiohttp
+import io
 
-from coc import utils
 from datetime import datetime
 from utils.constants import war_leagues, SUPER_SCRIPTS
 from utils.clash import league_to_emoji
+from coc import utils
 from pytz import utc
 from typing import List
+from expiring_dict import ExpiringDict
 
+IMAGE_CACHE = ExpiringDict()
 
 async def fetch(url, session, **kwargs):
     async with session.get(url) as response:
@@ -197,7 +201,6 @@ def get_clan_member_tags(clans: List[coc.Clan]) -> List[str]:
     return clan_member_tags
 
 def response_to_line(response, clan):
-    te = json.dumps(response)
     clans = response["clans"]
     season = response["season"]
     tags = [x["tag"] for x in clans]
@@ -274,3 +277,35 @@ def notate_number(number: int, zero=False):
         return f"{rounded}K"
     else:
         return number
+
+def custom_round(number: int, add_percent=None):
+    number = round(number, 1)
+    if len(str(number)) <= 3:
+        number = format(number, '.2f')
+    elif number == 100.0:
+        number = 100
+    if add_percent:
+        return f"{number}%"
+    return number
+
+def convert_seconds(seconds):
+    seconds = seconds % (24 * 3600)
+    hour = seconds // 3600
+    seconds %= 3600
+    minutes = seconds // 60
+    seconds %= 60
+
+    return "%d:%02d:%02d" % (hour, minutes, seconds)
+
+async def download_image(url: str):
+    cached = IMAGE_CACHE.get(url)
+    if cached is None:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                image_data = await response.read()
+            await session.close()
+        image_bytes: bytes = image_data
+        IMAGE_CACHE.ttl(url, image_bytes, 3600 * 4)
+    else:
+        image_bytes = cached
+    return io.BytesIO(image_bytes)

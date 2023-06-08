@@ -15,12 +15,11 @@ from utils.clash import cwl_league_emojis
 from CustomClasses.PlayerHistory import COSPlayerHistory
 from Exceptions.CustomExceptions import MissingWebhookPerms
 from utils.constants import locations, BADGE_GUILDS
-from datawrapper import Datawrapper
 from typing import Tuple, List
 from utils import logins as login
-from utils.general import fetch
+from utils.general import fetch, get_clan_member_tags
 from math import ceil
-from CustomClasses.DatabaseClasses import CustomClan
+from expiring_dict import ExpiringDict
 
 import dateutil.relativedelta
 import ast
@@ -111,7 +110,6 @@ class CustomClient(commands.AutoShardedBot):
         self.coc_client = login.coc_client
 
         self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwarapi.login(username=os.getenv("FW_USER"), password=os.getenv("FW_PW"), coc_client=self.coc_client))
-        self.data_wrapper: Datawrapper = Datawrapper(access_token=os.getenv("DATAWRAPPER_TOKEN"))
 
         self.emoji = Emojis()
         self.locations = locations
@@ -127,6 +125,7 @@ class CustomClient(commands.AutoShardedBot):
         self.feed_webhooks = {}
         self.clan_list = []
         self.player_cache_dict = {}
+        self.IMAGE_CACHE = ExpiringDict()
 
     def clean_string(self, text: str):
         text = emoji.replace_emoji(text)
@@ -454,6 +453,11 @@ class CustomClient(commands.AutoShardedBot):
                 accepted_times.append([time ,reminder_time])
         return accepted_times
 
+    async def get_family_member_tags(self, guild_id):
+        clan_tags = await self.clan_db.distinct("tag", filter={"server": guild_id})
+        clans: List[coc.Clan] = await self.get_clans(tags=clan_tags)
+        member_tags = get_clan_member_tags(clans=clans)
+        return member_tags
 
     def create_link(self, tag):
         tag = tag.replace("#", "%23")
@@ -473,6 +477,8 @@ class CustomClient(commands.AutoShardedBot):
         emoji = emojiDictionary(name)
         if emoji is None:
             emoji = legend_emojis(name)
+        if emoji is None:
+            return None
         return EmojiType(emoji_string=emoji)
 
     async def pingToMember(self, ctx, ping, no_fetch=False):
@@ -578,6 +584,7 @@ class CustomClient(commands.AutoShardedBot):
         diff = ceil((datetime.now().date() - date(2016, 12, 1)).days / 30)
         dates = self.gen_season_date(seasons_ago=diff, as_text=False)
         names = await self.cwl_db.distinct("season", filter={"clan_tag" : clan.tag})
+        await self.cwl_db.delete_many({"data.statusCode" : 404})
         missing = set(dates) - set(names)
         tasks = []
         async with aiohttp.ClientSession() as session:
