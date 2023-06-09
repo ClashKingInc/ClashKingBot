@@ -109,6 +109,30 @@ class ExportCreator(commands.Cog):
 
     async def create_troops_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str):
         troops_page = workbook.create_sheet(sheet_name)
+        players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=False)
+        # Note home_troop_order already includes siege machines
+        home_troops = coc.enums.HOME_TROOP_ORDER
+        super_troops = coc.enums.SUPER_TROOP_ORDER
+        spells = coc.enums.SPELL_ORDER
+        pets = coc.enums.PETS_ORDER
+        home_heroes = coc.enums.HOME_BASE_HERO_ORDER
+        builder_troops = coc.enums.BUILDER_TROOPS_ORDER
+        builder_heroes = coc.enums.BUILDER_BASE_HERO_ORDER
+
+        columns = home_troops + super_troops + spells + pets + home_heroes + builder_troops + builder_heroes
+        data = []
+        for player in players_data:
+            _troops =  {troop.name:troop.level for troop in player.troops}
+            _spells = {spell.name: spell.level for spell in player.spells} 
+            _super_troops = {super_troop.name:super_troop.level for super_troop in player.super_troops}
+            _pets = {pet.name: pet.level for pet in player.pets}
+            _heros = {hero.name: hero.level for hero in player.heroes}
+            all_troops_data = {**_troops, **_spells, **_super_troops, **_pets, **_heros}
+            line = [player.name, player.tag] +  [all_troops_data.get(column, "-") for column in columns]
+            data.append(line)    
+        columns = ['Player Name', 'Player Tag'] + columns
+        await self.write_data(worksheet=troops_page, column_names=columns, data=data)
+
 
     async def create_player_activity_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
         activity_page = workbook.create_sheet(sheet_name)
@@ -127,12 +151,11 @@ class ExportCreator(commands.Cog):
         leagues = ['builderBaseLeague', 'league']
         for result in results:
             for change in result['changes']:
-                p_value = change.get('p_value', 0)
+                p_value = change.get('p_value', '-')
                 value = change['value']
                 if change['type'] in leagues:
                     value = change['value']['name']
-                    if p_value != 0:
-                        p_value = change['p_value']['name'] 
+                    p_value = change['p_value']['name'] if p_value != '-' else p_value
                 time = datetime.fromtimestamp(change['time'], tz=utc).strftime("%Y-%m-%d-%H:%M:%S")
                 data.append([result['name'][0], result['_id'], change['type'], p_value, value, time, change['clan']])
         columns = ['Player Name', 'Player Tag', 'Type', 'Previous Value', 'Value', 'Time', 'Clan Tag']
@@ -150,7 +173,7 @@ class ExportCreator(commands.Cog):
                 achievements.append(achievement.name)
                 entry.append(achievement.value)
             if "Get those Goblins!" not in achievements:
-                entry.insert(33,0)
+                entry.insert(33,'-')
             data.append(entry)
         columns = ["Player Name", "Player Tag"] + achievement_order
         columns.remove("Get those other Goblins!")
