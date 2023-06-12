@@ -46,12 +46,14 @@ class ExportCreator(commands.Cog):
                 await self.create_warhit_export(players=players, workbook=workbook, season=season, sheet_name="war_hits")
             elif template == "Season Trophies":
                 await self.create_season_trophies_export(players=players, workbook=workbook, season=season, sheet_name="season_trophies")
-            elif template == "Season Troops":
+            elif template == "Troops":
                 await self.create_troops_export(players=players, workbook=workbook, sheet_name="season_troops")
             elif template == "Achievements":
                 await self.create_achievements_export(players=players, workbook=workbook, sheet_name="achievements_data")
             elif template == "Player Activity":
                 await self.create_player_activity_export(players=players, workbook=workbook, season=season, sheet_name="player_activity")
+            elif template == "Player Stats":
+                await self.create_player_stats_export(players=players, workbook=workbook, season=season, sheet_name="player_stats")
         else:
             # if it is not, then it is a template
             # 1. load the template
@@ -59,6 +61,7 @@ class ExportCreator(commands.Cog):
             # 3. look if they have a number to find what season that is being exported, else it is just the current
             workbook = load_workbook(template)
             for sheet_name in workbook.sheetnames:
+                print(sheet_name)
                 season_for_sheet = season
                 #this code assumes that all export type names are 2 parts seperated by underscore. if this is different, then other logic can apply
                 #i.e. could split & check if the last item is an integer
@@ -92,20 +95,44 @@ class ExportCreator(commands.Cog):
                 elif "season_trophies" in sheet_name:
                     workbook.remove(workbook.get_sheet_by_name(sheet_name))
                     await self.create_season_trophies_export(players=players, workbook=workbook, season=season_for_sheet, sheet_name=sheet_name)
-                elif template == "season_troops":
+                elif "season_troops" in sheet_name:
                     workbook.remove(workbook.get_sheet_by_name(sheet_name))
-                    await self.create_troops_export(players=players, workbook=workbook, sheet_name="season_troops")
-                elif template == "achievements":
+                    await self.create_troops_export(players=players, workbook=workbook, sheet_name=sheet_name)
+                elif "achievements" in sheet_name:
                     workbook.remove(workbook.get_sheet_by_name(sheet_name))
-                    await self.create_achievements_export(players=players, workbook=workbook, sheet_name="achievements_data")
-                elif template == "player_activity":
+                    await self.create_achievements_export(players=players, workbook=workbook, sheet_name=sheet_name)
+                elif "player_activity" in sheet_name:
                     workbook.remove(workbook.get_sheet_by_name(sheet_name))
-                    await self.create_player_activity_export(players=players, workbook=workbook, season=season_for_sheet, sheet_name="player_activity")
+                    await self.create_player_activity_export(players=players, workbook=workbook, season=season_for_sheet, sheet_name=sheet_name)
+                elif "player_stats" in sheet_name:
+                    workbook.remove(workbook.get_sheet_by_name(sheet_name))
+                    await self.create_player_stats_export(players=players, workbook=workbook, season=season_for_sheet, sheet_name=sheet_name)
                 #more if statements to find other export types
         workbook.save(output)
         xlsx_data = output
         xlsx_data.seek(0)
         return xlsx_data
+    
+    async def create_player_stats_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
+        player_stats_page = workbook.create_sheet(sheet_name)
+        players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=False)
+        data = []
+        for player in players_data:
+            info = ['name', 'tag','town_hall', 'town_hall_weapon', 'exp_level', 'trophies','best_trophies', 'labels', 'league','donations', 
+                    'received','attack_wins', 'defense_wins','clan','role', 'clan_previous_rank', 'clan_rank','war_opted_in', 'war_stars', 
+                    'builder_hall', 'best_versus_trophies', 'clan_capital_contributions', 'versus_attack_wins', 'versus_rank', 'versus_trophies']
+            line = []
+            for i in info:
+                value = getattr(player, i, None)
+                value = " ".join([label.name for label in value]) if i == 'labels' else value
+                value = '-' if value == None or value == '' else value
+                line.append(str(value))
+            data.append(line)
+        columns = ['Player Name', "Player Tag", "Town Hall", "Town Hall Weapon", "Exp Level", 'Trophies', "Best Trophies", "Labels", "League", "Donations", 
+                   "Received", "Attack Wins", "Defense Wins", "Clan", "Role", "Clan Previous Rank", "Clan Rank", "War Opted In", "War Stars", "Builder Hall",  
+                   "Best Versus Trophies", "Clan Capital Contributions",  "Versus Attack Wins", "Versus Rank", "Versus Trophies"]
+
+        await self.write_data(worksheet=player_stats_page, column_names=columns, data=data)
 
     async def create_troops_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str):
         troops_page = workbook.create_sheet(sheet_name)
