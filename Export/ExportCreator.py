@@ -119,18 +119,22 @@ class ExportCreator(commands.Cog):
         data = []
         for player in players_data:
             info = ['name', 'tag','town_hall', 'town_hall_weapon', 'exp_level', 'trophies','best_trophies', 'labels', 'league','donations', 
-                    'received','attack_wins', 'defense_wins','clan','role', 'clan_previous_rank', 'clan_rank','war_opted_in', 'war_stars', 
-                    'builder_hall', 'best_versus_trophies', 'clan_capital_contributions', 'versus_attack_wins', 'versus_rank', 'versus_trophies']
+                    'received','attack_wins', 'defense_wins','clan','role','war_opted_in', 'war_stars', 
+                    'builder_hall', 'best_versus_trophies', 'clan_capital_contributions', 'versus_trophies']
             line = []
             for i in info:
                 value = getattr(player, i, None)
-                value = " ".join([label.name for label in value]) if i == 'labels' else value
-                value = '-' if value == None or value == '' else value
-                line.append(str(value))
+                value = value.name if i == 'league' else value    
+                value = '-' if value is None or value == '' else value
+                if i == 'labels':
+                    labels = [label.name for label in value] + ['-' for x in range (3 - len(value))] 
+                    line.extend(labels)
+                else:
+                    line.append(str(value))
             data.append(line)
-        columns = ['Player Name', "Player Tag", "Town Hall", "Town Hall Weapon", "Exp Level", 'Trophies', "Best Trophies", "Labels", "League", "Donations", 
-                   "Received", "Attack Wins", "Defense Wins", "Clan", "Role", "Clan Previous Rank", "Clan Rank", "War Opted In", "War Stars", "Builder Hall",  
-                   "Best Versus Trophies", "Clan Capital Contributions",  "Versus Attack Wins", "Versus Rank", "Versus Trophies"]
+        columns = ['Player Name', "Player Tag", "Town Hall", "Town Hall Weapon", "Exp Level", 'Trophies', "Best Trophies", "Label 1", "Label 2", "Label 3", 
+                   "League", "Donations", "Received", "Attack Wins", "Defense Wins", "Clan", "Role", "War Opted In", "War Stars", "Builder Hall",  
+                   "Best Versus Trophies", "Clan Capital Contributions", "Versus Trophies"]
 
         await self.write_data(worksheet=player_stats_page, column_names=columns, data=data)
 
