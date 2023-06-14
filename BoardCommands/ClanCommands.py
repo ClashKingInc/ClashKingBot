@@ -1,14 +1,13 @@
 import coc
 import disnake
 import calendar
+import pytz
 
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
 from typing import List
 from ImageGen import ClanCapitalResult as capital_gen
-from pytz import utc
-import pytz
 from utils.constants import item_to_name, TOWNHALL_LEVELS
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from BoardCommands.Utils import Clan as clan_embeds
@@ -25,7 +24,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         if clan.member_count == 0:
             raise coc.errors.NotFound
         return clan
-
 
     async def season_convertor(self, season: str):
         if season is not None:

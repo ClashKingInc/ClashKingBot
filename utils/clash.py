@@ -412,56 +412,28 @@ def league_to_emoji(league: str):
         return "<:Unranked:601618883853680653>"
 
 
-def cwl_league_emojis(league):
-
-    if (league == "Bronze League III"):
-        emoji = "<:BronzeLeagueIII:601611929311510528>"
-    elif (league == "Bronze League II"):
-        emoji = "<:BronzeLeagueII:601611942850986014>"
-    elif (league == "Bronze League I"):
-        emoji = "<:BronzeLeagueI:601611950228635648>"
-    elif (league == "Silver League III"):
-        emoji = "<:SilverLeagueIII:601611958067920906>"
-    elif (league == "Silver League II"):
-        emoji = "<:SilverLeagueII:601611965550428160>"
-    elif (league == "Silver League I"):
-        emoji = "<:SilverLeagueI:601611974849331222>"
-    elif (league == "Gold League III"):
-        emoji = "<:GoldLeagueIII:601611988992262144>"
-    elif (league == "Gold League II"):
-        emoji = "<:GoldLeagueII:601611996290613249>"
-    elif (league == "Gold League I"):
-        emoji = "<:GoldLeagueI:601612010492526592>"
-    elif (league == "Crystal League III"):
-        emoji = "<:CrystalLeagueIII:601612021472952330>"
-    elif (league == "Crystal League II"):
-        emoji = "<:CrystalLeagueII:601612033976434698>"
-    elif (league == "Crystal League I"):
-        emoji = "<:CrystalLeagueI:601612045359775746>"
-    elif (league == "Master League III"):
-        emoji = "<:MasterLeagueIII:601612064913621002>"
-    elif (league == "Master League II"):
-        emoji = "<:MasterLeagueII:601612075474616399>"
-    elif (league == "Master League I"):
-        emoji = "<:MasterLeagueI:601612085327036436>"
-    elif (league == "Champion League III"):
-        emoji = "<:ChampionLeagueIII:601612099226959892>"
-    elif (league == "Champion League II"):
-        emoji = "<:ChampionLeagueII:601612113345249290>"
-    elif (league == "Champion League I"):
-        emoji = "<:ChampionLeagueI:601612124447440912>"
-    elif (league == "Titan League III"):
-        emoji = "<:TitanLeagueIII:601612137491726374>"
-    elif (league == "Titan League II"):
-        emoji = "<:TitanLeagueII:601612148325744640>"
-    elif (league == "Titan League I"):
-        emoji = "<:TitanLeagueI:601612159327141888>"
-    elif (league == "Legend League"):
-        emoji = "<:LegendLeague:601612163169255436>"
-    else:
-        emoji = "<:Unranked:601618883853680653>"
-
-    return emoji
+def cwl_league_emojis(league: str):
+    cwl_emojis =  {
+        "Bronze League I" : "<:WarBronzeI:1116151829617705000>",
+        "Bronze League II" : "<:WarBronzeII:1116151836035006464>",
+        "Bronze League III" : "<:WarBronzeIII:1116151838136356895>",
+        "Silver League I" : "<:WarSilverI:1116151826870456420>",
+        "Silver League II" : "<:WarSilverII:1116151831542907011>",
+        "Silver League III" : "<:WarSilverIII:1116151833891704953>",
+        "Gold League I" : "<:WarGoldI:1116151792904966154>",
+        "Gold League II" : "<:WarGoldII:1116151794721103912>",
+        "Gold League III" : "<:WarGoldIII:1116151824471293954>",
+        "Crystal League I" : "<:WarCrystalI:1116151785476866109>",
+        "Crystal League II" : "<:WarCrystalII:1116151788895211682>",
+        "Crystal League III" : "<:WarCrystalIII:1116151790946230312>",
+        "Master League I" : "<:WarMasterI:1116151777813868596>",
+        "Master League II" : "<:WarMasterII:1116151780074598421>",
+        "Master League III" : "<:WarMasterIII:1116151784059191347>",
+        "Champion League I" : "<:WarChampionI:1116151613795598407>",
+        "Champion League II" : "<:WarChampionII:1116151615506894858>",
+        "Champion League III" : "<:WarChampionIII:1116151617922809947>"
+    }
+    return cwl_emojis.get(league, "<:Unranked:601618883853680653>")
 
 
 

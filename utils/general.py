@@ -1,5 +1,4 @@
 import coc
-import json
 import calendar
 import datetime as dt
 import aiohttp

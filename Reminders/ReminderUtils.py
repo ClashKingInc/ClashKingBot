@@ -380,6 +380,7 @@ async def create_war_reminder(bot, ctx: disnake.ApplicationCommandInteraction, c
         "type": "War",
         "clan": clan.tag,
         "channel": channel.id,
+        "time" : {"$in" : res.values},
     }, {"$set": {"custom_text": custom_text}})
     ping_reminder = f"**4 Hours Remaining - Example War Reminder**\n" \
                     f"1/2 hits- Linked Player | {ctx.author.mention}\n" \

@@ -102,11 +102,67 @@ class FamCommands(commands.Cog):
         else:
             await ctx.send(embeds=embeds)
 
+
     @family.sub_command(name="clans", description="Overview list of all family clans")
     async def family_clans(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
         guild = server if server is not None else ctx.guild
         embed = await family_embeds.create_family_clans(bot=self.bot, guild=guild)
-        await ctx.edit_original_message(embed=embed)
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey, custom_id=f"famclans_{guild.id}"))
+        await ctx.edit_original_message(embed=embed, components=[buttons])
+
+
+    @family.sub_command(name="compo", description="Composition of a family. (with a twist?)")
+    async def family_compo(self, ctx: disnake.ApplicationCommandInteraction,
+                           type: str = commands.Param(default="Totals", choices=["Totals", "Hitrate"]),
+                           server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
+        """
+            Parameters
+            ----------
+            clan: Use clan tag or select an option from the autocomplete
+            type: type of compo calculation
+            server: a discord server
+        """
+        guild = server if server else ctx.guild
+        guild_icon = guild.icon.url if guild.icon else self.bot.user.avatar.url
+        member_tags = await self.bot.get_family_member_tags(guild_id=guild.id)
+
+        if type == "Totals":
+            embed = await shared_embeds.th_composition(bot=self.bot,
+                                                       player_tags=member_tags,
+                                                       title=f"{guild.name} Townhall Composition",
+                                                       thumbnail=guild_icon)
+            custom_id = f"famcompo_{guild.id}"
+        elif type == "Hitrate":
+            embed = await shared_embeds.th_hitrate(bot=self.bot,
+                                                   player_tags=member_tags,
+                                                   title=f"{guild.name} TH Hitrate Compo",
+                                                   thumbnail=guild_icon)
+            custom_id = f"famhrcompo_{guild.id}"
+
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(
+                label="", emoji=self.bot.emoji.refresh.partial_emoji,
+                style=disnake.ButtonStyle.grey,
+                custom_id=custom_id))
+
+        await ctx.edit_original_message(embed=embed, components=buttons)
+
+
+    @family.sub_command(name="wars", description="List of current wars by family clans")
+    async def family_wars(self, ctx: disnake.ApplicationCommandInteraction,
+                          server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
+        guild = server if server is not None else ctx.guild
+        embed = await family_embeds.create_wars(bot=self.bot, guild=guild)
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey, custom_id=f"famwars_{guild.id}"))
+        await ctx.edit_original_message(embed=embed, components=[buttons])
+
 
     @family.sub_command(name="board", description="Image Board")
     async def board(self, ctx: disnake.ApplicationCommandInteraction,
@@ -274,21 +330,17 @@ class FamCommands(commands.Cog):
 
         await ctx.edit_original_message(embed=embed, components=[buttons] if buttons else [])
 
-    @family.sub_command(name="search", description="Overview Panel of a Family")
-    async def family_search(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
-        guild = server if server is not None else ctx.guild
-        embed = await self.create_search(guild=guild)
-        await ctx.send(embed=embed)
 
 
     @family_clans.autocomplete("server")
     @family_leagues.autocomplete("server")
     @family_donations.autocomplete("server")
     @family_capital.autocomplete("server")
-    @family_search.autocomplete("server")
     @countries.autocomplete("server")
     @progress.autocomplete("server")
     @board.autocomplete("server")
+    @family_compo.autocomplete("server")
+    @family_wars.autocomplete("server")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         matches = []
         for guild in self.bot.guilds:

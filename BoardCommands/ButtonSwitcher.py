@@ -44,7 +44,11 @@ family_triggers = {
     "fmp",
     "famboardact",
     "famboardlegend",
-    "famboardtrophies"
+    "famboardtrophies",
+    "famclans",
+    "famcompo",
+    "famhrcompo",
+    "famwars"
 }
 
 async def button_click_to_embed(bot: CustomClient, ctx: disnake.MessageInteraction):
@@ -250,7 +254,6 @@ async def family_parser(bot: CustomClient, ctx: disnake.MessageInteraction, cust
         players.sort(key=lambda x: x.trophies, reverse=False)
         embed: disnake.File = await shared_embeds.image_board(bot=bot, players=players, logo_url=guild_icon, title=f'{guild.name} Legend Board', type="legend")
 
-
     elif "famboardtrophies_" in custom_id:
         clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
         clans: List[coc.Clan] = await bot.get_clans(tags=clan_tags)
@@ -260,6 +263,21 @@ async def family_parser(bot: CustomClient, ctx: disnake.MessageInteraction, cust
         players = await bot.get_players(tags=[p["tag"] for p in top_50], custom=True)
         players.sort(key=lambda x: x.trophies, reverse=False)
         embed: disnake.File = await shared_embeds.image_board(bot=bot, players=players, logo_url=guild_icon, title=f'{guild.name} Trophy Board', type="trophies")
+
+    elif "famclans_" in custom_id:
+        embed = await family_embeds.create_family_clans(bot=bot, guild=guild)
+
+    elif "famcompo_" in custom_id:
+        member_tags = await bot.get_family_member_tags(guild_id=guild.id)
+        embed = await shared_embeds.th_composition(bot=bot, player_tags=member_tags, title=f"{guild.name} Townhall Composition", thumbnail=guild_icon)
+
+    elif "famhrcompo_" in custom_id:
+        member_tags = await bot.get_family_member_tags(guild_id=guild.id)
+        embed = await shared_embeds.th_hitrate(bot=bot, player_tags=member_tags, title=f"{guild.name} TH Hitrate Compo" ,thumbnail=guild_icon)
+
+    elif "famwars_" in custom_id:
+        embed = await family_embeds.create_wars(bot=bot, guild=guild)
+
 
     return embed
 

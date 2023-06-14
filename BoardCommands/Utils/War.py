@@ -48,8 +48,8 @@ async def main_war_page(bot: CustomClient, war: coc.ClanWar, war_league=None):
     team_hits = f"{len(war.attacks) - len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".ljust(7)
     opp_hits = f"{len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".rjust(7)
     embed.add_field(name="**War Stats**",
-                    value=f"`{team_hits}`<a:swords:944894455633297418>`{opp_hits}`\n"
-                          f"`{war.clan.stars}:<7`<:star:825571962699907152>`{war.opponent.stars}:>7`\n"
+                    value=f"`{team_hits}`{bot.emoji.sword_clash}`{opp_hits}`\n"
+                          f"`{war.clan.stars:<7}`<:star:825571962699907152>`{war.opponent.stars:>7}`\n"
                           f"`{str(round(war.clan.destruction, 2)) + '%':<7}`<:broken_sword:944896241429540915>`{str(round(war.opponent.destruction, 2)) + '%':>7}`"
                           f"\n­\n"
                     , inline=False)

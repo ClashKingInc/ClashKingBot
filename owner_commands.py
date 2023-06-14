@@ -89,6 +89,19 @@ class OwnerCommands(commands.Cog):
     async def on_connect(self):
         print("connected")
 
+    @commands.message_command(name="emoji_creator")
+    async def emoji_creator(self, ctx: disnake.MessageCommandInteraction, message: disnake.Message):
+        await ctx.response.defer(ephemeral=True)
+        if len([m for m in message.attachments if "image" in m.content_type]) == 0:
+            return await ctx.send(content="No Images")
+
+        created = ""
+        for pic in message.attachments:
+            if "image" in pic.content_type:
+                emoji = await ctx.guild.create_custom_emoji(name=pic.filename.split(".")[0], image=(await pic.read()))
+                created += f"{emoji} - `<:{emoji.name}:{emoji.id}>`\n"
+        await ctx.send(content=created)
+
 
     @commands.slash_command(name="summary")
     async def summary(self, ctx: disnake.ApplicationCommandInteraction, num_messages: int = 100):

@@ -785,8 +785,12 @@ class CustomClient(commands.AutoShardedBot):
                 await session.close()
                 return COSPlayerHistory(data=history)
 
-
     #SERVER HELPERS
+    async def get_guild_members(self, guild_id):
+        clan_tags = await self.clan_db.distinct("tag", filter={"server": guild_id})
+        clans: List[coc.Clan] = await self.get_clans(tags=clan_tags)
+        return get_clan_member_tags(clans=clans)
+
     async def open_clan_capital_reminders(self):
         pass
 

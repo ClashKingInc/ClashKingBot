@@ -43,7 +43,7 @@ class TopCommands(commands.Cog):
         players = await self.bot.get_players(tags=[result.get("tag") for result in players])
 
         footer_icon = self.bot.user.avatar.url
-        embed: disnake.Embed = await self.board_cog.donation_board(players=players, season=season, footer_icon=footer_icon, title_name="ClashKing", type="donations")
+        embed: disnake.Embed = await shared_embeds.donation_board(bot=self.bot, players=players, season=season, footer_icon=footer_icon, title_name="ClashKing", type="donations")
         buttons = disnake.ui.ActionRow()
         buttons.append_item(disnake.ui.Button(
             label="", emoji=self.bot.emoji.refresh.partial_emoji,
@@ -56,6 +56,7 @@ class TopCommands(commands.Cog):
             style=disnake.ButtonStyle.grey, custom_id=f"topratioplayer_"))
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
+
     @top.sub_command(name="activities", description="Members with the highest activity on the bot")
     async def activities(self, ctx: disnake.ApplicationCommandInteraction, season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor)):
         pipeline = [
@@ -65,13 +66,14 @@ class TopCommands(commands.Cog):
         players = await self.bot.get_players(tags=[result.get("tag") for result in players])
 
         footer_icon = self.bot.user.avatar.url
-        embed: disnake.Embed = await self.board_cog.activity_board(players=players, season=season,
+        embed: disnake.Embed = await shared_embeds.activity_board(bot=self.bot, players=players, season=season,
                                                                    footer_icon=footer_icon, title_name="ClashKing")
         buttons = disnake.ui.ActionRow()
         buttons.append_item(disnake.ui.Button(
             label="", emoji=self.bot.emoji.refresh.partial_emoji,
             style=disnake.ButtonStyle.grey, custom_id=f"topactivityplayer_{season}"))
         await ctx.edit_original_message(embed=embed, components=[buttons])
+
 
     @top.sub_command(name="sorted", description="Top players by attribute")
     async def sorted(self, ctx: disnake.ApplicationCommandInteraction,
@@ -91,6 +93,7 @@ class TopCommands(commands.Cog):
 
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
+
     @top.sub_command(name="capital", description="Top capital contributors across the bot")
     async def capital(self, ctx: disnake.ApplicationCommandInteraction, weekend: str = None):
         if weekend is None:
@@ -100,7 +103,7 @@ class TopCommands(commands.Cog):
         pipeline = [{"$project" : {"tag" : "$tag", "capital_sum" : {"$sum" : { "$ifNull": [f"$capital_gold.{week}.donate", [] ]}}}}, {"$sort":{"capital_sum":-1}}, {"$limit" : 50}]
         players = await self.bot.player_stats.aggregate(pipeline).to_list(length=None)
         players = await self.bot.get_players(tags=[result.get("tag") for result in players])
-        embed: disnake.Embed = await self.board_cog.capital_donation_board(players=players, week=week, title_name="Top", footer_icon=self.bot.user.avatar.url)
+        embed: disnake.Embed = await shared_embeds.capital_donation_board(bot=self.bot, players=players, week=week, title_name="Top", footer_icon=self.bot.user.avatar.url)
         buttons = disnake.ui.ActionRow()
         buttons.append_item(disnake.ui.Button(
             label="Donated", emoji=self.bot.emoji.capital_gold.partial_emoji,

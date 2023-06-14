@@ -1,10 +1,10 @@
 import datetime
-
 import coc
 import disnake
 import pytz
 import asyncio
-import time as te
+import calendar
+
 from utils.search import search_results
 from disnake.ext import commands
 from Assets.emojiDictionary import emojiDictionary
@@ -28,8 +28,29 @@ class War(commands.Cog):
             raise coc.errors.NotFound
         return clan
 
-    @commands.slash_command(name= "war", description="Stats & info for a clans current war")
-    async def clan_war(self, ctx: disnake.ApplicationCommandInteraction, clan:str, previous_wars:str = None):
+    async def season_convertor(self, season: str):
+        if season is not None:
+            if len(season.split("|")) == 2:
+                season = season.split("|")[0]
+            month = list(calendar.month_name).index(season.split(" ")[0])
+            year = season.split(" ")[1]
+            end_date = coc.utils.get_season_end(month=int(month - 1), year=int(year))
+            month = end_date.month
+            if month <= 9:
+                month = f"0{month}"
+            season_date = f"{end_date.year}-{month}"
+        else:
+            season_date = self.bot.gen_season_date()
+        return season_date
+
+
+    @commands.slash_command(name="war")
+    async def war(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
+
+
+    @war.sub_command(name="search", description="Search for a clan's war (current or past)")
+    async def war_search(self, ctx: disnake.ApplicationCommandInteraction, clan:str, previous_wars:str = None):
         await ctx.response.defer()
         clan = await self.bot.getClan(clan_tag=clan)
         if clan is None:
@@ -143,8 +164,112 @@ class War(commands.Cog):
                 await res.response.edit_message(embed=embed)
 
 
+    @war.sub_command(name="stats", description="War stats for players, clans, or entire families")
+    async def war_stats(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
 
-    @clan_war.autocomplete("clan")
+
+    @war.sub_command(name="missing", description="Missing war hits for a player, clan, or family")
+    async def war_missing(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
+
+
+
+
+    @commands.slash_command(name="cwl")
+    async def cwl(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
+
+
+    @cwl.sub_command(name="search", description="Search for a clan's cwl (current or past)")
+    async def cwl_search(self, ctx: disnake.ApplicationCommandInteraction,
+                  clan: coc.Clan = commands.Param(converter=clan_converter),
+                  season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor)):
+        asyncio.create_task(self.bot.store_all_cwls(clan=clan))
+        (group, clan_league_wars, fetched_clan, war_league) = await self.get_cwl_wars(clan=clan, season=season)
+
+        if not clan_league_wars:
+            embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) is not in CWL.",
+                                  color=disnake.Color.green())
+            embed.set_thumbnail(url=clan.badge.large)
+            return await ctx.send(embed=embed)
+
+        overview_round = self.get_latest_war(clan_league_wars=clan_league_wars)
+        ROUND = overview_round;
+        CLAN = clan;
+        PAGE = "cwlround_overview"
+
+        (current_war, next_war) = self.get_wars_at_round(clan_league_wars=clan_league_wars, round=ROUND)
+        dropdown = await self.component_handler(page=PAGE, current_war=current_war, next_war=next_war, group=group,
+                                                league_wars=clan_league_wars, fetched_clan=fetched_clan)
+        embeds = await self.page_manager(page=PAGE, group=group, war=current_war, next_war=next_war,
+                                         league_wars=clan_league_wars, clan=CLAN, fetched_clan=fetched_clan,
+                                         war_league=war_league)
+
+        await ctx.send(embeds=embeds, components=dropdown)
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        while True:
+            try:
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
+            except:
+                try:
+                    await msg.edit(components=[])
+                except:
+                    pass
+                break
+
+            await res.response.defer()
+            if "cwlchoose_" in res.values[0]:
+                clan_tag = (str(res.values[0]).split("_"))[-1]
+                CLAN = await self.bot.getClan(clan_tag)
+                (group, clan_league_wars, x, y) = await self.get_cwl_wars(clan=CLAN, season=season, group=group,
+                                                                          fetched_clan=fetched_clan)
+                PAGE = "cwlround_overview";
+                ROUND = self.get_latest_war(clan_league_wars=clan_league_wars)
+
+            elif "cwlround_" in res.values[0]:
+                round = res.values[0].split("_")[-1]
+                if round != "overview":
+                    PAGE = "round";
+                    ROUND = int(round) - 1
+                else:
+                    PAGE = "cwlround_overview";
+                    ROUND = overview_round
+
+            elif res.values[0] == "excel":
+                await res.send(content="Coming Soon!", ephemeral=True)
+                continue
+            else:
+                PAGE = res.values[0]
+
+            (current_war, next_war) = self.get_wars_at_round(clan_league_wars=clan_league_wars, round=ROUND)
+            embeds = await self.page_manager(page=PAGE, group=group, war=current_war, next_war=next_war,
+                                             league_wars=clan_league_wars,
+                                             clan=CLAN, fetched_clan=fetched_clan, war_league=war_league)
+            dropdown = await self.component_handler(page=PAGE, current_war=current_war, next_war=next_war, group=group,
+                                                    league_wars=clan_league_wars, fetched_clan=fetched_clan)
+
+            await res.edit_original_message(embeds=embeds, components=dropdown)
+
+
+    @cwl.sub_command(name="rankings", description="Rankings in cwl for a family")
+    async def cwl_rankings(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
+
+    @cwl.sub_command(name="status", description="Spin/War status for a family")
+    async def cwl_status(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
+
+
+
+
+    #AUTOCOMPLETES
+    @war_search.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
@@ -167,7 +292,7 @@ class War(commands.Cog):
                 return clan_list
         return clan_list[0:25]
 
-    @clan_war.autocomplete("previous_wars")
+    @war_search.autocomplete("previous_wars")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         if ctx.filled_options["clan"] != "":
             clan = await self.bot.getClan(ctx.filled_options["clan"])
