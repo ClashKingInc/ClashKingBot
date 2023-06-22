@@ -102,10 +102,12 @@ initial_extensions = [
     "BoardCommands.ClanCommands",
     "BoardCommands.TopCommands",
     "BoardCommands.FamilyCommands",
+    "BoardCommands.PlayerCommands",
     "Export.ExportsCog",
     "BoardCommands.Utils.Buttons",
     "BackgroundCrons.refresh_boards",
-    "BoardCommands.WarCommands"
+    "BoardCommands.WarCommands",
+    "BackgroundCrons.background_cache"
 ]
 
 if not IS_BETA:

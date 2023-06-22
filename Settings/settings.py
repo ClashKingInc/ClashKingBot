@@ -5,7 +5,7 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer, ServerClan
 from main import check_commands
 from typing import Union
-from utils.General import calculate_time
+from utils.general import calculate_time
 from utils.discord_utils import interaction_handler
 
 class misc(commands.Cog, name="Settings"):
@@ -37,7 +37,7 @@ class misc(commands.Cog, name="Settings"):
 
     @set.sub_command(name="greeting", description="Set a custom clan greeting message")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def setgreeting(self, ctx: disnake.ApplicationCommandInteraction, greet):
+    async def setgreeting(self, ctx: disnake.ApplicationCommandInteraction, greet ):
         """
             Parameters
             ----------

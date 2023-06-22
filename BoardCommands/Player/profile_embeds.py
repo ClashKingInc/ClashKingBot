@@ -338,8 +338,8 @@ def upgrade_embed(bot: CustomClient, player: coc.Player):
             hero_text += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`\n"
 
     pet_text = ""
-    '''
-    for pet in player.hero_pets:
+
+    for pet in player.pets:
         troop_emoji = bot.fetch_emoji(name=pet.name)
 
         new_pets = ["Diggy", "Frosty", "Phoenix", "Poison Lizard"]
@@ -354,7 +354,7 @@ def upgrade_embed(bot: CustomClient, player: coc.Player):
             pet_text += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`✗\n"
         elif pet.level < 10:  # not max
             pet_text += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`\n"
-    '''
+
 
     full_text = ""
     if home_elixir_troops != "":

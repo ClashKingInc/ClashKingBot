@@ -145,8 +145,18 @@ class OwnerCommands(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.slash_command(name="sample")
+    @commands.is_owner()
     async def sample(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
+        total = await self.bot.player_history.count_documents(filter={"type" : {"$in" : coc.SUPER_TROOP_ORDER + ["Super Hog Rider"]}})
+        print(total)
+        text = ""
+        for troop in coc.SUPER_TROOP_ORDER + ["Super Hog Rider"]:
+            count = await self.bot.player_history.count_documents(filter={"type" : troop})
+            #print(f"{troop} -> {round(count/total, 3) * 100}% | {count} Boosts\n")
+            text += f"{troop} -> {round(count/total, 3) * 100}% | {count} Boosts\n"
+        await ctx.send(content=text)
+
 
 
 
@@ -183,7 +193,8 @@ class OwnerCommands(commands.Cog):
     @commands.is_owner()
     async def anniversary(self, ctx: disnake.ApplicationCommandInteraction):
         guild = ctx.guild
-        await ctx.send(content="Edited 0 members")
+        await ctx.send(content="Starting")
+        msg = await ctx.channel.send("Editing 0 Members")
         x = 0
         twelve_month = disnake.utils.get(ctx.guild.roles, id=1029249316981833748)
         nine_month = disnake.utils.get(ctx.guild.roles, id=1029249365858062366)
@@ -192,6 +203,8 @@ class OwnerCommands(commands.Cog):
         for member in guild.members:
             if member.bot:
                 continue
+            if x % 25 == 0:
+                await msg.edit(f"Editing {x} Members")
             year = member.joined_at.year
             month = member.joined_at.month
             n_year = datetime.now().year
@@ -218,7 +231,7 @@ class OwnerCommands(commands.Cog):
                 if twelve_month in member.roles or nine_month in member.roles or six_month in member.roles:
                     await member.remove_roles(*[twelve_month, nine_month, six_month])
             x += 1
-        await ctx.edit_original_message(content="Done")
+        await ctx.channel.send(content="Done")
 
 
     @commands.command(name='leave')
