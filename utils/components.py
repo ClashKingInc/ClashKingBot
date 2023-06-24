@@ -1,5 +1,8 @@
 import disnake
 from CustomClasses.CustomBot import CustomClient
+from CustomClasses.CustomPlayer import MyCustomPlayer
+from typing import List
+
 
 def create_components(current_page, embeds, print=False):
     length = len(embeds)
@@ -50,6 +53,7 @@ def raid_buttons(bot: CustomClient, data):
 
     return [buttons]
 
+
 def leaderboard_components(bot: CustomClient, current_page, embeds, ctx):
     length = len(embeds)
 
@@ -87,5 +91,21 @@ def leaderboard_components(bot: CustomClient, current_page, embeds, ctx):
         buttons.append_item(button)
 
     return [selects, buttons]
+
+
+def player_components(players: List[MyCustomPlayer]):
+    player_results = []
+    if len(players) == 1:
+        return player_results
+    for count, player in enumerate(players):
+        player_results.append(
+            disnake.SelectOption(label=f"{player.name}", emoji=player.town_hall_cls.emoji.partial_emoji,
+                                 value=f"{count}"))
+    profile_select = disnake.ui.Select(options=player_results, placeholder="Accounts", max_values=1)
+
+    st2 = disnake.ui.ActionRow()
+    st2.append_item(profile_select)
+
+    return [st2]
 
 

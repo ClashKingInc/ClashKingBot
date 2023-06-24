@@ -41,7 +41,6 @@ class MyCustomPlayer(coc.Player):
     def share_link(self) -> str:
         return SHORT_PLAYER_LINK + self.tag.replace("#", "")
 
-
     def clan_badge_link(self):
         try:
             clan_badge = self.clan.badge.url
@@ -113,7 +112,6 @@ class MyCustomPlayer(coc.Player):
         season_stats = self.season_of_legends(season=season)
         return LegendStats(season_stats)
 
-    @property
     def gold_looted(self, season=None):
         if season is None:
             season = self.bot.gen_season_date()
@@ -140,7 +138,6 @@ class MyCustomPlayer(coc.Player):
             return 0
         return season_pass
 
-    @property
     def elixir_looted(self, season=None):
         if season is None:
             season = self.bot.gen_season_date()
@@ -154,7 +151,6 @@ class MyCustomPlayer(coc.Player):
             return 0
         return sum(season_looted)
 
-    @property
     def dark_elixir_looted(self, season=None):
         if season is None:
             season = self.bot.gen_season_date()

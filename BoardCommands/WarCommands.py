@@ -44,12 +44,8 @@ class War(commands.Cog):
         return season_date
 
 
-    @commands.slash_command(name="war")
-    async def war(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
 
-
-    @war.sub_command(name="search", description="Search for a clan's war (current or past)")
+    @commands.slash_command(name="war", description="Search for a clan's war (current or past)")
     async def war_search(self, ctx: disnake.ApplicationCommandInteraction, clan:str, previous_wars:str = None):
         await ctx.response.defer()
         clan = await self.bot.getClan(clan_tag=clan)
@@ -164,14 +160,6 @@ class War(commands.Cog):
                 await res.response.edit_message(embed=embed)
 
 
-    @war.sub_command(name="stats", description="War stats for players, clans, or entire families")
-    async def war_stats(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
-
-
-    @war.sub_command(name="missing", description="Missing war hits for a player, clan, or family")
-    async def war_missing(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
 
 
 

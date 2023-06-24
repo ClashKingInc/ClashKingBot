@@ -1,17 +1,21 @@
 import disnake
 import coc
 import asyncio
+import calendar
+import operator
 
-from datetime import datetime
+from datetime import date, timedelta, datetime
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from utils.clash import *
 from utils.general import acronym, create_superscript
+from utils.discord_utils import interaction_handler
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from numerize import numerize
 from CustomClasses.PlayerHistory import StayType
 from typing import List
 from pytz import utc
+from coc.raid import RaidMember, RaidLogEntry
 
 async def create_profile_stats(bot: CustomClient, ctx, player: MyCustomPlayer):
 
@@ -437,6 +441,7 @@ async def create_player_list(bot: CustomClient, discord_user: disnake.Member, pl
         embed.set_footer(text="Only top 20 accounts are shown due to character limitations")
     return embed
 
+
 async def to_do_embed(bot: CustomClient, discord_user, linked_accounts , embed_color = disnake.Color.green()):
     embed = disnake.Embed(title=f"{discord_user.display_name} To-Do List", color=disnake.Color.green())
     if linked_accounts == []:
@@ -471,6 +476,7 @@ async def to_do_embed(bot: CustomClient, discord_user, linked_accounts , embed_c
         embed.description = "You're all caught up chief!"
 
     return embed
+
 
 async def get_war_hits(bot:CustomClient, linked_accounts: List[MyCustomPlayer]):
     async def get_clan_wars(clan_tag, player):
@@ -558,7 +564,6 @@ async def get_inactive(linked_accounts: List[MyCustomPlayer]):
     return inactive_text
 
 
-
 async def get_clan_games(linked_accounts: List[MyCustomPlayer]):
     missing_clan_games = ""
     zeros = ""
@@ -575,7 +580,7 @@ async def get_clan_games(linked_accounts: List[MyCustomPlayer]):
 
     if num_zeros == len(linked_accounts):
         missing_clan_games = "(0/4000) on All Accounts "
-    elif num_zeros > 5:
+    elif num_zeros >= 5:
         missing_clan_games += "(0/4000) on All Other Accounts"
     else:
         missing_clan_games += zeros
@@ -593,6 +598,7 @@ async def get_pass(bot: CustomClient, linked_accounts: List[MyCustomPlayer]):
             pass_text += f"({season_pass_points}/3000) - {player.name}\n"
     return pass_text
 
+
 def is_clan_games():
     now = datetime.utcnow().replace(tzinfo=utc)
     year = now.year
@@ -609,3 +615,411 @@ def is_clan_games():
     else:
         is_games = False
     return is_games
+
+
+async def cwl_stalk(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, member: disnake.Member):
+    tags = await bot.link_client.get_linked_players(discord_id=member.id)
+    if not tags:
+        return await ctx.send("No players linked.")
+    # players = await self.bot.get_players(tags=tags)
+    first_of_month = int(datetime.now().replace(day=1, hour=1).timestamp())
+    true_month = datetime.now().month
+    month = calendar.month_name[true_month]
+
+    townhalls_attacked = []
+    my_townhalls = []
+    hits = defaultdict(list)
+    percents = defaultdict(list)
+    embeds = []
+    townhalls_defended = []
+    defense_hits = defaultdict(list)
+    defense_percents = defaultdict(list)
+
+    for player in tags:
+        results = await bot.warhits.find({"$and": [
+            {"tag": player},
+            {"war_type": "cwl"},
+            {"_time": {"$gte": first_of_month}}
+        ]}).sort("_time", 1).to_list(length=10)
+        text = ""
+        if not results:
+            continue
+
+        f = []
+        for result in results:
+            if result in f:
+                continue
+            else:
+                f.append(result)
+        results = f
+        townhall = 1
+        name = ""
+        clan_tag = ""
+        for day, result in enumerate(results, 1):
+            hits[f"{result['townhall']}v{result['defender_townhall']}"].append(result['stars'])
+            percents[f"{result['townhall']}v{result['defender_townhall']}"].append(result['destruction'])
+            my_townhalls.append(result['townhall'])
+            townhalls_attacked.append([result['defender_townhall']])
+            star_str = ""
+            stars = result['stars']
+            for x in range(0, stars):
+                star_str += "★"
+            for x in range(0, 3 - stars):
+                star_str += "☆"
+            text += f"`Day {day} `| {star_str}`{result['destruction']:3}%`{emojiDictionary(result['townhall'])}" \
+                    f" **►** " \
+                    f"{emojiDictionary(result['defender_townhall'])}\n"
+            townhall = result['townhall']
+            name = result['name']
+            clan_tag = result['clan']
+
+        defense_text = ""
+        defense_results = await bot.warhits.find({"$and": [
+            {"defender_tag": player},
+            {"war_type": "cwl"},
+            {"_time": {"$gte": first_of_month}}
+        ]}).sort("_time", 1).to_list(length=10)
+        for day, result in enumerate(defense_results, 1):
+            defense_hits[f"{result['defender_townhall']}v{result['townhall']}"].append(result['stars'])
+            defense_percents[f"{result['defender_townhall']}v{result['townhall']}"].append(result['destruction'])
+            townhalls_defended.append([result['defender_townhall']])
+            star_str = ""
+            stars = result['stars']
+            for x in range(0, stars):
+                star_str += "★"
+            for x in range(0, 3 - stars):
+                star_str += "☆"
+            defense_text += f"`Day {day} `| {star_str}`{result['destruction']:3}%` {emojiDictionary(result['townhall'])}" \
+                            f" **►** " \
+                            f"{emojiDictionary(result['defender_townhall'])}\n"
+        if defense_text == "":
+            defense_text = "No Defenses Yet"
+
+        others_in_same_clan = await bot.warhits.find({"$and": [
+            {"clan": clan_tag},
+            {"war_type": "cwl"},
+            {"_time": {"$gte": first_of_month}}
+        ]}).to_list(length=1000)
+        star_dict = defaultdict(int)
+        dest_dict = defaultdict(int)
+        for result in others_in_same_clan:
+            star_dict[result["tag"]] += result["stars"]
+            dest_dict[result["tag"]] += result["destruction"]
+
+        star_list = []
+        for tag, stars in star_dict.items():
+            star_list.append([tag, stars, dest_dict[tag]])
+        sorted_list = sorted(star_list, key=operator.itemgetter(1, 2), reverse=True)
+
+        placement = 0
+        for count, item in enumerate(sorted_list, 1):
+            if item[0] == player:
+                placement = count
+                break
+
+        clan = await bot.getClan(clan_tag=clan_tag)
+        embed = disnake.Embed(title=f"{name} | {clan.name}", color=disnake.Color.green())
+        embed.add_field(name="Attacks", value=text, inline=False)
+        embed.add_field(name="Defenses", value=defense_text, inline=False)
+        embed.set_footer(icon_url=clan.badge.url,
+                         text=f"#{placement}/{len(sorted_list)} in CWL Group | {clan.war_league.name}")
+        embeds.append(embed)
+
+    last_30_days = await bot.warhits.find({"$and": [
+        {"tag": {"$in": tags}},
+        {"war_type": {"$in": ["cwl", "random"]}},
+        {"_time": {"$gte": int((datetime.now() - timedelta(days=35)).timestamp())}}
+    ]}).sort("_time", 1).to_list(length=1000)
+    seconds = []
+    for result in last_30_days:
+        time = datetime.fromtimestamp(result['_time'])
+        seconds.append((time.hour * 60 * 60) + (time.minute * 60) + (time.second))
+    average_seconds = int(sum(seconds) / len(seconds))
+    now = int(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
+    average_time = datetime.fromtimestamp(now + average_seconds)
+    average_time = f"<t:{int(average_time.timestamp())}:t>"
+
+    def average(item):
+        return (round(sum(item) / len(item), 2))
+
+    def sort_by_th(item: str):
+        return int(item.split("v")[0])
+
+    def sort_by_other_th(item: str):
+        return int(item.split("v")[-1])
+
+    sorted_hits = sorted(hits.items(), key=lambda x: (sort_by_th(x[0]), sort_by_other_th(x[0])), reverse=True)
+    # sorted_hits = sorted(sorted_hits.items(), key=lambda item: item[1])
+    sorted_hits = dict(sorted_hits)
+    th_text = "THvTH";
+    stars_text = "Stars";
+    perc_text = "Perc%"
+    hitrate_text = f"`{th_text:>5} {stars_text:>4}{perc_text:>6}`\n"
+    for type, stars in sorted_hits.items():
+        hitrate_text += f"`{type:>5} {average(stars):>4.2f} {average(percents[type]):>5.1f}%`\n"
+    if not embeds:
+        return await ctx.send(embed=disnake.Embed(description=f"No CWL Stats found for {member.display_name}",
+                                                  color=disnake.Color.red()))
+    main_embed = disnake.Embed(title=f"{member.display_name} CWL Stats | {month} {datetime.now().year}",
+                               description=f"Avg. Attacks Around: {average_time}\n"
+                                           f"**Average Hitrates:**\n{hitrate_text}",
+                               color=disnake.Color.gold())
+
+    buttons = []
+    if len(embeds) > 4:
+        buttons = [disnake.ui.ActionRow(
+            disnake.ui.Button(label=f"Next {min(5, len(embeds[4:9]))} Accounts", style=disnake.ButtonStyle.grey,
+                              custom_id="more_accounts"))]
+
+    start_page = -1
+    end_page = 4
+    await ctx.send(embeds=([main_embed] + embeds)[:5], components=buttons)
+    if len(embeds) <= 4:
+        return
+    message = await ctx.original_message()
+    while True:
+        try:
+            res: disnake.MessageInteraction = await interaction_handler(bot=bot, ctx=ctx, msg=message)
+        except:
+            return await message.edit(components=[])
+        start_page += 5
+        end_page += 5
+        await message.edit(components=[])
+        buttons = None
+        if len(embeds[start_page + 5:end_page + 5]) >= 1:
+            buttons = [disnake.ui.ActionRow(
+                disnake.ui.Button(label=f"Next {min(5, len(embeds[start_page + 5:end_page + 5]))} Accounts",
+                                  style=disnake.ButtonStyle.grey, custom_id="more_accounts"))]
+        message = await ctx.followup.send(embeds=embeds[start_page:end_page], components=buttons)
+
+
+async def raid_stalk(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, member: disnake.Member):
+    tags = await bot.link_client.get_linked_players(discord_id=member.id)
+    # players = await self.bot.get_players(tags=tags)
+    first_of_month = int(datetime.now().replace(day=1, hour=1).timestamp())
+    true_month = datetime.now().month
+    month = calendar.month_name[true_month]
+    if not tags:
+        return await ctx.send(content="No players linked.")
+    embeds = []
+    total_looted = 0
+    total_medals = 0
+    clans = []
+    highest_looted = 0
+    highest_medals = 0
+    num_accounts = 0
+    for player in tags:
+        member_looted = 0
+        member_medals = 0
+        results = await bot.raid_weekend_db.find({"data.members.tag": player}).sort("data.startTime",1).to_list(length=8)
+        if not results:
+            continue
+        text = ""
+        member = None
+        num_accounts += 1
+        for result in results:
+            member_result = next((item for item in result["data"]["members"] if item['tag'] == player), None)
+            member = RaidMember(client=bot.coc_client, data=member_result,
+                                    raid_log_entry=RaidLogEntry(client=bot.coc_client, data=result["data"], clan_tag=result["clan_tag"]))
+            member = member
+            raid: RaidLogEntry = member.raid_log_entry
+            text += f"{bot.emoji.capital_gold}`{member.capital_resources_looted:5} | `{bot.emoji.thick_sword}`{member.attack_count:1} " \
+                    f"| `{bot.emoji.raid_medal}`{(raid.offensive_reward * member.attack_count) + raid.defensive_reward:4} | {raid.end_time.time.strftime('%m-%d')}`\n"
+            total_looted += member.capital_resources_looted
+            if member.capital_resources_looted > highest_looted:
+                highest_looted = member.capital_resources_looted
+            member_looted += member.capital_resources_looted
+            total_medals += (raid.offensive_reward * member.attack_count) + raid.defensive_reward
+
+            if (raid.offensive_reward * member.attack_count) + raid.defensive_reward > highest_medals:
+                highest_medals = (raid.offensive_reward * member.attack_count) + raid.defensive_reward
+            member_medals += (raid.offensive_reward * member.attack_count) + raid.defensive_reward
+            clans.append(result["clan_tag"])
+
+        text = f"**Totals: {bot.emoji.capital_gold}{'{:,}'.format(member_looted)} | {bot.emoji.raid_medal}{member_medals}**\n{text}"
+        embed = disnake.Embed(title=f"{member.name} Raid Performance", description=text,
+                              color=disnake.Color.green())
+        embeds.append(embed)
+
+    if not embeds:
+        return await ctx.send("No Clan Capital Stats Found")
+    main_embed = disnake.Embed(title=f"{ctx.author.display_name} Raid Stats | (last 8 weeks)",
+                               description=f"*Raided from {len(set(clans))} different clans w/ {num_accounts} accounts*\n"
+                                           f"**Highest Medals:** {bot.emoji.raid_medal}{highest_medals}\n"
+                                           f"**Highest Looted:** {bot.emoji.capital_gold}{'{:,}'.format(highest_looted)}\n"
+                                           f"**Totals:** {bot.emoji.capital_gold}{'{:,}'.format(total_looted)} | {bot.emoji.raid_medal}{'{:,}'.format(total_medals)}",
+                               color=disnake.Color.gold())
+    buttons = []
+    if len(embeds) > 4:
+        buttons = [disnake.ui.ActionRow(
+            disnake.ui.Button(label=f"Next {min(5, len(embeds[4:9]))} Accounts", style=disnake.ButtonStyle.grey,
+                              custom_id="more_accounts"))]
+
+    start_page = -1
+    end_page = 4
+    await ctx.send(embeds=([main_embed] + embeds)[:5], components=buttons)
+    if len(embeds) <= 4:
+        return
+    message = await ctx.original_message()
+    while True:
+        try:
+            res: disnake.MessageInteraction = await interaction_handler(bot=bot, ctx=ctx, msg=message)
+        except:
+            return await message.edit(components=[])
+        start_page += 5
+        end_page += 5
+        await message.edit(components=[])
+        buttons = None
+        if len(embeds[start_page + 5:end_page + 5]) >= 1:
+            buttons = [disnake.ui.ActionRow(
+                disnake.ui.Button(label=f"Next {min(5, len(embeds[start_page + 5:end_page + 5]))} Accounts",
+                                  style=disnake.ButtonStyle.grey, custom_id="more_accounts"))]
+        message = await ctx.followup.send(embeds=embeds[start_page:end_page], components=buttons)
+
+
+async def create_player_hr(bot: CustomClient, player: MyCustomPlayer, start_date, end_date):
+    embed = disnake.Embed(title=f"{player.name} War Stats", colour=disnake.Color.green())
+    time_range = f"{datetime.fromtimestamp(start_date).strftime('%m/%d/%y')} - {datetime.fromtimestamp(end_date).strftime('%m/%d/%y')}"
+    embed.set_footer(icon_url=player.town_hall_cls.image_url, text=time_range)
+    hitrate = await player.hit_rate(start_timestamp=start_date, end_timestamp=end_date)
+    hr_text = ""
+    for hr in hitrate:
+        hr_type = f"{hr.type}".ljust(5)
+        hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+        hr_text += f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
+    if hr_text == "":
+        hr_text = "No war hits tracked.\n"
+    embed.add_field(name="**Triple Hit Rate**", value=hr_text + "­\n", inline=False)
+
+    defrate = await player.defense_rate(start_timestamp=start_date, end_timestamp=end_date)
+    def_text = ""
+    for hr in defrate:
+        hr_type = f"{hr.type}".ljust(5)
+        hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+        def_text += f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
+    if def_text == "":
+        def_text = "No war defenses tracked.\n"
+    embed.add_field(name="**Triple Defense Rate**", value=def_text + "­\n", inline=False)
+
+    text = ""
+    hr = hitrate[0]
+    footer_text = f"Avg. Off Stars: `{round(hr.average_stars, 2)}`"
+    if hr.total_zeros != 0:
+        hr_nums = f"{hr.total_zeros}/{hr.num_attacks}".center(5)
+        text += f"`Off 0 Stars` | `{hr_nums}` | {round(hr.average_zeros * 100, 1)}%\n"
+    if hr.total_ones != 0:
+        hr_nums = f"{hr.total_ones}/{hr.num_attacks}".center(5)
+        text += f"`Off 1 Stars` | `{hr_nums}` | {round(hr.average_ones * 100, 1)}%\n"
+    if hr.total_twos != 0:
+        hr_nums = f"{hr.total_twos}/{hr.num_attacks}".center(5)
+        text += f"`Off 2 Stars` | `{hr_nums}` | {round(hr.average_twos * 100, 1)}%\n"
+    if hr.total_triples != 0:
+        hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+        text += f"`Off 3 Stars` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
+
+    hr = defrate[0]
+    footer_text += f"\nAvg. Def Stars: `{round(hr.average_stars, 2)}`"
+    if hr.total_zeros != 0:
+        hr_nums = f"{hr.total_zeros}/{hr.num_attacks}".center(5)
+        text += f"`Def 0 Stars` | `{hr_nums}` | {round(100 - (hr.average_zeros * 100), 1)}%\n"
+    if hr.total_ones != 0:
+        hr_nums = f"{hr.total_ones}/{hr.num_attacks}".center(5)
+        text += f"`Def 1 Stars` | `{hr_nums}` | {round(100 - (hr.average_ones * 100), 1)}%\n"
+    if hr.total_twos != 0:
+        hr_nums = f"{hr.total_twos}/{hr.num_attacks}".center(5)
+        text += f"`Def 2 Stars` | `{hr_nums}` | {round(100 - (hr.average_twos * 100), 1)}%\n"
+    if hr.total_triples != 0:
+        hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+        text += f"`Def 3 Stars` | `{hr_nums}` | {round(100 - (hr.average_triples * 100), 1)}%\n"
+
+    if text == "":
+        text = "No attacks/defenses yet.\n"
+    embed.add_field(name="**Star Count %'s**", value=text + "­\n", inline=False)
+
+    fresh_hr = await player.hit_rate(fresh_type=[True], start_timestamp=start_date, end_timestamp=end_date)
+    nonfresh_hr = await player.hit_rate(fresh_type=[False], start_timestamp=start_date, end_timestamp=end_date)
+    fresh_dr = await player.hit_rate(fresh_type=[True], start_timestamp=start_date, end_timestamp=end_date)
+    nonfresh_dr = await player.defense_rate(fresh_type=[False], start_timestamp=start_date,
+                                            end_timestamp=end_date)
+    hitrates = [fresh_hr, nonfresh_hr, fresh_dr, nonfresh_dr]
+    names = ["Fresh HR", "Non-Fresh HR", "Fresh DR", "Non-Fresh DR"]
+    text = ""
+    for count, hr in enumerate(hitrates):
+        hr = hr[0]
+        if hr.num_attacks == 0:
+            continue
+        hr_type = f"{names[count]}".ljust(12)
+        hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+        text += f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
+    if text == "":
+        text = "No attacks/defenses yet.\n"
+    embed.add_field(name="**Fresh/Not Fresh**", value=text + "­\n", inline=False)
+
+    random = await player.hit_rate(war_types=["random"], start_timestamp=start_date, end_timestamp=end_date)
+    cwl = await player.hit_rate(war_types=["cwl"], start_timestamp=start_date, end_timestamp=end_date)
+    friendly = await player.hit_rate(war_types=["friendly"], start_timestamp=start_date, end_timestamp=end_date)
+    random_dr = await player.defense_rate(war_types=["random"], start_timestamp=start_date,
+                                          end_timestamp=end_date)
+    cwl_dr = await player.defense_rate(war_types=["cwl"], start_timestamp=start_date, end_timestamp=end_date)
+    friendly_dr = await player.defense_rate(war_types=["friendly"], start_timestamp=start_date,
+                                            end_timestamp=end_date)
+    hitrates = [random, cwl, friendly, random_dr, cwl_dr, friendly_dr]
+    names = ["War HR", "CWL HR", "Friendly HR", "War DR", "CWL DR", "Friendly DR"]
+    text = ""
+    for count, hr in enumerate(hitrates):
+        hr = hr[0]
+        if hr.num_attacks == 0:
+            continue
+        hr_type = f"{names[count]}".ljust(11)
+        hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+        text += f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
+    if text == "":
+        text = "No attacks/defenses yet.\n"
+    embed.add_field(name="**War Type**", value=text + "­\n", inline=False)
+
+    war_sizes = list(range(5, 55, 5))
+    hitrates = []
+    for size in war_sizes:
+        hr = await player.hit_rate(war_sizes=[size], start_timestamp=start_date, end_timestamp=end_date)
+        hitrates.append(hr)
+    for size in war_sizes:
+        hr = await player.defense_rate(war_sizes=[size], start_timestamp=start_date, end_timestamp=end_date)
+        hitrates.append(hr)
+
+    text = ""
+    names = [f"{size}v{size} HR" for size in war_sizes] + [f"{size}v{size} DR" for size in war_sizes]
+    for count, hr in enumerate(hitrates):
+        hr = hr[0]
+        if hr.num_attacks == 0:
+            continue
+        hr_type = f"{names[count]}".ljust(8)
+        hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+        text += f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
+    if text == "":
+        text = "No attacks/defenses yet.\n"
+    embed.add_field(name="**War Size**", value=text + "­\n", inline=False)
+
+    lost_hr = await player.hit_rate(war_statuses=["lost", "losing"], start_timestamp=start_date,
+                                    end_timestamp=end_date)
+    win_hr = await player.hit_rate(war_statuses=["winning", "won"], start_timestamp=start_date,
+                                   end_timestamp=end_date)
+    lost_dr = await player.defense_rate(war_statuses=["lost", "losing"], start_timestamp=start_date,
+                                        end_timestamp=end_date)
+    win_dr = await player.defense_rate(war_statuses=["winning", "won"], start_timestamp=start_date,
+                                       end_timestamp=end_date)
+    hitrates = [lost_hr, win_hr, lost_dr, win_dr]
+    names = ["Losing HR", "Winning HR", "Losing DR", "Winning DR"]
+    text = ""
+    for count, hr in enumerate(hitrates):
+        hr = hr[0]
+        if hr.num_attacks == 0:
+            continue
+        hr_type = f"{names[count]}".ljust(11)
+        hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
+        text += f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
+    if text == "":
+        text = "No attacks/defenses yet.\n"
+    embed.add_field(name="**War Status**", value=text + "­\n", inline=False)
+    embed.description = footer_text
+
+    return embed
