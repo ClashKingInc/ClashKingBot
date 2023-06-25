@@ -7,6 +7,7 @@ import calendar
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
+from CustomClasses.Enums import TrophySort
 from Exceptions.CustomExceptions import InvalidGuildID
 from typing import List
 from utils.general import get_clan_member_tags
@@ -218,7 +219,7 @@ class FamCommands(commands.Cog):
     @family.sub_command(name="leagues", description="List of clans by cwl or capital league")
     async def family_leagues(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
         guild = server if server is not None else ctx.guild
-        embed = await self.create_leagues(guild=guild, type="CWL")
+        embed = await family_embeds.create_leagues(bot=self.bot, guild=guild, type="CWL")
         buttons = disnake.ui.ActionRow()
         buttons.append_item(
             disnake.ui.Button(label="CWL", emoji=self.bot.emoji.cwl_medal.partial_emoji,
@@ -227,6 +228,7 @@ class FamCommands(commands.Cog):
         buttons.append_item(disnake.ui.Button(label="Capital", emoji=self.bot.emoji.capital_trophy.partial_emoji,
                                               style=disnake.ButtonStyle.grey, custom_id=f"capitalleaguesfam_"))
         await ctx.edit_original_message(embed=embed, components=buttons)
+
 
     @family.sub_command(name="donations", description="Top 50 donators in family")
     async def family_donations(self, ctx: disnake.ApplicationCommandInteraction,
@@ -252,6 +254,7 @@ class FamCommands(commands.Cog):
         buttons.append_item(disnake.ui.Button(label="Received", emoji=self.bot.emoji.clan_castle.partial_emoji,style=disnake.ButtonStyle.grey, custom_id=f"receivedfam_{season}_{limit}_{guild.id}_{None if len(townhall) >= 2 else townhall[0]}"))
         buttons.append_item(disnake.ui.Button(label="Ratio", emoji=self.bot.emoji.ratio.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=f"ratiofam_{season}_{limit}_{guild.id}_{None if len(townhall) >= 2 else townhall[0]}"))
         await ctx.edit_original_message(embed=embed, components=[buttons])
+
 
     @family.sub_command(name="capital", description="Top 50 capital contributors in family")
     async def family_capital(self, ctx: disnake.ApplicationCommandInteraction,
@@ -281,6 +284,7 @@ class FamCommands(commands.Cog):
         graph = await self.graph_cog.create_capital_graph(all_players=players, clans=clans, week=week, type="donations", server_id=guild.id)
         embed.set_image(url=f"{graph}?{int(datetime.datetime.now().timestamp())}")
         await ctx.send(embed=embed, components=[buttons])
+
 
     @family.sub_command(name="progress", description="Top 50 Progress for family members")
     async def progress(self, ctx: disnake.ApplicationCommandInteraction,
@@ -331,6 +335,60 @@ class FamCommands(commands.Cog):
         await ctx.edit_original_message(embed=embed, components=[buttons] if buttons else [])
 
 
+    @family.sub_command(name="clan-games", description="Top Clan Games Points in Family")
+    async def clan_games(self, ctx: disnake.ApplicationCommandInteraction,
+                         season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor),
+                         server: disnake.Guild = commands.Param(converter=server_converter, default=None),
+                         limit: int = commands.Param(default=50, min_value=1, max_value=50)):
+        guild = server if server is not None else ctx.guild
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
+        members = await self.bot.player_stats.distinct("tag", filter={f"clan_tag": {"$in": clan_tags}})
+        did_games_in_clan = await self.bot.player_stats.distinct("tag", filter={f"clan_games.{season}.clan": {"$in" : clan_tags}})
+
+        all_tags = members + did_games_in_clan
+        all_tags = [r["tag"] for r in (await self.bot.player_stats.find({"tag": {"$in": all_tags}}).sort(f"clan_games.{season}.clan",-1).limit(limit).to_list(length=limit))]
+
+        players = await self.bot.get_players(tags=all_tags)
+        embed = await shared_embeds.create_clan_games(bot=self.bot, players=players, season=season, clan_tags=clan_tags,
+                                                      title_name=f"{guild.name} Top {limit} Clan Games Points", limit=limit)
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.clan_games.partial_emoji,
+                              style=disnake.ButtonStyle.grey,
+                              custom_id=f"clangamesfam_"))
+        await ctx.edit_original_message(embed=embed, components=[buttons])
+
+
+    @family.sub_command(name="history", description="History of certain stats for the season")
+    async def family_history(self, ctx: disnake.ApplicationCommandInteraction,
+                             type= commands.Param(choices=["Join/Leave"]),
+                             season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor),
+                             server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
+
+        guild = server if server is not None else ctx.guild
+        if type == "Join/Leave":
+            embed: disnake.Embed = await family_embeds.create_joinhistory(bot=self.bot, guild=guild, season=season)
+            buttons = disnake.ui.ActionRow()
+            buttons.append_item(
+                disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
+                                  custom_id=f"joinhistoryfam_"))
+        await ctx.edit_original_message(embed=embed, components=buttons)
+
+
+    @family.sub_command(name="trophies", description="List of clans by home, builder, or capital trophy points")
+    async def trophies(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
+        embed = await family_embeds.create_trophies(bot=self.bot, guild=ctx.guild, sort_type=TrophySort.home)
+        buttons = disnake.ui.ActionRow()
+        sort_type = TrophySort.home
+        buttons.append_item(disnake.ui.Button(label="Home", emoji=self.bot.emoji.trophy.partial_emoji,
+                                              style=disnake.ButtonStyle.green if sort_type == TrophySort.home else disnake.ButtonStyle.grey,custom_id=f"hometrophiesfam_"))
+        buttons.append_item(disnake.ui.Button(label="Versus", emoji=self.bot.emoji.versus_trophy.partial_emoji,
+                                              style=disnake.ButtonStyle.green if sort_type == TrophySort.versus else disnake.ButtonStyle.grey, custom_id=f"versustrophiesfam_"))
+        buttons.append_item(disnake.ui.Button(label="Capital", emoji=self.bot.emoji.capital_trophy.partial_emoji,
+                                              style=disnake.ButtonStyle.green if sort_type == TrophySort.capital else disnake.ButtonStyle.grey,
+                                              custom_id=f"capitaltrophiesfam_"))
+        await ctx.edit_original_message(embed=embed, components=buttons)
+
 
     @family_clans.autocomplete("server")
     @family_leagues.autocomplete("server")
@@ -341,6 +399,9 @@ class FamCommands(commands.Cog):
     @board.autocomplete("server")
     @family_compo.autocomplete("server")
     @family_wars.autocomplete("server")
+    @clan_games.autocomplete("server")
+    @family_history.autocomplete("server")
+    @trophies.autocomplete("server")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         matches = []
         for guild in self.bot.guilds:
@@ -354,6 +415,8 @@ class FamCommands(commands.Cog):
 
     @family_donations.autocomplete("season")
     @progress.autocomplete("season")
+    @clan_games.autocomplete("season")
+    @family_history.autocomplete("season")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
         return [season for season in seasons if query.lower() in season.lower()]

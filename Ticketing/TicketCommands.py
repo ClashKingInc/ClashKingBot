@@ -11,7 +11,7 @@ from disnake.ext import commands
 from datetime import datetime
 from utils.discord_utils import permanent_image
 from Exceptions.CustomExceptions import *
-from BoardCommands.Player.profile_embeds import create_profile_stats, create_profile_troops, history, upgrade_embed
+from BoardCommands.Utils.Player import create_profile_stats, create_profile_troops, history, upgrade_embed
 from main import check_commands
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from utils.discord_utils import interaction_handler
@@ -1275,19 +1275,19 @@ class TicketCommands(commands.Cog):
         await thread.send(content=text)
         return thread
 
-    async def send_player_info(self, players: List[coc.Player], channel: disnake.TextChannel, ctx):
+    async def send_player_info(self, players: List[MyCustomPlayer], channel: disnake.TextChannel, ctx):
         for player in players:
             embed = await create_profile_stats(bot=self.bot, ctx=ctx, player=player)
             embed2 = await create_profile_troops(bot=self.bot, result=player)
-            embed3 = upgrade_embed(bot=self.bot, player=player)
+            embed3 = await upgrade_embed(bot=self.bot, player=player)
             try:
                 embed4 = await history(bot=self.bot, ctx=ctx, player=player)
             except:
                 embed4 = disnake.Embed(description="This player has made their clash of stats history private.",
                                       color=disnake.Color.green())
             message = await channel.send(embeds=[embed, embed2])
-            message1 = await channel.send(embeds=embed3)
-            message2 = await channel.send(embed=embed4)
+            await channel.send(embeds=embed3)
+            await channel.send(embed=embed4)
             await message.pin()
 
     async def apply_clans(self, clans: List[coc.Clan], ctx: disnake.MessageInteraction, message: disnake.Message):

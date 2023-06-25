@@ -13,12 +13,10 @@ from utils.constants import SHORT_PLAYER_LINK, item_to_name, TOWNHALL_LEVELS
 from utils.graphing import graph_creator
 import stringcase
 from utils.general import convert_seconds, download_image
-import matplotlib.pyplot as plt
-from PIL import Image, ImageDraw, ImageFont
 import io
 import aiohttp
 import ujson
-
+import re
 
 async def image_board(bot: CustomClient, players: List[MyCustomPlayer], logo_url: str, title: str, type: str, **kwargs):
 
@@ -663,3 +661,66 @@ async def capital_raided_board(bot: CustomClient, players: List[MyCustomPlayer],
     embed.set_footer(icon_url=footer_icon, text=f"Raided: {'{:,}'.format(total_donated)} | {week}")
     embed.timestamp = datetime.now()
     return embed
+
+
+
+async def create_clan_games(bot: CustomClient, players: List[MyCustomPlayer], season: str, title_name: str, limit: int = 50, embed_color: disnake.Color = disnake.Color.green(), **kwargs):
+    year = int(season[:4])
+    month = int(season[-2:])
+
+    next_month = month + 1
+    if month == 12:
+        next_month = 1
+        year += 1
+
+    start = datetime(year, month, 1)
+    end = datetime(year, next_month, 1)
+
+    clan_tags = kwargs.get("clan_tags", None)
+    pipeline = [
+        {"$match": {"$and": [{"tag": {"$in": [p.tag for p in players]}}, {"type": "Games Champion"},
+                             {"time": {"$gte": start.timestamp()}},
+                             {"time": {"$lte": end.timestamp()}}]}},
+        {"$sort": {"tag": 1, "time": 1}},
+        {"$group": {"_id": "$tag", "first": {"$first": "$time"}, "last": {"$last": "$time"}}}
+    ]
+    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
+
+    member_stat_dict = {}
+    for m in results:
+        member_stat_dict[m["_id"]] = {"first" : m["first"], "last" : m["last"]}
+
+    total_points = sum(player.clan_games(season) for player in players)
+    player_list = sorted(players, key=lambda l: l.clan_games(season), reverse=True)
+
+    point_text_list = []
+    for player in player_list:
+        name = player.name
+        name = re.sub('[*_`~/]', '', name)
+        points = player.clan_games(season)
+        time = ""
+        stats = member_stat_dict.get(player.tag)
+        if stats is not None:
+            if points < 4000:
+                stats["last"] = int(datetime.now().timestamp())
+            first_time = datetime.fromtimestamp(stats["first"])
+            last_time = datetime.fromtimestamp(stats["last"])
+            diff = (last_time - first_time)
+            m, s = divmod(diff.total_seconds(), 60)
+            h, m = divmod(m, 60)
+            time = f"{int(h)}h {int(m)}m"
+
+        if clan_tags is not None:
+            if player.clan_tag() in clan_tags:
+                point_text_list.append([f"{bot.emoji.clan_games}`{str(points).rjust(4)} {time:7}` {name}"])
+            else:
+                point_text_list.append([f"{bot.emoji.deny_mark}`{str(points).rjust(4)} {time:7}` {name}"])
+
+
+    point_text = [line[0] for line in point_text_list]
+    point_text = "\n".join(point_text)
+
+    cg_point_embed = disnake.Embed(title=title_name, description=point_text, color=embed_color)
+
+    cg_point_embed.set_footer(text=f"Total Points: {'{:,}'.format(total_points)}")
+    return cg_point_embed

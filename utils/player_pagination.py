@@ -1,8 +1,11 @@
-from BoardCommands.Player.profile_embeds import *
+import disnake
+
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
+from BoardCommands.Utils.Player import create_profile_stats, create_profile_troops, upgrade_embed, history
 
-async def button_pagination(bot, ctx: disnake.ApplicationCommandInteraction, msg, results):
+
+async def button_pagination(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, msg, results):
     # statTypes
     profile_pages = ["Info", "Troops", "Upgrades", "History"]
     current_stat = 0
@@ -52,13 +55,13 @@ async def button_pagination(bot, ctx: disnake.ApplicationCommandInteraction, msg
                 await res.edit_original_message(embed=embed)
 
 
-async def display_embed(results, stat_type, current_page, ctx, history_cache_embed, bot):
+async def display_embed(results, stat_type, current_page, ctx, history_cache_embed, bot: CustomClient):
     if stat_type == "Info":
         return await create_profile_stats(bot, ctx, results[current_page])
     elif stat_type == "Troops":
         return await create_profile_troops(bot, results[current_page])
     elif stat_type == "Upgrades":
-        return upgrade_embed(bot, results[current_page])
+        return await upgrade_embed(bot, results[current_page])
     elif stat_type == "History":
         player = results[current_page]
         keys = history_cache_embed.keys()

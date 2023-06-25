@@ -170,8 +170,9 @@ class PlayerCommands(commands.Cog):
                      townhall: int = commands.Param(default=None, gt=8), trophies: int = None, war_stars:int = None, clan_capital_donos: int = None, attacks: int = None):
         msg = await ctx.original_message()
         while True:
-            embed, buttons = await self.create_search(clan=clan, townhall=townhall, trophies=trophies, war_stars=war_stars, clan_capital_donos=clan_capital_donos,
-                                                      league=league, attacks=attacks)
+            embed, buttons = await player_embeds.create_search(bot=self.bot, clan=clan, townhall=townhall, trophies=trophies,
+                                                               war_stars=war_stars, clan_capital_donos=clan_capital_donos,
+                                                                league=league, attacks=attacks)
             await ctx.edit_original_message(embed=embed, components=buttons)
             try:
                 res = await interaction_handler(bot=self.bot, ctx=ctx)

@@ -10,7 +10,7 @@ item_to_name = {"Player Tag" : "tag", "Role" : "role",
                 "Clan Capital Contributions" : "clan-capital-contributions", "Clan Capital Raided" : "ach-Aggressive Capitalism",
                 "XP Level" : "exp-level", "Combined Heroes" : "heroes", "Obstacles Removed" : "ach-Nice and Tidy", "War Stars" : "war-stars",
                 "DE Looted" : "ach-Heroic Heist", "CWL Stars" : "ach-War League Legend", "Attacks Won (all time)" : "ach-Conqueror",
-                "Attacks Won (season)" : "attack-wins", "Defenses Won (all time)" : "ach-Unbreakable", "Total Donated" : "ach-Friend in Need",
+                "Attacks Won (season)" : "attack-wins", "Defenses Won (season)" : "defense-wins", "Defenses Won (all time)" : "ach-Unbreakable", "Total Donated" : "ach-Friend in Need",
                 "Versus Trophy Record" : "ach-Champion Builder", "Trophy Record" : "ach-Sweet Victory!",
                 "Clan Games Points" : "ach-Games Champion", "Versus Battles Won" : "versus-attack-wins", "Best Season Rank" : "legendStatistics.bestSeason.rank", "Townhall Level" : "town-hall"}
 

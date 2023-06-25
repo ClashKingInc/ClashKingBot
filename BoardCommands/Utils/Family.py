@@ -214,7 +214,7 @@ async def create_trophies(bot: CustomClient, guild: disnake.Guild, sort_type: Tr
     embed = disnake.Embed(title=f"**{guild.name} {point_type}**", description=clan_text, color=disnake.Color.green())
     if guild.icon is not None:
         embed.set_footer(text="Last Refreshed", icon_url=guild.icon.url)
-    embed.timestamp = datetime.datetime.now()
+    embed.timestamp = datetime.now()
     return embed
 
 
@@ -592,3 +592,53 @@ async def create_sorted(bot: CustomClient, guild: disnake.Guild, sort_by: str):
 
     return embed
 
+
+async def create_joinhistory(bot: CustomClient, guild: disnake.Guild, season: str, embed_color = disnake.Color.green()):
+    clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
+    text = ""
+
+    year = season[:4]
+    month = season[-2:]
+    season_start = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
+    season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
+
+    pipeline = [
+        {"$match": {"$and": [{"tag": {"$in": clan_tags}}, {"type": "members"},
+                             {"time": {"$gte": season_start.timestamp()}},
+                             {"time": {"$lte": season_end.timestamp()}}]}},
+        {"$sort": {"tag": 1, "time": 1}},
+        {"$group": {"_id": "$tag", "changes" : {"$push" : "$$ROOT"}}},
+        {"$lookup": {"from": "clan_cache", "localField": "_id", "foreignField": "tag", "as": "name"}},
+        {"$set": {"name": "$name.data.name"}}
+    ]
+    results: List[dict] = await bot.clan_history.aggregate(pipeline).to_list(length=None)
+
+    class ItemHolder():
+        def __init__(self, data):
+            self.tag = data.get("tag")
+            self.value = data.get("value")
+            self.time = data.get("time")
+
+    results = [r for r in results if r.get("name")]
+    results.sort(key=lambda x: (x.get("name"))[0].upper())
+    for clan in results:
+        changes = clan.get("changes", [])
+        name = clan.get("name")[0]
+        if len(changes) <= 1:
+            text += f"  0 Join   0 Left | {name[:13]}\n"
+
+        joined = 0
+        left = 0
+        for count, change in enumerate(changes[1:]):
+            previous_change = ItemHolder(data=changes[count])
+            change = ItemHolder(data=change)
+            if change.value - previous_change.value >= 0:
+                joined += (change.value - previous_change.value)
+            else:
+                left += (previous_change.value - change.value)
+
+        text += f"{joined:>4} J {left:>4} L {name[:13]}\n"
+
+    embed = disnake.Embed(title=f"{guild.name} Join/Leave History", description=f"```{text}```", colour=embed_color)
+    embed.set_footer(text="J = Join, L = Left")
+    return embed
