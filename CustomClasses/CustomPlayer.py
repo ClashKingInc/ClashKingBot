@@ -205,6 +205,7 @@ class MyCustomPlayer(coc.Player):
                 cc_results.append(ClanCapitalWeek(week_result))
             return cc_results
 
+
     def donos(self, date = None):
         if date is None:
             date = self.bot.gen_season_date()

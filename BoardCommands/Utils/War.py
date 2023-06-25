@@ -367,7 +367,6 @@ async def open_modal(bot: CustomClient, res: disnake.MessageInteraction):
     return (stars, target)
 
 
-
 async def war_th_comps(bot: CustomClient, war: coc.ClanWar):
     thcount = defaultdict(int)
     opp_thcount = defaultdict(int)
