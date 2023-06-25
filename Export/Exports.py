@@ -1,6 +1,7 @@
 import disnake
 import coc
 import calendar
+# import excel2img
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
@@ -13,12 +14,16 @@ if TYPE_CHECKING:
     cog_class = ExportCog
 else:
     cog_class = commands.Cog
-
+    
+# McKnight's imports for testing
+from utils.search import search_results
+from CustomClasses.CustomPlayer import MyCustomPlayer
+from Exceptions.CustomExceptions import *
 
 class ExportCommands(cog_class):
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        self.DEFAULT_EXPORT_TYPES = ["Legend Stats"]
+        self.DEFAULT_EXPORT_TYPES = ["Achievements", "Advanced Stats", "Legend Stats", "Player Activity", "Player Stats","Season Trophies", "Troops","War Hits"]
 
     async def clan_converter(self, clan: str):
         clan = await self.bot.getClan(clan_tag=clan, raise_exceptions=True)
@@ -68,8 +73,10 @@ class ExportCommands(cog_class):
         await ctx.send(file=file)
 
     @export.sub_command(name="player", description="Export info for a player")
-    async def export_player(self, ctx: disnake.ApplicationCommandInteraction, discord_user: disnake.Member,
-                            type=commands.Param(choices=["Legend Stats"])):
+    async def export_player(self, ctx: disnake.ApplicationCommandInteraction, discord_user: disnake.User = None, type: str = commands.Param(name="type"),
+                            season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor) ):
+        if discord_user is None:
+            discord_user = ctx.author
         players: List[MyCustomPlayer] = await search_results(self.bot, str(discord_user.id))
         if not players:
             raise NoLinkedAccounts
@@ -78,8 +85,8 @@ class ExportCommands(cog_class):
         else:
             file_path = await self.bot.excel_templates.find_one({"$and": [{"server_id": ctx.guild.id}, {"export_name": type}]})
             template = file_path.get("path")
-        xlsx_data = await self.export_manager(player_tags=[player.tag for player in players], season=None, template=template)
-        file = disnake.File(fp=xlsx_data, filename="test.xlsx")
+        xlsx_data = await self.export_manager(player_tags=[player.tag for player in players], season=season, template=template)
+        file = disnake.File(fp=xlsx_data, filename=f"{discord_user}-{type}.xlsx")
         await ctx.send(file=file)
 
 
@@ -110,12 +117,14 @@ class ExportCommands(cog_class):
         return clan_list[0:25]
 
     @export_clan.autocomplete("type")
+    @export_player.autocomplete("type")
     async def autocomp_exports(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         aliases = await self.bot.excel_templates.distinct("export_name", filter={"server_id": ctx.guild.id})
         aliases += self.DEFAULT_EXPORT_TYPES
         return [f"{alias}" for alias in aliases if query.lower() in alias.lower()][:25]
 
     @export_clan.autocomplete("season")
+    @export_player.autocomplete("season")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
         return [season for season in seasons if query.lower() in season.lower()]
