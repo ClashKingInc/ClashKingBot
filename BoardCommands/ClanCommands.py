@@ -1,14 +1,13 @@
 import coc
 import disnake
 import calendar
+import pytz
 
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
 from typing import List
 from ImageGen import ClanCapitalResult as capital_gen
-from pytz import utc
-import pytz
 from utils.constants import item_to_name, TOWNHALL_LEVELS
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from BoardCommands.Utils import Clan as clan_embeds
@@ -25,7 +24,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         if clan.member_count == 0:
             raise coc.errors.NotFound
         return clan
-
 
     async def season_convertor(self, season: str):
         if season is not None:
@@ -275,6 +273,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.edit_original_message(embed=embed, components=buttons)
 
+
     @clan.sub_command(name="supers", description="List of clan member's boosted & unboosted troops")
     async def super_troops(self, ctx: disnake.ApplicationCommandInteraction,
                                 clan: coc.Clan = commands.Param(converter=clan_converter)):
@@ -356,7 +355,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         await ctx.channel.send(file=file, components=[buttons])
 
 
-
     @clan.sub_command(name="activity", description="Activity stats for all of a player's accounts")
     async def activity(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
                        season: str = commands.Param(default=None, converter=season_convertor)):
@@ -426,15 +424,36 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         return await ctx.send(embed=embed, components=[buttons])
 
 
+    @clan.sub_command(name="games", description="Clan Games Points for Clan")
+    async def clan_games(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
+                         season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor)):
+
+        members = [member.tag for member in clan.members]
+        tags = await self.bot.player_stats.distinct("tag",filter={f"clan_games.{season}.clan": clan.tag})
+        all_tags = members + tags
+        all_tags = [r["tag"] for r in (await self.bot.player_stats.find({"tag": {"$in": all_tags}}).sort(f"clan_games.{season}.clan", -1).to_list(length=60))]
+        players = await self.bot.get_players(tags=all_tags)
+        embed = await shared_embeds.create_clan_games(bot=self.bot, players=players, season=season, clan_tags=[clan.tag],
+                                                      title_name=f"{clan.name} Top {len(players)} Clan Games Points", limit=60)
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.clan_games.partial_emoji,
+                              style=disnake.ButtonStyle.grey,
+                              custom_id=f"clangames_"))
+        await ctx.edit_original_message(embed=embed, components=[buttons])
+
+
     #AUTOCOMPLETES
     @donations.autocomplete("season")
     @activity.autocomplete("season")
     @activity_graph.autocomplete("season")
     @progress.autocomplete("season")
+    @clan_games.autocomplete("season")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
         return [season for season in seasons if query.lower() in season.lower()]
 
+    @clan_games.autocomplete("clan")
     @donations.autocomplete("clan")
     @activity.autocomplete("clan")
     @activity_graph.autocomplete("clan")

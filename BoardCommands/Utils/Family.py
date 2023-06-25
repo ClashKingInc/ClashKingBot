@@ -1,24 +1,22 @@
-import datetime
 import disnake
 import coc
-import pytz
 import asyncio
 
 from coc.raid import RaidLogEntry
-from disnake.ext import commands
+from datetime import datetime
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer, ClanCapitalWeek
 from utils.general import create_superscript
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry, calc_raid_medals
 from utils.constants import item_to_name, SHORT_PLAYER_LINK, leagues
+from utils.clash import cwl_league_emojis
 from CustomClasses.Enums import TrophySort
 from collections import defaultdict
 from typing import List
+from pytz import utc
 
-tiz = pytz.utc
 
-
-async def create_family_clans(bot: CustomClient, guild: disnake.Guild):
+async def create_family_clans(bot: CustomClient, guild: disnake.Guild, embed_color: disnake.Color = disnake.Color.green()):
     categories: list = await bot.clan_db.distinct("category", filter={"server": guild.id})
     server_db = await bot.server_db.find_one({"server": guild.id})
     sorted_categories = server_db.get("category_order")
@@ -34,6 +32,7 @@ async def create_family_clans(bot: CustomClient, guild: disnake.Guild):
         results_dict[result.get("category")].append(result)
         clan_tags.append(result.get("tag"))
 
+
     text = ""
     member_count = 0
     clans = await bot.get_clans(tags=clan_tags)
@@ -43,33 +42,26 @@ async def create_family_clans(bot: CustomClient, guild: disnake.Guild):
         clan_result = results_dict.get(category, [])
         if not clan_result:
             continue
-        use_link = True
-        if len(clan_result) > 15:
-            use_link = False
         text += f"__**{category}**__\n"
+        clan_result = [c for clan in clan_result if (c := coc.utils.get(clans, tag=clan.get("tag")))]
+        clan_result.sort(key=lambda x: x.war_league.id, reverse=True)
         for clan in clan_result:
-            clan = coc.utils.get(clans, tag=clan.get("tag"))
-            if clan is None:
-                continue
-            leader = coc.utils.get(clan.members, role=coc.Role.leader)
+            #leader = coc.utils.get(clan.members, role=coc.Role.leader)
             #text += f"[{clan.name}]({clan.share_link}) | ({clan.member_count}/50)\n" \
                     #f"**Leader:** {leader.name}\n\n"
-            flag = bot.emoji.globe
-            if clan.location is not None and clan.location.is_country:
-                flag = f":flag_{clan.location.country_code.lower()}:"
-            if use_link:
-                text += f"{flag}[{clan.name}]({SHORT_PLAYER_LINK}{clan.tag.replace('#', '')}) | ({clan.member_count}/50)\n"
-            else:
-                text += f"{flag}{clan.name} | ({clan.member_count}/50)\n"
+            text += f"{cwl_league_emojis(clan.war_league.name)}{clan.name} | ({clan.member_count}/50)\n"
             member_count += clan.member_count
 
         #master_embed.add_field(name=, value=text, inline=False)
-    master_embed = disnake.Embed(description=text, color=disnake.Color.green())
-    if guild.icon is not None:
+
+    master_embed = disnake.Embed(
+        description=text, color=embed_color)
+    if guild.icon:
         master_embed.set_thumbnail(url=guild.icon.url)
     master_embed.set_footer(icon_url=guild.icon.url if guild.icon is not None else bot.user.avatar.url,
                             text=f"{guild.name} Server | {member_count} Accounts")
     return master_embed
+
 
 async def create_leagues(bot: CustomClient, guild: disnake.Guild, type: str):
     clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
@@ -103,6 +95,7 @@ async def create_leagues(bot: CustomClient, guild: disnake.Guild, type: str):
         main_embed.add_field(name=f"**{league}**", value=text, inline=False)
 
     return main_embed
+
 
 async def create_raids(bot: CustomClient, guild: disnake.Guild):
     clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
@@ -149,7 +142,8 @@ async def create_raids(bot: CustomClient, guild: disnake.Guild):
 
     return embed
 
-async def create_wars(bot: CustomClient, guild: disnake.Guild):
+
+async def create_wars(bot: CustomClient, guild: disnake.Guild, embed_color = disnake.Color.green()):
     clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
     if len(clan_tags) == 0:
         embed = disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
@@ -162,43 +156,38 @@ async def create_wars(bot: CustomClient, guild: disnake.Guild):
         return embed
 
     war_list = sorted(war_list, key=lambda l: (str(l.state), int(l.start_time.time.timestamp())), reverse=False)
-    embed = disnake.Embed(description=f"**{guild.name} Current Wars**", color=disnake.Color.green())
+    embed = disnake.Embed(description=f"**{guild.name} Current Wars**", color=embed_color)
     for war in war_list:
         if war.clan.name is None:
             continue
         emoji = await bot.create_new_badge_emoji(url=war.clan.badge.url)
-        war_cog = bot.get_cog(name="War")
-        stars_percent = await war_cog.calculate_stars_percent(war)
 
         war_time = war.start_time.seconds_until
         if war_time < -172800:
             continue
         war_pos = "Starting"
         if war_time >= 0:
-            war_time = war.start_time.time.replace(tzinfo=tiz).timestamp()
+            war_time = war.start_time.time.replace(tzinfo=utc).timestamp()
         else:
             war_time = war.end_time.seconds_until
             if war_time <= 0:
-                war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
+                war_time = war.end_time.time.replace(tzinfo=utc).timestamp()
                 war_pos = "Ended"
             else:
-                war_time = war.end_time.time.replace(tzinfo=tiz).timestamp()
+                war_time = war.end_time.time.replace(tzinfo=utc).timestamp()
                 war_pos = "Ending"
 
-        team_hits = f"{len(war.attacks) - len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".ljust(
-            7)
+        team_hits = f"{len(war.attacks) - len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".ljust(7)
         opp_hits = f"{len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".rjust(7)
-        team_stars = str(stars_percent[2]).ljust(7)
-        opp_stars = str(stars_percent[0]).rjust(7)
-        team_per = (str(stars_percent[3]) + "%").ljust(7)
-        opp_per = (str(stars_percent[1]) + "%").rjust(7)
-
         embed.add_field(name=f"{emoji}{war.clan.name} vs {war.opponent.name}",
-                        value=f"> `{team_hits}`<a:swords:944894455633297418>`{opp_hits}`\n"
-                              f"> `{team_stars}`<:star:825571962699907152>`{opp_stars}`\n"
-                              f"> `{team_per}`<:broken_sword:944896241429540915>`{opp_per}`\n"
-                              f"> {war_pos}: <t:{int(war_time)}:R>", inline=False)
+                        value=f"> `{team_hits}`{bot.emoji.wood_swords}`{opp_hits}`\n"
+                              f"> `{war.clan.stars:<7}`{bot.emoji.war_star}`{war.opponent.stars:>7}`\n"
+                              f"> `{str(round(war.clan.destruction, 2)) + '%':<7}`<:broken_sword:944896241429540915>`{str(round(war.opponent.destruction, 2)) + '%':>7}`\n"
+                              f"> {war_pos}: {bot.timestamper(int(war_time)).relative}", inline=False)
+
+    embed.timestamp = datetime.now()
     return embed
+
 
 async def create_trophies(bot: CustomClient, guild: disnake.Guild, sort_type: TrophySort):
     clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
@@ -225,8 +214,9 @@ async def create_trophies(bot: CustomClient, guild: disnake.Guild, sort_type: Tr
     embed = disnake.Embed(title=f"**{guild.name} {point_type}**", description=clan_text, color=disnake.Color.green())
     if guild.icon is not None:
         embed.set_footer(text="Last Refreshed", icon_url=guild.icon.url)
-    embed.timestamp = datetime.datetime.now()
+    embed.timestamp = datetime.now()
     return embed
+
 
 async def create_summary(bot: CustomClient, guild: disnake.Guild, season:str):
     date = season
@@ -497,6 +487,7 @@ async def create_summary(bot: CustomClient, guild: disnake.Guild, season:str):
     print(len(embed.description) + len(embed2.description))
     return [embed, embed2]
 
+
 async def create_sorted(bot: CustomClient, guild: disnake.Guild, sort_by: str):
     clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
     results = await bot.player_stats.distinct("tag", filter = {"clan_tag": {"$in": clan_tags}})
@@ -601,15 +592,53 @@ async def create_sorted(bot: CustomClient, guild: disnake.Guild, sort_by: str):
 
     return embed
 
-async def create_search(bot: CustomClient, guild: disnake.Guild):
-    text = f"Owner: {guild.owner.mention}\n"
-    clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
-    clans: List[coc.Clan] = await bot.get_clans(tags=clan_tags)
-    text += "**Clans:**\n"
-    for clan in clans:
-        war_league = str(clan.war_league).split(" ")
-        war_league = f"{war_league[0][0]}{war_league[0][-1]}".capitalize() + f"{len(war_league[-1])}"
-        text += f"{clan.name} {war_league}\n"
 
-    embed = disnake.Embed(title=f"{guild.name}", description=text, color=disnake.Color.green())
+async def create_joinhistory(bot: CustomClient, guild: disnake.Guild, season: str, embed_color = disnake.Color.green()):
+    clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
+    text = ""
+
+    year = season[:4]
+    month = season[-2:]
+    season_start = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
+    season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
+
+    pipeline = [
+        {"$match": {"$and": [{"tag": {"$in": clan_tags}}, {"type": "members"},
+                             {"time": {"$gte": season_start.timestamp()}},
+                             {"time": {"$lte": season_end.timestamp()}}]}},
+        {"$sort": {"tag": 1, "time": 1}},
+        {"$group": {"_id": "$tag", "changes" : {"$push" : "$$ROOT"}}},
+        {"$lookup": {"from": "clan_cache", "localField": "_id", "foreignField": "tag", "as": "name"}},
+        {"$set": {"name": "$name.data.name"}}
+    ]
+    results: List[dict] = await bot.clan_history.aggregate(pipeline).to_list(length=None)
+
+    class ItemHolder():
+        def __init__(self, data):
+            self.tag = data.get("tag")
+            self.value = data.get("value")
+            self.time = data.get("time")
+
+    results = [r for r in results if r.get("name")]
+    results.sort(key=lambda x: (x.get("name"))[0].upper())
+    for clan in results:
+        changes = clan.get("changes", [])
+        name = clan.get("name")[0]
+        if len(changes) <= 1:
+            text += f"  0 Join   0 Left | {name[:13]}\n"
+
+        joined = 0
+        left = 0
+        for count, change in enumerate(changes[1:]):
+            previous_change = ItemHolder(data=changes[count])
+            change = ItemHolder(data=change)
+            if change.value - previous_change.value >= 0:
+                joined += (change.value - previous_change.value)
+            else:
+                left += (previous_change.value - change.value)
+
+        text += f"{joined:>4} J {left:>4} L {name[:13]}\n"
+
+    embed = disnake.Embed(title=f"{guild.name} Join/Leave History", description=f"```{text}```", colour=embed_color)
+    embed.set_footer(text="J = Join, L = Left")
     return embed

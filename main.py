@@ -71,9 +71,9 @@ def check_commands():
     return commands.check(predicate)
 
 initial_extensions = [
-    "Family_and_Clans.bans",
-    "Family_and_Clans.strikes",
-    "Family_and_Clans.rosters",
+    "FamilyManagement.bans",
+    "FamilyManagement.strikes",
+    "FamilyManagement.rosters",
     "Legends & Trophies.family_trophy_stats",
     "Legends & Trophies.Check.maincheck",
     #"Legends & Trophies.leaderboards",
@@ -86,8 +86,8 @@ initial_extensions = [
     "Utility.army",
     "Utility.awards",
     "Utility.boost",
-    "War & CWL.cwl",
-    "War & CWL.war",
+    #"War & CWL.cwl",
+    #"War & CWL.war",
     "help",
     "other",
     "Utility.bases",
@@ -102,9 +102,12 @@ initial_extensions = [
     "BoardCommands.ClanCommands",
     "BoardCommands.TopCommands",
     "BoardCommands.FamilyCommands",
+    "BoardCommands.PlayerCommands",
     "Export.ExportsCog",
     "BoardCommands.Utils.Buttons",
-    "BackgroundCrons.refresh_boards"
+    "BackgroundCrons.refresh_boards",
+    "BoardCommands.WarCommands",
+    "BackgroundCrons.background_cache"
 ]
 
 if not IS_BETA:
@@ -129,6 +132,13 @@ if not IS_BETA:
         "Setups.addclans",
         "global_chat"
     ]
+
+@bot.command(name="r")
+@commands.is_owner()
+async def r(ctx):
+    for extension in initial_extensions:
+        bot.reload_extension(extension)
+    await ctx.send("Reloaded all cogs")
 
 def before_send(event, hint):
     try:

@@ -2,15 +2,15 @@ import json
 
 TOWNHALL_LEVELS = [x for x in range(1, 16)]
 MAX_NUM_SUPERS = 2
-SHORT_PLAYER_LINK = "https://api.clashking.xyz/p"
-SHORT_CLAN_LINK = "https://api.clashking.xyz/c"
+SHORT_PLAYER_LINK = "https://api.clashking.xyz/p/"
+SHORT_CLAN_LINK = "https://api.clashking.xyz/c/"
 
 item_to_name = {"Player Tag" : "tag", "Role" : "role",
                 "Versus Trophies" : "versus-trophies", "Trophies" : "trophies",
                 "Clan Capital Contributions" : "clan-capital-contributions", "Clan Capital Raided" : "ach-Aggressive Capitalism",
                 "XP Level" : "exp-level", "Combined Heroes" : "heroes", "Obstacles Removed" : "ach-Nice and Tidy", "War Stars" : "war-stars",
                 "DE Looted" : "ach-Heroic Heist", "CWL Stars" : "ach-War League Legend", "Attacks Won (all time)" : "ach-Conqueror",
-                "Attacks Won (season)" : "attack-wins", "Defenses Won (all time)" : "ach-Unbreakable", "Total Donated" : "ach-Friend in Need",
+                "Attacks Won (season)" : "attack-wins", "Defenses Won (season)" : "defense-wins", "Defenses Won (all time)" : "ach-Unbreakable", "Total Donated" : "ach-Friend in Need",
                 "Versus Trophy Record" : "ach-Champion Builder", "Trophy Record" : "ach-Sweet Victory!",
                 "Clan Games Points" : "ach-Games Champion", "Versus Battles Won" : "versus-attack-wins", "Best Season Rank" : "legendStatistics.bestSeason.rank", "Townhall Level" : "town-hall"}
 

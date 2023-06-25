@@ -1,5 +1,4 @@
 import coc
-import json
 import calendar
 import datetime as dt
 import aiohttp
@@ -309,3 +308,18 @@ async def download_image(url: str):
     else:
         image_bytes = cached
     return io.BytesIO(image_bytes)
+
+
+def acronym(stng):
+    # add first letter
+    oupt = stng[0]
+
+    # iterate over string
+    for i in range(1, len(stng)):
+        if stng[i - 1] == ' ':
+            # add letter next to space
+            oupt += stng[i]
+
+    # uppercase oupt
+    oupt = oupt.upper()
+    return oupt

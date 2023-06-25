@@ -6,7 +6,7 @@ def emojiDictionary(emojiName):
         "Grand Warden": "<:GrandWarden:701933765450268672>",
         "Royal Champion": "<:RoyalChampion:701933810648088606>",
         "Battle Copter" : "<:battle_copter:1109716293696888852>",
-        "ElectroFire Wizard" : "<:electro_wiz:1109716130735587358>",
+        "Electrofire Wizard" : "<:electro_wiz:1109716130735587358>",
         "Archer": "<:Archer:701626909498409040>",
         "Baby Dragon": "<:BabyDragon:701626909586358364>",
         "Barbarian": "<:Barbarian:701626910207115274>",
@@ -112,14 +112,16 @@ def emojiDictionary(emojiName):
         "Bomber" : "<:Bomber:701625279562383410>",
         "Hog Glider" : "<:HogGlider:701625283354296331>",
         "Cannon Cart" : "<:CannonCart:701625284847206400>",
-        "Super P.E.K.K.A" : "<:SuperPEKKA:701625285031886941>",
+        "Power P.E.K.K.A" : "<:SuperPEKKA:701625285031886941>",
         "Boxer Giant" : "<:BoxerGiant:701625285061115915>",
         "Drop Ship" : "<:DropShip:701625285061115955>",
         "Beta Minion" : "<:BetaMinion:701625285069504562>",
         "Raged Barbarian" : "<:RagedBarbarian:701625285107515462>",
         "Night Witch" : "<:NightWitch:701625285161910372>",
         "Sneaky Archer" : "<:SneakyArcher:701625285279219765>",
-        "Battle Machine" : "<:bm:1041499330240053352>"
+        "Battle Machine" : "<:bm:1041499330240053352>",
+        "Super Hog Rider" : "<:SHogRider:1120604618100060180>",
+        "Apprentice Warden" : "<:Apprentice:1120604620713107507>"
     }
 
     return switcher.get(emojiName)

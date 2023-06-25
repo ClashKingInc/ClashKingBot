@@ -162,7 +162,8 @@ class DiscordEvents(commands.Cog):
             "channel" : ctx.channel_id,
             "channel_name" : ctx.channel.name if ctx.channel is not None else None,
             "len_mutual" : len(ctx.user.mutual_guilds),
-            "is_bot_dev" : (ctx.user.public_flags.verified_bot_developer or ctx.user.public_flags.active_developer)
+            "is_bot_dev" : (ctx.user.public_flags.verified_bot_developer or ctx.user.public_flags.active_developer),
+            "bot" : ctx.bot.user.id
         })
 
 def setup(bot: CustomClient):

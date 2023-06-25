@@ -63,6 +63,7 @@ class CustomClient(commands.AutoShardedBot):
         self.clan_history: collection_class = self.new_looper.clan_history
         self.clan_cache: collection_class = self.new_looper.clan_cache
         self.excel_templates: collection_class = self.looper_db.clashking.excel_templates
+        self.lineups: collection_class = self.looper_db.clashking.lineups
         self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(
             discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
 
@@ -100,7 +101,6 @@ class CustomClient(commands.AutoShardedBot):
         self.colors: collection_class = self.db_client.usafam.colors
         self.level_cards: collection_class = self.db_client.usafam.level_cards
         self.autostrikes: collection_class = self.db_client.usafam.autostrikes
-        self.lineups: collection_class = self.db_client.usafam.lineups
         self.user_settings: collection_class = self.db_client.usafam.user_settings
         self.custom_boards: collection_class = self.db_client.usafam.custom_boards
 
@@ -785,8 +785,12 @@ class CustomClient(commands.AutoShardedBot):
                 await session.close()
                 return COSPlayerHistory(data=history)
 
-
     #SERVER HELPERS
+    async def get_guild_members(self, guild_id):
+        clan_tags = await self.clan_db.distinct("tag", filter={"server": guild_id})
+        clans: List[coc.Clan] = await self.get_clans(tags=clan_tags)
+        return get_clan_member_tags(clans=clans)
+
     async def open_clan_capital_reminders(self):
         pass
 

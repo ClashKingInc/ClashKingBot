@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from CustomClasses.emoji_class import EmojiType
 from collections import defaultdict
 from utils.ClanCapital import gen_raid_weekend_datestrings
+from utils.constants import SHORT_PLAYER_LINK
 import emoji
 import re
 from functools import lru_cache
@@ -36,6 +37,9 @@ class MyCustomPlayer(coc.Player):
         name = re.sub('[*_`~/]', '', name)
         return f"\u200e{name}"
 
+    @property
+    def share_link(self) -> str:
+        return SHORT_PLAYER_LINK + self.tag.replace("#", "")
 
     def clan_badge_link(self):
         try:
@@ -129,19 +133,26 @@ class MyCustomPlayer(coc.Player):
             return 0
         return sum(season_looted)
 
+    def season_pass(self, season=None):
+        if season is None:
+            season = self.bot.gen_season_date()
+        if self.results is None:
+            return 0
+        season_pass = self.results.get("season_pass")
+        if season_pass is None:
+            return 0
+        season_pass = season_pass.get(f"{season}")
+        if season_pass is None:
+            return 0
+        return season_pass
+
     def elixir_looted(self, season=None):
         if season is None:
             season = self.bot.gen_season_date()
         if self.results is None:
             return 0
-        looted = self.results.get("elixir_looted")
-        if looted is None:
-            return 0
-        season_looted = looted.get(f"{season}")
-        if season_looted is None:
-            return 0
+        season_looted = self.results.get("elixir_looted", {}).get(season, [0])
         return sum(season_looted)
-
 
     def dark_elixir_looted(self, season=None):
         if season is None:
@@ -201,6 +212,7 @@ class MyCustomPlayer(coc.Player):
                     continue
                 cc_results.append(ClanCapitalWeek(week_result))
             return cc_results
+
 
     def donos(self, date = None):
         if date is None:
@@ -388,12 +400,7 @@ class MyCustomPlayer(coc.Player):
 
     def clan_games(self, date= None):
         if date is None:
-            diff_days = datetime.utcnow().replace(tzinfo=utc) - coc.utils.get_season_end().replace(tzinfo=utc)
-            if diff_days.days <= 3:
-                sea = coc.utils.get_season_start().replace(tzinfo=utc).date()
-                date = f"{sea.year}-{sea.month}"
-            else:
-                date = self.bot.gen_season_date()
+            date = self.bot.gen_games_season()
 
         if self.results is None:
             return 0

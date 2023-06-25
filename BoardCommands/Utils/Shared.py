@@ -13,12 +13,10 @@ from utils.constants import SHORT_PLAYER_LINK, item_to_name, TOWNHALL_LEVELS
 from utils.graphing import graph_creator
 import stringcase
 from utils.general import convert_seconds, download_image
-import matplotlib.pyplot as plt
-from PIL import Image, ImageDraw, ImageFont
 import io
 import aiohttp
 import ujson
-
+import re
 
 async def image_board(bot: CustomClient, players: List[MyCustomPlayer], logo_url: str, title: str, type: str, **kwargs):
 
@@ -548,75 +546,45 @@ async def th_composition(bot: CustomClient, player_tags: List[str], title: str, 
 
     embed.set_thumbnail(url=thumbnail)
     embed.set_footer(text=f"Average Th: {th_average}\nTotal: {len(player_tags)} accounts")
-
+    embed.timestamp = datetime.now()
     return embed
 
 
 async def th_hitrate(bot: CustomClient, player_tags: List[str], title: str, thumbnail: str, embed_color: disnake.Color = disnake.Color.green()):
     text = f""
-    for th in TOWNHALL_LEVELS:
-        num_total = await bot.warhits.count_documents({"$and": [{"tag" : {"$in" : player_tags}}, {"townhall": th}, {"defender_townhall": th}]})
+    pipeline = [
+        {"$match": {"$and": [{"tag": {"$in": player_tags}}, {"$expr": {"$eq": ["$townhall", "$defender_townhall"]}}]}},
+        {"$group": {"_id": {"townhall": "$townhall", "stars": "$stars"}, "count": {"$sum": 1}}}
+    ]
+    results = await bot.warhits.aggregate(pipeline=pipeline).to_list(length=None)
+
+    th_results = defaultdict(lambda: defaultdict(int))
+    for result in results:
+        th = result.get("_id").get("townhall")
+        stars = result.get("_id").get("stars")
+        th_results[th][stars] = result.get("count")
+
+    for th, stats in sorted(th_results.items(), reverse=True):
+        num_total = sum([count for count in stats.values()])
+
         if num_total == 0:
             continue
-        num_zeros = await bot.warhits.count_documents(
-            {"$and": [{"tag" : {"$in" : player_tags}}, {"townhall": th}, {"stars": 0}, {"defender_townhall": th}]})
-        num_ones = await bot.warhits.count_documents(
-            {"$and": [{"tag" : {"$in" : player_tags}}, {"townhall": th}, {"stars": 1}, {"defender_townhall": th}]})
-        num_twos = await bot.warhits.count_documents(
-            {"$and": [{"tag" : {"$in" : player_tags}}, {"townhall": th}, {"stars": 2}, {"defender_townhall": th}]})
-        num_triples = await bot.warhits.count_documents(
-            {"$and": [{"tag" : {"$in" : player_tags}}, {"townhall": th}, {"stars": 3}, {"defender_townhall": th}]})
-        text += f"{bot.fetch_emoji(name=th)}`{custom_round((num_zeros / num_total) * 100):>4}% ☆☆☆` |" \
+        num_zeros = stats.get(0, 0)
+        num_ones = stats.get(1, 0)
+        num_twos = stats.get(2, 0)
+        num_triples = stats.get(3, 0)
+        text += f"{bot.fetch_emoji(name=th)}`{custom_round((num_triples / num_total) * 100):>4}% ★★★` |" \
                 f" `{custom_round((num_ones / num_total) * 100):>4}% ★☆☆`\n" \
                 f"{bot.emoji.blank}`{custom_round((num_twos / num_total) * 100):>4}% ★★☆` |" \
-                f" `{custom_round((num_triples / num_total) * 100):>4}% ★★★`\n"
+                f" `{custom_round((num_zeros / num_total) * 100):>4}% ☆☆☆`\n\n"
     if not text:
         text = "No Results Found"
     embed = disnake.Embed(title=title, description=text, color=embed_color)
     embed.set_thumbnail(url=thumbnail)
+    embed.set_footer(text="Against own TH level")
+    embed.timestamp = datetime.now()
     return embed
 
-
-    pipeline = [
-        {"$match": {"tag": {"$in": player_tags}}},
-        {"$group": {"_id": "$data.townHallLevel", "count" : {"$sum" : 1}, "list_tags" : {"$push" : "$tag"}}},
-        {"$sort" : {"_id" : -1}}
-    ]
-    results = await bot.player_cache.aggregate(pipeline=pipeline).to_list(length=None)
-
-    th_count_dict = defaultdict(int)
-    th_sum = 0
-    for result in results:
-        th_sum += (result["_id"] * result["count"])
-        th_count_dict[result["_id"]] += result["count"]
-
-    tags_found = []
-    for t in results:
-        tags_found += t["list_tags"]
-    missing = set(player_tags) - set(tags_found)
-    players = await bot.get_players(tags=list(missing), custom=False, use_cache=False)
-    for player in players:
-        th_sum += player.town_hall
-        th_count_dict[player.town_hall] += 1
-
-    embed_description = ""
-    for th_level, th_count in sorted(th_count_dict.items(), reverse=True):
-        if th_level <= 9:
-            th_emoji = bot.fetch_emoji(th_level)
-            embed_description += f"{th_emoji} `TH{th_level} ` {th_count}\n"
-
-        else:
-            th_emoji = bot.fetch_emoji(th_level)
-            embed_description += f"{th_emoji} `TH{th_level}` {th_count}\n"
-
-    th_average = round((th_sum / len(player_tags)), 2)
-
-    embed = disnake.Embed(title=title, description=embed_description, color=embed_color)
-
-    embed.set_thumbnail(url=thumbnail)
-    embed.set_footer(text=f"Average Th: {th_average}\nTotal: {len(player_tags)} accounts")
-
-    return embed
 
 
 async def activity_graph(bot: CustomClient, players: List[MyCustomPlayer], season: str, title: str, granularity: str, time_zone: str, tier: str, no_html:bool = False) -> (disnake.File, disnake.ActionRow):
@@ -648,7 +616,6 @@ async def activity_graph(bot: CustomClient, players: List[MyCustomPlayer], seaso
         buttons.append_item(disnake.ui.Button(label="6h", style=disnake.ButtonStyle.grey, custom_id=f"{tier}_quarterday_{s}_{time_zone}"))
         buttons.append_item(disnake.ui.Button(label="1h", style=disnake.ButtonStyle.grey, custom_id=f"{tier}_hour_{s}_{time_zone}"))
     return file, buttons
-
 
 
 
@@ -694,3 +661,66 @@ async def capital_raided_board(bot: CustomClient, players: List[MyCustomPlayer],
     embed.set_footer(icon_url=footer_icon, text=f"Raided: {'{:,}'.format(total_donated)} | {week}")
     embed.timestamp = datetime.now()
     return embed
+
+
+
+async def create_clan_games(bot: CustomClient, players: List[MyCustomPlayer], season: str, title_name: str, limit: int = 50, embed_color: disnake.Color = disnake.Color.green(), **kwargs):
+    year = int(season[:4])
+    month = int(season[-2:])
+
+    next_month = month + 1
+    if month == 12:
+        next_month = 1
+        year += 1
+
+    start = datetime(year, month, 1)
+    end = datetime(year, next_month, 1)
+
+    clan_tags = kwargs.get("clan_tags", None)
+    pipeline = [
+        {"$match": {"$and": [{"tag": {"$in": [p.tag for p in players]}}, {"type": "Games Champion"},
+                             {"time": {"$gte": start.timestamp()}},
+                             {"time": {"$lte": end.timestamp()}}]}},
+        {"$sort": {"tag": 1, "time": 1}},
+        {"$group": {"_id": "$tag", "first": {"$first": "$time"}, "last": {"$last": "$time"}}}
+    ]
+    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
+
+    member_stat_dict = {}
+    for m in results:
+        member_stat_dict[m["_id"]] = {"first" : m["first"], "last" : m["last"]}
+
+    total_points = sum(player.clan_games(season) for player in players)
+    player_list = sorted(players, key=lambda l: l.clan_games(season), reverse=True)
+
+    point_text_list = []
+    for player in player_list:
+        name = player.name
+        name = re.sub('[*_`~/]', '', name)
+        points = player.clan_games(season)
+        time = ""
+        stats = member_stat_dict.get(player.tag)
+        if stats is not None:
+            if points < 4000:
+                stats["last"] = int(datetime.now().timestamp())
+            first_time = datetime.fromtimestamp(stats["first"])
+            last_time = datetime.fromtimestamp(stats["last"])
+            diff = (last_time - first_time)
+            m, s = divmod(diff.total_seconds(), 60)
+            h, m = divmod(m, 60)
+            time = f"{int(h)}h {int(m)}m"
+
+        if clan_tags is not None:
+            if player.clan_tag() in clan_tags:
+                point_text_list.append([f"{bot.emoji.clan_games}`{str(points).rjust(4)} {time:7}` {name}"])
+            else:
+                point_text_list.append([f"{bot.emoji.deny_mark}`{str(points).rjust(4)} {time:7}` {name}"])
+
+
+    point_text = [line[0] for line in point_text_list]
+    point_text = "\n".join(point_text)
+
+    cg_point_embed = disnake.Embed(title=title_name, description=point_text, color=embed_color)
+
+    cg_point_embed.set_footer(text=f"Total Points: {'{:,}'.format(total_points)}")
+    return cg_point_embed
