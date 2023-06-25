@@ -12,12 +12,7 @@ from coc import utils
 from openpyxl import load_workbook, Workbook
 from pytz import utc
 
-'''feel free to change the naming or structure of anything. This is just what i have come up with upon implementing one export
-things may have to be changed to accomodate other types or even to make it easier  to understand. my *only* ask is to not change formatting
-too aggresively xD (flashbacks)
-1111152142057754714.xlsx
-^ this file in TemplateStorage is a "template", you can upload & test it with /export template
-and see what exactly these do, you can see how template r uploaded & saved, how they change data, and how custom built stuff can build upon this'''
+
 class ExportCreator(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
@@ -145,7 +140,7 @@ class ExportCreator(commands.Cog):
                 capital_donated += sum(capital.donated)
                 
             if player.last_online is None:
-                lastOnline = 0
+                lastOnline = "-"
             else:
                 lastOnline = datetime.fromtimestamp(player.last_online, tz=utc).strftime("%Y-%m-%d-%H:%M:%S")
             data.append([player.name, player.tag, lastOnline, len(player.season_last_online(season)), player.attack_wins, donos.received, donos.donated, 
@@ -153,7 +148,8 @@ class ExportCreator(commands.Cog):
             
         columns = ['Player Name', 'Player Tag', 'Last Online', 'Activity Count', 'Attack Wins', 'Received', 'Donated', 'Gold Looted', 'Elixir Looted', 'Dark Elixir Looted', 'Capital Raided', 'Capital Donated']
         await self.write_data(worksheet=advanced_player_Stats_page, column_names=columns, data=data)
-    
+
+
     async def create_player_stats_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str):
         player_stats_page = workbook.create_sheet(sheet_name)
         players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=False)
@@ -178,6 +174,7 @@ class ExportCreator(commands.Cog):
                    "Best Versus Trophies", "Clan Capital Contributions", "Versus Trophies"]
 
         await self.write_data(worksheet=player_stats_page, column_names=columns, data=data)
+
 
     async def create_troops_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str):
         troops_page = workbook.create_sheet(sheet_name)
@@ -232,7 +229,8 @@ class ExportCreator(commands.Cog):
                 data.append([result['name'][0], result['_id'], change['type'], p_value, value, time, change['clan']])
         columns = ['Player Name', 'Player Tag', 'Type', 'Previous Value', 'Value', 'Time', 'Clan Tag']
         await self.write_data(worksheet=activity_page, column_names=columns, data=data)
-        
+
+
     async def create_achievements_export(self, players: List[MyCustomPlayer], workbook: openpyxl.workbook, sheet_name: str):
         achievement_page = workbook.create_sheet(sheet_name)
         players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=False)
@@ -252,7 +250,8 @@ class ExportCreator(commands.Cog):
         # columns.remove("Get even more Goblins!")
         await self.write_data(worksheet=achievement_page, column_names=columns, data=data)
         return workbook
-        
+
+
     async def create_season_trophies_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
         season_trophies_page = workbook.create_sheet(sheet_name)
         trophies_data = await self.bot.history_db.find({"$and": [{"tag": { "$in" : [player.tag for player in players]}},{"season": season}]}).to_list(length=None)
@@ -264,6 +263,7 @@ class ExportCreator(commands.Cog):
 
         await self.write_data(worksheet=season_trophies_page, column_names=columns, data=data)
         return workbook
+
 
     async def create_warhit_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
         warhit_stat_page = workbook.create_sheet(sheet_name)
@@ -302,7 +302,8 @@ class ExportCreator(commands.Cog):
 
         await self.write_data(worksheet=warhit_stat_page, column_names=columns, data=data)
         return workbook
-    
+
+
     async def create_legend_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str ,season: str = None):
         legend_stats_page = workbook.create_sheet(sheet_name)
         start = utils.get_season_start().replace(tzinfo=utc).date()
@@ -325,20 +326,6 @@ class ExportCreator(commands.Cog):
         await self.write_data(worksheet=legend_stats_page, column_names=columns, data=data)
         return workbook
 
-    '''other export types
-    - activity history, basically the "new_looper" > "player_history" database that record every single action taken
-    - raid weekends (db - new_looper.raid_weekends), for clans & families pretty straight forward (a flattened view of all stats in a raid weekend), but for players you
-    will have to go into their player_stats & there is a raid clan field (object.capital_gold.date.raided_clan) & then use that list of clans to pull this info
-    - season trophies finish export, basically an export of how everyone in the player list finished their legends season (the one below can be inspiration fs)
-    - "player export" everything, and i mean everything (things not directly in api too like clan games, capital, loot, last online, activity), 
-    you can even go as far as putting what country the account is from (another db), but not troops & achievements. 
-    - on the above^ (i have no function to convert a season to its equivalent raid weekends, we need this :/)
-    - troops, self explanatory
-    - achievements, self explanatory
-    - war hit export
-    - thats all of the top of my head, but def encourage to look thru db & see if anything else
-    - ofc things like war hit rate calculation seem obvious, but thats what the user-made templates will be for :), we just want to supply *as much* raw data as possible
-    '''
 
     #THESE ARE JUST PROTOTYPES, MAY HAVE SOME GOOD STUFF, MAY NOT.
     async def create_last_season_trophies_export(self, ctx, clan):
