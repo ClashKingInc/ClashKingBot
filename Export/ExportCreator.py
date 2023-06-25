@@ -3,7 +3,7 @@ import disnake
 import openpyxl.worksheet.worksheet
 import io
 import calendar
-from datetime import datetime
+from datetime import datetime, timedelta
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer, LegendDay
@@ -54,6 +54,8 @@ class ExportCreator(commands.Cog):
                 await self.create_player_activity_export(players=players, workbook=workbook, season=season, sheet_name="player_activity")
             elif template == "Player Stats":
                 await self.create_player_stats_export(players=players, workbook=workbook, season=season, sheet_name="player_stats")
+            elif template == "Advanced Stats":
+                await self.create_advanced_player_stats_export(players=players, workbook=workbook, season=season, sheet_name="advanced_stats")
         else:
             # if it is not, then it is a template
             # 1. load the template
@@ -107,13 +109,53 @@ class ExportCreator(commands.Cog):
                 elif "player_stats" in sheet_name:
                     workbook.remove(workbook.get_sheet_by_name(sheet_name))
                     await self.create_player_stats_export(players=players, workbook=workbook, season=season_for_sheet, sheet_name=sheet_name)
+                elif "advanced_stats" in sheet_name:
+                    workbook.remove(workbook.get_sheet_by_name(sheet_name))
+                    await self.create_advanced_player_stats_export(players=players, workbook=workbook, season=season_for_sheet, sheet_name=sheet_name)
                 #more if statements to find other export types
         workbook.save(output)
         xlsx_data = output
         xlsx_data.seek(0)
         return xlsx_data
     
-    async def create_player_stats_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
+    async def create_advanced_player_stats_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
+        advanced_player_Stats_page =  workbook.create_sheet(sheet_name)
+        year = season[:4]
+        month = season[-2:]
+        SEASON_START = utils.get_season_start(month=int(month) - 1, year=int(year))
+        SEASON_END = utils.get_season_end(month=int(month) - 1, year=int(year))
+        weeks = []
+        week = SEASON_START
+        if SEASON_START.weekday() == 0:
+            for i in range(0,7):
+                week = SEASON_START + timedelta(i* 7)
+                if week > SEASON_END:
+                    break
+                weeks.append(week)
+        players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=True)
+        if season is None:
+            season = self.bot.gen_season_date()
+        data = []
+        for player in players_data:
+            donos = player.donos(season)
+            capital_raided = 0
+            capital_donated = 0
+            for date in weeks:
+                capital = player.clan_capital_stats(week=date.date())
+                capital_raided += sum(capital.raided)
+                capital_donated += sum(capital.donated)
+                
+            if player.last_online is None:
+                lastOnline = 0
+            else:
+                lastOnline = datetime.fromtimestamp(player.last_online, tz=utc).strftime("%Y-%m-%d-%H:%M:%S")
+            data.append([player.name, player.tag, lastOnline, len(player.season_last_online(season)), player.attack_wins, donos.received, donos.donated, 
+                         player.gold_looted(season), player.elixir_looted(season), player.dark_elixir_looted(season), capital_raided, capital_donated])
+            
+        columns = ['Player Name', 'Player Tag', 'Last Online', 'Activity Count', 'Attack Wins', 'Received', 'Donated', 'Gold Looted', 'Elixir Looted', 'Dark Elixir Looted', 'Capital Raided', 'Capital Donated']
+        await self.write_data(worksheet=advanced_player_Stats_page, column_names=columns, data=data)
+    
+    async def create_player_stats_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str):
         player_stats_page = workbook.create_sheet(sheet_name)
         players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=False)
         data = []
