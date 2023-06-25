@@ -377,7 +377,8 @@ class FamCommands(commands.Cog):
 
     @family.sub_command(name="trophies", description="List of clans by home, builder, or capital trophy points")
     async def trophies(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
-        embed = await family_embeds.create_trophies(bot=self.bot, guild=ctx.guild, sort_type=TrophySort.home)
+        guild = server if server is not None else ctx.guild
+        embed = await family_embeds.create_trophies(bot=self.bot, guild=guild, sort_type=TrophySort.home)
         buttons = disnake.ui.ActionRow()
         sort_type = TrophySort.home
         buttons.append_item(disnake.ui.Button(label="Home", emoji=self.bot.emoji.trophy.partial_emoji,

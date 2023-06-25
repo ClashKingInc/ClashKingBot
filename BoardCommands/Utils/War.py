@@ -1,10 +1,13 @@
 import disnake
 import coc
+
+from datetime import datetime
 from CustomClasses.CustomBot import CustomClient
 from pytz import utc
 from collections import defaultdict
 from utils.general import create_superscript
-from utils.clash import cwl_league_emojis
+from utils.clash import cwl_league_emojis, leagueAndTrophies
+from Assets.emojiDictionary import emojiDictionary
 
 async def main_war_page(bot: CustomClient, war: coc.ClanWar, war_league=None):
     war_time = war.start_time.seconds_until
@@ -23,7 +26,7 @@ async def main_war_page(bot: CustomClient, war: coc.ClanWar, war_league=None):
             war_pos = "Ending"
             war_state = "In War"
 
-    th_comps = await war_th_comps(war)
+    th_comps = await war_th_comps(bot=bot, war=war)
 
     if war_pos == "Ended":
         color = disnake.Color.red()
@@ -77,7 +80,7 @@ async def main_war_page(bot: CustomClient, war: coc.ClanWar, war_league=None):
         embed.add_field(name="­\nLast 5 attacks/defenses",
                         value=text)
 
-    embed.timestamp = datetime.datetime.now()
+    embed.timestamp = datetime.now()
     embed.set_thumbnail(url=war.clan.badge.large)
     embed.set_footer(text=f"{war.type.capitalize()} War")
     return embed
@@ -275,6 +278,88 @@ async def opp_overview(bot: CustomClient, war: coc.ClanWar):
     return embed
 
 
+async def plan_embed(bot: CustomClient, plans, war: coc.ClanWar) -> disnake.Embed:
+    text = ""
+    for plan in sorted(plans, key=lambda x: x.map_position):
+        text += f"({plan.map_position}){bot.fetch_emoji(name=plan.townhall_level)}{plan.name} | {plan.plan_text}\n"
+
+    if text == "":
+        text = "No Plans Inserted Yet"
+    embed = disnake.Embed(title=f"{war.clan.name} vs {war.opponent.name} WarPlan", description=text)
+    return embed
+
+async def create_components(bot: CustomClient, plans, war: coc.ClanWar):
+    player_options = []
+    player_options_two = []
+
+    for count, player in enumerate(war.clan.members, 1):
+        plan = coc.utils.get(plans, player_tag=player.tag)
+        plan_done = "✅" if plan is not None else "❌"
+
+        if count <= 25:
+            player_options.append(disnake.SelectOption(label=f"({count}.) {player.name} {plan_done}",
+                                                       emoji=bot.fetch_emoji(
+                                                           name=player.town_hall).partial_emoji,
+                                                       value=f"lineup_{player.tag}"))
+        else:
+            player_options_two.append(disnake.SelectOption(label=f"({count}.) {player.name} {plan_done}",
+                                                           emoji=bot.fetch_emoji(
+                                                               name=player.town_hall).partial_emoji,
+                                                           value=f"lineup_{player.tag}"))
+
+    player_select = disnake.ui.Select(
+        options=player_options,
+        placeholder=f"Set Plan for Players",  # the placeholder text to show when no options have been chosen
+        min_values=1,  # the minimum number of options a user must select
+        max_values=len(player_options),  # the maximum number of options a user can select
+    )
+    if player_options_two:
+        player_select_two = disnake.ui.Select(
+            options=player_options_two,
+            placeholder=f"Set Plan for Players #2",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=len(player_options_two),  # the maximum number of options a user can select
+        )
+        return [disnake.ui.ActionRow(player_select), disnake.ui.ActionRow(player_select_two)]
+    return [disnake.ui.ActionRow(player_select)]
+
+async def open_modal(self, res: disnake.MessageInteraction):
+    components = [
+        disnake.ui.TextInput(
+            label=f"Expected Stars",
+            placeholder='can be a range like "1-2" or single like "2"',
+            custom_id=f"stars",
+            required=True,
+            style=disnake.TextInputStyle.single_line,
+            max_length=50,
+        ),
+        disnake.ui.TextInput(
+            label=f"Enter the target(s)",
+            placeholder='can be a range like "1-10" or single like "5"',
+            custom_id=f"target",
+            required=True,
+            style=disnake.TextInputStyle.single_line,
+            max_length=50,
+        )
+    ]
+    custom_id = f"warplan-{int(datetime.now().timestamp())}"
+    await res.response.send_modal(
+        title="Enter Plan for Selected Players",
+        custom_id=custom_id,
+        components=components)
+
+    def check(modal_res: disnake.ModalInteraction):
+        return res.author.id == modal_res.author.id and custom_id == modal_res.custom_id
+
+    modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
+        "modal_submit",
+        check=check,
+        timeout=300,
+    )
+    await modal_inter.send(content="Added.", ephemeral=True, delete_after=1)
+    stars = modal_inter.text_values["stars"]
+    target = modal_inter.text_values["target"]
+    return (stars, target)
 
 
 

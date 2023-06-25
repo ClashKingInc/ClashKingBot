@@ -5,17 +5,18 @@ import pytz
 import asyncio
 import calendar
 
-from utils.search import search_results
+
 from disnake.ext import commands
 from Assets.emojiDictionary import emojiDictionary
 from collections import defaultdict
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from utils.clash import cwl_league_emojis
+from utils.search import search_results
+from utils.discord_utils import interaction_handler
 from coc.miscmodels import Timestamp
 
-tiz = pytz.utc
-SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
+from BoardCommands.Utils.War import plan_embed, create_components, open_modal
 
 class War(commands.Cog):
 
@@ -44,8 +45,12 @@ class War(commands.Cog):
         return season_date
 
 
+    @commands.slash_command(name="war")
+    async def war(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
 
-    @commands.slash_command(name="war", description="Search for a clan's war (current or past)")
+
+    @war.sub_command(name="search", description="Search for a clan's war (current or past)")
     async def war_search(self, ctx: disnake.ApplicationCommandInteraction, clan:str, previous_wars:str = None):
         await ctx.response.defer()
         clan = await self.bot.getClan(clan_tag=clan)
@@ -160,7 +165,42 @@ class War(commands.Cog):
                 await res.response.edit_message(embed=embed)
 
 
+    @war.sub_command(name="plan", description="Set a war plan")
+    async def war_plan(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
+                       plan= commands.Param(choices=["Mirrors", "Manual Set"])):
+        war = await self.bot.get_clanwar(clanTag=clan.tag)
+        if war is None:
+            return await ctx.send(ephemeral=True, content=f"{clan.name} is not currently in a war.")
+        await ctx.response.defer()
+        # result = await self.bot.lineups.find
 
+        result = await self.bot.lineups.find_one({"$and" : [{"server_id" : ctx.guild.id, "clan_tag" : clan.tag, "warStart" : f"{int(war.preparation_start_time.time.timestamp())}"}]})
+        if result is None:
+            await self.bot.lineups.insert_one({"server_id" : ctx.guild.id, "clan_tag" : clan.tag, "warStart" : f"{int(war.preparation_start_time.time.timestamp())}"})
+            result = {"server_id": ctx.guild.id, "clan_tag": clan.tag, "warStart": f"{int(war.preparation_start_time.time.timestamp())}"}
+
+        await ctx.edit_original_message(embed=await plan_embed(plans=result.plans, war=war),
+                                        components=await create_components(plans=result.plans, war=war))
+
+        if plan == "Manual Set":
+            done = False
+            while not done:
+                res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, no_defer=True)
+                stars, targets = await open_modal(res=res)
+                value_tags = set([x.split("_")[-1] for x in res.values])
+                for plan in result.plans:
+                    if plan.player_tag in value_tags:
+                        del plan
+                for tag in value_tags:
+                    war_member = coc.utils.get(war.clan.members, tag=tag)
+                    result.plans.append(
+                        Plans(name=war_member.name, player_tag=war_member.tag, townhall_level=war_member.town_hall,
+                              stars=stars, targets=targets, map_position=war_member.map_position))
+                await self.bot.static_engine.save(result)
+                await ctx.edit_original_message(embed=await self.plan_embed(plans=result.plans, war=war),
+                                                components=await self.create_components(plans=result.plans, war=war))
+        else:
+            pass
 
 
 

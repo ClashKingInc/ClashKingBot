@@ -223,9 +223,12 @@ class misc(commands.Cog, name="Other"):
             type = command.get("type")
             command = disnake.APISlashCommand(name=name, description=desc)
             command.add_option(name=type, required=True, autocomplete=True)
-            await self.bot.create_guild_command(guild_id=guild, application_command=command)'''
+            try:
+                await self.bot.create_guild_command(guild_id=guild, application_command=command)
+            except:
+                pass
 
-    '''@commands.slash_command(name="custom-command", description="Create a custom command")
+    @commands.slash_command(name="custom-command", description="Create a custom command")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def custom_command(self, ctx: disnake.ApplicationCommandInteraction, command_name: str, description: str,
                              custom_embed: str, type=commands.Param(choices=["clan"]), refresh_button = commands.Param(default="False", choices=["True"])):
@@ -265,11 +268,9 @@ class misc(commands.Cog, name="Other"):
     @commands.Cog.listener()
     async def on_application_command(self, ctx: disnake.ApplicationCommandInteraction):
         command = ctx.data.name.split(" ")[0]
-        if command not in [c.name for c in self.bot.global_slash_commands]:
+        result = await self.bot.custom_commands.find_one({"$and": [{"guild": ctx.guild.id}, {"name": command}]})
+        if result is not None:
             await ctx.response.defer()
-            result = await self.bot.custom_commands.find_one({"$and": [{"guild": ctx.guild.id}, {"name": command}]})
-            if result is None:
-                return
             type = result.get("type")
             query = ctx.filled_options[type]
             if type == "clan":
@@ -290,10 +291,8 @@ class misc(commands.Cog, name="Other"):
     @commands.Cog.listener()
     async def on_application_command_autocomplete(self, ctx: disnake.ApplicationCommandInteraction):
         command = ctx.data.name
-        if command in [c.name for c in self.bot.global_slash_commands]:
-            result = await self.bot.custom_commands.find_one({"name": command})
-            if result is None:
-                return
+        result = await self.bot.custom_commands.find_one({"$and": [{"guild": ctx.guild.id}, {"name": command}]})
+        if result is not None:
             command_type = result.get("type")
             query = ctx.filled_options[command_type]
             choices = await self.auto_clan(ctx=ctx, query=query)
