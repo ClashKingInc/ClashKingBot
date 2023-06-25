@@ -164,7 +164,7 @@ class War(commands.Cog):
 
     @war.sub_command(name="plan", description="Set a war plan")
     async def war_plan(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
-                       plan= commands.Param(choices=["Mirrors", "Manual Set"])):
+                       option = commands.Param(choices=["Post Plan", "Manual Set"])):
         war = await self.bot.get_clanwar(clanTag=clan.tag)
         if war is None:
             return await ctx.send(ephemeral=True, content=f"{clan.name} is not currently in a war.")
@@ -175,17 +175,17 @@ class War(commands.Cog):
             await self.bot.lineups.insert_one({"server_id" : ctx.guild.id, "clan_tag" : clan.tag, "warStart" : f"{int(war.preparation_start_time.time.timestamp())}"})
             result = {"server_id": ctx.guild.id, "clan_tag": clan.tag, "warStart": f"{int(war.preparation_start_time.time.timestamp())}"}
 
-        await ctx.edit_original_message(embed=await plan_embed(bot=self.bot, plans=result.get("plans"), war=war),
-                                        components=await create_components(bot=self.bot, plans=result.plans, war=war))
-
-        if plan == "Manual Set":
+        if option == "Manual Set":
+            await ctx.edit_original_message(
+                embed=await plan_embed(bot=self.bot, plans=result.get("plans", []), war=war),
+                components=await create_components(bot=self.bot, plans=result.get("plans", []), war=war))
             done = False
             while not done:
                 res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, no_defer=True)
                 stars, targets = await open_modal(bot=self.bot, res=res)
                 value_tags = set([x.split("_")[-1] for x in res.values])
                 to_remove = []
-                for plan in result.get("plans"):
+                for plan in result.get("plans", []):
                     if plan.get("player_tag") in value_tags:
                         to_remove.append(UpdateOne({"server_id" : ctx.guild.id, "clan_tag" : clan.tag, "warStart" : f"{int(war.preparation_start_time.time.timestamp())}"},
                                      {"$pull" : {"plans" : {"player_tag" : plan.get("player_tag")}}}))
@@ -195,17 +195,20 @@ class War(commands.Cog):
                 for tag in value_tags:
                     war_member = coc.utils.get(war.clan.members, tag=tag)
                     to_update.append(UpdateOne({"server_id" : ctx.guild.id, "clan_tag" : clan.tag, "warStart" : f"{int(war.preparation_start_time.time.timestamp())}"},
-                                     {"$push" : {"name" : war_member.name, "player_tag" : war_member.tag, "townhall_level" : war_member.town_hall,
-                                                 "stars" : stars, "targets" : targets, "map_position" : war_member.map_position}}))
+                                               {"$push" : {"plans" : {"name" : war_member.name, "player_tag" : war_member.tag, "townhall_level" : war_member.town_hall,
+                                                 "stars" : stars, "targets" : targets, "map_position" : war_member.map_position}}}))
 
                 if to_update:
                     await self.bot.lineups.bulk_write(to_update)
 
                 result = await self.bot.lineups.find_one({"$and": [{"server_id": ctx.guild.id, "clan_tag": clan.tag, "warStart": f"{int(war.preparation_start_time.time.timestamp())}"}]})
-                await ctx.edit_original_message(embed=await plan_embed(bot=self.bot, plans=result.get("plans"), war=war),
-                                                components=await create_components(bot=self.bot, plans=result.get("plans"), war=war))
-        else:
-            pass
+                await ctx.edit_original_message(embed=await plan_embed(bot=self.bot, plans=result.get("plans", []), war=war),
+                                                components=await create_components(bot=self.bot, plans=result.get("plans", []), war=war))
+        elif option == "Post Plan":
+            result = await self.bot.lineups.find_one({"$and": [{"server_id": ctx.guild.id, "clan_tag": clan.tag,
+                                                                "warStart": f"{int(war.preparation_start_time.time.timestamp())}"}]})
+            await ctx.edit_original_message(embed=await plan_embed(bot=self.bot, plans=result.get("plans", []), war=war), components=[])
+
 
 
 
@@ -303,6 +306,8 @@ class War(commands.Cog):
 
     #AUTOCOMPLETES
     @war_search.autocomplete("clan")
+    @war_plan.autocomplete("clan")
+    @cwl_search.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})

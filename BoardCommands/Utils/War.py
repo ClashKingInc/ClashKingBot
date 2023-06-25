@@ -279,7 +279,7 @@ async def opp_overview(bot: CustomClient, war: coc.ClanWar):
     return embed
 
 
-async def plan_embed(bot: CustomClient, plans, war: coc.ClanWar) -> disnake.Embed:
+async def plan_embed(bot: CustomClient, plans, war: coc.ClanWar, embed_color = disnake.Color.green()) -> disnake.Embed:
     plans = [WarPlan(p) for p in plans]
     text = ""
     for plan in sorted(plans, key=lambda x: x.map_position):
@@ -287,8 +287,9 @@ async def plan_embed(bot: CustomClient, plans, war: coc.ClanWar) -> disnake.Embe
 
     if text == "":
         text = "No Plans Inserted Yet"
-    embed = disnake.Embed(title=f"{war.clan.name} vs {war.opponent.name} WarPlan", description=text)
+    embed = disnake.Embed(title=f"{war.clan.name} vs {war.opponent.name} WarPlan", description=text, colour=embed_color)
     return embed
+
 
 async def create_components(bot: CustomClient, plans, war: coc.ClanWar):
     plans = [WarPlan(p) for p in plans]
@@ -300,12 +301,12 @@ async def create_components(bot: CustomClient, plans, war: coc.ClanWar):
         plan_done = "✅" if plan is not None else "❌"
 
         if count <= 25:
-            player_options.append(disnake.SelectOption(label=f"({count}.) {player.name} {plan_done}",
+            player_options.append(disnake.SelectOption(label=f"({count}) {player.name} {plan_done}",
                                                        emoji=bot.fetch_emoji(
                                                            name=player.town_hall).partial_emoji,
                                                        value=f"lineup_{player.tag}"))
         else:
-            player_options_two.append(disnake.SelectOption(label=f"({count}.) {player.name} {plan_done}",
+            player_options_two.append(disnake.SelectOption(label=f"({count}) {player.name} {plan_done}",
                                                            emoji=bot.fetch_emoji(
                                                                name=player.town_hall).partial_emoji,
                                                            value=f"lineup_{player.tag}"))
@@ -325,6 +326,7 @@ async def create_components(bot: CustomClient, plans, war: coc.ClanWar):
         )
         return [disnake.ui.ActionRow(player_select), disnake.ui.ActionRow(player_select_two)]
     return [disnake.ui.ActionRow(player_select)]
+
 
 async def open_modal(bot: CustomClient, res: disnake.MessageInteraction):
     components = [
