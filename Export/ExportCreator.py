@@ -125,13 +125,12 @@ class ExportCreator(commands.Cog):
         SEASON_START = utils.get_season_start(month=int(month) - 1, year=int(year))
         SEASON_END = utils.get_season_end(month=int(month) - 1, year=int(year))
         weeks = []
-        week = SEASON_START
-        if SEASON_START.weekday() == 0:
-            for i in range(0,7):
-                week = SEASON_START + timedelta(i* 7)
-                if week > SEASON_END:
-                    break
-                weeks.append(week)
+        SEASON_START = SEASON_START - timedelta(3)
+        for i in range(0,7):
+            week = SEASON_START + timedelta(i* 7)
+            if week > SEASON_END:
+                break
+            weeks.append(week)
         players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=True)
         if season is None:
             season = self.bot.gen_season_date()
@@ -141,7 +140,7 @@ class ExportCreator(commands.Cog):
             capital_raided = 0
             capital_donated = 0
             for date in weeks:
-                capital = player.clan_capital_stats(week=date.date())
+                capital = player.clan_capital_stats(week=str(date.date()))
                 capital_raided += sum(capital.raided)
                 capital_donated += sum(capital.donated)
                 
