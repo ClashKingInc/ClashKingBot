@@ -8,6 +8,7 @@ from collections import defaultdict
 from utils.general import create_superscript
 from utils.clash import cwl_league_emojis, leagueAndTrophies
 from Assets.emojiDictionary import emojiDictionary
+from CustomClasses.Misc import WarPlan
 
 async def main_war_page(bot: CustomClient, war: coc.ClanWar, war_league=None):
     war_time = war.start_time.seconds_until
@@ -279,6 +280,7 @@ async def opp_overview(bot: CustomClient, war: coc.ClanWar):
 
 
 async def plan_embed(bot: CustomClient, plans, war: coc.ClanWar) -> disnake.Embed:
+    plans = [WarPlan(p) for p in plans]
     text = ""
     for plan in sorted(plans, key=lambda x: x.map_position):
         text += f"({plan.map_position}){bot.fetch_emoji(name=plan.townhall_level)}{plan.name} | {plan.plan_text}\n"
@@ -289,6 +291,7 @@ async def plan_embed(bot: CustomClient, plans, war: coc.ClanWar) -> disnake.Embe
     return embed
 
 async def create_components(bot: CustomClient, plans, war: coc.ClanWar):
+    plans = [WarPlan(p) for p in plans]
     player_options = []
     player_options_two = []
 
@@ -323,7 +326,7 @@ async def create_components(bot: CustomClient, plans, war: coc.ClanWar):
         return [disnake.ui.ActionRow(player_select), disnake.ui.ActionRow(player_select_two)]
     return [disnake.ui.ActionRow(player_select)]
 
-async def open_modal(self, res: disnake.MessageInteraction):
+async def open_modal(bot: CustomClient, res: disnake.MessageInteraction):
     components = [
         disnake.ui.TextInput(
             label=f"Expected Stars",
@@ -351,7 +354,7 @@ async def open_modal(self, res: disnake.MessageInteraction):
     def check(modal_res: disnake.ModalInteraction):
         return res.author.id == modal_res.author.id and custom_id == modal_res.custom_id
 
-    modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
+    modal_inter: disnake.ModalInteraction = await bot.wait_for(
         "modal_submit",
         check=check,
         timeout=300,
