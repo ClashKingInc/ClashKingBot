@@ -143,12 +143,7 @@ class MyCustomPlayer(coc.Player):
             season = self.bot.gen_season_date()
         if self.results is None:
             return 0
-        looted = self.results.get("elixir_looted")
-        if looted is None:
-            return 0
-        season_looted = looted.get(f"{season}")
-        if season_looted is None:
-            return 0
+        season_looted = self.results.get("elixir_looted", {}).get(season, [0])
         return sum(season_looted)
 
     def dark_elixir_looted(self, season=None):
