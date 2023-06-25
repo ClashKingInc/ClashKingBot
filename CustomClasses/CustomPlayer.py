@@ -108,7 +108,14 @@ class MyCustomPlayer(coc.Player):
         season_stats = self.season_of_legends(season=season)
         return LegendStats(season_stats)
 
-    @property
+    def attack_wins(self, season=None):
+        if season is None:
+            season= self.bot.gen_season_data()
+        if self.results is None:
+            return 0
+        season_wins = self.results.get('attack_wins', {}).get(f"{season}", [0])
+        return season_wins
+    
     def gold_looted(self, season=None):
         if season is None:
             season = self.bot.gen_season_date()
@@ -122,7 +129,6 @@ class MyCustomPlayer(coc.Player):
             return 0
         return sum(season_looted)
 
-    @property
     def elixir_looted(self, season=None):
         if season is None:
             season = self.bot.gen_season_date()
@@ -136,7 +142,7 @@ class MyCustomPlayer(coc.Player):
             return 0
         return sum(season_looted)
 
-    @property
+
     def dark_elixir_looted(self, season=None):
         if season is None:
             season = self.bot.gen_season_date()
