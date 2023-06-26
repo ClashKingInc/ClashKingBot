@@ -46,8 +46,7 @@ from chat_exporter.construct.assets.embed import Embed
 import string
 import random
 import os
-import openai
-openai.api_key = os.getenv("OPENAI_API_KEY")
+
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 import io
@@ -56,25 +55,6 @@ from CustomClasses.CustomPlayer import MyCustomPlayer
 from utils.constants import TOWNHALL_LEVELS
 import numpy as np
 
-class ChatBot:
-    def __init__(self, system=""):
-        self.system = system
-        self.messages = []
-        if self.system:
-            self.messages.append({"role": "system", "content": system})
-
-    def __call__(self, message):
-        self.messages.append({"role": "user", "content": message})
-        result = self.execute()
-        self.messages.append({"role": "assistant", "content": result})
-        return result
-
-    def execute(self):
-        completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=self.messages)
-        # Uncomment this to print out token usage each time, e.g.
-        # {"completion_tokens": 86, "prompt_tokens": 26, "total_tokens": 112}
-        # print(completion.usage)
-        return completion.choices[0].message.content
 
 
 
@@ -103,66 +83,74 @@ class OwnerCommands(commands.Cog):
         await ctx.send(content=created)
 
 
-    @commands.slash_command(name="summary")
-    async def summary(self, ctx: disnake.ApplicationCommandInteraction, num_messages: int = 100):
-        await ctx.response.defer(ephemeral=True)
-        channel: disnake.TextChannel = ctx.channel
-        message_text = "Please summarize this conversation:\n"
-        try:
-            messages = await channel.history(limit=num_messages).flatten()
-        except:
-            messages = []
-        if not messages:
-            return await ctx.edit_original_message(content="I don't have permission to view this channel")
-        for message in reversed(messages):
-            if message.webhook_id is None and message.author.bot:
-                continue
-            if message.content == "":
-                continue
-            if len(message_text) + len(f"{message.author.display_name} said: {message.content}\n") > 4000:
-                continue
-            message_text += f"{message.author.display_name} said: {message.content}\n"
-        magicbot = ChatBot(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. Use up to 25 bullet points.")
-        message = magicbot(message_text)
 
-        await ctx.edit_original_message(content=f"Summary of the last {num_messages} messages in {channel.name}:\n {message}")
 
-    #@commands.command(name="example")
-    @commands.command(name="example")
-    async def example(self, ctx: disnake.ApplicationCommandInteraction):
-        clan = await self.bot.getClan("#280U89YQR")
-        embed = disnake.Embed(title=f"{clan.name} Week 5/23-5/30 Summary",
-              description=f"`Trophies        `{self.bot.emoji.trophy}`{clan.points}  `{self.bot.emoji.up_green_arrow}`+500  `{self.bot.emoji.globe}`#254 `{self.bot.emoji.discord}`#2`\n"
-                          f"`Builder Trophies`{self.bot.emoji.trophy}`{clan.versus_points}  `{self.bot.emoji.up_green_arrow}`+25   `{self.bot.emoji.globe}`#3457`{self.bot.emoji.discord}`#1`\n"
-                          f"`Donations       `{self.bot.emoji.clan_castle}`500,103`{self.bot.emoji.up_green_arrow}`+14265`{self.bot.emoji.globe}`#23  `{self.bot.emoji.discord}`#1`\n"
-                          f"`TH Compo        `{self.bot.fetch_emoji(15)}`14.97  `{self.bot.emoji.up_green_arrow}`+0.5  `{self.bot.emoji.discord}`#2   `\n"
-                          f"`War Stars       `{self.bot.emoji.war_star}`387    `{self.bot.emoji.up_green_arrow}`+23   `{self.bot.emoji.discord}`#8   `\n"
-                          f"`Attack Wins     `{self.bot.emoji.thick_sword}`2,903  `{self.bot.emoji.up_green_arrow}`+492  `{self.bot.emoji.globe}`#201 `{self.bot.emoji.discord}`#4`\n"
-                          f"`Activity        `{self.bot.emoji.clock}`5,607  `{self.bot.emoji.up_green_arrow}`+1003 `{self.bot.emoji.globe}`#1   `{self.bot.emoji.discord}`#1`\n"
-                          f"`Wars Won        `{self.bot.emoji.war_star}`3      `{self.bot.emoji.up_green_arrow}`+0    `{self.bot.emoji.discord}`#1   `\n",
-              color=disnake.Color.green())
-        embed.set_thumbnail(url=clan.badge.url)
-        await ctx.send(embed=embed)
 
-    @commands.slash_command(name="sample")
+
+    @commands.slash_command(name="migrate", guild_ids=[923764211845312533])
     @commands.is_owner()
-    async def sample(self, ctx: disnake.ApplicationCommandInteraction):
-        await ctx.response.defer()
-        total = await self.bot.player_history.count_documents(filter={"type" : {"$in" : coc.SUPER_TROOP_ORDER + ["Super Hog Rider"]}})
-        print(total)
-        text = ""
-        for troop in coc.SUPER_TROOP_ORDER + ["Super Hog Rider"]:
-            count = await self.bot.player_history.count_documents(filter={"type" : troop})
-            #print(f"{troop} -> {round(count/total, 3) * 100}% | {count} Boosts\n")
-            text += f"{troop} -> {round(count/total, 3) * 100}% | {count} Boosts\n"
-        await ctx.send(content=text)
+    async def migrate(self, ctx: disnake.ApplicationCommandInteraction):
+        special = ["legend_log"]
+        fields = ["clanChannel", "joinlog", "clan_capital",  "donolog", "upgrade_log", "banlist", "war_log"]
+        cursor = self.bot.clan_db.find({"tag" : "#2JGYRJVL"})
+        channel_to_webhook = {}
+        field_to_new = {"clanChannel" : ["clan_channel"], "joinlog" : ["join_log", "leave_log"], "clan_capital" : ["capital_donations", "capital_attacks", "raid_map", "capital_weekly_summary", "new_raid_panel"],
+                        "donolog" : ["donation_log"], "upgrade_log" : ["super_troop_boost", "role_change", "troop_upgrade", "th_upgrade", "league_change", "spell_upgrade", "hero_upgrade"],
+                        "banlist" : ["ban_log"], "war_log" : ["war_log", "war_panel"]}
+        bot_av = self.bot.user.avatar.read().close()
+        for document in await cursor.to_list(length=100):
+            new_json = {
+
+            }
+            id = document.get("_id")
+            for field in fields:
+                channel = document.get(field)
+                webhook = channel_to_webhook.get(channel)
+                thread = None
+                if channel is not None:
+                    if webhook is None:
+                        try:
+                            g_channel = await self.bot.getch_channel(channel, raise_exception=True)
+                            if isinstance(g_channel, disnake.Thread):
+                                thread = channel
+                                webhook = await g_channel.parent.create_webhook(name="ClashKing", avatar=bot_av, reason="ClashKing Clan Logs")
+                            else:
+                                webhook = await g_channel.create_webhook(name="ClashKing", avatar=bot_av, reason="ClashKing Clan Logs")
+                            channel_to_webhook[g_channel.id] = webhook.id
+                            webhook = webhook.id
+                        except:
+                            webhook = None
+                    else:
+                        g_channel = await self.bot.getch_channel(channel, raise_exception=True)
+                        if isinstance(g_channel, disnake.Thread):
+                            thread = channel
+                for new_field in field_to_new.get(field):
+                    new_json[new_field] = {}
+                    new_json[new_field]["webhook"] = webhook
+                    new_json[new_field]["thread"] = thread
+                    if field == "joinlog":
+                        new_json[new_field]["strike_ban_buttons"] = document.get("strike_ban_buttons")
+                    if field == "war_log":
+                        panel = document.get("attack_feed") == "Update Feed"
+                        if panel and new_field == "war_log":
+                            new_json[new_field]["webhook"] = None
+
+                        if not panel and new_field == "war_panel":
+                            new_json[new_field]["webhook"] = None
+
+                        if panel and new_field == "war_panel":
+                            new_json[new_field]["war_id"] = document.get("war_id")
+                            new_json[new_field]["war_message"] = document.get("war_message")
+
+            for f in ["legend_log_attacks", "legend_log_defenses"]:
+                new_json[f] = {}
+                new_json[f]["webhook"] = document.get("legend_log", {}).get("webhook")
+                new_json[f]["thread"] = document.get("legend_log", {}).get("thread")
+
+            await self.bot.clan_db.update_one({"_id" : id}, {"$set" : {"logs" : new_json}})
 
 
-
-
-
-    @commands.slash_command(name="hitrate")
-    async def hitrate(self, ctx: disnake.ApplicationCommandInteraction):
+    async def contribution_history(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
         text = ""
         pipeline = [
@@ -234,104 +222,7 @@ class OwnerCommands(commands.Cog):
         await ctx.channel.send(content="Done")
 
 
-    @commands.command(name='leave')
-    @commands.is_owner()
-    async def leaveg(self,ctx, *, guild_name):
-        guild = disnake.utils.get(self.bot.guilds, name=guild_name)  # Get the guild by name
-        if guild is None:
-            await ctx.send("No guild with that name found.")  # No guild found
-            return
-        await guild.leave()  # Guild found
-        await ctx.send(f"I left: {guild.name}!")
-
-
-    '''@commands.slash_command(name="raid", description="Image showing the current raid map")'''
-    '''@coc.ClientEvents.raid_loop_start()
-    async def raid_loop(self, iter_spot):
-        print(iter_spot)'''
-
-
-    @coc.RaidEvents.new_offensive_opponent()
-    async def new_opponent(self, clan: coc.RaidClan, raid: RaidLogEntry):
-        channel = await self.bot.getch_channel(1071566470137511966)
-        district_text = ""
-        for district in clan.districts:
-            name = "District"
-            if district.id == 70000000:
-                name = "Capital"
-            name = f"{name}_Hall{district.hall_level}"
-            district_emoji = self.bot.fetch_emoji(name=name)
-            district_text += f"{district_emoji}`Level {district.hall_level:<2}` - {district.name}\n"
-        detailed_clan = await self.bot.getClan(clan.tag)
-        embed = disnake.Embed(title=f"**New Opponent : {clan.name}**",
-                             description=f"Raid Clan # {len(raid.attack_log)}\n"
-                                         f"Location: {detailed_clan.location.name}\n"
-                                         f"Get their own raid details & put some averages here",
-                             color=disnake.Color.green())
-        embed.add_field(name="Districts", value=district_text)
-        embed.set_thumbnail(url=clan.badge.url)
-        await channel.send(embed=embed)
-
-    @coc.RaidEvents.raid_attack()
-    async def member_attack(self, old_member: coc.RaidMember, member: coc.RaidMember, raid: RaidLogEntry):
-        channel = await self.bot.getch_channel(1071566470137511966)
-        previous_loot = old_member.capital_resources_looted if old_member is not None else 0
-        looted_amount = member.capital_resources_looted - previous_loot
-        if looted_amount == 0:
-            return
-        embed = disnake.Embed(
-            description=f"[**{member.name}**]({member.share_link}) raided {self.bot.emoji.capital_gold}{looted_amount} | {self.bot.emoji.thick_sword} Attack #{member.attack_count}/{member.attack_limit + member.bonus_attack_limit}\n"
-            , color=disnake.Color.green())
-        clan_name = await self.bot.clan_db.find_one({"tag": raid.clan_tag})
-        embed.set_author(name=f"{clan_name['name']}")
-        off_medal_reward = calc_raid_medals(raid.attack_log)
-        embed.set_footer(text=f"{numerize.numerize(raid.total_loot, 2)} Total CG | Calc Medals: {off_medal_reward}")
-        await channel.send(embed=embed)
-
-
-    @coc.RaidEvents.defense_district_destruction_change()
-    async def district_destruction(self, previous_district: coc.RaidDistrict, district: coc.RaidDistrict):
-        if self.count >= 20:
-            return
-        self.count += 1
-        channel = await self.bot.getch_channel(1071566470137511966)
-        #print(district.destruction)
-        name = "District"
-        if district.id == 70000000:
-            name = "Capital"
-        name = f"{name}_Hall{district.hall_level}"
-        district_emoji = self.bot.fetch_emoji(name=name).partial_emoji
-        color = disnake.Color.yellow()
-        if district.destruction == 100:
-            color = disnake.Color.red()
-
-        if previous_district is None:
-            previous_destr = 0
-            previous_gold = 0
-        else:
-            previous_destr = previous_district.destruction
-            previous_gold = previous_district.looted
-
-        added = ""
-        cg_added = ""
-        if district.destruction-previous_destr != 0:
-            added = f" (+{district.destruction-previous_destr}%)"
-            cg_added = f" (+{district.looted-previous_gold})"
-
-        embed = disnake.Embed(description=f"{self.bot.emoji.thick_sword}{district.destruction}%{added} | {self.bot.emoji.capital_gold}{district.looted}{cg_added} | Atk #{district.attack_count}\n"
-                                          , color=color)
-        clan_name = await self.bot.clan_db.find_one({"tag" : district.raid_clan.raid_log_entry.clan_tag})
-        embed.set_author(icon_url=district_emoji.url, name=f"{district.name} Defense | {clan_name['name']}")
-        embed.set_footer(icon_url=district.raid_clan.badge.url,
-                         text=f"{district.raid_clan.name} | {district.raid_clan.destroyed_district_count}/{len(district.raid_clan.districts)} Districts Destroyed")
-        await channel.send(embed=embed)
-
-
-    @commands.slash_command(name="see-listeners")
-    async def listen(self, ctx: disnake.ApplicationCommandInteraction):
-        await ctx.send(self.bot.coc_client._listeners["raid"])
-
-    @commands.slash_command(name="raid-map", description="See the live raid map")
+    @commands.slash_command(name="raid-map", description="See the live raid map", guild_ids=[923764211845312533])
     async def raid_map(self, ctx: disnake.ApplicationCommandInteraction, clan: str):
         await ctx.response.defer()
         clan = await self.bot.getClan(clan_tag=clan)
@@ -378,161 +269,8 @@ class OwnerCommands(commands.Cog):
 
         await ctx.send(file=file)
 
-    def leagueAndTrophies(self, league):
-
-        if (league == "Bronze League III"):
-            emoji = "<:BronzeLeagueIII:601611929311510528>"
-        elif (league == "Bronze League II"):
-            emoji = "<:BronzeLeagueII:601611942850986014>"
-        elif (league == "Bronze League I"):
-            emoji = "<:BronzeLeagueI:601611950228635648>"
-        elif (league == "Silver League III"):
-            emoji = "<:SilverLeagueIII:601611958067920906>"
-        elif (league == "Silver League II"):
-            emoji = "<:SilverLeagueII:601611965550428160>"
-        elif (league == "Silver League I"):
-            emoji = "<:SilverLeagueI:601611974849331222>"
-        elif (league == "Gold League III"):
-            emoji = "<:GoldLeagueIII:601611988992262144>"
-        elif (league == "Gold League II"):
-            emoji = "<:GoldLeagueII:601611996290613249>"
-        elif (league == "Gold League I"):
-            emoji = "<:GoldLeagueI:601612010492526592>"
-        elif (league == "Crystal League III"):
-            emoji = "<:CrystalLeagueIII:601612021472952330>"
-        elif (league == "Crystal League II"):
-            emoji = "<:CrystalLeagueII:601612033976434698>"
-        elif (league == "Crystal League I"):
-            emoji = "<:CrystalLeagueI:601612045359775746>"
-        elif (league == "Master League III"):
-            emoji = "<:MasterLeagueIII:601612064913621002>"
-        elif (league == "Master League II"):
-            emoji = "<:MasterLeagueII:601612075474616399>"
-        elif (league == "Master League I"):
-            emoji = "<:MasterLeagueI:601612085327036436>"
-        elif (league == "Champion League III"):
-            emoji = "<:ChampionLeagueIII:601612099226959892>"
-        elif (league == "Champion League II"):
-            emoji = "<:ChampionLeagueII:601612113345249290>"
-        elif (league == "Champion League I"):
-            emoji = "<:ChampionLeagueI:601612124447440912>"
-        elif (league == "Titan League III"):
-            emoji = "<:TitanLeagueIII:601612137491726374>"
-        elif (league == "Titan League II"):
-            emoji = "<:TitanLeagueII:601612148325744640>"
-        elif (league == "Titan League I"):
-            emoji = "<:TitanLeagueI:601612159327141888>"
-        elif (league == "Legend League"):
-            emoji = "<:LegendLeague:601612163169255436>"
-        else:
-            emoji = "<:Unranked:601618883853680653>"
-
-        return emoji
-
-    async def cwl_ranking_create(self, clan: coc.Clan):
-        try:
-            group = await self.bot.coc_client.get_league_group(clan.tag)
-            state = group.state
-            if str(state) == "preparation" and len(group.rounds) == 1:
-                return {clan.tag: None}
-            if str(group.season) != self.bot.gen_season_date():
-                return {clan.tag: None}
-        except:
-            return {clan.tag: None}
-
-        star_dict = defaultdict(int)
-        dest_dict = defaultdict(int)
-        tag_to_name = defaultdict(str)
-
-        rounds = group.rounds
-        for round in rounds:
-            for war_tag in round:
-                war = await self.bot.coc_client.get_league_war(war_tag)
-                if str(war.status) == "won":
-                    star_dict[war.clan.tag] += 10
-                elif str(war.status) == "lost":
-                    star_dict[war.opponent.tag] += 10
-                tag_to_name[war.clan.tag] = war.clan.name
-                tag_to_name[war.opponent.tag] = war.opponent.name
-                for player in war.members:
-                    attacks = player.attacks
-                    for attack in attacks:
-                        star_dict[player.clan.tag] += attack.stars
-                        dest_dict[player.clan.tag] += attack.destruction
-
-        star_list = []
-        for tag, stars in star_dict.items():
-            destruction = dest_dict[tag]
-            name = tag_to_name[tag]
-            star_list.append([tag, stars, destruction])
-
-        sorted_list = sorted(star_list, key=operator.itemgetter(1, 2), reverse=True)
-        place= 1
-        for item in sorted_list:
-            war_leagues = open(f"Assets/war_leagues.json")
-            war_leagues = json.load(war_leagues)
-            promo = [x["promo"] for x in war_leagues["items"] if x["name"] == clan.war_league.name][0]
-            demo = [x["demote"] for x in war_leagues["items"] if x["name"] == clan.war_league.name][0]
-            if place <= promo:
-                emoji = "<:warwon:932212939899949176>"
-            elif place >= demo:
-                emoji = "<:warlost:932212154164183081>"
-            else:
-                emoji = "<:dash:933150462818021437>"
-            tag = item[0]
-            stars = str(item[1])
-            dest = str(item[2])
-            if place == 1:
-                rank = f"{place}st"
-            elif place == 2:
-                rank = f"{place}nd"
-            elif place == 3:
-                rank = f"{place}rd"
-            else:
-                rank = f"{place}th"
-            if tag == clan.tag:
-                tier = str(clan.war_league.name).count("I")
-                return {clan.tag : f"{emoji}`{rank}` {self.leagueAndTrophies(clan.war_league.name)}{SUPER_SCRIPTS[tier]}"}
-            place += 1
-
-    @commands.slash_command(name="get_lb")
-    @commands.is_owner()
-    async def get_lb(self, ctx: disnake.ApplicationCommandInteraction):
-        r = await self.bot.link_client.get_link("UC22UUU8")
-        print(r)
-        return r
-        dates = await self.bot.coc_client.get_seasons(29000022)
-        dates.append(self.bot.gen_season_date())
-        dates = reversed(dates)
-        for season in dates:
-            #await self.bot.player_stats.create_index([(f"donations.{season}.donated", 1)], background=True)
-            #await self.bot.player_stats.create_index([(f"donations.{season}.received", 1)], background=True)
-            pass
-
-
-
-    @commands.slash_command(name="html")
-    @commands.is_owner()
-    async def html(self, ctx: disnake.ApplicationCommandInteraction):
-        things = []
-        for war in await self.bot.clan_wars.find({}).to_list(length=100000):
-            war_id = war.get("war_id")
-            if war.get("custom_id") is not None:
-                continue
-            source = string.ascii_letters
-            custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
-
-            is_used = await self.bot.clan_wars.find_one({"custom_id": custom_id})
-            while is_used is not None:
-                custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
-                is_used = await self.bot.clan_wars.find_one({"custom_id": custom_id})
-
-            things.append(UpdateOne({"war_id": war_id}, {"$set" : {"custom_id": custom_id}}))
-
-        await self.bot.clan_wars.bulk_write(things)
-        print("done")
-
-    @commands.slash_command(name="cwl-image", description="Image showing cwl rankings & th comps")
+    @commands.slash_command(name="cwl-image", description="Image showing cwl rankings & th comps",
+                            guild_ids=[923764211845312533])
     async def testthis(self, ctx: disnake.ApplicationCommandInteraction, clan: str):
         await ctx.response.defer()
         tag = clan
@@ -586,6 +324,7 @@ class OwnerCommands(commands.Cog):
             stars = _[1]
             destruction = _[2]
             clan: coc.ClanWarLeagueClan
+
             async def fetch(url, session):
                 async with session.get(url) as response:
                     image_data = BytesIO(await response.read())
@@ -601,27 +340,29 @@ class OwnerCommands(commands.Cog):
                 badge = Image.open(image_data)
                 size = 100, 100
                 badge.thumbnail(size, Image.ANTIALIAS)
-                background.paste(badge, (200, 645 + (105* count)), badge.convert("RGBA"))
+                background.paste(badge, (200, 645 + (105 * count)), badge.convert("RGBA"))
             if clan.tag == base_clan.tag:
-                color = (136,193,229)
+                color = (136, 193, 229)
             else:
                 color = (255, 255, 255)
-            draw.text((315, 690 + (106 * count)), f"{clan.name[:17]}", anchor="lm", fill=color,stroke_width=stroke, stroke_fill=(0, 0, 0), font=clan_name)
+            draw.text((315, 690 + (106 * count)), f"{clan.name[:17]}", anchor="lm", fill=color, stroke_width=stroke,
+                      stroke_fill=(0, 0, 0), font=clan_name)
             promo = [x["promo"] for x in war_leagues["items"] if x["name"] == base_clan.war_league.name][0]
             demo = [x["demote"] for x in war_leagues["items"] if x["name"] == base_clan.war_league.name][0]
             extra = 0
             if count + 1 <= promo:
                 placement_img = Image.open("ImageGen/league_badges/2168_0.png")
-                color = (166,217,112)
+                color = (166, 217, 112)
             elif count + 1 >= demo:
                 placement_img = Image.open("ImageGen/league_badges/2170_0.png")
-                color = (232,16,17)
+                color = (232, 16, 17)
             else:
                 placement_img = Image.open("ImageGen/league_badges/2169_0.png")
                 extra = 15
                 color = (255, 255, 255)
 
-            draw.text((100, 690 + (106 * count)), f"{count + 1}.", anchor="lm", fill=color, stroke_width=stroke, stroke_fill=(0, 0, 0), font=numbers)
+            draw.text((100, 690 + (106 * count)), f"{count + 1}.", anchor="lm", fill=color, stroke_width=stroke,
+                      stroke_fill=(0, 0, 0), font=numbers)
             size = 100, 100
             placement_img.thumbnail(size, Image.ANTIALIAS)
             background.paste(placement_img, (30, 663 + (107 * count) + extra), placement_img.convert("RGBA"))
@@ -640,28 +381,32 @@ class OwnerCommands(commands.Cog):
                 th_img.thumbnail(size, Image.ANTIALIAS)
                 spot += 1
                 background.paste(th_img, (635 + (80 * spot), 662 + (106 * count)), th_img.convert("RGBA"))
-                draw.text((635 + (80 * spot), 662 + (106 * count)), f"{th_count}", anchor="mm", fill=(255, 255, 255), stroke_width=stroke,stroke_fill=(0, 0, 0), font=small_numbers)
+                draw.text((635 + (80 * spot), 662 + (106 * count)), f"{th_count}", anchor="mm", fill=(255, 255, 255),
+                          stroke_width=stroke, stroke_fill=(0, 0, 0), font=small_numbers)
                 if spot >= 7:
                     break
 
             star_img = Image.open(f"ImageGen/league_badges/679_0.png")
             size = 45, 45
             star_img.thumbnail(size, Image.ANTIALIAS)
-            #if 2 <=count < 7:
+            # if 2 <=count < 7:
 
             background.paste(star_img, (1440, 665 + (106 * count)), star_img.convert("RGBA"))
-            draw.text((1400, 685 + (107 * count)), f"{stars}", anchor="mm", fill=(255, 255, 255), stroke_width=stroke, stroke_fill=(0, 0, 0), font=stat_numbers)
-            draw.text((1647, 685 + (107 * count)), f"{int(destruction)}%", anchor="mm", fill=(255, 255, 255), stroke_width=stroke,stroke_fill=(0, 0, 0), font=perc_numbers)
+            draw.text((1400, 685 + (107 * count)), f"{stars}", anchor="mm", fill=(255, 255, 255), stroke_width=stroke,
+                      stroke_fill=(0, 0, 0), font=stat_numbers)
+            draw.text((1647, 685 + (107 * count)), f"{int(destruction)}%", anchor="mm", fill=(255, 255, 255),
+                      stroke_width=stroke, stroke_fill=(0, 0, 0), font=perc_numbers)
 
-
-        league_name = f"War{base_clan.war_league.name.replace('League','').replace(' ','')}.png"
+        league_name = f"War{base_clan.war_league.name.replace('League', '').replace(' ', '')}.png"
         league_img = Image.open(f"ImageGen/league_badges/{league_name}")
         size = 400, 400
         league_img = league_img.resize(size, Image.ANTIALIAS)
         background.paste(league_img, (785, 80), league_img.convert("RGBA"))
 
-        draw.text((975, 520), f"{base_clan.war_league}", anchor="mm", fill=(255, 255, 255), stroke_width=stroke,stroke_fill=(0, 0, 0), font=league_name_font)
-        draw.text((515, 135), f"{len(cwl.rounds)}/{len(cwl.clans) - 1}", anchor="mm", fill=(255, 255, 255), stroke_width=stroke,stroke_fill=(0, 0, 0), font=league_name_font)
+        draw.text((975, 520), f"{base_clan.war_league}", anchor="mm", fill=(255, 255, 255), stroke_width=stroke,
+                  stroke_fill=(0, 0, 0), font=league_name_font)
+        draw.text((515, 135), f"{len(cwl.rounds)}/{len(cwl.clans) - 1}", anchor="mm", fill=(255, 255, 255),
+                  stroke_width=stroke, stroke_fill=(0, 0, 0), font=league_name_font)
 
         start = coc.utils.get_season_start().replace(tzinfo=pytz.utc).date()
         month = start.month
@@ -669,12 +414,13 @@ class OwnerCommands(commands.Cog):
             month = 0
         month = calendar.month_name[month + 1]
         date_font = ImageFont.truetype("ImageGen/SCmagic.ttf", 24)
-        draw.text((387, 75), f"{month} {start.year}", anchor="mm", fill=(237,191,33), stroke_width=3, stroke_fill=(0, 0, 0), font=date_font)
+        draw.text((387, 75), f"{month} {start.year}", anchor="mm", fill=(237, 191, 33), stroke_width=3,
+                  stroke_fill=(0, 0, 0), font=date_font)
 
         def save_im(background):
             # background.show()
             temp = io.BytesIO()
-            #background = background.resize((725, 471))
+            # background = background.resize((725, 471))
             # background = background.resize((1036, 673))
             background.save(temp, format="png", compress_level=1)
             temp.seek(0)
@@ -686,6 +432,29 @@ class OwnerCommands(commands.Cog):
         file = await loop.run_in_executor(None, save_im, background)
 
         await ctx.send(file=file)
+
+
+    @commands.slash_command(name="create_war_ids", guild_ids=[923764211845312533])
+    @commands.is_owner()
+    async def create_war_ids(self, ctx: disnake.ApplicationCommandInteraction):
+        things = []
+        for war in await self.bot.clan_wars.find({}).to_list(length=100000):
+            war_id = war.get("war_id")
+            if war.get("custom_id") is not None:
+                continue
+            source = string.ascii_letters
+            custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
+
+            is_used = await self.bot.clan_wars.find_one({"custom_id": custom_id})
+            while is_used is not None:
+                custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
+                is_used = await self.bot.clan_wars.find_one({"custom_id": custom_id})
+
+            things.append(UpdateOne({"war_id": war_id}, {"$set" : {"custom_id": custom_id}}))
+
+        await self.bot.clan_wars.bulk_write(things)
+        print("done")
+
 
     @testthis.autocomplete("clan")
     @raid_map.autocomplete("clan")
@@ -714,16 +483,6 @@ class OwnerCommands(commands.Cog):
                 clan_list.append(f"{clan.name} | {clan.tag}")
                 return clan_list
         return clan_list[0:25]
-
-    @commands.slash_command(name="test_fw")
-    async def testfwlog(self, ctx: disnake.ApplicationCommandInteraction):
-        w = await self.bot.war_client.war_result(clan_tag="UCR0Y2G")
-        print(w)
-
-
-
-
-
 
 
 def setup(bot: CustomClient):

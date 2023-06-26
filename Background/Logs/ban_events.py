@@ -3,7 +3,7 @@ from disnake.ext import commands
 import disnake
 import coc
 from CustomClasses.CustomBot import CustomClient
-from EventHub.event_websockets import clan_ee
+from Background.Logs.event_websockets import clan_ee
 
 class BanEvents(commands.Cog):
 
@@ -21,11 +21,10 @@ class BanEvents(commands.Cog):
             tracked = self.bot.clan_db.find({"tag": f"{clan.tag}"})
             limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan.tag}"})
             for cc in await tracked.to_list(length=limit):
-                server = cc.get("server")
                 name = cc.get("name")
-                try:
-                    server = await self.bot.fetch_guild(server)
-                except:
+
+                server = await self.bot.getch_guild(cc.get("server"))
+                if server is None:
                     continue
 
                 results = await self.bot.banlist.find_one({"$and": [

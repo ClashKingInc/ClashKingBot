@@ -1,9 +1,9 @@
 import coc
 from disnake.ext import commands
 import disnake
-from utils.clash import heros, heroPets
+from utils.clash import heros
 from CustomClasses.CustomBot import CustomClient
-from EventHub.event_websockets import clan_ee
+from Background.Logs.event_websockets import clan_ee
 from utils.clash import leagueAndTrophies
 from pymongo import UpdateOne
 

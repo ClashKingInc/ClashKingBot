@@ -1,6 +1,71 @@
-
+import coc
 import disnake
 from CustomClasses.CustomBot import CustomClient
+from typing import Union
+
+class DatabaseClan():
+    def __init__(self, bot: CustomClient, data):
+        self.name = data.get("name")
+        self.bot = bot
+        self.data = data
+        self.server_id = data.get("server")
+        self.tag = data.get("tag")
+        self.leadership_eval = data.get("leadership_eval")
+        self.category = data.get("category")
+        self.member_role = data.get("generalRole")
+        self.leader_role = data.get("leaderRole")
+        self.clan_channel = ClanLog(parent=self, type="clan_channel")
+        self.join_log = ClanLog(parent=self, type="join_log")
+        self.leave_log = ClanLog(parent=self, type="leave_log")
+        self.capital_donations = ClanLog(parent=self, type="capital_donations")
+        self.capital_attacks = ClanLog(parent=self, type="capital_attacks")
+        self.raid_map = ClanLog(parent=self, type="raid_map")
+        self.capital_weekly_summary = ClanLog(parent=self, type="capital_weekly_summary")
+        self.raid_panel = ClanLog(parent=self, type="new_raid_panel")
+        self.donation_log = ClanLog(parent=self, type="donation_log")
+        self.super_troop_boost_log = ClanLog(parent=self, type="super_troop_boost")
+        self.role_change = ClanLog(parent=self, type="role_change")
+        self.troop_upgrade = ClanLog(parent=self, type="troop_upgrade")
+        self.th_upgrade = ClanLog(parent=self, type="th_upgrade")
+        self.league_change = ClanLog(parent=self, type="league_change")
+        self.spell_upgrade = ClanLog(parent=self, type="spell_upgrade")
+        self.hero_upgrade = ClanLog(parent=self, type="hero_upgrade")
+        self.ban_log = ClanLog(parent=self, type="ban_log")
+        self.war_log = ClanLog(parent=self, type="war_log")
+        self.war_panel = WarPanel(parent=self, type="war_panel")
+        self.legend_log_attacks = ClanLog(parent=self, type="legend_log_attacks")
+        self.legend_log_defenses = ClanLog(parent=self, type="legend_log_defenses")
+
+
+
+class ClanLog():
+    def __init__(self, parent: DatabaseClan, type: str):
+        self.__data = parent.data.get("logs").get(type, {})
+        self.webhook = self.__data.get("webhook")
+        self.thread = self.__data.get("thread")
+        self.__parent = parent
+        self.type = type
+
+    async def set_webhook(self, id: Union[int, None]):
+        await self.__parent.bot.clan_db.update_one({"$and": [{"tag": self.__parent.tag}, {"server": self.__parent.server_id}]},
+                                                   {"$set" : {f"logs.{self.type}.webhook" : id}})
+
+    async def set_thread(self, id: Union[int, None]):
+        await self.__parent.bot.clan_db.update_one({"$and": [{"tag": self.__parent.tag}, {"server": self.__parent.server_id}]}, {"$set" : {f"logs.{self.type}.thread" : id}})
+
+class WarPanel(ClanLog):
+    def __init__(self, parent: DatabaseClan, type: str):
+        super().__init__(parent=parent, type=type)
+
+    async def set_war_id(self, war: coc.ClanWar):
+        war_id = f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}"
+        await self.__parent.bot.clan_db.update_one({"$and": [{"tag": self.__parent.tag}, {"server": self.__parent.server_id}]}, {"$set" : {f"logs.{self.type}.war_id" : war_id}})
+
+    async def set_message_id(self, id: Union[str, None]):
+        await self.__parent.bot.clan_db.update_one({"$and": [{"tag": self.__parent.tag}, {"server": self.__parent.server_id}]}, {"$set" : {f"logs.{self.type}.war_message" : id}})
+
+
+
 
 class CustomServer():
     def __init__(self, guild: disnake.Guild, bot: CustomClient):

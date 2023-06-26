@@ -497,7 +497,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="restrict", description="Set restrictions for a roster - th level & max roster size")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_restrict(self, ctx: disnake.ApplicationCommandInteraction, roster: str, th_min = None, th_max = None, max_roster_size: int = None):
+    async def roster_restrict(self, ctx: disnake.ApplicationCommandInteraction, roster: str, th_min: int = None, th_max: int = None, max_roster_size: int = None):
         """
             Parameters
             ----------

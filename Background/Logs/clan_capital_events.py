@@ -4,7 +4,7 @@ import coc
 
 from coc import RaidLogEntry
 from CustomClasses.CustomBot import CustomClient
-from EventHub.event_websockets import player_ee
+from Background.Logs.event_websockets import player_ee
 
 class clan_capital_events(commands.Cog, name="Clan Capital Events"):
 
@@ -12,43 +12,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
         self.bot = bot
         self.player_ee = player_ee
         self.player_ee.on("Most Valuable Clanmate", self.cg_dono_event)
-        self.player_ee.on("Aggressive Capitalism", self.raid_event)
 
-    async def raid_event(self, event):
-        dono_change = event["new_player"]["achievements"][-2]["value"] - event["old_player"]["achievements"][-2]["value"]
-        try:
-            clan_tag = event["new_player"]["clan"]["tag"]
-        except:
-            return
-        if not (clan_tag in self.bot.clan_list):
-            return
-        # print(f"{new_player.name} donated {new_capital_dono.value - old_capital_dono.value}")
-        limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan_tag}"})
-        if limit == 0:
-            return
-        tracked = self.bot.clan_db.find({"tag": f"{clan_tag}"})
-        for cc in await tracked.to_list(length=limit):
-            clancapital_channel = cc.get("clan_capital")
-            if clancapital_channel is None:
-                continue
-
-            try:
-                clancapital_channel = await self.bot.getch_channel(clancapital_channel)
-                if clancapital_channel is None:
-                    continue
-            except:
-                continue
-            tag = event['new_player']['tag']
-            embed = disnake.Embed(
-                description=f"[**{event['new_player']['name']}**]({self.bot.create_link(tag=tag)}) raided <:capitalgold:987861320286216223>{dono_change}"
-                , color=disnake.Color.orange())
-
-            embed.set_footer(icon_url=event["new_player"]["clan"]["badgeUrls"]["large"], text=event["new_player"]["clan"]["name"])
-
-            try:
-                await clancapital_channel.send(embed=embed)
-            except:
-                continue
 
     async def cg_dono_event(self, event):
         #print(event["new_player"])
@@ -56,25 +20,28 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
         old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
         dono_change = new_player.get_achievement(name="Most Valuable Clanmate", default_value=0).value - old_player.get_achievement(name="Most Valuable Clanmate", default_value=0).value
-        try:
-            clan_tag = event["new_player"]["clan"]["tag"]
-        except:
+        clan_tag = event["new_player"].get("clan", {}).get("tag")
+        if clan_tag is None:
             return
-        # print(f"{new_player.name} donated {new_capital_dono.value - old_capital_dono.value}")
+
         limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan_tag}"})
         if limit == 0:
             return
         tracked = self.bot.clan_db.find({"tag": f"{clan_tag}"})
         for cc in await tracked.to_list(length=limit):
+            server = cc.get("server")
+            if server not in self.bot.OUR_GUILDS:
+                continue
             clancapital_channel = cc.get("clan_capital")
             if clancapital_channel is None:
                 continue
-
             try:
-                clancapital_channel = await self.bot.getch_channel(clancapital_channel)
-                if clancapital_channel is None:
-                    continue
-            except:
+                clancapital_channel = await self.bot.getch_channel(clancapital_channel, raise_exception=True)
+            except (disnake.Forbidden, disnake.NotFound):
+                await self.bot.clan_db.update_one({"$and": [
+                    {"tag": clan_tag},
+                    {"server": cc.get("server")}
+                ]}, {'$set': {"clan_capital": None}})
                 continue
 
             tag = event['new_player']['tag']
@@ -87,10 +54,14 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
 
             try:
                 await clancapital_channel.send(embed=embed)
-            except:
+            except (disnake.Forbidden, disnake.NotFound):
+                await self.bot.clan_db.update_one({"$and": [
+                    {"tag": clan_tag},
+                    {"server": cc.get("server")}
+                ]}, {'$set': {"clan_capital": None}})
                 continue
 
-    @coc.RaidEvents.new_offensive_opponent()
+    '''@coc.RaidEvents.new_offensive_opponent()
     async def new_opponent(self, clan: coc.RaidClan, raid: RaidLogEntry):
         channel = await self.bot.getch_channel(1071566470137511966)
         district_text = ""
@@ -163,7 +134,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
         embed.set_author(icon_url=district_emoji.url, name=f"{district.name} Defense | {clan_name['name']}")
         embed.set_footer(icon_url=district.raid_clan.badge.url,
                          text=f"{district.raid_clan.name} | {district.raid_clan.destroyed_district_count}/{len(district.raid_clan.districts)} Districts Destroyed")
-        await channel.send(embed=embed)
+        await channel.send(embed=embed)'''
 
 
 def setup(bot: CustomClient):

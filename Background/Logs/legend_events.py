@@ -1,12 +1,10 @@
 import coc
 import disnake
-import calendar
 import pytz
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-from EventHub.event_websockets import player_ee
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from Background.Logs.event_websockets import player_ee
 from datetime import datetime
 utc = pytz.utc
 

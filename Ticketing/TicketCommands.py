@@ -17,12 +17,6 @@ from CustomClasses.CustomPlayer import MyCustomPlayer
 from utils.discord_utils import interaction_handler
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from SetupNew.SetupCog import SetupCog
-    cog_class = SetupCog
-else:
-    cog_class = commands.Cog
-
 tiz = pytz.utc
 
 
@@ -439,8 +433,7 @@ class TicketCommands(commands.Cog):
 
         await ctx.send(content="**Choose Staff Roles to be Added to Tickets created using this button**", components=dropdown)
 
-        cog: cog_class = self.bot.get_cog(name="SetupCog")
-        res: disnake.MessageInteraction = await cog.interaction_handler(ctx=ctx, function=None)
+        res: disnake.MessageInteraction = await interaction_handler(ctx=ctx, function=None, bot=self.bot)
         ticket_roles = res.values
 
         await self.bot.tickets.update_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]},
@@ -496,8 +489,7 @@ class TicketCommands(commands.Cog):
 
         dropdown = [disnake.ui.ActionRow(select)]
         await ctx.edit_original_message(content="**Choose Clans That Users Can Apply For:**", components=dropdown)
-        cog: cog_class = self.bot.get_cog(name="SetupCog")
-        res: disnake.MessageInteraction = await cog.interaction_handler(ctx=ctx, function=None)
+        res: disnake.MessageInteraction = await interaction_handler(ctx=ctx, function=None, bot=self.bot)
         apply_clans = res.values
 
         await self.bot.tickets.update_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]},
@@ -535,8 +527,7 @@ class TicketCommands(commands.Cog):
         else:
             await ctx.send(content="**Choose roles to be removed on ticket open**", components=dropdown)
 
-        cog: cog_class = self.bot.get_cog(name="SetupCog")
-        res: disnake.MessageInteraction = await cog.interaction_handler(ctx=ctx, function=None)
+        res: disnake.MessageInteraction = await interaction_handler(ctx=ctx, function=None, bot=self.bot)
         ticket_roles = res.values
 
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})

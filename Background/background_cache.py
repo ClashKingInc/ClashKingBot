@@ -27,11 +27,12 @@ class BackgroundCache(commands.Cog):
                     print(f"{25000 * spot} docs")
             print(f"done cache, {time.time() - r} sec")
 
-    @tasks.loop(seconds=60)
+    @tasks.loop(seconds=120)
     async def guilds(self):
         all_guilds = await self.bot.server_db.distinct("server")
         all_guilds = [str(g) for g in all_guilds]
         await self.bot.server_db.update_one({"server" : 923764211845312533}, {"$set" : {"all_servers" : all_guilds}})
+        self.bot.OUR_GUILDS = set(await self.bot.server_db.distinct("server"))
 
     @guilds.before_loop
     async def before_printer(self):

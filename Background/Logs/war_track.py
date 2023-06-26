@@ -11,7 +11,7 @@ from datetime import datetime
 from main import scheduler
 tiz = pytz.utc
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
-from EventHub.event_websockets import war_ee
+from Background.Logs.event_websockets import war_ee
 from Exceptions.CustomExceptions import MissingWebhookPerms
 import string
 import random

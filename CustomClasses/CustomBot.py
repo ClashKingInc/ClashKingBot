@@ -78,7 +78,10 @@ class CustomClient(commands.AutoShardedBot):
         self.townhallroles: collection_class = self.db_client.usafam.townhallroles
         self.builderhallroles: collection_class = self.db_client.usafam.builderhallroles
         self.legendleagueroles: collection_class = self.db_client.usafam.legendleagueroles
+        self.builderleagueroles: collection_class = self.db_client.usafam.builderleagueroles
         self.donationroles: collection_class = self.db_client.usafam.donationroles
+        self.achievementroles: collection_class = self.db_client.usafam.achievementroles
+        self.statusroles: collection_class = self.db_client.usafam.statusroles
         self.welcome: collection_class = self.db_client.usafam.welcome
         self.autoboards: collection_class = self.db_client.usafam.autoboards
         self.erikuh: collection_class = self.db_client.usafam.erikuh
@@ -126,6 +129,8 @@ class CustomClient(commands.AutoShardedBot):
         self.clan_list = []
         self.player_cache_dict = {}
         self.IMAGE_CACHE = ExpiringDict()
+
+        self.OUR_GUILDS = set()
 
     def clean_string(self, text: str):
         text = emoji.replace_emoji(text)

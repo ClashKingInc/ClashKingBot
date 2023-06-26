@@ -80,6 +80,7 @@ initial_extensions = [
     "Link & Eval.link",
     "Link & Eval.eval",
     "Setups.autoboard",
+    "Setups.evalsetup",
     "Reminders.ReminderSetup",
     "Setups.welcome_messages",
     "Utility.army",

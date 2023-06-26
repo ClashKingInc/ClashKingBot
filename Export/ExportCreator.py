@@ -27,6 +27,7 @@ class ExportCreator(commands.Cog):
             col = 1
         return worksheet
 
+
     async def export_manager(self, player_tags: List[str], season: str = None, template: str = None):
         #get list of custom players (which have lots of db info), use the cache since not time sensitive
         players: List[MyCustomPlayer] = await self.bot.get_players(tags=player_tags, custom=True, use_cache=True)
@@ -112,7 +113,8 @@ class ExportCreator(commands.Cog):
         xlsx_data = output
         xlsx_data.seek(0)
         return xlsx_data
-    
+
+
     async def create_advanced_player_stats_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
         advanced_player_Stats_page =  workbook.create_sheet(sheet_name)
         year = season[:4]
@@ -327,7 +329,7 @@ class ExportCreator(commands.Cog):
         return workbook
 
 
-    #THESE ARE JUST PROTOTYPES, MAY HAVE SOME GOOD STUFF, MAY NOT.
+    '''#THESE ARE JUST PROTOTYPES, MAY HAVE SOME GOOD STUFF, MAY NOT.
     async def create_last_season_trophies_export(self, ctx, clan):
         workbook = xlsxwriter.Workbook(f'{clan.tag}_last_season_end.xlsx', {'in_memory' : True})
         worksheet = workbook.add_worksheet("Legend_Trophies")
@@ -674,7 +676,7 @@ class ExportCreator(commands.Cog):
                     worksheet.write(row, col, item, bold)
                 col += 1
             row += 1
-            col = og_col
+            col = og_col'''
 
 
 
