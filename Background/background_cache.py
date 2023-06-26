@@ -32,7 +32,15 @@ class BackgroundCache(commands.Cog):
         all_guilds = await self.bot.server_db.distinct("server")
         all_guilds = [str(g) for g in all_guilds]
         await self.bot.server_db.update_one({"server" : 923764211845312533}, {"$set" : {"all_servers" : all_guilds}})
-        self.bot.OUR_GUILDS = set(await self.bot.server_db.distinct("server"))
+        x = set(await self.bot.server_db.distinct("server"))
+        if self.bot.user.public_flags.verified_bot:
+            active_custom_bots = await self.bot.credentials.distinct("server", filter={"active" : True})
+            for bot in active_custom_bots:
+                try:
+                    x.remove(bot)
+                except:
+                    pass
+        self.bot.OUR_GUILDS = x
 
     @guilds.before_loop
     async def before_printer(self):

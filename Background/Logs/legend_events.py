@@ -37,9 +37,11 @@ class LegendEvents(commands.Cog):
         embed.set_footer(text=f"{player.trophies}", icon_url=self.bot.emoji.legends_shield.partial_emoji.url)
         embed.timestamp = utc_time
 
-        tracked = self.bot.clan_db.find({"$and": [{"tag": player.clan.tag}, {f"{type}": {"$ne" : None}} ]})
+        tracked = self.bot.clan_db.find({"$and": [{"tag": player.clan.tag}, {f"{type}": {"$ne" : None}}]})
         for cc in await tracked.to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
+            if clan.server_id not in self.bot.OUR_GUILDS:
+                continue
             if trophy_change >= 1:
                 log = clan.legend_log_attacks
             else:

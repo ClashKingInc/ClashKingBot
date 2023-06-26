@@ -15,8 +15,8 @@ class DatabaseClan():
         self.member_role = data.get("generalRole")
         self.leader_role = data.get("leaderRole")
         self.clan_channel = ClanLog(parent=self, type="clan_channel")
-        self.join_log = ClanLog(parent=self, type="join_log")
-        self.leave_log = ClanLog(parent=self, type="leave_log")
+        self.join_log = Join_Log(parent=self, type="join_log")
+        self.leave_log = Join_Log(parent=self, type="leave_log")
         self.capital_donations = ClanLog(parent=self, type="capital_donations")
         self.capital_attacks = ClanLog(parent=self, type="capital_attacks")
         self.raid_map = ClanLog(parent=self, type="raid_map")
@@ -30,6 +30,7 @@ class DatabaseClan():
         self.league_change = ClanLog(parent=self, type="league_change")
         self.spell_upgrade = ClanLog(parent=self, type="spell_upgrade")
         self.hero_upgrade = ClanLog(parent=self, type="hero_upgrade")
+        self.name_change = ClanLog(parent=self, type="name_change")
         self.ban_log = ClanLog(parent=self, type="ban_log")
         self.war_log = ClanLog(parent=self, type="war_log")
         self.war_panel = WarPanel(parent=self, type="war_panel")
@@ -52,6 +53,13 @@ class ClanLog():
 
     async def set_thread(self, id: Union[int, None]):
         await self.__parent.bot.clan_db.update_one({"$and": [{"tag": self.__parent.tag}, {"server": self.__parent.server_id}]}, {"$set" : {f"logs.{self.type}.thread" : id}})
+
+class Join_Log(ClanLog):
+    def __init__(self, parent: DatabaseClan, type: str):
+        super().__init__(parent=parent, type=type)
+        self.strike_button = self.__data.get("strike_button", False)
+        self.ban_button = self.__data.get("ban_button", False)
+        self.profile_button = self.__data.get("profile_button", False)
 
 class WarPanel(ClanLog):
     def __init__(self, parent: DatabaseClan, type: str):

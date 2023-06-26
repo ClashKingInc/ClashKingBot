@@ -1,13 +1,13 @@
 from disnake.ext import commands
 import disnake
-import pytz
-tiz = pytz.utc
 import coc
 import re
 
+from CustomClasses.CustomServer import DatabaseClan
 from CustomClasses.CustomBot import CustomClient
 from Background.Logs.event_websockets import player_ee
 from utils.clash import league_emoji
+from pytz import utc
 
 class UpgradeEvent(commands.Cog):
 
@@ -23,125 +23,108 @@ class UpgradeEvent(commands.Cog):
 
     async def league_change(self, event):
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
-        if new_player.clan is None:
+        if new_player.clan is None or new_player.league.id == 29000000:
             return
-        if new_player.clan.tag in self.bot.clan_list:
-            limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_player.clan.tag}"})
-            if limit == 0:
-                return
-            if new_player.league.id == 29000000:
-                return
-            tracked = self.bot.clan_db.find({"tag": f"{new_player.clan.tag}"})
-            name = re.sub('[*_`~/]', '', new_player.name)
-            for cc in await tracked.to_list(length=limit):
-                upgrades_channel = cc.get("upgrade_log")
-                if upgrades_channel is None:
-                    continue
-                try:
-                    upgrades_channel = await self.bot.getch_channel(upgrades_channel)
-                except (disnake.Forbidden, disnake.NotFound):
-                    await self.bot.clan_db.update_one({"$and": [
-                        {"tag": new_player.clan.tag},
-                        {"server": cc.get("server")}
-                    ]}, {'$set': {"upgrade_log": None}})
 
-                if upgrades_channel is None:
-                    continue
-                try:
-                    old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
-                    await upgrades_channel.send(content=f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} moved from {league_emoji(old_player)}{old_player.league.name} to {league_emoji(new_player)}{new_player.league.name}")
-                except:
-                    continue
+        old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
+        name = re.sub('[*_`~/]', '', new_player.name)
+        for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {f"logs.league_change.webhook": {"$ne": None}}]}).to_list(length=None):
+            clan = DatabaseClan(bot=self.bot, data=cc)
+            if clan.server_id not in self.bot.OUR_GUILDS:
+                continue
+            content = f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} moved from {league_emoji(old_player)}{old_player.league.name} to {league_emoji(new_player)}{new_player.league.name}"
+            log = clan.league_change
+            try:
+                webhook = await self.bot.fetch_webhook(log.webhook)
+                if log.thread is not None:
+                    thread = await self.bot.getch_channel(log.thread)
+                    if thread.locked:
+                        continue
+                    await webhook.send(content=content, thread=thread)
+                else:
+                    await webhook.send(content=content)
+            except (disnake.NotFound, disnake.Forbidden):
+                await log.set_thread(id=None)
+                await log.set_webhook(id=None)
+                continue
+
 
     async def name_change(self, event):
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
         if new_player.clan is None:
             return
-        if new_player.clan.tag in self.bot.clan_list:
-            limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_player.clan.tag}"})
-            if limit == 0:
-                return
-            tracked = self.bot.clan_db.find({"tag": f"{new_player.clan.tag}"})
-            new_name = re.sub('[*_`~/]', '', new_player.name)
-            for cc in await tracked.to_list(length=limit):
-                upgrades_channel = cc.get("upgrade_log")
-                if upgrades_channel is None:
-                    continue
-                try:
-                    upgrades_channel = await self.bot.getch_channel(upgrades_channel)
-                except (disnake.Forbidden, disnake.NotFound):
-                    await self.bot.clan_db.update_one({"$and": [
-                        {"tag": new_player.clan.tag},
-                        {"server": cc.get("server")}
-                    ]}, {'$set': {"upgrade_log": None}})
 
-                if upgrades_channel is None:
-                    continue
-                old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
-                old_name = re.sub('[*_`~/]', '', old_player.name)
-                try:
-                    await upgrades_channel.send(content=f"{self.bot.fetch_emoji(name=new_player.town_hall)}{old_name} changed their name to {new_name}")
-                except:
-                    continue
+        new_name = re.sub('[*_`~/]', '', new_player.name)
+        old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
+        old_name = re.sub('[*_`~/]', '', old_player.name)
+        for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {f"logs.name_change.webhook": {"$ne": None}}]}).to_list(length=None):
+            clan = DatabaseClan(bot=self.bot, data=cc)
+            if clan.server_id not in self.bot.OUR_GUILDS:
+                continue
+
+            content = f"{self.bot.fetch_emoji(name=new_player.town_hall)}{old_name} changed their name to {new_name}"
+
+            log = clan.name_change
+            try:
+                webhook = await self.bot.fetch_webhook(log.webhook)
+                if log.thread is not None:
+                    thread = await self.bot.getch_channel(log.thread)
+                    if thread.locked:
+                        continue
+                    await webhook.send(content=content, thread=thread)
+                else:
+                    await webhook.send(content=content)
+            except (disnake.NotFound, disnake.Forbidden):
+                await log.set_thread(id=None)
+                await log.set_webhook(id=None)
+                continue
+
 
     async def th_upgrade(self, event):
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
         if new_player.clan is None:
             return
-        if new_player.clan.tag in self.bot.clan_list:
-            limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_player.clan.tag}"})
-            if limit == 0:
-                return
 
-            name = re.sub('[*_`~/]', '', new_player.name)
-            tracked = self.bot.clan_db.find({"tag": f"{new_player.clan.tag}"})
-            for cc in await tracked.to_list(length=limit):
-                upgrades_channel = cc.get("upgrade_log")
-                if upgrades_channel is None:
-                    continue
-                try:
-                    upgrades_channel = await self.bot.getch_channel(upgrades_channel)
-                except (disnake.Forbidden, disnake.NotFound):
-                    await self.bot.clan_db.update_one({"$and": [
-                        {"tag": new_player.clan.tag},
-                        {"server": cc.get("server")}
-                    ]}, {'$set': {"upgrade_log": None}})
+        name = re.sub('[*_`~/]', '', new_player.name)
+        for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {f"logs.th_upgrade.webhook": {"$ne": None}}]}).to_list(length=None):
+            clan = DatabaseClan(bot=self.bot, data=cc)
+            if clan.server_id not in self.bot.OUR_GUILDS:
+                continue
 
-                if upgrades_channel is None:
-                    continue
+            content = f"{name} upgraded to {self.bot.fetch_emoji(name=new_player.town_hall)}Townhall {new_player.town_hall}"
 
-                try:
-                    await upgrades_channel.send(content=f"{name} upgraded to {self.bot.fetch_emoji(name=new_player.town_hall)}Townhall {new_player.town_hall}")
-                except:
-                    continue
+            log = clan.th_upgrade
+            try:
+                webhook = await self.bot.fetch_webhook(log.webhook)
+                if log.thread is not None:
+                    thread = await self.bot.getch_channel(log.thread)
+                    if thread.locked:
+                        continue
+                    await webhook.send(content=content, thread=thread)
+                else:
+                    await webhook.send(content=content)
+            except (disnake.NotFound, disnake.Forbidden):
+                await log.set_thread(id=None)
+                await log.set_webhook(id=None)
+                continue
+
 
     async def troop_upgrade(self, event):
 
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
         if new_player.clan is None:
             return
-        if new_player.clan.tag in self.bot.clan_list:
-            limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_player.clan.tag}"})
-            if limit == 0:
-                return
 
-            name = re.sub('[*_`~/]', '', new_player.name)
-            tracked = self.bot.clan_db.find({"tag": f"{new_player.clan.tag}"})
-            for cc in await tracked.to_list(length=limit):
-                upgrades_channel = cc.get("upgrade_log")
-                if upgrades_channel is None:
-                    continue
-                try:
-                    upgrades_channel = await self.bot.getch_channel(upgrades_channel)
-                except (disnake.Forbidden, disnake.NotFound):
-                    await self.bot.clan_db.update_one({"$and": [
-                        {"tag": new_player.clan.tag},
-                        {"server": cc.get("server")}
-                    ]}, {'$set': {"upgrade_log": None}})
+        name = re.sub('[*_`~/]', '', new_player.name)
+        text = None
+        for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {f"logs.troop_upgrade.webhook": {"$ne": None}}]}).to_list(length=None):
+            clan = DatabaseClan(bot=self.bot, data=cc)
+            if clan.server_id not in self.bot.OUR_GUILDS:
+                continue
 
-                if upgrades_channel is None:
-                    continue
+            log = clan.troop_upgrade
 
+            if text is None:
                 old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
                 unlocked = []
                 leveled_up = []
@@ -162,8 +145,10 @@ class UpgradeEvent(commands.Cog):
                         unlocked.append(pet)
                     elif pet.level > old_pet.level:
                         leveled_up.append(pet)
+
                 if not unlocked and not leveled_up and not boosted:
                     return
+
                 text = ""
                 for troop in unlocked:
                     text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} unlocked {self.bot.fetch_emoji(name=troop.name)}{troop.name}\n"
@@ -172,37 +157,36 @@ class UpgradeEvent(commands.Cog):
                 for troop in leveled_up:
                     text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} leveled up {self.bot.fetch_emoji(name=troop.name)}{troop.name} to lv{self.bot.get_number_emoji(color='white', number=troop.level)}\n"
 
-                try:
-                    await upgrades_channel.send(content=text)
-                except:
-                    continue
+            try:
+                webhook = await self.bot.fetch_webhook(log.webhook)
+                if log.thread is not None:
+                    thread = await self.bot.getch_channel(log.thread)
+                    if thread.locked:
+                        continue
+                    await webhook.send(content=text, thread=thread)
+                else:
+                    await webhook.send(content=text)
+            except (disnake.NotFound, disnake.Forbidden):
+                await log.set_thread(id=None)
+                await log.set_webhook(id=None)
+                continue
+
 
     async def hero_upgrade(self, event):
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
         if new_player.clan is None:
             return
-        if new_player.clan.tag in self.bot.clan_list:
-            limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_player.clan.tag}"})
-            if limit == 0:
-                return
 
-            name = re.sub('[*_`~/]', '', new_player.name)
-            tracked = self.bot.clan_db.find({"tag": f"{new_player.clan.tag}"})
-            for cc in await tracked.to_list(length=limit):
-                upgrades_channel = cc.get("upgrade_log")
-                if upgrades_channel is None:
-                    continue
-                try:
-                    upgrades_channel = await self.bot.getch_channel(upgrades_channel)
-                except (disnake.Forbidden, disnake.NotFound):
-                    await self.bot.clan_db.update_one({"$and": [
-                        {"tag": new_player.clan.tag},
-                        {"server": cc.get("server")}
-                    ]}, {'$set': {"upgrade_log": None}})
+        name = re.sub('[*_`~/]', '', new_player.name)
+        text = None
+        for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {f"logs.hero_upgrade.webhook": {"$ne": None}}]}).to_list(length=None):
+            clan = DatabaseClan(bot=self.bot, data=cc)
+            if clan.server_id not in self.bot.OUR_GUILDS:
+                continue
 
-                if upgrades_channel is None:
-                    continue
+            log = clan.hero_upgrade
 
+            if text is None:
                 old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
                 unlocked = []
                 leveled_up = []
@@ -220,37 +204,36 @@ class UpgradeEvent(commands.Cog):
                 for hero in leveled_up:
                     text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} leveled up {self.bot.fetch_emoji(name=hero.name)}{hero.name} to lv{self.bot.get_number_emoji(color='white', number=hero.level)}\n"
 
-                try:
-                    await upgrades_channel.send(content=text)
-                except:
-                    continue
+            try:
+                webhook = await self.bot.fetch_webhook(log.webhook)
+                if log.thread is not None:
+                    thread = await self.bot.getch_channel(log.thread)
+                    if thread.locked:
+                        continue
+                    await webhook.send(content=text, thread=thread)
+                else:
+                    await webhook.send(content=text)
+            except (disnake.NotFound, disnake.Forbidden):
+                await log.set_thread(id=None)
+                await log.set_webhook(id=None)
+                continue
+
 
     async def spells_upgrade(self, event):
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
         if new_player.clan is None:
             return
-        if new_player.clan.tag in self.bot.clan_list:
-            limit = await self.bot.clan_db.count_documents(filter={"tag": f"{new_player.clan.tag}"})
-            if limit == 0:
-                return
 
-            name = re.sub('[*_`~/]', '', new_player.name)
-            tracked = self.bot.clan_db.find({"tag": f"{new_player.clan.tag}"})
-            for cc in await tracked.to_list(length=limit):
-                upgrades_channel = cc.get("upgrade_log")
-                if upgrades_channel is None:
-                    continue
-                try:
-                    upgrades_channel = await self.bot.getch_channel(upgrades_channel)
-                except (disnake.Forbidden, disnake.NotFound):
-                    await self.bot.clan_db.update_one({"$and": [
-                        {"tag": new_player.clan.tag},
-                        {"server": cc.get("server")}
-                    ]}, {'$set': {"upgrade_log": None}})
+        name = re.sub('[*_`~/]', '', new_player.name)
+        text = None
+        for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {f"logs.spell_upgrade.webhook": {"$ne": None}}]}).to_list(length=None):
+            clan = DatabaseClan(bot=self.bot, data=cc)
+            if clan.server_id not in self.bot.OUR_GUILDS:
+                continue
 
-                if upgrades_channel is None:
-                    continue
+            log = clan.spell_upgrade
 
+            if text is None:
                 old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
                 unlocked = []
                 leveled_up = []
@@ -268,10 +251,19 @@ class UpgradeEvent(commands.Cog):
                 for spell in leveled_up:
                     text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} leveled up {self.bot.fetch_emoji(name=spell.name)}{spell.name} to lv{self.bot.get_number_emoji(color='white', number=spell.level)}\n"
 
-                try:
-                    await upgrades_channel.send(content=text)
-                except:
-                    continue
+            try:
+                webhook = await self.bot.fetch_webhook(log.webhook)
+                if log.thread is not None:
+                    thread = await self.bot.getch_channel(log.thread)
+                    if thread.locked:
+                        continue
+                    await webhook.send(content=text, thread=thread)
+                else:
+                    await webhook.send(content=text)
+            except (disnake.NotFound, disnake.Forbidden):
+                await log.set_thread(id=None)
+                await log.set_webhook(id=None)
+                continue
 
 
 def setup(bot: CustomClient):

@@ -226,7 +226,6 @@ class War_Log(commands.Cog):
                 continue
 
 
-
     async def send_or_update_war_start(self, clan_tag:str):
         war: coc.ClanWar = await self.bot.get_clanwar(clanTag=clan_tag)
         war.state = "inWar"
@@ -252,6 +251,7 @@ class War_Log(commands.Cog):
                         {"server": clan_result.get("server")}
                     ]}, {'$set': {"war_log": None}})
                     continue
+
 
     async def send_or_update_war_end(self, clan_tag:str, preparation_start_time:int):
         await asyncio.sleep(60)
@@ -323,6 +323,7 @@ class War_Log(commands.Cog):
                     {"server": clan_result.get("server")}
                 ]}, {'$set': {"war_log": None}})
                 continue
+
 
     async def update_war_message(self, war: coc.ClanWar, clan_result: dict, clan: coc.Clan):
         message_id = clan_result.get("war_message")

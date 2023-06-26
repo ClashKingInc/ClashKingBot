@@ -2,9 +2,11 @@ from disnake.ext import commands
 import disnake
 import coc
 
-from coc import RaidLogEntry
+from CustomClasses.CustomServer import DatabaseClan
 from CustomClasses.CustomBot import CustomClient
 from Background.Logs.event_websockets import player_ee
+from datetime import datetime
+from pytz import utc
 
 class clan_capital_events(commands.Cog, name="Clan Capital Events"):
 
@@ -15,50 +17,37 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
 
 
     async def cg_dono_event(self, event):
-        #print(event["new_player"])
-        #print(event["new_player"]["achievements"][-2]["value"])
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
+        if new_player.clan.tag is None:
+            return
         old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
-        dono_change = new_player.get_achievement(name="Most Valuable Clanmate", default_value=0).value - old_player.get_achievement(name="Most Valuable Clanmate", default_value=0).value
-        clan_tag = event["new_player"].get("clan", {}).get("tag")
-        if clan_tag is None:
-            return
+        dono_change = new_player.clan_capital_contributions - old_player.clan_capital_contributions
 
-        limit = await self.bot.clan_db.count_documents(filter={"tag": f"{clan_tag}"})
-        if limit == 0:
-            return
-        tracked = self.bot.clan_db.find({"tag": f"{clan_tag}"})
-        for cc in await tracked.to_list(length=limit):
-            server = cc.get("server")
-            if server not in self.bot.OUR_GUILDS:
-                continue
-            clancapital_channel = cc.get("clan_capital")
-            if clancapital_channel is None:
-                continue
-            try:
-                clancapital_channel = await self.bot.getch_channel(clancapital_channel, raise_exception=True)
-            except (disnake.Forbidden, disnake.NotFound):
-                await self.bot.clan_db.update_one({"$and": [
-                    {"tag": clan_tag},
-                    {"server": cc.get("server")}
-                ]}, {'$set': {"clan_capital": None}})
+        utc_time = datetime.now(utc).replace(tzinfo=utc)
+        for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {"logs.capital_donations.webhook": {"$ne" : None}}]}).to_list(length=None):
+            db_clan = DatabaseClan(bot=self.bot, data=cc)
+            if db_clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
-            tag = event['new_player']['tag']
+            log = db_clan.capital_donations
             embed = disnake.Embed(
-                description=f"[**{event['new_player']['name']}**]({self.bot.create_link(tag=tag)}) donated <:capitalgold:987861320286216223>{dono_change}"
-                , color=disnake.Color.green())
-
-            embed.set_footer(icon_url=event["new_player"]["clan"]["badgeUrls"]["large"],
-                             text=event["new_player"]["clan"]["name"])
+                description=f"[**{new_player.name}**]({new_player.share_link}) donated <:capitalgold:987861320286216223>{dono_change}",
+                color=disnake.Color.green())
+            embed.set_footer(icon_url=new_player.clan.badge.url, text=new_player.clan.name)
+            embed.timestamp = utc_time
 
             try:
-                await clancapital_channel.send(embed=embed)
-            except (disnake.Forbidden, disnake.NotFound):
-                await self.bot.clan_db.update_one({"$and": [
-                    {"tag": clan_tag},
-                    {"server": cc.get("server")}
-                ]}, {'$set': {"clan_capital": None}})
+                webhook = await self.bot.fetch_webhook(log.webhook)
+                if log.thread is not None:
+                    thread = await self.bot.getch_channel(log.thread)
+                    if thread.locked:
+                        continue
+                    await webhook.send(embed=embed, thread=thread)
+                else:
+                    await webhook.send(embed=embed)
+            except (disnake.NotFound, disnake.Forbidden):
+                await log.set_thread(id=None)
+                await log.set_webhook(id=None)
                 continue
 
     '''@coc.RaidEvents.new_offensive_opponent()
