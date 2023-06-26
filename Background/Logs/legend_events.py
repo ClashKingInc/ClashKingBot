@@ -1,12 +1,11 @@
 import coc
 import disnake
-import pytz
-
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
+from CustomClasses.CustomServer import DatabaseClan
 from Background.Logs.event_websockets import player_ee
 from datetime import datetime
-utc = pytz.utc
+from pytz import utc
 
 class LegendEvents(commands.Cog):
 
@@ -16,62 +15,48 @@ class LegendEvents(commands.Cog):
         self.player_ee.on("trophies", self.legend_event)
 
     async def legend_event(self, event):
-        trophy_change = event["new_player"]["trophies"] - event["old_player"]["trophies"]
-
-        dt = datetime.now(utc)
-        utc_time = dt.replace(tzinfo=utc)
-        utc_timestamp = utc_time.timestamp()
-        discord_time = f"<t:{int(utc_timestamp)}:R>"
-
         player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
         if player.clan is None:
             return
+        old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
+        trophy_change = player.trophies - old_player.trophies
+
+        utc_time = datetime.now(utc).replace(tzinfo=utc)
 
         if trophy_change >= 1:
             color = disnake.Color.green()
-            change = f"{self.bot.emoji.sword} +{trophy_change} trophies\n Current Trophies:{self.bot.emoji.legends_shield}{player.trophies}"
-        elif trophy_change <= -1:
+            change = f"{self.bot.emoji.sword} +{trophy_change} trophies"
+            type = "logs.legend_log_attacks.webhook"
+        else: #trophy_change <= -1
             color = disnake.Color.red()
-            change = f"{self.bot.emoji.shield} {trophy_change} trophies\n Current Trophies:{self.bot.emoji.legends_shield}{player.trophies}"
+            change = f"{self.bot.emoji.shield} {trophy_change} trophies"
+            type = "logs.legend_log_defenses.webhook"
 
-        embed = disnake.Embed(title=f"{player.name} | {player.clan.name}",
-                              description=f"{change}\n{discord_time} | [profile]({player.share_link})",
-                              color=color)
+        embed = disnake.Embed(title=f"{player.name} | {player.clan.name}", description=f"{change} | [profile]({player.share_link})", color=color)
+        embed.set_author(name=f"{player.name} | {player.clan.name}", icon_url=player.clan.badge.url)
+        embed.set_footer(text=f"{player.trophies}", icon_url=self.bot.emoji.legends_shield.partial_emoji.url)
+        embed.timestamp = utc_time
 
-        clan_tag = player.clan.tag
-        tracked = self.bot.clan_db.find({"$and": [{"tag": clan_tag}, {"legend_log.webhook": {"$ne" : None}}]})
-        limit = await self.bot.clan_db.count_documents(filter={"$and": [{"tag": clan_tag}, {"legend_log.webhook": {"$ne" : None}}]})
-        for cc in await tracked.to_list(length=limit):
+        tracked = self.bot.clan_db.find({"$and": [{"tag": player.clan.tag}, {f"{type}": {"$ne" : None}} ]})
+        for cc in await tracked.to_list(length=None):
+            clan = DatabaseClan(bot=self.bot, data=cc)
+            if trophy_change >= 1:
+                log = clan.legend_log_attacks
+            else:
+                log = clan.legend_log_defenses
             try:
-                server_id = cc.get("server")
-                legendlog = cc.get("legend_log")
-                webhook_id = legendlog.get("webhook")
-                thread_id = legendlog.get("thread")
-                try:
-                    webhook = await self.bot.fetch_webhook(webhook_id)
-                    if thread_id is not None:
-                        thread = await self.bot.getch_channel(thread_id)
-                        if thread.locked:
-                            continue
-                except (disnake.NotFound, disnake.Forbidden):
-                    await self.bot.clan_db.update_one({"$and": [{"tag": clan_tag}, {"server": server_id}]}, {'$set': {"legend_log.webhook": None}})
-                    await self.bot.clan_db.update_one({"$and": [{"tag": clan_tag}, {"server": server_id}]}, {'$set': {"legend_log.thread": None}})
-                    continue
-
-                if thread_id is None:
-                    await webhook.send(embed=embed, avatar_url=self.bot.user.display_avatar.url)
+                webhook = await self.bot.fetch_webhook(log.webhook)
+                if log.thread is not None:
+                    thread = await self.bot.getch_channel(log.thread)
+                    if thread.locked:
+                        continue
+                    await webhook.send(embed=embed, thread=thread)
                 else:
-                    await webhook.send(embed=embed, avatar_url=self.bot.user.display_avatar.url, thread=thread)
-            except:
+                    await webhook.send(embed=embed)
+            except (disnake.NotFound, disnake.Forbidden):
+                await log.set_thread(id=None)
+                await log.set_webhook(id=None)
                 continue
-
-
-    @commands.Cog.listener()
-    async def on_message_interaction(self, res: disnake.MessageInteraction):
-        if "feed_" in res.data.custom_id:
-            await self.bot.legend_profile.update_one({'discord_id': res.author.id},
-                                                     {'$set': {"feed_tags": []}})
-            await res.send(content="You have removed all players from your dm feed", ephemeral=True)
 
 
 def setup(bot: CustomClient):
