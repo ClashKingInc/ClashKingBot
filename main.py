@@ -80,7 +80,7 @@ initial_extensions = [
     "Link & Eval.link",
     "Link & Eval.eval",
     "Setups.autoboard",
-    "Reminders.ReminderSetup",
+    #"Reminders.ReminderSetup",
     "Setups.welcome_messages",
     "Utility.army",
     "Utility.awards",
@@ -106,7 +106,9 @@ initial_extensions = [
     "BoardCommands.Utils.Buttons",
     "Background.refresh_boards",
     "BoardCommands.WarCommands",
-    "Background.background_cache"
+    "Background.background_cache",
+    "Setups.new_setup",
+    "FamilyManagement.Reminders.Reminders"
 ]
 
 if not IS_BETA:

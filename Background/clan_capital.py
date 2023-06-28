@@ -1,9 +1,14 @@
-from disnake.ext import commands
 import coc
 import asyncio
+import disnake
+
+from disnake.ext import commands
+
 from main import scheduler
 from CustomClasses.CustomBot import CustomClient
 from utils.ClanCapital import get_raidlog_entry, gen_raid_weekend_datestrings
+from BoardCommands.Utils.Clan import clan_raid_weekend_raid_stats, clan_raid_weekend_donation_stats
+from ImageGen.ClanCapitalResult import generate_raid_result_image
 from pymongo import UpdateOne
 from coc.raid import RaidLogEntry
 
@@ -11,7 +16,44 @@ class StoreClanCapital(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.store_cc, "cron", day_of_week="mon", hour=7, minute=45)
+        scheduler.add_job(self.store_cc, "cron", day_of_week="mon", hour=7, minute=45, misfire_grace_time=None)
+        scheduler.add_job(self.send_boards, "cron", day_of_week="mon", hour=7, minute=15, misfire_grace_time=None)
+
+
+    async def send_boards(self):
+        tracked = self.bot.clan_db.find({"clan_capital" : {"$ne" : None}})
+        limit = await self.bot.clan_db.count_documents(filter={"clan_capital" : {"$ne" : None}})
+        for cc in await tracked.to_list(length=limit):
+            clancapital_channel = cc.get("clan_capital")
+            if clancapital_channel is None:
+                continue
+            try:
+                clancapital_channel = await self.bot.getch_channel(clancapital_channel)
+            except (disnake.NotFound, disnake.Forbidden):
+                await self.bot.clan_db.update_one({"$and": [
+                    {"tag": cc.get("tag")},
+                    {"server": cc.get("server")}
+                ]}, {'$set': {"clan_capital": None}})
+                continue
+
+            clan = await self.bot.getClan(clan_tag=cc.get("tag"))
+            if clan is None:
+                continue
+            weekend = gen_raid_weekend_datestrings(2)[1]
+            raid_log_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot)
+            if raid_log_entry is None:
+                continue
+            file = await generate_raid_result_image(raid_entry=raid_log_entry, clan=clan)
+            (raid_embed, total_looted, total_attacks) = clan_raid_weekend_raid_stats(bot=self.bot, clan=clan, raid_log_entry=raid_log_entry)
+            donation_embed = await clan_raid_weekend_donation_stats(clan=clan, weekend=weekend, bot=self.bot)
+
+            try:
+                await clancapital_channel.send(embed=raid_embed)
+                await clancapital_channel.send(embed=donation_embed)
+                await clancapital_channel.send(file=file)
+            except:
+                continue
+
 
     async def store_cc(self):
         tags = await self.bot.clan_db.distinct("tag")
