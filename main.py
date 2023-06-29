@@ -14,13 +14,8 @@ from pymongo import MongoClient
 from pytz import utc
 from Background.Logs.event_websockets import player_websocket, clan_websocket, war_websocket
 
-jobstores = {
-    'default': MongoDBJobStore(client=MongoClient(os.getenv("LOOPER_DB_LOGIN"))),
-}
-reminder_scheduler = AsyncIOScheduler(timezone=utc, jobstores=jobstores)
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
-reminder_scheduler.start()
 
 IS_BETA = True
 discClient = Client()

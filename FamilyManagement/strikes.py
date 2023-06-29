@@ -423,7 +423,7 @@ class Strikes(commands.Cog, name="Strikes"):
                     {"server": ctx.guild.id}
                 ]}).sort("date_created", 1).to_list(length=100)
 
-                total_strike_weight = sum([result.get("strike_weight") for result in results if result.get("rollover_date") >= int(datetime.now().timestamp())])
+                total_strike_weight = sum([result.get("strike_weight") for result in results if (r := (result.get("rollover_date") if result.get("rollover_date") is not None else 9999999999999)) >= int(datetime.now().timestamp())])
                 num_strikes = len(results)
                 if num_strikes < strike_amount:
                     continue
@@ -434,7 +434,7 @@ class Strikes(commands.Cog, name="Strikes"):
 
                 hold += f"{self.bot.fetch_emoji(player.town_hall)}[{name}]({player.share_link}) | {clan}\n" \
                         f"Most Recent Strike: {most_recent}\n" \
-                        f"# of Strikes: {num_strikes}, Weight: {total_strike_weight}\nStrikes:\n" \
+                        f"\# of Strikes: {num_strikes}, Weight: {total_strike_weight}\nStrikes:\n" \
                         f"{strike_reason_ids}\n\n"
                 num += 1
                 if num == 10:
