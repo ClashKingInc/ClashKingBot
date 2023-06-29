@@ -396,4 +396,22 @@ async def calculate_potential_stars(bot: CustomClient, num_ones, num_twos, num_t
     threes = (num_threes / done_amount) * 3 * total_left
     return round(ones + twos + threes)
 
+async def missed_hits(bot:CustomClient, war: coc.ClanWar):
+    one_hit_missed = []
+    two_hit_missed = []
+    for player in war.clan.members:
+        if len(player.attacks) < war.attacks_per_member:
+            th_emoji = bot.fetch_emoji(name=player.town_hall)
+            if war.attacks_per_member - len(player.attacks) == 1:
+                one_hit_missed.append(f"{th_emoji}{player.name}")
+            else:
+                two_hit_missed.append(f"{th_emoji}{player.name}")
 
+    embed = disnake.Embed(title=f"{war.clan.name} vs {war.opponent.name}",
+                          description="Missed Hits", color=disnake.Color.orange())
+    if one_hit_missed:
+        embed.add_field(name="One Hit Missed", value="\n".join(one_hit_missed))
+    if two_hit_missed:
+        embed.add_field(name="Two Hits Missed", value="\n".join(two_hit_missed))
+    embed.set_thumbnail(url=war.clan.badge.url)
+    return embed

@@ -2,12 +2,13 @@ import coc
 import disnake
 import asyncio
 import string
+import random
 
 from main import reminder_scheduler
 from FamilyManagement.Reminders import SendReminders
 from main import bot
 from CustomClasses.CustomServer import DatabaseClan
-from BoardCommands.Utils.War import main_war_page
+from BoardCommands.Utils.War import main_war_page, missed_hits
 from ImageGen.WarEndResult import generate_war_result_image
 
 async def create_reminders(times, clan_tag):
@@ -27,6 +28,11 @@ async def send_or_update_war_start(clan_tag:str):
     war.state = "inWar"
     if war is None:
         return
+
+    clan = None
+    if war.type == "cwl":
+        clan = await bot.getClan(war.clan.tag)
+    war_league = clan.war_league if clan is not None else None
 
     for cc in await bot.clan_db.find({"$and": [{"tag": clan_tag}, {"logs.war_log.webhook": {"$ne": None}}]}).to_list(length=None):
         db_clan = DatabaseClan(bot=bot, data=cc)
@@ -55,10 +61,7 @@ async def send_or_update_war_start(clan_tag:str):
         db_clan = DatabaseClan(bot=bot, data=cc)
         if db_clan.server_id not in bot.OUR_GUILDS:
             continue
-
-        log = db_clan.war_panel
-        await update_war_message(war=war, clan_result=clan_result, clan=clan)
-
+        await update_war_message(war=war, db_clan=db_clan, clan=clan)
 
 
 
@@ -74,69 +77,82 @@ async def send_or_update_war_end(clan_tag:str, preparation_start_time:int):
                 except:
                     await asyncio.sleep(120)
                 war = await bot.get_clanwar(clanTag=clan_tag)
-                if x == 3 or str(war.state) == "warEnded":
+                if x == 2 or str(war.state) == "warEnded":
                   break
 
     if war is None or str(war.state) != "warEnded":
         return
 
     await store_war(war=war)
+    clan = None
+    if war.type == "cwl":
+        clan = await bot.getClan(war.clan.tag)
+    war_league = clan.war_league if clan is not None else None
 
-    for clan_result in await bot.clan_db.find({"tag": f"{clan_tag}"}).to_list(length=500):
+
+    for cc in await bot.clan_db.find({"$and": [{"tag": clan_tag}, {"logs.war_log.webhook": {"$ne": None}}]}).to_list(length=None):
+        db_clan = DatabaseClan(bot=bot, data=cc)
+        if db_clan.server_id not in bot.OUR_GUILDS:
+            continue
+
+        log = db_clan.war_log
+
+        embed = await main_war_page(bot=bot, war=war, war_league=war_league)
+        embed.set_footer(text=f"{war.type.capitalize()} War")
+        file = await generate_war_result_image(war)
+        missed_hits_embed = await missed_hits(bot=bot, war=war)
+
         try:
-            if clan_result.get("war_log") is None:
-                continue
-            war_channel = await bot.getch_channel(clan_result.get("war_log"), raise_exception=True)
-
-            feed_type = clan_result.get("attack_feed", "Continuous Feed")  # other is "Update Feed"
-            war_cog = bot.get_cog(name="War")
-
-            clan = None
-            if war.type == "cwl":
-                clan = await bot.getClan(war.clan.tag)
-
-            embed = await war_cog.main_war_page(war=war, clan=clan)
-            embed.set_footer(text=f"{war.type.capitalize()} War")
-
-            if feed_type == "Update Feed":
-                await update_war_message(war=war, clan_result=clan_result, clan=clan)
+            webhook = await bot.getch_webhook(log.webhook)
+            if log.thread is not None:
+                thread = await bot.getch_channel(log.thread)
+                if thread.locked:
+                    continue
+                await webhook.send(embed=embed, thread=thread)
+                await webhook.send(file=file, thread=thread)
+                if len(missed_hits_embed.fields) != 0:
+                    await webhook.send(embed=missed_hits_embed, thread=thread)
             else:
-                await war_channel.send(embed=embed)
-
-            file = await generate_war_result_image(war)
-            await war_channel.send(file=file)
-            # calculate missed attacks
-            one_hit_missed = []
-            two_hit_missed = []
-            for player in war.clan.members:
-                if len(player.attacks) < war.attacks_per_member:
-                    th_emoji = bot.fetch_emoji(name=player.town_hall)
-                    if war.attacks_per_member - len(player.attacks) == 1:
-                        one_hit_missed.append(f"{th_emoji}{player.name}")
-                    else:
-                        two_hit_missed.append(f"{th_emoji}{player.name}")
-
-            embed = disnake.Embed(title=f"{war.clan.name} vs {war.opponent.name}",
-                                  description="Missed Hits", color=disnake.Color.orange())
-            if one_hit_missed:
-                embed.add_field(name="One Hit Missed", value="\n".join(one_hit_missed))
-            if two_hit_missed:
-                embed.add_field(name="Two Hits Missed", value="\n".join(two_hit_missed))
-            embed.set_thumbnail(url=war.clan.badge.url)
-            if len(embed.fields) != 0:
-                await war_channel.send(embed=embed)
-        except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
-            await bot.clan_db.update_one({"$and": [
-                {"tag": war.clan.tag},
-                {"server": clan_result.get("server")}
-            ]}, {'$set': {"war_log": None}})
+                await webhook.send(embed=embed)
+                await webhook.send(file=file)
+                if len(missed_hits_embed.fields) != 0:
+                    await webhook.send(embed=missed_hits_embed)
+        except (disnake.NotFound, disnake.Forbidden):
+            await log.set_thread(id=None)
+            await log.set_webhook(id=None)
             continue
 
 
-async def update_war_message(war: coc.ClanWar, webhook: disnake.Webhook, db_clan: DatabaseClan, clan: coc.Clan = None):
-    message_id = db_clan.war_panel.message_id
-    channel_id = db_clan.war_panel.channel_id
-    if db_clan.war_panel.war_id != f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}":
+    for cc in await bot.clan_db.find({"$and": [{"tag": clan_tag}, {"logs.war_panel.webhook": {"$ne": None}}]}).to_list(length=None):
+        db_clan = DatabaseClan(bot=bot, data=cc)
+        if db_clan.server_id not in bot.OUR_GUILDS:
+            continue
+        await update_war_message(war=war, db_clan=db_clan, clan=clan)
+        missed_hits_embed = await missed_hits(bot=bot, war=war)
+        log = db_clan.war_panel
+        try:
+            webhook = await bot.getch_webhook(log.webhook)
+            if log.thread is not None:
+                thread = await bot.getch_channel(log.thread)
+                if thread.locked:
+                    continue
+                if len(missed_hits_embed.fields) != 0:
+                    await webhook.send(embed=missed_hits_embed, thread=thread)
+            else:
+                if len(missed_hits_embed.fields) != 0:
+                    await webhook.send(embed=missed_hits_embed)
+        except (disnake.NotFound, disnake.Forbidden):
+            await log.set_thread(id=None)
+            await log.set_webhook(id=None)
+            continue
+
+
+async def update_war_message(war: coc.ClanWar, db_clan: DatabaseClan, clan: coc.Clan = None):
+    log = db_clan.war_panel
+
+    message_id = log.message_id
+    channel_id = log.channel_id
+    if log.war_id != f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}":
         message_id = None
 
     war_league = clan.war_league if clan is not None else None
@@ -147,11 +163,28 @@ async def update_war_message(war: coc.ClanWar, webhook: disnake.Webhook, db_clan
         await message.edit(embed=embed)
     except:
         button = war_buttons(new_war=war)
-        message = await webhook.send(embed=embed, components=button, wait=True)
+        log = db_clan.war_panel
+
+        thread = None
+        try:
+            webhook = await bot.getch_webhook(db_clan.war_panel.webhook)
+            if log.thread is not None:
+                thread = await bot.getch_channel(log.thread)
+                if thread.locked:
+                    raise disnake.NotFound
+        except (disnake.NotFound, disnake.Forbidden):
+            await log.set_thread(id=None)
+            await log.set_webhook(id=None)
+            return
+
+        if thread is not None:
+            message = await webhook.send(embed=embed, components=button, wait=True)
+        else:
+            message = await webhook.send(embed=embed, components=button, thread=thread, wait=True)
+
         war_id = f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}"
         await bot.clan_db.update_one({"$and": [{"tag": war.clan.tag}, {"server": db_clan.server_id}]},
                                      {'$set': {"logs.war_panel.war_message": message.id, "logs.war_panel.war_id": war_id, "logs.war_panel.war_channel" : message.channel.id}})
-
 
 
 async def store_war(war: coc.ClanWar):
@@ -169,6 +202,8 @@ async def store_war(war: coc.ClanWar):
         "data" : war._raw_data
     })
 
+
+
 def war_start_embed(new_war: coc.ClanWar):
     embed = disnake.Embed(description=f"[**{new_war.clan.name}**]({new_war.clan.share_link})",
                           color=disnake.Color.yellow())
@@ -178,6 +213,8 @@ def war_start_embed(new_war: coc.ClanWar):
     embed.set_thumbnail(url=new_war.clan.badge.large)
     embed.set_footer(text=f"{new_war.type.capitalize()} War")
     return embed
+
+
 
 def war_buttons(new_war: coc.ClanWar):
     button = [disnake.ui.ActionRow(
@@ -189,7 +226,7 @@ def war_buttons(new_war: coc.ClanWar):
                           custom_id=f"listwardefenses_{int(new_war.preparation_start_time.time.timestamp())}_{new_war.clan.tag}"),
         disnake.ui.Button(label="", emoji=bot.emoji.menu.partial_emoji,
                           style=disnake.ButtonStyle.green,
-                          disabled=True,
+                          disabled=False,
                           custom_id=f"menu_{int(new_war.preparation_start_time.time.timestamp())}_{new_war.clan.tag}"))
     ]
     return button

@@ -47,7 +47,7 @@ class LegendEvents(commands.Cog):
             else:
                 log = clan.legend_log_defenses
             try:
-                webhook = await self.bot.fetch_webhook(log.webhook)
+                webhook = await self.bot.getch_webhook(log.webhook)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:

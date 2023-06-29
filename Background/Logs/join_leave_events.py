@@ -50,7 +50,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                     buttons.append_item(button)
                 components = [buttons]
             try:
-                webhook = await self.bot.fetch_webhook(log.webhook)
+                webhook = await self.bot.getch_webhook(log.webhook)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
@@ -104,7 +104,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                     buttons.append_item(button)
                 components = [buttons]
             try:
-                webhook = await self.bot.fetch_webhook(log.webhook)
+                webhook = await self.bot.getch_webhook(log.webhook)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:

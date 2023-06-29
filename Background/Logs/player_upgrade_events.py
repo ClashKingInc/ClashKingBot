@@ -35,7 +35,7 @@ class UpgradeEvent(commands.Cog):
             content = f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} moved from {league_emoji(old_player)}{old_player.league.name} to {league_emoji(new_player)}{new_player.league.name}"
             log = clan.league_change
             try:
-                webhook = await self.bot.fetch_webhook(log.webhook)
+                webhook = await self.bot.getch_webhook(log.webhook)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
@@ -66,7 +66,7 @@ class UpgradeEvent(commands.Cog):
 
             log = clan.name_change
             try:
-                webhook = await self.bot.fetch_webhook(log.webhook)
+                webhook = await self.bot.getch_webhook(log.webhook)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
@@ -95,7 +95,7 @@ class UpgradeEvent(commands.Cog):
 
             log = clan.th_upgrade
             try:
-                webhook = await self.bot.fetch_webhook(log.webhook)
+                webhook = await self.bot.getch_webhook(log.webhook)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
@@ -158,7 +158,7 @@ class UpgradeEvent(commands.Cog):
                     text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} leveled up {self.bot.fetch_emoji(name=troop.name)}{troop.name} to lv{self.bot.get_number_emoji(color='white', number=troop.level)}\n"
 
             try:
-                webhook = await self.bot.fetch_webhook(log.webhook)
+                webhook = await self.bot.getch_webhook(log.webhook)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
@@ -205,7 +205,7 @@ class UpgradeEvent(commands.Cog):
                     text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} leveled up {self.bot.fetch_emoji(name=hero.name)}{hero.name} to lv{self.bot.get_number_emoji(color='white', number=hero.level)}\n"
 
             try:
-                webhook = await self.bot.fetch_webhook(log.webhook)
+                webhook = await self.bot.getch_webhook(log.webhook)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
@@ -252,7 +252,7 @@ class UpgradeEvent(commands.Cog):
                     text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} leveled up {self.bot.fetch_emoji(name=spell.name)}{spell.name} to lv{self.bot.get_number_emoji(color='white', number=spell.level)}\n"
 
             try:
-                webhook = await self.bot.fetch_webhook(log.webhook)
+                webhook = await self.bot.getch_webhook(log.webhook)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:

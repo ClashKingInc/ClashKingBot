@@ -555,31 +555,12 @@ class CustomClient(commands.AutoShardedBot):
                 raise e
         return guild
 
-    async def getch_webhook(self, channel_id, force_fetch=False):
-        channel = await self.getch_channel(channel_id=channel_id, raise_exception=True)
-        guild = await self.getch_guild(channel.guild.id)
-        member = await guild.get_or_fetch_member(self.user.id)
-        perms = channel.permissions_for(member)
-        if not perms.manage_webhooks:
-            raise MissingWebhookPerms
-
-        try:
-            webhook = self.feed_webhooks[channel.id]
-            if force_fetch:
-                raise Exception
-            return webhook
-        except Exception:
-            is_thread = "thread" in str(channel.type)
-            if is_thread:
-                channel = channel.parent
-            webhooks = await channel.webhooks()
-            if len(webhooks) == 0:
-                webhook = await channel.create_webhook(name=self.user.name, avatar=self.user.avatar, reason="Feed Webhook")
-            else:
-                webhook = next(webhook for webhook in webhooks if webhook.user.id == self.user.id)
-            self.feed_webhooks[channel.id] = webhook
+    async def getch_webhook(self, webhook_id):
+        webhook = self.feed_webhooks.get(webhook_id)
+        if webhook is None:
+            webhook = await self.fetch_webhook(webhook_id)
+            self.feed_webhooks[webhook_id] = webhook
         return webhook
-
 
     #CLASH HELPERS
     async def store_all_cwls(self, clan: coc.Clan):
