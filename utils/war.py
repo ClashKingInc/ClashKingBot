@@ -32,7 +32,6 @@ async def send_or_update_war_start(clan_tag:str):
     clan = None
     if war.type == "cwl":
         clan = await bot.getClan(war.clan.tag)
-    war_league = clan.war_league if clan is not None else None
 
     for cc in await bot.clan_db.find({"$and": [{"tag": clan_tag}, {"logs.war_log.webhook": {"$ne": None}}]}).to_list(length=None):
         db_clan = DatabaseClan(bot=bot, data=cc)
@@ -203,7 +202,6 @@ async def store_war(war: coc.ClanWar):
     })
 
 
-
 def war_start_embed(new_war: coc.ClanWar):
     embed = disnake.Embed(description=f"[**{new_war.clan.name}**]({new_war.clan.share_link})",
                           color=disnake.Color.yellow())
@@ -213,7 +211,6 @@ def war_start_embed(new_war: coc.ClanWar):
     embed.set_thumbnail(url=new_war.clan.badge.large)
     embed.set_footer(text=f"{new_war.type.capitalize()} War")
     return embed
-
 
 
 def war_buttons(new_war: coc.ClanWar):
