@@ -126,7 +126,7 @@ class Roster():
             else:
                 co = f"`{count}`"
             r_text += f"{co}{text}"
-        roster_text = f"`Legend: {legend}`\n{r_text}"
+        roster_text = f"`{legend}`\n{r_text}"
         if list(group_text.keys()) != []:
             for group_name, text in group_text.items():
                 sub_text = self.sort_(text)

@@ -753,15 +753,16 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         await ctx.response.defer()
         column_choices = ["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "Clan Tag", "War Opt Status", "Trophies"]
         roster_list = []
-        if roster != "REFRESH ALL":
+        if roster != "SET ALL":
             _roster = Roster(bot=self.bot)
             await _roster.find_roster(guild=ctx.guild, alias=roster)
             roster_list.append(_roster)
         else:
-            roster_list = await self.bot.rosters.find({"$and": [{"server_id": ctx.guild.id}]}).to_list(length=None)
-            for count, roster in enumerate(roster_list, 1):
+            results = await self.bot.rosters.find({"server_id": ctx.guild.id}).to_list(length=None)
+            for count, roster in enumerate(results, 1):
                 _roster = Roster(bot=self.bot, roster_result=roster)
                 roster_list.append(_roster)
+            roster = "All Roster's"
         select_options = []
         for category in column_choices:
             select_options.append(disnake.SelectOption(label=category, value=category))
@@ -991,7 +992,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster_change_link.autocomplete("roster")
     @roster_clear.autocomplete("roster")
     @roster_sort.autocomplete("roster")
-    @roster_columns.autocomplete("roster")
+    @roster_columns.autocomplete("roster_")
     @roster_role.autocomplete("roster")
     @roster_role_refresh.autocomplete("roster")
     @roster_copy.autocomplete("export_roster")
@@ -1000,7 +1001,10 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         aliases = await self.bot.rosters.distinct("alias", filter={"server_id": ctx.guild_id })
         alias_list = []
         if ctx.data.focused_option.name == "roster_":
-            alias_list.append("REFRESH ALL")
+            if ctx.options.get("columns"):
+                alias_list.append("SET ALL")
+            else:
+                alias_list.append("REFRESH ALL")
         for alias in aliases:
             if query.lower() in alias.lower():
                 alias_list.append(f"{alias}")

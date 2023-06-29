@@ -64,7 +64,8 @@ class CustomClient(commands.AutoShardedBot):
         self.clan_cache: collection_class = self.new_looper.clan_cache
         self.excel_templates: collection_class = self.looper_db.clashking.excel_templates
         self.lineups: collection_class = self.looper_db.clashking.lineups
-        self.link_client: coc.ext.discordlinks.DiscordLinkClient = login.link_client
+        self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
+
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
         self.clan_db: collection_class = self.db_client.usafam.clans
