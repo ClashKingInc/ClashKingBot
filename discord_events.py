@@ -2,10 +2,12 @@ import datetime
 
 import disnake
 import coc
-from main import scheduler
+from main import scheduler, reminder_scheduler
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 import sentry_sdk
+from FamilyManagement.Reminders import SendReminders
+from utils.war import create_reminders
 
 class DiscordEvents(commands.Cog):
 
@@ -21,15 +23,25 @@ class DiscordEvents(commands.Cog):
     @commands.Cog.listener()
     async def on_connect(self):
         print("connected")
-        global_chats = await self.bot.global_chat_db.distinct("channel")
-        self.bot.global_channels = [chat for chat in global_chats if chat is not None]
+        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "1 hr"], day_of_week="mon", hour=6, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "6 hr"], day_of_week="mon", hour=1, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "12 hr"], day_of_week="sun", hour=19, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "24 hr"], day_of_week="sun", hour=7, misfire_grace_time=None)
 
-        global_banned = self.bot.global_reports.find({})
-        for banned in await global_banned.to_list(length=1000):
-            strikes = banned.get("strikes")
-            if strikes >= 3:
-                self.bot.banned_global.append(banned.get("user"))
+        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "144 hr"], day=22, hour=8, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "120 hr"], day=23, hour=8, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "96 hr"], day=24, hour=8, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "72 hr"], day=25, hour=8, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "48 hr"], day=26, hour=8, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "36 hr"], day=26, hour=20, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "24 hr"], day=27, hour=8, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "12 hr"], day=27, hour=20, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "6 hr"], day=28, hour=2, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "4 hr"], day=28, hour=4, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "2 hr"], day=28, hour=6, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "1 hr"], day=28, hour=7, misfire_grace_time=None)
 
+        scheduler.add_job(SendReminders.inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
 
         tags = await self.bot.clan_db.distinct("tag")
         self.bot.clan_list = tags
@@ -41,11 +53,11 @@ class DiscordEvents(commands.Cog):
             try:
                 other_cog = self.bot.get_cog(name="War_Log")
                 if new_war.state == "preparation":
-                    scheduler.add_job(other_cog.send_or_update_war_start, 'date', run_date=new_war.start_time.time,
+                    reminder_scheduler.add_job(other_cog.send_or_update_war_start, 'date', run_date=new_war.start_time.time,
                                       args=[new_war.clan.tag], id=f"war_start_{new_war.clan.tag}",
                                       name=f"{new_war.clan.tag}_war_start", misfire_grace_time=None)
                 if new_war.end_time.seconds_until >= 0:
-                    scheduler.add_job(other_cog.send_or_update_war_end, 'date', run_date=new_war.end_time.time,
+                    reminder_scheduler.add_job(other_cog.send_or_update_war_end, 'date', run_date=new_war.end_time.time,
                                       args=[new_war.clan.tag, int(new_war.preparation_start_time.time.timestamp())], id=f"war_end_{new_war.clan.tag}",
                                       name=f"{new_war.clan.tag}_war_end", misfire_grace_time=None)
             except:
@@ -57,17 +69,8 @@ class DiscordEvents(commands.Cog):
             except:
                 pass
             acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times, war_end_time=war_end_time)
-            if not acceptable_times:
-                continue
-            for time in acceptable_times:
-                reminder_time = time[0] / 3600
-                if reminder_time.is_integer():
-                    reminder_time = int(reminder_time)
-                send_time = time[1]
-                try:
-                    scheduler.add_job(cog.war_reminder, 'date', run_date=send_time, args=[tag, reminder_time], id=f"{reminder_time}_{tag}", name=f"{tag}", misfire_grace_time=None)
-                except:
-                    pass
+            await create_reminders(times=acceptable_times, clan_tag=tag)
+
         scheduler.print_jobs()
 
         for g in self.bot.guilds:

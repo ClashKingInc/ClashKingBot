@@ -113,6 +113,42 @@ async def player_stat(player_tag: str, request: Request, response: Response):
 
     return dict(result)
 
+@app.get("/player/{player_tag}/legends",
+         response_model=Player,
+         tags=["Player Endpoints"],
+         name="Legend stats for a player")
+@limiter.limit("10/second")
+async def player_legend(player_tag: str, request: Request, response: Response):
+    player_tag = player_tag and "#" + re.sub(r"[^A-Z0-9]+", "", player_tag.upper()).replace("O", "0")
+    result = await player_stats_db.find_one({"tag": player_tag})
+    lb_spot = await player_leaderboard_db.find_one({"tag": player_tag})
+
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"No player found")
+
+    result = {
+        "name" : result.get("name"),
+        "townhall" : result.get("townhall"),
+        "legends" : result.get("legends", {})
+    }
+    try:
+        del result["legends"]["global_rank"]
+        del result["legends"]["local_rank"]
+    except:
+        pass
+    if lb_spot is not None:
+        try:
+            result["legends"]["global_rank"] = lb_spot["global_rank"]
+            result["legends"]["local_rank"] = lb_spot["local_rank"]
+        except:
+            pass
+        try:
+            result["location"] = lb_spot["country_name"]
+        except:
+            pass
+
+    return dict(result)
+
 @app.get("/player/{player_tag}/historical",
          tags=["Player Endpoints"],
          name="Historical data for player events")

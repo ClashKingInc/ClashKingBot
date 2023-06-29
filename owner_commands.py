@@ -54,9 +54,9 @@ import pandas as pd
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from utils.constants import TOWNHALL_LEVELS
 import numpy as np
-
-
-
+from utils.war import create_reminders
+from main import scheduler
+from FamilyManagement.Reminders import SendReminders
 
 class OwnerCommands(commands.Cog):
 
@@ -68,6 +68,27 @@ class OwnerCommands(commands.Cog):
     @commands.Cog.listener()
     async def on_connect(self):
         print("connected")
+        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "1 hr"],
+                          day_of_week="mon", hour=6, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "6 hr"],
+                          day_of_week="mon", hour=1, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "12 hr"],
+                          day_of_week="sun", hour=19, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "24 hr"],
+                          day_of_week="sun", hour=7, misfire_grace_time=None)
+
+
+        reminder_tags = await self.bot.reminders.distinct("clan", filter={"type": "War"})
+        print(len(reminder_tags))
+        reminder_tags = reminder_tags[:100]
+        current_war_times = await self.bot.get_current_war_times(tags=reminder_tags)
+        print(current_war_times)
+        for tag in current_war_times.keys():
+            reminder_times = await self.bot.get_reminder_times(clan_tag=tag)
+            new_war, war_end_time = current_war_times[tag]
+            acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times, war_end_time=war_end_time)
+            await create_reminders(times=acceptable_times, clan_tag=tag)
+        print("done")
 
     @commands.message_command(name="emoji_creator")
     async def emoji_creator(self, ctx: disnake.MessageCommandInteraction, message: disnake.Message):
@@ -124,11 +145,17 @@ class OwnerCommands(commands.Cog):
                     if webhook is None:
                         try:
                             g_channel = await self.bot.getch_channel(channel, raise_exception=True)
-                            if isinstance(g_channel, disnake.Thread):
-                                thread = channel
-                                webhook = await g_channel.parent.create_webhook(name="ClashKing", avatar=bot_av, reason="ClashKing Clan Logs")
+                            if isinstance(channel, disnake.Thread):
+                                webhooks = await channel.parent.webhooks()
                             else:
-                                webhook = await g_channel.create_webhook(name="ClashKing", avatar=bot_av, reason="ClashKing Clan Logs")
+                                webhooks = await channel.webhooks()
+                            webhook = next((w for w in webhooks if w.user.id == self.bot.user.id), None)
+                            if webhook is None:
+                                if isinstance(g_channel, disnake.Thread):
+                                    thread = channel
+                                    webhook = await g_channel.parent.create_webhook(name="ClashKing", avatar=bot_av, reason="ClashKing Clan Logs")
+                                else:
+                                    webhook = await g_channel.create_webhook(name="ClashKing", avatar=bot_av, reason="ClashKing Clan Logs")
                             channel_to_webhook[g_channel.id] = webhook.id
                             webhook = webhook.id
                         except:

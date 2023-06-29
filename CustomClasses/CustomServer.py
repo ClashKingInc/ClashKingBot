@@ -64,6 +64,9 @@ class Join_Log(ClanLog):
 class WarPanel(ClanLog):
     def __init__(self, parent: DatabaseClan, type: str):
         super().__init__(parent=parent, type=type)
+        self.war_id = self.__data.get("war_id", False)
+        self.message_id = self.__data.get("war_message", False)
+        self.channel_id = self.__data.get("war_channel", False)
 
     async def set_war_id(self, war: coc.ClanWar):
         war_id = f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}"
@@ -71,6 +74,9 @@ class WarPanel(ClanLog):
 
     async def set_message_id(self, id: Union[str, None]):
         await self.__parent.bot.clan_db.update_one({"$and": [{"tag": self.__parent.tag}, {"server": self.__parent.server_id}]}, {"$set" : {f"logs.{self.type}.war_message" : id}})
+
+    async def set_channel_id(self, id: Union[str, None]):
+        await self.__parent.bot.clan_db.update_one({"$and": [{"tag": self.__parent.tag}, {"server": self.__parent.server_id}]}, {"$set" : {f"logs.{self.type}.war_channel" : id}})
 
 
 
