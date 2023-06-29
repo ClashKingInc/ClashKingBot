@@ -35,7 +35,6 @@ import sys
 keys = []
 utc = pytz.utc
 load_dotenv()
-EMAIL_PW = "Gitmen-nynjus-neswe6"
 emails = []
 passwords = []
 #1-12
