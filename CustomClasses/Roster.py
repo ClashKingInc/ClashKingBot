@@ -13,8 +13,8 @@ from Exceptions.CustomExceptions import *
 from collections import defaultdict
 
 class Roster():
-    def __init__(self, bot: CustomClient):
-        self.roster_result = None
+    def __init__(self, bot: CustomClient, roster_result=None):
+        self.roster_result = roster_result
         self.bot = bot
 
     async def create_roster(self, guild: disnake.Guild, clan: coc.Clan, alias: str, add_members: bool):

@@ -562,6 +562,13 @@ class CustomClient(commands.AutoShardedBot):
             self.feed_webhooks[webhook_id] = webhook
         return webhook
 
+    async def webhook_send(self, webhook: disnake.Webhook, content="", embed=None, file=None, components=None, wait=False, thread=None):
+        if thread is None:
+            msg = await webhook.send(content=content, embed=embed, file=file, components=components, wait=wait)
+        else:
+            msg = await webhook.send(content=content, embed=embed, file=file, components=components, wait=wait, thread=thread)
+        return msg
+
     #CLASH HELPERS
     async def store_all_cwls(self, clan: coc.Clan):
         await asyncio.sleep(0.1)

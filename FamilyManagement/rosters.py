@@ -437,8 +437,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             for count, roster in enumerate(roster_list, 1):
                 await asyncio.sleep(5)
                 await ctx.edit_original_message(f"Refreshing {roster.get('alias')} ({count}/{len(roster_list)})")
-                _roster = Roster(bot=self.bot)
-                await _roster.find_roster(guild=ctx.guild, alias=roster.get("alias"))
+                _roster = Roster(bot=self.bot, roster_result=roster)
                 await _roster.refresh_roster()
             embed = disnake.Embed(
                 description=f"Player data for all {len(roster_list)} rosters on this server have been refreshed.",
@@ -750,11 +749,19 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="columns", description="Choose the columns of your roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_columns(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
-        column_choices = ["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "Clan Tag", "War Opt Status", "Trophies"]
-        _roster = Roster(bot=self.bot)
+    async def roster_columns(self, ctx: disnake.ApplicationCommandInteraction, roster: str = commands.Param(name="roster_")):
         await ctx.response.defer()
-        await _roster.find_roster(guild=ctx.guild, alias=roster)
+        column_choices = ["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "Clan Tag", "War Opt Status", "Trophies"]
+        roster_list = []
+        if roster != "REFRESH ALL":
+            _roster = Roster(bot=self.bot)
+            await _roster.find_roster(guild=ctx.guild, alias=roster)
+            roster_list.append(_roster)
+        else:
+            roster_list = await self.bot.rosters.find({"$and": [{"server_id": ctx.guild.id}]}).to_list(length=None)
+            for count, roster in enumerate(roster_list, 1):
+                _roster = Roster(bot=self.bot, roster_result=roster)
+                roster_list.append(_roster)
         select_options = []
         for category in column_choices:
             select_options.append(disnake.SelectOption(label=category, value=category))
@@ -775,8 +782,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             return res.message.id == msg.id
 
         try:
-            res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
-                                                                      timeout=600)
+            res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
         except:
             return await msg.edit(components=[])
 
@@ -786,9 +792,10 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                 description=f"Name is a required column field.",
                 color=disnake.Color.red())
             return await res.edit_original_message(embed=embed, components=[])
-        await _roster.set_columns(columns=res.values)
+        for r in roster_list:
+            await r.set_columns(columns=res.values)
         embed = disnake.Embed(
-            description=f"{roster} roster columns set to : `{', '.join(res.values)}`",
+            description=f"{roster} columns set to : `{', '.join(res.values)}`",
             color=disnake.Color.green())
         await res.edit_original_message(embed=embed, components=[])
 

@@ -21,7 +21,25 @@ async def create_reminders(times, clan_tag):
             reminder_scheduler.add_job(SendReminders.war_reminder, 'date', run_date=send_time, args=[clan_tag, reminder_time],id=f"{reminder_time}_{clan_tag}", name=f"{clan_tag}", misfire_grace_time=None)
         except:
             pass
-        
+
+
+async def schedule_war_boards(war: coc.ClanWar):
+    if war.state == "preparation" or war.state == "inWar":
+        if war.state == "preparation":
+            try:
+                reminder_scheduler.add_job(send_or_update_war_start, 'date', run_date=war.start_time.time,
+                                       args=[war.clan.tag], id=f"war_start_{war.clan.tag}",
+                                       name=f"{war.clan.tag}_war_start", misfire_grace_time=None)
+            except:
+                pass
+        try:
+            reminder_scheduler.add_job(send_or_update_war_end, 'date', run_date=war.end_time.time,
+                                       args=[war.clan.tag, int(war.preparation_start_time.time.timestamp())],
+                                       id=f"war_end_{war.clan.tag}",
+                                       name=f"{war.clan.tag}_war_end", misfire_grace_time=None)
+        except:
+            pass
+
         
 async def send_or_update_war_start(clan_tag:str):
     war: coc.ClanWar = await bot.get_clanwar(clanTag=clan_tag)
@@ -61,7 +79,6 @@ async def send_or_update_war_start(clan_tag:str):
         if db_clan.server_id not in bot.OUR_GUILDS:
             continue
         await update_war_message(war=war, db_clan=db_clan, clan=clan)
-
 
 
 async def send_or_update_war_end(clan_tag:str, preparation_start_time:int):
@@ -187,6 +204,9 @@ async def update_war_message(war: coc.ClanWar, db_clan: DatabaseClan, clan: coc.
 
 
 async def store_war(war: coc.ClanWar):
+    is_stored = await bot.clan_wars.find_one({"war_id": f"{war.clan.tag}-{int(war.preparation_start_time.time.timestamp())}"})
+    if is_stored is not None:
+        return
     source = string.ascii_letters
     custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
 
