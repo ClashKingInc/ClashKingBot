@@ -514,11 +514,11 @@ class SetupCommands(commands.Cog , name="Setup"):
         for button in page_buttons:
             buttons.append_item(button)
 
-        family_types = ["Troop Donations", "Capital Donations", "Player Trophies", "Clan Trophies", "Loot Leaderboard", "Legend Leaderboard"]
+        family_types = ["Troop Donations", "Capital Donations", "Player Trophies", "Clan Trophies", "Summary Leaderboard", "Legend Leaderboard"]
         location_types = ["Player Trophies Lb", "Clan Trophies Lb", "Clan Capital Lb"]
-        clan_types = ["Capital Donations", "Player Trophies", "Loot Leaderboard", "Legend Leaderboard"]
+        clan_types = ["Capital Donations", "Player Trophies", "Summary Leaderboard", "Legend Leaderboard", "Clan Games"]
 
-        days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Clan Games End", "EOS"]
         day_options = []
         for day in days:
             day_options.append(disnake.SelectOption(label=day, value=day, emoji=self.bot.emoji.calendar.partial_emoji))
@@ -603,7 +603,7 @@ class SetupCommands(commands.Cog , name="Setup"):
             channel = disnake.ui.ChannelSelect(placeholder="Choose Channel", max_values=1, channel_types=[disnake.ChannelType.text, disnake.ChannelType.public_thread])
             dropdown = [disnake.ui.ActionRow(select), disnake.ui.ActionRow(clan_select), disnake.ui.ActionRow(day_select), disnake.ui.ActionRow(channel), buttons]
 
-        await ctx.edit_original_message(content="**Choose board type & Settings**\n- All Boards will post between 4:50 - 5:00 am UTC on the days you select, plus end of season regardless of day.", components=dropdown)
+        await ctx.edit_original_message(content="**Choose board type & Settings**\n- All Boards will post between 4:50 - 5:00 am UTC on the days you select", components=dropdown)
 
         location = None
         board_type = None
