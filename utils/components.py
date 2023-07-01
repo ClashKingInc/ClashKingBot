@@ -131,6 +131,7 @@ def clan_component(bot: CustomClient, all_clans: List[coc.Clan], clan_page:int =
 
     return disnake.ui.ActionRow(clan_select)
 
+
 def townhall_component(bot: CustomClient):
     options = []
     nums = reversed([x for x in range(2, 16)])
@@ -144,6 +145,7 @@ def townhall_component(bot: CustomClient):
         max_values=len(options),  # the maximum number of options a user can select
     )
     return disnake.ui.ActionRow(th_select)
+
 
 def role_component():
     options = []
