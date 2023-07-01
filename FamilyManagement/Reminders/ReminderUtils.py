@@ -51,7 +51,7 @@ def role_options():
 def buttons(bot: CustomClient):
     page_buttons = [
         disnake.ui.Button(label="Save", emoji=bot.emoji.yes.partial_emoji, style=disnake.ButtonStyle.green, custom_id="Save"),
-        disnake.ui.Button(label="Custom Text", emoji="✏", style=disnake.ButtonStyle.grey, custom_id="custom_text")
+        disnake.ui.Button(label="Custom Text", emoji="✏", style=disnake.ButtonStyle.grey, custom_id="modal_reminder_custom_text")
     ]
     buttons = disnake.ui.ActionRow()
     for button in page_buttons:
@@ -84,10 +84,11 @@ async def create_capital_reminder(bot: CustomClient, ctx: disnake.MessageInterac
     clans_chosen = []
     roles_chosen = ROLES
     attack_threshold = 1
+    custom_text = ""
 
     embed = disnake.Embed(title="**Choose options/filters**", color=disnake.Color.green())
     embed.set_footer(text="Note: If you don't select optional fields, defaults will be used")
-    embed.description = chosen_text(bot=bot, clans=clans_chosen, atk=attack_threshold, roles=roles_chosen)
+    embed.description = chosen_text(bot=bot, clans=clans_chosen, atk=attack_threshold, roles=roles_chosen, custom_text=custom_text)
     await ctx.edit_original_message(embed=embed, components=dropdown)
     message = await ctx.original_message()
 
@@ -95,10 +96,13 @@ async def create_capital_reminder(bot: CustomClient, ctx: disnake.MessageInterac
     while not save:
         res: disnake.MessageInteraction = await interaction_handler(bot=bot, ctx=ctx, function=None)
         if "button" in str(res.data.component_type):
-            if not clans_chosen:
+            if res.data.custom_id == "modal_reminder_custom_text":
+                custom_text = await get_custom_text(bot=bot, res=res)
+                embed.description = chosen_text(bot=bot, clans=clans_chosen, atk=attack_threshold, roles=roles_chosen, custom_text=custom_text)
+                clan_dropdown = clan_component(bot=bot, all_clans=clans, clan_page=clan_page)
+                await message.edit(embed=embed, components=[clan_dropdown, atk_threshold(), role_options(), buttons(bot=bot)])
+            elif not clans_chosen:
                 await res.send(content="Must select at least one clan", ephemeral=True)
-            elif res.data.custom_id == "custom_text":
-                await res.send()
             else:
                 save = True
         elif any("clanpage_" in s for s in res.values):
@@ -114,16 +118,18 @@ async def create_capital_reminder(bot: CustomClient, ctx: disnake.MessageInterac
                     clans_chosen.remove(clan)
                 else:
                     clans_chosen.append(clan)
-            embed.description = chosen_text(bot=bot, clans=clans_chosen, atk=attack_threshold, roles=roles_chosen)
+            embed.description = chosen_text(bot=bot, clans=clans_chosen, atk=attack_threshold, roles=roles_chosen, custom_text=custom_text)
             await message.edit(embed=embed)
 
         elif "string_select" in str(res.data.component_type):
             if res.values[0] in ROLES:
                 roles_chosen = res.values
-                embed.description = chosen_text(bot=bot, clans=clans_chosen, atk=attack_threshold, roles=res.values)
+                embed.description = chosen_text(bot=bot, clans=clans_chosen, atk=attack_threshold, roles=roles_chosen, custom_text=custom_text)
                 await message.edit(embed=embed)
             else:
                 attack_threshold = res.values[0]
+                embed.description = chosen_text(bot=bot, clans=clans_chosen, atk=attack_threshold, roles=roles_chosen, custom_text=custom_text)
+                await message.edit(embed=embed)
 
 
     '''for time in times:
@@ -213,10 +219,37 @@ async def create_capital_reminder(bot: CustomClient, ctx: disnake.MessageInterac
     }, {"$set": {"custom_text": custom_text}})
     return custom_text'''
 
+async def get_custom_text(bot:CustomClient, res: disnake.MessageInteraction):
+    await res.response.send_modal(
+        title="Customize your text",
+        custom_id="customtext-",
+        components=[
+            disnake.ui.TextInput(
+                label="Extra Custom Text",
+                placeholder="Extra text to send when reminder is sent (gifs, rules, etc)",
+                custom_id=f"custom_text",
+                required=True,
+                style=disnake.TextInputStyle.paragraph,
+                max_length=300,
+            )
+        ])
+    def check(r):
+        return res.author.id == r.author.id
 
+    try:
+        modal_inter: disnake.ModalInteraction = await bot.wait_for(
+            "modal_submit",
+            check=check,
+            timeout=300,
+        )
+    except:
+        raise ExpiredComponents
+    await modal_inter.response.defer(ephemeral=True)
+    await modal_inter.send(content="Custom Text Stored", delete_after=3)
+    custom_text = modal_inter.text_values["custom_text"]
+    return custom_text
 
-
-def chosen_text(bot: CustomClient, clans: List[coc.Clan], ths=None, roles=None, atk=None):
+def chosen_text(bot: CustomClient, clans: List[coc.Clan], ths=None, roles=None, atk=None, custom_text=""):
     text = ""
     if clans:
         text += "**CLANS:**\n"
@@ -224,18 +257,20 @@ def chosen_text(bot: CustomClient, clans: List[coc.Clan], ths=None, roles=None, 
             text += f"• {clan.name} ({clan.tag})\n"
 
     if ths is not None:
-        text += "**THS:**\n"
+        text += "\n**THS:**\n"
         for th in ths:
             text += f"• {bot.fetch_emoji(name=th)} TH{th}\n"
 
     if roles:
-        text += "**ROLES:**\n"
+        text += "\n**ROLES:**\n"
         for role in roles:
             text += f"• {role}\n"
 
     if atk is not None:
         text += f"\n**Attack Threshold:** {atk}+ left\n"
 
+    if custom_text != "":
+        text += f"\n**Custom Text:** {custom_text}\n"
     return text
 
 

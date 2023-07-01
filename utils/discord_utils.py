@@ -61,7 +61,7 @@ async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteract
             await res.send(content="You must run the command to interact with components.", ephemeral=True)
             continue
 
-        if not no_defer:
+        if not no_defer and "modal" not in res.data.custom_id:
             await res.response.defer()
         valid_value = await function(res=res)
 
