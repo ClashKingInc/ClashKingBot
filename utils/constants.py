@@ -183,4 +183,6 @@ leagues = ["Legend League", "Titan League I" , "Titan League II" , "Titan League
                    "Silver League I","Silver League II","Silver League III",
                    "Bronze League I", "Bronze League II", "Bronze League III", "Unranked"]
 
+ROLES = ["Member", "Elder", "Co-Leader", "Leader"]
+
 war_leagues = json.load(open(f"Assets/war_leagues.json"))

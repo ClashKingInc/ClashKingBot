@@ -8,9 +8,6 @@ from disnake import Client
 from disnake.ext import commands
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.jobstores.mongodb import MongoDBJobStore
-from pymongo import MongoClient
 from pytz import utc
 from Background.Logs.event_websockets import player_websocket, clan_websocket, war_websocket
 
@@ -94,7 +91,7 @@ initial_extensions = [
     "other",
     "Utility.bases",
     #"settings",
-    "owner_commands",
+    #"owner_commands",
     "Ticketing.TicketCog",
     #"SetupNew.SetupCog",
     "Utility.link_parsers",
@@ -142,7 +139,7 @@ if not IS_BETA:
 async def r(ctx):
     for extension in initial_extensions:
         bot.reload_extension(extension)
-    await ctx.send("Reloaded all cogs")
+    await ctx.message.delete()
 
 def before_send(event, hint):
     try:

@@ -17,6 +17,18 @@ class Roster():
         self.roster_result = roster_result
         self.bot = bot
 
+    @property
+    def guild(self):
+        if self.roster_result is None:
+            return None
+        return self.bot.get_guild(self.roster_result.get("server_id"))
+
+    @property
+    def alias(self):
+        if self.roster_result is None:
+            return None
+        return self.roster_result.get("alias")
+
     async def create_roster(self, guild: disnake.Guild, clan: coc.Clan, alias: str, add_members: bool):
         roster_result = await self.bot.rosters.find_one({"$and": [{"server_id":guild.id}, {"alias": alias}]})
         if roster_result is not None:
@@ -328,6 +340,48 @@ class Roster():
         for tag in need_to_remove:
             player = coc.utils.get(members, tag=tag)
             await self.remove_member(player=player)
+
+    async def refresh_roles(self):
+        all_roles = await self.roster_roles
+        for item in all_roles.values():
+            if item is not None:
+                break
+        else:
+            raise NoRosterRoles
+
+        assigned_by_other_group = defaultdict(list)
+        default = all_roles.get("No Group")
+        for group, role in all_roles.items():
+            if role is None:
+                role = default
+            if role is None:
+                continue
+            tags = [player.get("tag") for player in self.players if player.get("group") == group]
+            tag_to_id = await self.bot.link_client.get_links(*tags)
+            tag_to_id = dict(tag_to_id)
+            role = self.guild.get_role(role)
+            if role is None:
+                continue
+            ids = []
+            for member in role.members:
+                if member.id not in tag_to_id.values() and member.id not in assigned_by_other_group[role.id]:
+                    try:
+                        await member.remove_roles(*[role])
+                    except:
+                        pass
+                else:
+                    ids.append(member.id)
+
+            for mem_id in tag_to_id.values():
+                assigned_by_other_group[role.id].append(mem_id)
+                if mem_id not in ids:
+                    member = await self.guild.get_or_fetch_member(mem_id)
+                    try:
+                        await member.add_roles(*[role])
+                    except:
+                        pass
+
+
 
     async def add_member(self, player: coc.Player, sub=False, group="No Group"):
         roster_members = self.roster_result.get("members")

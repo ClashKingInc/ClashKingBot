@@ -88,7 +88,7 @@ class War_Log(commands.Cog):
                 missed_hits_embed = await missed_hits(bot=self.bot, war=new_war)
                 if len(missed_hits_embed.fields) != 0:
                     await self.bot.webhook_send(webhook=webhook, thread=thread, embed=missed_hits_embed)
-                await store_war(war=new_war)
+                await store_war(bot=self.bot, war=new_war)
 
 
         for cc in await self.bot.clan_db.find({"$and": [{"tag": new_war.clan.tag}, {"logs.war_panel.webhook": {"$ne": None}}]}).to_list(length=None):
@@ -110,7 +110,7 @@ class War_Log(commands.Cog):
                 continue
 
 
-            await update_war_message(war=new_war, db_clan=db_clan, clan=clan)
+            await update_war_message(bot=self.bot, war=new_war, db_clan=db_clan, clan=clan)
 
 
             if new_war.state == "warEnded":
@@ -120,7 +120,7 @@ class War_Log(commands.Cog):
                 missed_hits_embed = await missed_hits(bot=self.bot, war=new_war)
                 if len(missed_hits_embed.fields) != 0:
                     await self.bot.webhook_send(webhook=webhook, thread=thread, embed=missed_hits_embed)
-                await store_war(war=new_war)
+                await store_war(bot=self.bot, war=new_war)
 
 
     async def war_attack(self, event):
@@ -219,7 +219,7 @@ class War_Log(commands.Cog):
             clan = None
             if war.type == "cwl":
                 clan = await self.bot.getClan(war.clan.tag)
-            await update_war_message(war=war, db_clan=db_clan, clan=clan)
+            await update_war_message(bot=self.bot, war=war, db_clan=db_clan, clan=clan)
 
 
 

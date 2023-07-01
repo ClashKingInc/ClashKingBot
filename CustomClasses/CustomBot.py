@@ -784,6 +784,10 @@ class CustomClient(commands.AutoShardedBot):
         clans: List[coc.Clan] = await self.get_clans(tags=clan_tags)
         return get_clan_member_tags(clans=clans)
 
+    async def get_guild_clans(self, guild_id):
+        clan_tags = await self.clan_db.distinct("tag", filter={"server": guild_id})
+        return clan_tags
+
     async def open_clan_capital_reminders(self):
         pass
 

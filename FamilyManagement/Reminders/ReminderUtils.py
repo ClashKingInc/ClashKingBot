@@ -5,15 +5,17 @@ from CustomClasses.CustomBot import CustomClient
 from utils.discord_utils import interaction_handler
 from Exceptions.CustomExceptions import ExpiredComponents
 from typing import List
+from utils.components import clan_component
+from utils.constants import TOWNHALL_LEVELS, ROLES
 
 ##REMINDER CREATION
 
 settings_text = {
     "capital": f"**Choose settings:**\n"
                "> - Clans\n"
-               "> - (optional) Game Roles to Ping | default all roles\n"
-               "> - (optional) Attack Threshold - Ping people with this many or more attacks left | default 1\n"
-               "*Note: If you don't select the optional fields, defaults will be used*",
+               "> - (optional) Attack Threshold - Ping people with this many or more attacks left\n"
+               "> - (optional) Game Roles to Ping\n"
+               "*Note: If you don't select optional fields, defaults will be used*",
     "clangames": f"**Choose settings:**\n"
                  "> - Clans\n"
                  "> - (optional) Game Roles to Ping | default all roles\n"
@@ -34,7 +36,7 @@ settings_text = {
 
 def role_options():
     options = []
-    role_types = ["Member", "Elder", "Co-Leader", "Leader"]
+    role_types = ROLES
     for role in role_types:
         options.append(disnake.SelectOption(label=f"{role}", value=f"{role}"))
     role_select = disnake.ui.Select(
@@ -45,7 +47,19 @@ def role_options():
     )
     return role_select
 
-def attack_threshold():
+
+def buttons(bot: CustomClient):
+    page_buttons = [
+        disnake.ui.Button(label="Save", emoji=bot.emoji.yes.partial_emoji, style=disnake.ButtonStyle.green, custom_id="Save"),
+        disnake.ui.Button(label="Custom Text", emoji="✏", style=disnake.ButtonStyle.grey, custom_id="custom_text")
+    ]
+    buttons = disnake.ui.ActionRow()
+    for button in page_buttons:
+        buttons.append_item(button)
+    return buttons
+
+
+def atk_threshold():
     options = []
     attack_numbers = [1, 2, 3, 4, 5]
     for number in attack_numbers:
@@ -56,57 +70,63 @@ def attack_threshold():
         min_values=1,  # the minimum number of options a user must select
         max_values=1  # the maximum number of options a user can select
     )
+    return war_type_select
 
 
-async def create_reminder(reminder_type: str, bot: CustomClient, ctx: disnake.MessageInteraction,
-                          channel: disnake.TextChannel, times: List[str]):
-    content = settings_text[reminder_type]
+async def create_capital_reminder(bot: CustomClient, ctx: disnake.MessageInteraction, channel: disnake.TextChannel, times: List[str]):
+    #content = settings_text["capital"]
+    clans = await bot.get_clans(tags=(await bot.get_guild_clans(guild_id=ctx.guild_id)))
+    clan_page = 0
+    dropdown = [clan_component(bot=bot, all_clans=clans, clan_page=clan_page), atk_threshold(), role_options(), buttons(bot=bot)]
 
-
-async def create_clan_capital_reminder(bot: CustomClient, ctx: disnake.MessageInteraction, clan: coc.Clan,
-                                       channel: disnake.TextChannel):
-
-
-
-
-
-
-    page_buttons = [
-        disnake.ui.Button(label="Save", emoji=bot.emoji.yes.partial_emoji, style=disnake.ButtonStyle.green,
-                          custom_id="Save"),
-    ]
-    buttons = disnake.ui.ActionRow()
-    for button in page_buttons:
-        buttons.append_item(button)
-
-    dropdown = [disnake.ui.ActionRow(time_select), disnake.ui.ActionRow(role_select),
-                disnake.ui.ActionRow(war_type_select), buttons]
-
-    await ctx.edit_original_message(content=content, components=dropdown)
     save = False
 
-    times = []
-    townhalls = reversed([x for x in range(2, 16)])
-    roles = role_types
+    clans_chosen = []
+    roles_chosen = ROLES
     attack_threshold = 1
+
+    embed = disnake.Embed(title="**Choose options/filters**", color=disnake.Color.green())
+    embed.set_footer(text="Note: If you don't select optional fields, defaults will be used")
+    embed.description = chosen_text(bot=bot, clans=clans_chosen, atk=attack_threshold, roles=roles_chosen)
+    await ctx.edit_original_message(embed=embed, components=dropdown)
+    message = await ctx.original_message()
+
+
     while not save:
         res: disnake.MessageInteraction = await interaction_handler(bot=bot, ctx=ctx, function=None)
         if "button" in str(res.data.component_type):
-            if not times:
-                await res.send(content="Must select reminder times", ephemeral=True)
+            if not clans_chosen:
+                await res.send(content="Must select at least one clan", ephemeral=True)
+            elif res.data.custom_id == "custom_text":
+                await res.send()
             else:
                 save = True
+        elif any("clanpage_" in s for s in res.values):
+            clan_page = int(next(value for value in res.values if "clanpage_" in value).split("_")[-1])
+            clan_dropdown = clan_component(bot=bot, all_clans=clans, clan_page=clan_page)
+            await message.edit(embed=embed, components=[clan_dropdown, atk_threshold(), role_options(), buttons(bot=bot)])
+
+        elif any("clantag_" in s for s in res.values):
+            clan_tags = [tag.split('_')[-1] for tag in res.values if "clantag_" in tag]
+            for tag in clan_tags:
+                clan = coc.utils.get(clans, tag=tag)
+                if clan in clans_chosen:
+                    clans_chosen.remove(clan)
+                else:
+                    clans_chosen.append(clan)
+            embed.description = chosen_text(bot=bot, clans=clans_chosen, atk=attack_threshold, roles=roles_chosen)
+            await message.edit(embed=embed)
+
         elif "string_select" in str(res.data.component_type):
-            if "th_" in res.values[0]:
-                townhalls = [int(th.split("_")[-1]) for th in res.values]
-            elif "hr" in res.values[0]:
-                times = res.values
-            elif res.values[0] in role_types:
-                roles = res.values
+            if res.values[0] in ROLES:
+                roles_chosen = res.values
+                embed.description = chosen_text(bot=bot, clans=clans_chosen, atk=attack_threshold, roles=res.values)
+                await message.edit(embed=embed)
             else:
                 attack_threshold = res.values[0]
 
-    for time in times:
+
+    '''for time in times:
         await bot.reminders.delete_one({"$and": [
             {"clan": clan.tag},
             {"server": ctx.guild.id},
@@ -191,7 +211,39 @@ async def create_clan_capital_reminder(bot: CustomClient, ctx: disnake.MessageIn
         "clan": clan.tag,
         "channel": channel.id,
     }, {"$set": {"custom_text": custom_text}})
-    return custom_text
+    return custom_text'''
+
+
+
+
+def chosen_text(bot: CustomClient, clans: List[coc.Clan], ths=None, roles=None, atk=None):
+    text = ""
+    if clans:
+        text += "**CLANS:**\n"
+        for clan in clans:
+            text += f"• {clan.name} ({clan.tag})\n"
+
+    if ths is not None:
+        text += "**THS:**\n"
+        for th in ths:
+            text += f"• {bot.fetch_emoji(name=th)} TH{th}\n"
+
+    if roles:
+        text += "**ROLES:**\n"
+        for role in roles:
+            text += f"• {role}\n"
+
+    if atk is not None:
+        text += f"\n**Attack Threshold:** {atk}+ left\n"
+
+    return text
+
+
+
+
+
+
+
 
 
 async def create_clan_games_reminder(bot: CustomClient, ctx: disnake.MessageInteraction, clan: coc.Clan,

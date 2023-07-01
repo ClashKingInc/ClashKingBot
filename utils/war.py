@@ -4,44 +4,44 @@ import asyncio
 import string
 import random
 
-from main import reminder_scheduler
+from main import scheduler
 from FamilyManagement.Reminders import SendReminders
-from main import bot
 from CustomClasses.CustomServer import DatabaseClan
+from CustomClasses.CustomBot import CustomClient
 from BoardCommands.Utils.War import main_war_page, missed_hits
 from ImageGen.WarEndResult import generate_war_result_image
 
-async def create_reminders(times, clan_tag):
+async def create_reminders(bot: CustomClient, times, clan_tag):
     for time in times:
         try:
             reminder_time = time[0] / 3600
             if reminder_time.is_integer():
                 reminder_time = int(reminder_time)
             send_time = time[1]
-            reminder_scheduler.add_job(SendReminders.war_reminder, 'date', run_date=send_time, args=[clan_tag, reminder_time],id=f"{reminder_time}_{clan_tag}", name=f"{clan_tag}", misfire_grace_time=None)
+            scheduler.add_job(SendReminders.war_reminder, 'date', run_date=send_time, args=[bot, clan_tag, reminder_time],id=f"{reminder_time}_{clan_tag}", name=f"{clan_tag}", misfire_grace_time=None)
         except:
             pass
 
 
-async def schedule_war_boards(war: coc.ClanWar):
+async def schedule_war_boards(bot:CustomClient, war: coc.ClanWar):
     if war.state == "preparation" or war.state == "inWar":
         if war.state == "preparation":
             try:
-                reminder_scheduler.add_job(send_or_update_war_start, 'date', run_date=war.start_time.time,
-                                       args=[war.clan.tag], id=f"war_start_{war.clan.tag}",
+                scheduler.add_job(send_or_update_war_start, 'date', run_date=war.start_time.time,
+                                       args=[bot, war.clan.tag], id=f"war_start_{war.clan.tag}",
                                        name=f"{war.clan.tag}_war_start", misfire_grace_time=None)
             except:
                 pass
         try:
-            reminder_scheduler.add_job(send_or_update_war_end, 'date', run_date=war.end_time.time,
-                                       args=[war.clan.tag, int(war.preparation_start_time.time.timestamp())],
+            scheduler.add_job(send_or_update_war_end, 'date', run_date=war.end_time.time,
+                                       args=[bot, war.clan.tag, int(war.preparation_start_time.time.timestamp())],
                                        id=f"war_end_{war.clan.tag}",
                                        name=f"{war.clan.tag}_war_end", misfire_grace_time=None)
         except:
             pass
 
         
-async def send_or_update_war_start(clan_tag:str):
+async def send_or_update_war_start(bot: CustomClient, clan_tag:str):
     war: coc.ClanWar = await bot.get_clanwar(clanTag=clan_tag)
     war.state = "inWar"
     if war is None:
@@ -78,10 +78,10 @@ async def send_or_update_war_start(clan_tag:str):
         db_clan = DatabaseClan(bot=bot, data=cc)
         if db_clan.server_id not in bot.OUR_GUILDS:
             continue
-        await update_war_message(war=war, db_clan=db_clan, clan=clan)
+        await update_war_message(bot=bot, war=war, db_clan=db_clan, clan=clan)
 
 
-async def send_or_update_war_end(clan_tag:str, preparation_start_time:int):
+async def send_or_update_war_end(bot: CustomClient, clan_tag:str, preparation_start_time:int):
     await asyncio.sleep(60)
     war = await bot.war_client.war_result(clan_tag=clan_tag, preparation_start=preparation_start_time)
     if war is None:
@@ -99,7 +99,7 @@ async def send_or_update_war_end(clan_tag:str, preparation_start_time:int):
     if war is None or str(war.state) != "warEnded":
         return
 
-    await store_war(war=war)
+    await store_war(bot=bot, war=war)
     clan = None
     if war.type == "cwl":
         clan = await bot.getClan(war.clan.tag)
@@ -143,7 +143,7 @@ async def send_or_update_war_end(clan_tag:str, preparation_start_time:int):
         db_clan = DatabaseClan(bot=bot, data=cc)
         if db_clan.server_id not in bot.OUR_GUILDS:
             continue
-        await update_war_message(war=war, db_clan=db_clan, clan=clan)
+        await update_war_message(bot=bot, war=war, db_clan=db_clan, clan=clan)
         missed_hits_embed = await missed_hits(bot=bot, war=war)
         log = db_clan.war_panel
         try:
@@ -163,7 +163,7 @@ async def send_or_update_war_end(clan_tag:str, preparation_start_time:int):
             continue
 
 
-async def update_war_message(war: coc.ClanWar, db_clan: DatabaseClan, clan: coc.Clan = None):
+async def update_war_message(bot: CustomClient, war: coc.ClanWar, db_clan: DatabaseClan, clan: coc.Clan = None):
     log = db_clan.war_panel
 
     message_id = log.message_id
@@ -178,7 +178,7 @@ async def update_war_message(war: coc.ClanWar, db_clan: DatabaseClan, clan: coc.
         message: disnake.WebhookMessage = await warlog_channel.fetch_message(message_id)
         await message.edit(embed=embed)
     except:
-        button = war_buttons(new_war=war)
+        button = war_buttons(bot=bot, new_war=war)
         log = db_clan.war_panel
 
         thread = None
@@ -203,7 +203,7 @@ async def update_war_message(war: coc.ClanWar, db_clan: DatabaseClan, clan: coc.
                                      {'$set': {"logs.war_panel.war_message": message.id, "logs.war_panel.war_id": war_id, "logs.war_panel.war_channel" : message.channel.id}})
 
 
-async def store_war(war: coc.ClanWar):
+async def store_war(bot: CustomClient, war: coc.ClanWar):
     is_stored = await bot.clan_wars.find_one({"war_id": f"{war.clan.tag}-{int(war.preparation_start_time.time.timestamp())}"})
     if is_stored is not None:
         return
@@ -233,7 +233,7 @@ def war_start_embed(new_war: coc.ClanWar):
     return embed
 
 
-def war_buttons(new_war: coc.ClanWar):
+def war_buttons(bot:CustomClient, new_war: coc.ClanWar):
     button = [disnake.ui.ActionRow(
         disnake.ui.Button(label="Attacks", emoji=bot.emoji.sword_clash.partial_emoji,
                           style=disnake.ButtonStyle.grey,

@@ -50,3 +50,6 @@ class InvalidGuildID(Exception):
 
 class ExportTemplateAlreadyExists(Exception):
     pass
+
+class NoRosterRoles(Exception):
+    pass

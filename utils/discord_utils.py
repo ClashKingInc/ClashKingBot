@@ -1,6 +1,6 @@
 import disnake
 from Assets.emojiDictionary import emojiDictionary, legend_emojis
-from typing import Callable
+from typing import Callable, Union
 from Exceptions.CustomExceptions import ExpiredComponents
 from urllib.request import Request, urlopen
 import io
@@ -37,7 +37,7 @@ async def permanent_image(bot, url: str):
     pic = msg.attachments[0].url
     return pic
 
-async def interaction_handler(bot, ctx: disnake.ApplicationCommandInteraction, msg:disnake.Message = None, function: Callable = None, no_defer = False):
+async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteraction, disnake.MessageInteraction], msg:disnake.Message = None, function: Callable = None, no_defer = False):
     if msg is None:
         msg = await ctx.original_message()
 

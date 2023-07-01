@@ -5,9 +5,8 @@ import pytz
 utc = pytz.utc
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from CustomClasses.CustomBot import CustomClient
-from main import bot
 
-async def war_reminder(clan_tag, reminder_time):
+async def war_reminder(bot: CustomClient, clan_tag, reminder_time):
     war = await bot.get_clanwar(clanTag=clan_tag)
     if war is None:
         return

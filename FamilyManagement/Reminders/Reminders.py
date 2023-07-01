@@ -40,13 +40,16 @@ class ReminderCreation(commands.Cog, name="Reminders"):
         """
 
         # VALIDATE TIMES
-
+        await ctx.response.defer()
         if channel is None:
             channel = ctx.channel
 
-        function_dict = {
+        type_to_type = {"Clan Capital" : "capital"}
+        type = type_to_type[type]
+
+        '''function_dict = {
             "create": {"war": ReminderUtils.create_war_reminder(bot=self.bot, ctx=ctx, times=times, channel=channel),
-                       "capital": ReminderUtils.create_clan_capital_reminder(bot=self.bot, ctx=ctx, times=times, channel=channel),
+                       "capital": ReminderUtils.create_capital_reminder(bot=self.bot, ctx=ctx, channel=channel, times=times),
                        "clangames": ReminderUtils.create_clan_games_reminder(bot=self.bot, ctx=ctx, times=times, channel=channel),
                        "inactive": ReminderUtils.create_inactivity_reminder(bot=self.bot, ctx=ctx, times=times, channel=channel)},
             "remove": {"capital": ReminderUtils.remove_clan_capital_reminder(bot=self.bot, ctx=ctx, times=times),
@@ -54,8 +57,14 @@ class ReminderCreation(commands.Cog, name="Reminders"):
                        "clangames": ReminderUtils.remove_clan_games_reminder(bot=self.bot, ctx=ctx, times=times),
                        "inactive": ReminderUtils.remove_inactivity_reminder(bot=self.bot, ctx=ctx, times=times)
                        }
+        }'''
+        function_dict = {
+            "create": {
+                       "capital": ReminderUtils.create_capital_reminder(bot=self.bot, ctx=ctx, channel=channel,
+                                                                        times=times)}
         }
-        function = await function_dict["create"][type]
+
+        await function_dict["create"][type]
 
         embed = disnake.Embed(description=f"Reminder Wizard Setup Complete for {times}!", color=disnake.Color.green())
         await ctx.edit_original_message(content="", components=[], embed=embed)
