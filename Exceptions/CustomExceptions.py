@@ -53,3 +53,6 @@ class ExportTemplateAlreadyExists(Exception):
 
 class NoRosterRoles(Exception):
     pass
+
+class NotValidReminderTime(Exception):
+    pass

@@ -24,8 +24,12 @@ class DiscordEvents(commands.Cog):
     async def on_connect(self):
         print("connected")
         scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "1 hr"], day_of_week="mon", hour=6, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "2 hr"], day_of_week="mon", hour=5, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "4 hr"], day_of_week="mon", hour=3, misfire_grace_time=None)
         scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "6 hr"], day_of_week="mon", hour=1, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "8 hr"],day_of_week="sun", hour=23, misfire_grace_time=None)
         scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "12 hr"], day_of_week="sun", hour=19, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "16 hr"], day_of_week="sun", hour=15, misfire_grace_time=None)
         scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "24 hr"], day_of_week="sun", hour=7, misfire_grace_time=None)
 
         scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "144 hr"], day=22, hour=8, misfire_grace_time=None)

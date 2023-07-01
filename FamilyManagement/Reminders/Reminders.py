@@ -6,6 +6,7 @@ from disnake.ext import commands
 from typing import Union, List
 from FamilyManagement.Reminders import ReminderUtils
 from CustomClasses.CustomBot import CustomClient
+from Exceptions.CustomExceptions import NotValidReminderTime
 
 class ReminderCreation(commands.Cog, name="Reminders"):
 
@@ -39,19 +40,44 @@ class ReminderCreation(commands.Cog, name="Reminders"):
             channel: channel for reminder, if blank will use channel command is run in
         """
 
-        # VALIDATE TIMES
         await ctx.response.defer()
+
         if channel is None:
             channel = ctx.channel
+        temp_times = times.split(",")
+        new_times = []
 
         if type == "War & CWL":
-            await ReminderUtils.create_war_reminder(bot=self.bot, ctx=ctx, channel=channel, times=times)
+            for t in temp_times:
+                t = t.replace(" ", "")
+                if t not in self.gen_war_times():
+                    raise NotValidReminderTime
+                new_times.append(f"{t[:-2]} hr")
+            await ReminderUtils.create_war_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times)
         elif type == "Clan Capital":
-            await ReminderUtils.create_capital_reminder(bot=self.bot, ctx=ctx, channel=channel, times=times)
+            for t in temp_times:
+                t = t.replace(" ", "")
+                new_times.append(t)
+                if t not in self.gen_capital_times():
+                    raise NotValidReminderTime
+                new_times.append(f"{t[:-2]} hr")
+            await ReminderUtils.create_capital_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times)
         elif type == "Clan Games":
-            await ReminderUtils.create_games_reminder(bot=self.bot, ctx=ctx, channel=channel, times=times)
+            for t in temp_times:
+                t = t.replace(" ", "")
+                new_times.append(t)
+                if t not in self.gen_clan_games_times():
+                    raise NotValidReminderTime
+                new_times.append(f"{t[:-2]} hr")
+            await ReminderUtils.create_games_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times)
         elif type == "Inactivity":
-            await ReminderUtils.create_inactivity_reminder(bot=self.bot, ctx=ctx, channel=channel, times=times)
+            for t in temp_times:
+                t = t.replace(" ", "")
+                new_times.append(t)
+                if t not in self.gen_inactivity_times():
+                    raise NotValidReminderTime
+                new_times.append(f"{t[:-2]} hr")
+            await ReminderUtils.create_inactivity_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times)
 
         embed = disnake.Embed(description=f"{type} Reminder Setup Complete for {times}!", color=disnake.Color.green())
         await ctx.edit_original_message(content="", components=[], embed=embed)
@@ -132,19 +158,17 @@ class ReminderCreation(commands.Cog, name="Reminders"):
         return all_times
 
     def gen_capital_times(self):
-        all_times = (x * 0.25 for x in range(1, 289))
-        all_times = [f"{int(time)}hr" if time.is_integer() else f"{time}hr" for time in all_times]
+        all_times = [1, 2, 4, 6, 8, 12, 16, 24]
+        all_times = [f"{int(time)}hr" for time in all_times]
         return all_times
 
     def gen_clan_games_times(self):
-        all_times = (x * 0.25 for x in range(1, 193))
-        all_times = [f"{int(time)}hr" if time.is_integer() else f"{time}hr" for time in all_times]
-        day_times = (x * 0.5 for x in range(5, 13))
-        all_times += [f"{int(time)}days" if time.is_integer() else f"{time}days" for time in day_times]
+        all_times = [1, 2, 4, 6, 12, 24, 36, 48, 72, 96, 120, 144]
+        all_times = [f"{time}hr" for time in all_times]
         return all_times
 
     def gen_inactivity_times(self):
-        return ["24hr", "48hr", "72hr", "1week", "2weeks"]
+        return ["24hr", "48hr", "72hr", "144hr", "288hr"]
 
 def setup(bot: CustomClient):
     bot.add_cog(ReminderCreation(bot))
