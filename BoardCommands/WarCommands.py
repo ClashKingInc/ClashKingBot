@@ -6,11 +6,12 @@ import calendar
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from utils.discord_utils import interaction_handler
+from utils.constants import leagues
 from coc.miscmodels import Timestamp
 from pymongo import UpdateOne
 from BoardCommands.Utils.War import plan_embed, create_components, open_modal, main_war_page, roster_embed, opp_roster_embed, \
     attacks_embed, opp_overview, defenses_embed, opp_defenses_embed, get_cwl_wars, get_latest_war, get_wars_at_round, component_handler, \
-    page_manager
+    page_manager, create_cwl_status, cwl_ranking_create
 
 class War(commands.Cog):
 
@@ -292,13 +293,67 @@ class War(commands.Cog):
 
     @cwl.sub_command(name="rankings", description="Rankings in cwl for a family")
     async def cwl_rankings(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
+        await ctx.response.defer()
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
+        if len(clan_tags) == 0:
+            return await ctx.send("No clans linked to this server.")
+
+        clans = await self.bot.get_clans(tags=clan_tags)
+        cwl_list = []
+        tasks = []
+        for clan in clans:
+            cwl_list.append([clan.name, clan.tag, clan.war_league.name, clan])
+            task = asyncio.ensure_future(cwl_ranking_create(bot=self.bot, clan=clan))
+            tasks.append(task)
+        rankings = await asyncio.gather(*tasks)
+        new_rankings = {}
+        for item in rankings:
+            new_rankings[list(item.keys())[0]] = list(item.values())[0]
+
+        clans_list = sorted(cwl_list, key=lambda l: l[2], reverse=False)
+
+        main_embed = disnake.Embed(title=f"__**{ctx.guild.name} CWL Rankings**__",
+                                   color=disnake.Color.green())
+        if ctx.guild.icon is not None:
+            main_embed.set_thumbnail(url=ctx.guild.icon.url)
+
+        embeds = []
+        leagues_present = ["All"]
+        for league in leagues:
+            text = ""
+            for clan in clans_list:
+                # print(clan)
+                if clan[2] == league:
+                    tag = clan[1]
+                    placement = new_rankings[tag]
+                    if placement is None:
+                        continue
+                    if len(text) + len(f"{placement}{clan[0]}\n") >= 1020:
+                        main_embed.add_field(name=f"**{league}**", value=text, inline=False)
+                        text = ""
+                    text += f"{placement}{clan[0]}\n"
+                if (clan[0] == clans_list[len(clans_list) - 1][0]) and (text != ""):
+                    leagues_present.append(league)
+                    main_embed.add_field(name=f"**{league}**", value=text, inline=False)
+                    embed = disnake.Embed(title=f"__**{ctx.guild.name} {league} Clans**__", description=text,
+                                          color=disnake.Color.green())
+                    if ctx.guild.icon is not None:
+                        embed.set_thumbnail(url=ctx.guild.icon.url)
+                    embeds.append(embed)
+
+        embeds.append(main_embed)
+        await ctx.send(embed=main_embed)
+
 
     @cwl.sub_command(name="status", description="Spin/War status for a family")
     async def cwl_status(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
-
-
+        await ctx.response.defer()
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
+                              custom_id=f"cwlstatusfam_"))
+        embed = await create_cwl_status(bot=self.bot, guild=ctx.guild)
+        await ctx.edit_original_message(embed=embed, components=[buttons])
 
 
     #AUTOCOMPLETES
@@ -383,11 +438,12 @@ class War(commands.Cog):
                     options.append(text)
             return options
 
+
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
         if "cwlstatusfam_" in str(ctx.data.custom_id):
             await ctx.response.defer()
-            embed = await self.create_cwl_status(guild=ctx.guild)
+            embed = await create_cwl_status(bot=self.bot, guild=ctx.guild)
             await ctx.edit_original_message(embed=embed)
 
 

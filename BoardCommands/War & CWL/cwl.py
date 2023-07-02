@@ -380,59 +380,6 @@ async def cwl_status(self, ctx: disnake.ApplicationCommandInteraction):
     embed = await self.create_cwl_status(guild=ctx.guild)
     await ctx.edit_original_message(embed=embed, components=[buttons])
 
-async def create_cwl_status(self, guild: disnake.Guild):
-    now = datetime.now()
-    season = self.bot.gen_season_date()
-    clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
-    if len(clan_tags) == 0:
-        embed = disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
-        return embed
-
-    clans= await self.bot.get_clans(tags=clan_tags)
-
-    spin_list = []
-    for clan in clans:
-        if clan is None:
-            continue
-        c = [clan.name, clan.war_league.name, clan.tag]
-        try:
-            league = await self.bot.coc_client.get_league_group(clan.tag)
-            state = league.state
-            if str(state) == "preparation":
-                c.append("<a:CheckAccept:992611802561134662>")
-                c.append(1)
-            elif str(state) == "ended":
-                c.append("<:dash:933150462818021437>")
-                c.append(3)
-            elif str(state) == "inWar":
-                c.append("<a:swords:944894455633297418>")
-                c.append(0)
-            elif str(state) == "notInWar":
-                c.append("<a:spinning:992612297048588338>")
-                c.append(2)
-        except coc.errors.NotFound:
-            c.append("<:dash:933150462818021437>")
-            c.append(3)
-        spin_list.append(c)
-
-    clans_list = sorted(spin_list, key=lambda x: (x[1], x[4]), reverse=False)
-
-    main_embed = disnake.Embed(title=f"__**{guild.name} CWL Status**__",
-                               color=disnake.Color.green())
-
-    #name, league, clan, status emoji, order
-    for league in leagues:
-        text = ""
-        for clan in clans_list:
-            if clan[1] == league:
-                text += f"{clan[3]} {clan[0]}\n"
-            if (clan[2] == clans_list[len(clans_list) - 1][2]) and (text != ""):
-                main_embed.add_field(name=f"**{league}**", value=text, inline=False)
-
-    main_embed.add_field(name="Legend", value=f"<a:spinning:992612297048588338> Spinning | <:dash:933150462818021437> Not Spun | <a:CheckAccept:992611802561134662> Prep |  <a:swords:944894455633297418> War")
-    main_embed.timestamp = now
-    main_embed.set_footer(text="Last Refreshed:")
-    return main_embed
 
 
 

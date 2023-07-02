@@ -9,7 +9,7 @@ from pytz import utc
 from collections import defaultdict
 from utils.general import create_superscript
 from utils.clash import cwl_league_emojis, leagueAndTrophies
-from utils.constants import war_leagues
+from utils.constants import war_leagues, leagues, SUPER_SCRIPTS
 from Assets.emojiDictionary import emojiDictionary
 from CustomClasses.Misc import WarPlan
 from typing import List
@@ -853,3 +853,123 @@ def get_league_war_by_tag(league_wars: List[coc.ClanWar], war_tag: str):
     for war in league_wars:
         if war.war_tag == war_tag:
             return war
+
+
+async def create_cwl_status(bot:CustomClient, guild: disnake.Guild):
+    now = datetime.now()
+    season = bot.gen_season_date()
+    clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
+    if len(clan_tags) == 0:
+        embed = disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
+        return embed
+
+    clans= await bot.get_clans(tags=clan_tags)
+
+    spin_list = []
+    for clan in clans:
+        if clan is None:
+            continue
+        c = [clan.name, clan.war_league.name, clan.tag]
+        try:
+            league = await bot.coc_client.get_league_group(clan.tag)
+            state = league.state
+            if str(state) == "preparation":
+                c.append("<a:CheckAccept:992611802561134662>")
+                c.append(1)
+            elif str(state) == "ended":
+                c.append("<:dash:933150462818021437>")
+                c.append(3)
+            elif str(state) == "inWar":
+                c.append("<a:swords:944894455633297418>")
+                c.append(0)
+            elif str(state) == "notInWar":
+                c.append("<a:spinning:992612297048588338>")
+                c.append(2)
+        except coc.errors.NotFound:
+            c.append("<:dash:933150462818021437>")
+            c.append(3)
+        spin_list.append(c)
+
+    clans_list = sorted(spin_list, key=lambda x: (x[1], x[4]), reverse=False)
+
+    main_embed = disnake.Embed(title=f"__**{guild.name} CWL Status**__",
+                               color=disnake.Color.green())
+
+    #name, league, clan, status emoji, order
+    for league in leagues:
+        text = ""
+        for clan in clans_list:
+            if clan[1] == league:
+                text += f"{clan[3]} {clan[0]}\n"
+            if (clan[2] == clans_list[len(clans_list) - 1][2]) and (text != ""):
+                main_embed.add_field(name=f"**{league}**", value=text, inline=False)
+
+    main_embed.add_field(name="Legend", value=f"<a:spinning:992612297048588338> Spinning | <:dash:933150462818021437> Not Spun | <a:CheckAccept:992611802561134662> Prep |  <a:swords:944894455633297418> War")
+    main_embed.timestamp = now
+    main_embed.set_footer(text="Last Refreshed:")
+    return main_embed
+
+
+async def cwl_ranking_create(bot: CustomClient, clan: coc.Clan):
+    try:
+        group = await bot.coc_client.get_league_group(clan.tag)
+        state = group.state
+        if str(state) == "preparation" and len(group.rounds) == 1:
+            return {clan.tag: None}
+        if str(group.season) != bot.gen_season_date():
+            return {clan.tag: None}
+    except:
+        return {clan.tag: None}
+
+    star_dict = defaultdict(int)
+    dest_dict = defaultdict(int)
+    tag_to_name = defaultdict(str)
+
+    rounds = group.rounds
+    for round in rounds:
+        for war_tag in round:
+            war = await bot.coc_client.get_league_war(war_tag)
+            if str(war.status) == "won":
+                star_dict[war.clan.tag] += 10
+            elif str(war.status) == "lost":
+                star_dict[war.opponent.tag] += 10
+            tag_to_name[war.clan.tag] = war.clan.name
+            tag_to_name[war.opponent.tag] = war.opponent.name
+            for player in war.members:
+                attacks = player.attacks
+                for attack in attacks:
+                    star_dict[player.clan.tag] += attack.stars
+                    dest_dict[player.clan.tag] += attack.destruction
+
+    star_list = []
+    for tag, stars in star_dict.items():
+        destruction = dest_dict[tag]
+        name = tag_to_name[tag]
+        star_list.append([tag, stars, destruction])
+
+    sorted_list = sorted(star_list, key=operator.itemgetter(1, 2), reverse=True)
+    place= 1
+    for item in sorted_list:
+        promo = [x["promo"] for x in war_leagues["items"] if x["name"] == clan.war_league.name][0]
+        demo = [x["demote"] for x in war_leagues["items"] if x["name"] == clan.war_league.name][0]
+        if place <= promo:
+            emoji = "<:warwon:932212939899949176>"
+        elif place >= demo:
+            emoji = "<:warlost:932212154164183081>"
+        else:
+            emoji = "<:dash:933150462818021437>"
+        tag = item[0]
+        stars = str(item[1])
+        dest = str(item[2])
+        if place == 1:
+            rank = f"{place}st"
+        elif place == 2:
+            rank = f"{place}nd"
+        elif place == 3:
+            rank = f"{place}rd"
+        else:
+            rank = f"{place}th"
+        if tag == clan.tag:
+            tier = str(clan.war_league.name).count("I")
+            return {clan.tag : f"{emoji}`{rank}` {cwl_league_emojis(clan.war_league.name)}{SUPER_SCRIPTS[tier]}"}
+        place += 1
