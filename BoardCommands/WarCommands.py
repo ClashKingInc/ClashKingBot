@@ -13,7 +13,8 @@ from CustomClasses.CustomPlayer import MyCustomPlayer
 from utils.discord_utils import interaction_handler
 from coc.miscmodels import Timestamp
 from pymongo import UpdateOne
-from BoardCommands.Utils.War import plan_embed, create_components, open_modal
+from BoardCommands.Utils.War import plan_embed, create_components, open_modal, main_war_page, roster_embed, opp_roster_embed, \
+    attacks_embed, opp_overview, defenses_embed, opp_defenses_embed
 
 class War(commands.Cog):
 
@@ -106,7 +107,7 @@ class War(commands.Cog):
         surr = self.bot.get_emoji(int(surr))
         surr = disnake.PartialEmoji(name=surr.name, id=surr.id)
 
-        embed = await self.main_war_page(war=war, clan=clan)
+        embed = await main_war_page(bot=self.bot, war=war, war_league=str(clan.war_league))
 
         main = embed
 
@@ -143,22 +144,22 @@ class War(commands.Cog):
             if res.values[0] == "war":
                 await res.response.edit_message(embed=main)
             elif res.values[0] == "croster":
-                embed = await self.roster_embed(war)
+                embed = await roster_embed(bot=self.bot, war=war)
                 await res.response.edit_message(embed=embed)
             elif res.values[0] == "oroster":
-                embed = await self.opp_roster_embed(war)
+                embed = await opp_roster_embed(bot=self.bot, war=war)
                 await res.response.edit_message(embed=embed)
             elif res.values[0] == "attacks":
-                embed = await self.attacks_embed(war)
+                embed = await attacks_embed(bot=self.bot, war=war)
                 await res.response.edit_message(embed=embed)
             elif res.values[0] == "defenses":
-                embed = await self.defenses_embed(war)
+                embed = await defenses_embed(bot=self.bot, war=war)
                 await res.response.edit_message(embed=embed)
             elif res.values[0] == "opp_over":
-                embed = await self.opp_overview(war)
+                embed = await opp_overview(bot=self.bot, war=war)
                 await res.response.edit_message(embed=embed)
             elif res.values[0] == "odefenses":
-                embed = await self.opp_defenses_embed(war)
+                embed = await opp_defenses_embed(bot=self.bot, war=war)
                 await res.response.edit_message(embed=embed)
 
 

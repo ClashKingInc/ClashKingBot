@@ -79,52 +79,75 @@ class ReminderCreation(commands.Cog, name="Reminders"):
                 new_times.append(f"{t[:-2]} hr")
             await ReminderUtils.create_inactivity_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times)
 
-        embed = disnake.Embed(description=f"{type} Reminder Setup Complete for {times}!", color=disnake.Color.green())
-        await ctx.edit_original_message(content="", components=[], embed=embed)
+        await ctx.edit_original_message(content=f"Setup Complete!", components=[])
+
+
+    @reminders.sub_command(name="delete", description="Delete reminders on your server")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def delete_reminders(self, ctx: disnake.ApplicationCommandInteraction,
+                               clan: coc.Clan = commands.Param(converter=clan_converter),
+                               type = commands.Param(choices=["War & CWL", "Clan Capital", "Inactivity", "Clan Games"])):
+        type_to_type = {"War & CWL" : "War", "Clan Capital" : "Clan Capital", "Inactivity" : "inactivity", "Clan Games" : "Clan Games"}
+        r_type = type_to_type[type]
 
 
 
     @reminders.sub_command(name="list", description="Get the list of reminders set up on the server")
     async def reminder_list(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
-        embed = disnake.Embed(title=f"**{ctx.guild.name} Reminders List**")
+        embed = disnake.Embed(title=f"**{ctx.guild.name} Reminders List**", color=disnake.Color.green())
         all_reminders_tags = await self.bot.reminders.distinct("clan", filter={"$and": [{"server": ctx.guild.id}]})
         for tag in all_reminders_tags:
             clan = await self.bot.getClan(clan_tag=tag)
             if clan is None:
                 continue
             reminder_text = ""
-            clan_capital_reminders = self.bot.reminders.find(
-                {"$and": [{"clan": tag}, {"type": "Clan Capital"}, {"server": ctx.guild.id}]})
+            clan_capital_reminders = await self.bot.reminders.find({"$and": [{"clan": tag}, {"type": "Clan Capital"}, {"server": ctx.guild.id}]}).to_list(length=None)
+            clan_capital_reminders = sorted(clan_capital_reminders, key=lambda l: float(str(l.get('time')).replace("hr", "")), reverse=False)
             cc_reminder_text = []
-            for reminder in await clan_capital_reminders.to_list(length=100):
+            for reminder in clan_capital_reminders:
+                channel = await self.bot.getch_channel(reminder.get('channel'))
+                if channel is None:
+                    continue
                 cc_reminder_text.append(f"`{reminder.get('time')}` - <#{reminder.get('channel')}>")
             if cc_reminder_text:
                 reminder_text += "**Clan Capital:** \n" + "\n".join(cc_reminder_text) + "\n"
 
-            clan_games_reminders = self.bot.reminders.find(
-                {"$and": [{"clan": tag}, {"type": "Clan Games"}, {"server": ctx.guild.id}]})
+            clan_games_reminders = await self.bot.reminders.find({"$and": [{"clan": tag}, {"type": "Clan Games"}, {"server": ctx.guild.id}]}).to_list(length=None)
+            clan_games_reminders = sorted(clan_games_reminders, key=lambda l: float(str(l.get('time')).replace("hr", "")), reverse=False)
             cg_reminder_text = []
-            for reminder in await clan_games_reminders.to_list(length=100):
+            for reminder in clan_games_reminders:
+                channel = await self.bot.getch_channel(reminder.get('channel'))
+                if channel is None:
+                    continue
                 cg_reminder_text.append(f"`{reminder.get('time')}` - <#{reminder.get('channel')}>")
             if cg_reminder_text:
                 reminder_text += "**Clan Games:** \n" + "\n".join(cg_reminder_text) + "\n"
 
-            inactivity_reminders = self.bot.reminders.find(
-                {"$and": [{"clan": tag}, {"type": "inactivity"}, {"server": ctx.guild.id}]})
+            inactivity_reminders = await self.bot.reminders.find({"$and": [{"clan": tag}, {"type": "inactivity"}, {"server": ctx.guild.id}]}).to_list(length=None)
+            inactivity_reminders = sorted(inactivity_reminders, key=lambda l: float(str(l.get('time')).replace("hr", "")), reverse=False)
             ia_reminder_text = []
-            for reminder in await inactivity_reminders.to_list(length=100):
+            for reminder in inactivity_reminders:
+                channel = await self.bot.getch_channel(reminder.get('channel'))
+                if channel is None:
+                    continue
                 ia_reminder_text.append(f"`{reminder.get('time')}` - <#{reminder.get('channel')}>")
             if ia_reminder_text:
                 reminder_text += "**Inactivity:** \n" + "\n".join(ia_reminder_text) + "\n"
 
-            war_reminders = self.bot.reminders.find({"$and": [{"clan": tag}, {"type": "War"}, {"server": ctx.guild.id}]})
+            war_reminders = await self.bot.reminders.find({"$and": [{"clan": tag}, {"type": "War"}, {"server": ctx.guild.id}]}).to_list(length=None)
+            war_reminders = sorted(war_reminders, key=lambda l: float(str(l.get('time')).replace("hr", "")), reverse=False)
             war_reminder_text = []
-            for reminder in await war_reminders.to_list(length=100):
+            for reminder in war_reminders:
+                channel = await self.bot.getch_channel(reminder.get('channel'))
+                if channel is None:
+                    continue
                 war_reminder_text.append(f"`{reminder.get('time')}` - <#{reminder.get('channel')}>")
             if war_reminder_text:
                 reminder_text += "**War:** \n" + "\n".join(war_reminder_text) + "\n"
             emoji = await self.bot.create_new_badge_emoji(url=clan.badge.url)
+            if reminder_text == "":
+                continue
             embed.add_field(name=f"{emoji}{clan.name}", value=reminder_text, inline=False)
         await ctx.edit_original_message(embed=embed)
 

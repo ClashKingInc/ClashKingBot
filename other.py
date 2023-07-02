@@ -49,13 +49,6 @@ class misc(commands.Cog, name="Other"):
                 clan_list.append(f"{name} | {tag}")
         return clan_list[0:25]
 
-    @commands.slash_command(name="support-server", description="Invite to bot support server")
-    async def support(self, ctx):
-        await ctx.send(content="https://discord.gg/gChZm3XCrS")
-
-    @commands.slash_command(name="invite-bot", description="Invite bot to other servers!")
-    async def invitebot(self, ctx):
-        await ctx.send("https://discord.com/api/oauth2/authorize?client_id=824653933347209227&permissions=8&scope=bot%20applications.commands")
 
     @commands.slash_command(name="role-users", description="Get a list of users in a role")
     async def roleusers(self, ctx, role: disnake.Role):
@@ -105,17 +98,16 @@ class misc(commands.Cog, name="Other"):
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)
 
+
     @commands.slash_command(name="bot-stats", description="Stats about bots uptime & ping")
     async def stat(self, ctx):
         uptime = time.time() - self.up
         uptime = time.strftime("%H hours %M minutes %S seconds", time.gmtime(uptime))
-
         me = self.bot.user.mention
 
-        cocping = self.bot.coc_client.http.stats.get_all_average()
-        ping_text = ""
-        for endpoint, ping in cocping.items():
-            ping_text += f"- `{endpoint} - {round(ping, 2)}ms`\n"
+        num_clans = await self.bot.clan_db.count_documents({})
+        num_players = await self.bot.player_stats.count_documents({})
+        num_tickets = await self.bot.open_tickets.count_documents({})
 
         inservers = len(self.bot.guilds)
         members = sum(guild.member_count - 1 for guild in self.bot.guilds)
@@ -124,11 +116,28 @@ class misc(commands.Cog, name="Other"):
                                           f"<:discord:840749695466864650> Discord Api Ping: {round(self.bot.latency * 1000, 2)} ms\n" +
                                           f"<:server:863148364006031422> In {str(inservers)} servers\n" +
                                           f"<a:num:863149480819949568> Watching {members} users\n" +
-                                          f"🕐 Uptime: {uptime}\n" +
-                                          f"<:clash:855491735488036904> COC Api Ping by Endpoint:\n {ping_text}",
-                              color=disnake.Color.blue())
+                                          f"🕐 Uptime: {uptime}\n"
+                                          f"Tracking {num_clans} clans\n"
+                                          f"Tracking {num_players} players\n"
+                                          f"{num_tickets} tickets opened\n",
+                              color=disnake.Color.green())
 
+        page_buttons = [
+            disnake.ui.Button(label="Bot Invite", style=disnake.ButtonStyle.url, url="https://discord.com/api/oauth2/authorize?client_id=824653933347209227&permissions=8&scope=bot%20applications.commands"),
+            disnake.ui.Button(label="Support Server", style=disnake.ButtonStyle.url, url="https://discord.gg/gChZm3XCrS"),
+        ]
+        buttons = disnake.ui.ActionRow()
+        for button in page_buttons:
+            buttons.append_item(button)
         await ctx.send(embed=embed)
+
+    def ping_embed(self):
+        cocping = self.bot.coc_client.http.stats.get_all_average()
+        ping_text = ""
+        for endpoint, ping in cocping.items():
+            ping_text += f"- `{endpoint} - {round(ping, 2)}ms`\n"
+        return disnake.Embed(title="COC Api Ping by Endpoint", description=ping_text, color=disnake.Color.green())
+
 
     @commands.slash_command(name="summary")
     async def summary(self, ctx: disnake.ApplicationCommandInteraction, num_messages: int = 100):

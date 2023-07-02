@@ -503,6 +503,12 @@ def chosen_text(bot: CustomClient, clans: List[coc.Clan], ths=None, roles=None, 
 
 
 ##REMINDER DELETION
+async def delete_reminder(bot: CustomClient, clan: coc.Clan, ctx: disnake.ApplicationCommandInteraction, type: str):
+    reminders = await bot.reminders.find({"$and": [{"clan": clan.tag}, {"type": type}, {"server": ctx.guild.id}]}).to_list(length=None)
+    reminders = sorted(reminders, key=lambda l: float(str(l.get('time')).replace("hr", "")), reverse=False)
+
+
+
 
 async def remove_clan_capital_reminder(bot, ctx: disnake.MessageInteraction, clan: coc.Clan):
     clan_capital_reminders = bot.reminders.find(
