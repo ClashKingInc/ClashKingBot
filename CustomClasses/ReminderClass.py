@@ -6,14 +6,14 @@ class Reminder:
     def __init__(self, bot: CustomClient, data):
         self.__bot = bot
         self.__data = data
-        self.server_id = data.get("server")
-        self.type = data.get("type")
-        self.clan_tag = data.get("clan")
-        self.channel_id = data.get("channel")
-        self.time = data.get("time")
-        self.roles: List = data.get("roles", ROLES)
-        self.townhalls: List = data.get("townhalls", TOWNHALL_LEVELS)
-        self.custom_text = data.get("custom_text")
+        self.server_id: int = data.get("server")
+        self.type: str = data.get("type")
+        self.clan_tag: str = data.get("clan")
+        self.channel_id: int = data.get("channel")
+        self.time: str = data.get("time")
+        self.roles: List[str] = data.get("roles", ROLES)
+        self.townhalls: List[int] = data.get("townhalls", list(reversed(TOWNHALL_LEVELS)))
+        self.custom_text: str = data.get("custom_text", "")
 
     @property
     def point_threshold(self):
@@ -68,3 +68,5 @@ class Reminder:
             {"$and": [{"clan": self.clan_tag}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]},
             {"$set": {"point_threshold": threshold}})
 
+    async def delete(self):
+        await self.__bot.reminders.delete_one({"$and": [{"clan": self.clan_tag}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]})

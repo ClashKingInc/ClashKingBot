@@ -660,9 +660,7 @@ class misc(commands.Cog, name="Settings"):
     @role.autocomplete("clan")
     @leaderrole.autocomplete("clan")
     @category.autocomplete("clan")
-    @set_log_remove.autocomplete("clan")
     @ban_alert.autocomplete("clan")
-    @set_log_add.autocomplete("clan")
     @strike_ban_buttons.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})

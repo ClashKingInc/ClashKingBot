@@ -40,9 +40,11 @@ class ExceptionHandler(commands.Cog):
             return await ctx.send(embed=embed)
 
         if isinstance(error, ThingNotFound):
-            print(error.args)
             embed = disnake.Embed(description=f"{str(error)}", color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            if not ctx.response.is_done():
+                return await ctx.edit_original_message(embed=embed)
+            else:
+                return await ctx.send(embed=embed)
 
         if isinstance(error, ExportTemplateAlreadyExists):
             embed = disnake.Embed(description=f"Export Template with this name already exists.", color=disnake.Color.red())
@@ -98,7 +100,6 @@ class ExceptionHandler(commands.Cog):
                             f"create your embed, then click `copy code`",
                 color=disnake.Color.red())
             return await ctx.send(embed=embed, ephemeral=True)
-
 
 
 def setup(bot: CustomClient):

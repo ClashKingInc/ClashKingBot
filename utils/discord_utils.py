@@ -37,7 +37,9 @@ async def permanent_image(bot, url: str):
     pic = msg.attachments[0].url
     return pic
 
-async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteraction, disnake.MessageInteraction], msg:disnake.Message = None, function: Callable = None, no_defer = False):
+
+async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteraction, disnake.MessageInteraction], msg:disnake.Message = None,
+                              function: Callable = None, no_defer = False, ephemeral= False):
     if msg is None:
         msg = await ctx.original_message()
 
@@ -62,7 +64,10 @@ async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteract
             continue
 
         if not no_defer and "modal" not in res.data.custom_id:
-            await res.response.defer()
+            if ephemeral:
+                await res.response.defer(ephemeral=True)
+            else:
+                await res.response.defer()
         valid_value = await function(res=res)
 
     return valid_value

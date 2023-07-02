@@ -84,9 +84,10 @@ class ReminderCreation(commands.Cog, name="Reminders"):
 
     @reminders.sub_command(name="edit", description="edit or delete reminders on your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def delete_reminders(self, ctx: disnake.ApplicationCommandInteraction,
+    async def edit_reminders(self, ctx: disnake.ApplicationCommandInteraction,
                                clan: coc.Clan = commands.Param(converter=clan_converter),
                                type = commands.Param(choices=["War & CWL", "Clan Capital", "Inactivity", "Clan Games"])):
+        await ctx.response.defer()
         type_to_type = {"War & CWL" : "War", "Clan Capital" : "Clan Capital", "Inactivity" : "inactivity", "Clan Games" : "Clan Games"}
         r_type = type_to_type[type]
         await ReminderUtils.edit_reminder(bot=self.bot, clan=clan, ctx=ctx, type=r_type)
@@ -153,6 +154,17 @@ class ReminderCreation(commands.Cog, name="Reminders"):
         await ctx.edit_original_message(embed=embed)
 
 
+    @edit_reminders.autocomplete("clan")
+    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
+        clan_list = []
+        for tClan in await tracked.to_list(length=limit):
+            name = tClan.get("name")
+            tag = tClan.get("tag")
+            if query.lower() in name.lower():
+                clan_list.append(f"{name} | {tag}")
+        return clan_list[:25]
 
     @setup_reminders.autocomplete("time_left")
     async def reminder_autocomp(self, ctx: disnake.ApplicationCommandInteraction, query: str):
