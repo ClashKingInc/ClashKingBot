@@ -863,7 +863,7 @@ async def create_cwl_status(bot:CustomClient, guild: disnake.Guild):
         embed = disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
         return embed
 
-    clans= await bot.get_clans(tags=clan_tags)
+    clans = await bot.get_clans(tags=clan_tags)
 
     spin_list = []
     for clan in clans:
@@ -885,7 +885,7 @@ async def create_cwl_status(bot:CustomClient, guild: disnake.Guild):
             elif str(state) == "notInWar":
                 c.append("<a:spinning:992612297048588338>")
                 c.append(2)
-        except coc.errors.NotFound:
+        except coc.NotFound:
             c.append("<:dash:933150462818021437>")
             c.append(3)
         spin_list.append(c)
