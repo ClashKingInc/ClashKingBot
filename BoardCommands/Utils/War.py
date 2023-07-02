@@ -467,7 +467,7 @@ async def get_cwl_wars(bot:CustomClient, clan: coc.Clan, season: str, group=None
         response = await bot.cwl_db.find_one({"clan_tag": clan_tag, "season": season})
         if response is not None:
             group = coc.ClanWarLeagueGroup(data=response.get("data"), client=bot.coc_client)
-            clan_league_wars = wars_from_group(data=response.get("data"), clan_tag=clan.tag, group=group)
+            clan_league_wars = wars_from_group(bot=bot, data=response.get("data"), clan_tag=clan.tag, group=group)
             if clan_league_wars:
                 league_name = [x["name"]for x in war_leagues["items"] if x["id"] == response.get("data").get("leagueId")][0]
                 return (group, clan_league_wars, clan.tag, league_name)
@@ -601,7 +601,7 @@ async def ranking_lb(bot: CustomClient, group: coc.ClanWarLeagueGroup, fetched_c
             if not league_wars:
                 war = await bot.coc_client.get_league_war(war_tag)
             else:
-                war = get_league_war_by_tag(bot=bot, league_wars=league_wars, war_tag=war_tag)
+                war = get_league_war_by_tag(league_wars=league_wars, war_tag=war_tag)
             if str(war.status) == "won":
                 star_dict[war.clan.tag] += 10
             elif str(war.status) == "lost":
@@ -720,9 +720,9 @@ async def page_manager(bot:CustomClient, page:str, group: coc.ClanWarLeagueGroup
         return [embed]
 
 
-async def component_handler(page: str, current_war: coc.ClanWar, next_war: coc.ClanWar, group: coc.ClanWarLeagueGroup, league_wars: List[coc.ClanWar], fetched_clan):
-    round_stat_dropdown = await stat_components(war=current_war, next_war=next_war)
-    overall_stat_dropdown = await overall_stat_components()
+async def component_handler(bot: CustomClient, page: str, current_war: coc.ClanWar, next_war: coc.ClanWar, group: coc.ClanWarLeagueGroup, league_wars: List[coc.ClanWar], fetched_clan):
+    round_stat_dropdown = await stat_components(bot=bot, war=current_war, next_war=next_war)
+    overall_stat_dropdown = await overall_stat_components(bot=bot)
     clan_dropdown = await clan_components(group=group)
     round_dropdown = await round_components(league_wars=league_wars)
     r = None

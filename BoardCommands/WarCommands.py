@@ -10,7 +10,7 @@ from coc.miscmodels import Timestamp
 from pymongo import UpdateOne
 from BoardCommands.Utils.War import plan_embed, create_components, open_modal, main_war_page, roster_embed, opp_roster_embed, \
     attacks_embed, opp_overview, defenses_embed, opp_defenses_embed, get_cwl_wars, get_latest_war, get_wars_at_round, component_handler, \
-    page_manager,
+    page_manager
 
 class War(commands.Cog):
 
