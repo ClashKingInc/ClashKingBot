@@ -4,8 +4,6 @@ from typing import Callable, Union
 from Exceptions.CustomExceptions import ExpiredComponents
 from urllib.request import Request, urlopen
 import io
-import concurrent.futures
-import asyncio
 
 def partial_emoji_gen(bot, emoji_string, animated=False):
     emoji = ''.join(filter(str.isdigit, emoji_string))
@@ -24,6 +22,7 @@ def fetch_emoji(emoji_name):
     if emoji is None:
         emoji = legend_emojis(emoji_name)
     return emoji
+
 
 async def permanent_image(bot, url: str):
     def request(url):
@@ -56,7 +55,7 @@ async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteract
     while valid_value is None:
         try:
             res: disnake.MessageInteraction = await bot.wait_for("message_interaction", check=check, timeout=600)
-        except:
+        except Exception:
             raise ExpiredComponents
 
         if res.author.id != ctx.author.id:

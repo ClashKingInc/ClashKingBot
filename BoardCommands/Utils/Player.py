@@ -483,6 +483,8 @@ async def get_war_hits(bot:CustomClient, linked_accounts: List[MyCustomPlayer]):
         war = await bot.get_clanwar(clanTag=clan_tag)
         if war is not None and str(war.state) == "notInWar":
             war = None
+        if war is not None and war.end_time is None:
+            war = None
         if war is not None and war.end_time.seconds_until <= 0:
             war = None
         return (player, war)

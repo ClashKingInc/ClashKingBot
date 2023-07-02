@@ -1,20 +1,16 @@
-import datetime
 import coc
 import disnake
-import pytz
 import asyncio
 import calendar
 
 from disnake.ext import commands
-from Assets.emojiDictionary import emojiDictionary
-from collections import defaultdict
 from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer
 from utils.discord_utils import interaction_handler
 from coc.miscmodels import Timestamp
 from pymongo import UpdateOne
 from BoardCommands.Utils.War import plan_embed, create_components, open_modal, main_war_page, roster_embed, opp_roster_embed, \
-    attacks_embed, opp_overview, defenses_embed, opp_defenses_embed
+    attacks_embed, opp_overview, defenses_embed, opp_defenses_embed, get_cwl_wars, get_latest_war, get_wars_at_round, component_handler, \
+    page_manager,
 
 class War(commands.Cog):
 
@@ -223,7 +219,7 @@ class War(commands.Cog):
                   clan: coc.Clan = commands.Param(converter=clan_converter),
                   season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor)):
         asyncio.create_task(self.bot.store_all_cwls(clan=clan))
-        (group, clan_league_wars, fetched_clan, war_league) = await self.get_cwl_wars(clan=clan, season=season)
+        (group, clan_league_wars, fetched_clan, war_league) = await get_cwl_wars(bot=self.bot, clan=clan, season=season)
 
         if not clan_league_wars:
             embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) is not in CWL.",
@@ -231,15 +227,15 @@ class War(commands.Cog):
             embed.set_thumbnail(url=clan.badge.large)
             return await ctx.send(embed=embed)
 
-        overview_round = self.get_latest_war(clan_league_wars=clan_league_wars)
-        ROUND = overview_round;
-        CLAN = clan;
+        overview_round = get_latest_war(clan_league_wars=clan_league_wars)
+        ROUND = overview_round
+        CLAN = clan
         PAGE = "cwlround_overview"
 
-        (current_war, next_war) = self.get_wars_at_round(clan_league_wars=clan_league_wars, round=ROUND)
-        dropdown = await self.component_handler(page=PAGE, current_war=current_war, next_war=next_war, group=group,
+        (current_war, next_war) = get_wars_at_round(clan_league_wars=clan_league_wars, round=ROUND)
+        dropdown = await component_handler(page=PAGE, current_war=current_war, next_war=next_war, group=group,
                                                 league_wars=clan_league_wars, fetched_clan=fetched_clan)
-        embeds = await self.page_manager(page=PAGE, group=group, war=current_war, next_war=next_war,
+        embeds = await page_manager(bot=self.bot, page=PAGE, group=group, war=current_war, next_war=next_war,
                                          league_wars=clan_league_wars, clan=CLAN, fetched_clan=fetched_clan,
                                          war_league=war_league)
 
@@ -264,18 +260,18 @@ class War(commands.Cog):
             if "cwlchoose_" in res.values[0]:
                 clan_tag = (str(res.values[0]).split("_"))[-1]
                 CLAN = await self.bot.getClan(clan_tag)
-                (group, clan_league_wars, x, y) = await self.get_cwl_wars(clan=CLAN, season=season, group=group,
+                (group, clan_league_wars, x, y) = await get_cwl_wars(bot=self.bot, clan=CLAN, season=season, group=group,
                                                                           fetched_clan=fetched_clan)
-                PAGE = "cwlround_overview";
-                ROUND = self.get_latest_war(clan_league_wars=clan_league_wars)
+                PAGE = "cwlround_overview"
+                ROUND = get_latest_war(clan_league_wars=clan_league_wars)
 
             elif "cwlround_" in res.values[0]:
                 round = res.values[0].split("_")[-1]
                 if round != "overview":
-                    PAGE = "round";
+                    PAGE = "round"
                     ROUND = int(round) - 1
                 else:
-                    PAGE = "cwlround_overview";
+                    PAGE = "cwlround_overview"
                     ROUND = overview_round
 
             elif res.values[0] == "excel":
@@ -284,11 +280,11 @@ class War(commands.Cog):
             else:
                 PAGE = res.values[0]
 
-            (current_war, next_war) = self.get_wars_at_round(clan_league_wars=clan_league_wars, round=ROUND)
-            embeds = await self.page_manager(page=PAGE, group=group, war=current_war, next_war=next_war,
+            (current_war, next_war) = get_wars_at_round(clan_league_wars=clan_league_wars, round=ROUND)
+            embeds = await page_manager(bot=self.bot, page=PAGE, group=group, war=current_war, next_war=next_war,
                                              league_wars=clan_league_wars,
                                              clan=CLAN, fetched_clan=fetched_clan, war_league=war_league)
-            dropdown = await self.component_handler(page=PAGE, current_war=current_war, next_war=next_war, group=group,
+            dropdown = await component_handler(page=PAGE, current_war=current_war, next_war=next_war, group=group,
                                                     league_wars=clan_league_wars, fetched_clan=fetched_clan)
 
             await res.edit_original_message(embeds=embeds, components=dropdown)
@@ -387,6 +383,12 @@ class War(commands.Cog):
                     options.append(text)
             return options
 
+    @commands.Cog.listener()
+    async def on_button_click(self, ctx: disnake.MessageInteraction):
+        if "cwlstatusfam_" in str(ctx.data.custom_id):
+            await ctx.response.defer()
+            embed = await self.create_cwl_status(guild=ctx.guild)
+            await ctx.edit_original_message(embed=embed)
 
 
 def setup(bot: CustomClient):

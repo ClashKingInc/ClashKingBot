@@ -93,7 +93,6 @@ class ReminderCreation(commands.Cog, name="Reminders"):
         await ReminderUtils.edit_reminder(bot=self.bot, clan=clan, ctx=ctx, type=r_type)
 
 
-
     @reminders.sub_command(name="list", description="Get the list of reminders set up on the server")
     async def reminder_list(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
