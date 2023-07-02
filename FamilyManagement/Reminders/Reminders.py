@@ -82,13 +82,14 @@ class ReminderCreation(commands.Cog, name="Reminders"):
         await ctx.edit_original_message(content=f"Setup Complete!", components=[])
 
 
-    @reminders.sub_command(name="delete", description="Delete reminders on your server")
+    @reminders.sub_command(name="edit", description="edit or delete reminders on your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def delete_reminders(self, ctx: disnake.ApplicationCommandInteraction,
                                clan: coc.Clan = commands.Param(converter=clan_converter),
                                type = commands.Param(choices=["War & CWL", "Clan Capital", "Inactivity", "Clan Games"])):
         type_to_type = {"War & CWL" : "War", "Clan Capital" : "Clan Capital", "Inactivity" : "inactivity", "Clan Games" : "Clan Games"}
         r_type = type_to_type[type]
+        await ReminderUtils.edit_reminder(bot=self.bot, clan=clan, ctx=ctx, type=r_type)
 
 
 

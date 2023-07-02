@@ -97,7 +97,7 @@ initial_extensions = [
     "Utility.link_parsers",
     #"War & CWL.war_track",
     #"War & CWL.lineups",
-    #"Exceptions.ExceptionHandler",
+    "Exceptions.ExceptionHandler",
     "BoardCommands.ClanCommands",
     "BoardCommands.TopCommands",
     "BoardCommands.FamilyCommands",

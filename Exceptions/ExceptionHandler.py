@@ -39,6 +39,10 @@ class ExceptionHandler(commands.Cog):
             embed = disnake.Embed(description="Not a valid reminder time, please use options from the autocomplete.", color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
+        if isinstance(error, ThingNotFound):
+            print(error.args)
+            embed = disnake.Embed(description=f"{str(error)}", color=disnake.Color.red())
+            return await ctx.send(embed=embed)
 
         if isinstance(error, ExportTemplateAlreadyExists):
             embed = disnake.Embed(description=f"Export Template with this name already exists.", color=disnake.Color.red())

@@ -1,9 +1,9 @@
 import disnake
 import coc
-from main import scheduler
 from CustomClasses.CustomBot import CustomClient
+from CustomClasses.ReminderClass import Reminder
 from utils.discord_utils import interaction_handler
-from Exceptions.CustomExceptions import ExpiredComponents
+from Exceptions.CustomExceptions import ExpiredComponents, ThingNotFound
 from typing import List
 from utils.components import clan_component
 from utils.constants import TOWNHALL_LEVELS, ROLES
@@ -503,9 +503,17 @@ def chosen_text(bot: CustomClient, clans: List[coc.Clan], ths=None, roles=None, 
 
 
 ##REMINDER DELETION
-async def delete_reminder(bot: CustomClient, clan: coc.Clan, ctx: disnake.ApplicationCommandInteraction, type: str):
+async def edit_reminder(bot: CustomClient, clan: coc.Clan, ctx: disnake.ApplicationCommandInteraction, type: str):
     reminders = await bot.reminders.find({"$and": [{"clan": clan.tag}, {"type": type}, {"server": ctx.guild.id}]}).to_list(length=None)
+    if not reminders:
+        raise ThingNotFound(f"**No {type.capitalize()} Reminders found for {clan.name}**")
     reminders = sorted(reminders, key=lambda l: float(str(l.get('time')).replace("hr", "")), reverse=False)
+
+    text = ""
+    for reminder in reminders:
+        reminder = Reminder(data=reminder, bot=bot)
+        text += ""
+
 
 
 
