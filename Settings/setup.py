@@ -47,9 +47,8 @@ class SetupCommands(commands.Cog , name="Setup"):
     @setup.sub_command(name="logs", description="Set a variety of different clan logs for your server!")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def set_log_add(self, ctx: disnake.ApplicationCommandInteraction,
-                          clan: coc.Clan = commands.Param(converter=clan_converter), mode:str = commands.Param(choices=["Add", "Remove"]),
+                          clan: coc.Clan = commands.Param(converter=clan_converter), mode:str = commands.Param(choices=["Add/Edit", "Remove"]),
                           channel: Union[disnake.TextChannel, disnake.Thread] = commands.Param(default=None)):
-        await ctx.response.defer()
         results = await self.bot.clan_db.find_one({"$and": [
             {"tag": clan.tag},
             {"server": ctx.guild.id}
@@ -91,7 +90,7 @@ class SetupCommands(commands.Cog , name="Setup"):
         await ctx.edit_original_message(embed=embed, components=dropdown)
 
         res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
-        if mode == "Add":
+        if mode == "Add/Edit":
             webhook = await get_webhook_for_channel(channel=channel, bot=self.bot)
             thread = None
             if isinstance(channel, disnake.Thread):
@@ -102,7 +101,7 @@ class SetupCommands(commands.Cog , name="Setup"):
         text = ""
         for value in res.values:
             log = log_types[value]
-            if mode == "Add":
+            if mode == "Add/Edit":
                 await log.set_webhook(id=webhook.id)
                 await log.set_thread(id=thread)
                 mention = webhook.channel.mention if thread is None else f"<#{thread}>"
@@ -117,9 +116,6 @@ class SetupCommands(commands.Cog , name="Setup"):
         await res.edit_original_message(embed=embed, components=[])
 
 
-
-
-    #COUNTDOWNS
     @setup.sub_command(name="countdowns", description="Create countdowns for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def voice_setup(self, ctx: disnake.ApplicationCommandInteraction):
