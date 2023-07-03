@@ -463,8 +463,7 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
         changes = [added, removed, name_changes]
         if return_array:
             return changes
-        '''except:
-            continue'''
+
         if ((changes[0] != "None") or (changes[1] != "None") or (changes[2] != "None")) or len(members_to_eval) >= 1:
             if changes[0] == "None" and changes[1] == "None" and changes[2] == "None" and len(members_to_eval) >= 2:
                 pass

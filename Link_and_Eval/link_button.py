@@ -13,10 +13,10 @@ class LinkWelcomeMessages(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        results = await self.bot.welcome.find_one({"server": member.guild.id})
+        results = await self.bot.welcome.find_one({"$and" : [{"server": member.guild.id}, {"link_channel" : {"$ne" : None}}]})
         if results is not None:
             welcome_channel = results.get("welcome_channel")
-
+            welcome_channel = None
             if welcome_channel is not None:
                 description = results.get("description")
                 button1text = results.get("button1text")
@@ -57,10 +57,12 @@ class LinkWelcomeMessages(commands.Cog):
 
             link_channel = results.get("link_channel")
             if link_channel is not None:
-                channel = self.bot.get_channel(link_channel)
-                embed = disnake.Embed(title=f"**Welcome to {member.guild.name}!**",
-                                      description=f"To link your account, press the link button below to get started.",
-                                      color=disnake.Color.green())
+                if results.get("welcome_link_embed") is not None:
+                    embed = disnake.Embed.from_dict(data=results.get("welcome_link_embed"))
+                else:
+                    embed = disnake.Embed(title=f"**Welcome to {member.guild.name}!**",
+                                          description=f"To link your account, press the link button below to get started.",
+                                          color=disnake.Color.green())
                 stat_buttons = [disnake.ui.Button(label="Link Account", emoji="🔗", style=disnake.ButtonStyle.green,
                                                   custom_id="Start Link"),
                                 disnake.ui.Button(label="Help", emoji="❓", style=disnake.ButtonStyle.grey,
@@ -71,14 +73,13 @@ class LinkWelcomeMessages(commands.Cog):
                 if member.guild.icon is not None:
                     embed.set_thumbnail(url=member.guild.icon.url)
                 try:
+                    channel = await self.bot.getch_channel(link_channel, raise_exception=True)
                     if member.guild.id == 923764211845312533:
-                        await channel.send(content=member.mention, embed=embed, components=[stat_buttons],
-                         allowed_mentions=disnake.AllowedMentions.none())
+                        await channel.send(content=member.mention, embed=embed, components=[stat_buttons], allowed_mentions=disnake.AllowedMentions.none())
                     else:
                         await channel.send(content=member.mention, embed=embed, components=[stat_buttons])
-
-                except:
-                    pass
+                except (disnake.NotFound, disnake.Forbidden):
+                    await self.bot.welcome.update_one({"server": member.guild.id}, {"$set" : {"link_channel" : None}})
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):

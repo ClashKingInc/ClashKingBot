@@ -5,12 +5,12 @@ import io
 import pytz
 
 from operator import attrgetter
+from Exceptions.CustomExceptions import *
 from typing import List, Union
 from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
 from datetime import datetime
 from utils.discord_utils import permanent_image
-from Exceptions.CustomExceptions import *
 from BoardCommands.Utils.Player import create_profile_stats, create_profile_troops, history, upgrade_embed
 from main import check_commands
 from CustomClasses.CustomPlayer import MyCustomPlayer

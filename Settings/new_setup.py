@@ -9,7 +9,10 @@ from utils.general import calculate_time
 from main import check_commands
 from typing import Union
 from utils.discord_utils import interaction_handler
-
+from operator import attrgetter
+from Exceptions.CustomExceptions import *
+from datetime import datetime
+from utils.discord_utils import permanent_image
 
 class SetupCommands(commands.Cog , name="Setup"):
 
@@ -483,7 +486,7 @@ class SetupCommands(commands.Cog , name="Setup"):
             embed.set_thumbnail(url=ctx.guild.icon.url)
         await res.edit_original_message(content="", embed=embed, components=[])
 
-    @setup.sub_command(name="autoboards", description="Create family autoboards for your server")
+    '''@setup.sub_command(name="autoboards", description="Create family autoboards for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def autoboard_create(self, ctx: disnake.ApplicationCommandInteraction):
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
@@ -647,30 +650,167 @@ class SetupCommands(commands.Cog , name="Setup"):
         })
 
         embed= disnake.Embed(description="**Autoboard Successfully Created**", color=disnake.Color.green())
-        await ctx.edit_original_message(embed=embed, components=[], content="")
+        await ctx.edit_original_message(embed=embed, components=[], content="")'''
 
     @setup.sub_command(name="welcome-link", description="Create a custom welcome message that can include linking buttons")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def welcome_message(self, ctx: disnake.ApplicationCommandInteraction, channel: Union[disnake.TextChannel, disnake.Thread], custom_embed: str = None):
-        if custom_embed is None:
+    async def welcome_message(self, ctx: disnake.ApplicationCommandInteraction, channel: Union[disnake.TextChannel, disnake.Thread], custom_embed = commands.Param(default="False", choices=["True", "False"]), embed_link: str = None):
+        if custom_embed != "False"
+            if embed_link is None:
+                modal_inter, embed = await self.basic_embed_modal(ctx=ctx)
+                ctx = modal_inter
+            else:
+                await ctx.response.defer()
+                try:
+                    if "discord.com" not in embed_link:
+                        return await ctx.send(content="Not a valid message link", ephemeral=True)
+                    link_split = embed_link.split("/")
+                    message_id = link_split[-1]
+                    channel_id = link_split[-2]
+
+                    channel = await self.bot.getch_channel(channel_id=int(channel_id))
+                    if channel is None:
+                        return await ctx.send(content="Cannot access the channel this embed is in", ephemeral=True)
+                    message = await channel.fetch_message(int(message_id))
+                    if not message.embeds:
+                        return await ctx.send(content="Message has no embeds", ephemeral=True)
+                    embed = message.embeds[0]
+                except:
+                    return await ctx.send(content=f"Something went wrong :/ An error occured with the message link.", ephemeral=True)
+        else:
             embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
                                   description=f"To link your account, press the link button below to get started.",
                                   color=disnake.Color.green())
             if ctx.guild.icon is not None:
                 embed.set_thumbnail(url=ctx.guild.icon.url)
-        else:
-            result = await self.bot.custom_embeds.find_one(
-                {"$and": [{"server_id": ctx.guild.id}, {"name": custom_embed}]})
-            if result is None:
-                return await ctx.send(content=f"Custom Embed - `{custom_embed}` does not exist")
-            embed = disnake.Embed.from_dict(data=result.get("embed"))
+
 
         stat_buttons = [disnake.ui.Button(label="Link Account", emoji="🔗", style=disnake.ButtonStyle.green, disabled=True,
                                           custom_id="LINKDEMO"),
                         disnake.ui.Button(label="Help", emoji="❓", style=disnake.ButtonStyle.grey, disabled=True,
                                           custom_id="LINKDEMOHELP")]
         await ctx.send(content=f"Welcome Message Set in {channel.mention}\n||(buttons for demo & will work on the live version)||", embed=embed, components=stat_buttons)
-        await self.bot.server_db.update_one({"server" : ctx.guild_id}, {"$set" : {"welcome_link_channel" : channel.id, "welcome_link_embed" : embed.to_dict()}})
+        await self.bot.server_db.update_one({"server" : ctx.guild_id}, {"$set" : {"link_channel" : channel.id, "welcome_link_embed" : embed.to_dict()}})
+
+    async def basic_embed_modal(self, ctx: disnake.ApplicationCommandInteraction, previous_embed=None):
+        components = [
+            disnake.ui.TextInput(
+                label=f"Embed Title",
+                custom_id=f"title",
+                required=False,
+                style=disnake.TextInputStyle.single_line,
+                max_length=75,
+            ),
+            disnake.ui.TextInput(
+                label=f"Embed Description",
+                custom_id=f"desc",
+                required=False,
+                style=disnake.TextInputStyle.paragraph,
+                max_length=500,
+            ),
+            disnake.ui.TextInput(
+                label=f"Embed Thumbnail",
+                custom_id=f"thumbnail",
+                placeholder="Must be a valid url",
+                required=False,
+                style=disnake.TextInputStyle.single_line,
+                max_length=200,
+            ),
+            disnake.ui.TextInput(
+                label=f"Embed Image",
+                custom_id=f"image",
+                placeholder="Must be a valid url",
+                required=False,
+                style=disnake.TextInputStyle.single_line,
+                max_length=200,
+            ),
+            disnake.ui.TextInput(
+                label=f"Embed Color (Hex Color)",
+                custom_id=f"color",
+                required=False,
+                style=disnake.TextInputStyle.short,
+                max_length=10,
+            )
+        ]
+        t_ = int(datetime.now().timestamp())
+        await ctx.response.send_modal(
+            title="Basic Embed Creator ",
+            custom_id=f"basicembed-{t_}",
+            components=components)
+
+        def check(res: disnake.ModalInteraction):
+
+            return ctx.author.id == res.author.id and res.custom_id == f"basicembed-{t_}"
+
+        try:
+            modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
+                "modal_submit",
+                check=check,
+                timeout=300,
+            )
+        except:
+            return None
+
+        color = disnake.Color.dark_grey()
+        if modal_inter.text_values.get("color") != "":
+            try:
+                r, g, b = tuple(
+                    int(modal_inter.text_values.get("color").replace("#", "")[i:i + 2], 16) for i in (0, 2, 4))
+                color = disnake.Color.from_rgb(r=r, g=g, b=b)
+            except:
+                raise InvalidHexCode
+
+        our_embed = {"title": modal_inter.text_values.get("title"), "description": modal_inter.text_values.get("desc"),
+                     "image.url": modal_inter.text_values.get("image"),
+                     "thumbnail.url": modal_inter.text_values.get("thumbnail"), "color": color}
+
+        embed = await self.generate_embed(our_embed=our_embed, embed=previous_embed)
+        await modal_inter.response.defer()
+
+        return (modal_inter, embed)
+
+    async def generate_embed(self, our_embed: dict, embed=None):
+        if embed is None:
+            embed = disnake.Embed()
+        for attribute, embed_field in our_embed.items():
+            if embed_field is None or embed_field == "":
+                continue
+            attribute: str
+            if "field" in attribute:
+                if embed_field["name"] is None or embed_field == "":
+                    continue
+                embed.insert_field_at(index=int(attribute.split("_")[1]) - 1, name=embed_field["name"],
+                                      value=embed_field["value"], inline=embed_field["inline"])
+            elif "image" in attribute:
+                if embed_field != "" and embed_field != "None":
+                    embed_field = await permanent_image(self.bot, embed_field)
+                if embed_field == "None":
+                    embed._image = None
+                else:
+                    embed.set_image(url=embed_field)
+            elif "thumbnail" in attribute:
+                if embed_field != "" and embed_field != "None":
+                    embed_field = await permanent_image(self.bot, embed_field)
+                if embed_field == "None":
+                    embed._thumbnail = None
+                else:
+                    embed.set_thumbnail(url=embed_field)
+            elif "footer" in attribute:
+                if embed_field["text"] is None:
+                    continue
+                embed.set_footer(icon_url=embed_field["icon"], text=embed_field["text"])
+            elif "author" in attribute:
+                if embed_field["text"] is None:
+                    continue
+                embed.set_author(icon_url=embed_field["icon"], name=embed_field["text"])
+            else:
+                if len(attribute.split(".")) == 2:
+                    obj = attrgetter(attribute.split(".")[0])(embed)
+                    setattr(obj, attribute.split(".")[1], embed_field)
+                else:
+                    setattr(embed, attribute, embed_field)
+
+        return embed
 
 
     @setup.sub_command(name="remove", description="Remove various features")
