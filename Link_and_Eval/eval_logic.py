@@ -77,14 +77,14 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
     #ADD THESE ROLES TO BE IGNORED, IF THEY DIDNT CHOOSE THEM TO BE EVALED
     type_to_item = {"family" : family_roles, "not_family" : not_fam_roles, "clan" : clan_roles, "leadership" : leadership_roles, "townhall" : th_role_list,
                     "builderhall" : bh_role_list, "league" : league_role_list, "category" : category_role_list, "builder_league" : builder_league_role_list,
-                    "achievement" : achievement_role_list}
+                    "achievement" : achievement_role_list, "status" : status_role_list}
 
     for eval_type in DEFAULT_EVAL_ROLE_TYPES:
         if eval_type not in role_types_to_eval:
             ignored_roles += type_to_item.get(eval_type)
 
     ALL_CLASH_ROLES = family_roles + clan_roles + not_fam_roles + league_role_list + th_role_list + category_role_list + \
-        bh_role_list + builder_league_role_list + achievement_role_list
+        bh_role_list + builder_league_role_list + achievement_role_list + status_role_list
 
     if "leadership" in role_types_to_eval:
         if db_server.leadership_eval:
@@ -230,6 +230,31 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
                     if league_role not in MASTER_ROLES:
                         ROLES_TO_ADD.add(league_role)
 
+            if not is_family_member:
+                continue
+
+            family_accounts.append([player.trophies, player])
+            # fetch clan role using dict
+            # if the user doesnt have it in their master list - add to roles they should have
+            # set doesnt allow duplicates, so no check needed
+            if "clan" in role_types_to_eval:
+                clan_role = clan_role_dict[player.clan.tag]
+                if abbreviations[player.clan.tag] is not None:
+                    abbreviations_to_have.append(abbreviations[player.clan.tag])
+                ROLES_SHOULD_HAVE.add(clan_role)
+                if clan_role not in MASTER_ROLES:
+                    ROLES_TO_ADD.add(clan_role)
+
+            if "category" in role_types_to_eval:
+                if bool(category_roles):
+                    try:
+                        category_role = category_roles[clan_to_category[player.clan.tag]]
+                        ROLES_SHOULD_HAVE.add(category_role)
+                        if category_role not in MASTER_ROLES:
+                            ROLES_TO_ADD.add(category_role)
+                    except:
+                        pass
+
             if "achievement" in role_types_to_eval:
                 if player.donos().donated >= 10000 and achievement_roles.get("donos_10000") is not None:
                     dono_role = achievement_roles.get("donos_10000")
@@ -255,32 +280,6 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
                     ROLES_SHOULD_HAVE.add(dono_role)
                     if dono_role not in MASTER_ROLES:
                         ROLES_TO_ADD.add(dono_role)
-
-
-            if not is_family_member:
-                continue
-
-            family_accounts.append([player.trophies, player])
-            # fetch clan role using dict
-            # if the user doesnt have it in their master list - add to roles they should have
-            # set doesnt allow duplicates, so no check needed
-            if "clan" in role_types_to_eval:
-                clan_role = clan_role_dict[player.clan.tag]
-                if abbreviations[player.clan.tag] is not None:
-                    abbreviations_to_have.append(abbreviations[player.clan.tag])
-                ROLES_SHOULD_HAVE.add(clan_role)
-                if clan_role not in MASTER_ROLES:
-                    ROLES_TO_ADD.add(clan_role)
-
-            if "category" in role_types_to_eval:
-                if bool(category_roles):
-                    try:
-                        category_role = category_roles[clan_to_category[player.clan.tag]]
-                        ROLES_SHOULD_HAVE.add(category_role)
-                        if category_role not in MASTER_ROLES:
-                            ROLES_TO_ADD.add(category_role)
-                    except:
-                        pass
 
             # if server has leadership_eval turned on
             # check & add any leadership roles

@@ -136,10 +136,6 @@ class eval(commands.Cog, name="Eval"):
     async def achievement_roles(self, ctx):
         pass
 
-    @eval.sub_command_group(name="status-roles")
-    async def status_roles(self, ctx):
-        pass
-
     @eval.sub_command(name="role-list", description="List of eval affiliated roles for this server")
     async def eval_role_list(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
@@ -250,12 +246,11 @@ class eval(commands.Cog, name="Eval"):
                                             "legends_league", "trophies_5500", "trophies_5700", "trophies_6000"]),
                                builder_league: str = commands.Param(default=None, choices=["wood_league", "clay_league", "stone_league", "copper_league", "brass_league", "iron_league",
                                         "steel_league", "titanium_league", "platinum_league", "emerald_league", "ruby_league", "diamond_league"]),
-                               status_roles: str = commands.Param(default=None, choices=["one_month", "two_months", "three_months", "six_months", "nine_months", "one_year"]),
                                achievement_roles: str = commands.Param(default=None, choices=["donos_10000", "donos_25000", "top_donator_last_season", "top_donator_ongoing_season"])
                                ):
         await ctx.response.defer()
 
-        role_types = [townhall, builderhall, league_role, builder_league, status_roles, achievement_roles]
+        role_types = [townhall, builderhall, league_role, builder_league, achievement_roles]
         if role_types.count(None) == len(role_types):
             return await ctx.send("Must provide at least one role type to remove!")
 
@@ -324,7 +319,7 @@ class eval(commands.Cog, name="Eval"):
 
             removed_text += f"{builder_league} eval role removed - <@&{mention}>\n"
 
-        if status_roles:
+        '''if status_roles:
             results = await self.bot.statusroles.find_one({"$and": [
                 {"type": f"{status_roles}"},
                 {"server": ctx.guild.id}
@@ -338,7 +333,7 @@ class eval(commands.Cog, name="Eval"):
                     {"server": ctx.guild.id}
                 ]})
 
-            removed_text += f"{status_roles} eval role removed - <@&{mention}>\n"
+            removed_text += f"{status_roles} eval role removed - <@&{mention}>\n"'''
 
         if achievement_roles:
             results = await self.bot.statusroles.find_one({"$and": [
@@ -766,7 +761,7 @@ class eval(commands.Cog, name="Eval"):
         return await ctx.send(embed=embed)
 
 
-    @status_roles.sub_command(name="set", description="Includes longevity & max hero (for th) roles")
+    '''@status_roles.sub_command(name="set", description="Includes longevity & max hero (for th) roles")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def status_roles_set(self, ctx: disnake.ApplicationCommandInteraction,
                            one_month: disnake.Role = None, two_months: disnake.Role = None, three_months: disnake.Role =None,
@@ -804,7 +799,7 @@ class eval(commands.Cog, name="Eval"):
         embed = disnake.Embed(title="**Status Roles that were set:**",
                               description=roles_updated,
                               color=disnake.Color.green())
-        return await ctx.send(embed=embed)
+        return await ctx.send(embed=embed)'''
 
 
     @achievement_roles.sub_command(name="set", description="Set role for top donators/activity & more")
