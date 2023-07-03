@@ -104,15 +104,17 @@ class misc(commands.Cog, name="Settings"):
         await ctx.edit_original_message(embed=embed)
 
 
-
     @commands.slash_command(name="settings-list", description="Complete list of channels & roles & more set up on server")
     async def settings_list(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
         db_server = await self.bot.get_custom_server(guild_id=ctx.guild_id)
 
         embed = disnake.Embed(title=f"{ctx.guild.name} Server Settings", color=disnake.Color.green())
-        embed.add_field(name="Banlist Channel:", value=f"{db_server.banlist_channel}", inline=True)
-        embed.add_field(name="Reddit Feed:", value=f"{db_server.reddit_feed}", inline=True)
+        banlist_channel = f"<#{db_server.banlist_channel}>" if db_server.banlist_channel is not None else None
+        reddit_feed = f"<#{db_server.reddit_feed}>" if db_server.reddit_feed is not None else None
+
+        embed.add_field(name="Banlist Channel:", value=banlist_channel, inline=True)
+        embed.add_field(name="Reddit Feed:", value=reddit_feed, inline=True)
         embed.add_field(name="Leadership Eval:", value=f"{db_server.leadership_eval}", inline=True)
         embed.add_field(name="Use API Token:", value=f"{db_server.use_api_token}", inline=True)
         embed.add_field(name="Nickname Setting:", value=f"{db_server.auto_nickname}", inline=True)
@@ -163,28 +165,15 @@ class misc(commands.Cog, name="Settings"):
             embed.add_field(name="Legend Atk Log:", value=f"{(await clan.legend_log_attacks.get_webhook_channel_mention())}", inline=True)
             embed.add_field(name="Legend Def Log:", value=f"{(await clan.legend_log_defenses.get_webhook_channel_mention())}", inline=True)
 
-
-
-
-
-
-
-
-
-
-
-            #embed.add_field(name="Legend Log:", value=f"{ll_log}", inline=True)
             embeds.append(embed)
 
-        chunk_embeds = [embeds[i:i + 10] for i in range(0, len(embeds), 10)]
+        chunk_embeds = [embeds[i:i + 5] for i in range(0, len(embeds), 5)]
 
         for embeds in chunk_embeds:
             if embeds == chunk_embeds[0]:
                 await ctx.edit_original_message(embeds=embeds)
             else:
                 await ctx.followup.send(embeds=embeds)
-
-
 
 
     @set.sub_command(name="category-role", description="Set a new category role for a server")
@@ -243,8 +232,6 @@ class misc(commands.Cog, name="Settings"):
         new_order = ", ".join(res.values)
         embed= disnake.Embed(description=f"New Category Order: `{new_order}`", color=disnake.Color.green())
         await res.edit_original_message(embed=embed)
-
-
 
 
 
