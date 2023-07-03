@@ -109,7 +109,8 @@ initial_extensions = [
     "Background.background_cache",
     #"Setups.new_setup",
     "FamilyManagement.Reminders.Reminders",
-    "Settings.settings"
+    "Settings.settings",
+    "Settings.setup"
 ]
 
 if not IS_BETA:
