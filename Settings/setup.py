@@ -7,10 +7,8 @@ from utils.general import calculate_time
 from main import check_commands
 from typing import Union
 from utils.discord_utils import get_webhook_for_channel
-from operator import attrgetter
 from Exceptions.CustomExceptions import *
-from datetime import datetime
-from utils.discord_utils import permanent_image, interaction_handler, basic_embed_modal
+from utils.discord_utils import  interaction_handler, basic_embed_modal
 from CustomClasses.CustomServer import DatabaseClan
 
 class SetupCommands(commands.Cog , name="Setup"):
