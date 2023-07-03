@@ -29,7 +29,7 @@ class ReminderCreation(commands.Cog, name="Reminders"):
     @reminders.sub_command(name="create", description="Create reminders for your server - Wars, Raids, Inactivity & More")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def setup_reminders(self, ctx: disnake.ApplicationCommandInteraction,
-                              type = commands.Param(choices=["War & CWL", "Clan Capital", "Inactivity", "Clan Games"]),
+                              type = commands.Param(choices=["War & CWL", "Clan Capital", "Inactivity", "Clan Games", "Roster"]),
                               times = commands.Param(name="time_left"),
                               channel: Union[disnake.TextChannel, disnake.Thread] = None):
         """
@@ -57,7 +57,6 @@ class ReminderCreation(commands.Cog, name="Reminders"):
         elif type == "Clan Capital":
             for t in temp_times:
                 t = t.replace(" ", "")
-                new_times.append(t)
                 if t not in self.gen_capital_times():
                     raise NotValidReminderTime
                 new_times.append(f"{t[:-2]} hr")
@@ -65,7 +64,6 @@ class ReminderCreation(commands.Cog, name="Reminders"):
         elif type == "Clan Games":
             for t in temp_times:
                 t = t.replace(" ", "")
-                new_times.append(t)
                 if t not in self.gen_clan_games_times():
                     raise NotValidReminderTime
                 new_times.append(f"{t[:-2]} hr")
@@ -73,11 +71,18 @@ class ReminderCreation(commands.Cog, name="Reminders"):
         elif type == "Inactivity":
             for t in temp_times:
                 t = t.replace(" ", "")
-                new_times.append(t)
                 if t not in self.gen_inactivity_times():
                     raise NotValidReminderTime
                 new_times.append(f"{t[:-2]} hr")
             await ReminderUtils.create_inactivity_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times)
+
+        elif type == "Roster":
+            for t in temp_times:
+                t = t.replace(" ", "")
+                if t not in self.gen_roster_times():
+                    raise NotValidReminderTime
+                new_times.append(f"{t[:-2]} hr")
+            await ReminderUtils.create_roster_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times)
 
         await ctx.edit_original_message(content=f"Setup Complete!", components=[])
 
@@ -86,7 +91,7 @@ class ReminderCreation(commands.Cog, name="Reminders"):
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def edit_reminders(self, ctx: disnake.ApplicationCommandInteraction,
                                clan: coc.Clan = commands.Param(converter=clan_converter),
-                               type = commands.Param(choices=["War & CWL", "Clan Capital", "Inactivity", "Clan Games"])):
+                               type = commands.Param(choices=["War & CWL", "Clan Capital", "Inactivity", "Clan Games", "Roster"])):
         await ctx.response.defer()
         type_to_type = {"War & CWL" : "War", "Clan Capital" : "Clan Capital", "Inactivity" : "inactivity", "Clan Games" : "Clan Games"}
         r_type = type_to_type[type]
@@ -175,6 +180,8 @@ class ReminderCreation(commands.Cog, name="Reminders"):
             all_times = self.gen_clan_games_times()
         elif ctx.filled_options["type"] == "Inactivity":
             all_times = self.gen_inactivity_times()
+        elif ctx.filled_options["type"] == "Roster":
+            all_times = self.gen_roster_times()
         else:
             return ["Not a valid reminder type"]
         if len(query.split(",")) >= 2:
@@ -199,6 +206,11 @@ class ReminderCreation(commands.Cog, name="Reminders"):
 
     def gen_clan_games_times(self):
         all_times = [1, 2, 4, 6, 12, 24, 36, 48, 72, 96, 120, 144]
+        all_times = [f"{time}hr" for time in all_times]
+        return all_times
+
+    def gen_roster_times(self):
+        all_times = [0.25, 0.5, 1, 1.5, 2, 3, 4, 6, 8, 10, 12, 24, 36, 48, 72, 96, 120, 144]
         all_times = [f"{time}hr" for time in all_times]
         return all_times
 

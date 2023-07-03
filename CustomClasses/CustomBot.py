@@ -106,6 +106,7 @@ class CustomClient(commands.AutoShardedBot):
         self.autostrikes: collection_class = self.db_client.usafam.autostrikes
         self.user_settings: collection_class = self.db_client.usafam.user_settings
         self.custom_boards: collection_class = self.db_client.usafam.custom_boards
+        self.trials: collection_class = self.db_client.usafam.trials
 
         self.autoboard_db: collection_class = self.db_client.usafam.autoboard_db
 
@@ -196,7 +197,9 @@ class CustomClient(commands.AutoShardedBot):
 
     async def track_players(self, players: list):
         for player in players:
-            await self.player_stats.insert_one({"tag" : player.tag, "name" : player.name})
+            r = await self.player_stats.find_one({"tag" : player.tag})
+            if r is None:
+                await self.player_stats.insert_one({"tag" : player.tag, "name" : player.name})
         return "Done"
 
     async def track_clans(self, tags: list):

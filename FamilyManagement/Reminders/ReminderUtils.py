@@ -7,32 +7,11 @@ from Exceptions.CustomExceptions import ExpiredComponents, ThingNotFound
 from typing import List
 from utils.components import clan_component
 from utils.constants import TOWNHALL_LEVELS, ROLES
+from CustomClasses.Roster import Roster
+from datetime import datetime
+from pytz import utc
 
 ##REMINDER CREATION
-
-settings_text = {
-    "capital": f"**Choose settings:**\n"
-               "> - Clans\n"
-               "> - (optional) Attack Threshold - Ping people with this many or more attacks left\n"
-               "> - (optional) Game Roles to Ping\n"
-               "*Note: If you don't select optional fields, defaults will be used*",
-    "clangames": f"**Choose settings:**\n"
-                 "> - Clans\n"
-                 "> - (optional) Game Roles to Ping | default all roles\n"
-                 "> - (optional) Point Threshold - Ping people with less than this many points | default 4000\n"
-                 "*Note: If you don't select the optional fields, defaults will be used*",
-    "war": f"**Choose settings:**\n"
-           "> - Clans\n"
-           "> - (optional) Townhall Levels to Ping | default all\n"
-           "> - (optional) Game Roles to Ping | default all\n"
-           "> - (optional) War Types to Remind for | default all\n"
-           "*Note: If you don't select the optional fields, defaults will be used*",
-    "inactivity": f"**Choose settings:**\n"
-                  "> - Clans\n"
-                  "> - (optional) Townhall Levels to Ping | default all\n"
-                  "> - (optional) Game Roles to Ping | default all\n"
-                  "*Note: If you don't select the optional fields, defaults will be used*",
-}
 
 def role_options():
     options = []
@@ -110,6 +89,23 @@ def point_threshold():
         max_values=1  # the maximum number of options a user can select
     )
     return war_type_select
+
+def roster_options(bot: CustomClient, results):
+    now = int(datetime.utcnow().replace(tzinfo=utc).timestamp())
+    results = [result for result in results if result.get("time", 0) > (now + 1200)]
+    if not results:
+        raise ThingNotFound("**No Rosters or Any Rosters that have time set up on this server**")
+    roster_options = []
+    for result in results:
+        roster_options.append(disnake.SelectOption(label=result.get("alias"), value=f"{result.get('alias')}"))
+    roster_select = disnake.ui.Select(
+        options=roster_options,
+        placeholder="Choose Roster(s)",  # the placeholder text to show when no options have been chosen
+        min_values=1,  # the minimum number of options a user must select
+        max_values=len(roster_options),  # the maximum number of options a user can select
+    )
+    return (results, roster_select)
+
 
 
 async def create_capital_reminder(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, times: List[str]):
@@ -430,6 +426,58 @@ async def create_inactivity_reminder(bot: CustomClient, ctx: disnake.Application
             })
 
 
+async def create_roster_reminder(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, times: List[str]):
+    results = await bot.rosters.find({"$and": [{"server_id": ctx.guild_id}]}).to_list(length=None)
+    results, menu = roster_options(bot=bot, results=results)
+    results = [Roster(bot=bot, roster_result=result) for result in results]
+    dropdown = [menu, buttons(bot=bot)]
+
+    save = False
+
+    rosters_chosen = []
+    custom_text = ""
+
+    embed = disnake.Embed(title="**Roster Reminder options/filters**", color=disnake.Color.green())
+    embed.description = chosen_text(bot=bot, clans=[], times=times)
+    await ctx.edit_original_message(embed=embed, components=dropdown)
+    message = await ctx.original_message()
+
+    while not save:
+        res: disnake.MessageInteraction = await interaction_handler(bot=bot, ctx=ctx, function=None)
+        if "button" in str(res.data.component_type):
+            if res.data.custom_id == "modal_reminder_custom_text":
+                custom_text = await get_custom_text(bot=bot, res=res)
+                embed.description = chosen_text(bot=bot, clans=[], rosters=rosters_chosen, custom_text=custom_text, times=times)
+                await message.edit(embed=embed)
+            elif not rosters_chosen:
+                await res.send(content="Must select at least one roster", ephemeral=True)
+            else:
+                save = True
+
+        elif "string_select" in str(res.data.component_type):
+            roster_aliases = res.values
+            rosters_chosen = [coc.utils.get(results, alias=roster) for roster in roster_aliases]
+            embed.description = chosen_text(bot=bot, clans=[], rosters=rosters_chosen, custom_text=custom_text, times=times)
+            await message.edit(embed=embed)
+
+    for time in times:
+        for roster in rosters_chosen:
+            await bot.reminders.delete_one({"$and": [
+                {"roster": roster._id},
+                {"server": ctx.guild.id},
+                {"type": "roster"},
+                {"time": time}
+            ]})
+            await bot.reminders.insert_one({
+                "server": ctx.guild.id,
+                "type": "roster",
+                "roster": roster._id,
+                "channel": channel.id,
+                "time": time,
+                "custom_text" : custom_text
+            })
+
+
 async def get_custom_text(bot:CustomClient, res: disnake.MessageInteraction):
     await res.response.send_modal(
         title="Customize your text",
@@ -461,12 +509,18 @@ async def get_custom_text(bot:CustomClient, res: disnake.MessageInteraction):
     return custom_text
 
 
-def chosen_text(bot: CustomClient, clans: List[coc.Clan], ths=None, roles=None, atk=None, war_types=None, points=None, times=None, custom_text="", channel = None):
+def chosen_text(bot: CustomClient, clans: List[coc.Clan], ths=None, roles=None, atk=None, war_types=None, points=None,
+                times=None, custom_text="", channel = None, rosters=None):
     text = ""
     if clans:
         text += "**CLANS:**\n"
         for clan in clans:
             text += f"• {clan.name} ({clan.tag})\n"
+
+    if rosters:
+        text += "**ROSTERS:**\n"
+        for roster in rosters:
+            text += f"• {roster.alias}\n"
 
     if ths is not None:
         text += "\n**THS:**\n"

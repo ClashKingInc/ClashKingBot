@@ -60,3 +60,7 @@ class NotValidReminderTime(Exception):
 class ThingNotFound(Exception):
     def __init__(self, message):
         super().__init__(message)
+
+class MessageException(Exception):
+    def __init__(self, message):
+        super().__init__(message)

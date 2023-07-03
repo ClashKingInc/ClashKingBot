@@ -18,6 +18,10 @@ class Roster():
         self.bot = bot
 
     @property
+    def _id(self):
+        return self.roster_result.get("_id")
+
+    @property
     def guild(self):
         if self.roster_result is None:
             return None

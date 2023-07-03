@@ -955,6 +955,8 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         await ctx.edit_original_message(embed=embed)
 
 
+
+
     @roster_create.autocomplete("clan")
     @roster_change_link.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
