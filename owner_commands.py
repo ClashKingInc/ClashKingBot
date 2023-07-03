@@ -170,6 +170,10 @@ class OwnerCommands(commands.Cog):
                 new_json[f]["webhook"] = document.get("legend_log", {}).get("webhook")
                 new_json[f]["thread"] = document.get("legend_log", {}).get("thread")
 
+            server_greeting = await self.bot.server_db.find_one({"server" : document.get("server")})
+            if server_greeting is not None:
+                new_json["greeting"] = server_greeting.get("greeting", "")
+
             await self.bot.clan_db.update_one({"_id" : id}, {"$set" : {"logs" : new_json}})
 
 

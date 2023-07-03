@@ -10,6 +10,8 @@ else:
 
 class DatabaseServer():
     def __init__(self, bot: CustomClient, data):
+        self.bot = bot
+        self.server_id = data.get("server")
         self.leadership_eval = data.get("leadership_eval", True)
         self.prefix = data.get("prefix", "do ")
         self.greeting = data.get("greeting")
@@ -29,6 +31,15 @@ class DatabaseServer():
         self.eval_non_members: bool = data.get("eval_non_members", True)
         self.blacklisted_roles: List[int] = data.get("blacklisted_roles")
         self.family_label = data.get("family_label", "")
+
+    async def set_banlist_channel(self, id: Union[int, None]):
+        await self.bot.server_db.update_one({"server": self.server_id}, {'$set': {"banlist": id}})
+
+    async def set_nickname_type(self, type: str):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"auto_nick": type}})
+
+    async def set_family_label(self, label: str):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"family_label": label}})
 
 class EvalRole():
     def __init__(self, bot: CustomClient, data):
@@ -86,6 +97,67 @@ class DatabaseClan():
         self.war_panel = WarPanel(parent=self, type="war_panel")
         self.legend_log_attacks = ClanLog(parent=self, type="legend_log_attacks")
         self.legend_log_defenses = ClanLog(parent=self, type="legend_log_defenses")
+        self.greeting = data.get("greeting", "")
+
+    async def set_member_role(self, id: Union[int, None]):
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": self.tag},
+            {"server": self.server_id}
+        ]}, {'$set': {"generalRole": id}})
+
+    async def set_leadership_role(self, id: Union[int, None]):
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": self.tag},
+            {"server": self.server_id}
+        ]}, {'$set': {"leaderRole": id}})
+
+    async def set_clan_channel(self, id: Union[int, None]):
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": self.tag},
+            {"server": self.server_id}
+        ]}, {'$set': {"clanChannel": id}})
+
+    async def set_ban_alert_channel(self, id: Union[int, None]):
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": self.tag},
+            {"server": self.server_id}
+        ]}, {'$set': {"ban_alert_channel": id}})
+
+    async def set_greeting(self, text: str):
+        await self.bot.clan_db.update_one({"server": self.server_id}, {'$set': {"greeting": text}})
+
+    async def set_category(self, category: str):
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": self.tag},
+            {"server": self.server_id}
+        ]}, {'$set': {"category": category}})
+
+    async def set_nickname_label(self, abbreviation: str):
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": self.tag},
+            {"server": self.server_id}
+        ]}, {'$set': {"abbreviation": abbreviation}})
+
+
+    async def set_strike_button(self, set: bool):
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": self.tag},
+            {"server": self.server_id}
+        ]}, {'$set': {"strike_button": set}})
+
+    async def set_ban_button(self, set: bool):
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": self.tag},
+            {"server": self.server_id}
+        ]}, {'$set': {"ban_button": set}})
+
+    async def set_profile_button(self, set: bool):
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": self.tag},
+            {"server": self.server_id}
+        ]}, {'$set': {"profile_button": set}})
+
+
 
 
 class ClanLog():

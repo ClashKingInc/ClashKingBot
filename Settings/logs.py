@@ -5,7 +5,7 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer, ServerClan
 from main import check_commands
 from typing import Union
-from utils.General import calculate_time
+from utils.general import calculate_time
 from utils.discord_utils import interaction_handler
 
 

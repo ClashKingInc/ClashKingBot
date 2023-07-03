@@ -107,8 +107,9 @@ initial_extensions = [
     "Background.refresh_boards",
     "BoardCommands.WarCommands",
     "Background.background_cache",
-    "Setups.new_setup",
-    "FamilyManagement.Reminders.Reminders"
+    #"Setups.new_setup",
+    "FamilyManagement.Reminders.Reminders",
+    "Settings.settings"
 ]
 
 if not IS_BETA:

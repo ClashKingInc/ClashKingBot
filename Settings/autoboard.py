@@ -12,6 +12,7 @@ class autoB(commands.Cog, name="Board Setup"):
     async def autoboard(self, ctx):
         pass
 
+
     @autoboard.sub_command(name="create", description="Create server autoposting leaderboards")
     async def setupboard(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, autoboard_type: str = commands.Param(choices=["Player Leaderboard", "Clan Leaderboard"])):
         perms = ctx.author.guild_permissions.manage_guild
@@ -91,6 +92,7 @@ class autoB(commands.Cog, name="Board Setup"):
                                           f"Type: {autoboard_type}{tex}",
                               color=disnake.Color.green())
         await msg.edit(embed=embed)
+
 
     @autoboard.sub_command(name="remove", description="Remove a server autoboard")
     async def removeboard(self, ctx: disnake.ApplicationCommandInteraction, autoboard_type: str = commands.Param(choices=["Player Leaderboard", "Clan Leaderboard"])):

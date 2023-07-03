@@ -4,6 +4,11 @@ from typing import Callable, Union
 from Exceptions.CustomExceptions import ExpiredComponents
 from urllib.request import Request, urlopen
 import io
+#from CustomClasses.CustomBot import CustomClient
+from Exceptions.CustomExceptions import *
+from datetime import datetime
+from operator import attrgetter
+
 
 def partial_emoji_gen(bot, emoji_string, animated=False):
     emoji = ''.join(filter(str.isdigit, emoji_string))
@@ -70,6 +75,127 @@ async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteract
         valid_value = await function(res=res)
 
     return valid_value
+
+async def basic_embed_modal(bot, ctx: disnake.ApplicationCommandInteraction, previous_embed=None):
+    components = [
+        disnake.ui.TextInput(
+            label=f"Embed Title",
+            custom_id=f"title",
+            required=False,
+            style=disnake.TextInputStyle.single_line,
+            max_length=75,
+        ),
+        disnake.ui.TextInput(
+            label=f"Embed Description",
+            custom_id=f"desc",
+            required=False,
+            style=disnake.TextInputStyle.paragraph,
+            max_length=500,
+        ),
+        disnake.ui.TextInput(
+            label=f"Embed Thumbnail",
+            custom_id=f"thumbnail",
+            placeholder="Must be a valid url",
+            required=False,
+            style=disnake.TextInputStyle.single_line,
+            max_length=200,
+        ),
+        disnake.ui.TextInput(
+            label=f"Embed Image",
+            custom_id=f"image",
+            placeholder="Must be a valid url",
+            required=False,
+            style=disnake.TextInputStyle.single_line,
+            max_length=200,
+        ),
+        disnake.ui.TextInput(
+            label=f"Embed Color (Hex Color)",
+            custom_id=f"color",
+            required=False,
+            style=disnake.TextInputStyle.short,
+            max_length=10,
+        )
+    ]
+    t_ = int(datetime.now().timestamp())
+    await ctx.response.send_modal(
+        title="Basic Embed Creator ",
+        custom_id=f"basicembed-{t_}",
+        components=components)
+
+    def check(res: disnake.ModalInteraction):
+
+        return ctx.author.id == res.author.id and res.custom_id == f"basicembed-{t_}"
+
+    try:
+        modal_inter: disnake.ModalInteraction = await bot.wait_for(
+            "modal_submit",
+            check=check,
+            timeout=300,
+        )
+    except:
+        return None
+
+    color = disnake.Color.dark_grey()
+    if modal_inter.text_values.get("color") != "":
+        try:
+            r, g, b = tuple(
+                int(modal_inter.text_values.get("color").replace("#", "")[i:i + 2], 16) for i in (0, 2, 4))
+            color = disnake.Color.from_rgb(r=r, g=g, b=b)
+        except:
+            raise InvalidHexCode
+
+    our_embed = {"title": modal_inter.text_values.get("title"), "description": modal_inter.text_values.get("desc"),
+                 "image.url": modal_inter.text_values.get("image"),
+                 "thumbnail.url": modal_inter.text_values.get("thumbnail"), "color": color}
+
+    embed = await generate_embed(bot=bot, our_embed=our_embed, embed=previous_embed)
+    await modal_inter.response.defer()
+
+    return (modal_inter, embed)
+
+
+async def generate_embed(bot, our_embed: dict, embed=None):
+    if embed is None:
+        embed = disnake.Embed()
+    for attribute, embed_field in our_embed.items():
+        if embed_field is None or embed_field == "":
+            continue
+        attribute: str
+        if "field" in attribute:
+            if embed_field["name"] is None or embed_field == "":
+                continue
+            embed.insert_field_at(index=int(attribute.split("_")[1]) - 1, name=embed_field["name"],
+                                  value=embed_field["value"], inline=embed_field["inline"])
+        elif "image" in attribute:
+            if embed_field != "" and embed_field != "None":
+                embed_field = await permanent_image(bot, embed_field)
+            if embed_field == "None":
+                embed._image = None
+            else:
+                embed.set_image(url=embed_field)
+        elif "thumbnail" in attribute:
+            if embed_field != "" and embed_field != "None":
+                embed_field = await permanent_image(bot, embed_field)
+            if embed_field == "None":
+                embed._thumbnail = None
+            else:
+                embed.set_thumbnail(url=embed_field)
+        elif "footer" in attribute:
+            if embed_field["text"] is None:
+                continue
+            embed.set_footer(icon_url=embed_field["icon"], text=embed_field["text"])
+        elif "author" in attribute:
+            if embed_field["text"] is None:
+                continue
+            embed.set_author(icon_url=embed_field["icon"], name=embed_field["text"])
+        else:
+            if len(attribute.split(".")) == 2:
+                obj = attrgetter(attribute.split(".")[0])(embed)
+                setattr(obj, attribute.split(".")[1], embed_field)
+            else:
+                setattr(embed, attribute, embed_field)
+
+    return embed
 
 
 

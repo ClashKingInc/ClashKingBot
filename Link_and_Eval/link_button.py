@@ -179,21 +179,18 @@ class LinkWelcomeMessages(commands.Cog):
                 embed.title = f"**{player.name} successfully linked**"
                 await modal_inter.send(embed=embed, ephemeral=True)
                 try:
-                    results = await self.bot.server_db.find_one({"server": ctx.guild.id})
-                    greeting = results.get("greeting")
-                    if greeting is None:
-                        greeting = ""
-
                     results = await self.bot.clan_db.find_one({"$and": [
                         {"tag": player.clan.tag},
                         {"server": ctx.guild.id}
                     ]})
-                    if ctx.author.id == 852623927284465664:
-                        results = None
                     if results is not None:
+                        greeting = results.get("greeting")
+                        if greeting is None:
+                            badge = await self.bot.create_new_badge_emoji(url=player.clan.badge.url)
+                            greeting = f", welcome to {badge}{player.clan.name}!"
                         channel = results.get("clanChannel")
                         channel = self.bot.get_channel(channel)
-                        await channel.send(f"{ctx.author.mention}, welcome to {ctx.guild.name}! {greeting}")
+                        await channel.send(f"{ctx.author.mention}{greeting}")
                 except:
                     pass
             elif not verified:

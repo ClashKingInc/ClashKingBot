@@ -6,6 +6,7 @@ from main import check_commands
 from utils.search import search_results
 from .eval_logic import eval_logic
 from BoardCommands.Utils.Player import to_do_embed
+from utils.discord_utils import basic_embed_modal
 
 class Linking(commands.Cog):
 
@@ -73,19 +74,18 @@ class Linking(commands.Cog):
                 embed.title = f"**{player.name} successfully linked to {str(ctx.author)}**"
                 await ctx.edit_original_message(embed=embed)
                 try:
-                    results = await self.bot.server_db.find_one({"server": ctx.guild.id})
-                    greeting = results.get("greeting")
-                    if greeting is None:
-                        greeting = ""
-
                     results = await self.bot.clan_db.find_one({"$and": [
                         {"tag": player.clan.tag},
                         {"server": ctx.guild.id}
                     ]})
                     if results is not None:
+                        greeting = results.get("greeting")
+                        if greeting is None:
+                            badge = await self.bot.create_new_badge_emoji(url=player.clan.badge.url)
+                            greeting = f", welcome to {badge}{player.clan.name}!"
                         channel = results.get("clanChannel")
                         channel = self.bot.get_channel(channel)
-                        await channel.send(f"{ctx.author.mention}, welcome to {ctx.guild.name}! {greeting}")
+                        await channel.send(f"{ctx.author.mention}{greeting}")
                 except:
                     pass
 
@@ -163,19 +163,18 @@ class Linking(commands.Cog):
                 embed.title = f"**{player.name} successfully linked to {str(ctx.author)}**"
                 await ctx.edit_original_message(embed=embed)
                 try:
-                    results = await self.bot.server_db.find_one({"server": ctx.guild.id})
-                    greeting = results.get("greeting")
-                    if greeting is None:
-                        greeting = ""
-
                     results = await self.bot.clan_db.find_one({"$and": [
                         {"tag": player.clan.tag},
                         {"server": ctx.guild.id}
                     ]})
                     if results is not None:
+                        greeting = results.get("greeting")
+                        if greeting is None:
+                            badge = await self.bot.create_new_badge_emoji(url=player.clan.badge.url)
+                            greeting = f", welcome to {badge}{player.clan.name}!"
                         channel = results.get("clanChannel")
                         channel = self.bot.get_channel(channel)
-                        await channel.send(f"{ctx.author.mention}, welcome to {ctx.guild.name}! {greeting}")
+                        await channel.send(f"{ctx.author.mention}{greeting}")
                 except:
                     pass
         except Exception as e:
@@ -226,19 +225,18 @@ class Linking(commands.Cog):
                     color=disnake.Color.red())
                 if greet != "No":
                     try:
-                        results = await self.bot.server_db.find_one({"server": ctx.guild.id})
-                        greeting = results.get("greeting")
-                        if greeting is None:
-                            greeting = ""
-
                         results = await self.bot.clan_db.find_one({"$and": [
                             {"tag": player.clan.tag},
                             {"server": ctx.guild.id}
                         ]})
                         if results is not None:
+                            greeting = results.get("greeting")
+                            if greeting is None:
+                                badge = await self.bot.create_new_badge_emoji(url=player.clan.badge.url)
+                                greeting = f", welcome to {badge}{player.clan.name}!"
                             channel = results.get("clanChannel")
-                            channel = await self.bot.getch_channel(channel)
-                            await channel.send(f"{member.mention}, welcome to {ctx.guild.name}! {greeting}")
+                            channel = self.bot.get_channel(channel)
+                            await channel.send(f"{ctx.author.mention}{greeting}")
                     except:
                         pass
                 return await ctx.edit_original_message(embed=embed)
@@ -260,19 +258,18 @@ class Linking(commands.Cog):
 
         if greet != "No":
             try:
-                results = await self.bot.server_db.find_one({"server": ctx.guild.id})
-                greeting = results.get("greeting")
-                if greeting is None:
-                    greeting = ""
-
                 results = await self.bot.clan_db.find_one({"$and": [
                     {"tag": player.clan.tag},
                     {"server": ctx.guild.id}
                 ]})
                 if results is not None:
+                    greeting = results.get("greeting")
+                    if greeting is None:
+                        badge = await self.bot.create_new_badge_emoji(url=player.clan.badge.url)
+                        greeting = f", welcome to {badge}{player.clan.name}!"
                     channel = results.get("clanChannel")
                     channel = self.bot.get_channel(channel)
-                    await channel.send(f"{member.mention}, welcome to {ctx.guild.name}! {greeting}")
+                    await channel.send(f"{ctx.author.mention}{greeting}")
             except:
                 pass
 
@@ -340,12 +337,56 @@ class Linking(commands.Cog):
         await ctx.edit_original_message(embed=embed)
 
     @commands.slash_command(name="buttons", description="Create a message that has buttons for easy eval/link/refresh actions.")
-    async def buttons(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Link Button", "Refresh Button", "To-Do Button", "Roster Button"]), ping: disnake.User = None):
-        await ctx.response.defer()
-        if type == "Link Button":
-            embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
-                                  description=f"To link your account, press the link button below to get started.",
+    async def buttons(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Link Button", "Refresh Button", "To-Do Button", "Roster Button"]), ping: disnake.User = None,
+                      custom_embed = commands.Param(default="False", choices=["True", "False"]), embed_link: str = None):
+
+        link_embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
+                              description=f"To link your account, press the link button below to get started.",
+                              color=disnake.Color.green())
+        refresh_embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
+                              description=f"To refresh your roles, press the refresh button below.",
+                              color=disnake.Color.green())
+        to_do_embed = disnake.Embed(description=f"To view your account to-do list click the button below!\n"
+                                              f"> Clan Games\n"
+                                              f"> War Hits\n"
+                                              f"> Raid Hits\n"
+                                              f"> Inactivity\n"
+                                              f"> Legend Hits",
                                   color=disnake.Color.green())
+        if ctx.guild.icon is not None:
+            refresh_embed.set_thumbnail(url=ctx.guild.icon.url)
+            link_embed.set_thumbnail(url=ctx.guild.icon.url)
+            to_do_embed.set_thumbnail(url=ctx.guild.icon.url)
+        default_embeds = {"Link Button" : link_embed, "Refresh Button" : refresh_embed, "To-Do Button" : to_do_embed}
+
+        if custom_embed != "False":
+            if embed_link is None:
+                modal_inter, embed = await basic_embed_modal(bot=self.bot,ctx=ctx)
+                ctx = modal_inter
+            else:
+                await ctx.response.defer()
+                try:
+                    if "discord.com" not in embed_link:
+                        return await ctx.send(content="Not a valid message link", ephemeral=True)
+                    link_split = embed_link.split("/")
+                    message_id = link_split[-1]
+                    channel_id = link_split[-2]
+
+                    channel = await self.bot.getch_channel(channel_id=int(channel_id))
+                    if channel is None:
+                        return await ctx.send(content="Cannot access the channel this embed is in", ephemeral=True)
+                    message = await channel.fetch_message(int(message_id))
+                    if not message.embeds:
+                        return await ctx.send(content="Message has no embeds", ephemeral=True)
+                    embed = message.embeds[0]
+                except:
+                    return await ctx.send(content=f"Something went wrong :/ An error occured with the message link.", ephemeral=True)
+        else:
+            await ctx.response.defer()
+            embed = default_embeds[type]
+
+        if type == "Link Button":
+
             stat_buttons = [disnake.ui.Button(label="Link Account", emoji="🔗", style=disnake.ButtonStyle.green,
                                               custom_id="Start Link"),
                             disnake.ui.Button(label="Help", emoji="❓", style=disnake.ButtonStyle.grey,
@@ -353,43 +394,29 @@ class Linking(commands.Cog):
             buttons = disnake.ui.ActionRow()
             for button in stat_buttons:
                 buttons.append_item(button)
-            if ctx.guild.icon is not None:
-                embed.set_thumbnail(url=ctx.guild.icon.url)
+
             if ping is not None:
                 content = ping.mention
             else:
                 content = ""
             await ctx.send(content=content, embed=embed, components=[buttons])
         elif type == "Refresh Button":
-            embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
-                                  description=f"To refresh your roles, press the refresh button below.",
-                                  color=disnake.Color.green())
+
             stat_buttons = [disnake.ui.Button(label="Refresh Roles", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.green, custom_id="Refresh Roles")]
             buttons = disnake.ui.ActionRow()
             for button in stat_buttons:
                 buttons.append_item(button)
-            if ctx.guild.icon is not None:
-                embed.set_thumbnail(url=ctx.guild.icon.url)
             if ping is not None:
                 content = ping.mention
             else:
                 content = ""
             await ctx.send(content=content, embed=embed, components=[buttons])
         elif type == "To-Do Button":
-            embed = disnake.Embed(description=f"To view your account to-do list click the button below!\n"
-                                              f"> Clan Games\n"
-                                              f"> War Hits\n"
-                                              f"> Raid Hits\n"
-                                              f"> Inactivity\n"
-                                              f"> Legend Hits",
-                                  color=disnake.Color.green())
             stat_buttons = [disnake.ui.Button(label="To-Do List", emoji=self.bot.emoji.yes.partial_emoji,
                                               style=disnake.ButtonStyle.green, custom_id="MyToDoList")]
             buttons = disnake.ui.ActionRow()
             for button in stat_buttons:
                 buttons.append_item(button)
-            if ctx.guild.icon is not None:
-                embed.set_thumbnail(url=ctx.guild.icon.url)
             if ping is not None:
                 content = ping.mention
             else:
