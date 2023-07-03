@@ -1,18 +1,17 @@
 import disnake
+import coc
+
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-import coc
-import re
-
-import ast
 from utils.general import calculate_time
 from main import check_commands
 from typing import Union
-from utils.discord_utils import interaction_handler
+from utils.discord_utils import get_webhook_for_channel
 from operator import attrgetter
 from Exceptions.CustomExceptions import *
 from datetime import datetime
-from utils.discord_utils import permanent_image
+from utils.discord_utils import permanent_image, interaction_handler
+from CustomClasses.CustomServer import DatabaseClan
 
 class SetupCommands(commands.Cog , name="Setup"):
 
@@ -27,15 +26,10 @@ class SetupCommands(commands.Cog , name="Setup"):
         return clan
 
 
-
     @commands.slash_command(name="setup")
     async def setup(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
 
-
-
-
-    #CLAN SETUP
 
     @setup.sub_command(name="autoeval", description="Turn autoeval on/off")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -48,9 +42,137 @@ class SetupCommands(commands.Cog , name="Setup"):
         if log is not None:
             await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"autoeval_log": log.id}})
             log_text = f"and will log in {log.mention}"
-        await ctx.edit_original_message(f"**Autoeval is now turned {option} {log_text}**",
-                                        allowed_mentions=disnake.AllowedMentions.none())
+        await ctx.edit_original_message(f"**Autoeval is now turned {option} {log_text}**", allowed_mentions=disnake.AllowedMentions.none())
 
+    @setup.sub_command(name="logs", description="Set a variety of different clan logs for your server!")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def set_log_add(self, ctx: disnake.ApplicationCommandInteraction,
+                          clan: coc.Clan = commands.Param(converter=clan_converter),
+                          channel: Union[disnake.TextChannel, disnake.Thread] = commands.Param(default=None, name="channel")):
+        await ctx.response.defer()
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        if results is None:
+            raise ThingNotFound("**This clan is not set up on this server. Use `/addclan` to get started.**")
+
+        db_clan = DatabaseClan(bot=self.bot, data=results)
+        channel = ctx.channel if channel is None else channel
+
+        log_types = {"Member Join" : db_clan.join_log, "Member Leave" : db_clan.leave_log, "War Log" : db_clan.war_log, "War Panel" : db_clan.war_panel,
+                     "Capital Donations" : db_clan.capital_donations}
+        log_types = ["Member Join", "Member Leave", "War Log", "War Panel", "Capital Donations", "Capital Attacks", "Capital Panel", "Capital Weekly Summary",
+                     "Donation Log", "Super Troop Boosts", "Role Change", "Troop Upgrade", "Townhall Upgrade", "League Change", "Spell Upgrade",
+                     "Hero Upgrade", "Name Change", "Legend Attacks", "Legend Defenses"]
+
+        options = []
+        for log_type in log_types:
+            options.append(disnake.SelectOption(label=log_type, emoji=self.bot.emoji.clock.partial_emoji, value=log_type))
+
+        select = disnake.ui.Select(
+            options=options,
+            placeholder="Select logs!",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=len(options),  # the maximum number of options a user can select
+        )
+        dropdown = [disnake.ui.ActionRow(select)]
+
+        embed = disnake.Embed(
+            description=f"Choose the logs that you would like to add for {clan.name} in {channel.mention}\n"
+                        f"Visit https://docs.clashking.xyz/clan-setups/log-setup for more info", color=disnake.Color.green())
+        await ctx.edit_original_message(embed=embed, components=dropdown)
+
+        res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
+        webhook = await get_webhook_for_channel(channel=channel, bot=self.bot)
+        thread = None
+        if isinstance(channel, disnake.Thread):
+            await channel.add_user(self.bot.user)
+            thread = channel.id
+
+
+        text = ""
+        for value in res.values:
+            if value == "Member Join":
+                await db_clan.join_log.set_webhook(id=webhook.id)
+                await db_clan.join_log.set_thread(id=thread)
+                text += f'{self.bot.emoji.yes}{value}\n'
+            elif value == "Member Leave":
+                await db_clan.join_log.set_webhook(id=webhook.id)
+                await db_clan.join_log.set_thread(id=thread)
+                text += f'{self.bot.emoji.yes}{value}\n'
+
+
+            if "war_log" in value:
+                log_type = value.split("-")[-1]
+                print(log_type)
+                await self.bot.clan_db.update_one({"$and": [
+                    {"tag": clan.tag},
+                    {"server": ctx.guild.id}
+                ]}, {'$set': {"war_log": channel.id, "attack_feed": log_type}})
+                text += f"{swapped_type_dict[value]}- {self.bot.emoji.yes}Success\n"
+            elif value == "legend_log":
+                success = await self.legend_log(ctx, clan, channel)
+                if success:
+                    text += f"{swapped_type_dict[value]}- {self.bot.emoji.yes}Success\n"
+                else:
+                    text += f"{swapped_type_dict[value]}- {self.bot.emoji.no}Error\n"
+            else:
+                await self.bot.clan_db.update_one({"$and": [
+                    {"tag": clan.tag},
+                    {"server": ctx.guild.id}
+                ]}, {'$set': {f"{value}": channel.id}})
+                text += f"{swapped_type_dict[value]}- {self.bot.emoji.yes}Success\n"
+
+        embed = disnake.Embed(title=f"Logs Created for {clan.name}", description=text,
+                              color=disnake.Color.green())
+        # embed.set_thumbnail(url=clan.badge.medium.url)
+        await res.edit_original_message(embed=embed, components=[])
+
+    async def legend_log(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan,
+                         channel: Union[disnake.TextChannel, disnake.Thread]):
+        # may activate if duplicates becomes an issue
+        # clan_webhooks = await self.bot.clan_db.distinct("legend_log.webhook", filter={"server": ctx.guild.id})
+        is_thread = False
+        try:
+            bot_av = self.bot.user.avatar.read().close()
+            if isinstance(channel, disnake.Thread):
+                webhooks = await channel.parent.webhooks()
+            else:
+                webhooks = await channel.webhooks()
+            webhook = next((w for w in webhooks if w.user.id == self.bot.user.id), None)
+            if webhook is None:
+                if isinstance(channel, disnake.Thread):
+                    webhook = await channel.parent.create_webhook(name="ClashKing", avatar=bot_av,
+                                                                  reason="Legends Feed")
+                else:
+                    webhook = await channel.create_webhook(name="ClashKing", avatar=bot_av, reason="Legends Feed")
+        except Exception as e:
+            return False
+
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]}, {'$set': {"legend_log.webhook": webhook.id}})
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]}, {'$set': {"legend_log.thread": None}})
+
+        if isinstance(channel, disnake.Thread):
+            await self.bot.clan_db.update_one({"$and": [
+                {"tag": clan.tag},
+                {"server": ctx.guild.id}
+            ]}, {'$set': {"legend_log.thread": ctx.channel.id}})
+            await webhook.send("Legend Log Success", username='ClashKing',
+                               avatar_url="https://cdn.discordapp.com/attachments/923767060977303552/1033385579091603497/2715c2864c10dc64a848f7d12d1640d0.png",
+                               thread=channel)
+
+        else:
+            await webhook.send("Legend Log Success", username='ClashKing',
+                               avatar_url="https://cdn.discordapp.com/attachments/923767060977303552/1033385579091603497/2715c2864c10dc64a848f7d12d1640d0.png")
+
+        return True
 
 
     @set_log.sub_command(name="remove", description="Remove a log for a clan")
@@ -121,40 +243,6 @@ class SetupCommands(commands.Cog , name="Setup"):
         embed = disnake.Embed(description=f"`{removed_text}` removed for {clan.name}", color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.url)
         await ctx.edit_original_message(content="", embed=embed, components=[])
-
-    @set_log.sub_command(name="help", description="Overview of common questions & functionality of logs")
-    async def set_log_help(self, ctx: disnake.ApplicationCommandInteraction):
-        embed = disnake.Embed(title="ClashKing Clan Log Overview",
-                              description="__Answer to Common Questions__\n"
-                                          "- The logs pull updated info about every 4-5 minutes\n"
-                                          "- The logs support channels, threads, & forums"
-                                          "- Multiple logs can be set in one channel")
-        embed.add_field(name="Clan Capital Log",
-                        value="- Reports Clan Capital Donations\n"
-                              "- Reports Clan Capital Contributions (slightly inaccurate due to the COC API, will be fixed in a future update)\n"
-                              "- Will post a overview for the week when Raid Weekend ends\n"
-                              "- **Cannot** show what buildings gold is contributed to")
-        embed.add_field(name="Join Leave Log",
-                        value="- Reports Clan Member Joins\n"
-                              "- Reports Clan Member Leaves\n"
-                              "- Will show what clan the member left to")
-        embed.add_field(name="Legend Log",
-                        value="- Reports Legend Attacks & Defenses\n"
-                              "- Some inaccuracies, `/faq` covers in more detail")
-        embed.add_field(name="War Log",
-                        value="- 2 styles\n"
-                              "- Panel will post an embed just when the war starts, then update the embed as the war continues\n"
-                              "- Continuous will post embeds everytime something happens in war (attack, defense, war start/end)")
-        embed.add_field(name="Donation Log",
-                        value="- Reports amount of troops donated & received and by which clan members\n"
-                              "- **Cannot** show which troops were donated")
-        embed.add_field(name="Clan Log",
-                        value="- Reports when upgrades are done (townhall, troop, hero, pets, sieges, or spells)\n"
-                              "- Reports when a name change is made\n"
-                              "- Reports when a super troop is boosted\n"
-                              "- Reports when a players league changes\n"
-                              "- **Cannot** get building upgrades or when an lab or hero upgrade is started")
-        await ctx.edit_original_message(embed=embed)
 
 
     #COUNTDOWNS

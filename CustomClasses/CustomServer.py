@@ -119,11 +119,6 @@ class DatabaseClan():
             {"server": self.server_id}
         ]}, {'$set': {"leaderRole": id}})
 
-    async def set_clan_channel(self, id: Union[int, None]):
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": self.tag},
-            {"server": self.server_id}
-        ]}, {'$set': {"clanChannel": id}})
 
     async def set_ban_alert_channel(self, id: Union[int, None]):
         await self.bot.clan_db.update_one({"$and": [

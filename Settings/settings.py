@@ -147,7 +147,6 @@ class misc(commands.Cog, name="Settings"):
 
             embed.add_field(name="Capital Dono Log:", value=f"{(await clan.capital_donations.get_webhook_channel_mention())}", inline=True)
             embed.add_field(name="Capital Atk Log:", value=f"{(await clan.capital_attacks.get_webhook_channel_mention())}", inline=True)
-            embed.add_field(name="Capital Raid Map:", value=f"{(await clan.raid_map.get_webhook_channel_mention())}", inline=True)
             embed.add_field(name="Capital Weekly Summary:", value=f"{(await clan.capital_weekly_summary.get_webhook_channel_mention())}", inline=True)
             embed.add_field(name="Capital Raid Panel:", value=f"{(await clan.raid_panel.get_webhook_channel_mention())}", inline=True)
 
