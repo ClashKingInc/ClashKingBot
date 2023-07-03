@@ -1,15 +1,11 @@
-import time
-import coc
-from disnake.ext import commands
 import disnake
-import asyncio
 
+from disnake.ext import commands
 from main import check_commands
-from utils.components import create_components
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer
-from typing import List
-from collections import defaultdict
+from .eval_logic import eval_logic
+from utils.constants import DEFAULT_EVAL_ROLE_TYPES
 
 class eval(commands.Cog, name="Eval"):
     """A couple of simple commands."""
@@ -28,7 +24,7 @@ class eval(commands.Cog, name="Eval"):
         test = (test != "No")
         server = CustomServer(guild=ctx.guild, bot=self.bot)
         change_nick = await server.nickname_choice
-        changes = await self.eval_logic(ctx=ctx, members_to_eval=[user], role_or_user=user, test=test, change_nick=change_nick)
+        changes = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[user], role_or_user=user, test=test, change_nick=change_nick)
 
     @eval.sub_command(name="role", description="Evaluate the roles of all members in a specific role")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -37,10 +33,9 @@ class eval(commands.Cog, name="Eval"):
             role = ctx.guild.default_role
         test = (test != "No")
         await ctx.response.defer()
-        default_eval = ["family" , "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "nicknames"]
         if advanced_mode == "Yes":
             options = []
-            for option in default_eval:
+            for option in DEFAULT_EVAL_ROLE_TYPES:
                 value = option
                 option = option.capitalize()
                 if option == "Not_family":
@@ -82,7 +77,7 @@ class eval(commands.Cog, name="Eval"):
                 member = await self.bot.pingToMember(ctx, str(member))
                 if (member not in members) and (member is not None):
                     members.append(member)
-        await self.eval_logic(ctx=ctx, members_to_eval=members, role_or_user=role, test=test, change_nick=change_nick, role_types_to_eval=default_eval)
+        await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=members, role_or_user=role, test=test, change_nick=change_nick, role_types_to_eval=default_eval)
 
     @eval.sub_command(name="tag", description="Evaluate the role of the user connected to a tag")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -773,7 +768,7 @@ class eval(commands.Cog, name="Eval"):
 
     @status_roles.sub_command(name="set", description="Includes longevity & max hero (for th) roles")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def status_roles(self, ctx: disnake.ApplicationCommandInteraction,
+    async def status_roles_set(self, ctx: disnake.ApplicationCommandInteraction,
                            one_month: disnake.Role = None, two_months: disnake.Role = None, three_months: disnake.Role =None,
                            six_months: disnake.Role = None, nine_months: disnake.Role = None, one_year: disnake.Role = None):
 
@@ -814,7 +809,7 @@ class eval(commands.Cog, name="Eval"):
 
     @achievement_roles.sub_command(name="set", description="Set role for top donators/activity & more")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def achievement_roles(self, ctx: disnake.ApplicationCommandInteraction, donos_10000: disnake.Role = None,
+    async def achievement_roles_set(self, ctx: disnake.ApplicationCommandInteraction, donos_10000: disnake.Role = None,
                                 donos_25000: disnake.Role = None, top_donator_last_season: disnake.Role = None,
                                 top_donator_ongoing_season: disnake.Role = None, top_activity_last_season: disnake.Role = None, top_activity_current_season: disnake.Role = None):
 
@@ -830,19 +825,19 @@ class eval(commands.Cog, name="Eval"):
                 continue
             role_text = spot_to_text[count]
             roles_updated += f"{role_text}: {role.mention}\n"
-            results = await self.bot.statusroles.find_one({"$and": [
+            results = await self.bot.achievementroles.find_one({"$and": [
                 {"role": role.id},
                 {"type": role_text},
                 {"server": ctx.guild.id}
             ]})
 
             if results is None:
-                await self.bot.statusroles.insert_one(
+                await self.bot.achievementroles.insert_one(
                     {"role": role.id,
                      "type": role_text,
                      "server": ctx.guild.id})
             else:
-                await self.bot.statusroles.update_one({"$and": [
+                await self.bot.achievementroles.update_one({"$and": [
                     {"type": role_text},
                     {"server": ctx.guild.id}
                 ]}, {'$set': {"role": role.id}})
@@ -1131,594 +1126,7 @@ class eval(commands.Cog, name="Eval"):
                         ephemeral=True)
 
 
-    async def eval_logic(self,  role_or_user, members_to_eval: List[disnake.Member],
-                         test: bool, change_nick, ctx: disnake.ApplicationCommandInteraction = None, guild: disnake.Guild = None, role_types_to_eval = None,
-                         return_array=False, return_embed=None, role_treatment=None, reason=""):
-        time_start = time.time()
-        bot_member = await ctx.guild.getch_member(self.bot.user.id)
-        if role_types_to_eval is None:
-            role_types_to_eval = ["family" , "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "nicknames"]
-        if role_treatment is None:
-            role_treatment = ["Add", "Remove"]
-        if guild is None:
-            guild = ctx.guild
-        await guild.fetch_roles()
-        server = CustomServer(guild=guild, bot=self.bot)
-        leadership_eval = await server.leadership_eval_choice
 
-        ignored_roles = []
-        all = self.bot.ignoredroles.find({"server": guild.id})
-        limit = await self.bot.ignoredroles.count_documents(filter={"server": guild.id})
-        for role in await all.to_list(length=limit):
-            r = role.get("role")
-            ignored_roles.append(r)
-
-        family_roles = []
-        all = self.bot.generalfamroles.find({"server": guild.id})
-        limit = await self.bot.generalfamroles.count_documents(filter={"server": guild.id})
-        for role in await all.to_list(length=limit):
-            r = role.get("role")
-            family_roles.append(r)
-
-        if "family" not in role_types_to_eval:
-            ignored_roles += family_roles
-
-        not_fam_roles = []
-        all = self.bot.notfamroles.find({"server": guild.id})
-        limit = await self.bot.notfamroles.count_documents(filter={"server": guild.id})
-        for role in await all.to_list(length=limit):
-            r = role.get("role")
-            not_fam_roles.append(r)
-
-        if "not_family" not in role_types_to_eval:
-            ignored_roles += not_fam_roles
-
-        clan_roles = []
-        clan_tags = []
-        clan_role_dict = {}
-        abbreviations = {}
-        clan_to_category = {}
-        all = self.bot.clan_db.find({"server": guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": guild.id})
-        for role in await all.to_list(length=limit):
-            r = role.get("generalRole")
-            tag = role.get("tag")
-            category = role.get("category")
-            clan_to_category[tag] = category
-            clan_abbreviation = role.get("abbreviation")
-            abbreviations[tag] = clan_abbreviation
-            clan_role_dict[tag] = r
-            clan_tags.append(tag)
-            clan_roles.append(r)
-
-        if "clan" not in role_types_to_eval:
-            ignored_roles += clan_roles
-
-        leadership_roles = []
-        clan_leadership_role_dict = {}
-        all = self.bot.clan_db.find({"server": guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": guild.id})
-        for role in await all.to_list(length=limit):
-            tag = role.get("tag")
-            r = role.get("leaderRole")
-            clan_leadership_role_dict[tag] = r
-            leadership_roles.append(r)
-
-        if "leadership" not in role_types_to_eval:
-            ignored_roles += leadership_roles
-
-        townhall_roles = {}
-        th_role_list = []
-        all = self.bot.townhallroles.find({"server": guild.id})
-        limit = await self.bot.townhallroles.count_documents(filter={"server": guild.id})
-        for role in await all.to_list(length=limit):
-            r = role.get("role")
-            th = role.get("th")
-            th = th.replace("th", "")
-            th = int(th)
-            townhall_roles[th] = r
-            th_role_list.append(r)
-
-        if "townhall" not in role_types_to_eval:
-            ignored_roles += th_role_list
-
-        builderhall_roles = {}
-        bh_role_list = []
-        all = self.bot.builderhallroles.find({"server": guild.id})
-        limit = await self.bot.builderhallroles.count_documents(filter={"server": guild.id})
-        for role in await all.to_list(length=limit):
-            r = role.get("role")
-            bh = role.get("bh")
-            bh = bh.replace("bh", "")
-            bh = int(bh)
-            builderhall_roles[bh] = r
-            bh_role_list.append(r)
-
-        if "builderhall" not in role_types_to_eval:
-            ignored_roles += bh_role_list
-
-        league_roles = {}
-        league_role_list = []
-        all = self.bot.legendleagueroles.find({"server": guild.id})
-        limit = await self.bot.legendleagueroles.count_documents(filter={"server": guild.id})
-        for role in await all.to_list(length=limit):
-            r = role.get("role")
-            type = role.get("type")
-            league_roles[type] = r
-            league_role_list.append(r)
-
-        if "league" not in role_types_to_eval:
-            ignored_roles += league_role_list
-
-        category_roles = {}
-        category_role_list = []
-        server_find = await self.bot.server_db.find_one({"server": guild.id})
-        category_roles_find = server_find.get("category_roles")
-        if category_roles_find is not None:
-            categories = await self.bot.clan_db.distinct("category", filter={"server": guild.id})
-            for category in categories:
-                try:
-                    role_id = category_roles_find.get(f"{category}")
-                    if role_id is None:
-                        continue
-                    category_roles[category] = role_id
-                    category_role_list.append(role_id)
-                except:
-                    pass
-
-        if "category" not in role_types_to_eval:
-            ignored_roles += category_role_list
-
-        ALL_CLASH_ROLES = family_roles + clan_roles + not_fam_roles + league_role_list + th_role_list + category_role_list + bh_role_list
-        if "leadership" in role_types_to_eval:
-            if leadership_eval:
-                ALL_CLASH_ROLES += leadership_roles
-
-        text = ""
-        num = 0
-        embeds = []
-        msg = await ctx.original_message()
-        embed = disnake.Embed(
-            description=f"<a:loading:884400064313819146> Fetching discord links for {len(members_to_eval)} users.",
-            color=disnake.Color.green())
-        if ctx is not None:
-            await ctx.edit_original_message(embed=embed)
-        all_discord_links = await self.bot.link_client.get_many_linked_players(*[member.id for member in members_to_eval])
-        discord_link_dict = defaultdict(list)
-        all_tags = []
-        for player_tag, discord_id in all_discord_links:
-            all_tags.append(player_tag)
-            discord_link_dict[discord_id].append(player_tag)
-
-        embed = disnake.Embed(
-            description=f"<a:loading:884400064313819146> Fetching {len(all_tags)} players for eval.",
-            color=disnake.Color.green())
-        if ctx is not None:
-            await ctx.edit_original_message(embed=embed)
-        all_players = await self.bot.get_players(tags=all_tags, use_cache=(len(all_tags) >= 10))
-        player_dict = {}
-        for player in all_players:
-            player_dict[player.tag] = player
-        num_changes = 0
-
-        tasks = []
-        for count, member in enumerate(members_to_eval, 1):
-            if member.bot:
-                continue
-            if count % 10 == 0:
-                embed = disnake.Embed(
-                    description=f"<a:loading:884400064313819146> Gathering eval changes for {role_or_user.mention} - ({count}/{len(members_to_eval)})",
-                    color=disnake.Color.green())
-                if ctx is not None:
-                    if ctx.is_expired():
-                        await msg.edit(embed=embed)
-                    else:
-                        await ctx.edit_original_message(embed=embed)
-            #try:
-            MASTER_ROLES = []
-            # convert master role list to ids
-            for m_role in member.roles:
-                MASTER_ROLES.append(m_role.id)
-            ROLES_TO_ADD = set()
-            ROLES_SHOULD_HAVE = set()
-
-            GLOBAL_IS_FAMILY = False
-            list_accounts = []
-            family_accounts = []
-            abbreviations_to_have = []
-
-            account_tags = discord_link_dict[member.id]
-            players = [player_dict.get(tag) for tag in account_tags]
-
-            for player in players:
-                if isinstance(player, coc.errors.NotFound):
-                    continue
-                if player is None:
-                    continue
-                list_accounts.append([player.trophies, player])
-                # check if is a family member for 2 things - 1. to check for global roles (Not/is family) and 2. for if they shuld get roles on individual lvl
-                # ignore the global if even one account is in family
-                is_family_member = await self.is_in_family(player, clan_tags)
-                if not GLOBAL_IS_FAMILY:
-                    GLOBAL_IS_FAMILY = is_family_member
-
-                # check if they have any townhall roles setup
-                # try/except because dict throws error if it doesnt exist
-                # if it exists add the relevant role to the role list to add
-                if "townhall" in role_types_to_eval:
-                    if bool(townhall_roles):
-                        try:
-                            th_role = townhall_roles[player.town_hall]
-                            ROLES_SHOULD_HAVE.add(th_role)
-                            if th_role not in MASTER_ROLES:
-                                ROLES_TO_ADD.add(th_role)
-                        except:
-                            pass
-
-                # check if they have any builderhall roles set up
-                # try except because dict throws error if it doesnt exist
-                # also because they could have no builder hall
-                # if it exists on both ends, add the role to the role list to add
-                if "builderhall" in role_types_to_eval:
-                    if bool(builderhall_roles):
-                        try:
-                            bh_role = builderhall_roles[player.builder_hall]
-                            ROLES_SHOULD_HAVE.add(bh_role)
-                            if bh_role not in MASTER_ROLES:
-                                ROLES_TO_ADD.add(bh_role)
-                        except:
-                            pass
-
-                # check if server has any league roles set up
-                # try/except in case it doesnt exist/isnt set up
-                # add to role list if found
-                if "league" in role_types_to_eval:
-                    if bool(league_roles):
-                        if str(player.league) != "Unranked":
-                            league = str(player.league).split(" ")
-                            league = league[0].lower()
-                            try:
-                                league_role = league_roles[f"{league}_league"]
-                                ROLES_SHOULD_HAVE.add(league_role)
-                                if league_role not in MASTER_ROLES:
-                                    ROLES_TO_ADD.add(league_role)
-                            except:
-                                pass
-
-                        if str(player.league) == "Legend League":
-                            try:
-                                legend_role = league_roles["legends_league"]
-                                ROLES_SHOULD_HAVE.add(legend_role)
-                                if legend_role not in MASTER_ROLES:
-                                    ROLES_TO_ADD.add(legend_role)
-                            except:
-                                pass
-
-                        if player.trophies >= 6000:
-                            try:
-                                legend_role = league_roles["trophies_6000"]
-                                ROLES_SHOULD_HAVE.add(legend_role)
-                                if legend_role not in MASTER_ROLES:
-                                    ROLES_TO_ADD.add(legend_role)
-                            except:
-                                pass
-                        elif player.trophies >= 5700:
-                            try:
-                                legend_role = league_roles["trophies_5700"]
-                                ROLES_SHOULD_HAVE.add(legend_role)
-                                if legend_role not in MASTER_ROLES:
-                                    ROLES_TO_ADD.add(legend_role)
-                            except:
-                                pass
-                        elif player.trophies >= 5500:
-                            try:
-                                legend_role = league_roles["trophies_5500"]
-                                ROLES_SHOULD_HAVE.add(legend_role)
-                                if legend_role not in MASTER_ROLES:
-                                    ROLES_TO_ADD.add(legend_role)
-                            except:
-                                pass
-
-
-                if not is_family_member:
-                    continue
-
-                family_accounts.append([player.trophies, player])
-                # fetch clan role using dict
-                # if the user doesnt have it in their master list - add to roles they should have
-                # set doesnt allow duplicates, so no check needed
-                if "clan" in role_types_to_eval:
-                    clan_role = clan_role_dict[player.clan.tag]
-                    if abbreviations[player.clan.tag] is not None:
-                        abbreviations_to_have.append(abbreviations[player.clan.tag])
-                    ROLES_SHOULD_HAVE.add(clan_role)
-                    if clan_role not in MASTER_ROLES:
-                        ROLES_TO_ADD.add(clan_role)
-
-                if "category" in role_types_to_eval:
-                    if bool(category_roles):
-                        try:
-                            category_role = category_roles[clan_to_category[player.clan.tag]]
-                            ROLES_SHOULD_HAVE.add(category_role)
-                            if category_role not in MASTER_ROLES:
-                                ROLES_TO_ADD.add(category_role)
-                        except:
-                            pass
-
-                # if server has leadership_eval turned on
-                # check & add any leadership roles
-                if leadership_eval and ("leadership" in role_types_to_eval):
-                    in_clan_role = str(player.role)
-                    if in_clan_role == "Co-Leader" or in_clan_role == "Leader":
-                        leadership_clan_role = clan_leadership_role_dict[player.clan.tag]
-                        ROLES_SHOULD_HAVE.add(leadership_clan_role)
-                        if leadership_clan_role not in MASTER_ROLES:
-                            ROLES_TO_ADD.add(leadership_clan_role)
-
-            ###ALL INDIVIDUAL ROLE HAVE BEEN FOUND
-            ###"Global" roles - family/not family now
-            # leadership roles only get removed if a complete absense from family, so add any to the remove list
-            ROLES_TO_REMOVE = set()
-            if GLOBAL_IS_FAMILY and "family" in role_types_to_eval:
-                for role in family_roles:
-                    ROLES_SHOULD_HAVE.add(role)
-                    if role not in MASTER_ROLES:
-                        ROLES_TO_ADD.add(role)
-            elif not GLOBAL_IS_FAMILY:
-                for role in not_fam_roles:
-                    if "not_family" not in role_types_to_eval:
-                        continue
-                    ROLES_SHOULD_HAVE.add(role)
-                    if role not in MASTER_ROLES:
-                        ROLES_TO_ADD.add(role)
-                if "leadership" in role_types_to_eval:
-                    if leadership_eval:
-                        for role in leadership_roles:
-                            if role in MASTER_ROLES:
-                                ROLES_TO_REMOVE.add(role)
-
-            # convert sets to a list
-            ROLES_TO_ADD = list(ROLES_TO_ADD)
-            ROLES_TO_REMOVE = list(ROLES_TO_REMOVE)
-            ROLES_SHOULD_HAVE = list(ROLES_SHOULD_HAVE)
-
-            for role in MASTER_ROLES:
-                isClashRole = role in ALL_CLASH_ROLES
-                ignored_role = role in ignored_roles
-                should_have = role in ROLES_SHOULD_HAVE
-                if (isClashRole) and (ignored_role is False) and (should_have is False):
-                    if ignored_role:
-                        if not GLOBAL_IS_FAMILY:
-                            ROLES_TO_REMOVE.append(role)
-                    else:
-                        ROLES_TO_REMOVE.append(role)
-
-            # finish - add & remove what is expected
-
-            added = ""
-            removed = ""
-            FINAL_ROLES_TO_ADD = []
-            FINAL_ROLES_TO_REMOVE = []
-            for role in ROLES_TO_ADD:
-                if role == guild.default_role.id:
-                    continue
-                r: disnake.Role = guild.get_role(role)
-                if r is None or r.is_bot_managed():
-                    continue
-                FINAL_ROLES_TO_ADD.append(r)
-                added += r.mention + " "
-
-            for role in ROLES_TO_REMOVE:
-                if role == guild.default_role.id:
-                    continue
-                r: disnake.Role = guild.get_role(role)
-                if r is None or r.is_bot_managed():
-                    continue
-                FINAL_ROLES_TO_REMOVE.append(r)
-                removed += r.mention + " "
-
-            if not test:
-                current_member_roles = member.roles
-                if FINAL_ROLES_TO_ADD != [] and ("Add" in role_treatment):
-                    invalid = not bot_member.guild_permissions.manage_roles
-                    if invalid:
-                        added = "Missing manage_roles perm"
-                    else:
-                        for r in FINAL_ROLES_TO_ADD:
-                            if r > bot_member.top_role:
-                                invalid = True
-                                break
-                        if not invalid:
-                            current_member_roles += FINAL_ROLES_TO_ADD
-                            #tasks.append(asyncio.ensure_future(member.add_roles(*FINAL_ROLES_TO_ADD)))
-                        else:
-                            added = "Could not add role(s)"
-
-                if FINAL_ROLES_TO_REMOVE != [] and ("Remove" in role_treatment):
-                    member: disnake.Member
-                    invalid = not bot_member.guild_permissions.manage_roles
-                    if invalid:
-                        removed = "Missing manage_roles perm"
-                    else:
-                        for r in FINAL_ROLES_TO_ADD:
-                            if r > bot_member.top_role:
-                                invalid = True
-                                break
-                        if not invalid:
-                            for role in FINAL_ROLES_TO_REMOVE:
-                                if role not in FINAL_ROLES_TO_ADD:
-                                    current_member_roles.remove(role)
-                            #tasks.append(asyncio.ensure_future(member.remove_roles(*FINAL_ROLES_TO_REMOVE)))
-                        else:
-                            removed = "Could not remove role(s)"
-
-
-            name_changes = "None"
-            #role_types_to_eval.remove("nicknames")
-            if "nicknames" in role_types_to_eval:
-                if len(family_accounts) >= 1:
-                    if change_nick == "Clan Abbreviations":
-                        results = sorted(family_accounts, key=lambda l: l[0], reverse=True)
-                        abbreviations_to_have = list(set(abbreviations_to_have))
-                        top_account: coc.Player = results[0][1]
-                        _abbreviations = ", ".join(abbreviations_to_have)
-                        _abbreviations = "| " + _abbreviations
-                        if len(abbreviations_to_have) == 0:
-                            new_name = f"{top_account.name}"
-                        else:
-                            new_name = f"{top_account.name} {_abbreviations}"
-                        while len(new_name) > 31:
-                            to_remove = max(abbreviations_to_have, key=len)
-                            abbreviations_to_have.remove(to_remove)
-                            _abbreviations = ", ".join(abbreviations_to_have)
-                            _abbreviations = "| " + _abbreviations
-                            if len(abbreviations_to_have) == 0:
-                                new_name = f"{top_account.name}"
-                            else:
-                                new_name = f"{top_account.name} {_abbreviations}"
-
-                        if bot_member.top_role < member.top_role:
-                            name_changes = "`Cannot Change`"
-                        else:
-                            if not test:
-                                tasks.append(asyncio.ensure_future(member.edit(nick=new_name)))
-                            name_changes = f"`{new_name}`"
-                    elif change_nick == "Family Name":
-                        results = sorted(family_accounts, key=lambda l: l[0], reverse=True)
-                        family_label = await server.family_label
-                        top_account: coc.Player = results[0][1]
-
-                        if bot_member.top_role < member.top_role:
-                            name_changes = "`Cannot Change`"
-                        else:
-                            if family_label == "":
-                                if not test:
-                                    tasks.append(asyncio.ensure_future(member.edit(nick=f"{top_account.name}")))
-                                name_changes = f"`{top_account.name}`"
-                            else:
-                                if not test:
-                                    tasks.append(asyncio.ensure_future(member.edit(nick=f"{top_account.name} | {family_label}")))
-                                name_changes = f"`{top_account.name} | {family_label}`"
-
-                if change_nick in ["Clan Abbreviations", "Family Name"] and not GLOBAL_IS_FAMILY and len(
-                        list_accounts) >= 1:
-                    results = sorted(list_accounts, key=lambda l: l[0], reverse=True)
-                    top_account: coc.Player = results[0][1]
-                    clan_name = ""
-                    try:
-                        clan_name = f"| {top_account.clan.name}"
-                    except:
-                        pass
-
-                    if bot_member.top_role < member.top_role:
-                        name_changes = "`Cannot Change`"
-                    else:
-                        if not test:
-                            tasks.append(asyncio.ensure_future(member.edit(nick=f"{top_account.name} {clan_name}")))
-                        name_changes = f"`{top_account.name} {clan_name}`"
-
-            if name_changes[1:-1] == member.display_name:
-                name_changes = "None"
-            if added == "":
-                added = "None"
-            if removed == "":
-                removed = "None"
-
-            changes = [added, removed, name_changes]
-            if return_array:
-                return changes
-            '''except:
-                continue'''
-            if ((changes[0] != "None") or (changes[1] != "None") or (changes[2] != "None")) or len(members_to_eval) >= 1:
-                if changes[0] == "None" and changes[1] == "None" and changes[2] == "None" and len(members_to_eval) >= 2:
-                    pass
-                else:
-                    text += f"**{member.display_name}** | {member.mention}"
-                    if changes[0] != "None" or len(members_to_eval) == 1:
-                        text += f"\nAdded: {changes[0]}"
-                    if changes[1] != "None" or len(members_to_eval) == 1:
-                        text += f"\nRemoved: {changes[1]}"
-                    if changes[2] != "None":
-                        text += f"\nNick Change: {changes[2]}"
-                    if len(members_to_eval) >= 2 and num != 9:
-                        text += f"\n<:blanke:838574915095101470>\n"
-                    num += 1
-                    num_changes += 1
-            if num == 10 or len(members_to_eval) == 1:
-                embed = disnake.Embed(title=f"Eval Complete",
-                                      description=text,
-                                      color=disnake.Color.green())
-                embeds.append(embed)
-                text = ""
-                num = 0
-
-        if text != "":
-            text = text[:-30]
-            embed = disnake.Embed(title=f"Eval Complete for {role_or_user.name}",
-                                  description=text,
-                                  color=disnake.Color.green())
-            embeds.append(embed)
-
-        if embeds == []:
-            text = "No evals needed."
-            embed = disnake.Embed(title=f"Eval Complete for {role_or_user.name}",
-                                  description=text,
-                                  color=disnake.Color.green())
-            embeds.append(embed)
-
-        embed = disnake.Embed(
-            description=f"<a:loading:884400064313819146> Completing {len(tasks)} Eval Changes, Approx {int(len(tasks) % 60)} Minutes...",
-            color=disnake.Color.green())
-        if ctx is not None:
-            await ctx.edit_original_message(embed=embed)
-
-        await asyncio.gather(*tasks, return_exceptions=True)
-        if return_embed:
-            return embeds[0]
-
-        time_elapsed = int(time.time() - time_start)
-        for embed in embeds:
-            embed.set_footer(text=f"Time Elapsed: {time_elapsed} seconds,  {num_changes} changes | Test: {test}")
-            if ctx.guild.icon is not None:
-                embed.set_author(name=f"{ctx.guild.name}", icon_url=ctx.guild.icon.url)
-
-        current_page = 0
-        await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))
-        msg = await ctx.original_message()
-
-        def check(res: disnake.MessageInteraction):
-            return res.message.id == msg.id
-
-        while True:
-            try:
-                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
-                                                                          timeout=600)
-            except:
-                await msg.edit(components=[])
-                break
-
-            if res.data.custom_id == "Previous":
-                current_page -= 1
-                await res.edit_original_message(embed=embeds[current_page],
-                                                components=create_components(current_page, embeds, True))
-
-            elif res.data.custom_id == "Next":
-                current_page += 1
-                await res.edit_original_message(embed=embeds[current_page],
-                                                components=create_components(current_page, embeds, True))
-
-            elif res.data.custom_id == "Print":
-                await msg.delete()
-                for embed in embeds:
-                    await ctx.channel.send(embed=embed)
-
-    async def is_in_family(self, player, clan_tags):
-        try:
-            clan = player.clan.tag
-        except:
-            return False
-
-        return clan in clan_tags
 
     @eval_tag.autocomplete("player_tag")
     async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):

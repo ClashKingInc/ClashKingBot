@@ -1,5 +1,9 @@
 import json
 
+#EVAL CONSTANTS
+DEFAULT_EVAL_ROLE_TYPES = ["family", "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "builder_league", "achievement", "status", "nicknames"]
+ROLE_TREATMENT_TYPES = ["Add", "Remove"]
+
 TOWNHALL_LEVELS = [x for x in range(1, 16)]
 MAX_NUM_SUPERS = 2
 SHORT_PLAYER_LINK = "https://api.clashking.xyz/p/"

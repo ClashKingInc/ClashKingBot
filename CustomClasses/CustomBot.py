@@ -9,11 +9,11 @@ from dotenv import load_dotenv
 from Assets.emojiDictionary import emojiDictionary, legend_emojis
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis, EmojiType
+from CustomClasses.CustomServer import DatabaseServer
 from urllib.request import urlopen
 from collections import defaultdict
 from utils.clash import cwl_league_emojis
 from CustomClasses.PlayerHistory import COSPlayerHistory
-from Exceptions.CustomExceptions import MissingWebhookPerms
 from utils.constants import locations, BADGE_GUILDS
 from typing import Tuple, List
 from utils import logins as login
@@ -944,6 +944,26 @@ class CustomClient(commands.AutoShardedBot):
 
         clan_db_results = await self.clan_db.find({"$and" : [{"tag" : {"$in" : tags}}, {"server" : server.id}]}).to_list(length=None)
         reminder_results = await self.clan_db.find({"$and" : [{"clan" : {"$in" : tags}}, {"server" : server.id}]})
+
+    async def get_custom_server(self, guild_id):
+        pipeline = [
+            {"$match": {"server" : guild_id}},
+            {"$lookup": {"from": "legendleagueroles", "localField": "server", "foreignField": "server", "as": "eval.league_roles"}},
+            {"$lookup": {"from": "evalignore", "localField": "server", "foreignField": "server", "as": "eval.ignored_roles"}},
+            {"$lookup": {"from": "generalrole", "localField": "server", "foreignField": "server", "as": "eval.family_roles"}},
+            {"$lookup": {"from": "linkrole", "localField": "server", "foreignField": "server", "as": "eval.not_family_roles"}},
+            {"$lookup": {"from": "townhallroles", "localField": "server", "foreignField": "server", "as": "eval.townhall_roles"}},
+            {"$lookup": {"from": "builderhallroles", "localField": "server", "foreignField": "server", "as": "eval.builderhall_roles"}},
+            {"$lookup": {"from": "achievementroles", "localField": "server", "foreignField": "server", "as": "eval.achievement_roles"}},
+            {"$lookup": {"from": "statusroles", "localField": "server", "foreignField": "server", "as": "eval.status_roles"}},
+            {"$lookup": {"from": "builderleagueroles", "localField": "server", "foreignField": "server", "as": "eval.builder_league_roles"}},
+            {"$lookup": {"from": "clans", "localField": "server", "foreignField": "server", "as": "clans"}},
+        ]
+        results = await self.server_db.aggregate(pipeline).to_list(length=1)
+        return DatabaseServer(bot=self, data=results[0])
+
+    def get_clan_member_tags(self, clans):
+        pass
 
 
 

@@ -39,11 +39,11 @@ async def create_profile_stats(bot: CustomClient, ctx, player: MyCustomPlayer):
 
     loot_text = ""
     if player.gold_looted != 0:
-        loot_text += f"- {bot.emoji.gold}Gold Looted: {'{:,}'.format(player.gold_looted)}\n"
+        loot_text += f"- {bot.emoji.gold}Gold Looted: {'{:,}'.format(player.gold_looted())}\n"
     if player.elixir_looted != 0:
-        loot_text += f"- {bot.emoji.elixir}Elixir Looted: {'{:,}'.format(player.elixir_looted)}\n"
+        loot_text += f"- {bot.emoji.elixir}Elixir Looted: {'{:,}'.format(player.elixir_looted())}\n"
     if player.dark_elixir_looted != 0:
-        loot_text += f"- {bot.emoji.dark_elixir}DE Looted: {'{:,}'.format(player.dark_elixir_looted)}\n"
+        loot_text += f"- {bot.emoji.dark_elixir}DE Looted: {'{:,}'.format(player.dark_elixir_looted())}\n"
 
     capital_stats = player.clan_capital_stats(start_week=0, end_week=4)
     hitrate = (await player.hit_rate())[0]

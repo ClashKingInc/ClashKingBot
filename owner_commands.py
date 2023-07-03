@@ -87,7 +87,8 @@ class OwnerCommands(commands.Cog):
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
 
-
+        await self.bot.get_custom_server(guild_id=ctx.guild.id)
+        return
 
         pipeline = [
             {"$match": {}},

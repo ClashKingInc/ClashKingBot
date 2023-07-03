@@ -1,7 +1,56 @@
 import coc
 import disnake
-from CustomClasses.CustomBot import CustomClient
-from typing import Union
+
+from typing import Union, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from CustomClasses.CustomBot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
+
+class DatabaseServer():
+    def __init__(self, bot: CustomClient, data):
+        self.leadership_eval = data.get("leadership_eval", True)
+        self.prefix = data.get("prefix", "do ")
+        self.greeting = data.get("greeting")
+        self.auto_nickname = data.get("auto_nick", "Clan Abbreviations")
+        self.use_api_token = data.get("api_token", True)
+        self.league_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get("eval", {}).get("league_roles", [])]
+        self.builder_league_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get("eval", {}).get("builder_league_roles", [])]
+        self.ignored_roles = [EvalRole(bot=bot, data=d) for d in data.get("eval", {}).get("ignored_roles", [])]
+        self.family_roles = [EvalRole(bot=bot, data=d) for d in data.get("eval", {}).get("family_roles", [])]
+        self.not_family_roles = [EvalRole(bot=bot, data=d) for d in data.get("eval", {}).get("not_family_roles", [])]
+        self.townhall_roles = [TownhallRole(bot=bot, data=d) for d in data.get("eval", {}).get("townhall_roles", [])]
+        self.builderhall_roles = [BuilderHallRole(bot=bot, data=d) for d in data.get("eval", {}).get("builderhall_roles", [])]
+        self.achievement_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get("eval", {}).get("achievement_roles", [])]
+        self.status_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get("eval", {}).get("status_roles", [])]
+        self.clans = [DatabaseClan(bot=bot, data=d) for d in data.get("clans", [])]
+        self.category_roles = data.get("category_roles")
+        self.eval_non_members: bool = data.get("eval_non_members", True)
+        self.blacklisted_roles: List[int] = data.get("blacklisted_roles")
+        self.family_label = data.get("family_label", "")
+
+class EvalRole():
+    def __init__(self, bot: CustomClient, data):
+        self.server: int = data.get("server")
+        self.id: int = data.get("role")
+
+class BuilderHallRole(EvalRole):
+    def __init__(self, bot: CustomClient, data):
+        super().__init__(bot=bot, data=data)
+        self.builderhall: str = data.get("bh")
+
+class MultiTypeRole(EvalRole):
+    def __init__(self, bot: CustomClient, data):
+        super().__init__(bot=bot, data=data)
+        self.type: str = data.get("type")
+
+class TownhallRole(EvalRole):
+    def __init__(self, bot: CustomClient, data):
+        super().__init__(bot=bot, data=data)
+        self.townhall: str = data.get("th")
+
+
 
 class DatabaseClan():
     def __init__(self, bot: CustomClient, data):
@@ -14,6 +63,7 @@ class DatabaseClan():
         self.category = data.get("category")
         self.member_role = data.get("generalRole")
         self.leader_role = data.get("leaderRole")
+        self.abbreviation = data.get("abbreviation")
         self.clan_channel = ClanLog(parent=self, type="clan_channel")
         self.join_log = Join_Log(parent=self, type="join_log")
         self.leave_log = Join_Log(parent=self, type="leave_log")
@@ -38,45 +88,44 @@ class DatabaseClan():
         self.legend_log_defenses = ClanLog(parent=self, type="legend_log_defenses")
 
 
-
 class ClanLog():
     def __init__(self, parent: DatabaseClan, type: str):
-        self.__data = parent.data.get("logs").get(type, {})
-        self.webhook = self.__data.get("webhook")
-        self.thread = self.__data.get("thread")
-        self.__parent = parent
+        self.data = parent.data.get("logs", {}).get(type, {})
+        self.webhook = self.data.get("webhook")
+        self.thread = self.data.get("thread")
+        self.parent = parent
         self.type = type
 
     async def set_webhook(self, id: Union[int, None]):
-        await self.__parent.bot.clan_db.update_one({"$and": [{"tag": self.__parent.tag}, {"server": self.__parent.server_id}]},
-                                                   {"$set" : {f"logs.{self.type}.webhook" : id}})
+        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
+                                                 {"$set" : {f"logs.{self.type}.webhook" : id}})
 
     async def set_thread(self, id: Union[int, None]):
-        await self.__parent.bot.clan_db.update_one({"$and": [{"tag": self.__parent.tag}, {"server": self.__parent.server_id}]}, {"$set" : {f"logs.{self.type}.thread" : id}})
+        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]}, {"$set" : {f"logs.{self.type}.thread" : id}})
 
 class Join_Log(ClanLog):
     def __init__(self, parent: DatabaseClan, type: str):
         super().__init__(parent=parent, type=type)
-        self.strike_button = self.__data.get("strike_button", False)
-        self.ban_button = self.__data.get("ban_button", False)
-        self.profile_button = self.__data.get("profile_button", False)
+        self.strike_button = self.data.get("strike_button", False)
+        self.ban_button = self.data.get("ban_button", False)
+        self.profile_button = self.data.get("profile_button", False)
 
 class WarPanel(ClanLog):
     def __init__(self, parent: DatabaseClan, type: str):
         super().__init__(parent=parent, type=type)
-        self.war_id = self.__data.get("war_id", False)
-        self.message_id = self.__data.get("war_message", False)
-        self.channel_id = self.__data.get("war_channel", False)
+        self.war_id = self.data.get("war_id", False)
+        self.message_id = self.data.get("war_message", False)
+        self.channel_id = self.data.get("war_channel", False)
 
     async def set_war_id(self, war: coc.ClanWar):
         war_id = f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}"
-        await self.__parent.bot.clan_db.update_one({"$and": [{"tag": self.__parent.tag}, {"server": self.__parent.server_id}]}, {"$set" : {f"logs.{self.type}.war_id" : war_id}})
+        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]}, {"$set" : {f"logs.{self.type}.war_id" : war_id}})
 
     async def set_message_id(self, id: Union[str, None]):
-        await self.__parent.bot.clan_db.update_one({"$and": [{"tag": self.__parent.tag}, {"server": self.__parent.server_id}]}, {"$set" : {f"logs.{self.type}.war_message" : id}})
+        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]}, {"$set" : {f"logs.{self.type}.war_message" : id}})
 
     async def set_channel_id(self, id: Union[str, None]):
-        await self.__parent.bot.clan_db.update_one({"$and": [{"tag": self.__parent.tag}, {"server": self.__parent.server_id}]}, {"$set" : {f"logs.{self.type}.war_channel" : id}})
+        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]}, {"$set" : {f"logs.{self.type}.war_channel" : id}})
 
 
 
@@ -91,13 +140,13 @@ class CustomServer():
     @property
     async def leadership_eval_choice(self):
         server = await self.bot.server_db.find_one({"server": self.guild.id})
-        eval_option = server.get("leadership_eval")
+        eval_option = server.get("leadership_eval", True)
         return True if eval_option is None else eval_option
 
     @property
     async def nickname_choice(self):
         server = await self.bot.server_db.find_one({"server": self.guild.id})
-        auto_nick_type = server.get("auto_nick")
+        auto_nick_type = server.get("auto_nick", "Clan Abbreviations")
         return "Clan Abbreviations" if auto_nick_type is None else auto_nick_type
 
     @property

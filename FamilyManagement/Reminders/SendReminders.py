@@ -1,22 +1,24 @@
 import datetime
 import coc
 import disnake
-import pytz
-utc = pytz.utc
+
+from pytz import utc
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from CustomClasses.CustomBot import CustomClient
+from CustomClasses.ReminderClass import Reminder
+from contextlib import suppress
+
 
 async def war_reminder(bot: CustomClient, clan_tag, reminder_time):
     war = await bot.get_clanwar(clanTag=clan_tag)
     if war is None:
         return
     missing = {}; names = {}; ths = {}
-    for player in war.members:
-        if player not in war.opponent.members:
-            if len(player.attacks) < war.attacks_per_member:
-                missing[player.tag] = war.attacks_per_member - len(player.attacks)
-                names[player.tag] = player.name
-                ths[player.tag] = player.town_hall
+    for player in war.clan.members:
+        if len(player.attacks) < war.attacks_per_member:
+            missing[player.tag] = war.attacks_per_member - len(player.attacks)
+            names[player.tag] = player.name
+            ths[player.tag] = player.town_hall
 
     tags= list(missing.keys())
     if not missing:
@@ -27,43 +29,34 @@ async def war_reminder(bot: CustomClient, clan_tag, reminder_time):
         {"type": "War"},
         {"time": f"{reminder_time} hr"}
     ]})
-    limit = await bot.reminders.count_documents(filter={"$and": [
-        {"clan": clan_tag},
-        {"type": "War"},
-        {"time": f"{reminder_time} hr"}
-    ]})
-    for reminder in await all_reminders.to_list(length=limit):
-        custom_text = reminder.get("custom_text")
-        if custom_text is None:
-            custom_text = ""
-        else:
-            custom_text = "\n" + custom_text
-        channel = reminder.get("channel")
+    for reminder in await all_reminders.to_list(length=None):
+        reminder = Reminder(bot=bot, data=reminder)
+        if reminder.server_id not in bot.OUR_GUILDS:
+            continue
         try:
-            channel = await bot.fetch_channel(channel)
+            channel = await bot.getch_channel(reminder.channel_id)
         except (disnake.NotFound, disnake.Forbidden):
-            await bot.reminders.delete_one({"$and": [
-                {"clan": clan_tag},
-                {"server": reminder.get("server")},
-                {"time" : f"{reminder_time} hr"},
-                {"type": "War"}
-            ]})
-        server = bot.get_guild(reminder.get("server"))
+            await reminder.delete()
+            continue
+
+        server = await bot.getch_guild(reminder.server_id)
         if server is None:
             continue
+
         missing_text_list = []
         missing_text = ""
         for player_tag, discord_id in links:
             num_missing = missing[player_tag]
             name = names[player_tag]
             member = disnake.utils.get(server.members, id=discord_id)
-            if len(missing_text) + len(custom_text) + 100 >= 2000:
+            if len(missing_text) + len(reminder.custom_text) + 100 >= 2000:
                 missing_text_list.append(missing_text)
                 missing_text = ""
             if member is None:
-                missing_text += f"{num_missing} hits- {bot.fetch_emoji(ths[player_tag])}{name} | {player_tag}\n"
+                missing_text += f"({num_missing}/{war.attacks_per_member}) {bot.fetch_emoji(ths[player_tag])}{name} | {player_tag}\n"
             else:
-                missing_text += f"{num_missing} hits- {bot.fetch_emoji(ths[player_tag])}{name} | {member.mention}\n"
+                missing_text += f"({num_missing}/{war.attacks_per_member}) {bot.fetch_emoji(ths[player_tag])}{name} | {member.mention}\n"
+
         if missing_text != "":
             missing_text_list.append(missing_text)
         badge = await bot.create_new_badge_emoji(url=war.clan.badge.url)
@@ -72,181 +65,147 @@ async def war_reminder(bot: CustomClient, clan_tag, reminder_time):
                             f"**{badge}{war.clan.name} vs {war.opponent.name}**\n\n" \
                             f"{text}"
             if text == missing_text_list[-1]:
-                reminder_text += f"{custom_text}"
-            await channel.send(content=reminder_text)
+                reminder_text += f"\n{reminder.custom_text}"
+            with suppress:
+                await channel.send(content=reminder_text)
 
 
 async def clan_capital_reminder(bot:CustomClient, reminder_time):
-    all_reminders = bot.reminders.find({"$and": [
-        {"type": "Clan Capital"},
-        {"time": reminder_time}
-    ]})
-    for reminder in await all_reminders.to_list(length=10000):
-        custom_text = reminder.get("custom_text")
-        custom_text = "" if custom_text is None else "\n" + custom_text
-        channel = reminder.get("channel")
-        try:
-            channel = await bot.getch_channel(channel)
-        except (disnake.NotFound, disnake.Forbidden):
-            await bot.reminders.delete_one({"$and": [
-                {"clan": reminder.get("clan")},
-                {"server": reminder.get("server")},
-                {"time": f"{reminder_time}"},
-                {"type": "Clan Capital"}
-            ]})
+
+    for reminder in await bot.reminders.find({"$and": [{"type": "Clan Capital"}, {"time": reminder_time}]}).to_list(length=None):
+        reminder = Reminder(bot=bot, data=reminder)
+        if reminder.server_id not in bot.OUR_GUILDS:
             continue
-        server = bot.get_guild(reminder.get("server"))
+
+        try:
+            channel = await bot.getch_channel(reminder.channel_id)
+        except (disnake.NotFound, disnake.Forbidden):
+            await reminder.delete()
+            continue
+
+        server = await bot.getch_guild(guild_id=reminder.server_id)
         if server is None:
             continue
-        clan = await bot.getClan(clan_tag=reminder.get("clan"))
+
+        clan = await bot.getClan(clan_tag=reminder.clan_tag)
         if clan is None:
             continue
         weekend = gen_raid_weekend_datestrings(1)[0]
-        raid_log_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=bot)
+        raid_log_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=bot, limit=1)
         if raid_log_entry is None:
             continue
 
         missing = {}
-        names = {}
-        max = {}
-        for member in raid_log_entry.members:
-            if member.attack_count < (member.attack_limit + member.bonus_attack_limit):
-                names[member.tag] = member.name
-                missing[member.tag] = (member.attack_limit + member.bonus_attack_limit) - member.attack_count
-                max[member.tag] = (member.attack_limit + member.bonus_attack_limit)
+        clan_members = {member.tag : member for member in clan.members}
+        for member in raid_log_entry.members: #type: coc.RaidMember
+            del clan_members[member.tag]
+            if member.attack_count < reminder.attack_threshold:
+                missing[member.tag] = member
 
-        tags = list(missing.keys())
+        missing = missing | clan_members
         if not missing:
             continue
-        links = await bot.link_client.get_links(*tags)
+
+        links = await bot.link_client.get_links(*list(missing.keys()))
+
         missing_text = ""
         for player_tag, discord_id in links:
-            num_missing = missing[player_tag]
-            max_do = max[player_tag]
-            name = names[player_tag]
-            member = disnake.utils.get(server.members, id=discord_id)
-            if member is None:
-                missing_text += f"{num_missing} raids- {name} | {player_tag}\n"
+            player = missing.get(player_tag)
+            if isinstance(player, coc.ClanMember):
+                num_missing = f"(0/6)"
             else:
-                missing_text += f"{num_missing} raids- {name} | {member.mention}\n"
+                num_missing = f"{(player.attack_limit + player.bonus_attack_limit) - player.attack_count}/{(player.attack_limit + player.bonus_attack_limit)})"
+            discord_user = await server.getch_member(discord_id)
+            if discord_user is None:
+                missing_text += f"{num_missing} {player.name} | {player_tag}\n"
+            else:
+                missing_text += f"{num_missing} {player.name} | {discord_user.mention}\n"
         time = str(reminder_time).replace("hr", "")
         badge = await bot.create_new_badge_emoji(url=clan.badge.url)
-        reminder_text = f"**{badge}{clan.name}\n{time} Hours Remaining in Raid Weekend**\n" \
-                            f"{missing_text}" \
-                            f"{custom_text}"
-        try:
+        reminder_text = f"**{badge}{clan.name}(Raid Weekend)\n{time} Hours Left, Min {reminder.attack_threshold} Atk**\n" \
+                        f"{missing_text}" \
+                        f"\n{reminder.custom_text}"
+
+        with suppress:
             await channel.send(content=reminder_text)
-        except:
-            continue
 
 
 async def clan_games_reminder(bot: CustomClient, reminder_time):
-    all_reminders = bot.reminders.find({"$and": [
-        {"type": "Clan Games"},
-        {"time": reminder_time}
-    ]})
-    for reminder in await all_reminders.to_list(length=10000):
-        custom_text = reminder.get("custom_text")
-        custom_text = "" if custom_text is None else "\n" + custom_text
-        channel = reminder.get("channel")
-        try:
-            channel = await bot.getch_channel(channel)
-        except (disnake.NotFound, disnake.Forbidden):
-            await bot.reminders.delete_one({"$and": [
-                {"clan": reminder.get("clan")},
-                {"server": reminder.get("server")},
-                {"time": f"{reminder_time}"},
-                {"type": "Clan Games"}
-            ]})
+    for reminder in await bot.reminders.find({"$and": [{"type": "Clan Games"}, {"time": reminder_time}]}).to_list(length=None):
+        reminder = Reminder(bot=bot, data=reminder)
+        if reminder.server_id not in bot.OUR_GUILDS:
             continue
-        server = bot.get_guild(reminder.get("server"))
+
+        try:
+            channel = await bot.getch_channel(reminder.channel_id)
+        except (disnake.NotFound, disnake.Forbidden):
+            await reminder.delete()
+            continue
+
+        server = await bot.getch_guild(reminder.server_id)
         if server is None:
             continue
-        clan = await bot.getClan(clan_tag=reminder.get("clan"))
+
+        clan = await bot.getClan(clan_tag=reminder.clan_tag)
         if clan is None:
             continue
 
-        point_threshold = reminder.get("point_threshold")
-        clan_member_tags = [member.tag for member in clan.members]
-        clan_members_stats = await bot.player_stats.find({f"tag": {"$in": clan_member_tags}}).to_list(length=100)
-        current_season = bot.gen_season_date()
-        diff_days = datetime.datetime.utcnow().replace(tzinfo=utc) - coc.utils.get_season_end().replace(tzinfo=utc)
-        if diff_days.days <= 3:
-            sea = coc.utils.get_season_start().replace(tzinfo=utc).date()
-            current_season = f"{sea.year}-{sea.month}"
-        under_point_tags = []
-        names = {}
         missing = {}
-        for stat in clan_members_stats:
-            points = 0
-            try:
-                points = stat.get("clan_games").get(f"{current_season}").get("points")
-            except:
-                pass
-            if points < point_threshold:
-                under_point_tags.append(stat.get("tag"))
-                missing[stat.get("tag")] = (point_threshold - points)
-                try:
-                    names[stat.get("tag")] = stat.get("name")
-                except:
-                    names[stat.get("tag")] = coc.utils.get(clan.members, tag=stat.get("tag")).name
+        member_points = {}
+        for stat in await bot.player_stats.find({f"tag": {"$in": [member.tag for member in clan.members]}}).to_list(length=None):
+            points = stat.get("clan_games", {}).get(f"{bot.gen_games_season()}", {}).get("points", 0)
+            if points < reminder.point_threshold:
+                missing[stat.get("tag")] = coc.utils.get(clan.members, tag=stat.get("tag"))
+                member_points[stat.get("tag")] = points
 
-        if not under_point_tags:
+
+        if not missing:
             continue
-        links = await bot.link_client.get_links(*under_point_tags)
+        links = await bot.link_client.get_links(*list(missing.keys()))
 
         missing_text = ""
         for player_tag, discord_id in links:
-            num_missing = missing[player_tag]
-            name = names[player_tag]
+            player = missing.get(player_tag)
             member = disnake.utils.get(server.members, id=discord_id)
             if member is None:
-                missing_text += f"({num_missing}/{point_threshold})- {name} | {player_tag}\n"
+                missing_text += f"({member_points.get(player_tag)}/4000) {player.name} | {player_tag}\n"
             else:
-                missing_text += f"({num_missing}/{point_threshold})- {name} | {member.mention}\n"
+                missing_text += f"({member_points.get(player_tag)}/4000) {player.name} | {member.mention}\n"
         time = str(reminder_time).replace("hr", "")
         badge = await bot.create_new_badge_emoji(url=clan.badge.url)
-        reminder_text = f"**{badge}{clan.name}\n{time} Hours Remaining in Clan Games**\n" \
-                        f"*Points needed to hit {point_threshold}points*\n" \
-                            f"{missing_text}" \
-                            f"{custom_text}"
-        try:
+        reminder_text = f"**{badge}{clan.name} (Clan Games)\n{time} Hours Left, Min {reminder.point_threshold} Points**\n" \
+                        f"{missing_text}" \
+                        f"\n{reminder.custom_text}"
+
+        with suppress:
             await channel.send(content=reminder_text)
-        except:
-            continue
 
 
 async def inactivity_reminder(bot: CustomClient):
-    all_reminders = bot.reminders.find({"$and": [
-        {"type": "inactivity"}
-    ]})
-    for reminder in await all_reminders.to_list(length=10000):
-        custom_text = reminder.get("custom_text")
-        custom_text = "" if custom_text is None else "\n" + custom_text
-        channel = reminder.get("channel")
-        reminder_time = reminder.get("time")
-        try:
-            channel = await bot.getch_channel(channel)
-        except (disnake.NotFound, disnake.Forbidden):
-            await bot.reminders.delete_one({"$and": [
-                {"clan": reminder.get("clan")},
-                {"server": reminder.get("server")},
-                {"time": f"{reminder_time}"},
-                {"type": "inactivity"}
-            ]})
+
+    for reminder in await bot.reminders.find({"type": "inactivity"}).to_list(length=None):
+        reminder = Reminder(bot=bot, data=reminder)
+        if reminder.server_id not in bot.OUR_GUILDS:
             continue
-        server = bot.get_guild(reminder.get("server"))
+
+        try:
+            channel = await bot.getch_channel(reminder.channel_id)
+        except (disnake.NotFound, disnake.Forbidden):
+            await reminder.delete()
+            continue
+        server = await bot.getch_guild(reminder.server_id)
         if server is None:
             continue
-        clan = await bot.getClan(clan_tag=reminder.get("clan"))
+
+        clan = await bot.getClan(clan_tag=reminder.clan_tag)
         if clan is None:
             continue
 
-        seconds_inactive = int(str(reminder_time).replace("hr", "")) * 60 * 60
+        seconds_inactive = int(str(reminder.time).replace("hr", "")) * 60 * 60
         max_diff = 30 * 60 #time in seconds between runs
         now = datetime.datetime.now(tz=utc)
         clan_members = [member.tag for member in clan.members]
-        clan_members_stats = await bot.player_stats.find({f"tag": {"$in" : clan_members}}).to_list(length=100)
+        clan_members_stats = await bot.player_stats.find({f"tag": {"$in" : clan_members}}).to_list(length=None)
         inactive_tags = []
         names = {}
         for stat in clan_members_stats:
@@ -267,19 +226,17 @@ async def inactivity_reminder(bot: CustomClient):
         links = await bot.link_client.get_links(*inactive_tags)
         inactive_text = ""
         for player_tag, discord_id in links:
-            name = names[player_tag]
-            member = disnake.utils.get(server.members, id=discord_id)
+            name = names.get(player_tag)
+            member = await server.getch_member(discord_id)
             if member is None:
                 inactive_text += f"{name} | {player_tag}\n"
             else:
                 inactive_text += f"{name} | {member.mention}\n"
-        time = str(reminder_time).replace("hr", "")
+        time = str(reminder.time).replace("hr", "")
         badge = await bot.create_new_badge_emoji(url=clan.badge.url)
         reminder_text = f"**{badge}{clan.name}\nPlayers Inactive for {time}Hours**\n" \
                         f"{inactive_text}" \
-                        f"{custom_text}"
-        try:
+                        f"\n{reminder.custom_text}"
+        with suppress:
             await channel.send(content=reminder_text)
-        except:
-            continue
 
