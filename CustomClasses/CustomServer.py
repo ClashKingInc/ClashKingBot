@@ -31,6 +31,8 @@ class DatabaseServer():
         self.eval_non_members: bool = data.get("eval_non_members", True)
         self.blacklisted_roles: List[int] = data.get("blacklisted_roles")
         self.family_label = data.get("family_label", "")
+        self.banlist_channel = data.get("banlist")
+        self.reddit_feed = data.get("reddit_feed")
 
     async def set_banlist_channel(self, id: Union[int, None]):
         await self.bot.server_db.update_one({"server": self.server_id}, {'$set': {"banlist": id}})
@@ -75,7 +77,7 @@ class DatabaseClan():
         self.member_role = data.get("generalRole")
         self.leader_role = data.get("leaderRole")
         self.abbreviation = data.get("abbreviation")
-        self.clan_channel = ClanLog(parent=self, type="clan_channel")
+        self.clan_channel = data.get("clanChannel")
         self.join_log = Join_Log(parent=self, type="join_log")
         self.leave_log = Join_Log(parent=self, type="leave_log")
         self.capital_donations = ClanLog(parent=self, type="capital_donations")
@@ -92,12 +94,18 @@ class DatabaseClan():
         self.spell_upgrade = ClanLog(parent=self, type="spell_upgrade")
         self.hero_upgrade = ClanLog(parent=self, type="hero_upgrade")
         self.name_change = ClanLog(parent=self, type="name_change")
-        self.ban_log = ClanLog(parent=self, type="ban_log")
+        self.ban_alert_channel = data.get("ban_alert_channel")
         self.war_log = ClanLog(parent=self, type="war_log")
         self.war_panel = WarPanel(parent=self, type="war_panel")
         self.legend_log_attacks = ClanLog(parent=self, type="legend_log_attacks")
         self.legend_log_defenses = ClanLog(parent=self, type="legend_log_defenses")
         self.greeting = data.get("greeting", "")
+
+    async def set_clan_channel(self, id: Union[int, None]):
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": self.tag},
+            {"server": self.server_id}
+        ]}, {'$set': {"clanChannel": id}})
 
     async def set_member_role(self, id: Union[int, None]):
         await self.bot.clan_db.update_one({"$and": [
@@ -167,6 +175,18 @@ class ClanLog():
         self.thread = self.data.get("thread")
         self.parent = parent
         self.type = type
+
+    async def get_webhook_channel_mention(self) -> Union[None, str]:
+        if self.webhook is not None:
+            if self.thread is None:
+                try:
+                    webhook = await self.parent.bot.getch_webhook(self.webhook)
+                    return webhook.channel.mention
+                except:
+                    return None
+            else:
+                return await self.parent.bot.getch_channel(self.thread)
+        return None
 
     async def set_webhook(self, id: Union[int, None]):
         await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},

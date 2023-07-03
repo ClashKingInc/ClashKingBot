@@ -34,6 +34,7 @@ class misc(commands.Cog, name="Settings"):
                             strike_button = commands.Param(default=None, choices=["True", "False"]),
                             ban_button = commands.Param(default=None, choices=["True", "False"]),
                             profile_button = commands.Param(default=None, choices=["True", "False"])):
+        await ctx.response.defer()
         results = await self.bot.clan_db.find_one({"$and": [
             {"tag": clan.tag},
             {"server": ctx.guild.id}
@@ -82,40 +83,97 @@ class misc(commands.Cog, name="Settings"):
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def server_settings(self, ctx: disnake.ApplicationCommandInteraction, banlist_channel: Union[disnake.TextChannel, disnake.Thread] = None,
                               nickname_label: str= None, nickname_type: str = commands.Param(default=None, choices=["Clan Abbreviations", "Family Name", "Off"])):
-        pass
+        await ctx.response.defer()
+        db_server = await self.bot.get_custom_server(guild_id=ctx.guild_id)
+        changed_text = ""
+        if banlist_channel is not None:
+            await db_server.set_banlist_channel(id=banlist_channel.id)
+            changed_text += f"- **Banlist Channel:** {banlist_channel.mention}\n"
+        if nickname_label is not None:
+            await db_server.set_family_label(label=nickname_label[:16])
+            changed_text += f"- **Nickname Label:** `{nickname_label[:16]}`\n"
+        if nickname_type is not None:
+            await db_server.set_nickname_type(type=nickname_type)
+            changed_text += f"- **Nickname Type:** `{nickname_type}`\n"
+
+        if changed_text == "":
+            changed_text = "No Changes Made!"
+        embed = disnake.Embed(title=f"{ctx.guild.name} Settings Changed", description=changed_text, color=disnake.Color.green())
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+        await ctx.edit_original_message(embed=embed)
+
 
 
     @commands.slash_command(name="settings-list", description="Complete list of channels & roles & more set up on server")
     async def settings_list(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
-        server = CustomServer(guild=ctx.guild, bot=self.bot)
-        await server.initialize_server()
-        embed = disnake.Embed(title=f"{ctx.guild.name} Server Settings",
-                              color=disnake.Color.green())
-        embed.add_field(name="Banlist Channel:", value=f"{server.banlist_channel}", inline=True)
-        embed.add_field(name="Reddit Feed:", value=f"{server.reddit_feed}", inline=True)
-        embed.add_field(name="Leadership Eval:", value=f"{server.leadership_eval}", inline=True)
-        embed.add_field(name="Clan Greeting Message:", value=f"{server.clan_greeting}", inline=False)
+        db_server = await self.bot.get_custom_server(guild_id=ctx.guild_id)
+
+        embed = disnake.Embed(title=f"{ctx.guild.name} Server Settings", color=disnake.Color.green())
+        embed.add_field(name="Banlist Channel:", value=f"{db_server.banlist_channel}", inline=True)
+        embed.add_field(name="Reddit Feed:", value=f"{db_server.reddit_feed}", inline=True)
+        embed.add_field(name="Leadership Eval:", value=f"{db_server.leadership_eval}", inline=True)
+        embed.add_field(name="Use API Token:", value=f"{db_server.use_api_token}", inline=True)
+        embed.add_field(name="Nickname Setting:", value=f"{db_server.auto_nickname}", inline=True)
 
         if ctx.guild.icon is not None:
             embed.set_thumbnail(url=ctx.guild.icon.url)
         embeds = [embed]
-        clans = server.server_clans
-        for clan in clans:
-            clan: ServerClan
-            ll_log = await clan.legend_log
+        for clan in db_server.clans: #type: DatabaseClan
             got_clan = await self.bot.getClan(clan.tag)
             if got_clan is None:
                 continue
             embed = disnake.Embed(title=f"{clan.name}", color=disnake.Color.green())
             embed.set_thumbnail(url=got_clan.badge.url)
-            embed.add_field(name="Member Role:", value=f"{clan.member_role}", inline=True)
-            embed.add_field(name="Leadership Role:", value=f"{clan.leader_role}", inline=True)
-            embed.add_field(name="Clan Channel:", value=f"{clan.clan_channel}", inline=True)
-            embed.add_field(name="War Log:", value=f"{clan.war_log}", inline=True)
-            embed.add_field(name="Join Log:", value=f"{clan.join_log}", inline=True)
-            embed.add_field(name="Clan Capital Log:", value=f"{clan.capital_log}", inline=True)
-            embed.add_field(name="Legend Log:", value=f"{ll_log}", inline=True)
+            member_role = f"<@&{clan.member_role}>" if clan.member_role is not None else None
+            leader_role = f"<@&{clan.leader_role}>" if clan.leader_role is not None else None
+            clan_channel = f"<#{clan.clan_channel}>" if clan.clan_channel is not None else None
+            embed.add_field(name="Member Role:", value=member_role, inline=True)
+            embed.add_field(name="Leadership Role:", value=leader_role, inline=True)
+            embed.add_field(name="Clan Channel:", value=clan_channel, inline=True)
+            if clan.greeting:
+                embed.add_field(name="Greeting:", value=f"{clan.greeting}", inline=True)
+
+
+            embed.add_field(name="Join Log:", value=f"{(await clan.join_log.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Leave Log:", value=f"{(await clan.leave_log.get_webhook_channel_mention())}", inline=True)
+
+            embed.add_field(name="War Log:", value=f"{(await clan.war_log.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="War Panel:", value=f"{(await clan.war_panel.get_webhook_channel_mention())}", inline=True)
+
+
+            embed.add_field(name="Capital Dono Log:", value=f"{(await clan.capital_donations.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Capital Atk Log:", value=f"{(await clan.capital_attacks.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Capital Raid Map:", value=f"{(await clan.raid_map.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Capital Weekly Summary:", value=f"{(await clan.capital_weekly_summary.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Capital Raid Panel:", value=f"{(await clan.raid_panel.get_webhook_channel_mention())}", inline=True)
+
+            embed.add_field(name="Donation Log:", value=f"{(await clan.donation_log.get_webhook_channel_mention())}", inline=True)
+
+            embed.add_field(name="Super Troop Boost Log:", value=f"{(await clan.super_troop_boost_log.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Role Change Log:", value=f"{(await clan.role_change.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Troop Upgrade Log:", value=f"{(await clan.troop_upgrade.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="TH Upgrade Log:", value=f"{(await clan.th_upgrade.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="League Change Log:", value=f"{(await clan.league_change.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Spell Upgrade Log:", value=f"{(await clan.spell_upgrade.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Hero Upgrade Log:", value=f"{(await clan.hero_upgrade.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Name Change Log:", value=f"{(await clan.name_change.get_webhook_channel_mention())}", inline=True)
+
+            embed.add_field(name="Legend Atk Log:", value=f"{(await clan.legend_log_attacks.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Legend Def Log:", value=f"{(await clan.legend_log_defenses.get_webhook_channel_mention())}", inline=True)
+
+
+
+
+
+
+
+
+
+
+
+            #embed.add_field(name="Legend Log:", value=f"{ll_log}", inline=True)
             embeds.append(embed)
 
         chunk_embeds = [embeds[i:i + 10] for i in range(0, len(embeds), 10)]
@@ -127,18 +185,6 @@ class misc(commands.Cog, name="Settings"):
                 await ctx.followup.send(embeds=embeds)
 
 
-    @set.sub_command(name="autoeval", description="Turn autoeval on/off")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def autoeval(self, ctx: disnake.ApplicationCommandInteraction, option = commands.Param(choices=["On", "Off"]) , log: disnake.TextChannel = commands.Param(default=None, name="log")):
-
-        await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"autoeval": option == "On"}})
-        
-        log_text = ""
-        if log is not None:
-            await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"autoeval_log": log.id}})
-            log_text =f"and will log in {log.mention}"
-        await ctx.edit_original_message(f"**Autoeval is now turned {option} {log_text}**",
-                                        allowed_mentions=disnake.AllowedMentions.none())
 
 
     @set.sub_command(name="category-role", description="Set a new category role for a server")

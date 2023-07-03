@@ -38,10 +38,6 @@ class BanEvents(commands.Cog):
                         notes = "No Reason Given"
                     date = results.get("DateCreated")[:10]
 
-                    log = db_clan.ban_log
-                    if log.webhook is None:
-                        log = db_clan.clan_channel
-
                     role = f"<@&{db_clan.member_role}>"
 
                     embed = disnake.Embed(
@@ -53,17 +49,13 @@ class BanEvents(commands.Cog):
                     embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/843624785560993833/932701461614313562/2EdQ9Cx.png")
 
                     try:
-                        webhook = await self.bot.fetch_webhook(log.webhook)
-                        if log.thread is not None:
-                            thread = await self.bot.getch_channel(log.thread)
-                            if thread.locked:
-                                continue
-                            await webhook.send(content=role, embed=embed, thread=thread)
-                        else:
-                            await webhook.send(content=role, embed=embed)
+                        channel = await self.bot.getch_channel(channel_id=db_clan.clan_channel if db_clan.ban_alert_channel is None else db_clan.ban_alert_channel)
+                        await channel.send(embed=embed)
                     except (disnake.NotFound, disnake.Forbidden):
-                        await log.set_thread(id=None)
-                        await log.set_webhook(id=None)
+                        if db_clan.ban_alert_channel is None:
+                            await db_clan.set_clan_channel(id=None)
+                        else:
+                            await db_clan.set_ban_alert_channel(id=None)
                         continue
 
 def setup(bot: CustomClient):

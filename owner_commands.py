@@ -106,12 +106,12 @@ class OwnerCommands(commands.Cog):
     @commands.is_owner()
     async def migrate(self, ctx: disnake.ApplicationCommandInteraction):
         special = ["legend_log"]
-        fields = ["clanChannel", "joinlog", "clan_capital",  "donolog", "upgrade_log", "ban_alert_channel", "war_log"]
+        fields = ["joinlog", "clan_capital",  "donolog", "upgrade_log", "ban_alert_channel", "war_log"]
         cursor = self.bot.clan_db.find({"tag" : "#2JGYRJVL"})
         channel_to_webhook = {}
-        field_to_new = {"clanChannel" : ["clan_channel"], "joinlog" : ["join_log", "leave_log"], "clan_capital" : ["capital_donations", "capital_attacks", "raid_map", "capital_weekly_summary", "new_raid_panel"],
+        field_to_new = {"joinlog" : ["join_log", "leave_log"], "clan_capital" : ["capital_donations", "capital_attacks", "raid_map", "capital_weekly_summary", "new_raid_panel"],
                         "donolog" : ["donation_log"], "upgrade_log" : ["super_troop_boost", "role_change", "troop_upgrade", "th_upgrade", "league_change", "spell_upgrade", "hero_upgrade", "name_change"],
-                        "ban_alert_channel" : ["ban_log"], "war_log" : ["war_log", "war_panel"]}
+                         "war_log" : ["war_log", "war_panel"]}
         bot_av = self.bot.user.avatar.read().close()
         for document in await cursor.to_list(length=100):
             new_json = {

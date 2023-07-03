@@ -37,6 +37,19 @@ class SetupCommands(commands.Cog , name="Setup"):
 
     #CLAN SETUP
 
+    @setup.sub_command(name="autoeval", description="Turn autoeval on/off")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def autoeval(self, ctx: disnake.ApplicationCommandInteraction, option=commands.Param(choices=["On", "Off"]),
+                       log: disnake.TextChannel = commands.Param(default=None, name="log")):
+
+        await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"autoeval": option == "On"}})
+
+        log_text = ""
+        if log is not None:
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"autoeval_log": log.id}})
+            log_text = f"and will log in {log.mention}"
+        await ctx.edit_original_message(f"**Autoeval is now turned {option} {log_text}**",
+                                        allowed_mentions=disnake.AllowedMentions.none())
 
 
 
