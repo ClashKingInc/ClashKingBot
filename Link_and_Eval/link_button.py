@@ -4,6 +4,7 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from disnake.ext import commands
 from CustomClasses.CustomServer import CustomServer
+from .eval_logic import eval_logic
 
 class LinkWelcomeMessages(commands.Cog):
 
@@ -94,10 +95,8 @@ class LinkWelcomeMessages(commands.Cog):
                     )
                 ]
             token_option = await self.bot.welcome.find_one({"server": ctx.guild.id})
-            try:
-                token_option = token_option.get("api_token")
-            except:
-                pass
+            token_option = token_option.get("api_token")
+
             if token_option is None:
                 token_option = True
             if token_option:
@@ -165,16 +164,14 @@ class LinkWelcomeMessages(commands.Cog):
                 verified = True
 
             if link_id == ctx.author.id:
-                evalua = self.bot.get_cog("Eval")
-                embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                                 test=False,
                                                 change_nick=change_nickname,
                                                 return_embed=True)
                 return await modal_inter.send(embed=embed, ephemeral=True)
             elif verified:
                 await player.add_link(ctx.author)
-                evalua = self.bot.get_cog("Eval")
-                embed: disnake.Embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                embed: disnake.Embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                                 test=False,
                                                 change_nick=change_nickname,
                                                 return_embed=True)
