@@ -48,6 +48,9 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
     achievement_roles = {role.type : role.id for role in db_server.achievement_roles}
     achievement_role_list = [role.id for role in db_server.achievement_roles]
 
+    status_roles = {role.type: role.id for role in db_server.status_roles}
+    status_role_list = [role.id for role in db_server.status_roles]
+
     clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
     clans: List[coc.Clan] = await bot.get_clans(tags=clan_tags)
     member_tags = get_clan_member_tags(clans=clans)
@@ -58,7 +61,7 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
 
     top_donator_this_season = await bot.player_stats.find({"tag": {"$in": member_tags}}, {"tag": 1}).sort(f"donations.{this_season}.donated", -1).limit(1).to_list(length=1)
     top_donator_this_season = top_donator_this_season[0].get("tag") if top_donator_this_season else top_donator_this_season
-    print(top_donator_this_season)
+
 
     category_roles = {}
     category_role_list = []
@@ -247,8 +250,6 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
                     if dono_role not in MASTER_ROLES:
                         ROLES_TO_ADD.add(dono_role)
 
-                print(player.tag == top_donator_this_season)
-                print(achievement_roles.get("top_donator_ongoing_season"))
                 if player.tag == top_donator_this_season and achievement_roles.get("top_donator_ongoing_season") is not None:
                     dono_role = achievement_roles.get("top_donator_ongoing_season")
                     ROLES_SHOULD_HAVE.add(dono_role)

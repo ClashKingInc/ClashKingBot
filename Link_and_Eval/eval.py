@@ -251,7 +251,7 @@ class eval(commands.Cog, name="Eval"):
                                builder_league: str = commands.Param(default=None, choices=["wood_league", "clay_league", "stone_league", "copper_league", "brass_league", "iron_league",
                                         "steel_league", "titanium_league", "platinum_league", "emerald_league", "ruby_league", "diamond_league"]),
                                status_roles: str = commands.Param(default=None, choices=["one_month", "two_months", "three_months", "six_months", "nine_months", "one_year"]),
-                               achievement_roles: str = commands.Param(default=None, choices=["donos_10000", "donos_25000", "top_donator_last_season", "top_donator_ongoing_season", "top_activity_last_season", "top_activity_current_season"])
+                               achievement_roles: str = commands.Param(default=None, choices=["donos_10000", "donos_25000", "top_donator_last_season", "top_donator_ongoing_season"])
                                ):
         await ctx.response.defer()
 
@@ -811,14 +811,14 @@ class eval(commands.Cog, name="Eval"):
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def achievement_roles_set(self, ctx: disnake.ApplicationCommandInteraction, donos_10000: disnake.Role = None,
                                 donos_25000: disnake.Role = None, top_donator_last_season: disnake.Role = None,
-                                top_donator_ongoing_season: disnake.Role = None, top_activity_last_season: disnake.Role = None, top_activity_current_season: disnake.Role = None):
+                                top_donator_ongoing_season: disnake.Role = None):
 
-        list_roles = [donos_10000, donos_25000, top_donator_last_season, top_donator_ongoing_season, top_activity_last_season, top_activity_current_season]
+        list_roles = [donos_10000, donos_25000, top_donator_last_season, top_donator_ongoing_season]
 
         if list_roles.count(None) == len(list_roles):
             return await ctx.send("Please select at least one role to set.")
 
-        spot_to_text = ["donos_10000", "donos_25000", "top_donator_last_season", "top_donator_ongoing_season", "top_activity_last_season", "top_activity_current_season"]
+        spot_to_text = ["donos_10000", "donos_25000", "top_donator_last_season", "top_donator_ongoing_season"]
         roles_updated = ""
         for count, role in enumerate(list_roles):
             if role is None:
@@ -985,6 +985,7 @@ class eval(commands.Cog, name="Eval"):
                     await res.send(
                         content=f"Could not edit {member.mention} name. Permissions error or user is above or equal to the bot's highest role.",
                         ephemeral=True)
+
 
     @commands.slash_command(name="nickname", description="Change the nickname of a discord user")
     async def nickname(self, ctx: disnake.ApplicationCommandInteraction, user: disnake.User = None):
