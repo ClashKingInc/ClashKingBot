@@ -10,7 +10,7 @@ from utils.discord_utils import get_webhook_for_channel
 from operator import attrgetter
 from Exceptions.CustomExceptions import *
 from datetime import datetime
-from utils.discord_utils import permanent_image, interaction_handler
+from utils.discord_utils import permanent_image, interaction_handler, basic_embed_modal
 from CustomClasses.CustomServer import DatabaseClan
 
 class SetupCommands(commands.Cog , name="Setup"):
@@ -47,8 +47,8 @@ class SetupCommands(commands.Cog , name="Setup"):
     @setup.sub_command(name="logs", description="Set a variety of different clan logs for your server!")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def set_log_add(self, ctx: disnake.ApplicationCommandInteraction,
-                          clan: coc.Clan = commands.Param(converter=clan_converter),
-                          channel: Union[disnake.TextChannel, disnake.Thread] = commands.Param(default=None, name="channel")):
+                          clan: coc.Clan = commands.Param(converter=clan_converter), mode:str = commands.Param(choices=["Add", "Remove"]),
+                          channel: Union[disnake.TextChannel, disnake.Thread] = commands.Param(default=None)):
         await ctx.response.defer()
         results = await self.bot.clan_db.find_one({"$and": [
             {"tag": clan.tag},
@@ -61,13 +61,19 @@ class SetupCommands(commands.Cog , name="Setup"):
         channel = ctx.channel if channel is None else channel
 
         log_types = {"Member Join" : db_clan.join_log, "Member Leave" : db_clan.leave_log, "War Log" : db_clan.war_log, "War Panel" : db_clan.war_panel,
-                     "Capital Donations" : db_clan.capital_donations}
-        log_types = ["Member Join", "Member Leave", "War Log", "War Panel", "Capital Donations", "Capital Attacks", "Capital Panel", "Capital Weekly Summary",
-                     "Donation Log", "Super Troop Boosts", "Role Change", "Troop Upgrade", "Townhall Upgrade", "League Change", "Spell Upgrade",
-                     "Hero Upgrade", "Name Change", "Legend Attacks", "Legend Defenses"]
+                     "Capital Donations" : db_clan.capital_donations, "Capital Attacks" : db_clan.capital_attacks, "Capital Panel" : db_clan.raid_panel,
+                     "Capital Weekly Summary" : db_clan.capital_weekly_summary, "Donation Log" : db_clan.donation_log, "Super Troop Boosts" : db_clan.super_troop_boost_log,
+                     "Role Change" : db_clan.role_change, "Troop Upgrade" : db_clan.troop_upgrade, "Townhall Upgrade" : db_clan.th_upgrade, "League Change" : db_clan.league_change,
+                     "Spell Upgrade" : db_clan.spell_upgrade, "Hero Upgrade" : db_clan.hero_upgrade, "Name Change" : db_clan.name_change,
+                     "Legend Attacks" : db_clan.legend_log_attacks, "Legend Defenses" : db_clan.legend_log_defenses}
+
+        if mode == "Remove":
+            for log_type, log in log_types.copy().items():
+                if log.webhook is None:
+                    del log_types[log_type]
 
         options = []
-        for log_type in log_types:
+        for log_type in log_types.keys():
             options.append(disnake.SelectOption(label=log_type, emoji=self.bot.emoji.clock.partial_emoji, value=log_type))
 
         select = disnake.ui.Select(
@@ -78,171 +84,39 @@ class SetupCommands(commands.Cog , name="Setup"):
         )
         dropdown = [disnake.ui.ActionRow(select)]
 
+        channel_text = "" if mode == "Remove" else f"in {channel.mention}"
         embed = disnake.Embed(
-            description=f"Choose the logs that you would like to add for {clan.name} in {channel.mention}\n"
+            description=f"Choose the logs that you would like to {mode.lower()} for {clan.name} {channel_text}\n"
                         f"Visit https://docs.clashking.xyz/clan-setups/log-setup for more info", color=disnake.Color.green())
         await ctx.edit_original_message(embed=embed, components=dropdown)
 
         res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
-        webhook = await get_webhook_for_channel(channel=channel, bot=self.bot)
-        thread = None
-        if isinstance(channel, disnake.Thread):
-            await channel.add_user(self.bot.user)
-            thread = channel.id
+        if mode == "Add":
+            webhook = await get_webhook_for_channel(channel=channel, bot=self.bot)
+            thread = None
+            if isinstance(channel, disnake.Thread):
+                await channel.add_user(self.bot.user)
+                thread = channel.id
 
 
         text = ""
         for value in res.values:
-            if value == "Member Join":
-                await db_clan.join_log.set_webhook(id=webhook.id)
-                await db_clan.join_log.set_thread(id=thread)
-                text += f'{self.bot.emoji.yes}{value}\n'
-            elif value == "Member Leave":
-                await db_clan.join_log.set_webhook(id=webhook.id)
-                await db_clan.join_log.set_thread(id=thread)
-                text += f'{self.bot.emoji.yes}{value}\n'
+            log = log_types[value]
+            if mode == "Add":
+                await log.set_webhook(id=webhook.id)
+                await log.set_thread(id=thread)
+                mention = webhook.channel.mention if thread is None else f"<#{thread}>"
+                text += f'{self.bot.emoji.yes}{value} | {mention}\n'
+            elif mode == "Remove":
+                await log.set_webhook(id=None)
+                await log.set_thread(id=None)
+                text += f'{self.bot.emoji.yes}{value} Removed\n'
 
 
-            if "war_log" in value:
-                log_type = value.split("-")[-1]
-                print(log_type)
-                await self.bot.clan_db.update_one({"$and": [
-                    {"tag": clan.tag},
-                    {"server": ctx.guild.id}
-                ]}, {'$set': {"war_log": channel.id, "attack_feed": log_type}})
-                text += f"{swapped_type_dict[value]}- {self.bot.emoji.yes}Success\n"
-            elif value == "legend_log":
-                success = await self.legend_log(ctx, clan, channel)
-                if success:
-                    text += f"{swapped_type_dict[value]}- {self.bot.emoji.yes}Success\n"
-                else:
-                    text += f"{swapped_type_dict[value]}- {self.bot.emoji.no}Error\n"
-            else:
-                await self.bot.clan_db.update_one({"$and": [
-                    {"tag": clan.tag},
-                    {"server": ctx.guild.id}
-                ]}, {'$set': {f"{value}": channel.id}})
-                text += f"{swapped_type_dict[value]}- {self.bot.emoji.yes}Success\n"
-
-        embed = disnake.Embed(title=f"Logs Created for {clan.name}", description=text,
-                              color=disnake.Color.green())
-        # embed.set_thumbnail(url=clan.badge.medium.url)
+        embed = disnake.Embed(title=f"Logs for {clan.name}", description=text, color=disnake.Color.green())
         await res.edit_original_message(embed=embed, components=[])
 
-    async def legend_log(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan,
-                         channel: Union[disnake.TextChannel, disnake.Thread]):
-        # may activate if duplicates becomes an issue
-        # clan_webhooks = await self.bot.clan_db.distinct("legend_log.webhook", filter={"server": ctx.guild.id})
-        is_thread = False
-        try:
-            bot_av = self.bot.user.avatar.read().close()
-            if isinstance(channel, disnake.Thread):
-                webhooks = await channel.parent.webhooks()
-            else:
-                webhooks = await channel.webhooks()
-            webhook = next((w for w in webhooks if w.user.id == self.bot.user.id), None)
-            if webhook is None:
-                if isinstance(channel, disnake.Thread):
-                    webhook = await channel.parent.create_webhook(name="ClashKing", avatar=bot_av,
-                                                                  reason="Legends Feed")
-                else:
-                    webhook = await channel.create_webhook(name="ClashKing", avatar=bot_av, reason="Legends Feed")
-        except Exception as e:
-            return False
 
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": clan.tag},
-            {"server": ctx.guild.id}
-        ]}, {'$set': {"legend_log.webhook": webhook.id}})
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": clan.tag},
-            {"server": ctx.guild.id}
-        ]}, {'$set': {"legend_log.thread": None}})
-
-        if isinstance(channel, disnake.Thread):
-            await self.bot.clan_db.update_one({"$and": [
-                {"tag": clan.tag},
-                {"server": ctx.guild.id}
-            ]}, {'$set': {"legend_log.thread": ctx.channel.id}})
-            await webhook.send("Legend Log Success", username='ClashKing',
-                               avatar_url="https://cdn.discordapp.com/attachments/923767060977303552/1033385579091603497/2715c2864c10dc64a848f7d12d1640d0.png",
-                               thread=channel)
-
-        else:
-            await webhook.send("Legend Log Success", username='ClashKing',
-                               avatar_url="https://cdn.discordapp.com/attachments/923767060977303552/1033385579091603497/2715c2864c10dc64a848f7d12d1640d0.png")
-
-        return True
-
-
-    @set_log.sub_command(name="remove", description="Remove a log for a clan")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def set_log_remove(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter)):
-
-        results = await self.bot.clan_db.find_one({"$and": [
-            {"tag": clan.tag},
-            {"server": ctx.guild.id}
-        ]})
-        if results is None:
-            return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
-
-        type_dict = {"Clan Capital Log": "clan_capital", "Join Log": "joinlog", "War Log": "war_log",
-                     "Legend Log": "legend_log", "Donation Log": "donolog", "Clan Log": "upgrade_log"}
-        rev_type_dict = {v: k for k, v in type_dict.items()}
-
-        types_setup = []
-        for log_type in type_dict.values():
-            if results.get(log_type) is not None:
-                if log_type == "legend_log":
-                    if results.get(f"{log_type}.channel") is not None:
-                        types_setup.append(rev_type_dict[log_type])
-                else:
-                    types_setup.append(rev_type_dict[log_type])
-
-        options = []
-        for log_type in types_setup:
-            options.append(disnake.SelectOption(label=log_type, emoji=self.bot.emoji.clock.partial_emoji, value=type_dict[log_type]))
-
-        if not options:
-            embed = disnake.Embed(description=f"{clan.name} has no logs set up on this server.", color=disnake.Color.red())
-            embed.set_thumbnail(url=clan.badge.url)
-            return await ctx.edit_original_message(embed=embed)
-        select = disnake.ui.Select(
-            options=options,
-            placeholder="Select logs to remove",  # the placeholder text to show when no options have been chosen
-            min_values=1,  # the minimum number of options a user must select
-            max_values=len(options),  # the maximum number of options a user can select
-        )
-        dropdown = [disnake.ui.ActionRow(select)]
-
-        content = f"Choose the logs that you would like to remove for {clan.name}"
-        await ctx.edit_original_message(content=content, components=dropdown)
-
-        res: disnake.MessageInteraction = await self.interaction_handler(ctx=ctx, function=None)
-
-        removed = []
-        for log_type in res.values:
-            removed.append(rev_type_dict[log_type])
-            log_channel = results.get(log_type)
-            if log_type == "legend_log" and log_channel is not None:
-                log_channel = log_channel.get("webhook")
-
-            if log_type == "legend_log":
-                await self.bot.clan_db.update_one({"$and": [
-                    {"tag": clan.tag},
-                    {"server": ctx.guild.id}
-                ]}, {'$set': {f"{log_type}.thread": None}})
-                log_type += ".webhook"
-
-            await self.bot.clan_db.update_one({"$and": [
-                {"tag": clan.tag},
-                {"server": ctx.guild.id}
-            ]}, {'$set': {f"{log_type}": None}})
-
-        removed_text = ", ".join(removed)
-        embed = disnake.Embed(description=f"`{removed_text}` removed for {clan.name}", color=disnake.Color.green())
-        embed.set_thumbnail(url=clan.badge.url)
-        await ctx.edit_original_message(content="", embed=embed, components=[])
 
 
     #COUNTDOWNS
@@ -482,7 +356,7 @@ class SetupCommands(commands.Cog , name="Setup"):
     async def welcome_message(self, ctx: disnake.ApplicationCommandInteraction, channel: Union[disnake.TextChannel, disnake.Thread], custom_embed = commands.Param(default="False", choices=["True", "False"]), embed_link: str = None):
         if custom_embed != "False":
             if embed_link is None:
-                modal_inter, embed = await self.basic_embed_modal(ctx=ctx)
+                modal_inter, embed = await basic_embed_modal(bot=self.bot, ctx=ctx)
                 ctx = modal_inter
             else:
                 await ctx.response.defer()
@@ -520,15 +394,7 @@ class SetupCommands(commands.Cog , name="Setup"):
 
 
 
-    @setup.sub_command(name="remove", description="Remove various features")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def setup_remove(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
-
-
-
-
-    @set_log_remove.autocomplete("clan")
+    @set_log_add.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
@@ -540,142 +406,8 @@ class SetupCommands(commands.Cog , name="Setup"):
                 clan_list.append(f"{name} | {tag}")
         return clan_list[0:25]
 
-    @addClan.autocomplete("category")
-    async def autocomp_names(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
-        categories = ["General", "Feeder", "War", "Esports"]
-        if query != "":
-            categories.append(query)
-        for tClan in await tracked.to_list(length=limit):
-            category = tClan.get("category")
-            if query.lower() in category.lower():
-                if category not in categories:
-                    categories.append(category)
-        return categories[0:24]
 
 
-
-    async def basic_embed_modal(self, ctx: disnake.ApplicationCommandInteraction, previous_embed=None):
-        components = [
-            disnake.ui.TextInput(
-                label=f"Embed Title",
-                custom_id=f"title",
-                required=False,
-                style=disnake.TextInputStyle.single_line,
-                max_length=75,
-            ),
-            disnake.ui.TextInput(
-                label=f"Embed Description",
-                custom_id=f"desc",
-                required=False,
-                style=disnake.TextInputStyle.paragraph,
-                max_length=500,
-            ),
-            disnake.ui.TextInput(
-                label=f"Embed Thumbnail",
-                custom_id=f"thumbnail",
-                placeholder="Must be a valid url",
-                required=False,
-                style=disnake.TextInputStyle.single_line,
-                max_length=200,
-            ),
-            disnake.ui.TextInput(
-                label=f"Embed Image",
-                custom_id=f"image",
-                placeholder="Must be a valid url",
-                required=False,
-                style=disnake.TextInputStyle.single_line,
-                max_length=200,
-            ),
-            disnake.ui.TextInput(
-                label=f"Embed Color (Hex Color)",
-                custom_id=f"color",
-                required=False,
-                style=disnake.TextInputStyle.short,
-                max_length=10,
-            )
-        ]
-        t_ = int(datetime.now().timestamp())
-        await ctx.response.send_modal(
-            title="Basic Embed Creator ",
-            custom_id=f"basicembed-{t_}",
-            components=components)
-
-        def check(res: disnake.ModalInteraction):
-
-            return ctx.author.id == res.author.id and res.custom_id == f"basicembed-{t_}"
-
-        try:
-            modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
-                "modal_submit",
-                check=check,
-                timeout=300,
-            )
-        except:
-            return None
-
-        color = disnake.Color.dark_grey()
-        if modal_inter.text_values.get("color") != "":
-            try:
-                r, g, b = tuple(
-                    int(modal_inter.text_values.get("color").replace("#", "")[i:i + 2], 16) for i in (0, 2, 4))
-                color = disnake.Color.from_rgb(r=r, g=g, b=b)
-            except:
-                raise InvalidHexCode
-
-        our_embed = {"title": modal_inter.text_values.get("title"), "description": modal_inter.text_values.get("desc"),
-                     "image.url": modal_inter.text_values.get("image"),
-                     "thumbnail.url": modal_inter.text_values.get("thumbnail"), "color": color}
-
-        embed = await self.generate_embed(our_embed=our_embed, embed=previous_embed)
-        await modal_inter.response.defer()
-
-        return (modal_inter, embed)
-
-
-    async def generate_embed(self, our_embed: dict, embed=None):
-        if embed is None:
-            embed = disnake.Embed()
-        for attribute, embed_field in our_embed.items():
-            if embed_field is None or embed_field == "":
-                continue
-            attribute: str
-            if "field" in attribute:
-                if embed_field["name"] is None or embed_field == "":
-                    continue
-                embed.insert_field_at(index=int(attribute.split("_")[1]) - 1, name=embed_field["name"],
-                                      value=embed_field["value"], inline=embed_field["inline"])
-            elif "image" in attribute:
-                if embed_field != "" and embed_field != "None":
-                    embed_field = await permanent_image(self.bot, embed_field)
-                if embed_field == "None":
-                    embed._image = None
-                else:
-                    embed.set_image(url=embed_field)
-            elif "thumbnail" in attribute:
-                if embed_field != "" and embed_field != "None":
-                    embed_field = await permanent_image(self.bot, embed_field)
-                if embed_field == "None":
-                    embed._thumbnail = None
-                else:
-                    embed.set_thumbnail(url=embed_field)
-            elif "footer" in attribute:
-                if embed_field["text"] is None:
-                    continue
-                embed.set_footer(icon_url=embed_field["icon"], text=embed_field["text"])
-            elif "author" in attribute:
-                if embed_field["text"] is None:
-                    continue
-                embed.set_author(icon_url=embed_field["icon"], name=embed_field["text"])
-            else:
-                if len(attribute.split(".")) == 2:
-                    obj = attrgetter(attribute.split(".")[0])(embed)
-                    setattr(obj, attribute.split(".")[1], embed_field)
-                else:
-                    setattr(embed, attribute, embed_field)
-
-        return embed
 
 def setup(bot: CustomClient):
     bot.add_cog(SetupCommands(bot))

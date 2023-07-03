@@ -190,6 +190,7 @@ class ClanLog():
     async def set_thread(self, id: Union[int, None]):
         await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]}, {"$set" : {f"logs.{self.type}.thread" : id}})
 
+
 class Join_Log(ClanLog):
     def __init__(self, parent: DatabaseClan, type: str):
         super().__init__(parent=parent, type=type)
