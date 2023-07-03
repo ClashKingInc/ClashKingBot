@@ -102,8 +102,7 @@ class eval(commands.Cog, name="Eval"):
 
         server = CustomServer(guild=ctx.guild, bot=self.bot)
         change_nick = await server.nickname_choice
-        await self.eval_logic(ctx=ctx, members_to_eval=[user], role_or_user=user, test=test,
-                                        change_nick=change_nick)
+        await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[user], role_or_user=user, test=test, change_nick=change_nick)
 
     @eval.sub_command(name="settings", description="Change settings for autoeval")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())

@@ -4,6 +4,8 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer
 from main import check_commands
 from utils.search import search_results
+from .eval_logic import eval_logic
+from BoardCommands.Utils.Player import to_do_embed
 
 class Linking(commands.Cog):
 
@@ -17,8 +19,7 @@ class Linking(commands.Cog):
         change_nickname = await server.nickname_choice
         tags = await self.bot.get_tags(str(ctx.author.id))
         if tags != []:
-            evalua = self.bot.get_cog("Eval")
-            embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+            embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                               test=False,
                                               change_nick=change_nickname,
                                               return_embed=True)
@@ -53,8 +54,7 @@ class Linking(commands.Cog):
 
             if verified and is_linked:
                 if linked == ctx.author.id:
-                    evalua = self.bot.get_cog("Eval")
-                    embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                    embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                                     test=False,
                                                     change_nick=change_nickname,
                                                     return_embed=True)
@@ -66,8 +66,7 @@ class Linking(commands.Cog):
 
             elif verified and not is_linked:
                 await self.bot.link_client.add_link(player.tag, ctx.author.id)
-                evalua = self.bot.get_cog("Eval")
-                embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                                 test=False,
                                                 change_nick=change_nickname,
                                                 return_embed=True)
@@ -92,8 +91,7 @@ class Linking(commands.Cog):
 
             elif not verified and is_linked:
                 if linked == ctx.author.id:
-                    evalua = self.bot.get_cog("Eval")
-                    embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                    embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                                     test=False,
                                                     change_nick=change_nickname,
                                                     return_embed=True)
@@ -145,8 +143,7 @@ class Linking(commands.Cog):
 
             if is_linked:
                 if linked == ctx.author.id:
-                    evalua = self.bot.get_cog("Eval")
-                    embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                    embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                                     test=False,
                                                     change_nick=change_nickname,
                                                     return_embed=True)
@@ -159,8 +156,7 @@ class Linking(commands.Cog):
 
             elif not is_linked:
                 await self.bot.link_client.add_link(player.tag, ctx.author.id)
-                evalua = self.bot.get_cog("Eval")
-                embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                                 test=False,
                                                 change_nick=change_nickname,
                                                 return_embed=True)
@@ -255,8 +251,7 @@ class Linking(commands.Cog):
 
         await self.bot.link_client.add_link(player.tag, member.id)
 
-        evalua = self.bot.get_cog("Eval")
-        embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[member], role_or_user=member,
+        embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[member], role_or_user=member,
                                         test=False,
                                         change_nick=change_nickname,
                                         return_embed=True)
@@ -421,8 +416,7 @@ class Linking(commands.Cog):
 
         if ctx.data.custom_id == "Refresh Roles":
             await ctx.response.defer()
-            evalua = self.bot.get_cog("Eval")
-            embed = await evalua.eval_logic(ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+            embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                             test=False,
                                             change_nick="Off",
                                             return_embed=True)
@@ -430,11 +424,10 @@ class Linking(commands.Cog):
                 embed.description = "Your roles are up to date!"
             await ctx.send(embed=embed, ephemeral=True)
         elif ctx.data.custom_id == "MyToDoList":
-            cog = self.bot.get_cog(name="Profile")
             await ctx.response.defer(ephemeral=True)
             discord_user = ctx.author
             linked_accounts = await search_results(self.bot, str(discord_user.id))
-            embed = await cog.to_do_embed(discord_user=discord_user, linked_accounts=linked_accounts)
+            embed = await to_do_embed(bot=self.bot, discord_user=discord_user, linked_accounts=linked_accounts)
             await ctx.send(embed=embed, ephemeral=True)
 
         elif ctx.data.custom_id == "MyRosters":
