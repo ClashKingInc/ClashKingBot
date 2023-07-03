@@ -114,6 +114,35 @@ class SetupCommands(commands.Cog , name="Setup"):
         await res.edit_original_message(embed=embed, components=[])
 
 
+    @setup.sub_command(name="reddit-recruit-feed", description="Feed of searching for a clan posts on the recruiting subreddit")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def reddit_recruit(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel,
+                             role_to_ping: disnake.Role = None,
+                             remove=commands.Param(default=None, choices=["Remove Feed"])):
+        """
+            Parameters
+            ----------
+            channel: channel to set the feed to
+            role_to_ping: role to ping when a new recruit appears
+            remove: option to remove this feed
+        """
+        if remove is None:
+            role_id = None if role_to_ping is None else role_to_ping.id
+            await self.bot.server_db.update_one({"server": ctx.guild.id},
+                                                {"$set": {"reddit_feed": channel.id, "reddit_role": role_id}})
+
+            embed = disnake.Embed(description=f"**Reddit Recruit feed set to {channel.mention}**",
+                                  color=disnake.Color.green())
+
+        else:
+            await self.bot.server_db.update_one({"server": ctx.guild.id},
+                                                {"$set": {"reddit_feed": None, "reddit_role": None}})
+
+            embed = disnake.Embed(description="**Reddit Recruit feed removed**", color=disnake.Color.green())
+
+        return await ctx.edit_original_message(embed=embed)
+
+
     @setup.sub_command(name="countdowns", description="Create countdowns for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def voice_setup(self, ctx: disnake.ApplicationCommandInteraction):
