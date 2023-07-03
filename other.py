@@ -7,7 +7,6 @@ from CustomClasses.CustomBot import CustomClient
 import io
 from PIL import Image, ImageDraw, ImageFont
 from utils.components import create_components
-from main import check_commands
 import openai
 import os
 
@@ -129,7 +128,8 @@ class misc(commands.Cog, name="Other"):
         buttons = disnake.ui.ActionRow()
         for button in page_buttons:
             buttons.append_item(button)
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, components=[buttons])
+
 
     def ping_embed(self):
         cocping = self.bot.coc_client.http.stats.get_all_average()
