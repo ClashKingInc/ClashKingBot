@@ -109,7 +109,7 @@ def roster_options(bot: CustomClient, results):
 
 def roster_type():
     options = []
-    war_types = ["All Roster Members", "Not in Clan", "In Clan", "Subs Only"]
+    war_types = ["All Roster Members", "Not in Clan", "Subs Only"]
     for war_type in war_types:
         options.append(disnake.SelectOption(label=f"{war_type}", value=f"{war_type}"))
     war_type_select = disnake.ui.Select(
@@ -470,7 +470,7 @@ async def create_roster_reminder(bot: CustomClient, ctx: disnake.ApplicationComm
                 save = True
 
         elif "string_select" in str(res.data.component_type):
-            if res.values[0] in ["All Roster Members", "Not in Clan", "In Clan", "Subs Only"]:
+            if res.values[0] in ["All Roster Members", "Not in Clan", "Subs Only"]:
                 ping_type = res.values[0]
                 embed.description = chosen_text(bot=bot, clans=[], rosters=rosters_chosen, custom_text=custom_text, times=times, ping_type=ping_type)
                 await message.edit(embed=embed)

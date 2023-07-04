@@ -1,41 +1,51 @@
-try:
-    s_data = await self.bot.server_db.find_one({"server": server})
-    if s_data.get("autololeval", False) is False:
-        raise Exception
-    link = await self.bot.link_client.get_link(member.tag)
-    if link is not None:
-        evalua = self.bot.get_cog("Eval")
-        user = await cache_server.getch_member(link)
-        embed = await evalua.eval_logic(guild=cache_server, members_to_eval=[user], role_or_user=user,
-                                        test=False,
-                                        change_nick="Off", return_embed=True)
-        log_channel = s_data.get("autoeval_log")
-        if log_channel is not None:
-            try:
-                log_channel = await self.bot.getch_channel(log_channel)
-                await log_channel.send(embed=embed)
-            except:
-                pass
-except:
-    pass
 
-try:
-    s_data = await self.bot.server_db.find_one({"server": server})
-    if s_data.get("autololeval", False) is False:
-        raise Exception
-    link = await self.bot.link_client.get_link(member.tag)
-    if link is not None:
-        evalua = self.bot.get_cog("Eval")
-        user = await cache_server.getch_member(link)
-        embed = await evalua.eval_logic(guild=cache_server, members_to_eval=[user], role_or_user=user,
-                                        test=False,
-                                        change_nick="Off", return_embed=True)
-        log_channel = s_data.get("autoeval_log")
-        if log_channel is not None:
-            try:
-                log_channel = await self.bot.getch_channel(log_channel)
-                await log_channel.send(embed=embed)
-            except:
-                pass
-except:
-    pass
+import disnake
+import coc
+
+from disnake.ext import commands
+from CustomClasses.CustomServer import DatabaseClan
+from CustomClasses.CustomBot import CustomClient
+from Background.Logs.event_websockets import clan_ee
+from Link_and_Eval.eval_logic import eval_logic
+
+
+class AutoEval(commands.Cog):
+
+    def __init__(self, bot: CustomClient):
+        self.bot = bot
+        self.clan_ee = clan_ee
+        self.clan_ee.on("member_join", self.auto_eval)
+        self.clan_ee.on("member_leave", self.auto_eval)
+
+
+    async def auto_eval(self, event):
+        clan = coc.Clan(data=event["clan"], client=self.bot.coc_client)
+        member = coc.ClanMember(data=event["member"], client=self.bot.coc_client, clan=clan)
+
+        pipeline = [
+            {"$match": {"tag": clan.tag}},
+            {"$lookup": {"from": "server", "localField": "server", "foreignField": "server", "as": "server_data"}},
+            {"$set": {"server_data": {"$first": "$server_data"}}}
+        ]
+        for data in await self.bot.clan_db.aggregate(pipeline=pipeline).to_list(length=None):
+            if not data.get("server_data", {}).get("autoeval", False):
+                continue
+
+            link = await self.bot.link_client.get_link(member.tag)
+            if link is not None:
+                server = await self.bot.getch_guild(data.get("server"))
+                if server is None:
+                    continue
+                member = await server.getch_member(link)
+                if member is None:
+                    continue
+                embed = await eval_logic(bot=self.bot, guild=server, members_to_eval=[member], role_or_user=member, test=False, change_nick="Off", auto_eval=True, auto_eval_tag=member.tag, return_embed=True)
+
+
+
+def setup(bot: CustomClient):
+    bot.add_cog(AutoEval(bot))
+
+
+
+

@@ -1,6 +1,7 @@
 from utils.constants import ROLES, TOWNHALL_LEVELS
 from CustomClasses.CustomBot import CustomClient
 from typing import List
+from CustomClasses.Roster import Roster
 
 class Reminder:
     def __init__(self, bot: CustomClient, data):
@@ -31,6 +32,26 @@ class Reminder:
     def war_types(self):
         if self.type == "War":
             return self.__data.get("types", ["Random", "Friendly", "CWL"])
+        return None
+
+    @property
+    def ping_type(self):
+        if self.type == "roster":
+            return self.__data.get("ping_type", "All Roster Members")
+        return None
+
+
+    async def fetch_roster(self):
+        if self.type == "roster":
+            result = await self.__bot.rosters.find_one({"_id" : self.__data.get("roster")})
+            return Roster(bot=self.__bot, roster_result=result)
+        return None
+
+    @property
+    def roster(self):
+        if self.type == "roster":
+            result = self.__data.get("roster")
+            return Roster(bot=self.__bot, roster_result=result)
         return None
 
     async def set_channel_id(self, id: int):
@@ -69,4 +90,7 @@ class Reminder:
             {"$set": {"point_threshold": threshold}})
 
     async def delete(self):
-        await self.__bot.reminders.delete_one({"$and": [{"clan": self.clan_tag}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]})
+        if self.type != "roster":
+            await self.__bot.reminders.delete_one({"$and": [{"clan": self.clan_tag}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]})
+        else:
+            await self.__bot.reminders.delete_one({"$and": [{"roster": self.__data.get("roster")}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]})

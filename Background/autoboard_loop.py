@@ -28,6 +28,8 @@ class board_loop(commands.Cog):
         for r in await results.to_list(length=limit):
             try:
                 serv = r.get("server")
+                if serv not in self.bot.OUR_GUILDS:
+                    continue
                 channel = r.get("topboardchannel")
                 try:
                     channel = await self.bot.getch_channel(channel)
@@ -99,9 +101,11 @@ class board_loop(commands.Cog):
         limit = await self.bot.server_db.count_documents(filter={"lbhour": hour+1})
         for r in await results.to_list(length=limit):
             try:
+                serv = r.get("server")
+                if serv not in self.bot.OUR_GUILDS:
+                    continue
                 channel = r.get("lbboardChannel")
                 channel = await self.bot.getch_channel(channel)
-                serv = r.get("server")
                 country = r.get("country")
                 tags = await self.bot.clan_db.distinct("tag", filter={"server" : serv})
 

@@ -22,6 +22,10 @@ class Roster():
         return self.roster_result.get("_id")
 
     @property
+    def is_valid(self):
+        return self.roster_result is not None
+
+    @property
     def guild(self):
         if self.roster_result is None:
             return None
@@ -345,6 +349,11 @@ class Roster():
             player = coc.utils.get(members, tag=tag)
             await self.remove_member(player=player)
 
+        clan = await self.bot.getClan(clan_tag=self.clan_tag)
+        if clan is not None:
+            await self.bot.rosters.update_one({"$and": [{"server_id": self.roster_result.get("server_id")}, {"alias": self.alias}]}, {"$set" : {"clan_name" : clan.name, "clan_badge" : clan.badge.url}})
+
+
     async def refresh_roles(self):
         all_roles = await self.roster_roles
         for item in all_roles.values():
@@ -384,8 +393,6 @@ class Roster():
                         await member.add_roles(*[role])
                     except:
                         pass
-
-
 
     async def add_member(self, player: coc.Player, sub=False, group="No Group"):
         roster_members = self.roster_result.get("members")
@@ -724,6 +731,22 @@ class Roster():
     @property
     def role(self):
         return self.roster_result.get("role")
+
+    @property
+    def time(self):
+        return self.roster_result.get("time")
+
+    @property
+    def clan_badge(self):
+        return self.roster_result.get("clan_badge")
+
+    @property
+    def clan_name(self):
+        return self.roster_result.get("clan_name")
+
+    @property
+    def clan_tag(self):
+        return self.roster_result.get("clan_tag")
 
     @property
     async def roster_roles(self):

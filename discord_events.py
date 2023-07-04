@@ -46,6 +46,7 @@ class DiscordEvents(commands.Cog):
         scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "1 hr"], day=28, hour=7, misfire_grace_time=None)
 
         scheduler.add_job(SendReminders.inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
+        scheduler.add_job(SendReminders.roster_reminder, trigger='interval', args=[self.bot], minutes=5, misfire_grace_time=None)
 
         tags = await self.bot.clan_db.distinct("tag")
         self.bot.clan_list = tags
@@ -73,7 +74,7 @@ class DiscordEvents(commands.Cog):
             except:
                 pass
             acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times, war_end_time=war_end_time)
-            await create_reminders(times=acceptable_times, clan_tag=tag)
+            await create_reminders(bot=self.bot, times=acceptable_times, clan_tag=tag)
 
         scheduler.print_jobs()
 

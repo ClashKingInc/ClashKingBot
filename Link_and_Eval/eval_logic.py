@@ -14,7 +14,7 @@ from utils.general import get_clan_member_tags
 async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disnake.Member],
                      test: bool, change_nick, ctx: disnake.ApplicationCommandInteraction = None,
                      guild: disnake.Guild = None, role_types_to_eval=None,
-                     return_array=False, return_embed=None, role_treatment=None, shortcut=False, reason=""):
+                     return_array=False, return_embed=None, role_treatment=None, reason="", auto_eval=False, auto_eval_tag=None):
 
     #inititalization steps
     time_start = time.time()
@@ -51,16 +51,17 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
     status_roles = {role.type: role.id for role in db_server.status_roles}
     status_role_list = [role.id for role in db_server.status_roles]
 
-    clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
-    clans: List[coc.Clan] = await bot.get_clans(tags=clan_tags)
-    member_tags = get_clan_member_tags(clans=clans)
-    last_season = bot.gen_season_date(1, as_text=False)[-1]
-    this_season = bot.gen_season_date()
-    top_donator_last_season = await bot.player_stats.find({"tag": {"$in": member_tags}}, {"tag": 1}).sort(f"donations.{last_season}.donated", -1).limit(1).to_list(length=1)
-    top_donator_last_season = top_donator_last_season[0] if top_donator_last_season else top_donator_last_season
+    if not auto_eval:
+        clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
+        clans: List[coc.Clan] = await bot.get_clans(tags=clan_tags)
+        member_tags = get_clan_member_tags(clans=clans)
+        last_season = bot.gen_season_date(1, as_text=False)[-1]
+        this_season = bot.gen_season_date()
+        top_donator_last_season = await bot.player_stats.find({"tag": {"$in": member_tags}}, {"tag": 1}).sort(f"donations.{last_season}.donated", -1).limit(1).to_list(length=1)
+        top_donator_last_season = top_donator_last_season[0] if top_donator_last_season else top_donator_last_season
 
-    top_donator_this_season = await bot.player_stats.find({"tag": {"$in": member_tags}}, {"tag": 1}).sort(f"donations.{this_season}.donated", -1).limit(1).to_list(length=1)
-    top_donator_this_season = top_donator_this_season[0].get("tag") if top_donator_this_season else top_donator_this_season
+        top_donator_this_season = await bot.player_stats.find({"tag": {"$in": member_tags}}, {"tag": 1}).sort(f"donations.{this_season}.donated", -1).limit(1).to_list(length=1)
+        top_donator_this_season = top_donator_this_season[0].get("tag") if top_donator_this_season else top_donator_this_season
 
 
     category_roles = {}
@@ -99,7 +100,7 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
         color=disnake.Color.green())
     if ctx is not None:
         await ctx.edit_original_message(embed=embed)
-    all_discord_links = await bot.link_client.get_many_linked_players(*[member.id for member in members_to_eval])
+    all_discord_links = await bot.link_client.get_many_linked_players(*[member.id for member in members_to_eval if member is not None])
     discord_link_dict = defaultdict(list)
     all_tags = []
     for player_tag, discord_id in all_discord_links:
@@ -111,7 +112,13 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
         color=disnake.Color.green())
     if ctx is not None:
         await ctx.edit_original_message(embed=embed)
-    all_players = await bot.get_players(tags=all_tags, use_cache=(len(all_tags) >= 10), custom=True)
+    if auto_eval and (isinstance(role_or_user, disnake.User) or isinstance(role_or_user, disnake.Member)):
+        fresh = await bot.getPlayer(auto_eval_tag, custom=True)
+        all_tags.remove(auto_eval_tag)
+        all_players = await bot.get_players(tags=all_tags, use_cache=(len(all_tags) >= 10), custom=True)
+        all_players += [fresh]
+    else:
+        all_players = await bot.get_players(tags=all_tags, use_cache=(len(all_tags) >= 10), custom=True)
     player_dict = {}
     for player in all_players:
         player_dict[player.tag] = player
@@ -119,7 +126,7 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
 
     tasks = []
     for count, member in enumerate(members_to_eval, 1):
-        if member.bot:
+        if member is None or member.bot:
             continue
         if count % 10 == 0:
             embed = disnake.Embed(
@@ -255,7 +262,7 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
                     except:
                         pass
 
-            if "achievement" in role_types_to_eval:
+            if "achievement" in role_types_to_eval and not auto_eval:
                 if player.donos().donated >= 10000 and achievement_roles.get("donos_10000") is not None:
                     dono_role = achievement_roles.get("donos_10000")
                     ROLES_SHOULD_HAVE.add(dono_role)
@@ -329,8 +336,6 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
                 else:
                     ROLES_TO_REMOVE.append(role)
 
-        # finish - add & remove what is expected
-
         added = ""
         removed = ""
         FINAL_ROLES_TO_ADD = []
@@ -353,105 +358,106 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
             FINAL_ROLES_TO_REMOVE.append(r)
             removed += r.mention + " "
 
-        if not test:
-            current_member_roles = member.roles
-            if FINAL_ROLES_TO_ADD != [] and ("Add" in role_treatment):
-                invalid = not bot_member.guild_permissions.manage_roles
-                if invalid:
-                    added = "Missing manage_roles perm"
-                else:
-                    for r in FINAL_ROLES_TO_ADD:
-                        if r > bot_member.top_role:
-                            invalid = True
-                            break
-                    if not invalid:
-                        current_member_roles += FINAL_ROLES_TO_ADD
-                        # tasks.append(asyncio.ensure_future(member.add_roles(*FINAL_ROLES_TO_ADD)))
-                    else:
-                        added = "Could not add role(s)"
+        current_member_roles = member.roles
 
-            if FINAL_ROLES_TO_REMOVE != [] and ("Remove" in role_treatment):
-                member: disnake.Member
-                invalid = not bot_member.guild_permissions.manage_roles
-                if invalid:
-                    removed = "Missing manage_roles perm"
+        if FINAL_ROLES_TO_ADD != [] and ("Add" in role_treatment):
+            invalid = not bot_member.guild_permissions.manage_roles
+            if invalid:
+                added = "Missing manage_roles perm"
+            else:
+                for r in FINAL_ROLES_TO_ADD:
+                    if r > bot_member.top_role:
+                        invalid = True
+                        break
+                if not invalid:
+                    current_member_roles += FINAL_ROLES_TO_ADD
                 else:
-                    for r in FINAL_ROLES_TO_ADD:
-                        if r > bot_member.top_role:
-                            invalid = True
-                            break
-                    if not invalid:
-                        for role in FINAL_ROLES_TO_REMOVE:
-                            if role not in FINAL_ROLES_TO_ADD:
+                    added = "Can not add role(s)"
+
+        if FINAL_ROLES_TO_REMOVE != [] and ("Remove" in role_treatment):
+            member: disnake.Member
+            invalid = not bot_member.guild_permissions.manage_roles
+            if invalid:
+                removed = "Missing manage_roles perm"
+            else:
+                for r in FINAL_ROLES_TO_ADD:
+                    if r > bot_member.top_role:
+                        invalid = True
+                        break
+                if not invalid:
+                    for role in FINAL_ROLES_TO_REMOVE:
+                        if role not in FINAL_ROLES_TO_ADD:
+                            try:
                                 current_member_roles.remove(role)
-                        # tasks.append(asyncio.ensure_future(member.remove_roles(*FINAL_ROLES_TO_REMOVE)))
-                    else:
-                        removed = "Could not remove role(s)"
-
+                            except:
+                                pass
+                else:
+                    removed = "Can not remove role(s)"
         name_changes = "None"
+        new_name = None
         # role_types_to_eval.remove("nicknames")
         if "nicknames" in role_types_to_eval:
-            if len(family_accounts) >= 1:
-                if change_nick == "Clan Abbreviations":
-                    results = sorted(family_accounts, key=lambda l: l[0], reverse=True)
-                    abbreviations_to_have = list(set(abbreviations_to_have))
-                    top_account: coc.Player = results[0][1]
-                    _abbreviations = ", ".join(abbreviations_to_have)
-                    _abbreviations = "| " + _abbreviations
-                    if len(abbreviations_to_have) == 0:
-                        new_name = f"{top_account.name}"
-                    else:
-                        new_name = f"{top_account.name} {_abbreviations}"
-                    while len(new_name) > 31:
-                        to_remove = max(abbreviations_to_have, key=len)
-                        abbreviations_to_have.remove(to_remove)
+            if member.top_role > bot_member.top_role or not bot_member.guild_permissions.manage_nicknames:
+                name_changes = "`Cannot Change`"
+            else:
+                if len(family_accounts) >= 1:
+                    if change_nick == "Clan Abbreviations":
+                        results = sorted(family_accounts, key=lambda l: l[0], reverse=True)
+                        abbreviations_to_have = list(set(abbreviations_to_have))
+                        top_account: coc.Player = results[0][1]
                         _abbreviations = ", ".join(abbreviations_to_have)
                         _abbreviations = "| " + _abbreviations
                         if len(abbreviations_to_have) == 0:
                             new_name = f"{top_account.name}"
                         else:
                             new_name = f"{top_account.name} {_abbreviations}"
+                        while len(new_name) > 31:
+                            to_remove = max(abbreviations_to_have, key=len)
+                            abbreviations_to_have.remove(to_remove)
+                            _abbreviations = ", ".join(abbreviations_to_have)
+                            _abbreviations = "| " + _abbreviations
+                            if len(abbreviations_to_have) == 0:
+                                new_name = f"{top_account.name}"
+                            else:
+                                new_name = f"{top_account.name} {_abbreviations}"
+                            name_changes = f"`{new_name}`"
+                    elif change_nick == "Family Name":
+                        results = sorted(family_accounts, key=lambda l: l[0], reverse=True)
+                        family_label = await db_server.family_label
+                        top_account: coc.Player = results[0][1]
 
-                    if bot_member.top_role < member.top_role:
-                        name_changes = "`Cannot Change`"
-                    else:
-                        if not test:
-                            tasks.append(asyncio.ensure_future(member.edit(nick=new_name)))
-                        name_changes = f"`{new_name}`"
-                elif change_nick == "Family Name":
-                    results = sorted(family_accounts, key=lambda l: l[0], reverse=True)
-                    family_label = await db_server.family_label
-                    top_account: coc.Player = results[0][1]
-
-                    if bot_member.top_role < member.top_role:
-                        name_changes = "`Cannot Change`"
-                    else:
                         if family_label == "":
-                            if not test:
-                                tasks.append(asyncio.ensure_future(member.edit(nick=f"{top_account.name}")))
+                            new_name =f"{top_account.name}"
                             name_changes = f"`{top_account.name}`"
                         else:
-                            if not test:
-                                tasks.append(
-                                    asyncio.ensure_future(member.edit(nick=f"{top_account.name} | {family_label}")))
+                            new_name = f"{top_account.name} | {family_label}"
                             name_changes = f"`{top_account.name} | {family_label}`"
 
-            if change_nick in ["Clan Abbreviations", "Family Name"] and not GLOBAL_IS_FAMILY and len(
-                    list_accounts) >= 1:
-                results = sorted(list_accounts, key=lambda l: l[0], reverse=True)
-                top_account: coc.Player = results[0][1]
-                clan_name = ""
-                try:
-                    clan_name = f"| {top_account.clan.name}"
-                except:
-                    pass
-
-                if bot_member.top_role < member.top_role:
-                    name_changes = "`Cannot Change`"
-                else:
-                    if not test:
-                        tasks.append(asyncio.ensure_future(member.edit(nick=f"{top_account.name} {clan_name}")))
+                if change_nick in ["Clan Abbreviations", "Family Name"] and not GLOBAL_IS_FAMILY and len(
+                        list_accounts) >= 1:
+                    results = sorted(list_accounts, key=lambda l: l[0], reverse=True)
+                    top_account: coc.Player = results[0][1]
+                    clan_name = ""
+                    try:
+                        clan_name = f"| {top_account.clan.name}"
+                    except:
+                        pass
+                    new_name = f"{top_account.name} {clan_name}"
                     name_changes = f"`{top_account.name} {clan_name}`"
+
+
+        if not test and (new_name or FINAL_ROLES_TO_ADD or FINAL_ROLES_TO_REMOVE):
+            try:
+                if new_name is None and current_member_roles == member.roles:
+                    pass
+                elif new_name is not None:
+                    await member.edit(nick=new_name, roles=current_member_roles)
+                elif new_name is None:
+                    await member.edit(roles=current_member_roles)
+            except:
+                name_changes = "BOT ERROR"
+                added = "BOT ERROR"
+                removed = "BOT ERROR"
 
         if name_changes[1:-1] == member.display_name:
             name_changes = "None"
@@ -470,11 +476,11 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
             else:
                 text += f"**{member.display_name}** | {member.mention}"
                 if changes[0] != "None" or len(members_to_eval) == 1:
-                    text += f"\nAdded: {changes[0]}"
+                    text += f"\n- Added: {changes[0]}"
                 if changes[1] != "None" or len(members_to_eval) == 1:
-                    text += f"\nRemoved: {changes[1]}"
+                    text += f"\n- Removed: {changes[1]}"
                 if changes[2] != "None":
-                    text += f"\nNick Change: {changes[2]}"
+                    text += f"\n- Nick Change: {changes[2]}"
                 if len(members_to_eval) >= 2 and num != 9:
                     text += f"\n<:blanke:838574915095101470>\n"
                 num += 1

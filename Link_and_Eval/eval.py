@@ -62,7 +62,7 @@ class eval(commands.Cog, name="Eval"):
             default_eval = None
         server = CustomServer(guild=ctx.guild, bot=self.bot)
         change_nick = await server.nickname_choice
-        members = role.members
+        members = [await ctx.guild.getch_member(member.id) for member in role.members]
         clan = await self.bot.clan_db.find_one({"generalRole": role.id})
         if clan is not None:
             embed = disnake.Embed(

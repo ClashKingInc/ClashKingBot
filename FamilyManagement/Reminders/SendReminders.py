@@ -240,3 +240,68 @@ async def inactivity_reminder(bot: CustomClient):
         with suppress:
             await channel.send(content=reminder_text)
 
+
+async def roster_reminder(bot: CustomClient):
+    pipeline = [
+        {"$match": {"type": "roster"}},
+        {"$lookup": {"from": "rosters", "localField": "roster", "foreignField": "_id", "as": "roster"}},
+        {"$set": {"roster": {"$first": "$roster"}}}
+    ]
+    for reminder in await bot.reminders.aggregate(pipeline=pipeline).to_list(length=None):
+        reminder = Reminder(bot=bot, data=reminder)
+        if reminder.server_id not in bot.OUR_GUILDS:
+            continue
+        if not reminder.roster.is_valid or reminder.time is None or len(reminder.roster.players) == 0:
+            continue
+
+        try:
+            channel = await bot.getch_channel(reminder.channel_id)
+        except (disnake.NotFound, disnake.Forbidden):
+            await reminder.delete()
+            continue
+
+        server = await bot.getch_guild(reminder.server_id)
+        if server is None:
+            continue
+
+        time = reminder.time.replace("hr", "")
+        seconds_till = int(float(time) * 3600)
+
+        max_diff = 5 * 60  # time in seconds between runs
+        now = datetime.datetime.now(tz=utc)
+        roster_time = datetime.datetime.fromtimestamp(float(reminder.roster.time), tz=utc)
+        passed_time = (now - roster_time).total_seconds()
+        if passed_time - seconds_till >= 0 and passed_time - seconds_till <= max_diff:
+
+            members = []
+            if reminder.ping_type == "All Roster Members":
+                members = reminder.roster.players
+            elif reminder.ping_type == "Not In Clan":
+                members = await reminder.roster.missing_list()
+            elif reminder.ping_type == "Subs Only":
+                members = [p for p in reminder.roster.players if p.get("sub", False)]
+
+            if not members:
+                continue
+            links = await bot.link_client.get_links(*[p.get("tag") for p in members])
+            text = ""
+            for player_tag, discord_id in links:
+                name = next((player for player in members if player.get("tag") == player_tag), {})
+                name = name.get("name")
+                member = await server.getch_member(discord_id)
+                if member is None:
+                    text += f"{name} | {player_tag}\n"
+                else:
+                    text += f"{name} | {member.mention}\n"
+            badge = await bot.create_new_badge_emoji(url=reminder.roster.clan_badge)
+            reminder_text = f"**{badge}{reminder.roster.clan_name} | {reminder.roster.alias} | {bot.timestamper(reminder.roster.time).relative}**\n\n" \
+                            f"{text}" \
+                            f"\n{reminder.custom_text}"
+            button = disnake.ui.Button(label="Clan Link", emoji="🔗", style=disnake.ButtonStyle.url,
+                                  url=f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{reminder.roster.roster_result.get('clan_tag').strip('#')}")
+            buttons = disnake.ui.ActionRow(button)
+            try:
+                await channel.send(content=reminder_text, components=[buttons])
+            finally:
+                pass
+

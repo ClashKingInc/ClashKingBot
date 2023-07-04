@@ -4,7 +4,6 @@ from typing import Callable, Union
 from Exceptions.CustomExceptions import MissingWebhookPerms
 from urllib.request import Request, urlopen
 import io
-from CustomClasses.CustomBot import CustomClient
 from Exceptions.CustomExceptions import *
 from datetime import datetime
 from operator import attrgetter
@@ -199,7 +198,7 @@ async def generate_embed(bot, our_embed: dict, embed=None):
     return embed
 
 
-async def get_webhook_for_channel(bot: CustomClient, channel: Union[disnake.TextChannel, disnake.Thread]):
+async def get_webhook_for_channel(bot, channel: Union[disnake.TextChannel, disnake.Thread]):
     try:
         if isinstance(channel, disnake.Thread):
             webhooks = await channel.parent.webhooks()

@@ -21,9 +21,6 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
         clan = coc.Clan(data=event["clan"], client=self.bot.coc_client)
         member = coc.ClanMember(data=event["member"], client=self.bot.coc_client, clan=clan)
 
-        if clan.tag not in self.bot.clan_list:
-            return
-
         tracked = self.bot.clan_db.find({"$and": [{"tag": clan.tag}, {"logs.join_log.webhook": {"$ne" : None}}]})
         for cc in await tracked.to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=cc)
