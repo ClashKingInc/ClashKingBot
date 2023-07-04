@@ -132,6 +132,7 @@ class CustomClient(commands.AutoShardedBot):
         self.IMAGE_CACHE = ExpiringDict()
 
         self.OUR_GUILDS = set()
+        self.badge_guild = []
 
     def clean_string(self, text: str):
         text = emoji.replace_emoji(text)
@@ -149,6 +150,19 @@ class CustomClient(commands.AutoShardedBot):
         return TimeStamp(unix_time)
 
     async def create_new_badge_emoji(self, url:str):
+        if self.user.public_flags.verified_bot and self.user.id != 808566437199216691 and self.badge_guild == []:
+            have_created_guilds = disnake.utils.get(self.guilds, name="Badge Guild 1")
+            if have_created_guilds is None:
+                for x in range(1,6):
+                    guild = await self.create_guild(name=f"Badge Guild {x}", icon=self.user.avatar)
+                    self.badge_guild.append(guild.id)
+            else:
+                for x in range(1, 6):
+                    guild = disnake.utils.get(self.guilds, name=f"Badge Guild {x}")
+                    self.badge_guild.append(guild.id)
+        elif not self.badge_guild:
+            self.badge_guild = BADGE_GUILDS
+
         new_url = url.replace(".png", "")
         all_emojis = self.emojis
         get_emoji = disnake.utils.get(all_emojis, name=new_url[-15:].replace("-", ""))
@@ -156,25 +170,26 @@ class CustomClient(commands.AutoShardedBot):
             return f"<:{get_emoji.name}:{get_emoji.id}>"
 
         img = urlopen(url).read()
-        global BADGE_GUILDS
-        guild_ids = collections.deque(BADGE_GUILDS)
+        guild_ids = collections.deque(self.badge_guild)
         guild_ids.rotate(1)
-        BADGE_GUILDS = list(guild_ids)
+        self.badge_guild = list(guild_ids)
 
-        guild = self.get_guild(BADGE_GUILDS[0])
+        guild = self.get_guild(self.badge_guild[0])
         while len(guild.emojis) >= 47:
             num_to_delete = random.randint(1, 5)
             for emoji in guild.emojis[:num_to_delete]:
                 await guild.delete_emoji(emoji=emoji)
-            guild_ids = collections.deque(BADGE_GUILDS)
+            guild_ids = collections.deque(self.badge_guild)
             guild_ids.rotate(1)
-            BADGE_GUILDS = list(guild_ids)
-            guild = self.get_guild(BADGE_GUILDS[0])
+            self.badge_guild = list(guild_ids)
+            guild = self.get_guild(self.badge_guild[0])
 
         emoji = await guild.create_custom_emoji(name=new_url[-15:].replace("-", ""), image=img)
         return f"<:{emoji.name}:{emoji.id}>"
 
     def get_number_emoji(self, color: str, number: int):
+        if not self.user.public_flags.verified_bot:
+            color = "gold"
         guild = None
         if number <= 50:
             if color == "white":
@@ -184,7 +199,6 @@ class CustomClient(commands.AutoShardedBot):
             elif color == "gold":
                 guild = self.get_guild(1042301195240357958)
         elif number >= 51:
-            print(color)
             if color == "white":
                 guild = self.get_guild(1042635651562086430)
             elif color == "blue":
@@ -473,7 +487,7 @@ class CustomClient(commands.AutoShardedBot):
         return url
 
     #DISCORD HELPERS
-    def partial_emoji_gen(self, emoji_string, animated=False):
+    def partial_emoji_gen(self, emoji_string, animated=False, state=None):
         emoji = emoji_string.split(":")
         #emoji = self.get_emoji(int(str(emoji[2])[:-1]))
         if "<a:" in emoji_string:

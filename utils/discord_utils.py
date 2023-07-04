@@ -4,7 +4,7 @@ from typing import Callable, Union
 from Exceptions.CustomExceptions import MissingWebhookPerms
 from urllib.request import Request, urlopen
 import io
-#from CustomClasses.CustomBot import CustomClient
+from CustomClasses.CustomBot import CustomClient
 from Exceptions.CustomExceptions import *
 from datetime import datetime
 from operator import attrgetter
@@ -199,9 +199,8 @@ async def generate_embed(bot, our_embed: dict, embed=None):
     return embed
 
 
-async def get_webhook_for_channel(bot, channel: Union[disnake.TextChannel, disnake.Thread]):
+async def get_webhook_for_channel(bot: CustomClient, channel: Union[disnake.TextChannel, disnake.Thread]):
     try:
-        bot_av = bot.user.avatar.read().close()
         if isinstance(channel, disnake.Thread):
             webhooks = await channel.parent.webhooks()
         else:
@@ -209,9 +208,9 @@ async def get_webhook_for_channel(bot, channel: Union[disnake.TextChannel, disna
         webhook = next((w for w in webhooks if w.user.id == bot.user.id), None)
         if webhook is None:
             if isinstance(channel, disnake.Thread):
-                webhook = await channel.parent.create_webhook(name="ClashKing", avatar=bot_av, reason="Log Creation")
+                webhook = await channel.parent.create_webhook(name="ClashKing", avatar=bot.user.avatar, reason="Log Creation")
             else:
-                webhook = await channel.create_webhook(name="ClashKing", avatar=bot_av, reason="Log Creation")
+                webhook = await channel.create_webhook(name="ClashKing", avatar=bot.user.avatar, reason="Log Creation")
         return webhook
     except Exception:
         raise MissingWebhookPerms

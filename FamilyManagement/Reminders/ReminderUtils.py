@@ -107,6 +107,20 @@ def roster_options(bot: CustomClient, results):
     return (results, roster_select)
 
 
+def roster_type():
+    options = []
+    war_types = ["All Roster Members", "Not in Clan", "In Clan", "Subs Only"]
+    for war_type in war_types:
+        options.append(disnake.SelectOption(label=f"{war_type}", value=f"{war_type}"))
+    war_type_select = disnake.ui.Select(
+        options=options,
+        placeholder="(optional) Select Ping Type",  # the placeholder text to show when no options have been chosen
+        min_values=1,  # the minimum number of options a user must select
+        max_values=1,  # the maximum number of options a user can select
+    )
+    return war_type_select
+
+
 
 async def create_capital_reminder(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, times: List[str]):
     clans = await bot.get_clans(tags=(await bot.get_guild_clans(guild_id=ctx.guild_id)))
@@ -430,15 +444,16 @@ async def create_roster_reminder(bot: CustomClient, ctx: disnake.ApplicationComm
     results = await bot.rosters.find({"$and": [{"server_id": ctx.guild_id}]}).to_list(length=None)
     results, menu = roster_options(bot=bot, results=results)
     results = [Roster(bot=bot, roster_result=result) for result in results]
-    dropdown = [menu, buttons(bot=bot)]
+    dropdown = [menu, roster_type(), buttons(bot=bot)]
 
     save = False
 
     rosters_chosen = []
+    ping_type = "All Roster Members"
     custom_text = ""
 
     embed = disnake.Embed(title="**Roster Reminder options/filters**", color=disnake.Color.green())
-    embed.description = chosen_text(bot=bot, clans=[], times=times)
+    embed.description = chosen_text(bot=bot, clans=[], times=times, ping_type=ping_type)
     await ctx.edit_original_message(embed=embed, components=dropdown)
     message = await ctx.original_message()
 
@@ -447,7 +462,7 @@ async def create_roster_reminder(bot: CustomClient, ctx: disnake.ApplicationComm
         if "button" in str(res.data.component_type):
             if res.data.custom_id == "modal_reminder_custom_text":
                 custom_text = await get_custom_text(bot=bot, res=res)
-                embed.description = chosen_text(bot=bot, clans=[], rosters=rosters_chosen, custom_text=custom_text, times=times)
+                embed.description = chosen_text(bot=bot, clans=[], rosters=rosters_chosen, custom_text=custom_text, times=times, ping_type=ping_type)
                 await message.edit(embed=embed)
             elif not rosters_chosen:
                 await res.send(content="Must select at least one roster", ephemeral=True)
@@ -455,10 +470,15 @@ async def create_roster_reminder(bot: CustomClient, ctx: disnake.ApplicationComm
                 save = True
 
         elif "string_select" in str(res.data.component_type):
-            roster_aliases = res.values
-            rosters_chosen = [coc.utils.get(results, alias=roster) for roster in roster_aliases]
-            embed.description = chosen_text(bot=bot, clans=[], rosters=rosters_chosen, custom_text=custom_text, times=times)
-            await message.edit(embed=embed)
+            if res.values[0] in ["All Roster Members", "Not in Clan", "In Clan", "Subs Only"]:
+                ping_type = res.values[0]
+                embed.description = chosen_text(bot=bot, clans=[], rosters=rosters_chosen, custom_text=custom_text, times=times, ping_type=ping_type)
+                await message.edit(embed=embed)
+            else:
+                roster_aliases = res.values
+                rosters_chosen = [coc.utils.get(results, alias=roster) for roster in roster_aliases]
+                embed.description = chosen_text(bot=bot, clans=[], rosters=rosters_chosen, custom_text=custom_text, times=times, ping_type=ping_type)
+                await message.edit(embed=embed)
 
     for time in times:
         for roster in rosters_chosen:
@@ -473,6 +493,7 @@ async def create_roster_reminder(bot: CustomClient, ctx: disnake.ApplicationComm
                 "type": "roster",
                 "roster": roster._id,
                 "channel": channel.id,
+                "ping_type" : ping_type,
                 "time": time,
                 "custom_text" : custom_text
             })
@@ -510,7 +531,7 @@ async def get_custom_text(bot:CustomClient, res: disnake.MessageInteraction):
 
 
 def chosen_text(bot: CustomClient, clans: List[coc.Clan], ths=None, roles=None, atk=None, war_types=None, points=None,
-                times=None, custom_text="", channel = None, rosters=None):
+                times=None, custom_text="", channel = None, rosters=None, ping_type=None):
     text = ""
     if clans:
         text += "**CLANS:**\n"
@@ -549,6 +570,9 @@ def chosen_text(bot: CustomClient, clans: List[coc.Clan], ths=None, roles=None, 
     if times is not None:
         text += "\n**TIMES:**\n"
         text += "• " + ", ".join(times) + "\n"
+
+    if ping_type is not None:
+        text += f"\n**Ping Type:** {ping_type}\n"
 
     if channel is not None:
         text += f"\n**Channel:** <#{channel}>\n"

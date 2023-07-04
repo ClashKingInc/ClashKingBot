@@ -29,10 +29,11 @@ class BackgroundCache(commands.Cog):
 
     @tasks.loop(seconds=120)
     async def guilds(self):
-        all_guilds = await self.bot.server_db.distinct("server")
-        all_guilds = [str(g) for g in all_guilds]
-        await self.bot.server_db.update_one({"server" : 923764211845312533}, {"$set" : {"all_servers" : all_guilds}})
-        x = set(await self.bot.server_db.distinct("server"))
+        guild_fetch = await self.bot.server_db.distinct("server")
+        if self.bot.user.public_flags.verified_bot:
+            all_guilds = [str(g) for g in guild_fetch]
+            await self.bot.server_db.update_one({"server" : 923764211845312533}, {"$set" : {"all_servers" : all_guilds}})
+        x = set(guild_fetch)
         if self.bot.user.public_flags.verified_bot:
             active_custom_bots = await self.bot.credentials.distinct("server", filter={"active" : True})
             for bot in active_custom_bots:
