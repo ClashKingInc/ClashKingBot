@@ -14,6 +14,7 @@ class ExceptionHandler(commands.Cog):
     async def on_slash_command_error(self, ctx: disnake.ApplicationCommandInteraction, error):
         if isinstance(error, disnake.ext.commands.ConversionError):
             error = error.original
+            print(error)
 
         if isinstance(error, coc.errors.NotFound):
             embed = disnake.Embed(description="Not a valid clan/player tag.", color=disnake.Color.red())
@@ -34,6 +35,7 @@ class ExceptionHandler(commands.Cog):
 
         if isinstance(error, disnake.ext.commands.CommandError):
             error = error.original
+            print(error)
 
         if isinstance(error, NotValidReminderTime):
             embed = disnake.Embed(description="Not a valid reminder time, please use options from the autocomplete.", color=disnake.Color.red())
