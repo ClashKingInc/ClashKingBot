@@ -1,6 +1,6 @@
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-from BoardCommands.Player.pagination import button_pagination
+from utils.player_pagination import button_pagination
 
 import asyncpraw
 import os
