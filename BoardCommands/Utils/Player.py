@@ -427,12 +427,14 @@ async def create_player_list(bot: CustomClient, discord_user: disnake.Member, pl
             if heros != "" and len([h for h in player.heroes if h.is_home_base]) >= 2:
                 heros += f"{sum([h.level for h in player.heroes if h.is_home_base])}"
 
-            text += f"{opt_emoji}**[{player.clear_name}{create_superscript(player.town_hall)}]({player.share_link})** | {league_to_emoji(player.league_as_string)}{player.trophies}\n" \
+            text += f"{opt_emoji}**[{player.clear_name}{create_superscript(player.town_hall)}]({player.share_link})**\n" \
+                    f"{league_to_emoji(player.league_as_string)}{player.trophies}" \
 
-            if heros != "":
-                text += f"- `{heros}`\n"
+            '''if heros != "":
+                text += f"- `{heros}`\n"'''
 
-            text += f"- Donos: ▲`{player.donos().donated:<4}` ▼`{player.donos().received:<4}`\n"
+            if player.clan:
+                text += f" | {player.clan.name} ({player.role_as_string})"
 
             text += "\n"
     embed = disnake.Embed(description=text, color=embed_color)

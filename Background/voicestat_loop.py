@@ -1,6 +1,6 @@
 from disnake.ext import commands, tasks
 import disnake
-from utils.General import calculate_time
+from utils.general import calculate_time
 from main import scheduler
 import pytz
 utc = pytz.utc
@@ -20,6 +20,8 @@ class VoiceStatCron(commands.Cog):
             channel = r.get("cwlCountdown")
             #print(channel)
             server = r.get("server")
+            if server not in self.bot.OUR_GUILDS:
+                continue
             if channel is not None:
                 try:
                     channel = await self.bot.getch_channel(channel_id=channel, raise_exception=True)

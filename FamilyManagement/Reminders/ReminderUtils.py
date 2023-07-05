@@ -588,7 +588,17 @@ def chosen_text(bot: CustomClient, clans: List[coc.Clan], ths=None, roles=None, 
 ##REMINDER DELETION
 async def edit_reminder(bot: CustomClient, clan: coc.Clan, ctx: disnake.ApplicationCommandInteraction, type: str):
     while True:
-        reminders = await bot.reminders.find({"$and": [{"clan": clan.tag}, {"type": type}, {"server": ctx.guild.id}]}).to_list(length=None)
+        if type != "roster":
+            reminders = await bot.reminders.find({"$and": [{"clan": clan.tag}, {"type": type}, {"server": ctx.guild.id}]}).to_list(length=None)
+        else:
+            rosters = await bot.rosters.distinct("_id", filter={"$and": [{"clan_tag": clan.tag}, {"server_id": ctx.guild.id}]})
+            pipeline = [
+                {"$match": {"roster": {"$in": rosters}}},
+                {"$lookup": {"from": "rosters", "localField": "roster", "foreignField": "_id", "as": "roster"}},
+                {"$set": {"roster": {"$first": "$roster"}}}
+            ]
+            reminders = await bot.reminders.aggregate(pipeline=pipeline).to_list(length=None)
+
         if not reminders:
             raise ThingNotFound(f"**No {type.capitalize()} Reminders found for {clan.name}**")
         reminders = sorted(reminders, key=lambda l: float(str(l.get('time')).replace("hr", "")), reverse=False)
@@ -599,7 +609,10 @@ async def edit_reminder(bot: CustomClient, clan: coc.Clan, ctx: disnake.Applicat
         for count, reminder in enumerate(reminders):
             reminder = Reminder(data=reminder, bot=bot)
             reminder_class_list.append(reminder)
-            text += f"`{reminder.time}` - <#{reminder.channel_id}>\n"
+            if reminder.type != "roster":
+                text += f"`{reminder.time}` - <#{reminder.channel_id}>\n"
+            else:
+                text += f"`{reminder.time} | {reminder.roster.alias}` - <#{reminder.channel_id}>\n"
             options.append(disnake.SelectOption(label=f"{reminder.time} Reminder", value=f"{count }"))
 
         clan_select = disnake.ui.Select(
@@ -630,6 +643,10 @@ async def edit_reminder(bot: CustomClient, clan: coc.Clan, ctx: disnake.Applicat
             dropdown.append(war_type())
         elif reminder.type == "Clan Games":
             dropdown.append(point_threshold())
+        elif reminder.type == "roster":
+            del dropdown[1]
+            del dropdown[1]
+            dropdown.append(roster_type())
         dropdown.append(buttons(bot=bot, delete=True))
         message = await res.followup.send(embed=embed, components=dropdown, ephemeral=True)
 
@@ -642,6 +659,7 @@ async def edit_reminder(bot: CustomClient, clan: coc.Clan, ctx: disnake.Applicat
         atks = reminder.attack_threshold
         war_types = reminder.war_types
         channel = reminder.channel_id
+        ping_type = reminder.ping_type
 
         while not save:
             res: disnake.MessageInteraction = await interaction_handler(bot=bot, ctx=res, msg=message)
@@ -667,13 +685,15 @@ async def edit_reminder(bot: CustomClient, clan: coc.Clan, ctx: disnake.Applicat
                     ths = [int(th.split("_")[-1]) for th in res.values]
                 elif res.values[0] in ["Random", "Friendly", "CWL"]:
                     war_types = res.values
+                elif res.values[0] in ["All Roster Members", "Not in Clan", "Subs Only"]:
+                    ping_type = res.values[0]
                 elif res.values[0].isnumeric() and int(res.values[0]) in [250, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000]:
                     points = int(res.values[0])
                 elif res.values[0].isnumeric() and int(res.values[0]) in [1, 2, 3, 4, 5]:
                     atks = int(res.values[0])
             if not save and not deleted:
                 embed.description = chosen_text(bot=bot, ths=ths, roles=roles_chosen, points=points, atk=atks,
-                                                war_types=war_types, custom_text=custom_text, clans=[], channel=channel)
+                                                war_types=war_types, custom_text=custom_text, clans=[], channel=channel, ping_type=ping_type)
                 await message.edit(embed=embed)
 
         if not deleted:
@@ -685,242 +705,3 @@ async def edit_reminder(bot: CustomClient, clan: coc.Clan, ctx: disnake.Applicat
             await reminder.set_channel_id(id=channel)
             await reminder.set_war_types(types=war_types)
             await message.edit(components=[], content="*Reminder Updated!*")
-
-
-
-
-
-
-
-
-
-async def remove_clan_capital_reminder(bot, ctx: disnake.MessageInteraction, clan: coc.Clan):
-    clan_capital_reminders = bot.reminders.find(
-        {"$and": [{"clan": clan.tag}, {"type": "Clan Capital"}, {"server": ctx.guild.id}]})
-
-    reminders = []
-    for reminder in await clan_capital_reminders.to_list(length=100):
-        reminders.append([reminder, float(str(reminder.get('time')).replace("hr", ""))])
-
-    reminders = sorted(reminders, key=lambda l: l[1], reverse=False)
-
-    options = []
-    for reminder in reminders:
-        reminder = reminder[0]
-        options.append(
-            disnake.SelectOption(label=f"{reminder.get('time')} reminder", emoji=bot.emoji.clock.partial_emoji,
-                                 value=f"{reminder.get('time')}"))
-
-    button = [disnake.ui.ActionRow(
-        disnake.ui.Button(label="Remove Another Reminder", emoji=bot.emoji.right_green_arrow.partial_emoji,
-                          style=disnake.ButtonStyle.grey, custom_id="new_reminder"),
-        disnake.ui.Button(label="I am done!", emoji=bot.emoji.no.partial_emoji, style=disnake.ButtonStyle.red,
-                          custom_id="go_to_finish"))
-    ]
-
-    if not options:
-        content = f"**No clan capital reminders set up for {clan.name}**"
-        await ctx.edit_original_message(content=content, components=button)
-        res: disnake.MessageInteraction = await interaction_handler(ctx=ctx)
-        next_move = res.data.custom_id
-        return next_move
-
-    content = "**Choose reminder times to remove from list**"
-    select = disnake.ui.Select(
-        options=options,
-        placeholder="Select Reminder Times",  # the placeholder text to show when no options have been chosen
-        min_values=1,  # the minimum number of options a user must select
-        max_values=len(options),  # the maximum number of options a user can select
-    )
-    dropdown = [disnake.ui.ActionRow(select)]
-    await ctx.edit_original_message(content=content, components=dropdown)
-
-    res: disnake.MessageInteraction = await interaction_handler(ctx=ctx)
-    for value in res.values:
-        await bot.reminders.delete_one({
-            "server": ctx.guild.id,
-            "type": "Clan Capital",
-            "clan": clan.tag,
-            "time": value
-        })
-
-    reminders_removed = ", ".join(res.values)
-    content = f"**`{reminders_removed}` Clan Capital Reminders removed for {ctx.guild.name}**"
-    await ctx.edit_original_message(content=content, components=button)
-    res: disnake.MessageInteraction = await interaction_handler(ctx=ctx)
-    next_move = res.data.custom_id
-    return next_move
-
-
-async def remove_clan_games_reminder(bot, ctx: disnake.MessageInteraction, clan: coc.Clan):
-    clan_capital_reminders = bot.reminders.find(
-        {"$and": [{"clan": clan.tag}, {"type": "Clan Games"}, {"server": ctx.guild.id}]})
-
-    reminders = []
-    for reminder in await clan_capital_reminders.to_list(length=100):
-        reminders.append([reminder, float(str(reminder.get('time')).replace("hr", ""))])
-
-    reminders = sorted(reminders, key=lambda l: l[1], reverse=False)
-
-    options = []
-    for reminder in reminders:
-        reminder = reminder[0]
-        options.append(
-            disnake.SelectOption(label=f"{reminder.get('time')} reminder", emoji=bot.emoji.clock.partial_emoji,
-                                 value=f"{reminder.get('time')}"))
-
-    button = [disnake.ui.ActionRow(
-        disnake.ui.Button(label="Remove Another Reminder", emoji=bot.emoji.right_green_arrow.partial_emoji,
-                          style=disnake.ButtonStyle.grey, custom_id="new_reminder"),
-        disnake.ui.Button(label="I am done!", emoji=bot.emoji.no.partial_emoji, style=disnake.ButtonStyle.red,
-                          custom_id="go_to_finish"))
-    ]
-
-    if not options:
-        content = f"**No clan games reminders set up for {clan.name}**"
-        await ctx.edit_original_message(content=content, components=button)
-        res: disnake.MessageInteraction = await interaction_handler(ctx=ctx)
-        next_move = res.data.custom_id
-        return next_move
-
-    content = "**Choose reminder times to remove from list**"
-    select = disnake.ui.Select(
-        options=options,
-        placeholder="Select Reminder Times",  # the placeholder text to show when no options have been chosen
-        min_values=1,  # the minimum number of options a user must select
-        max_values=len(options),  # the maximum number of options a user can select
-    )
-    dropdown = [disnake.ui.ActionRow(select)]
-    await ctx.edit_original_message(content=content, components=dropdown)
-
-    res: disnake.MessageInteraction = await interaction_handler(ctx=ctx)
-    for value in res.values:
-        await bot.reminders.delete_one({
-            "server": ctx.guild.id,
-            "type": "Clan Games",
-            "clan": clan.tag,
-            "time": value
-        })
-
-    reminders_removed = ", ".join(res.values)
-    content = f"**`{reminders_removed}` Clan Games Reminders removed for {ctx.guild.name}**"
-    await ctx.edit_original_message(content=content, components=button)
-    res: disnake.MessageInteraction = await interaction_handler(ctx=ctx)
-    next_move = res.data.custom_id
-    return next_move
-
-
-async def remove_war_reminder(bot, ctx: disnake.MessageInteraction, clan: coc.Clan):
-    clan_capital_reminders = bot.reminders.find(
-        {"$and": [{"clan": clan.tag}, {"type": "War"}, {"server": ctx.guild.id}]})
-
-    reminders = []
-    for reminder in await clan_capital_reminders.to_list(length=100):
-        reminders.append([reminder, float(str(reminder.get('time')).replace("hr", ""))])
-
-    reminders = sorted(reminders, key=lambda l: l[1], reverse=False)
-
-    options = []
-    for reminder in reminders:
-        reminder = reminder[0]
-        options.append(
-            disnake.SelectOption(label=f"{reminder.get('time')} reminder", emoji=bot.emoji.clock.partial_emoji,
-                                 value=f"{reminder.get('time')}"))
-
-    button = [disnake.ui.ActionRow(
-        disnake.ui.Button(label="Remove Another Reminder", emoji=bot.emoji.right_green_arrow.partial_emoji,
-                          style=disnake.ButtonStyle.grey, custom_id="new_reminder"),
-        disnake.ui.Button(label="I am done!", emoji=bot.emoji.no.partial_emoji, style=disnake.ButtonStyle.red,
-                          custom_id="go_to_finish"))
-    ]
-
-    if not options:
-        content = f"**No war reminders set up for {clan.name}**"
-        await ctx.edit_original_message(content=content, components=button)
-        res: disnake.MessageInteraction = await interaction_handler(ctx=ctx)
-        next_move = res.data.custom_id
-        return next_move
-
-    content = "**Choose reminder times to remove from list**"
-    select = disnake.ui.Select(
-        options=options,
-        placeholder="Select Reminder Times",  # the placeholder text to show when no options have been chosen
-        min_values=1,  # the minimum number of options a user must select
-        max_values=len(options),  # the maximum number of options a user can select
-    )
-    dropdown = [disnake.ui.ActionRow(select)]
-    await ctx.edit_original_message(content=content, components=dropdown)
-
-    res: disnake.MessageInteraction = await interaction_handler(ctx=ctx)
-    for value in res.values:
-        await bot.reminders.delete_one({
-            "server": ctx.guild.id,
-            "type": "War",
-            "clan": clan.tag,
-            "time": value
-        })
-
-    reminders_removed = ", ".join(res.values)
-    content = f"**`{reminders_removed}` War Reminders removed for {ctx.guild.name}**"
-    await ctx.edit_original_message(content=content, components=button)
-    res: disnake.MessageInteraction = await interaction_handler(ctx=ctx)
-    next_move = res.data.custom_id
-    return next_move
-
-
-async def remove_inactivity_reminder(bot, ctx: disnake.MessageInteraction, clan: coc.Clan):
-    clan_capital_reminders = bot.reminders.find(
-        {"$and": [{"clan": clan.tag}, {"type": "inactivity"}, {"server": ctx.guild.id}]})
-
-    reminders = []
-    for reminder in await clan_capital_reminders.to_list(length=100):
-        reminders.append([reminder, float(str(reminder.get('time')).replace("hr", ""))])
-
-    reminders = sorted(reminders, key=lambda l: l[1], reverse=False)
-
-    options = []
-    for reminder in reminders:
-        reminder = reminder[0]
-        options.append(
-            disnake.SelectOption(label=f"{reminder.get('time')} reminder", emoji=bot.emoji.clock.partial_emoji,
-                                 value=f"{reminder.get('time')}"))
-
-    button = [disnake.ui.ActionRow(
-        disnake.ui.Button(label="Remove Another Reminder", emoji=bot.emoji.right_green_arrow.partial_emoji,
-                          style=disnake.ButtonStyle.grey, custom_id="new_reminder"),
-        disnake.ui.Button(label="I am done!", emoji=bot.emoji.no.partial_emoji, style=disnake.ButtonStyle.red,
-                          custom_id="go_to_finish"))
-    ]
-
-    if not options:
-        content = f"**No inactivity reminders set up for {clan.name}**"
-        await ctx.edit_original_message(content=content, components=button)
-        res: disnake.MessageInteraction = await interaction_handler(ctx=ctx)
-        next_move = res.data.custom_id
-        return next_move
-
-    content = "**Choose reminder times to remove from list**"
-    select = disnake.ui.Select(
-        options=options,
-        placeholder="Select Reminder Times",  # the placeholder text to show when no options have been chosen
-        min_values=1,  # the minimum number of options a user must select
-        max_values=len(options),  # the maximum number of options a user can select
-    )
-    dropdown = [disnake.ui.ActionRow(select)]
-    await ctx.edit_original_message(content=content, components=dropdown)
-
-    res: disnake.MessageInteraction = await interaction_handler(ctx=ctx)
-    for value in res.values:
-        await bot.reminders.delete_one({
-            "server": ctx.guild.id,
-            "type": "inactivity",
-            "clan": clan.tag,
-            "time": value
-        })
-
-    reminders_removed = ", ".join(res.values)
-    content = f"**`{reminders_removed}` Inactivity Reminders removed for {ctx.guild.name}**"
-    await ctx.edit_original_message(content=content, components=button)
-    res: disnake.MessageInteraction = await interaction_handler(ctx=ctx)
-    next_move = res.data.custom_id
-    return next_move

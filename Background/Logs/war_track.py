@@ -36,8 +36,8 @@ class War_Log(commands.Cog):
 
         reminder_times = await self.bot.get_reminder_times(clan_tag=new_war.clan.tag)
         acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times, war_end_time=new_war.end_time)
-        await create_reminders(clan_tag=new_war.clan.tag, times=acceptable_times)
-        await schedule_war_boards(war=new_war)
+        await create_reminders(bot=self.bot, clan_tag=new_war.clan.tag, times=acceptable_times)
+        await schedule_war_boards(bot=self.bot, war=new_war)
 
         if not new_war.is_cwl:
             with suppress:
@@ -268,7 +268,32 @@ class War_Log(commands.Cog):
             attack_embed = await defenses_embed(bot=self.bot, war=war)
             await ctx.send(embed=attack_embed, ephemeral=True)
 
+        elif "menuforwar_" in str(ctx.data.custom_id):
+            await ctx.response.defer(ephemeral=True)
+            clan = (str(ctx.data.custom_id).split("_"))[-1]
+            prep_time = 0
+            try:
+                prep_time = int(str(ctx.data.custom_id).split('_')[1])
+            except:
+                pass
+            war_data = await self.bot.clan_wars.find_one({"war_id" : f"{clan}-{prep_time}"})
+            war = None
+            if war_data is not None:
+                war = coc.ClanWar(data=war_data["data"], client=self.bot.coc_client, clan_tag=clan)
+            if war is None:
+                war = await self.bot.war_client.war_result(clan_tag=clan, preparation_start=prep_time)
+            if war is None:
+                war = await self.bot.get_clanwar(clanTag=clan)
+            if war is None:
+                return await ctx.send(content="No War Found", ephemeral=True)
 
+            button = [disnake.ui.ActionRow(
+                disnake.ui.Button(label="Opponent Link", style=disnake.ButtonStyle.url, url=war.opponent.share_link),
+                disnake.ui.Button(label="Clash Of Stats", style=disnake.ButtonStyle.url, url=f"https://www.clashofstats.com/clans/{war.opponent.tag.strip('#')}/summary"),
+                disnake.ui.Button(label="Chocolate Clash", style=disnake.ButtonStyle.url, url=f"https://fwa.chocolateclash.com/cc_n/clan.php?tag={war.opponent.tag.strip('#')}")
+            )
+            ]
+            await ctx.send(components= button, ephemeral=True)
 
 def setup(bot: CustomClient):
     bot.add_cog(War_Log(bot))

@@ -72,7 +72,7 @@ async def image_board(bot: CustomClient, players: List[MyCustomPlayer], logo_url
 
 async def donation_board(bot: CustomClient, players: List[MyCustomPlayer], season: str, footer_icon: str, title_name: str, type: str,
                          limit: int = 50,
-                         embed_color: disnake.Color = disnake.Color.green(), **kwargs) -> disnake.Embed:
+                         embed_color: disnake.Color = disnake.Color.green(), **kwargs):
     if type == "donations":
         players.sort(key=lambda x: x.donos(date=season).donated, reverse=True)
     elif type == "received":

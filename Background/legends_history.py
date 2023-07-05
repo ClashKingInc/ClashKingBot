@@ -21,6 +21,8 @@ class LegendCron(commands.Cog):
         scheduler.add_job(self.legend_update, 'interval', hours=12)
 
     async def legend_update(self):
+        if not self.bot.user.public_flags.verified_bot:
+            return
         keys = await self.create_keys()
         key = keys[0]
 

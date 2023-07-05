@@ -12,9 +12,19 @@ class Reminder:
         self.clan_tag: str = data.get("clan")
         self.channel_id: int = data.get("channel")
         self.time: str = data.get("time")
-        self.roles: List[str] = data.get("roles", ROLES)
-        self.townhalls: List[int] = data.get("townhalls", list(reversed(TOWNHALL_LEVELS)))
         self.custom_text: str = data.get("custom_text", "")
+
+    @property
+    def townhalls(self):
+        if self.type != "roster":
+            return self.__data.get("townhalls", list(reversed(TOWNHALL_LEVELS)))
+        return None
+
+    @property
+    def roles(self):
+        if self.type != "roster":
+            return self.__data.get("roles", ROLES)
+        return None
 
     @property
     def point_threshold(self):
@@ -78,6 +88,11 @@ class Reminder:
         await self.__bot.reminders.update_one(
             {"$and": [{"clan": self.clan_tag}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]},
             {"$set": {"types": types}})
+
+    async def set_ping_type(self, type: str):
+        await self.__bot.reminders.update_one(
+            {"$and": [{"roster": self.__data.get("roster")}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]},
+            {"$set": {"ping_type": type}})
 
     async def set_attack_threshold(self, threshold: int):
         await self.__bot.reminders.update_one(

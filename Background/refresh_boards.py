@@ -11,7 +11,7 @@ class RefreshBoards(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.refresh, 'interval', minutes=10)
+        #scheduler.add_job(self.refresh, 'interval', minutes=10)
 
     async def refresh(self):
         pass

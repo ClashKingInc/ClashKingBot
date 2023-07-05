@@ -157,23 +157,22 @@ async def opp_roster_embed(bot: CustomClient, war):
 async def attacks_embed(bot: CustomClient, war: coc.ClanWar):
     attacks = ""
     missing_attacks = []
-    for player in war.members:
-        if player not in war.opponent.members:
-            if player.attacks == []:
-                missing_attacks.append(f"➼ {bot.fetch_emoji(name=player.town_hall)}{player.name}\n")
-                continue
-            name = player.name
-            attacks += f"\n{bot.fetch_emoji(name=player.town_hall)}**{name}**"
-            for a in player.attacks:
-                star_str = ""
-                stars = a.stars
-                for x in range(0, stars):
-                    star_str += "★"
-                for x in range(0, 3 - stars):
-                    star_str += "☆"
+    for player in war.clan.members:
+        if player.attacks == []:
+            missing_attacks.append(f"➼ {bot.fetch_emoji(name=player.town_hall)}{player.name}\n")
+            continue
+        name = player.name
+        attacks += f"\n{bot.fetch_emoji(name=player.town_hall)}**{name}**"
+        for a in player.attacks:
+            star_str = ""
+            stars = a.stars
+            for x in range(0, stars):
+                star_str += "★"
+            for x in range(0, 3 - stars):
+                star_str += "☆"
 
-                base = create_superscript(a.defender.map_position)
-                attacks += f"\n➼ {a.destruction}%{star_str}{base}"
+            base = create_superscript(a.defender.map_position)
+            attacks += f"\n➼ {a.destruction}%{star_str}{base}"
 
     embed = disnake.Embed(title=f"{war.clan.name} War Attacks", description=attacks,
                           color=disnake.Color.green())

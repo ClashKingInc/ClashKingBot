@@ -107,7 +107,6 @@ class CustomClient(commands.AutoShardedBot):
         self.user_settings: collection_class = self.db_client.usafam.user_settings
         self.custom_boards: collection_class = self.db_client.usafam.custom_boards
         self.trials: collection_class = self.db_client.usafam.trials
-
         self.autoboard_db: collection_class = self.db_client.usafam.autoboard_db
 
 

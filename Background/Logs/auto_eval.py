@@ -28,6 +28,8 @@ class AutoEval(commands.Cog):
             {"$set": {"server_data": {"$first": "$server_data"}}}
         ]
         for data in await self.bot.clan_db.aggregate(pipeline=pipeline).to_list(length=None):
+            if data.get("server") not in self.bot.OUR_GUILDS:
+                continue
             if not data.get("server_data", {}).get("autoeval", False):
                 continue
 

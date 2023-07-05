@@ -98,6 +98,7 @@ class misc(commands.Cog, name="Other"):
                     await ctx.channel.send(embed=embed)
 
 
+
     @commands.slash_command(name="bot-stats", description="Stats about bots uptime & ping")
     async def stat(self, ctx):
         uptime = time.time() - self.up

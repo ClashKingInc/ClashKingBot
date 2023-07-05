@@ -21,6 +21,8 @@ class StoreClanCapital(commands.Cog):
 
 
     async def send_boards(self):
+        if not self.bot.user.public_flags.verified_bot:
+            return
         tracked = self.bot.clan_db.find({"clan_capital" : {"$ne" : None}})
         limit = await self.bot.clan_db.count_documents(filter={"clan_capital" : {"$ne" : None}})
         for cc in await tracked.to_list(length=limit):
@@ -56,6 +58,8 @@ class StoreClanCapital(commands.Cog):
 
 
     async def store_cc(self):
+        if not self.bot.user.public_flags.verified_bot:
+            return
         tags = await self.bot.clan_db.distinct("tag")
         tasks = []
         date = self.bot.gen_raid_date()

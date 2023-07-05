@@ -244,6 +244,6 @@ def war_buttons(bot:CustomClient, new_war: coc.ClanWar):
         disnake.ui.Button(label="", emoji=bot.emoji.menu.partial_emoji,
                           style=disnake.ButtonStyle.green,
                           disabled=False,
-                          custom_id=f"menu_{int(new_war.preparation_start_time.time.timestamp())}_{new_war.clan.tag}"))
+                          custom_id=f"menuforwar_{int(new_war.preparation_start_time.time.timestamp())}_{new_war.clan.tag}"))
     ]
     return button

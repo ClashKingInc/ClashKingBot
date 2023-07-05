@@ -61,7 +61,7 @@ class FamCommands(commands.Cog):
             ephemeral = True
         await ctx.response.defer(ephemeral=ephemeral)
 
-    @commands.slash_command(name="countries")
+    '''@commands.slash_command(name="countries")
     async def countries(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = commands.Param(converter=server_converter, default=None)):
         await ctx.response.defer()
         guild = ctx.guild if server is None else server
@@ -101,7 +101,7 @@ class FamCommands(commands.Cog):
             for embed in embeds:
                 await ctx.followup.send(embed=embed)
         else:
-            await ctx.send(embeds=embeds)
+            await ctx.send(embeds=embeds)'''
 
 
     @family.sub_command(name="clans", description="Overview list of all family clans")
@@ -224,9 +224,9 @@ class FamCommands(commands.Cog):
         buttons.append_item(
             disnake.ui.Button(label="CWL", emoji=self.bot.emoji.cwl_medal.partial_emoji,
                               style=disnake.ButtonStyle.green,
-                              custom_id=f"cwlleaguesfam_"))
+                              custom_id=f"cwlleaguesfam_{guild.id}"))
         buttons.append_item(disnake.ui.Button(label="Capital", emoji=self.bot.emoji.capital_trophy.partial_emoji,
-                                              style=disnake.ButtonStyle.grey, custom_id=f"capitalleaguesfam_"))
+                                              style=disnake.ButtonStyle.grey, custom_id=f"capitalleaguesfam_{guild.id}"))
         await ctx.edit_original_message(embed=embed, components=buttons)
 
 
@@ -252,7 +252,6 @@ class FamCommands(commands.Cog):
         buttons = disnake.ui.ActionRow()
         buttons.append_item(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,custom_id=f"donationfam_{season}_{limit}_{guild.id}_{None if len(townhall) >= 2 else townhall[0]}"))
         buttons.append_item(disnake.ui.Button(label="Received", emoji=self.bot.emoji.clan_castle.partial_emoji,style=disnake.ButtonStyle.grey, custom_id=f"receivedfam_{season}_{limit}_{guild.id}_{None if len(townhall) >= 2 else townhall[0]}"))
-        buttons.append_item(disnake.ui.Button(label="Ratio", emoji=self.bot.emoji.ratio.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=f"ratiofam_{season}_{limit}_{guild.id}_{None if len(townhall) >= 2 else townhall[0]}"))
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
 
@@ -267,7 +266,7 @@ class FamCommands(commands.Cog):
             week = self.bot.gen_raid_date()
         else:
             week = weekend
-        member_tags = self.bot.get_family_member_tags(guild_id=guild.id)
+        member_tags = await self.bot.get_family_member_tags(guild_id=guild.id)
         distinct = await self.bot.player_stats.distinct("tag", filter={"tag": {"$in": member_tags}})
         players = await self.bot.get_players(tags=distinct)
         embed: disnake.Embed = await shared_embeds.capital_donation_board(bot=self.bot, players=[player for player in players if player.town_hall in townhall], week=week,
@@ -281,8 +280,8 @@ class FamCommands(commands.Cog):
             label="Raided", emoji=self.bot.emoji.thick_sword.partial_emoji,
             style=disnake.ButtonStyle.grey, custom_id=f"famcapr_{weekend}_{limit}_{guild.id}_{None if len(townhall) >= 2 else townhall[0]}"))
 
-        graph = await self.graph_cog.create_capital_graph(all_players=players, clans=clans, week=week, type="donations", server_id=guild.id)
-        embed.set_image(url=f"{graph}?{int(datetime.datetime.now().timestamp())}")
+        #graph = await graph_creator.create_capital_graph(bot=self.bot, all_players=players, clans=clans, week=week, type="donations", server_id=guild.id)
+        #embed.set_image(url=f"{graph}?{int(datetime.datetime.now().timestamp())}")
         await ctx.send(embed=embed, components=[buttons])
 
 
@@ -331,6 +330,9 @@ class FamCommands(commands.Cog):
                                                       footer_icon=footer_icon,
                                                       title_name=f"{guild.name} {type} Progress",
                                                       limit=limit)
+            buttons.append_item(disnake.ui.Button(
+                label="", emoji=self.bot.emoji.magnify_glass.partial_emoji,
+                style=disnake.ButtonStyle.grey, custom_id=f"fmp_{season}_{limit}_{guild.id}_lootprogress"))
 
         await ctx.edit_original_message(embed=embed, components=[buttons] if buttons else [])
 
@@ -355,7 +357,7 @@ class FamCommands(commands.Cog):
         buttons.append_item(
             disnake.ui.Button(label="", emoji=self.bot.emoji.clan_games.partial_emoji,
                               style=disnake.ButtonStyle.grey,
-                              custom_id=f"clangamesfam_"))
+                              custom_id=f"clangamesfam_{season}_{limit}_{guild.id}"))
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
 
@@ -368,11 +370,7 @@ class FamCommands(commands.Cog):
         guild = server if server is not None else ctx.guild
         if type == "Join/Leave":
             embed: disnake.Embed = await family_embeds.create_joinhistory(bot=self.bot, guild=guild, season=season)
-            buttons = disnake.ui.ActionRow()
-            buttons.append_item(
-                disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
-                                  custom_id=f"joinhistoryfam_"))
-        await ctx.edit_original_message(embed=embed, components=buttons)
+        await ctx.edit_original_message(embed=embed, components=None)
 
 
     @family.sub_command(name="trophies", description="List of clans by home, builder, or capital trophy points")
@@ -382,12 +380,12 @@ class FamCommands(commands.Cog):
         buttons = disnake.ui.ActionRow()
         sort_type = TrophySort.home
         buttons.append_item(disnake.ui.Button(label="Home", emoji=self.bot.emoji.trophy.partial_emoji,
-                                              style=disnake.ButtonStyle.green if sort_type == TrophySort.home else disnake.ButtonStyle.grey,custom_id=f"hometrophiesfam_"))
+                                              style=disnake.ButtonStyle.green if sort_type == TrophySort.home else disnake.ButtonStyle.grey,custom_id=f"hometrophiesfam_{guild.id}"))
         buttons.append_item(disnake.ui.Button(label="Versus", emoji=self.bot.emoji.versus_trophy.partial_emoji,
-                                              style=disnake.ButtonStyle.green if sort_type == TrophySort.versus else disnake.ButtonStyle.grey, custom_id=f"versustrophiesfam_"))
+                                              style=disnake.ButtonStyle.green if sort_type == TrophySort.versus else disnake.ButtonStyle.grey, custom_id=f"versustrophiesfam_{guild.id}"))
         buttons.append_item(disnake.ui.Button(label="Capital", emoji=self.bot.emoji.capital_trophy.partial_emoji,
                                               style=disnake.ButtonStyle.green if sort_type == TrophySort.capital else disnake.ButtonStyle.grey,
-                                              custom_id=f"capitaltrophiesfam_"))
+                                              custom_id=f"capitaltrophiesfam_{guild.id}"))
         await ctx.edit_original_message(embed=embed, components=buttons)
 
 
@@ -395,7 +393,6 @@ class FamCommands(commands.Cog):
     @family_leagues.autocomplete("server")
     @family_donations.autocomplete("server")
     @family_capital.autocomplete("server")
-    @countries.autocomplete("server")
     @progress.autocomplete("server")
     @board.autocomplete("server")
     @family_compo.autocomplete("server")

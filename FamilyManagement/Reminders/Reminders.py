@@ -93,7 +93,7 @@ class ReminderCreation(commands.Cog, name="Reminders"):
                                clan: coc.Clan = commands.Param(converter=clan_converter),
                                type = commands.Param(choices=["War & CWL", "Clan Capital", "Inactivity", "Clan Games", "Roster"])):
         await ctx.response.defer()
-        type_to_type = {"War & CWL" : "War", "Clan Capital" : "Clan Capital", "Inactivity" : "inactivity", "Clan Games" : "Clan Games"}
+        type_to_type = {"War & CWL" : "War", "Clan Capital" : "Clan Capital", "Inactivity" : "inactivity", "Clan Games" : "Clan Games", "Roster" : "roster"}
         r_type = type_to_type[type]
         await ReminderUtils.edit_reminder(bot=self.bot, clan=clan, ctx=ctx, type=r_type)
 
