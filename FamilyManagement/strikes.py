@@ -133,7 +133,7 @@ class Strikes(commands.Cog, name="Strikes"):
         embed = disnake.Embed(description=f"Strike {strike_id} removed.", color=disnake.Color.green())
         return await ctx.send(embed=embed)
 
-    @commands.slash_command(name="autostrike", description="stuff")
+    '''@commands.slash_command(name="autostrike", description="stuff")
     async def autostrikes(self, ctx):
         pass
 
@@ -234,10 +234,10 @@ class Strikes(commands.Cog, name="Strikes"):
                     embed.description = self.chosen_text(clans=clans_chosen, ths=ths_chosen, roles=roles_chosen)
                     await message.edit(embed=embed)
 
-        '''for clan in clans_chosen:
+        for clan in clans_chosen:
             await self.bot.autostrikes.insert_one({
 
-            })'''
+            })
         embed.title = "**AutoStrikes Saved**"
         embed._colour = disnake.Color.green()
         embed.set_footer(text=next_footer)
@@ -288,6 +288,7 @@ class Strikes(commands.Cog, name="Strikes"):
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def autostrikes_add(self, ctx: disnake.ApplicationCommandInteraction):
         pass
+    '''
 
     @strike_add.autocomplete("player")
     @strike_list.autocomplete("player")
