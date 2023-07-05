@@ -52,7 +52,8 @@ class misc(commands.Cog, name="Other"):
 
 
     @commands.slash_command(name="role-users", description="Get a list of users in a role")
-    async def roleusers(self, ctx, role: disnake.Role):
+    async def roleusers(self, ctx: disnake.ApplicationCommandInteraction, role: disnake.Role):
+        await ctx.response.defer()
         embeds = []
         text = ""
         num = 0
@@ -72,7 +73,7 @@ class misc(commands.Cog, name="Other"):
                 embed.set_thumbnail(url=ctx.guild.icon.url)
             embeds.append(embed)
         current_page = 0
-        await ctx.send(embed=embeds[0], components=create_components(current_page, embeds, True))
+        await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))
 
         msg = await ctx.original_message()
         def check(res: disnake.MessageInteraction):

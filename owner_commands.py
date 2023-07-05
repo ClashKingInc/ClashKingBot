@@ -83,7 +83,7 @@ class OwnerCommands(commands.Cog):
                 created += f"{emoji} - `<:{emoji.name}:{emoji.id}>`\n"
         await ctx.send(content=created)
 
-    @commands.slash_command(name="test")
+    @commands.slash_command(name="test", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
 
