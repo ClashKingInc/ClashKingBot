@@ -195,9 +195,7 @@ async def background_cache():
 
 
 async def main(keys, app):
-    @app.post('/login')
-    async def login(user: User, Authorize: AuthJWT = Depends()):
-        return {"access_token": "5"}
+
 
     PLAYER_CLIENTS = set()
     @app.websocket("/players")
