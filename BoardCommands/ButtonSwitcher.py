@@ -61,6 +61,15 @@ family_triggers = {
     "capitaltrophiesfam"
 }
 
+top_triggers = {
+    "topcapitaldonatedplayer",
+    "topcapitalraidplayer",
+    "topsort",
+    "topactivityplayer",
+    "topdonatedplayer",
+    "topreceivedplayer"
+}
+
 async def button_click_to_embed(bot: CustomClient, ctx: disnake.MessageInteraction):
     custom_id = str(ctx.data.custom_id)
     embed = None
@@ -71,7 +80,11 @@ async def button_click_to_embed(bot: CustomClient, ctx: disnake.MessageInteracti
     elif first in family_triggers:
         await ctx.response.defer(ephemeral=first in ephemeral)
         embed = await family_parser(bot, ctx, custom_id)
+    elif first in top_triggers:
+        await ctx.response.defer(ephemeral=first in ephemeral)
+        embed = await top_parser(bot, ctx, custom_id)
     return embed, first in ephemeral
+
 
 async def clan_parser(bot: CustomClient, ctx: disnake.MessageInteraction, custom_id: str):
     split = custom_id.split("_")
@@ -441,9 +454,74 @@ async def family_parser(bot: CustomClient, ctx: disnake.MessageInteraction, cust
 
 
 
+async def top_parser(bot: CustomClient, ctx: disnake.MessageInteraction, custom_id: str):
+    if str(ctx.data.custom_id) == "topdonatedplayer_":
+        season = bot.gen_season_date()
+        players = await bot.player_stats.find({}, {"tag": 1}).sort(f"donations.{season}.donated", -1).limit(
+            50).to_list(length=50)
+        players = await bot.get_players(tags=[result.get("tag") for result in players])
 
-def top_parser():
-    pass
+        footer_icon = bot.user.avatar.url
+        embed: disnake.Embed = await shared_embeds.donation_board(bot=bot, players=players, season=season,
+                                                                   footer_icon=footer_icon, title_name="ClashKing",
+                                                                   type="donations")
+        await ctx.edit_original_message(embed=embed)
+
+    elif str(ctx.data.custom_id) == "topreceivedplayer_":
+        season = bot.gen_season_date()
+        players = await bot.player_stats.find({}, {"tag": 1}).sort(f"donations.{season}.received", -1).limit(
+            50).to_list(length=50)
+        players = await bot.get_players(tags=[result.get("tag") for result in players])
+
+        footer_icon = bot.user.avatar.url
+        embed: disnake.Embed = await shared_embeds.donation_board(bot=bot, players=players, season=season,
+                                                                   footer_icon=footer_icon, title_name="ClashKing",
+                                                                   type="received")
+        await ctx.edit_original_message(embed=embed)
+
+    elif "topcapitaldonatedplayer_" in str(ctx.data.custom_id):
+        week = str(ctx.data.custom_id).split("_")[-1]
+        if week == "None":
+            week = bot.gen_raid_date()
+        pipeline = [{"$project": {"tag": "$tag",
+                                  "capital_sum": {"$sum": {"$ifNull": [f"$capital_gold.{week}.donate", []]}}}},
+                    {"$sort": {"capital_sum": -1}}, {"$limit": 50}]
+        players = await bot.player_stats.aggregate(pipeline).to_list(length=None)
+        players = await bot.get_players(tags=[result.get("tag") for result in players])
+        embed: disnake.Embed = await shared_embeds.capital_donation_board(bot=bot, players=players, week=week,
+                                                                           title_name="Top",
+                                                                           footer_icon=bot.user.avatar.url)
+        await ctx.edit_original_message(embed=embed)
+
+    elif "topcapitalraidplayer_" in str(ctx.data.custom_id):
+        week = str(ctx.data.custom_id).split("_")[-1]
+        if week == "None":
+            week = bot.gen_raid_date()
+        pipeline = [{"$project": {"tag": "$tag",
+                                  "capital_sum": {"$sum": {"$ifNull": [f"$capital_gold.{week}.raid", []]}}}},
+                    {"$sort": {"capital_sum": -1}}, {"$limit": 50}]
+        players = await bot.player_stats.aggregate(pipeline).to_list(length=None)
+        players = await bot.get_players(tags=[result.get("tag") for result in players])
+        embed: disnake.Embed = await shared_embeds.capital_raided_board(bot=bot, players=players, week=week,
+                                                                         title_name="Top",
+                                                                         footer_icon=bot.user.avatar.url)
+        await ctx.edit_original_message(embed=embed)
+
+    elif "topactivityplayer_" in str(ctx.data.custom_id):
+        season = str(ctx.data.custom_id).split("_")[-1]
+        if season == "None":
+            season = bot.gen_raid_date()
+        pipeline = [
+            {"$project": {"tag": "$tag",
+                          "activity_len": {"$size": {"$ifNull": [f"last_online_times.{season}", 0]}}}},
+            {"$sort": {"activity_len": -1}}, {"$limit": 50}]
+        players = await bot.player_stats.aggregate(pipeline).to_list(length=None)
+        players = await bot.get_players(tags=[result.get("tag") for result in players])
+
+        footer_icon = bot.user.avatar.url
+        embed: disnake.Embed = await shared_embeds.activity_board(bot=bot, players=players, season=season,
+                                                                   footer_icon=footer_icon, title_name="ClashKing")
+        await ctx.edit_original_message(embed=embed)
 
 def player_parser():
     pass

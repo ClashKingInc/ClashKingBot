@@ -51,9 +51,6 @@ class TopCommands(commands.Cog):
         buttons.append_item(disnake.ui.Button(
             label="Received", emoji=self.bot.emoji.clan_castle.partial_emoji,
             style=disnake.ButtonStyle.grey, custom_id=f"topreceivedplayer_"))
-        buttons.append_item(disnake.ui.Button(
-            label="Ratio", emoji=self.bot.emoji.ratio.partial_emoji,
-            style=disnake.ButtonStyle.grey, custom_id=f"topratioplayer_"))
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
 
@@ -72,7 +69,7 @@ class TopCommands(commands.Cog):
         buttons.append_item(disnake.ui.Button(
             label="", emoji=self.bot.emoji.refresh.partial_emoji,
             style=disnake.ButtonStyle.grey, custom_id=f"topactivityplayer_{season}"))
-        await ctx.edit_original_message(embed=embed, components=[buttons])
+        await ctx.edit_original_message(embed=embed, components=[])
 
 
     @top.sub_command(name="sorted", description="Top players by attribute")
