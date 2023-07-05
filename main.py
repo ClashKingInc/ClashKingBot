@@ -6,6 +6,7 @@ import sentry_sdk
 from CustomClasses.CustomBot import CustomClient
 from disnake import Client
 from disnake.ext import commands
+import sys
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
@@ -14,7 +15,9 @@ from Background.Logs.event_websockets import player_websocket, clan_websocket, w
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
 
-IS_BETA = True
+IS_BETA = True if sys.argv[1] == "true" else False
+IS_CUSTOM = True if sys.argv[2] == "custom" else False
+
 discClient = Client()
 intents = disnake.Intents().none()
 intents.members = True
@@ -22,7 +25,7 @@ intents.guilds = True
 intents.emojis = True
 intents.messages = True
 intents.message_content = True
-bot = CustomClient(shard_count=2, command_prefix="$$",help_command=None, intents=intents)
+bot = CustomClient(shard_count=2 if not IS_BETA else 1, command_prefix="$$",help_command=None, intents=intents)
 
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
@@ -99,8 +102,14 @@ initial_extensions = [
     "Utility.bases",
     "Utility.link_parsers",
     "help",
-    "owner_commands"
 ]
+
+if not IS_CUSTOM or IS_BETA:
+    initial_extensions += [
+        "owner_commands",
+        "Background.reddit_recruit_feed",
+        "Background.region_lb_update"
+    ]
 
 if not IS_BETA:
     initial_extensions += [
@@ -117,8 +126,6 @@ if not IS_BETA:
         "Background.background_cache",
         "Background.clan_capital",
         "Background.legends_history",
-        "Background.reddit_recruit_feed",
-        "Background.region_lb_update",
         "Background.voicestat_loop",
         "Link_and_Eval.link_button",
         "Other.erikuh_comp",

@@ -10,13 +10,14 @@ class pepe(commands.Cog):
 
     @commands.slash_command(name="pepe",
                        description="Fun Command. Create a pepe holding a sign w/ text.")
-    async def createPFP(self,ctx, sign_text : str, hidden : str=commands.Param(choices=["Yes", "No"])):
+    async def createPFP(self ,ctx, sign_text : str, hidden : str=commands.Param(choices=["Yes", "No"])):
         """
             Parameters
             ----------
             sign_text: Text to write on sign (up to 25 char)
             hidden : If yes, message will be visible only to you
         """
+        await ctx.response.defer(ephemeral=(hidden=="Yes"))
         size = 40
         if len(sign_text) > 25:
             return await ctx.send("Too long, sorry :/")
@@ -31,11 +32,11 @@ class pepe(commands.Cog):
             size = 16
 
 
-        back = Image.open("pepe/pepesign.png")
+        back = Image.open("Other/pepesign.png")
 
         width = 250
         height = 250
-        font = ImageFont.truetype("pepe/pepefont.ttf", size)
+        font = ImageFont.truetype("Other/pepefont.ttf", size)
         draw = ImageDraw.Draw(back)
 
         draw.text(((width/2)-5, 55), sign_text, anchor="mm", fill=(0, 0, 0), font=font)

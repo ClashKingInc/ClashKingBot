@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 from utils.components import create_components
 import openai
 import os
+from main import check_commands
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 class ChatBot:
@@ -271,8 +272,12 @@ class misc(commands.Cog, name="Other"):
 
         await ctx.send(content=f"Image set to {background_image}", ephemeral=True)
 
+
     @commands.slash_command(name="custom-bot", description="Create your custom bot")
-    async def custom_bot(self, ctx: disnake.ApplicationCommandInteraction, bot_token: str, bot_name: str, profile_picture: disnake.Attachment):
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def custom_bot(self, ctx: disnake.ApplicationCommandInteraction, bot_token: str):
+        if not self.bot.user.public_flags.verified_bot:
+            return await ctx.send("Must run this command on the main ClashKing bot.")
         r = await self.bot.credentials.find_one({"user": ctx.author.id})
         if r is not None:
             return await ctx.send("You have already created a custom bot.")
@@ -284,6 +289,7 @@ class misc(commands.Cog, name="Other"):
                 return await ctx.send("Must be a part of the support server")
             else:
                 server_member = await server.fetch_member(self.bot.owner.id)
+
         has_premium = disnake.utils.get(server_member.roles, id=1018316361241477212)
 
         if ctx.author.id == self.bot.owner.id:
@@ -291,16 +297,14 @@ class misc(commands.Cog, name="Other"):
         if has_premium:
             return await ctx.send("Must be a premium bot supporter.")
 
-        await ctx.send(content=f"Creating your custom bot!")
-
         await self.bot.credentials.update_one({"user": ctx.author.id}, {"$set" : {
-            "bot_name": bot_name,
             "bot_token": bot_token,
             "bot_status": "",
-            "bot_profile_pic": profile_picture.url,
             "server": ctx.guild.id,
             "user": ctx.author.id,
         }}, upsert=True)
+
+        await ctx.send(content=f"Creating your custom bot!")
 
 
 

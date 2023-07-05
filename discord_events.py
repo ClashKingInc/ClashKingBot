@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 
 import disnake
@@ -23,6 +24,7 @@ class DiscordEvents(commands.Cog):
     @commands.Cog.listener()
     async def on_connect(self):
         print("connected")
+        await asyncio.sleep(60)
         scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "1 hr"], day_of_week="mon", hour=6, misfire_grace_time=None)
         scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "2 hr"], day_of_week="mon", hour=5, misfire_grace_time=None)
         scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "4 hr"], day_of_week="mon", hour=3, misfire_grace_time=None)
@@ -48,10 +50,10 @@ class DiscordEvents(commands.Cog):
         scheduler.add_job(SendReminders.inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
         scheduler.add_job(SendReminders.roster_reminder, trigger='interval', args=[self.bot], minutes=5, misfire_grace_time=None)
 
-        tags = await self.bot.clan_db.distinct("tag")
+        tags = await self.bot.clan_db.distinct("tag", filter={"server" : {"$in" : [guild.id for guild in self.bot.guilds]}})
         self.bot.clan_list = tags
 
-        reminder_tags = await self.bot.reminders.distinct("clan", filter={"type" : "War"})
+        reminder_tags = await self.bot.reminders.distinct("clan", filter={"$and" : [{"type" : "War"}, {"server" : {"$in" : [guild.id for guild in self.bot.guilds]}}]})
         current_war_times = await self.bot.get_current_war_times(tags=reminder_tags)
         for tag in current_war_times.keys():
             new_war, war_end_time = current_war_times[tag]
