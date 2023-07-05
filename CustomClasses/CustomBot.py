@@ -149,7 +149,7 @@ class CustomClient(commands.AutoShardedBot):
         return TimeStamp(unix_time)
 
     async def create_new_badge_emoji(self, url:str):
-        if self.user.public_flags.verified_bot and self.user.id != 808566437199216691 and self.badge_guild == []:
+        if not self.user.public_flags.verified_bot and self.user.id != 808566437199216691 and self.badge_guild == []:
             have_created_guilds = disnake.utils.get(self.guilds, name="Badge Guild 1")
             if have_created_guilds is None:
                 for x in range(1,6):
