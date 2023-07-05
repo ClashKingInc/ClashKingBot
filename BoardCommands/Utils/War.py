@@ -202,7 +202,7 @@ async def defenses_embed(bot: CustomClient, war: coc.ClanWar):
                 for x in range(0, 3 - stars):
                     star_str += "☆"
 
-                base = await create_superscript(a.defender.map_position)
+                base = create_superscript(a.defender.map_position)
                 defenses += f"\n➼ {a.destruction}%{star_str}{base}"
 
     embed = disnake.Embed(title=f"{war.clan.name} Defenses Taken", description=defenses,
