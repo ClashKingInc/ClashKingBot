@@ -65,7 +65,7 @@ class CustomClient(commands.AutoShardedBot):
         self.excel_templates: collection_class = self.looper_db.clashking.excel_templates
         self.lineups: collection_class = self.looper_db.clashking.lineups
         self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
-
+        self.bot_stats: collection_class = self.looper_db.clashking.bot_stats
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
         self.clan_db: collection_class = self.db_client.usafam.clans
@@ -768,15 +768,20 @@ class CustomClient(commands.AutoShardedBot):
         if not next_war:
             try:
                 war = await self.coc_client.get_current_war(clanTag)
+                if war.state == "notInWar":
+                    return None
                 return war
             except:
                 return None
         else:
             try:
                 war = await self.coc_client.get_current_war(clanTag, cwl_round=coc.WarRound.current_preparation)
+                if war.state == "notInWar":
+                    return None
                 return war
             except:
                 return None
+
 
     async def get_clan_wars(self, tags: list):
         tasks = []

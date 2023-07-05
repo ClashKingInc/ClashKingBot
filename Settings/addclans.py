@@ -34,32 +34,33 @@ class addClan(commands.Cog, name="Clan Setup"):
             leadership_role: role that co & leaders of this clan would receive
             clan_channel: channel where ban pings & welcome messages should go
         """
+        await ctx.response.defer()
         if member_role.is_bot_managed():
             embed = disnake.Embed(description=f"Clan Roles cannot be bot roles.",
                                   color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            return await ctx.edit_original_message(embed=embed)
 
         if leadership_role is not None and leadership_role.is_bot_managed():
             embed = disnake.Embed(description=f"Clan Roles cannot be bot roles.",
                                   color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            return await ctx.edit_original_message(embed=embed)
 
         if member_role.id == ctx.guild.default_role.id:
             embed = disnake.Embed(description=f"Member Role cannot be {ctx.guild.default_role.mention}.",
                                   color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            return await ctx.edit_original_message(embed=embed)
 
         if leadership_role is not None and leadership_role.id == ctx.guild.default_role.id:
             embed = disnake.Embed(description=f"Leadership Role cannot be {ctx.guild.default_role.mention}.",
                                   color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            return await ctx.edit_original_message(embed=embed)
 
         if leadership_role is not None and member_role.id == leadership_role.id:
             embed = disnake.Embed(description="Member Role & Leadership Role cannot be the same.",
                                   color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+            return await ctx.edit_original_message(embed=embed)
 
-        await ctx.response.defer()
+
         # check if clan is already linked
         results = await self.bot.clan_db.find_one({"$and": [
             {"tag": clan.tag},
@@ -103,6 +104,7 @@ class addClan(commands.Cog, name="Clan Setup"):
             ----------
             clan: clan to add to server [clan tag, alias, or autocomplete]
         """
+        await ctx.response.defer()
         results = await self.bot.clan_db.find_one({"$and": [
             {"tag": clan.tag},
             {"server": ctx.guild.id}

@@ -5,7 +5,7 @@ import os
 
 from dotenv import load_dotenv
 from pymitter import EventEmitter
-import sentry_sdk
+from pymongo import InsertOne
 load_dotenv()
 
 player_ee = EventEmitter()
@@ -17,7 +17,9 @@ NEW_WEBSOCKET_IP = os.getenv("NEW_WEBSOCKET_IP")
 WEBSOCKET_USER = os.getenv("WEBSOCKET_USER")
 WEBSOCKET_PW = os.getenv("WEBSOCKET_PW")
 
+
 async def player_websocket():
+    player_changes = []
     while True:
         try:
             async with websockets.connect(f"ws://{WEBSOCKET_IP}/players?token=5", ping_timeout=None, ping_interval=None, open_timeout=None, max_queue=5000000) as websocket:
