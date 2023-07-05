@@ -356,7 +356,7 @@ class War(commands.Cog):
         embed = await create_cwl_status(bot=self.bot, guild=ctx.guild)
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
-    @cwl.autocomplete("season")
+    @cwl_search.autocomplete("season")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         if "|" in ctx.filled_options["clan"]:
             clan = await self.bot.getClan(clan_tag=ctx.filled_options["clan"])

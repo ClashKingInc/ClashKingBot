@@ -469,6 +469,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
         y = 0
         member_tags = [member.tag for member in country]
         players = await self.bot.get_players(tags=member_tags)
+        players = sorted(players, key=lambda x : x.trophies)
         for player in players:
             player: MyCustomPlayer
             rank = str(x) + "."
