@@ -128,7 +128,7 @@ class OwnerCommands(commands.Cog):
                             webhook = next((w for w in webhooks if w.user.id == self.bot.user.id), None)
                             if webhook is None:
                                     if isinstance(g_channel, disnake.Thread):
-                                        thread = g_channel
+                                        thread = g_channel.id
                                         webhook = await g_channel.parent.create_webhook(name="ClashKing", avatar=bot_av, reason="ClashKing Clan Logs")
                                     else:
                                         webhook = await g_channel.create_webhook(name="ClashKing", avatar=bot_av, reason="ClashKing Clan Logs")
@@ -141,7 +141,7 @@ class OwnerCommands(commands.Cog):
                     else:
                         g_channel = await self.bot.getch_channel(channel, raise_exception=True)
                         if isinstance(g_channel, disnake.Thread):
-                            thread = g_channel
+                            thread = g_channel.id
                 for new_field in field_to_new.get(field):
                     new_json[new_field] = {}
                     new_json[new_field]["webhook"] = webhook
