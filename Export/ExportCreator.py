@@ -44,8 +44,8 @@ class ExportCreator(commands.Cog):
                 await self.create_season_trophies_export(players=players, workbook=workbook, season=season, sheet_name="season_trophies")
             elif template == "Troops":
                 await self.create_troops_export(players=players, workbook=workbook, sheet_name="season_troops")
-            elif template == "Achievements":
-                await self.create_achievements_export(players=players, workbook=workbook, sheet_name="achievements_data")
+            elif template == "Player Achievements":
+                await self.create_achievements_export(players=players, workbook=workbook, sheet_name="player_achievements")
             elif template == "Player Activity":
                 await self.create_player_activity_export(players=players, workbook=workbook, season=season, sheet_name="player_activity")
             elif template == "Player Stats":
@@ -96,7 +96,7 @@ class ExportCreator(commands.Cog):
                 elif "season_troops" in sheet_name:
                     workbook.remove(workbook.get_sheet_by_name(sheet_name))
                     await self.create_troops_export(players=players, workbook=workbook, sheet_name=sheet_name)
-                elif "achievements" in sheet_name:
+                elif "player_achievements" in sheet_name:
                     workbook.remove(workbook.get_sheet_by_name(sheet_name))
                     await self.create_achievements_export(players=players, workbook=workbook, sheet_name=sheet_name)
                 elif "player_activity" in sheet_name:
@@ -104,7 +104,7 @@ class ExportCreator(commands.Cog):
                     await self.create_player_activity_export(players=players, workbook=workbook, season=season_for_sheet, sheet_name=sheet_name)
                 elif "player_stats" in sheet_name:
                     workbook.remove(workbook.get_sheet_by_name(sheet_name))
-                    await self.create_player_stats_export(players=players, workbook=workbook, season=season_for_sheet, sheet_name=sheet_name)
+                    await self.create_player_stats_export(players=players, workbook=workbook, sheet_name=sheet_name)
                 elif "advanced_stats" in sheet_name:
                     workbook.remove(workbook.get_sheet_by_name(sheet_name))
                     await self.create_advanced_player_stats_export(players=players, workbook=workbook, season=season_for_sheet, sheet_name=sheet_name)
