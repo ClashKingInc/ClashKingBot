@@ -98,7 +98,7 @@ class erikuh(commands.Cog):
         embed.set_thumbnail(url=ctx.guild.icon.url)
         return await ctx.edit_original_message(embed=embed)
 
-    @commands.slash_command(name="leaderboard", description="leaderboard of top players in competition", guild_ids=[900783471708999700])
+    @commands.slash_command(name="leaderboard-erikuh", description="leaderboard of top players in competition", guild_ids=[900783471708999700])
     async def leaderboard(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
         all_tags = await self.bot.erikuh.distinct("player_tag")
