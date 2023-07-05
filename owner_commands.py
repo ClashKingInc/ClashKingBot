@@ -98,7 +98,7 @@ class OwnerCommands(commands.Cog):
     async def migrate(self, ctx: disnake.ApplicationCommandInteraction):
         special = ["legend_log"]
         fields = ["joinlog", "clan_capital",  "donolog", "upgrade_log", "ban_alert_channel", "war_log"]
-        cursor = self.bot.clan_db.find({"tag" : "#2JGYRJVL"})
+        cursor = self.bot.clan_db.find({})
         channel_to_webhook = {}
         field_to_new = {"joinlog" : ["join_log", "leave_log"], "clan_capital" : ["capital_donations", "capital_attacks", "raid_map", "capital_weekly_summary", "new_raid_panel"],
                         "donolog" : ["donation_log"], "upgrade_log" : ["super_troop_boost", "role_change", "troop_upgrade", "th_upgrade", "league_change", "spell_upgrade", "hero_upgrade", "name_change"],
