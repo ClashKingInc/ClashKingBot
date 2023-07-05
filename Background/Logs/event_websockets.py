@@ -90,4 +90,5 @@ async def clan_websocket():
 
         except Exception as e:
             #sentry_sdk.capture_exception(e)
+            print(e)
             continue
