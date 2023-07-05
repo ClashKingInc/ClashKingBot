@@ -111,7 +111,8 @@ initial_extensions = [
     "Utility.bases",
     "Utility.link_parsers",
     "help",
-    "poster.poster"
+    "poster.poster",
+    "other"
 ]
 
 if not IS_CUSTOM and IS_BETA:
