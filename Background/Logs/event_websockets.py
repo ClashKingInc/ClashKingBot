@@ -45,6 +45,7 @@ async def player_websocket():
                         except:
                             pass
         except Exception as e:
+            print(e)
             #sentry_sdk.capture_exception(e)
             continue
 

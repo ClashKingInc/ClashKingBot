@@ -3,6 +3,7 @@ import coc
 from disnake.ext import commands
 from Exceptions.CustomExceptions import *
 from CustomClasses.CustomBot import CustomClient
+import sentry_sdk
 
 class ExceptionHandler(commands.Cog):
 
@@ -124,6 +125,8 @@ class ExceptionHandler(commands.Cog):
                             f"create your embed, then click `copy code`",
                 color=disnake.Color.red())
             return await ctx.send(embed=embed, ephemeral=True)
+
+        sentry_sdk.capture_exception(error)
 
 
 def setup(bot: CustomClient):
