@@ -6,6 +6,7 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer
 from .eval_logic import eval_logic
 from utils.constants import DEFAULT_EVAL_ROLE_TYPES
+from eval_logic import is_in_family
 
 class eval(commands.Cog, name="Eval"):
     """A couple of simple commands."""
@@ -877,7 +878,7 @@ class eval(commands.Cog, name="Eval"):
         list_of_clans = []
         for player in player_accounts:
             # ignore the global if even one account is in family
-            is_family_member = await self.is_in_family(player, clan_tags)
+            is_family_member = await is_in_family(player, clan_tags)
             if not GLOBAL_IS_FAMILY:
                 GLOBAL_IS_FAMILY = is_family_member
 
@@ -1017,7 +1018,7 @@ class eval(commands.Cog, name="Eval"):
         list_of_clans = []
         for player in player_accounts:
             # ignore the global if even one account is in family
-            is_family_member = await self.is_in_family(player, clan_tags)
+            is_family_member = await is_in_family(player, clan_tags)
             if not GLOBAL_IS_FAMILY:
                 GLOBAL_IS_FAMILY = is_family_member
 
