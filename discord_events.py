@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import os
 
 import disnake
 import coc
@@ -79,20 +80,28 @@ class DiscordEvents(commands.Cog):
 
         scheduler.print_jobs()
 
-        for g in self.bot.guilds:
-            results = await self.bot.server_db.find_one({"server": g.id})
-            if results is None:
-                await self.bot.server_db.insert_one({
-                    "server": g.id,
-                    "prefix": ".",
-                    "banlist": None,
-                    "greeting": None,
-                    "cwlcount": None,
-                    "topboardchannel": None,
-                    "tophour": None,
-                    "lbboardChannel": None,
-                    "lbhour": None
-                })
+        if self.bot.user.public_flags.verified_bot:
+            for g in self.bot.guilds:
+                results = await self.bot.server_db.find_one({"server": g.id})
+                if results is None:
+                    await self.bot.server_db.insert_one({
+                        "server": g.id,
+                        "prefix": ".",
+                        "banlist": None,
+                        "greeting": None,
+                        "cwlcount": None,
+                        "topboardchannel": None,
+                        "tophour": None,
+                        "lbboardChannel": None,
+                        "lbhour": None
+                    })
+
+            for x in range(3, 10):
+                os.system(f"pm2 delete {x}")
+
+            tokens = await self.bot.credentials.distinct("bot_token")
+            for token in tokens:
+                os.system(f"pm2 start main.py false true {token} --interpreter=/usr/bin/python3")
 
         print('We have logged in')
 

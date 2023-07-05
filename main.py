@@ -17,6 +17,7 @@ scheduler.start()
 
 IS_BETA = True if sys.argv[1] == "true" else False
 IS_CUSTOM = True if sys.argv[2] == "custom" else False
+TOKEN = sys.argv[3]
 
 discClient = Client()
 intents = disnake.Intents().none()
@@ -168,4 +169,4 @@ if __name__ == "__main__":
         bot.loop.create_task(player_websocket())
         bot.loop.create_task(clan_websocket())
         bot.loop.create_task(war_websocket())
-    bot.run(os.getenv("TOKEN"))
+    bot.run(TOKEN)
