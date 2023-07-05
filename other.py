@@ -10,6 +10,7 @@ from utils.components import create_components
 import openai
 import os
 from main import check_commands
+from utils.discord_utils import permanent_image
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 class ChatBot:
