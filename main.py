@@ -167,9 +167,9 @@ if __name__ == "__main__":
         # Set traces_sample_rate to 1.0 to capture 100%
         # of transactions for performance monitoring.
         # We recommend adjusting this value in production.
-        traces_sample_rate=0.2,
+        traces_sample_rate=1.0,
         _experiments={
-            "profiles_sample_rate": 0.2,
+            "profiles_sample_rate": 1.0,
         },
         before_send=before_send
     )
