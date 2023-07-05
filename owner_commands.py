@@ -104,7 +104,11 @@ class OwnerCommands(commands.Cog):
                         "donolog" : ["donation_log"], "upgrade_log" : ["super_troop_boost", "role_change", "troop_upgrade", "th_upgrade", "league_change", "spell_upgrade", "hero_upgrade", "name_change"],
                          "war_log" : ["war_log", "war_panel"]}
         bot_av = self.bot.user.avatar.read().close()
-        for document in await cursor.to_list(length=100):
+        x = 1
+        all_them = await cursor.to_list(length=None)
+        for document in all_them:
+            print(f"{x}/{len(all_them)}")
+            x+= 1
             new_json = {
 
             }
