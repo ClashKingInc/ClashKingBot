@@ -168,9 +168,8 @@ class misc(commands.Cog, name="Other"):
         magicbot = ChatBot(
             f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. Use up to 25 bullet points.")
         message = magicbot(message_text)
-
-        await ctx.edit_original_message(
-            content=f"Summary of the last {num_messages} messages in {channel.name}:\n {message}")
+        content = f"Summary of the last {num_messages} messages in {channel.name}:\n {message}"
+        await ctx.edit_original_message(content=content[:2000])
 
 
     @commands.slash_command(name="pepe",
