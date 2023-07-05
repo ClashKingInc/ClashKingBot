@@ -6,7 +6,7 @@ import sentry_sdk
 from CustomClasses.CustomBot import CustomClient
 from disnake import Client
 from disnake.ext import commands
-import sys
+import argparse
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
@@ -15,9 +15,17 @@ from Background.Logs.event_websockets import player_websocket, clan_websocket, w
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
 
-IS_BETA = True if sys.argv[1] == "true" else False
-IS_CUSTOM = True if sys.argv[2] == "custom" else False
-TOKEN = sys.argv[3]
+parser = argparse.ArgumentParser(description="Just an example",
+                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument("-c", "--custom", action="store_true", help="custom mode")
+parser.add_argument("-b", "--beta", action="store_true", help="beta mode")
+parser.add_argument("-t", "--token", help="token")
+args = parser.parse_args()
+config = vars(args)
+
+IS_BETA = config.get("custom", False)
+IS_CUSTOM = config.get("beta", False)
+TOKEN = config.get("token")
 
 discClient = Client()
 intents = disnake.Intents().none()

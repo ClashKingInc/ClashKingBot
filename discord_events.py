@@ -101,7 +101,7 @@ class DiscordEvents(commands.Cog):
 
             tokens = await self.bot.credentials.distinct("bot_token")
             for token in tokens:
-                os.system(f"pm2 start main.py false true {token} --interpreter=/usr/bin/python3")
+                os.system(f"pm2 start main.py --custom --token {token} --interpreter=/usr/bin/python3")
 
         print('We have logged in')
 
