@@ -93,7 +93,7 @@ def point_threshold():
 
 def roster_options(bot: CustomClient, results):
     now = int(datetime.utcnow().replace(tzinfo=utc).timestamp())
-    results = [result for result in results if result.get("time", 0) > (now + 1200)]
+    results = [result for result in results if result.get("time") is not None and result.get("time", 0) > (now + 1200)]
     if not results:
         raise ThingNotFound("**No Rosters or Any Rosters that have time set up on this server**")
     roster_options = []
@@ -442,7 +442,7 @@ async def create_inactivity_reminder(bot: CustomClient, ctx: disnake.Application
 
 
 async def create_roster_reminder(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, times: List[str]):
-    results = await bot.rosters.find({"$and": [{"server_id": ctx.guild_id}]}).to_list(length=None)
+    results = await bot.rosters.find({"$and": [{"server_id": 359893876611350528}]}).to_list(length=None)
     results, menu = roster_options(bot=bot, results=results)
     results = [Roster(bot=bot, roster_result=result) for result in results]
     dropdown = [menu, roster_type(), buttons(bot=bot)]
