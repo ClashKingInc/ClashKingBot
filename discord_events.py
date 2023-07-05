@@ -2,12 +2,12 @@ import datetime
 
 import disnake
 import coc
-from main import scheduler, reminder_scheduler
+from main import scheduler
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 import sentry_sdk
 from FamilyManagement.Reminders import SendReminders
-from utils.war import create_reminders
+from utils.war import create_reminders, send_or_update_war_end, send_or_update_war_start
 
 class DiscordEvents(commands.Cog):
 
@@ -50,20 +50,19 @@ class DiscordEvents(commands.Cog):
 
         tags = await self.bot.clan_db.distinct("tag")
         self.bot.clan_list = tags
+
         reminder_tags = await self.bot.reminders.distinct("clan", filter={"type" : "War"})
         current_war_times = await self.bot.get_current_war_times(tags=reminder_tags)
-        cog = self.bot.get_cog(name="Reminder Cron")
         for tag in current_war_times.keys():
             new_war, war_end_time = current_war_times[tag]
             try:
-                other_cog = self.bot.get_cog(name="War_Log")
                 if new_war.state == "preparation":
-                    reminder_scheduler.add_job(other_cog.send_or_update_war_start, 'date', run_date=new_war.start_time.time,
-                                      args=[new_war.clan.tag], id=f"war_start_{new_war.clan.tag}",
+                    scheduler.add_job(send_or_update_war_start, 'date', run_date=new_war.start_time.time,
+                                      args=[self.bot, new_war.clan.tag], id=f"war_start_{new_war.clan.tag}",
                                       name=f"{new_war.clan.tag}_war_start", misfire_grace_time=None)
                 if new_war.end_time.seconds_until >= 0:
-                    reminder_scheduler.add_job(other_cog.send_or_update_war_end, 'date', run_date=new_war.end_time.time,
-                                      args=[new_war.clan.tag, int(new_war.preparation_start_time.time.timestamp())], id=f"war_end_{new_war.clan.tag}",
+                    scheduler.add_job(send_or_update_war_end, 'date', run_date=new_war.end_time.time,
+                                      args=[self.bot, new_war.clan.tag, int(new_war.preparation_start_time.time.timestamp())], id=f"war_end_{new_war.clan.tag}",
                                       name=f"{new_war.clan.tag}_war_end", misfire_grace_time=None)
             except:
                 pass
@@ -144,7 +143,6 @@ class DiscordEvents(commands.Cog):
         await firstChannel.send(components=buttons, embed=embed) if results is None else None
         
 
-
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
         channel = self.bot.get_channel(937519135607373874)
@@ -156,7 +154,6 @@ class DiscordEvents(commands.Cog):
                                           type=3), shard_id=shard.id)  # type 3 watching type#1 - playing
         channel = self.bot.get_channel(937528942661877851)
         await channel.edit(name=f"ClashKing: {len_g} Servers")
-
 
     @commands.Cog.listener()
     async def on_application_command(self, ctx:disnake.ApplicationCommandInteraction):
@@ -173,6 +170,7 @@ class DiscordEvents(commands.Cog):
             "is_bot_dev" : (ctx.user.public_flags.verified_bot_developer or ctx.user.public_flags.active_developer),
             "bot" : ctx.bot.user.id
         })
+
 
 def setup(bot: CustomClient):
     bot.add_cog(DiscordEvents(bot))

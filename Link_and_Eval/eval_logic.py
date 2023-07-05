@@ -8,7 +8,6 @@ from typing import List
 from CustomClasses.CustomBot import CustomClient
 from utils.components import create_components
 from utils.constants import DEFAULT_EVAL_ROLE_TYPES, ROLE_TREATMENT_TYPES
-from contextlib import suppress
 from utils.general import get_clan_member_tags
 
 async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disnake.Member],
@@ -215,18 +214,22 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
                             ROLES_TO_ADD.add(legend_role)
 
                 elif player.trophies >= 5700 and league_roles.get("trophies_5700") is not None:
-                    with suppress:
+                    try:
                         legend_role = league_roles["trophies_5700"]
                         ROLES_SHOULD_HAVE.add(legend_role)
                         if legend_role not in MASTER_ROLES:
                             ROLES_TO_ADD.add(legend_role)
+                    except:
+                        pass
 
                 elif player.trophies >= 5500 and league_roles.get("trophies_5500") is not None:
-                    with suppress:
+                    try:
                         legend_role = league_roles["trophies_5500"]
                         ROLES_SHOULD_HAVE.add(legend_role)
                         if legend_role not in MASTER_ROLES:
                             ROLES_TO_ADD.add(legend_role)
+                    except:
+                        pass
 
             if "builder_league" in role_types_to_eval:
                 league = player.builder_league.name.split(" ")

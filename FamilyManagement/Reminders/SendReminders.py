@@ -6,7 +6,6 @@ from pytz import utc
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.ReminderClass import Reminder
-from contextlib import suppress
 
 
 async def war_reminder(bot: CustomClient, clan_tag, reminder_time):
@@ -66,8 +65,10 @@ async def war_reminder(bot: CustomClient, clan_tag, reminder_time):
                             f"{text}"
             if text == missing_text_list[-1]:
                 reminder_text += f"\n{reminder.custom_text}"
-            with suppress:
+            try:
                 await channel.send(content=reminder_text)
+            except:
+                pass
 
 
 async def clan_capital_reminder(bot:CustomClient, reminder_time):
@@ -126,8 +127,10 @@ async def clan_capital_reminder(bot:CustomClient, reminder_time):
                         f"{missing_text}" \
                         f"\n{reminder.custom_text}"
 
-        with suppress:
+        try:
             await channel.send(content=reminder_text)
+        except:
+            pass
 
 
 async def clan_games_reminder(bot: CustomClient, reminder_time):
@@ -177,8 +180,10 @@ async def clan_games_reminder(bot: CustomClient, reminder_time):
                         f"{missing_text}" \
                         f"\n{reminder.custom_text}"
 
-        with suppress:
+        try:
             await channel.send(content=reminder_text)
+        except:
+            pass
 
 
 async def inactivity_reminder(bot: CustomClient):
@@ -237,8 +242,10 @@ async def inactivity_reminder(bot: CustomClient):
         reminder_text = f"**{badge}{clan.name}\nPlayers Inactive for {time}Hours**\n" \
                         f"{inactive_text}" \
                         f"\n{reminder.custom_text}"
-        with suppress:
+        try:
             await channel.send(content=reminder_text)
+        except:
+            pass
 
 
 async def roster_reminder(bot: CustomClient):

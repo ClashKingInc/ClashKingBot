@@ -14,7 +14,7 @@ from Background.Logs.event_websockets import player_websocket, clan_websocket, w
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
 
-IS_BETA = True
+IS_BETA = False
 discClient = Client()
 intents = disnake.Intents().none()
 intents.members = True
@@ -22,7 +22,6 @@ intents.guilds = True
 intents.emojis = True
 intents.messages = True
 intents.message_content = True
-intents.presences = True
 bot = CustomClient(shard_count=1, command_prefix="$$",help_command=None, intents=intents, reload=True)
 
 def check_commands():
@@ -71,74 +70,60 @@ def check_commands():
     return commands.check(predicate)
 
 initial_extensions = [
+    "BoardCommands.ClanCommands",
+    "BoardCommands.TopCommands",
+    "BoardCommands.FamilyCommands",
+    "BoardCommands.PlayerCommands",
+    "BoardCommands.Utils.Buttons",
+    "BoardCommands.WarCommands",
+    "Exceptions.ExceptionHandler",
+    "Export.ExportsCog",
+    "FamilyManagement.Reminders.Reminders",
     "FamilyManagement.bans",
     "FamilyManagement.strikes",
     "FamilyManagement.rosters",
     "Legends & Trophies.family_trophy_stats",
     "Legends & Trophies.Check.maincheck",
-    #"Legends & Trophies.leaderboards",
+    "Legends & Trophies.leaderboards",
     "Link_and_Eval.link",
     "Link_and_Eval.eval",
-    "Setups.autoboard",
-    "Setups.evalsetup",
-    "Reminders.ReminderSetup",
-    "Setups.welcome_messages",
+    "Other.pepe",
+    "Settings.settings",
+    "Settings.setup",
+    "Settings.autoboard",
+    "Settings.addclans",
+    "Ticketing.TicketCog",
     "Utility.army",
     "Utility.awards",
     "Utility.boost",
-    #"War & CWL.cwl",
-    #"War & CWL.war",
-    "help",
-    "other",
     "Utility.bases",
-    #"settings",
-    "owner_commands",
-    "Ticketing.TicketCog",
-    #"SetupNew.SetupCog",
     "Utility.link_parsers",
-    #"War & CWL.war_track",
-    #"War & CWL.lineups",
-    #"Exceptions.ExceptionHandler",
-    "BoardCommands.ClanCommands",
-    "BoardCommands.TopCommands",
-    "BoardCommands.FamilyCommands",
-    "BoardCommands.PlayerCommands",
-    "Export.ExportsCog",
-    "BoardCommands.Utils.Buttons",
-    "Background.refresh_boards",
-    "BoardCommands.WarCommands",
-    "Background.background_cache"
+    "help",
+    #"owner_commands"
 ]
 
 if not IS_BETA:
     initial_extensions += [
+        "Background.Logs.auto_eval",
+        "Background.Logs.ban_events",
+        "Background.Logs.clan_capital_events",
+        "Background.Logs.donations",
+        "Background.Logs.event_websockets",
+        "Background.Logs.join_leave_events",
+        "Background.Logs.legend_events",
+        "Background.Logs.player_upgrade_events",
+        "Background.Logs.war_track",
         "Background.autoboard_loop",
-        "Background.voicestat_loop",
-        "Background.region_lb_update",
+        "Background.background_cache",
+        "Background.clan_capital",
         "Background.legends_history",
-        "Background.reddit_recruit_feed",
-        "Background.dm_reports",
-        "Background.store_clan_capital",
-        "Reminders.ReminderCrons",
-        "EventHub.clan_capital_events",
-        "EventHub.join_leave_events",
-        "EventHub.ban_events",
-        "EventHub.player_upgrade_events",
-        "EventHub.legend_events",
+        #"Background.reddit_recruit_feed",
+        #"Background.region_lb_update",
+        "Background.voicestat_loop",
         "Link_and_Eval.link_button",
-        "War & CWL.war_track",
-        "discord_events",
         "Other.erikuh_comp",
-        "Setups.addclans",
-        "global_chat"
+        "discord_events",
     ]
-
-@bot.command(name="r")
-@commands.is_owner()
-async def r(ctx):
-    for extension in initial_extensions:
-        bot.reload_extension(extension)
-    await ctx.send("Reloaded all cogs")
 
 def before_send(event, hint):
     try:

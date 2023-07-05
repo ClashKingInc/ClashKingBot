@@ -8,7 +8,6 @@ from disnake.ext import commands
 from Assets.emojiDictionary import emojiDictionary
 from CustomClasses.CustomBot import CustomClient
 from datetime import datetime
-from contextlib import suppress
 
 tiz = pytz.utc
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
@@ -40,8 +39,10 @@ class War_Log(commands.Cog):
         await schedule_war_boards(bot=self.bot, war=new_war)
 
         if not new_war.is_cwl:
-            with suppress:
+            try:
                 await self.bot.war_client.register_war(clan_tag=new_war.clan_tag)
+            except:
+                pass
 
         clan = None
         if new_war.type == "cwl":

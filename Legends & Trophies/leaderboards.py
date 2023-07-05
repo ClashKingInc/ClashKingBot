@@ -14,7 +14,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @commands.slash_command(name="top")
+    @commands.slash_command(name="leaderboard")
     async def leaderboard(self, ctx):
         pass
 

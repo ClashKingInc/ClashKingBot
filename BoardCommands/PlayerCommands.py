@@ -325,7 +325,6 @@ class PlayerCommands(commands.Cog):
         names = await self.bot.family_names(query=query, guild=ctx.guild)
         return names
 
-    @activity.autocomplete("season")
     @donations.autocomplete("season")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]

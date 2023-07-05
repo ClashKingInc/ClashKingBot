@@ -134,8 +134,10 @@ class Check(commands.Cog):
                 res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
                                                                           timeout=600)
             except:
-                with contextlib.suppress(Exception):
+                try:
                     await msg.edit(components=[])
+                except:
+                    pass
                 break
             await res.response.defer()
             if res.data.custom_id == "Previous":

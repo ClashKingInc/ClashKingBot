@@ -81,8 +81,10 @@ class misc(commands.Cog, name="Other"):
                 res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
 
             except:
-                with contextlib.suppress(Exception):
+                try:
                     await msg.edit(components=[])
+                except:
+                    pass
                 break
             if res.data.custom_id == "Previous":
                 current_page -= 1
@@ -268,6 +270,39 @@ class misc(commands.Cog, name="Other"):
             await self.bot.level_cards.insert_one({"user_id" : ctx.user.id, "background_image" : background_image})
 
         await ctx.send(content=f"Image set to {background_image}", ephemeral=True)
+
+    @commands.slash_command(name="custom-bot", description="Create your custom bot")
+    async def custom_bot(self, ctx: disnake.ApplicationCommandInteraction, bot_token: str, bot_name: str, profile_picture: disnake.Attachment):
+        r = await self.bot.credentials.find_one({"user": ctx.author.id})
+        if r is not None:
+            return await ctx.send("You have already created a custom bot.")
+        server = await self.bot.fetch_guild(923764211845312533)
+        try:
+            server_member = await server.fetch_member(ctx.author.id)
+        except:
+            if ctx.author.id != self.bot.owner.id:
+                return await ctx.send("Must be a part of the support server")
+            else:
+                server_member = await server.fetch_member(self.bot.owner.id)
+        has_premium = disnake.utils.get(server_member.roles, id=1018316361241477212)
+
+        if ctx.author.id == self.bot.owner.id:
+            has_premium = True
+        if has_premium:
+            return await ctx.send("Must be a premium bot supporter.")
+
+        await ctx.send(content=f"Creating your custom bot!")
+
+        await self.bot.credentials.update_one({"user": ctx.author.id}, {"$set" : {
+            "bot_name": bot_name,
+            "bot_token": bot_token,
+            "bot_status": "",
+            "bot_profile_pic": profile_picture.url,
+            "server": ctx.guild.id,
+            "user": ctx.author.id,
+        }}, upsert=True)
+
+
 
 
 
