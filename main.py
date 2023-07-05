@@ -99,7 +99,6 @@ initial_extensions = [
     "Legends & Trophies.leaderboards",
     "Link_and_Eval.link",
     "Link_and_Eval.eval",
-    "Other.pepe",
     "Settings.settings",
     "Settings.setup",
     "Settings.autoboard",
