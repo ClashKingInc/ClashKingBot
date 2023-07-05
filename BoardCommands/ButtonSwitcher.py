@@ -13,6 +13,7 @@ from CustomClasses.CustomBot import CustomClient
 from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from ImageGen import ClanCapitalResult as capital_gen
 from CustomClasses.Enums import TrophySort
+from utils.search import search_results
 
 clan_triggers = {
     "clanoverview",
@@ -70,6 +71,11 @@ top_triggers = {
     "topreceivedplayer"
 }
 
+player_triggers = {
+    "donatedplayer",
+    "receivedplayer",
+}
+
 async def button_click_to_embed(bot: CustomClient, ctx: disnake.MessageInteraction):
     custom_id = str(ctx.data.custom_id)
     embed = None
@@ -83,6 +89,9 @@ async def button_click_to_embed(bot: CustomClient, ctx: disnake.MessageInteracti
     elif first in top_triggers:
         await ctx.response.defer(ephemeral=first in ephemeral)
         embed = await top_parser(bot, ctx, custom_id)
+    elif first in player_triggers:
+        await ctx.response.defer(ephemeral=first in ephemeral)
+        embed = await player_parser(bot, ctx, custom_id)
     return embed, first in ephemeral
 
 
@@ -453,7 +462,6 @@ async def family_parser(bot: CustomClient, ctx: disnake.MessageInteraction, cust
     return embed
 
 
-
 async def top_parser(bot: CustomClient, ctx: disnake.MessageInteraction, custom_id: str):
     if str(ctx.data.custom_id) == "topdonatedplayer_":
         season = bot.gen_season_date()
@@ -523,5 +531,27 @@ async def top_parser(bot: CustomClient, ctx: disnake.MessageInteraction, custom_
                                                                    footer_icon=footer_icon, title_name="ClashKing")
         await ctx.edit_original_message(embed=embed)
 
-def player_parser():
-    pass
+
+async def player_parser(bot: CustomClient, ctx: disnake.MessageInteraction, custom_id: str):
+    split = custom_id.split("_")
+    embed = None
+    if len(split) == 3:
+        season = split[1]
+        discord_user = split[2]
+        players = await search_results(bot, str(discord_user))
+        discord_user = await bot.getch_user(int(discord_user))
+
+    if "donatedplayer_" in custom_id:
+        footer_icon = discord_user.display_avatar.url
+        embed: disnake.Embed = await shared_embeds.donation_board(bot=bot, players=players, season=season,
+                                                                  footer_icon=footer_icon,
+                                                                  title_name=f"{discord_user.display_name}",
+                                                                  type="donations")
+    elif "receivedplayer_" in custom_id:
+        footer_icon = discord_user.display_avatar.url
+        embed: disnake.Embed = await shared_embeds.donation_board(bot=bot, players=players, season=season,
+                                                                  footer_icon=footer_icon,
+                                                                  title_name=f"{discord_user.display_name}",
+                                                                  type="received")
+
+    return embed
