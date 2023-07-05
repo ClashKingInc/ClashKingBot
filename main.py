@@ -122,7 +122,7 @@ if not IS_CUSTOM and IS_BETA:
 if not IS_BETA and not IS_CUSTOM:
     initial_extensions += [
         "Background.reddit_recruit_feed",
-        "Background.region_lb_update"
+        #"Background.region_lb_update"
     ]
 
 if not IS_BETA:
