@@ -9,7 +9,7 @@ from Background.Logs.event_websockets import clan_ee
 from utils.clash import leagueAndTrophies
 from pymongo import UpdateOne
 
-class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
+class Donations(commands.Cog, name="Donations"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
@@ -81,5 +81,5 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
 
 
 def setup(bot: CustomClient):
-    bot.add_cog(join_leave_events(bot))
+    bot.add_cog(Donations(bot))
 

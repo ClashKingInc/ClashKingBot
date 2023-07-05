@@ -126,11 +126,11 @@ if not IS_BETA:
         "Background.Logs.ban_events",
         "Background.Logs.clan_capital_events",
         "Background.Logs.donations",
-        "Background.Logs.event_websockets",
         "Background.Logs.join_leave_events",
         "Background.Logs.legend_events",
         "Background.Logs.player_upgrade_events",
         "Background.Logs.war_track",
+
         "Background.autoboard_loop",
         "Background.background_cache",
         "Background.clan_capital",
