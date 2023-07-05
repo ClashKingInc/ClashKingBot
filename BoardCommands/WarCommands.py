@@ -6,7 +6,7 @@ import calendar
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from utils.discord_utils import interaction_handler
-from utils.constants import leagues
+from utils.constants import leagues, war_leagues
 from coc.miscmodels import Timestamp
 from pymongo import UpdateOne
 from BoardCommands.Utils.War import plan_embed, create_components, open_modal, main_war_page, roster_embed, opp_roster_embed, \
@@ -219,6 +219,7 @@ class War(commands.Cog):
     async def cwl_search(self, ctx: disnake.ApplicationCommandInteraction,
                   clan: coc.Clan = commands.Param(converter=clan_converter),
                   season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor)):
+        await ctx.response.defer()
         asyncio.create_task(self.bot.store_all_cwls(clan=clan))
         (group, clan_league_wars, fetched_clan, war_league) = await get_cwl_wars(bot=self.bot, clan=clan, season=season)
 
@@ -226,7 +227,7 @@ class War(commands.Cog):
             embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link}) is not in CWL.",
                                   color=disnake.Color.green())
             embed.set_thumbnail(url=clan.badge.large)
-            return await ctx.send(embed=embed)
+            return await ctx.edit_original_message(embed=embed)
 
         overview_round = get_latest_war(clan_league_wars=clan_league_wars)
         ROUND = overview_round
@@ -355,6 +356,25 @@ class War(commands.Cog):
         embed = await create_cwl_status(bot=self.bot, guild=ctx.guild)
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
+    @cwl.autocomplete("season")
+    async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        if "|" in ctx.filled_options["clan"]:
+            clan = await self.bot.getClan(clan_tag=ctx.filled_options["clan"])
+            if clan is None:
+                seasons = self.bot.gen_season_date(seasons_ago=25)[0:]
+                return [season for season in seasons if query.lower() in season.lower()]
+            dates = [f"{self.bot.gen_season_date(seasons_ago=1)[0]} | {clan.war_league}"]
+            cwls = await self.bot.cwl_db.find({"$and": [{"clan_tag": clan.tag}, {"data": {"$ne": None}}]},
+                                              {"data.leagueId": 1, "season": 1}).limit(24).to_list(length=None)
+            for cwl in cwls:
+                league_name = next(
+                    (x["name"] for x in war_leagues["items"] if x["id"] == cwl.get("data").get("leagueId")), "Unknown")
+                dates.append(
+                    f"{calendar.month_name[int(cwl.get('season').split('-')[-1])]} {int(cwl.get('season').split('-')[0])} | {league_name}")
+            return dates[:25]
+        else:
+            seasons = self.bot.gen_season_date(seasons_ago=25)[0:]
+            return [season for season in seasons if query.lower() in season.lower()]
 
     #AUTOCOMPLETES
     @war_search.autocomplete("clan")
