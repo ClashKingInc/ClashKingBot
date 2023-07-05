@@ -4,9 +4,8 @@ from disnake.ext import commands
 from main import check_commands
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer
-from .eval_logic import eval_logic
-from utils.constants import DEFAULT_EVAL_ROLE_TYPES
-from eval_logic import is_in_family
+from .eval_logic import eval_logic, is_in_family
+from utils.constants import DEFAULT_EVAL_ROLE_TYPES 
 
 class eval(commands.Cog, name="Eval"):
     """A couple of simple commands."""
