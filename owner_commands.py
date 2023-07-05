@@ -127,14 +127,16 @@ class OwnerCommands(commands.Cog):
                                 webhooks = await channel.webhooks()
                             webhook = next((w for w in webhooks if w.user.id == self.bot.user.id), None)
                             if webhook is None:
-                                if isinstance(g_channel, disnake.Thread):
-                                    thread = channel
-                                    webhook = await g_channel.parent.create_webhook(name="ClashKing", avatar=bot_av, reason="ClashKing Clan Logs")
-                                else:
-                                    webhook = await g_channel.create_webhook(name="ClashKing", avatar=bot_av, reason="ClashKing Clan Logs")
+                                    if isinstance(g_channel, disnake.Thread):
+                                        thread = channel
+                                        webhook = await g_channel.parent.create_webhook(name="ClashKing", avatar=bot_av, reason="ClashKing Clan Logs")
+                                    else:
+                                        webhook = await g_channel.create_webhook(name="ClashKing", avatar=bot_av, reason="ClashKing Clan Logs")
+
                             channel_to_webhook[g_channel.id] = webhook.id
                             webhook = webhook.id
-                        except:
+                        except Exception as e:
+                            print(e)
                             webhook = None
                     else:
                         g_channel = await self.bot.getch_channel(channel, raise_exception=True)
