@@ -304,7 +304,7 @@ class misc(commands.Cog, name="Other"):
             "user": ctx.author.id,
         }}, upsert=True)
 
-        os.system(f"pm2 start main.py --custom --token {bot_token} --interpreter=/usr/bin/python3")
+        os.system(f"pm2 start main.py --interpreter=/usr/bin/python3 --custom --token {bot_token}")
         await ctx.send(content=f"Creating your custom bot!")
 
 

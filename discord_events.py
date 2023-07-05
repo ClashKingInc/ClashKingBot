@@ -96,12 +96,12 @@ class DiscordEvents(commands.Cog):
                         "lbhour": None
                     })
 
-            for x in range(3, 10):
+            for x in range(6, 15):
                 os.system(f"pm2 delete {x}")
 
             tokens = await self.bot.credentials.distinct("bot_token")
             for token in tokens:
-                os.system(f"pm2 start main.py --custom --token {token} --interpreter=/usr/bin/python3")
+                os.system(f"pm2 start main.py --interpreter=/usr/bin/python3 --custom --token {token}")
 
         print('We have logged in')
 
