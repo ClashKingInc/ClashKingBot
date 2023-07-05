@@ -426,7 +426,7 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
                             name_changes = f"`{new_name}`"
                     elif change_nick == "Family Name":
                         results = sorted(family_accounts, key=lambda l: l[0], reverse=True)
-                        family_label = await db_server.family_label
+                        family_label = db_server.family_label
                         top_account: coc.Player = results[0][1]
 
                         if family_label == "":

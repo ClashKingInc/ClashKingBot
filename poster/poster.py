@@ -275,5 +275,8 @@ class Poster(commands.Cog):
 
         await ctx.edit_original_message(file=file)
 
+def setup(bot):
+    bot.add_cog(Poster(bot))
+
 
 
