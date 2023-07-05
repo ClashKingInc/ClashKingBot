@@ -5,10 +5,9 @@ from .check_poster import CheckPoster
 from .history import History
 from .pagination import Pagination
 from .quick_check import QuickCheck
-from poster.poster import Poster
 
 
-class Legends(Check, CheckStats, History, Pagination, Poster, QuickCheck, CheckPoster, commands.Cog):
+class Legends(Check, CheckStats, History, Pagination, QuickCheck, CheckPoster, commands.Cog):
     def __init__(self, bot):
         super().__init__(bot)
         self.bot = bot

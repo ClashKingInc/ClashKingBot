@@ -234,7 +234,7 @@ class War(commands.Cog):
         PAGE = "cwlround_overview"
 
         (current_war, next_war) = get_wars_at_round(clan_league_wars=clan_league_wars, round=ROUND)
-        dropdown = await component_handler(page=PAGE, current_war=current_war, next_war=next_war, group=group,
+        dropdown = await component_handler(bot=self.bot, page=PAGE, current_war=current_war, next_war=next_war, group=group,
                                                 league_wars=clan_league_wars, fetched_clan=fetched_clan)
         embeds = await page_manager(bot=self.bot, page=PAGE, group=group, war=current_war, next_war=next_war,
                                          league_wars=clan_league_wars, clan=CLAN, fetched_clan=fetched_clan,

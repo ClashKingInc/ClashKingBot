@@ -23,8 +23,8 @@ parser.add_argument("-t", "--token", help="token")
 args = parser.parse_args()
 config = vars(args)
 
-IS_BETA = config.get("custom", False)
-IS_CUSTOM = config.get("beta", False)
+IS_BETA = config.get("beta", False)
+IS_CUSTOM = config.get("custom", False)
 TOKEN = config.get("token")
 
 discClient = Client()
@@ -114,9 +114,13 @@ initial_extensions = [
     "poster.poster"
 ]
 
-if not IS_CUSTOM or IS_BETA:
+if not IS_CUSTOM and IS_BETA:
     initial_extensions += [
-        "owner_commands",
+        "owner_commands"
+    ]
+
+if not IS_BETA and not IS_CUSTOM:
+    initial_extensions += [
         "Background.reddit_recruit_feed",
         "Background.region_lb_update"
     ]

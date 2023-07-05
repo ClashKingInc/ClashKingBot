@@ -54,6 +54,7 @@ def atk_threshold():
 def townhalls(bot: CustomClient):
     options = []
     for num in reversed(TOWNHALL_LEVELS):
+        print(f"num : {bot.fetch_emoji(name=num)}")
         options.append(disnake.SelectOption(label=f"Townhall {num}", emoji=bot.fetch_emoji(name=num).partial_emoji,
                                             value=f"th_{num}"))
     th_select = disnake.ui.Select(
