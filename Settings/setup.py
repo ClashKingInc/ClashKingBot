@@ -171,7 +171,7 @@ class SetupCommands(commands.Cog , name="Setup"):
         res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
 
 
-        for countdown_type in res.values:
+        for type in res.values:
             try:
                 if type == "Clan Games":
                     time_ = await calculate_time(countdown_type)
@@ -183,6 +183,9 @@ class SetupCommands(commands.Cog , name="Setup"):
                     clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
                     results = await self.bot.player_stats.count_documents(filter={"clan_tag": {"$in": clan_tags}})
                     channel = await ctx.guild.create_voice_channel(name=f"{results} Clan Members")
+                elif type == "EOS":
+                    time_ = await calculate_time(countdown_type)
+                    channel = await ctx.guild.create_voice_channel(name=f"EOS {time_}")
                 else:
                     time_ = await calculate_time(countdown_type)
                     channel = await ctx.guild.create_voice_channel(name=f"{type} {time_}")
@@ -196,6 +199,7 @@ class SetupCommands(commands.Cog , name="Setup"):
                                       color=disnake.Color.red())
                 return await ctx.send(embed=embed)
 
+        for type in res.values:
             if type == "CWL":
                 await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"cwlCountdown": channel.id}})
             elif type == "Clan Games":
