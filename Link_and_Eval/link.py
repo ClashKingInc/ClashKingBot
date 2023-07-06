@@ -353,11 +353,16 @@ class Linking(commands.Cog):
                                               f"> Inactivity\n"
                                               f"> Legend Hits",
                                   color=disnake.Color.green())
+
+        roster_embed = disnake.Embed(description=f"To view all the rosters you are on & the what group (Main, Benched, etc) & clans your accounts are in, press the button below.",
+                                  color=disnake.Color.green())
+
         if ctx.guild.icon is not None:
             refresh_embed.set_thumbnail(url=ctx.guild.icon.url)
             link_embed.set_thumbnail(url=ctx.guild.icon.url)
             to_do_embed.set_thumbnail(url=ctx.guild.icon.url)
-        default_embeds = {"Link Button" : link_embed, "Refresh Button" : refresh_embed, "To-Do Button" : to_do_embed}
+            roster_embed.set_thumbnail(url=ctx.guild.icon.url)
+        default_embeds = {"Link Button" : link_embed, "Refresh Button" : refresh_embed, "To-Do Button" : to_do_embed, "Roster Button" : roster_embed}
 
         if custom_embed != "False":
             if embed_link is None:
@@ -423,8 +428,6 @@ class Linking(commands.Cog):
                 content = ""
             await ctx.send(content=content, embed=embed, components=[buttons])
         elif type == "Roster Button":
-            embed = disnake.Embed(description=f"To view all the rosters you are on & the what group (Main, Benched, etc) & clans your accounts are in, press the button below.",
-                                  color=disnake.Color.green())
             stat_buttons = [disnake.ui.Button(label="My Rosters", emoji=self.bot.emoji.calendar.partial_emoji,
                                               style=disnake.ButtonStyle.green, custom_id="MyRosters")]
             buttons = disnake.ui.ActionRow()
