@@ -123,7 +123,7 @@ def roster_type():
 
 
 async def create_capital_reminder(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, times: List[str]):
-    clans = await bot.get_clans(tags=(await bot.get_guild_clans(guild_id=ctx.guild_id)))
+    clans = await bot.get_clans(tags=(await bot.get_guild_clans(guild_id=ctx.guild.id)))
     clan_page = 0
     dropdown = [clan_component(bot=bot, all_clans=clans, clan_page=clan_page), atk_threshold(), role_options(), buttons(bot=bot)]
 
@@ -202,7 +202,7 @@ async def create_capital_reminder(bot: CustomClient, ctx: disnake.ApplicationCom
 
 
 async def create_war_reminder(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, times: List[str]):
-    clans = await bot.get_clans(tags=(await bot.get_guild_clans(guild_id=ctx.guild_id)))
+    clans = await bot.get_clans(tags=(await bot.get_guild_clans(guild_id=ctx.guild.id)))
     clan_page = 0
     dropdown = [clan_component(bot=bot, all_clans=clans, clan_page=clan_page), townhalls(bot=bot), role_options(), war_type(), buttons(bot=bot)]
 
@@ -284,7 +284,7 @@ async def create_war_reminder(bot: CustomClient, ctx: disnake.ApplicationCommand
 
 
 async def create_games_reminder(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, times: List[str]):
-    clans = await bot.get_clans(tags=(await bot.get_guild_clans(guild_id=ctx.guild_id)))
+    clans = await bot.get_clans(tags=(await bot.get_guild_clans(guild_id=ctx.guild.id)))
     clan_page = 0
     dropdown = [clan_component(bot=bot, all_clans=clans, clan_page=clan_page), point_threshold(), townhalls(bot=bot), role_options(), buttons(bot=bot)]
 
@@ -365,7 +365,7 @@ async def create_games_reminder(bot: CustomClient, ctx: disnake.ApplicationComma
 
 
 async def create_inactivity_reminder(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, times: List[str]):
-    clans = await bot.get_clans(tags=(await bot.get_guild_clans(guild_id=ctx.guild_id)))
+    clans = await bot.get_clans(tags=(await bot.get_guild_clans(guild_id=ctx.guild.id)))
     clan_page = 0
     dropdown = [clan_component(bot=bot, all_clans=clans, clan_page=clan_page), townhalls(bot=bot),role_options(), buttons(bot=bot)]
 
@@ -442,7 +442,6 @@ async def create_inactivity_reminder(bot: CustomClient, ctx: disnake.Application
 
 async def create_roster_reminder(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, times: List[str]):
     results = await bot.rosters.find({"$and": [{"server_id": ctx.guild.id}]}).to_list(length=None)
-    print(results)
     results, menu = roster_options(bot=bot, results=results)
     results = [Roster(bot=bot, roster_result=result) for result in results]
     dropdown = [menu, roster_type(), buttons(bot=bot)]
