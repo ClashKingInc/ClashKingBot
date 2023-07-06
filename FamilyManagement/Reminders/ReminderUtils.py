@@ -94,7 +94,7 @@ def roster_options(bot: CustomClient, results):
     now = int(datetime.utcnow().replace(tzinfo=utc).timestamp())
     results = [result for result in results if result.get("time") is not None and result.get("time", 0) > (now + 1200)]
     if not results:
-        raise ThingNotFound("**No Rosters or Any Rosters that have time set up on this server**")
+        raise ThingNotFound("**No Rosters or Any Rosters that have times set up (in the future) on this server**")
     roster_options = []
     for result in results:
         roster_options.append(disnake.SelectOption(label=result.get("alias"), value=f"{result.get('alias')}"))
