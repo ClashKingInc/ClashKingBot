@@ -183,10 +183,9 @@ class misc(commands.Cog, name="Settings"):
             logs = [clan.join_log, clan.leave_log, clan.capital_attacks, clan.capital_donations, clan.capital_weekly_summary, clan.raid_panel, clan.donation_log, clan.super_troop_boost_log,
                     clan.role_change, clan.donation_log, clan.troop_upgrade, clan.th_upgrade, clan.league_change, clan.spell_upgrade, clan.hero_upgrade, clan.name_change, clan.war_log, clan.war_panel,
                     clan.legend_log_defenses, clan.legend_log_attacks]
-            for log in logs[:1]:
+            for log in logs:
                 if log.webhook is not None:
                     webhook = await self.bot.getch_webhook(log.webhook)
-                    print("here")
                     await webhook.edit(name=name, avatar=(await picture.read()))
         await ctx.edit_original_message(content=f"All logs profile pictures set to {name} with the following image:", file=(await picture.to_file()))
 
