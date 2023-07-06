@@ -21,7 +21,7 @@ from BoardCommands.Utils import Shared as shared_embeds
 from BoardCommands.Utils import Player as player_embeds
 
 
-class PlayerCommands(commands.Cog):
+class PlayerCommands(commands.Cog, name="Player Commands"):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 

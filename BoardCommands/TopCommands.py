@@ -10,7 +10,7 @@ from utils.ClanCapital import gen_raid_weekend_datestrings
 from BoardCommands.Utils import Shared as shared_embeds
 
 
-class TopCommands(commands.Cog):
+class TopCommands(commands.Cog, name="Top"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot

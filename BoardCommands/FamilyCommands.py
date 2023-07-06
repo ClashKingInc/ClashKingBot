@@ -18,7 +18,7 @@ from BoardCommands.Utils import Graphs as graph_creator
 from BoardCommands.Utils import Family as family_embeds
 
 
-class FamCommands(commands.Cog):
+class FamCommands(commands.Cog, name="Family Commands"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot

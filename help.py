@@ -4,19 +4,22 @@ import disnake
 from CustomClasses.CustomBot import CustomClient
 from collections import defaultdict
 
+players = ["Player Commands"]
 clans = ["Clan Commands"]
-family = ["Bans", "Strikes", "Family Commands"]
-war = ["War", "CWL"]
-trophies = ["Legends", "Family Trophy Stats", "Leaderboards", "DM Feed & Reports"]
-utility = ["Army", "Awards", "Super Troops", "Profile", "Rosters"]
-link = ["Eval", "Linking"]
-setups = ["Clan Setup", "Board Setup", "Eval Setup", "Statbar Setup", "Welcome Setup", "Reminders"]
-settings = ["Settings"]
-other = ["Other", "Global Chat"]
+family =  ["Family Commands"]
+family_management = ["Bans", "Strikes", "Rosters"]
 ticketing = ["Ticket Commands"]
+top = ["Top"]
+war = ["War"]
+trophies = ["Legends", "Family Trophy Stats", "Leaderboards"]
+utility = ["Army", "Awards", "Bases", "Super Troops"]
+link = ["Eval", "Linking"]
+setups = ["Setup", "Clan Setup", "Board Setup", "Reminders"]
+settings = ["Settings"]
+other = ["Other"]
 
-pages = [clans, family, trophies, war, utility, ticketing, link, setups, settings, other]
-page_names = ["Clan Commands", "Family Commands", "Legends & Trophies", "War & CWL", "Utility", "Ticketing", "Link_and_Eval", "Setups", "Settings", "Other"]
+pages = [players, clans, family, family_management, trophies, war, utility, ticketing, link, setups, settings, other]
+page_names = ["Player Commands", "Clan Commands", "Family Commands", "Family Management", "Ticketing", "Top Commands",  "War & CWL", "Legends & Trophies", "Utility", "Link_and_Eval", "Setups", "Settings", "Other"]
 
 class help(commands.Cog):
 
