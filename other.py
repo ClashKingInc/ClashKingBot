@@ -68,6 +68,9 @@ class misc(commands.Cog, name="Other"):
                 embeds.append(embed)
                 num = 0
                 text = ""
+
+        if not embeds and text == "":
+            text = "No Members in Role"
         if text != "":
             embed = disnake.Embed(title=f"{len(role.members)} Users in {role.name}", description=text, color=disnake.Color.green())
             if ctx.guild.icon is not None:

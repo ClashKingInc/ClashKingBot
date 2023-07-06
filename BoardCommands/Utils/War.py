@@ -272,7 +272,7 @@ async def opp_overview(bot: CustomClient, war: coc.ClanWar):
                                                                               f"Leader: {leader.name}\n"
                                                                               f"Level: {clan.level} \n"
                                                                               f"Members: <:people:932212939891552256>{clan.member_count}/50\n\n"
-                                                                              f"CWL: {leagueAndTrophies(str(clan.war_league))}{str(clan.war_league)}\n"
+                                                                              f"CWL: {cwl_league_emojis(str(clan.war_league))}{str(clan.war_league)}\n"
                                                                               f"Wars Won: <:warwon:932212939899949176>{warwin}\nWars Lost: <:warlost:932212154164183081>{warloss}\n"
                                                                               f"War Streak: <:warstreak:932212939983847464>{winstreak}\nWinratio: <:winrate:932212939908337705>{winrate}\n\n"
                                                                               f"Description: {clan.description}",

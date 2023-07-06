@@ -20,7 +20,7 @@ class boost(commands.Cog, name="Super Troops"):
         self.bot = bot
 
     @commands.slash_command(name="boost", description="Get list of troops listed in a certain clan (or all family clans if blank)")
-    async def boosting(self, ctx: disnake.ApplicationCommandInteraction, clan:str=None):
+    async def boosting(self, ctx: disnake.ApplicationCommandInteraction, clan:str= None):
         server = CustomServer(ctx.guild, self.bot)
         list_clans = []
         if clan is None:

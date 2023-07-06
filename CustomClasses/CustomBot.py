@@ -150,13 +150,14 @@ class CustomClient(commands.AutoShardedBot):
 
     async def create_new_badge_emoji(self, url:str):
         if not self.user.public_flags.verified_bot and self.user.id != 808566437199216691 and self.badge_guild == []:
-            have_created_guilds = disnake.utils.get(self.guilds, name="Badge Guild 1")
+            guilds = await self.fetch_guilds().flatten()
+            have_created_guilds = disnake.utils.get(guilds, name="Badge Guild 1")
             if have_created_guilds is None:
-                for x in range(1,6):
+                for x in range(1,4):
                     guild = await self.create_guild(name=f"Badge Guild {x}", icon=self.user.avatar)
                     self.badge_guild.append(guild.id)
             else:
-                for x in range(1, 6):
+                for x in range(1, 4):
                     guild = disnake.utils.get(self.guilds, name=f"Badge Guild {x}")
                     self.badge_guild.append(guild.id)
         elif not self.badge_guild:

@@ -329,7 +329,8 @@ class FamCommands(commands.Cog):
                                                       season=season,
                                                       footer_icon=footer_icon,
                                                       title_name=f"{guild.name} {type} Progress",
-                                                      limit=limit)
+                                                        limit=limit)
+            buttons = disnake.ui.ActionRow()
             buttons.append_item(disnake.ui.Button(
                 label="", emoji=self.bot.emoji.magnify_glass.partial_emoji,
                 style=disnake.ButtonStyle.grey, custom_id=f"fmp_{season}_{limit}_{guild.id}_lootprogress"))
