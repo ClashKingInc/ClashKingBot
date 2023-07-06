@@ -9,6 +9,7 @@ from CustomClasses.CustomBot import CustomClient
 from utils.components import create_components
 from utils.constants import DEFAULT_EVAL_ROLE_TYPES, ROLE_TREATMENT_TYPES
 from utils.general import get_clan_member_tags
+from Exceptions.CustomExceptions import ExpiredComponents
 
 async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disnake.Member],
                      test: bool, change_nick, ctx: disnake.ApplicationCommandInteraction = None,
@@ -540,9 +541,9 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
             res: disnake.MessageInteraction = await bot.wait_for("message_interaction", check=check,
                                                                       timeout=600)
         except:
-            await msg.edit(components=[])
-            break
+            raise ExpiredComponents
 
+        await res.response.defer()
         if res.data.custom_id == "Previous":
             current_page -= 1
             await res.edit_original_message(embed=embeds[current_page],

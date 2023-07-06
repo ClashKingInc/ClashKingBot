@@ -122,12 +122,12 @@ if not IS_CUSTOM and IS_BETA:
 if not IS_BETA and not IS_CUSTOM:
     initial_extensions += [
         "Background.reddit_recruit_feed",
-        #"Background.region_lb_update"
+        "Background.region_lb_update"
     ]
 
 if not IS_BETA:
     initial_extensions += [
-        #"Background.Logs.auto_eval",
+        "Background.Logs.auto_eval",
         "Background.Logs.ban_events",
         "Background.Logs.clan_capital_events",
         "Background.Logs.donations",
@@ -179,7 +179,7 @@ if __name__ == "__main__":
         except Exception as extension:
             traceback.print_exc()
     if not IS_BETA:
-        #bot.loop.create_task(player_websocket())
+        bot.loop.create_task(player_websocket())
         bot.loop.create_task(clan_websocket())
         bot.loop.create_task(war_websocket())
     bot.run(TOKEN)

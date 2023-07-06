@@ -1480,7 +1480,6 @@ class TicketCommands(commands.Cog):
         return (modal_inter, embed)
 
     async def generate_embed(self, our_embed: dict, embed=None):
-        print(embed.to_dict())
         if embed is None:
             embed = disnake.Embed()
         for attribute, embed_field in our_embed.items():
