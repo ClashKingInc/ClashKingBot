@@ -32,7 +32,7 @@ class LegendEvents(commands.Cog):
             change = f"{self.bot.emoji.shield} {trophy_change} trophies"
             type = "logs.legend_log_defenses.webhook"
 
-        embed = disnake.Embed(title=f"{player.name} | {player.clan.name}", description=f"{change} | [profile]({player.share_link})", color=color)
+        embed = disnake.Embed(description=f"{change} | [profile]({player.share_link})", color=color)
         embed.set_author(name=f"{player.name} | {player.clan.name}", icon_url=player.clan.badge.url)
         embed.set_footer(text=f"{player.trophies}", icon_url=self.bot.emoji.legends_shield.partial_emoji.url)
         embed.timestamp = utc_time
