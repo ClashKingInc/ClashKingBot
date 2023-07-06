@@ -26,13 +26,13 @@ class SetupCommands(commands.Cog , name="Setup"):
 
     @commands.slash_command(name="setup")
     async def setup(self, ctx: disnake.ApplicationCommandInteraction):
-        await ctx.response.defer()
-
+        pass
 
     @setup.sub_command(name="autoeval", description="Turn autoeval on/off")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def autoeval(self, ctx: disnake.ApplicationCommandInteraction, option=commands.Param(choices=["On", "Off"]),
                        log: disnake.TextChannel = commands.Param(default=None, name="log")):
+        await ctx.response.defer()
 
         await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"autoeval": option == "On"}})
 
@@ -47,6 +47,8 @@ class SetupCommands(commands.Cog , name="Setup"):
     async def set_log_add(self, ctx: disnake.ApplicationCommandInteraction,
                           clan: coc.Clan = commands.Param(converter=clan_converter), mode:str = commands.Param(choices=["Add/Edit", "Remove"]),
                           channel: Union[disnake.TextChannel, disnake.Thread] = commands.Param(default=None)):
+        await ctx.response.defer()
+
         results = await self.bot.clan_db.find_one({"$and": [
             {"tag": clan.tag},
             {"server": ctx.guild.id}
@@ -126,6 +128,8 @@ class SetupCommands(commands.Cog , name="Setup"):
             role_to_ping: role to ping when a new recruit appears
             remove: option to remove this feed
         """
+        await ctx.response.defer()
+
         if remove is None:
             role_id = None if role_to_ping is None else role_to_ping.id
             await self.bot.server_db.update_one({"server": ctx.guild.id},
@@ -146,6 +150,7 @@ class SetupCommands(commands.Cog , name="Setup"):
     @setup.sub_command(name="countdowns", description="Create countdowns for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def voice_setup(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
 
         types = ["CWL", "Clan Games", "Raid Weekend", "EOS", "Clan Member Count"]
         emojis = [self.bot.emoji.cwl_medal, self.bot.emoji.clan_games, self.bot.emoji.raid_medal, self.bot.emoji.trophy, self.bot.emoji.person]

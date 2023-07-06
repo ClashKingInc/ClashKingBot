@@ -176,17 +176,18 @@ class misc(commands.Cog, name="Settings"):
 
     @set.sub_command(name="webhook-info", description="Set the profile pictures/name for all CK webhooks in server")
     async def set_pfps(self, ctx: disnake.ApplicationCommandInteraction, picture: disnake.Attachment, name:str):
-        await ctx.response.defer(ephemeral=True)
+        await ctx.edit_original_message(content="<a:loading:948121999526461440> Updating, this can take several minutes.")
         db_server = await self.bot.get_custom_server(guild_id=ctx.guild_id)
         for clan in db_server.clans:
             logs = [clan.join_log, clan.leave_log, clan.capital_attacks, clan.capital_donations, clan.capital_weekly_summary, clan.raid_panel, clan.donation_log, clan.super_troop_boost_log,
                     clan.role_change, clan.donation_log, clan.troop_upgrade, clan.th_upgrade, clan.league_change, clan.spell_upgrade, clan.hero_upgrade, clan.name_change, clan.war_log, clan.war_panel,
                     clan.legend_log_defenses, clan.legend_log_attacks]
-            for log in logs:
+            for log in logs[:1]:
                 if log.webhook is not None:
                     webhook = await self.bot.getch_webhook(log.webhook)
+                    print("here")
                     await webhook.edit(name=name, avatar=(await picture.read()))
-        await ctx.edit_original_message(content="All logs profile picture set to:", file=(await picture.to_file()))
+        await ctx.edit_original_message(content=f"All logs profile pictures set to {name} with the following image:", file=(await picture.to_file()))
 
 
     @set.sub_command(name="category-role", description="Set a new category role for a server")
