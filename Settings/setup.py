@@ -174,20 +174,20 @@ class SetupCommands(commands.Cog , name="Setup"):
         for type in res.values:
             try:
                 if type == "Clan Games":
-                    time_ = await calculate_time(countdown_type)
+                    time_ = await calculate_time(type)
                     channel = await ctx.guild.create_voice_channel(name=f"CG {time_}")
                 elif type == "Raid Weekend":
-                    time_ = await calculate_time(countdown_type)
+                    time_ = await calculate_time(type)
                     channel = await ctx.guild.create_voice_channel(name=f"Raids {time_}")
                 elif type == "Clan Member Count":
                     clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
                     results = await self.bot.player_stats.count_documents(filter={"clan_tag": {"$in": clan_tags}})
                     channel = await ctx.guild.create_voice_channel(name=f"{results} Clan Members")
                 elif type == "EOS":
-                    time_ = await calculate_time(countdown_type)
+                    time_ = await calculate_time(type)
                     channel = await ctx.guild.create_voice_channel(name=f"EOS {time_}")
                 else:
-                    time_ = await calculate_time(countdown_type)
+                    time_ = await calculate_time(type)
                     channel = await ctx.guild.create_voice_channel(name=f"{type} {time_}")
 
                 overwrite = disnake.PermissionOverwrite()
