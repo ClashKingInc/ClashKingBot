@@ -163,7 +163,7 @@ class SetupCommands(commands.Cog , name="Setup"):
 
         await ctx.edit_original_message(content="**Select Countdowns/Statbars to Create Below**", components=dropdown)
 
-        res: disnake.MessageInteraction = await self.interaction_handler(ctx=ctx)
+        res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
 
 
         for countdown_type in res.values:
@@ -181,15 +181,15 @@ class SetupCommands(commands.Cog , name="Setup"):
                 else:
                     time_ = await calculate_time(countdown_type)
                     channel = await ctx.guild.create_voice_channel(name=f"{type} {time_}")
+
+                overwrite = disnake.PermissionOverwrite()
+                overwrite.view_channel = True
+                overwrite.connect = False
+                await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
             except disnake.Forbidden:
                 embed = disnake.Embed(description="Bot requires admin to create & set permissions for channel. **Channel will not update**",
                                       color=disnake.Color.red())
                 return await ctx.send(embed=embed)
-
-            overwrite = disnake.PermissionOverwrite()
-            overwrite.view_channel = True
-            overwrite.connect = False
-            await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
 
             if type == "CWL":
                 await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"cwlCountdown": channel.id}})
