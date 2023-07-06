@@ -6,6 +6,7 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer
 from .eval_logic import eval_logic, is_in_family
 from utils.constants import DEFAULT_EVAL_ROLE_TYPES 
+from utils.discord_utils import interaction_handler
 
 class eval(commands.Cog, name="Eval"):
     """A couple of simple commands."""
@@ -51,13 +52,10 @@ class eval(commands.Cog, name="Eval"):
             )
             dropdown = [disnake.ui.ActionRow(select)]
             embed =disnake.Embed(description="**Choose which role types you would like to eval:**", color=disnake.Color.green())
-            msg = await ctx.edit_original_message(embed=embed, components=dropdown)
-            try:
-                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", timeout=600)
-            except:
-                return
+            await ctx.edit_original_message(embed=embed, components=dropdown)
+            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
             default_eval = res.values
-            await res.response.edit_message(components = [])
+            await res.edit_original_message(components = [])
         else:
             default_eval = None
         server = CustomServer(guild=ctx.guild, bot=self.bot)
