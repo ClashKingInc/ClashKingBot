@@ -175,6 +175,7 @@ class misc(commands.Cog, name="Settings"):
                 await ctx.followup.send(embeds=embeds)
 
     @set.sub_command(name="webhook-info", description="Set the profile pictures/name for all CK webhooks in server")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def set_pfps(self, ctx: disnake.ApplicationCommandInteraction, picture: disnake.Attachment, name:str):
         await ctx.edit_original_message(content="<a:loading:948121999526461440> Updating, this can take several minutes.")
         db_server = await self.bot.get_custom_server(guild_id=ctx.guild_id)
