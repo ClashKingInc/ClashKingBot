@@ -21,6 +21,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
     async def clan_converter(self, clan: str):
         clan = await self.bot.getClan(clan_tag=clan, raise_exceptions=True)
+        if clan is None:
+            return coc.errors.NotFound
         if clan.member_count == 0:
             raise coc.errors.NotFound
         return clan
