@@ -190,7 +190,6 @@ async def clan_overview(bot: CustomClient, clan: coc.Clan, guild: disnake.Guild)
 
 async def linked_players(bot: CustomClient, guild: disnake.Guild, clan: coc.Clan, player_links):
     embed_description = f"{bot.emoji.discord}`Name           ` **Discord**\n"
-    embed_footer = None
 
     player_link_count = 0
     player_link_dict = dict(player_links)
@@ -205,11 +204,10 @@ async def linked_players(bot: CustomClient, guild: disnake.Guild, clan: coc.Clan
             name = player.name
 
         player_link_count += 1
-        member = guild.get_member(player_link)
+        member = bot.get_user(player_link)
         # member not found in server
         if member is None:
             member = ""
-            embed_footer = "Discord blank if linked but not on this server."
 
         embed_description += f'\u200e{bot.emoji.green_tick}`{name:14}` \u200e{member}\n'
 
@@ -220,9 +218,6 @@ async def linked_players(bot: CustomClient, guild: disnake.Guild, clan: coc.Clan
     embed = Embed(
         title=f"{clan.name}: {player_link_count}/{clan.member_count} linked",
         description=embed_description, color=Color.green())
-
-    if embed_footer is not None:
-        embed.set_footer(text=embed_footer)
 
     return embed
 
