@@ -80,6 +80,8 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
                     "achievement" : achievement_role_list, "status" : status_role_list}
 
     for eval_type in DEFAULT_EVAL_ROLE_TYPES:
+        if eval_type == "nicknames":
+            continue
         if eval_type not in role_types_to_eval:
             ignored_roles += type_to_item.get(eval_type)
 

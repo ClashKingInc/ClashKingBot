@@ -288,6 +288,8 @@ def custom_round(number: int, add_percent=None):
     return number
 
 def convert_seconds(seconds):
+    if seconds is None:
+        return "N/A"
     seconds = seconds % (24 * 3600)
     hour = seconds // 3600
     seconds %= 3600

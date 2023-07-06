@@ -174,6 +174,8 @@ async def update_war_message(bot: CustomClient, war: coc.ClanWar, db_clan: Datab
     war_league = clan.war_league if clan is not None else None
     embed = await main_war_page(bot=bot, war=war, war_league=war_league)
     try:
+        if channel_id is None or message_id is None:
+            raise Exception
         warlog_channel = await bot.getch_channel(channel_id=channel_id, raise_exception=True)
         message: disnake.WebhookMessage = await warlog_channel.fetch_message(message_id)
         await message.edit(embed=embed)
@@ -193,7 +195,7 @@ async def update_war_message(bot: CustomClient, war: coc.ClanWar, db_clan: Datab
             await log.set_webhook(id=None)
             return
 
-        if thread is not None:
+        if thread is None:
             message = await webhook.send(embed=embed, components=button, wait=True)
         else:
             message = await webhook.send(embed=embed, components=button, thread=thread, wait=True)

@@ -57,6 +57,11 @@ import numpy as np
 from utils.war import create_reminders
 from main import scheduler
 from FamilyManagement.Reminders import SendReminders
+from Background.Logs.join_leave_events import join_leave_events
+from CustomClasses.CustomServer import DatabaseClan
+from utils.clash import heros
+from utils.clash import leagueAndTrophies
+
 
 class OwnerCommands(commands.Cog):
 
@@ -83,13 +88,11 @@ class OwnerCommands(commands.Cog):
                 created += f"{emoji} - `<:{emoji.name}:{emoji.id}>`\n"
         await ctx.send(content=created)
 
+
     @commands.slash_command(name="test", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
-
-        await SendReminders.roster_reminder(bot=self.bot)
-
-
+        pass
 
 
 

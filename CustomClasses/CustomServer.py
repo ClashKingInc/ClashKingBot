@@ -201,9 +201,9 @@ class Join_Log(ClanLog):
 class WarPanel(ClanLog):
     def __init__(self, parent: DatabaseClan, type: str):
         super().__init__(parent=parent, type=type)
-        self.war_id = self.data.get("war_id", False)
-        self.message_id = self.data.get("war_message", False)
-        self.channel_id = self.data.get("war_channel", False)
+        self.war_id = self.data.get("war_id")
+        self.message_id = self.data.get("war_message")
+        self.channel_id = self.data.get("war_channel")
 
     async def set_war_id(self, war: coc.ClanWar):
         war_id = f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}"
