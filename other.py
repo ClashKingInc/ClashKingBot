@@ -278,44 +278,6 @@ class misc(commands.Cog, name="Other"):
         await ctx.send(content=f"Image set to {background_image}", ephemeral=True)
 
 
-    @commands.slash_command(name="custom-bot", description="Create your custom bot")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def custom_bot(self, ctx: disnake.ApplicationCommandInteraction, bot_token: str):
-        if not self.bot.user.public_flags.verified_bot:
-            return await ctx.send("Must run this command on the main ClashKing bot.")
-        r = await self.bot.credentials.find_one({"user": ctx.author.id})
-        if r is not None:
-            return await ctx.send("You have already created a custom bot.")
-        server = await self.bot.fetch_guild(923764211845312533)
-        try:
-            server_member = await server.fetch_member(ctx.author.id)
-        except:
-            if ctx.author.id != self.bot.owner.id:
-                return await ctx.send("Must be a part of the support server")
-            else:
-                server_member = await server.fetch_member(self.bot.owner.id)
-
-        has_premium = disnake.utils.get(server_member.roles, id=1018316361241477212)
-
-        if ctx.author.id == self.bot.owner.id:
-            has_premium = True
-        if has_premium:
-            return await ctx.send("Must be a premium bot supporter.")
-
-        await self.bot.credentials.update_one({"user": ctx.author.id}, {"$set" : {
-            "bot_token": bot_token,
-            "bot_status": "",
-            "server": ctx.guild.id,
-            "user": ctx.author.id,
-        }}, upsert=True)
-
-        os.system(f"pm2 start main.py --interpreter=/usr/bin/python3 --custom --token {bot_token}")
-        await ctx.send(content=f"Creating your custom bot!")
-
-
-
-
-
     '''@commands.Cog.listener()
     async def on_connect(self):
         custom_commands = self.bot.custom_commands.find({})
