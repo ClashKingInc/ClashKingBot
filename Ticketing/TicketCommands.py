@@ -1034,7 +1034,7 @@ class TicketCommands(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: disnake.Message):
         try:
-            if message.content[:2] == "-/":
+            if message.content[:2] == "-/" and self.bot.user.public_flags.verified_bot:
                 command = self.bot.get_global_command_named(name=message.content.replace("-/","").split(" ")[0])
                 await message.channel.send(f"</{message.content.replace('-/','')}:{command.id}>")
 

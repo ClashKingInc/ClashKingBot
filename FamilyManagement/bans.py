@@ -62,7 +62,7 @@ class banlists(commands.Cog, name="Bans"):
 
     @ban.sub_command(name='add', description="Add player to server ban list")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def ban_add(self, ctx: disnake.ApplicationCommandInteraction, tag: str, reason: str = "None"):
+    async def ban_add(self, ctx: disnake.ApplicationCommandInteraction, tag: str, reason: str = "None", rollover_days: int = commands.Param(name="rollover_days", default=None)):
         """
             Parameters
             ----------

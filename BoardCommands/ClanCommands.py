@@ -444,7 +444,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
                               custom_id=f"clangames_"))
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
-
     #AUTOCOMPLETES
     @donations.autocomplete("season")
     @activity.autocomplete("season")

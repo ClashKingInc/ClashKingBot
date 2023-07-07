@@ -239,7 +239,6 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
             return await player_embeds.cwl_stalk(bot=self.bot,ctx=ctx, member=member)
 
 
-
     @commands.slash_command(name="game-rank", description="Get xp rank for in game activities")
     async def game_rank(self, ctx: disnake.ApplicationCommandInteraction, member: disnake.Member = None):
         await ctx.response.defer()
