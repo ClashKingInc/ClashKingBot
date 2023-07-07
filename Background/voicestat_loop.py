@@ -94,7 +94,7 @@ class VoiceStatCron(commands.Cog):
                     await self.bot.server_db.update_one({"server": server}, {'$set': {"memberCount": None}})
 
 
-        for clan_result in await self.bot.clan_db.find({"warCountdown" : {"$ne" : None}}):
+        for clan_result in await self.bot.clan_db.find({"warCountdown" : {"$ne" : None}}).to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=clan_result)
             if db_clan.server_id not in self.bot.OUR_GUILDS:
                 continue
