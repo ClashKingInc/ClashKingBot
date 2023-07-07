@@ -43,10 +43,6 @@ class BackgroundCache(commands.Cog):
                     pass
         self.bot.OUR_GUILDS = x
 
-    @guilds.before_loop
-    async def before_printer(self):
-        print('waiting...')
-        await self.bot.wait_until_ready()
 
 def setup(bot: CustomClient):
 
