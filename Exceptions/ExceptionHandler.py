@@ -46,6 +46,14 @@ class ExceptionHandler(commands.Cog):
             else:
                 return await ctx.send(embed=embed)
 
+        if isinstance(error, coc.errors.PrivateWarLog):
+            embed = disnake.Embed(description=f"This Clan has a Private War Log :/",
+                                  color=disnake.Color.red())
+            if not ctx.response.is_done():
+                return await ctx.edit_original_message(embed=embed)
+            else:
+                return await ctx.send(embed=embed)
+
         if isinstance(error, NotValidReminderTime):
             embed = disnake.Embed(description="Not a valid reminder time, please use options from the autocomplete.", color=disnake.Color.red())
             return await ctx.send(embed=embed)
