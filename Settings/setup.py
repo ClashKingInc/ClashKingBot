@@ -179,10 +179,10 @@ class SetupCommands(commands.Cog , name="Setup"):
 
         await ctx.edit_original_message(content="**Select Countdowns/Statbars to Create Below**", components=dropdown)
 
-        return
         res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
 
 
+        results = []
         for type in res.values:
             try:
                 if type == "Clan Games":
@@ -199,7 +199,8 @@ class SetupCommands(commands.Cog , name="Setup"):
                     time_ = await calculate_time(type)
                     channel = await ctx.guild.create_voice_channel(name=f"EOS {time_}")
                 elif type == "War":
-                    time_ = await calculate_time(type, clan=clan)
+                    war = await self.bot.get_clanwar(clanTag=clan.tag)
+                    time_ = await calculate_time(type, war=war)
                     channel = await ctx.guild.create_voice_channel(name=f"{clan.name}: {time_}")
                 else:
                     time_ = await calculate_time(type)
@@ -209,12 +210,13 @@ class SetupCommands(commands.Cog , name="Setup"):
                 overwrite.view_channel = True
                 overwrite.connect = False
                 await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
+                results.append((type, channel))
             except disnake.Forbidden:
                 embed = disnake.Embed(description="Bot requires admin to create & set permissions for channel. **Channel will not update**",
                                       color=disnake.Color.red())
                 return await ctx.send(embed=embed)
 
-        for type in res.values:
+        for type, channel in res.values:
             if type == "CWL":
                 await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"cwlCountdown": channel.id}})
             elif type == "Clan Games":
@@ -223,6 +225,8 @@ class SetupCommands(commands.Cog , name="Setup"):
                 await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"raidCountdown": channel.id}})
             elif type == "Clan Member Count":
                 await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"memberCount": channel.id}})
+            elif type == "War":
+                await self.bot.clan_db.update_one({"$and": [{"tag": clan.tag}, {"server": ctx.guild.id}]}, {"$set" : {"warCountdown" : channel.id}})
             else:
                 await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"eosCountdown": channel.id}})
 
@@ -425,6 +429,7 @@ class SetupCommands(commands.Cog , name="Setup"):
                 except:
                     return await ctx.send(content=f"Something went wrong :/ An error occured with the message link.", ephemeral=True)
         else:
+            await ctx.response.defer()
             embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
                                   description=f"To link your account, press the link button below to get started.",
                                   color=disnake.Color.green())
@@ -436,7 +441,7 @@ class SetupCommands(commands.Cog , name="Setup"):
                                           custom_id="LINKDEMO"),
                         disnake.ui.Button(label="Help", emoji="❓", style=disnake.ButtonStyle.grey, disabled=True,
                                           custom_id="LINKDEMOHELP")]
-        await ctx.send(content=f"Welcome Message Set in {channel.mention}\n||(buttons for demo & will work on the live version)||", embed=embed, components=stat_buttons)
+        await ctx.edit_original_message(content=f"Welcome Message Set in {channel.mention}\n||(buttons for demo & will work on the live version)||", embed=embed, components=stat_buttons)
         await self.bot.server_db.update_one({"server" : ctx.guild_id}, {"$set" : {"link_channel" : channel.id, "welcome_link_embed" : embed.to_dict()}})
 
 

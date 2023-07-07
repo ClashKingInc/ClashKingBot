@@ -6,6 +6,7 @@ import pytz
 utc = pytz.utc
 
 from CustomClasses.CustomBot import CustomClient
+from CustomClasses.CustomServer import DatabaseClan
 
 class VoiceStatCron(commands.Cog):
 
@@ -91,6 +92,28 @@ class VoiceStatCron(commands.Cog):
                     await channel.edit(name=f"{results} Clan Members")
                 except (disnake.NotFound, disnake.Forbidden):
                     await self.bot.server_db.update_one({"server": server}, {'$set': {"memberCount": None}})
+
+
+        for clan_result in await self.bot.clan_db.find({"warCountdown" : {"$ne" : None}}):
+            db_clan = DatabaseClan(bot=self.bot, data=clan_result)
+            if db_clan.server_id not in self.bot.OUR_GUILDS:
+                continue
+
+            try:
+                channel = await self.bot.getch_channel(channel_id=db_clan.war_countdown, raise_exception=True)
+                war = await self.bot.get_clanwar(clanTag=db_clan.tag)
+                time_ = await calculate_time("War", war=war)
+                prev_name = channel.name
+                if ":" not in prev_name:
+                    raise disnake.NotFound
+                previous_identifier = prev_name.split(":")[0]
+                text = f"{previous_identifier}: {time_}"
+                if text != channel.name:
+                    await channel.edit(name=text)
+            except (disnake.NotFound, disnake.Forbidden):
+                await db_clan.set_war_countdown(id=None)
+
+
 
 
 

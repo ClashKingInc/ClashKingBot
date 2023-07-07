@@ -29,7 +29,7 @@ def create_superscript(num):
 
     return new_num
 
-async def calculate_time(type):
+async def calculate_time(type, war: coc.ClanWar= None):
     text = ""
     now = datetime.utcnow().replace(tzinfo=utc)
     year = now.year
@@ -189,6 +189,20 @@ async def calculate_time(type):
         else:
             text = f"in {int(days)}D {int(hrs)}H "
 
+    elif type == "War":
+        if war is None:
+            text = "Not in War"
+        elif str(war.state) == "preparation":
+            secs = war.start_time.seconds_until
+            days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
+            hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
+            mins, secs = divmod(secs, secs_per_min := 60)
+            if int(hrs) == 0:
+                text = f"in {mins}M"
+            else:
+                text = f"{hrs}H {mins}M"
+        else:
+            text = f"{war.clan.stars}⭐| {war.opponent.stars}⭐"
 
     return text
 

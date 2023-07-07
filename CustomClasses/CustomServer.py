@@ -100,6 +100,13 @@ class DatabaseClan():
         self.legend_log_attacks = ClanLog(parent=self, type="legend_log_attacks")
         self.legend_log_defenses = ClanLog(parent=self, type="legend_log_defenses")
         self.greeting = data.get("greeting", "")
+        self.war_countdown = data.get("warCountdown")
+
+    async def set_war_countdown(self, id: Union[int, None]):
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": self.tag},
+            {"server": self.server_id}
+        ]}, {'$set': {"warCountdown": id}})
 
     async def set_clan_channel(self, id: Union[int, None]):
         await self.bot.clan_db.update_one({"$and": [
