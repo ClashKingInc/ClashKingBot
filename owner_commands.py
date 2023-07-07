@@ -70,10 +70,6 @@ class OwnerCommands(commands.Cog):
         #self.bot.coc_client.add_events(self.member_attack)
         self.count = 0
 
-    @commands.Cog.listener()
-    async def on_connect(self):
-        print("connected")
-
 
     @commands.message_command(name="emoji_creator")
     async def emoji_creator(self, ctx: disnake.MessageCommandInteraction, message: disnake.Message):
@@ -205,7 +201,7 @@ class OwnerCommands(commands.Cog):
                 add = 0; text = ""
 
 
-    @commands.slash_command(name="owner_anniversary", guild_ids=[923764211845312533])
+    '''@commands.slash_command(name="owner_anniversary", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def anniversary(self, ctx: disnake.ApplicationCommandInteraction):
         guild = ctx.guild
@@ -481,10 +477,10 @@ class OwnerCommands(commands.Cog):
             things.append(UpdateOne({"war_id": war_id}, {"$set" : {"custom_id": custom_id}}))
 
         await self.bot.clan_wars.bulk_write(things)
-        print("done")
+        print("done")'''
 
 
-    @testthis.autocomplete("clan")
+    '''@testthis.autocomplete("clan")
     @raid_map.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
@@ -510,7 +506,7 @@ class OwnerCommands(commands.Cog):
             else:
                 clan_list.append(f"{clan.name} | {clan.tag}")
                 return clan_list
-        return clan_list[0:25]
+        return clan_list[0:25]'''
 
 
 def setup(bot: CustomClient):
