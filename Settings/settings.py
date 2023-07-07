@@ -80,10 +80,9 @@ class misc(commands.Cog, name="Settings"):
         await ctx.edit_original_message(embed=embed)
 
 
-    @commands.slash_command(name="member-count-warning", description="Set a warning when member count gets to a certain level")
+    @set.sub_command(name="member-count-warning", description="Set a warning when member count gets to a certain level")
     async def member_count_warning(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
                                    below: int = commands.Param(), above: int = commands.Param(), ping: disnake.Role = None, channel: Union[disnake.TextChannel, disnake.Thread] = None):
-        await ctx.response.defer()
         if channel is None:
             channel = ctx.channel
         results = await self.bot.clan_db.find_one({"$and": [

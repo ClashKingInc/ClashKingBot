@@ -278,6 +278,7 @@ class misc(commands.Cog, name="Other"):
         await ctx.send(content=f"Image set to {background_image}", ephemeral=True)
 
 
+
     '''@commands.Cog.listener()
     async def on_connect(self):
         custom_commands = self.bot.custom_commands.find({})
