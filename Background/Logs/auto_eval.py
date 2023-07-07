@@ -41,7 +41,7 @@ class AutoEval(commands.Cog):
                 discord_member = await server.getch_member(link)
                 if discord_member is None:
                     continue
-                embed = await eval_logic(bot=self.bot, guild=server, members_to_eval=[member], role_or_user=discord_member, test=False, change_nick="Off", auto_eval=True, auto_eval_tag=member.tag, return_embed=True)
+                embed = await eval_logic(bot=self.bot, guild=server, members_to_eval=[discord_member], role_or_user=discord_member, test=False, change_nick="Off", auto_eval=True, auto_eval_tag=member.tag, return_embed=True)
 
 
 
