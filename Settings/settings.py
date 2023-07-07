@@ -221,6 +221,12 @@ class misc(commands.Cog, name="Settings"):
                 await webhook.edit(name=name, avatar=(await picture.read()))
         await ctx.edit_original_message(content=f"All logs profile pictures set to {name} with the following image:", file=(await picture.to_file()))
 
+    @set.sub_command(name="bot-status", description="Set the bot status for a custom bot (only works if you have one)")
+    @commands.is_owner()
+    async def set_status(self, ctx: disnake.ApplicationCommandInteraction, ):
+        await self.bot.change_presence(activity=disnake.Activity(name=f'{len_g} servers | Shard {count + 1}' ,type=3), shard_id=shard.id)
+
+
 
     @set.sub_command(name="category-role", description="Set a new category role for a server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())

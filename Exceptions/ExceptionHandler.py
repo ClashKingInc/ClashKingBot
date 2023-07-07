@@ -54,6 +54,14 @@ class ExceptionHandler(commands.Cog):
             else:
                 return await ctx.send(embed=embed)
 
+        if isinstance(error, disnake.ext.commands.NotOwner):
+            embed = disnake.Embed(description=f"You are not the owner of this bot. {self.bot.owner.mention} is.",
+                                  color=disnake.Color.red())
+            if not ctx.response.is_done():
+                return await ctx.edit_original_message(embed=embed)
+            else:
+                return await ctx.send(embed=embed)
+
         if isinstance(error, NotValidReminderTime):
             embed = disnake.Embed(description="Not a valid reminder time, please use options from the autocomplete.", color=disnake.Color.red())
             return await ctx.send(embed=embed)

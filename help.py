@@ -18,7 +18,7 @@ setups = ["Setup", "Clan Setup", "Board Setup", "Reminders"]
 settings = ["Settings"]
 other = ["Other"]
 
-pages = [players, clans, family, family_management, trophies, war, utility, ticketing, link, setups, settings, other]
+pages = [players, clans, family, family_management, ticketing, top, war, trophies, utility,  link, setups, settings, other]
 page_names = ["Player Commands", "Clan Commands", "Family Commands", "Family Management", "Ticketing", "Top Commands",  "War & CWL", "Legends & Trophies", "Utility", "Link_and_Eval", "Setups", "Settings", "Other"]
 
 class help(commands.Cog):
