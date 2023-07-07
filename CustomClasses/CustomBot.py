@@ -741,8 +741,9 @@ class CustomClient(commands.AutoShardedBot):
             if raise_exceptions:
                 raise
             return None
-        if clan.member_count == 0:
-            return None
+        if not raise_exceptions:
+            if clan.member_count == 0:
+                return None
         return clan
 
     async def get_current_war_times(self, tags: list):

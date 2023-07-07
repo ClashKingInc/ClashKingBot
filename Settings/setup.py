@@ -149,11 +149,22 @@ class SetupCommands(commands.Cog , name="Setup"):
 
     @setup.sub_command(name="countdowns", description="Create countdowns for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def voice_setup(self, ctx: disnake.ApplicationCommandInteraction):
+    async def voice_setup(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(default=None, converter=clan_converter)):
+        """
+            Parameters
+            ----------
+            clan: only for war countdowns
+        """
         await ctx.response.defer()
 
-        types = ["CWL", "Clan Games", "Raid Weekend", "EOS", "Clan Member Count"]
-        emojis = [self.bot.emoji.cwl_medal, self.bot.emoji.clan_games, self.bot.emoji.raid_medal, self.bot.emoji.trophy, self.bot.emoji.person]
+        types = ["CWL", "Clan Games", "Raid Weekend", "EOS", "Clan Member Count", "War"]
+        emojis = [self.bot.emoji.cwl_medal, self.bot.emoji.clan_games, self.bot.emoji.raid_medal, self.bot.emoji.trophy, self.bot.emoji.person, self.bot.emoji.war_star]
+        if clan is None:
+            types = types[:-1]
+            emojis = emojis[:-1]
+        else:
+            types = types[-1:]
+            emojis = emojis[-1:]
         options = []
         for type, emoji in zip(types, emojis):
             options.append(disnake.SelectOption(label=type if type != "EOS" else "EOS (End of Season)", emoji=emoji.partial_emoji, value=type))
@@ -168,6 +179,7 @@ class SetupCommands(commands.Cog , name="Setup"):
 
         await ctx.edit_original_message(content="**Select Countdowns/Statbars to Create Below**", components=dropdown)
 
+        return
         res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
 
 
@@ -186,6 +198,9 @@ class SetupCommands(commands.Cog , name="Setup"):
                 elif type == "EOS":
                     time_ = await calculate_time(type)
                     channel = await ctx.guild.create_voice_channel(name=f"EOS {time_}")
+                elif type == "War":
+                    time_ = await calculate_time(type, clan=clan)
+                    channel = await ctx.guild.create_voice_channel(name=f"{clan.name}: {time_}")
                 else:
                     time_ = await calculate_time(type)
                     channel = await ctx.guild.create_voice_channel(name=f"{type} {time_}")
@@ -216,6 +231,7 @@ class SetupCommands(commands.Cog , name="Setup"):
         if ctx.guild.icon is not None:
             embed.set_thumbnail(url=ctx.guild.icon.url)
         await res.edit_original_message(content="", embed=embed, components=[])
+
 
     '''@setup.sub_command(name="autoboards", description="Create family autoboards for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -427,6 +443,7 @@ class SetupCommands(commands.Cog , name="Setup"):
 
 
     @set_log_add.autocomplete("clan")
+    @voice_setup.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
