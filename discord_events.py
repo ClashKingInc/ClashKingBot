@@ -10,6 +10,7 @@ from CustomClasses.CustomBot import CustomClient
 import sentry_sdk
 from FamilyManagement.Reminders import SendReminders
 from utils.war import create_reminders, send_or_update_war_end, send_or_update_war_start
+has_started = False
 
 class DiscordEvents(commands.Cog):
 
@@ -25,85 +26,88 @@ class DiscordEvents(commands.Cog):
     @commands.Cog.listener()
     async def on_connect(self):
         print("connected")
-        await asyncio.sleep(60)
-        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "1 hr"], day_of_week="mon", hour=6, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "2 hr"], day_of_week="mon", hour=5, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "4 hr"], day_of_week="mon", hour=3, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "6 hr"], day_of_week="mon", hour=1, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "8 hr"],day_of_week="sun", hour=23, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "12 hr"], day_of_week="sun", hour=19, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "16 hr"], day_of_week="sun", hour=15, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "24 hr"], day_of_week="sun", hour=7, misfire_grace_time=None)
+        global has_started
+        if not has_started:
+            has_started = True
+            await asyncio.sleep(15)
+            scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "1 hr"], day_of_week="mon", hour=6, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "2 hr"], day_of_week="mon", hour=5, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "4 hr"], day_of_week="mon", hour=3, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "6 hr"], day_of_week="mon", hour=1, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "8 hr"],day_of_week="sun", hour=23, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "12 hr"], day_of_week="sun", hour=19, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "16 hr"], day_of_week="sun", hour=15, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_capital_reminder, trigger="cron", args=[self.bot, "24 hr"], day_of_week="sun", hour=7, misfire_grace_time=None)
 
-        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "144 hr"], day=22, hour=8, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "120 hr"], day=23, hour=8, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "96 hr"], day=24, hour=8, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "72 hr"], day=25, hour=8, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "48 hr"], day=26, hour=8, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "36 hr"], day=26, hour=20, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "24 hr"], day=27, hour=8, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "12 hr"], day=27, hour=20, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "6 hr"], day=28, hour=2, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "4 hr"], day=28, hour=4, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "2 hr"], day=28, hour=6, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "1 hr"], day=28, hour=7, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "144 hr"], day=22, hour=8, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "120 hr"], day=23, hour=8, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "96 hr"], day=24, hour=8, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "72 hr"], day=25, hour=8, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "48 hr"], day=26, hour=8, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "36 hr"], day=26, hour=20, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "24 hr"], day=27, hour=8, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "12 hr"], day=27, hour=20, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "6 hr"], day=28, hour=2, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "4 hr"], day=28, hour=4, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "2 hr"], day=28, hour=6, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.clan_games_reminder, trigger="cron", args=[self.bot, "1 hr"], day=28, hour=7, misfire_grace_time=None)
 
-        scheduler.add_job(SendReminders.inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
-        scheduler.add_job(SendReminders.roster_reminder, trigger='interval', args=[self.bot], minutes=5, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
+            scheduler.add_job(SendReminders.roster_reminder, trigger='interval', args=[self.bot], minutes=5, misfire_grace_time=None)
 
-        tags = await self.bot.clan_db.distinct("tag", filter={"server" : {"$in" : [guild.id for guild in self.bot.guilds]}})
-        self.bot.clan_list = tags
+            tags = await self.bot.clan_db.distinct("tag", filter={"server" : {"$in" : [guild.id for guild in self.bot.guilds]}})
+            self.bot.clan_list = tags
 
-        reminder_tags = await self.bot.reminders.distinct("clan", filter={"$and" : [{"type" : "War"}, {"server" : {"$in" : [guild.id for guild in self.bot.guilds]}}]})
-        current_war_times = await self.bot.get_current_war_times(tags=reminder_tags)
-        for tag in current_war_times.keys():
-            new_war, war_end_time = current_war_times[tag]
-            try:
-                if new_war.state == "preparation":
-                    scheduler.add_job(send_or_update_war_start, 'date', run_date=new_war.start_time.time,
-                                      args=[self.bot, new_war.clan.tag], id=f"war_start_{new_war.clan.tag}",
-                                      name=f"{new_war.clan.tag}_war_start", misfire_grace_time=None)
-                if new_war.end_time.seconds_until >= 0:
-                    scheduler.add_job(send_or_update_war_end, 'date', run_date=new_war.end_time.time,
-                                      args=[self.bot, new_war.clan.tag, int(new_war.preparation_start_time.time.timestamp())], id=f"war_end_{new_war.clan.tag}",
-                                      name=f"{new_war.clan.tag}_war_end", misfire_grace_time=None)
-            except:
-                pass
+            reminder_tags = await self.bot.reminders.distinct("clan", filter={"$and" : [{"type" : "War"}, {"server" : {"$in" : [guild.id for guild in self.bot.guilds]}}]})
+            current_war_times = await self.bot.get_current_war_times(tags=reminder_tags)
+            for tag in current_war_times.keys():
+                new_war, war_end_time = current_war_times[tag]
+                try:
+                    if new_war.state == "preparation":
+                        scheduler.add_job(send_or_update_war_start, 'date', run_date=new_war.start_time.time,
+                                          args=[self.bot, new_war.clan.tag], id=f"war_start_{new_war.clan.tag}",
+                                          name=f"{new_war.clan.tag}_war_start", misfire_grace_time=None)
+                    if new_war.end_time.seconds_until >= 0:
+                        scheduler.add_job(send_or_update_war_end, 'date', run_date=new_war.end_time.time,
+                                          args=[self.bot, new_war.clan.tag, int(new_war.preparation_start_time.time.timestamp())], id=f"war_end_{new_war.clan.tag}",
+                                          name=f"{new_war.clan.tag}_war_end", misfire_grace_time=None)
+                except:
+                    pass
 
-            reminder_times = await self.bot.get_reminder_times(clan_tag=tag)
-            try:
-                await self.bot.war_client.register_war(clan_tag=tag)
-            except:
-                pass
-            acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times, war_end_time=war_end_time)
-            await create_reminders(bot=self.bot, times=acceptable_times, clan_tag=tag)
+                reminder_times = await self.bot.get_reminder_times(clan_tag=tag)
+                try:
+                    await self.bot.war_client.register_war(clan_tag=tag)
+                except:
+                    pass
+                acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times, war_end_time=war_end_time)
+                await create_reminders(bot=self.bot, times=acceptable_times, clan_tag=tag)
 
-        scheduler.print_jobs()
+            scheduler.print_jobs()
 
-        if self.bot.user.public_flags.verified_bot:
-            for g in self.bot.guilds:
-                results = await self.bot.server_db.find_one({"server": g.id})
-                if results is None:
-                    await self.bot.server_db.insert_one({
-                        "server": g.id,
-                        "prefix": ".",
-                        "banlist": None,
-                        "greeting": None,
-                        "cwlcount": None,
-                        "topboardchannel": None,
-                        "tophour": None,
-                        "lbboardChannel": None,
-                        "lbhour": None
-                    })
+            if self.bot.user.public_flags.verified_bot:
+                for g in self.bot.guilds:
+                    results = await self.bot.server_db.find_one({"server": g.id})
+                    if results is None:
+                        await self.bot.server_db.insert_one({
+                            "server": g.id,
+                            "prefix": ".",
+                            "banlist": None,
+                            "greeting": None,
+                            "cwlcount": None,
+                            "topboardchannel": None,
+                            "tophour": None,
+                            "lbboardChannel": None,
+                            "lbhour": None
+                        })
 
-            '''for x in range(6, 15):
-                os.system(f"pm2 delete {x}")
+                '''for x in range(6, 15):
+                    os.system(f"pm2 delete {x}")
+    
+                tokens = await self.bot.credentials.distinct("bot_token")
+                for token in tokens:
+                    os.system(f"pm2 start main.py --interpreter=/usr/bin/python3 --custom --token {token}")'''
 
-            tokens = await self.bot.credentials.distinct("bot_token")
-            for token in tokens:
-                os.system(f"pm2 start main.py --interpreter=/usr/bin/python3 --custom --token {token}")'''
-
-        print('We have logged in')
+            print('We have logged in')
 
 
     @commands.Cog.listener()
