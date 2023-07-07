@@ -182,7 +182,7 @@ class SetupCommands(commands.Cog , name="Setup"):
         res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
 
 
-        results = []
+        results_list = []
         for type in res.values:
             try:
                 if type == "Clan Games":
@@ -210,13 +210,13 @@ class SetupCommands(commands.Cog , name="Setup"):
                 overwrite.view_channel = True
                 overwrite.connect = False
                 await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
-                results.append((type, channel))
+                results_list.append((type, channel))
             except disnake.Forbidden:
                 embed = disnake.Embed(description="Bot requires admin to create & set permissions for channel. **Channel will not update**",
                                       color=disnake.Color.red())
                 return await ctx.send(embed=embed)
 
-        for type, channel in results:
+        for type, channel in results_list:
             if type == "CWL":
                 await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"cwlCountdown": channel.id}})
             elif type == "Clan Games":
