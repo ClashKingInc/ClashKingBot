@@ -216,7 +216,7 @@ class SetupCommands(commands.Cog , name="Setup"):
                                       color=disnake.Color.red())
                 return await ctx.send(embed=embed)
 
-        for type, channel in res.values:
+        for type, channel in results:
             if type == "CWL":
                 await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"cwlCountdown": channel.id}})
             elif type == "Clan Games":
