@@ -153,7 +153,7 @@ class SetupCommands(commands.Cog , name="Setup"):
         """
             Parameters
             ----------
-            clan: only for war countdowns
+            clan: for war countdowns
         """
         await ctx.response.defer()
 
