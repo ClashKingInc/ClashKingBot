@@ -223,9 +223,15 @@ class misc(commands.Cog, name="Settings"):
 
     @set.sub_command(name="bot-status", description="Set the bot status for a custom bot (only works if you have one)")
     @commands.is_owner()
-    async def set_status(self, ctx: disnake.ApplicationCommandInteraction, ):
-        await self.bot.change_presence(activity=disnake.Activity(name=f'{len_g} servers | Shard {count + 1}' ,type=3), shard_id=shard.id)
+    async def set_status(self, ctx: disnake.ApplicationCommandInteraction, activity_type = commands.Param(choices=["Streaming", "Playing", "Listening", "Watching", "Competing"]),
+                                activity_text: str = commands.Param(name="activity_text"),
+                                status: str= commands.Param(choices=["Online", "Offline", "Idle", "DND"])):
 
+        type_convert = {"Streaming" : disnake.ActivityType.streaming, "Playing" : disnake.ActivityType.playing, "Listening" : disnake.ActivityType.listening,
+                        "Watching" : disnake.ActivityType.watching, "Competing" : disnake.ActivityType.competing}
+        status_convert = {"Online" : disnake.Status.online, "Offline" : disnake.Status.offline, "Idle" : disnake.Status.idle, "DND" : disnake.Status.do_not_disturb}
+        await self.bot.change_presence(activity=disnake.Activity(name=activity_text ,type=type_convert.get(activity_type)), status=status_convert.get(status))
+        await ctx.edit_original_message("Status changed")
 
 
     @set.sub_command(name="category-role", description="Set a new category role for a server")
