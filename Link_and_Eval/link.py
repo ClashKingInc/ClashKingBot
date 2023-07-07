@@ -7,6 +7,7 @@ from utils.search import search_results
 from .eval_logic import eval_logic
 from BoardCommands.Utils.Player import to_do_embed
 from utils.discord_utils import basic_embed_modal
+from Exceptions.CustomExceptions import MessageException
 
 class Linking(commands.Cog):
 
@@ -367,6 +368,8 @@ class Linking(commands.Cog):
         if custom_embed != "False":
             if embed_link is None:
                 modal_inter, embed = await basic_embed_modal(bot=self.bot,ctx=ctx)
+                if embed is None:
+                    raise MessageException("An Error Occured, Please Try Again.")
                 ctx = modal_inter
             else:
                 await ctx.response.defer()

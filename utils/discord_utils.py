@@ -133,7 +133,7 @@ async def basic_embed_modal(bot, ctx: disnake.ApplicationCommandInteraction, pre
             timeout=300,
         )
     except:
-        return None
+        return None, None
 
     color = disnake.Color.dark_grey()
     if modal_inter.text_values.get("color") != "":
