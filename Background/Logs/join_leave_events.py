@@ -27,6 +27,22 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
             if db_clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
+            if db_clan.member_count_warning.channel is not None and clan.member_count >= db_clan.member_count_warning.above:
+                try:
+                    channel = await self.bot.getch_channel(db_clan.member_count_warning.channel, raise_exception=True)
+                    text = f"{clan.name} is at or above {db_clan.member_count_warning.above} members"
+                    embed = disnake.Embed(description=text, color=disnake.Color.green())
+                    embed.set_thumbnail(url=clan.badge.url)
+                    content = None
+                    if db_clan.member_count_warning.role is not None:
+                        content = f"<@&{db_clan.member_count_warning.role}>"
+                    if content is None:
+                        await channel.send(embed=embed)
+                    else:
+                        await channel.send(embed=embed, content=content)
+                except (disnake.NotFound, disnake.Forbidden):
+                    await db_clan.member_count_warning.set_channel(id=None)
+
             log = db_clan.join_log
 
             player = await self.bot.getPlayer(player_tag=member.tag)
@@ -69,6 +85,22 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
             db_clan = DatabaseClan(bot=self.bot, data=cc)
             if db_clan.server_id not in self.bot.OUR_GUILDS:
                 continue
+
+            if db_clan.member_count_warning.channel is not None and clan.member_count <= db_clan.member_count_warning.below:
+                try:
+                    channel = await self.bot.getch_channel(db_clan.member_count_warning.channel, raise_exception=True)
+                    text = f"{clan.name} is at or below {db_clan.member_count_warning.below} members"
+                    embed = disnake.Embed(description=text, color=disnake.Color.red())
+                    embed.set_thumbnail(url=clan.badge.url)
+                    content = None
+                    if db_clan.member_count_warning.role is not None:
+                        content = f"<@&{db_clan.member_count_warning.role}>"
+                    if content is None:
+                        await channel.send(embed=embed)
+                    else:
+                        await channel.send(embed=embed, content=content)
+                except (disnake.NotFound, disnake.Forbidden):
+                    await db_clan.member_count_warning.set_channel(id=None)
 
             log = db_clan.leave_log
 

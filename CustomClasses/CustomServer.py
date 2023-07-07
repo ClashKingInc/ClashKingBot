@@ -101,6 +101,7 @@ class DatabaseClan():
         self.legend_log_defenses = ClanLog(parent=self, type="legend_log_defenses")
         self.greeting = data.get("greeting", "")
         self.war_countdown = data.get("warCountdown")
+        self.member_count_warning = MemberCountWarning(parent=self)
 
     async def set_war_countdown(self, id: Union[int, None]):
         await self.bot.clan_db.update_one({"$and": [
@@ -168,6 +169,31 @@ class DatabaseClan():
         ]}, {'$set': {"profile_button": set}})
 
 
+
+class MemberCountWarning():
+    def __init__(self, parent: DatabaseClan):
+        self.data = parent.data.get("member_count_warning", {})
+        self.channel = self.data.get("channel")
+        self.above = self.data.get("above")
+        self.below = self.data.get("below")
+        self.role = self.data.get("role")
+        self.parent = parent
+
+    async def set_channel(self, id: Union[int, None]):
+        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
+                                                 {"$set" : {f"member_count_warning.channel" : id}})
+
+    async def set_above(self, num: Union[int, None]):
+        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
+                                                 {"$set" : {f"member_count_warning.above" : num}})
+
+    async def set_below(self, num: Union[int, None]):
+        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
+                                                 {"$set" : {f"member_count_warning.below" : num}})
+
+    async def set_role(self, id: Union[int, None]):
+        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
+                                                 {"$set" : {f"member_count_warning.role" : id}})
 
 
 class ClanLog():

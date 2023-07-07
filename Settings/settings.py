@@ -79,6 +79,34 @@ class misc(commands.Cog, name="Settings"):
         embed.set_thumbnail(url=clan.badge.url)
         await ctx.edit_original_message(embed=embed)
 
+
+    @commands.slash_command(name="member-count-warning", description="Set a warning when member count gets to a certain level")
+    async def member_count_warning(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
+                                   below: int = commands.Param(), above: int = commands.Param(), ping: disnake.Role = None, channel: Union[disnake.TextChannel, disnake.Thread] = None):
+        await ctx.response.defer()
+        if channel is None:
+            channel = ctx.channel
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        if results is None:
+            raise ThingNotFound("**This clan is not set up on this server. Use `/addclan` to get started.**")
+        db_clan = DatabaseClan(bot=self.bot, data=results)
+        await db_clan.member_count_warning.set_above(num=above)
+        await db_clan.member_count_warning.set_below(num=below)
+        await db_clan.member_count_warning.set_channel(id=channel.id)
+        if ping is not None:
+            await db_clan.member_count_warning.set_role(id=ping.id)
+
+        text = f"Member Count Warning for {clan.name}({clan.tag}) set in {channel.id}. Will warn when reaching {below} & {above}."
+        if ping is not None:
+            text += f" Will ping {ping.mention}."
+        embed = disnake.Embed(description=text, color=disnake.Color.green())
+        embed.set_thumbnail(url=clan.badge.url)
+        await ctx.edit_original_message(embed=embed)
+
+
     @commands.slash_command(name="server-settings", description="Set settings for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def server_settings(self, ctx: disnake.ApplicationCommandInteraction, banlist_channel: Union[disnake.TextChannel, disnake.Thread] = None,
