@@ -43,7 +43,7 @@ async def main_war_page(bot: CustomClient, war: coc.ClanWar, war_league=None):
 
 
     embed = disnake.Embed(description=f"[**{war.clan.name}**]({war.clan.share_link})", color=color)
-    embed.add_field(name=f"**War Against**", value=f"[**{war.opponent.name} ({war.clan_tag})**]({war.opponent.share_link})\n­\n",inline=False)
+    embed.add_field(name=f"**War Against**", value=f"[**{war.opponent.name} ({war.opponent.tag})**]({war.opponent.share_link})\n­\n",inline=False)
 
 
     state_text = f"{war_state} ({war.team_size} vs {war.team_size})\n" \
