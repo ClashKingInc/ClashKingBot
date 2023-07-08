@@ -42,11 +42,12 @@ class AutoEval(commands.Cog):
                 if discord_member is None:
                     continue
                 embed = await eval_logic(bot=self.bot, guild=server, members_to_eval=[discord_member], role_or_user=discord_member, test=False, change_nick="Off", auto_eval=True, auto_eval_tag=member.tag, return_embed=True)
-                try:
-                    channel= await self.bot.getch_channel(data.get("autoeval_log"))
-                    await channel.send(embed=embed)
-                except:
-                    pass
+                if data.get("autoeval_log") is not None:
+                    try:
+                        channel= await self.bot.getch_channel(data.get("autoeval_log"))
+                        await channel.send(embed=embed)
+                    except:
+                        pass
 
 
 
