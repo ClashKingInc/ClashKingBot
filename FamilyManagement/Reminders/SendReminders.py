@@ -279,8 +279,12 @@ async def roster_reminder(bot: CustomClient):
         roster_time = datetime.datetime.fromtimestamp(float(reminder.roster.time), tz=utc)
         time_until_time = (roster_time - now).total_seconds()
         #goes negative if now >= time
+        #gets smaller as we get closer
 
-        if seconds_before_to_ping - time_until_time <= max_diff:
+        #we want to ping when we are closer to the time than further, so when seconds_before
+        #larger - smaller >= 0
+        #smaller - larger <= 0
+        if seconds_before_to_ping - time_until_time >= 0 and seconds_before_to_ping - time_until_time <= max_diff:
             members = []
             if reminder.ping_type == "All Roster Members":
                 members = reminder.roster.players

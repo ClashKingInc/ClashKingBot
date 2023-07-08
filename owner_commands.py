@@ -84,10 +84,16 @@ class OwnerCommands(commands.Cog):
                 created += f"{emoji} - `<:{emoji.name}:{emoji.id}>`\n"
         await ctx.send(content=created)
 
-
     @commands.slash_command(name="test", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction, top: int):
+        for x in range(4, top + 1):
+            os.system(f"pm2 restart {x}")
+
+
+    @commands.slash_command(name="restart-customs", guild_ids=[923764211845312533])
+    @commands.is_owner()
+    async def restart_custom(self, ctx: disnake.ApplicationCommandInteraction, top: int):
         for x in range(4, top+1):
             os.system(f"pm2 restart {x}")
 
