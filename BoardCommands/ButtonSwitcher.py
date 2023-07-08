@@ -39,6 +39,7 @@ clan_triggers = {
 ephemeral = {
     "clanmoreprogress",
     "fmp",
+    "clanwarcwlhist"
 }
 
 family_triggers = {
