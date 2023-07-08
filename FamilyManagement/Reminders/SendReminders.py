@@ -272,14 +272,15 @@ async def roster_reminder(bot: CustomClient):
             continue
 
         time = reminder.time.replace("hr", "")
-        seconds_till = int(float(time) * 3600)
+        seconds_before_to_ping = int(float(time) * 3600)
 
-        max_diff = 5 * 60  # time in seconds between runs
+        max_diff = 2 * 60  # time in seconds between runs
         now = datetime.datetime.now(tz=utc)
         roster_time = datetime.datetime.fromtimestamp(float(reminder.roster.time), tz=utc)
-        passed_time = (now - roster_time).total_seconds()
-        if passed_time - seconds_till >= 0 and passed_time - seconds_till <= max_diff:
+        time_until_time = (roster_time - now).total_seconds()
+        #goes negative if now >= time
 
+        if seconds_before_to_ping - time_until_time <= max_diff:
             members = []
             if reminder.ping_type == "All Roster Members":
                 members = reminder.roster.players

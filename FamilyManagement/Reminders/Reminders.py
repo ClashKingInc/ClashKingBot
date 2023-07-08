@@ -13,7 +13,6 @@ class ReminderCreation(commands.Cog, name="Reminders"):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-
     async def clan_converter(self, clan_tag: str):
         clan = await self.bot.getClan(clan_tag=clan_tag, raise_exceptions=True)
         if clan.member_count == 0:
