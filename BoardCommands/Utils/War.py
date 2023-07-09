@@ -100,6 +100,7 @@ async def roster_embed(bot: CustomClient, war: coc.ClanWar):
         lineup.append(player.map_position)
 
     x = 0
+    total_hero_strength = 0
     players = await bot.get_players(tags)
     players = sorted(players, key=lambda x: x.town_hall)
     for player in players:
@@ -107,12 +108,8 @@ async def roster_embed(bot: CustomClient, war: coc.ClanWar):
         th_emoji = emojiDictionary(th)
         place = str(lineup[x]) + "."
         place = place.ljust(3)
-        hero_total = 0
-        hero_names = ["Barbarian King", "Archer Queen", "Royal Champion", "Grand Warden"]
-        heros = player.heroes
-        for hero in heros:
-            if hero.name in hero_names:
-                hero_total += hero.level
+        hero_total = sum([hero.level for hero in player.heroes if hero.is_home_base])
+        total_hero_strength += hero_total
         if hero_total == 0:
             hero_total = ""
         roster += f"`{place}` {th_emoji} {player.name} | {hero_total}\n"
@@ -121,6 +118,7 @@ async def roster_embed(bot: CustomClient, war: coc.ClanWar):
     embed = disnake.Embed(title=f"{war.clan.name} War Roster", description=roster,
                           color=disnake.Color.green())
     embed.set_thumbnail(url=war.clan.badge.large)
+    embed.set_footer(text=f"Total Hero Stength: {total_hero_strength}")
     return embed
 
 
@@ -136,17 +134,14 @@ async def opp_roster_embed(bot: CustomClient, war):
     players = await bot.get_players(tags=tags)
     players = sorted(players, key=lambda x: x.town_hall)
 
+    total_hero_strength = 0
     for player in players:
         th = player.town_hall
         th_emoji = emojiDictionary(th)
         place = str(lineup[x]) + "."
         place = place.ljust(3)
-        hero_total = 0
-        hero_names = ["Barbarian King", "Archer Queen", "Royal Champion", "Grand Warden"]
-        heros = player.heroes
-        for hero in heros:
-            if hero.name in hero_names:
-                hero_total += hero.level
+        hero_total = sum([hero.level for hero in player.heroes if hero.is_home_base])
+        total_hero_strength += hero_total
         if hero_total == 0:
             hero_total = ""
         roster += f"`{place}` {th_emoji} {player.name} | {hero_total}\n"
@@ -155,6 +150,7 @@ async def opp_roster_embed(bot: CustomClient, war):
     embed = disnake.Embed(title=f"{war.opponent.name} War Roster", description=roster,
                           color=disnake.Color.green())
     embed.set_thumbnail(url=war.opponent.badge.large)
+    embed.set_footer(text=f"Total Hero Stength: {total_hero_strength}")
     return embed
 
 
