@@ -47,9 +47,10 @@ class OwnerCommands(commands.Cog):
 
     @commands.slash_command(name="resend", guild_ids=[923764211845312533])
     @commands.is_owner()
-    async def test(self, ctx: disnake.ApplicationCommandInteraction, guild: int, reminder_time: str):
+    async def test(self, ctx: disnake.ApplicationCommandInteraction, guild, reminder_time: str):
         await ctx.response.defer()
         bot=self.bot
+        guild = int(guild)
         for reminder in await self.bot.reminders.find( {"$and": [{"type": "Clan Capital"}, {"server": guild}, {"time": reminder_time}]}).to_list(length=None):
             reminder = Reminder(bot=bot, data=reminder)
 
