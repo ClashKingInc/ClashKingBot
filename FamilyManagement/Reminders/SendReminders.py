@@ -99,7 +99,10 @@ async def clan_capital_reminder(bot:CustomClient, reminder_time):
         missing = {}
         clan_members = {member.tag : member for member in clan.members}
         for member in raid_log_entry.members: #type: coc.RaidMember
-            del clan_members[member.tag]
+            try:
+                del clan_members[member.tag]
+            except:
+                pass
             if member.attack_count < reminder.attack_threshold:
                 missing[member.tag] = member
 

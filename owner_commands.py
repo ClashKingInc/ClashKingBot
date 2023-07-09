@@ -18,9 +18,11 @@ leagues = ["Champion League I", "Champion League II", "Champion League III",
                    "Bronze League I", "Bronze League II", "Bronze League III", "Unranked"]
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 import os
-
+import coc
+from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 
 from Link_and_Eval.eval_logic import eval_logic
+from CustomClasses.ReminderClass import Reminder
 
 class OwnerCommands(commands.Cog):
 
@@ -46,9 +48,70 @@ class OwnerCommands(commands.Cog):
     @commands.slash_command(name="test", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
+        clan = "90G8PVJR"
 
 
+        bot=self.bot
+        reminder_time = "16 hr"
+        for reminder in await self.bot.reminders.find( {"$and": [{"type": "Clan Capital"}, {"time": reminder_time}]}).to_list(length=None):
+            reminder = Reminder(bot=bot, data=reminder)
+
+            try:
+                channel = await bot.getch_channel(1043569920581062717)
+            except (disnake.NotFound, disnake.Forbidden):
+                #await reminder.delete()
+                continue
+
+            server = await bot.getch_guild(guild_id=923764211845312533)
+            if server is None:
+                continue
+
+            clan = await bot.getClan(clan_tag=reminder.clan_tag)
+            if clan is None:
+                continue
+            weekend = gen_raid_weekend_datestrings(1)[0]
+            raid_log_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=bot, limit=1)
+            if raid_log_entry is None:
+                continue
+
+            missing = {}
+            clan_members = {member.tag: member for member in clan.members}
+            for member in raid_log_entry.members:  # type: coc.RaidMember
+                try:
+                    del clan_members[member.tag]
+                except:
+                    pass
+                if member.attack_count < reminder.attack_threshold:
+                    missing[member.tag] = member
+
+            missing = missing | clan_members
+            if not missing:
+                continue
+
+            links = await bot.link_client.get_links(*list(missing.keys()))
+
+            missing_text = ""
+            for player_tag, discord_id in links:
+                player = missing.get(player_tag)
+                if isinstance(player, coc.ClanMember):
+                    num_missing = f"(0/6)"
+                else:
+                    num_missing = f"{(player.attack_limit + player.bonus_attack_limit) - player.attack_count}/{(player.attack_limit + player.bonus_attack_limit)})"
+                discord_user = await server.getch_member(discord_id)
+                if discord_user is None:
+                    missing_text += f"{num_missing} {player.name} | {player_tag}\n"
+                else:
+                    missing_text += f"{num_missing} {player.name} | {discord_user.mention}\n"
+            time = str(reminder_time).replace("hr", "")
+            badge = await self.bot.create_new_badge_emoji(url=clan.badge.url)
+            reminder_text = f"**{badge}{clan.name}(Raid Weekend)\n{time} Hours Left, Min {reminder.attack_threshold} Atk**\n" \
+                            f"{missing_text}" \
+                            f"\n{reminder.custom_text}"
+
+            try:
+                await channel.send(content=reminder_text)
+            except:
+                pass
 
     @commands.slash_command(name="restart-customs", guild_ids=[923764211845312533])
     @commands.is_owner()
