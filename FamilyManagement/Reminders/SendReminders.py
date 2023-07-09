@@ -138,8 +138,7 @@ async def clan_capital_reminder(bot:CustomClient, reminder_time):
         badge = await bot.create_new_badge_emoji(url=clan.badge.url)
         for text in missing_text_list:
             reminder_text = f"**{badge}{clan.name} (Raid Weekend)\n{time}Hours Left, Min {reminder.attack_threshold} Atk**\n" \
-                            f"{missing_text}" \
-                            f"\n{reminder.custom_text}"
+                            f"{missing_text}"
             if text == missing_text_list[-1]:
                 reminder_text += f"\n{reminder.custom_text}"
             try:
