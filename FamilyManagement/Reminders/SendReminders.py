@@ -47,7 +47,7 @@ async def war_reminder(bot: CustomClient, clan_tag, reminder_time):
         for player_tag, discord_id in links:
             num_missing = missing[player_tag]
             name = names[player_tag]
-            member = server.getch_member(discord_id)
+            member = await server.getch_member(discord_id)
             if len(missing_text) + len(reminder.custom_text) + 100 >= 2000:
                 missing_text_list.append(missing_text)
                 missing_text = ""
