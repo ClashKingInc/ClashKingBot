@@ -46,8 +46,11 @@ class AutoEval(commands.Cog):
                                          role_or_user=discord_member, test=False, change_nick="Off", auto_eval=True,
                                          auto_eval_tag=member.tag, return_embed=True)
                 if data.get("server_data", {}).get("autoeval_log") is not None:
-                    channel = await self.bot.getch_channel(data.get("server_data", {}).get("autoeval_log"))
-                    await channel.send(embed=embed)
+                    try:
+                        channel = await self.bot.getch_channel(data.get("server_data", {}).get("autoeval_log"))
+                        await channel.send(embed=embed)
+                    except (disnake.NotFound, disnake.Forbidden):
+                        await self.bot.server_db.update_one({"server": data.get("server")}, {'$set': {"autoeval_log": None}})
 
 
 
