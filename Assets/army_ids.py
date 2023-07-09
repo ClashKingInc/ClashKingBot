@@ -41,6 +41,8 @@ def troop_ids(troop_id):
         83: "Super Wizard",
         84: "Super Minion",
         95: "Electro Titan",
+        97 : "Apprentice Warden",
+        98 : "Super Hog Rider",
 
 
         51: "Wall Wrecker",
