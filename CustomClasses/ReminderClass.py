@@ -13,6 +13,7 @@ class Reminder:
         self.channel_id: int = data.get("channel")
         self.time: str = data.get("time")
         self.custom_text: str = data.get("custom_text", "")
+        self.reminder_id = data.get("_id")
 
     @property
     def townhalls(self):
@@ -105,7 +106,4 @@ class Reminder:
             {"$set": {"point_threshold": threshold}})
 
     async def delete(self):
-        if self.type != "roster":
-            await self.__bot.reminders.delete_one({"$and": [{"clan": self.clan_tag}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]})
-        else:
-            await self.__bot.reminders.delete_one({"$and": [{"roster": self.__data.get("roster")}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]})
+        await self.__bot.reminders.delete_one({"_id" : self.reminder_id})

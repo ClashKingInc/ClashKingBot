@@ -430,19 +430,25 @@ class SetupCommands(commands.Cog , name="Setup"):
                     return await ctx.send(content=f"Something went wrong :/ An error occured with the message link.", ephemeral=True)
         else:
             await ctx.response.defer()
-            embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
-                                  description=f"To link your account, press the link button below to get started.",
-                                  color=disnake.Color.green())
-            if ctx.guild.icon is not None:
-                embed.set_thumbnail(url=ctx.guild.icon.url)
+            embed = None
+
 
 
         stat_buttons = [disnake.ui.Button(label="Link Account", emoji="🔗", style=disnake.ButtonStyle.green, disabled=True,
                                           custom_id="LINKDEMO"),
                         disnake.ui.Button(label="Help", emoji="❓", style=disnake.ButtonStyle.grey, disabled=True,
                                           custom_id="LINKDEMOHELP")]
+        if embed is not None:
+            await self.bot.server_db.update_one({"server" : ctx.guild_id}, {"$set" : {"welcome_link_channel" : channel.id, "welcome_link_embed" : embed.to_dict()}})
+        else:
+            await self.bot.server_db.update_one({"server": ctx.guild_id}, {"$set": {"welcome_link_channel": channel.id, "welcome_link_embed": None}})
+        if embed is None:
+            embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
+                          description=f"To link your account, press the link button below to get started.",
+                          color=disnake.Color.green())
+            if ctx.guild.icon is not None:
+                embed.set_thumbnail(url=ctx.guild.icon.url)
         await ctx.edit_original_message(content=f"Welcome Message Set in {channel.mention}\n||(buttons for demo & will work on the live version)||", embed=embed, components=stat_buttons)
-        await self.bot.server_db.update_one({"server" : ctx.guild_id}, {"$set" : {"link_channel" : channel.id, "welcome_link_embed" : embed.to_dict()}})
 
 
 

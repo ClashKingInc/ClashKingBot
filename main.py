@@ -114,7 +114,7 @@ initial_extensions = [
     "other"
 ]
 
-if not IS_CUSTOM and not IS_BETA:
+if not IS_CUSTOM:
     initial_extensions += [
         "owner_commands"
     ]

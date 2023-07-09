@@ -114,7 +114,7 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
         color=disnake.Color.green())
     if ctx is not None:
         await ctx.edit_original_message(embed=embed)
-    if auto_eval and ((isinstance(role_or_user, disnake.User) or isinstance(role_or_user, disnake.Member)):
+    if auto_eval and (isinstance(role_or_user, disnake.User) or isinstance(role_or_user, disnake.Member)):
         fresh = await bot.getPlayer(auto_eval_tag, custom=True)
         all_tags.remove(auto_eval_tag)
         all_players = await bot.get_players(tags=all_tags, use_cache=(len(all_tags) >= 10), custom=True)

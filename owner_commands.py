@@ -1,40 +1,15 @@
 import json
-import time
-from numerize import numerize
-import coc
+
 import disnake
-import pytz
 from disnake.ext import commands
-from datetime import datetime, timedelta
 clan_tags = ["#2P0JJQGUJ"]
 known_streak = []
 count = 0
 list_size = 0
-import asyncio
-from typing import List
 from CustomClasses.CustomBot import CustomClient
-from pymongo import UpdateOne
-from PIL import Image, ImageDraw, ImageFont
-import io
-from io import BytesIO
-#import chat_exporter
-from ImageGen import WarEndResult as war_gen
-from ImageGen import ClanCapitalResult as capital_gen
-from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
-import aiohttp
-from msgspec.json import decode
-from msgspec import Struct
-from coc.raid import RaidLogEntry
-from collections import defaultdict
-import operator
-from Assets.thPicDictionary import thDictionary
-import calendar
-war_leagues = json.load(open(f"Assets/war_leagues.json"))
-from Assets.emojiDictionary import emojiDictionary
-from utils.discord_utils import interaction_handler
-from utils.ClanCapital import calc_raid_medals
 
-from urllib import request
+war_leagues = json.load(open(f"Assets/war_leagues.json"))
+
 leagues = ["Champion League I", "Champion League II", "Champion League III",
                    "Master League I", "Master League II", "Master League III",
                    "Crystal League I","Crystal League II", "Crystal League III",
@@ -42,26 +17,10 @@ leagues = ["Champion League I", "Champion League II", "Champion League III",
                    "Silver League I","Silver League II","Silver League III",
                    "Bronze League I", "Bronze League II", "Bronze League III", "Unranked"]
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
-from chat_exporter.construct.assets.embed import Embed
-import string
-import random
 import os
 
-import matplotlib.pyplot as plt
-from PIL import Image, ImageDraw, ImageFont
-import io
-import pandas as pd
-from CustomClasses.CustomPlayer import MyCustomPlayer
-from utils.constants import TOWNHALL_LEVELS
-import numpy as np
-from utils.war import create_reminders
-from main import scheduler
-from FamilyManagement.Reminders import SendReminders
-from Background.Logs.join_leave_events import join_leave_events
-from CustomClasses.CustomServer import DatabaseClan
-from utils.clash import heros
-from utils.clash import leagueAndTrophies
 
+from Link_and_Eval.eval_logic import eval_logic
 
 class OwnerCommands(commands.Cog):
 
@@ -86,9 +45,40 @@ class OwnerCommands(commands.Cog):
 
     @commands.slash_command(name="test", guild_ids=[923764211845312533])
     @commands.is_owner()
-    async def test(self, ctx: disnake.ApplicationCommandInteraction, top: int):
-        for x in range(4, top + 1):
-            os.system(f"pm2 restart {x}")
+    async def test(self, ctx: disnake.ApplicationCommandInteraction):
+        clan = await self.bot.getClan(clan_tag="#2JGYRJVL")
+        member = clan.members[0]
+
+        pipeline = [
+            {"$match": {"tag": clan.tag}},
+            {"$lookup": {"from": "server", "localField": "server", "foreignField": "server", "as": "server_data"}},
+            {"$set": {"server_data": {"$first": "$server_data"}}}
+        ]
+        for data in await self.bot.clan_db.aggregate(pipeline=pipeline).to_list(length=None):
+            if data.get("server") not in [923764211845312533]:
+                continue
+
+            print(data)
+            if not data.get("server_data", {}).get("autoeval", False):
+                continue
+
+            link = await self.bot.link_client.get_link(member.tag)
+            if link is not None:
+                server = await self.bot.getch_guild(data.get("server"))
+                if server is None:
+                    continue
+                discord_member = await server.getch_member(link)
+                if discord_member is None:
+                    continue
+                embed = await eval_logic(bot=self.bot, guild=server, members_to_eval=[discord_member],
+                                         role_or_user=discord_member, test=False, change_nick="Off", auto_eval=True,
+                                         auto_eval_tag=member.tag, return_embed=True)
+                if data.get("autoeval_log") is not None:
+                    try:
+                        channel = await self.bot.getch_channel(1116387532247158935)
+                        await channel.send(embed=embed)
+                    except:
+                        pass
 
 
     @commands.slash_command(name="restart-customs", guild_ids=[923764211845312533])
