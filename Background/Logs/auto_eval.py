@@ -3,7 +3,7 @@ import disnake
 import coc
 
 from disnake.ext import commands
-from CustomClasses.CustomServer import DatabaseClan
+from CustomClasses.CustomServer import DatabaseServer
 from CustomClasses.CustomBot import CustomClient
 from Background.Logs.event_websockets import clan_ee
 from Link_and_Eval.eval_logic import eval_logic
@@ -34,6 +34,7 @@ class AutoEval(commands.Cog):
             if not data.get("server_data", {}).get("autoeval", False):
                 continue
 
+            db_server = DatabaseServer(bot=self.bot, data=data.get("server_data", {}))
             link = await self.bot.link_client.get_link(member.tag)
             if link is not None:
                 server = await self.bot.getch_guild(data.get("server"))
@@ -42,9 +43,17 @@ class AutoEval(commands.Cog):
                 discord_member = await server.getch_member(link)
                 if discord_member is None:
                     continue
+
+                for role in discord_member.roles:
+                    if role.id in db_server.blacklisted_roles:
+                        return
+                change_nick = db_server.auto_nickname
+                if not db_server.auto_eval_nickname:
+                    change_nick = "Off"
+
                 embed = await eval_logic(bot=self.bot, guild=server, members_to_eval=[discord_member],
-                                         role_or_user=discord_member, test=False, change_nick="Off", auto_eval=True,
-                                         auto_eval_tag=member.tag, return_embed=True)
+                                         role_or_user=discord_member, test=False, change_nick=change_nick, auto_eval=True,
+                                         auto_eval_tag=member.tag, return_embed=True, role_treatment=db_server.role_treatment)
                 if data.get("server_data", {}).get("autoeval_log") is not None:
                     try:
                         channel = await self.bot.getch_channel(data.get("server_data", {}).get("autoeval_log"))

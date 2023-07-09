@@ -7,6 +7,7 @@ from CustomClasses.CustomServer import CustomServer
 from .eval_logic import eval_logic, is_in_family
 from utils.constants import DEFAULT_EVAL_ROLE_TYPES 
 from utils.discord_utils import interaction_handler
+from Exceptions.CustomExceptions import MessageException
 
 class eval(commands.Cog, name="Eval"):
     """A couple of simple commands."""
@@ -16,6 +17,10 @@ class eval(commands.Cog, name="Eval"):
 
     @commands.slash_command(name="eval")
     async def eval(self, ctx):
+        pass
+
+    @commands.slash_command(name="autoeval")
+    async def autoeval(self, ctx):
         pass
 
     @eval.sub_command(name="user", description="Evaluate a user's roles")
@@ -107,6 +112,62 @@ class eval(commands.Cog, name="Eval"):
     async def eval_settings(self, ctx: disnake.ApplicationCommandInteraction, options = commands.Param(choices=["Blacklist Roles", "Role Treatment", "Nickname Change"])):
         pass
 
+    @autoeval.sub_command(name="blacklist-roles", description="Set blacklisted roles in autoeval (people with these roles will not be autoevaled)")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def auto_eval_blacklist(self, ctx: disnake.ApplicationCommandInteraction, add: disnake.Role = None, remove: disnake.Role = None):
+        await ctx.response.defer()
+        db_server = await self.bot.get_custom_server(guild_id=ctx.guild.id)
+        if add is None and remove is None:
+            text = ""
+            for role in db_server.blacklisted_roles:
+                real_role = ctx.guild.get_role(role)
+                if real_role is None:
+                    continue
+                text += f"- {real_role.mention}\n"
+            if text == "":
+                text = "No Blacklisted Roles"
+            embed = disnake.Embed(title=f"{ctx.guild.name} AutoEval Blacklisted Roles",description=text, color=disnake.Color.green())
+            return await ctx.edit_original_message(embed=embed)
+
+        if add is not None and remove is not None:
+            raise MessageException("Cannot both remove and add blacklist roles at the same time")
+
+        if add is not None:
+            if add.id in db_server.blacklisted_roles:
+                raise MessageException(f"{add.mention} is already in the autoeval blacklisted roles.")
+            await db_server.add_blacklisted_role(id=add.id)
+            embed = disnake.Embed(description=f"{add.mention} added to autoeval blacklisted roles", color=disnake.Color.green())
+            return await ctx.edit_original_message(embed=embed)
+
+        if remove is not None:
+            if remove.id not in db_server.blacklisted_roles:
+                raise MessageException(f"{remove.mention} is not in the autoeval blacklisted roles.")
+            await db_server.remove_blacklisted_role(id=remove.id)
+            embed = disnake.Embed(description=f"{remove.mention} removed from autoeval blacklisted roles", color=disnake.Color.green())
+            return await ctx.edit_original_message(embed=embed)
+
+    @autoeval.sub_command(name="role-treatment", description="Set the role treatment for autoeval")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def auto_eval_treatment(self, ctx: disnake.ApplicationCommandInteraction, choice: str= commands.Param(choices=["Add", "Remove", "Both"])):
+        await ctx.response.defer()
+        db_server = await self.bot.get_custom_server(guild_id=ctx.guild.id)
+        if choice == "Both":
+            choices = ["Add", "Remove"]
+        else:
+            choices = [choice]
+
+        await db_server.set_role_treatment(treatment=choices)
+        embed = disnake.Embed(description=f"AutoEval Role Treatment set to `{choice}`", color=disnake.Color.green())
+        return await ctx.edit_original_message(embed=embed)
+
+    @autoeval.sub_command(name="nickname-change", description="Set the nickname change setting for autoeval")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def auto_eval_nickchange(self, ctx: disnake.ApplicationCommandInteraction, change_nickname: str = commands.Param(choices=["True", "False"])):
+        await ctx.response.defer()
+        db_server = await self.bot.get_custom_server(guild_id=ctx.guild.id)
+        await db_server.set_nickname_type(type=(change_nickname == "True"))
+        embed = disnake.Embed(description=f"AutoEval will change nicknames -> `{change_nickname}`", color=disnake.Color.green())
+        return await ctx.edit_original_message(embed=embed)
 
     #SETTINGS
     @eval.sub_command_group(name="family-roles")

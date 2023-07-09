@@ -420,6 +420,31 @@ async def missed_hits(bot:CustomClient, war: coc.ClanWar):
     embed.set_thumbnail(url=war.clan.badge.url)
     return embed
 
+async def league_missed_hits(league_wars: List[coc.ClanWar], clan: coc.clans):
+    missed_hits = defaultdict(int)
+    tag_to_member = {}
+    for war in league_wars:
+        war: coc.ClanWar
+        war_time = war.end_time.seconds_until
+        if war_time <= 0:
+            for member in war.clan.members:
+                if not member.attacks:
+                    missed_hits[member.tag] += 1
+                    tag_to_member[member.tag] = member
+
+    text = ""
+    for tag, number_missed in missed_hits.items():
+        member = tag_to_member[tag]
+        name = re.sub('[*_`~/]', '', member.name)
+        th_emoji = emojiDictionary(member.town_hall)
+        text += f"{th_emoji}{name} - {number_missed} hits\n"
+
+    if text == "":
+        text = "No Missed Hits"
+
+    embed = disnake.Embed(title=f"{clan.name} CWL Missed Hits", description=text, color=disnake.Color.green())
+
+    return embed
 
 def get_latest_war(clan_league_wars: List[coc.ClanWar]):
     last_prep = None
@@ -715,7 +740,7 @@ async def page_manager(bot:CustomClient, page:str, group: coc.ClanWarLeagueGroup
         embed = await opp_overview(bot=bot, war=war)
         return [embed]
     elif page == "missedhits":
-        embed = await missed_hits(bot=bot, war=war)
+        embed = await league_missed_hits(league_wars, clan)
         return [embed]
 
 

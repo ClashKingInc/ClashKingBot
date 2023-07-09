@@ -2,7 +2,7 @@ import coc
 import disnake
 
 from typing import Union, List, TYPE_CHECKING
-
+from utils.constants import ROLE_TREATMENT_TYPES
 if TYPE_CHECKING:
     from CustomClasses.CustomBot import CustomClient
 else:
@@ -15,7 +15,7 @@ class DatabaseServer():
         self.leadership_eval = data.get("leadership_eval", True)
         self.prefix = data.get("prefix", "do ")
         self.greeting = data.get("greeting")
-        self.auto_nickname = data.get("auto_nick", "Clan Abbreviations")
+        self.auto_nickname = data.get("auto_nick", "Off")
         self.use_api_token = data.get("api_token", True)
         self.league_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get("eval", {}).get("league_roles", [])]
         self.builder_league_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get("eval", {}).get("builder_league_roles", [])]
@@ -29,7 +29,9 @@ class DatabaseServer():
         self.clans = [DatabaseClan(bot=bot, data=d) for d in data.get("clans", [])]
         self.category_roles = data.get("category_roles")
         self.eval_non_members: bool = data.get("eval_non_members", True)
-        self.blacklisted_roles: List[int] = data.get("blacklisted_roles")
+        self.blacklisted_roles: List[int] = data.get("blacklisted_roles", [])
+        self.role_treatment: List[str] = data.get("role_treatment", ROLE_TREATMENT_TYPES)
+        self.auto_eval_nickname: bool = data.get("auto_eval_nickname", False)
         self.family_label = data.get("family_label", "")
         self.banlist_channel = data.get("banlist")
         self.reddit_feed = data.get("reddit_feed")
@@ -48,6 +50,19 @@ class DatabaseServer():
 
     async def set_leadership_eval(self, status: bool):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"leadership_eval": status}})
+
+    async def add_blacklisted_role(self, id: int):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$push": {"blacklisted_roles": id}})
+
+    async def remove_blacklisted_role(self, id: int):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$pull": {"blacklisted_roles": id}})
+
+    async def set_role_treatment(self, treatment: List[str]):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"role_treatment": treatment}})
+
+    async def set_auto_eval_nickname(self, status: bool):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"auto_eval_nickname": status}})
+
 
 
 class EvalRole():
