@@ -199,7 +199,7 @@ async def update_war_message(bot: CustomClient, war: coc.ClanWar, db_clan: Datab
         try:
             webhook = await bot.getch_webhook(db_clan.war_panel.webhook)
             if log.thread is not None:
-                thread = await bot.getch_channel(log.thread)
+                thread = await bot.getch_channel(log.thread, raise_exception=True)
                 if thread.locked:
                     raise disnake.NotFound
         except (disnake.NotFound, disnake.Forbidden):
