@@ -83,20 +83,29 @@ async def send_or_update_war_start(bot: CustomClient, clan_tag:str):
 
 async def send_or_update_war_end(bot: CustomClient, clan_tag:str, preparation_start_time:int):
     await asyncio.sleep(60)
-    war = await bot.war_client.war_result(clan_tag=clan_tag, preparation_start=preparation_start_time)
+    try:
+        war = await bot.war_client.war_result(clan_tag=clan_tag, preparation_start=preparation_start_time)
+    except:
+        war = None
+    og_war = None
     if war is None:
         war = await bot.get_clanwar(clanTag=clan_tag)
+        og_war = war
         if str(war.state) != "warEnded":
-            for x in range(0, 3):
+            for x in range(0, 5):
                 try:
                     await asyncio.sleep(war._response_retry + 10)
                 except:
-                    await asyncio.sleep(120)
+                    await asyncio.sleep(60)
                 war = await bot.get_clanwar(clanTag=clan_tag)
-                if x == 2 or str(war.state) == "warEnded":
-                  break
+                if str(war.state) == "warEnded":
+                   break
 
-    if war is None or str(war.state) != "warEnded":
+
+    if (war is None or int(war.preparation_start_time.time.timestamp()) != preparation_start_time or str(war.state) != "warEnded") and og_war is not None:
+        og_war.state = "warEnded"
+        war = og_war
+    else:
         return
 
     await store_war(bot=bot, war=war)
@@ -104,7 +113,6 @@ async def send_or_update_war_end(bot: CustomClient, clan_tag:str, preparation_st
     if war.type == "cwl":
         clan = await bot.getClan(war.clan.tag)
     war_league = clan.war_league if clan is not None else None
-
 
     for cc in await bot.clan_db.find({"$and": [{"tag": clan_tag}, {"logs.war_log.webhook": {"$ne": None}}]}).to_list(length=None):
         db_clan = DatabaseClan(bot=bot, data=cc)
