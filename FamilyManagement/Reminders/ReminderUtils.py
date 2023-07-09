@@ -40,7 +40,7 @@ def buttons(bot: CustomClient, delete=False):
 
 def atk_threshold():
     options = []
-    attack_numbers = [1, 2, 3, 4, 5]
+    attack_numbers = [1, 2, 3, 4, 5, 6]
     for number in attack_numbers:
         options.append(disnake.SelectOption(label=f"{number} attacks", value=f"{number}"))
     war_type_select = disnake.ui.Select(

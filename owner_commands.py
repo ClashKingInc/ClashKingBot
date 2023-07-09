@@ -45,24 +45,21 @@ class OwnerCommands(commands.Cog):
                 created += f"{emoji} - `<:{emoji.name}:{emoji.id}>`\n"
         await ctx.send(content=created)
 
-    @commands.slash_command(name="test", guild_ids=[923764211845312533])
+    @commands.slash_command(name="resend", guild_ids=[923764211845312533])
     @commands.is_owner()
-    async def test(self, ctx: disnake.ApplicationCommandInteraction):
-        clan = "90G8PVJR"
-
-
+    async def test(self, ctx: disnake.ApplicationCommandInteraction, guild: int, reminder_time: str):
+        await ctx.response.defer()
         bot=self.bot
-        reminder_time = "16 hr"
-        for reminder in await self.bot.reminders.find( {"$and": [{"type": "Clan Capital"}, {"time": reminder_time}]}).to_list(length=None):
+        for reminder in await self.bot.reminders.find( {"$and": [{"type": "Clan Capital"}, {"server": guild}, {"time": reminder_time}]}).to_list(length=None):
             reminder = Reminder(bot=bot, data=reminder)
 
             try:
-                channel = await bot.getch_channel(1043569920581062717)
+                channel = await bot.getch_channel(reminder.channel_id)
             except (disnake.NotFound, disnake.Forbidden):
                 #await reminder.delete()
                 continue
 
-            server = await bot.getch_guild(guild_id=923764211845312533)
+            server = await bot.getch_guild(guild_id=reminder.server_id)
             if server is None:
                 continue
 
@@ -90,28 +87,40 @@ class OwnerCommands(commands.Cog):
 
             links = await bot.link_client.get_links(*list(missing.keys()))
 
+            missing_text_list = []
             missing_text = ""
             for player_tag, discord_id in links:
                 player = missing.get(player_tag)
                 if isinstance(player, coc.ClanMember):
                     num_missing = f"(0/6)"
                 else:
-                    num_missing = f"{(player.attack_limit + player.bonus_attack_limit) - player.attack_count}/{(player.attack_limit + player.bonus_attack_limit)})"
+                    num_missing = f"({(player.attack_limit + player.bonus_attack_limit) - player.attack_count}/{(player.attack_limit + player.bonus_attack_limit)})"
                 discord_user = await server.getch_member(discord_id)
+                if len(missing_text) + len(reminder.custom_text) + 100 >= 2000:
+                    missing_text_list.append(missing_text)
+                    missing_text = ""
+
                 if discord_user is None:
                     missing_text += f"{num_missing} {player.name} | {player_tag}\n"
                 else:
                     missing_text += f"{num_missing} {player.name} | {discord_user.mention}\n"
-            time = str(reminder_time).replace("hr", "")
-            badge = await self.bot.create_new_badge_emoji(url=clan.badge.url)
-            reminder_text = f"**{badge}{clan.name}(Raid Weekend)\n{time} Hours Left, Min {reminder.attack_threshold} Atk**\n" \
-                            f"{missing_text}" \
-                            f"\n{reminder.custom_text}"
 
-            try:
-                await channel.send(content=reminder_text)
-            except:
-                pass
+            if missing_text != "":
+                missing_text_list.append(missing_text)
+            time = str(reminder_time).replace("hr", "")
+            badge = await bot.create_new_badge_emoji(url=clan.badge.url)
+            for text in missing_text_list:
+                reminder_text = f"**{badge}{clan.name} (Raid Weekend)\n{time}Hours Left, Min {reminder.attack_threshold} Atk**\n" \
+                                f"{missing_text}" \
+                                f"\n{reminder.custom_text}"
+                if text == missing_text_list[-1]:
+                    reminder_text += f"\n{reminder.custom_text}"
+                try:
+                    await channel.send(content=reminder_text)
+                except:
+                    pass
+        await ctx.edit_original_message(content="Sent")
+
 
     @commands.slash_command(name="restart-customs", guild_ids=[923764211845312533])
     @commands.is_owner()

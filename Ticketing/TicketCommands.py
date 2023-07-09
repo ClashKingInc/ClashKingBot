@@ -201,7 +201,6 @@ class TicketCommands(commands.Cog):
             button_color: Color for button
             button_emoji: (optional) default discord emoji or one from *your* server
         """
-        panel_name = panel_name.lower()
         await ctx.response.defer()
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:
@@ -250,7 +249,6 @@ class TicketCommands(commands.Cog):
             new_color: Color for button
             new_emoji: (optional) default discord emoji or one from *your* server
         """
-        panel_name = panel_name.lower()
         await ctx.response.defer()
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:

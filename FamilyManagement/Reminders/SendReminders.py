@@ -103,6 +103,8 @@ async def clan_capital_reminder(bot:CustomClient, reminder_time):
                 del clan_members[member.tag]
             except:
                 pass
+            if member.attack_count == (member.attack_limit + member.bonus_attack_limit):
+                continue
             if member.attack_count < reminder.attack_threshold:
                 missing[member.tag] = member
 
@@ -119,7 +121,7 @@ async def clan_capital_reminder(bot:CustomClient, reminder_time):
             if isinstance(player, coc.ClanMember):
                 num_missing = f"(0/6)"
             else:
-                num_missing = f"{(player.attack_limit + player.bonus_attack_limit) - player.attack_count}/{(player.attack_limit + player.bonus_attack_limit)})"
+                num_missing = f"({(player.attack_limit + player.bonus_attack_limit) - player.attack_count}/{(player.attack_limit + player.bonus_attack_limit)})"
             discord_user = await server.getch_member(discord_id)
             if len(missing_text) + len(reminder.custom_text) + 100 >= 2000:
                 missing_text_list.append(missing_text)
@@ -135,7 +137,7 @@ async def clan_capital_reminder(bot:CustomClient, reminder_time):
         time = str(reminder_time).replace("hr", "")
         badge = await bot.create_new_badge_emoji(url=clan.badge.url)
         for text in missing_text_list:
-            reminder_text = f"**{badge}{clan.name}(Raid Weekend)\n{time} Hours Left, Min {reminder.attack_threshold} Atk**\n" \
+            reminder_text = f"**{badge}{clan.name} (Raid Weekend)\n{time}Hours Left, Min {reminder.attack_threshold} Atk**\n" \
                             f"{missing_text}" \
                             f"\n{reminder.custom_text}"
             if text == missing_text_list[-1]:
