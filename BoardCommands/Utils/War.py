@@ -95,13 +95,14 @@ async def roster_embed(bot: CustomClient, war: coc.ClanWar):
     roster = ""
     tags = []
     lineup = []
-    for player in war.members:
-        if player not in war.opponent.members:
-            tags.append(player.tag)
-            lineup.append(player.map_position)
+    for player in war.clan.members:
+        tags.append(player.tag)
+        lineup.append(player.map_position)
 
     x = 0
-    async for player in bot.coc_client.get_players(tags):
+    players = await bot.get_players(tags)
+    players = sorted(players, key=lambda x: x.town_hall)
+    for player in players:
         th = player.town_hall
         th_emoji = emojiDictionary(th)
         place = str(lineup[x]) + "."
@@ -132,7 +133,10 @@ async def opp_roster_embed(bot: CustomClient, war):
         lineup.append(player.map_position)
 
     x = 0
-    async for player in bot.coc_client.get_players(tags):
+    players = await bot.get_players(tags=tags)
+    players = sorted(players, key=lambda x: x.town_hall)
+
+    for player in players:
         th = player.town_hall
         th_emoji = emojiDictionary(th)
         place = str(lineup[x]) + "."
@@ -446,6 +450,7 @@ async def league_missed_hits(league_wars: List[coc.ClanWar], clan: coc.clans):
 
     return embed
 
+
 def get_latest_war(clan_league_wars: List[coc.ClanWar]):
     last_prep = None
     last_current = None
@@ -672,7 +677,9 @@ async def all_members(bot: CustomClient, group:coc.ClanWarLeagueGroup, clan: coc
     tags = [member.tag for member in members]
 
     x = 1
-    for player in await bot.get_players(tags):
+    players = await bot.get_players(tags)
+    players = sorted(players, key=lambda x: x.town_hall)
+    for player in players:
         if player is None:
             continue
         th = player.town_hall
@@ -695,7 +702,6 @@ async def all_members(bot: CustomClient, group:coc.ClanWarLeagueGroup, clan: coc
                           color=disnake.Color.green())
     embed.set_thumbnail(url=clan.badge.large)
     return embed
-
 
 
 async def page_manager(bot:CustomClient, page:str, group: coc.ClanWarLeagueGroup, war: coc.ClanWar, next_war: coc.ClanWar,
