@@ -132,7 +132,7 @@ async def hero_progress(bot: CustomClient, player_tags: List[str], season: str, 
     class ItemHolder():
         def __init__(self, data: dict):
             self.tag = data.get("_id")
-            self.name = data.get("name", ["unknown"])[0]
+            self.name = data.get("name")[0] if data.get("name") else "unknown"
             self.king = next((item["count"] for item in data["hero_counts"] if item["hero_name"] == "Barbarian King"), 0)
             self.queen = next((item["count"] for item in data["hero_counts"] if item["hero_name"] == "Archer Queen"), 0)
             self.warden = next((item["count"] for item in data["hero_counts"] if item["hero_name"] == "Grand Warden"), 0)
