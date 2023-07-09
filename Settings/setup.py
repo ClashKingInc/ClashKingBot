@@ -405,7 +405,14 @@ class SetupCommands(commands.Cog , name="Setup"):
 
     @setup.sub_command(name="welcome-link", description="Create a custom welcome message that can include linking buttons")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def welcome_message(self, ctx: disnake.ApplicationCommandInteraction, channel: Union[disnake.TextChannel, disnake.Thread], custom_embed = commands.Param(default="False", choices=["True", "False"]), embed_link: str = None):
+    async def welcome_message(self, ctx: disnake.ApplicationCommandInteraction, channel: Union[disnake.TextChannel, disnake.Thread], custom_embed = commands.Param(default="False", choices=["True", "False"]),
+                              embed_link: str = None, remove = commands.Param(default="No", choices=["Yes"])):
+        if remove == "Yes":
+            await ctx.response.defer()
+            await self.bot.server_db.update_one({"server": ctx.guild_id},
+                                            {"$set": {"welcome_link_channel": None}})
+            return await ctx.edit_original_message(content="Welcome Message Removed!")
+
         if custom_embed != "False":
             if embed_link is None:
                 modal_inter, embed = await basic_embed_modal(bot=self.bot, ctx=ctx)
