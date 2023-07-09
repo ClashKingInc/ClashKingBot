@@ -237,7 +237,7 @@ class Linking(commands.Cog):
                                 greeting = f", welcome to {badge}{player.clan.name}!"
                             channel = results.get("clanChannel")
                             channel = self.bot.get_channel(channel)
-                            await channel.send(f"{ctx.author.mention}{greeting}")
+                            await channel.send(f"{member.mention}{greeting}")
                     except:
                         pass
                 return await ctx.edit_original_message(embed=embed)
@@ -270,7 +270,7 @@ class Linking(commands.Cog):
                         greeting = f", welcome to {badge}{player.clan.name}!"
                     channel = results.get("clanChannel")
                     channel = self.bot.get_channel(channel)
-                    await channel.send(f"{ctx.author.mention}{greeting}")
+                    await channel.send(f"{member.mention}{greeting}")
             except:
                 pass
 
