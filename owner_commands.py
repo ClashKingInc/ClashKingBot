@@ -64,9 +64,10 @@ class OwnerCommands(commands.Cog):
 
         cursor = self.bot.welcome.find({})
         all_them = await cursor.to_list(length=None)
+        print(len(all_them))
         for document in all_them:
             api_token = document.get("api_token", True)
-            await self.bot.server_db.update_one({"server" : id}, {"$set" : {"api_token" : api_token}})
+            await self.bot.server_db.update_one({"server" : document.get("server")}, {"$set" : {"api_token" : api_token}})
 
 
     async def contribution_history(self, ctx: disnake.ApplicationCommandInteraction):

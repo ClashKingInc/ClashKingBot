@@ -43,6 +43,10 @@ class DatabaseServer():
     async def set_family_label(self, label: str):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"family_label": label}})
 
+    async def set_api_token(self, status: bool):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"api_token": status}})
+
+
 class EvalRole():
     def __init__(self, bot: CustomClient, data):
         self.server: int = data.get("server")

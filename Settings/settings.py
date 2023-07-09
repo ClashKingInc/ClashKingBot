@@ -109,7 +109,8 @@ class misc(commands.Cog, name="Settings"):
     @commands.slash_command(name="server-settings", description="Set settings for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def server_settings(self, ctx: disnake.ApplicationCommandInteraction, banlist_channel: Union[disnake.TextChannel, disnake.Thread] = None,
-                              nickname_label: str= None, nickname_type: str = commands.Param(default=None, choices=["Clan Abbreviations", "Family Name", "Off"])):
+                              nickname_label: str= None, nickname_type: str = commands.Param(default=None, choices=["Clan Abbreviations", "Family Name", "Off"]),
+                              api_token: str = commands.Param(default=None, choices=["Use", "Don't Use"])):
         await ctx.response.defer()
         db_server = await self.bot.get_custom_server(guild_id=ctx.guild_id)
         changed_text = ""
@@ -122,6 +123,10 @@ class misc(commands.Cog, name="Settings"):
         if nickname_type is not None:
             await db_server.set_nickname_type(type=nickname_type)
             changed_text += f"- **Nickname Type:** `{nickname_type}`\n"
+        if api_token is not None:
+            await db_server.set_api_token(status=(api_token == "Use"))
+            changed_text += f"- **Api Token:** `{api_token}`\n"
+
 
         if changed_text == "":
             changed_text = "No Changes Made!"
