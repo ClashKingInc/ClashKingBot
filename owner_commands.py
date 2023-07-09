@@ -46,39 +46,8 @@ class OwnerCommands(commands.Cog):
     @commands.slash_command(name="test", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
-        clan = await self.bot.getClan(clan_tag="#2JGYRJVL")
-        member = clan.members[0]
+        pass
 
-        pipeline = [
-            {"$match": {"tag": clan.tag}},
-            {"$lookup": {"from": "server", "localField": "server", "foreignField": "server", "as": "server_data"}},
-            {"$set": {"server_data": {"$first": "$server_data"}}}
-        ]
-        for data in await self.bot.clan_db.aggregate(pipeline=pipeline).to_list(length=None):
-            if data.get("server") not in [923764211845312533]:
-                continue
-
-            print(data)
-            if not data.get("server_data", {}).get("autoeval", False):
-                continue
-
-            link = await self.bot.link_client.get_link(member.tag)
-            if link is not None:
-                server = await self.bot.getch_guild(data.get("server"))
-                if server is None:
-                    continue
-                discord_member = await server.getch_member(link)
-                if discord_member is None:
-                    continue
-                embed = await eval_logic(bot=self.bot, guild=server, members_to_eval=[discord_member],
-                                         role_or_user=discord_member, test=False, change_nick="Off", auto_eval=True,
-                                         auto_eval_tag=member.tag, return_embed=True)
-                if data.get("autoeval_log") is not None:
-                    try:
-                        channel = await self.bot.getch_channel(1116387532247158935)
-                        await channel.send(embed=embed)
-                    except:
-                        pass
 
 
     @commands.slash_command(name="restart-customs", guild_ids=[923764211845312533])

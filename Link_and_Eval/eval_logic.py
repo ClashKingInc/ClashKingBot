@@ -16,12 +16,12 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
                      guild: disnake.Guild = None, role_types_to_eval=None,
                      return_array=False, return_embed=None, role_treatment=None, reason="", auto_eval=False, auto_eval_tag=None):
 
+    guild = ctx.guild if guild is None else guild
     #inititalization steps
     time_start = time.time()
-    bot_member = await ctx.guild.getch_member(bot.user.id)
+    bot_member = await guild.getch_member(bot.user.id)
     role_types_to_eval = DEFAULT_EVAL_ROLE_TYPES if role_types_to_eval is None else role_types_to_eval
     role_treatment = ROLE_TREATMENT_TYPES if role_treatment is None else role_treatment
-    guild = ctx.guild if guild is None else guild
     await guild.fetch_roles()
 
     db_server = await bot.get_custom_server(guild_id=guild.id)
@@ -96,11 +96,11 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
     text = ""
     num = 0
     embeds = []
-    msg = await ctx.original_message()
-    embed = disnake.Embed(
-        description=f"<a:loading:884400064313819146> Fetching discord links for {len(members_to_eval)} users.",
-        color=disnake.Color.green())
     if ctx is not None:
+        msg = await ctx.original_message()
+        embed = disnake.Embed(
+            description=f"<a:loading:884400064313819146> Fetching discord links for {len(members_to_eval)} users.",
+            color=disnake.Color.green())
         await ctx.edit_original_message(embed=embed)
     all_discord_links = await bot.link_client.get_many_linked_players(*[member.id for member in members_to_eval if member is not None])
     discord_link_dict = defaultdict(list)
@@ -126,7 +126,7 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
         player_dict[player.tag] = player
     num_changes = 0
 
-    tasks = []
+    tasks = 0
     for count, member in enumerate(members_to_eval, 1):
         if member is None or member.bot:
             continue
@@ -460,10 +460,11 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
                     await member.edit(nick=new_name, roles=current_member_roles)
                 elif new_name is None:
                     await member.edit(roles=current_member_roles)
+                tasks += 1
             except:
-                name_changes = "BOT ERROR"
-                added = "BOT ERROR"
-                removed = "BOT ERROR"
+                name_changes = "Permissions Error"
+                added = "Permissions Error"
+                removed = "Permissions Error"
 
         if name_changes[1:-1] == member.display_name:
             name_changes = "None"
@@ -514,20 +515,19 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
         embeds.append(embed)
 
     embed = disnake.Embed(
-        description=f"<a:loading:884400064313819146> Completing {len(tasks)} Eval Changes, Approx {int(len(tasks) % 60)} Minutes...",
+        description=f"<a:loading:884400064313819146> Completing {tasks} Eval Changes, Approx {int(tasks % 60)} Minutes...",
         color=disnake.Color.green())
     if ctx is not None:
         await ctx.edit_original_message(embed=embed)
 
-    await asyncio.gather(*tasks, return_exceptions=True)
     if return_embed:
         return embeds[0]
 
     time_elapsed = int(time.time() - time_start)
     for embed in embeds:
         embed.set_footer(text=f"Time Elapsed: {time_elapsed} seconds,  {num_changes} changes | Test: {test}")
-        if ctx.guild.icon is not None:
-            embed.set_author(name=f"{ctx.guild.name}", icon_url=ctx.guild.icon.url)
+        if guild.icon is not None:
+            embed.set_author(name=f"{guild.name}", icon_url=guild.icon.url)
 
     current_page = 0
     await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))

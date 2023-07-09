@@ -30,6 +30,7 @@ class AutoEval(commands.Cog):
         for data in await self.bot.clan_db.aggregate(pipeline=pipeline).to_list(length=None):
             if data.get("server") not in self.bot.OUR_GUILDS:
                 continue
+
             if not data.get("server_data", {}).get("autoeval", False):
                 continue
 
@@ -41,13 +42,12 @@ class AutoEval(commands.Cog):
                 discord_member = await server.getch_member(link)
                 if discord_member is None:
                     continue
-                embed = await eval_logic(bot=self.bot, guild=server, members_to_eval=[discord_member], role_or_user=discord_member, test=False, change_nick="Off", auto_eval=True, auto_eval_tag=member.tag, return_embed=True)
-                if data.get("autoeval_log") is not None:
-                    try:
-                        channel= await self.bot.getch_channel(data.get("autoeval_log"))
-                        await channel.send(embed=embed)
-                    except:
-                        pass
+                embed = await eval_logic(bot=self.bot, guild=server, members_to_eval=[discord_member],
+                                         role_or_user=discord_member, test=False, change_nick="Off", auto_eval=True,
+                                         auto_eval_tag=member.tag, return_embed=True)
+                if data.get("server_data", {}).get("autoeval_log") is not None:
+                    channel = await self.bot.getch_channel(data.get("server_data", {}).get("autoeval_log"))
+                    await channel.send(embed=embed)
 
 
 
