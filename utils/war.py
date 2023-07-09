@@ -98,7 +98,7 @@ async def send_or_update_war_end(bot: CustomClient, clan_tag:str, preparation_st
                 except:
                     await asyncio.sleep(60)
                 war = await bot.get_clanwar(clanTag=clan_tag)
-                if str(war.state) == "warEnded" or war is None:
+                if war is None or str(war.state) == "warEnded":
                    break
 
 

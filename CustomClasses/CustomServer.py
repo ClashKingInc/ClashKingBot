@@ -46,6 +46,9 @@ class DatabaseServer():
     async def set_api_token(self, status: bool):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"api_token": status}})
 
+    async def set_leadership_eval(self, status: bool):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"leadership_eval": status}})
+
 
 class EvalRole():
     def __init__(self, bot: CustomClient, data):
