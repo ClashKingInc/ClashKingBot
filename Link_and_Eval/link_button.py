@@ -56,11 +56,9 @@ class LinkWelcomeMessages(commands.Cog):
                         max_length=12,
                     )
                 ]
-            token_option = await self.bot.welcome.find_one({"server": ctx.guild.id})
-            token_option = token_option.get("api_token")
+            token_option = await self.bot.server_db.find_one({"server": ctx.guild.id})
+            token_option = token_option.get("api_token", True)
 
-            if token_option is None:
-                token_option = True
             if token_option:
                 token_text = "Api Token"
             else:

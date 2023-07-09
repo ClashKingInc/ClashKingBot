@@ -111,7 +111,9 @@ initial_extensions = [
     "Utility.link_parsers",
     "help",
     "poster.poster",
-    "other"
+    "other",
+    "Link_and_Eval.link_button",
+
 ]
 
 if not IS_CUSTOM:
@@ -141,7 +143,6 @@ if not IS_BETA:
         "Background.clan_capital",
         "Background.legends_history",
         "Background.voicestat_loop",
-        "Link_and_Eval.link_button",
         "Other.erikuh_comp",
         "discord_events",
     ]

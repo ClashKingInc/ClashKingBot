@@ -61,82 +61,12 @@ class OwnerCommands(commands.Cog):
     @commands.slash_command(name="migrate", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def migrate(self, ctx: disnake.ApplicationCommandInteraction):
-        special = ["legend_log"]
-        fields = ["joinlog", "clan_capital",  "donolog", "upgrade_log", "war_log"]
-        cursor = self.bot.clan_db.find({})
-        channel_to_webhook = {}
-        field_to_new = {"joinlog" : ["join_log", "leave_log"], "clan_capital" : ["capital_donations", "capital_attacks", "raid_map", "capital_weekly_summary", "new_raid_panel"],
-                        "donolog" : ["donation_log"], "upgrade_log" : ["super_troop_boost", "role_change", "troop_upgrade", "th_upgrade", "league_change", "spell_upgrade", "hero_upgrade", "name_change"],
-                         "war_log" : ["war_log", "war_panel"]}
-        bot_av = self.bot.user.avatar.read().close()
-        x = 1
+
+        cursor = self.bot.welcome.find({})
         all_them = await cursor.to_list(length=None)
         for document in all_them:
-            print(f"{x}/{len(all_them)}")
-            x+= 1
-            new_json = {
-
-            }
-            id = document.get("_id")
-            for field in fields:
-                channel = document.get(field)
-                webhook = channel_to_webhook.get(channel)
-                thread = None
-                if channel is not None:
-                    if webhook is None:
-                        try:
-                            g_channel = await self.bot.getch_channel(channel, raise_exception=True)
-                            if isinstance(g_channel, disnake.Thread):
-                                webhooks = await g_channel.parent.webhooks()
-                            else:
-                                webhooks = await g_channel.webhooks()
-                            webhook = next((w for w in webhooks if w.user.id == self.bot.user.id), None)
-                            if webhook is None:
-                                    if isinstance(g_channel, disnake.Thread):
-                                        thread = g_channel.id
-                                        webhook = await g_channel.parent.create_webhook(name="ClashKing", avatar=bot_av, reason="ClashKing Clan Logs")
-                                    else:
-                                        webhook = await g_channel.create_webhook(name="ClashKing", avatar=bot_av, reason="ClashKing Clan Logs")
-
-                            channel_to_webhook[g_channel.id] = webhook.id
-                            webhook = webhook.id
-                        except Exception as e:
-                            print(e)
-                            webhook = None
-                    else:
-                        g_channel = await self.bot.getch_channel(channel, raise_exception=True)
-                        if isinstance(g_channel, disnake.Thread):
-                            thread = g_channel.id
-                for new_field in field_to_new.get(field):
-                    new_json[new_field] = {}
-                    new_json[new_field]["webhook"] = webhook
-                    new_json[new_field]["thread"] = thread
-                    if field == "joinlog":
-                        new_json[new_field]["ban_button"] = document.get("strike_ban_buttons", False)
-                        new_json[new_field]["strike_button"] = document.get("strike_ban_buttons", False)
-                        new_json[new_field]["profile_button"] = document.get("strike_ban_buttons", False)
-                    if field == "war_log":
-                        panel = document.get("attack_feed") == "Update Feed"
-                        if panel and new_field == "war_log":
-                            new_json[new_field]["webhook"] = None
-
-                        if not panel and new_field == "war_panel":
-                            new_json[new_field]["webhook"] = None
-
-                        if panel and new_field == "war_panel":
-                            new_json[new_field]["war_id"] = document.get("war_id")
-                            new_json[new_field]["war_message"] = document.get("war_message")
-
-            for f in ["legend_log_attacks", "legend_log_defenses"]:
-                new_json[f] = {}
-                new_json[f]["webhook"] = document.get("legend_log", {}).get("webhook")
-                new_json[f]["thread"] = document.get("legend_log", {}).get("thread")
-
-            server_greeting = await self.bot.server_db.find_one({"server" : document.get("server")})
-            if server_greeting is not None:
-                new_json["greeting"] = server_greeting.get("greeting", "")
-
-            await self.bot.clan_db.update_one({"_id" : id}, {"$set" : {"logs" : new_json}})
+            api_token = document.get("api_token", True)
+            await self.bot.server_db.update_one({"server" : id}, {"$set" : {"api_token" : api_token}})
 
 
     async def contribution_history(self, ctx: disnake.ApplicationCommandInteraction):

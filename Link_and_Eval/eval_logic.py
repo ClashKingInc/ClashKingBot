@@ -517,7 +517,7 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
     embed = disnake.Embed(
         description=f"<a:loading:884400064313819146> Completing {tasks} Eval Changes, Approx {int(tasks % 60)} Minutes...",
         color=disnake.Color.green())
-    if ctx is not None:
+    if ctx is not None and not return_embed:
         await ctx.edit_original_message(embed=embed)
 
     if return_embed:
