@@ -112,6 +112,7 @@ async def clan_capital_reminder(bot:CustomClient, reminder_time):
 
         links = await bot.link_client.get_links(*list(missing.keys()))
 
+        missing_text_list = []
         missing_text = ""
         for player_tag, discord_id in links:
             player = missing.get(player_tag)
@@ -120,20 +121,29 @@ async def clan_capital_reminder(bot:CustomClient, reminder_time):
             else:
                 num_missing = f"{(player.attack_limit + player.bonus_attack_limit) - player.attack_count}/{(player.attack_limit + player.bonus_attack_limit)})"
             discord_user = await server.getch_member(discord_id)
+            if len(missing_text) + len(reminder.custom_text) + 100 >= 2000:
+                missing_text_list.append(missing_text)
+                missing_text = ""
+
             if discord_user is None:
                 missing_text += f"{num_missing} {player.name} | {player_tag}\n"
             else:
                 missing_text += f"{num_missing} {player.name} | {discord_user.mention}\n"
+
+        if missing_text != "":
+            missing_text_list.append(missing_text)
         time = str(reminder_time).replace("hr", "")
         badge = await bot.create_new_badge_emoji(url=clan.badge.url)
-        reminder_text = f"**{badge}{clan.name}(Raid Weekend)\n{time} Hours Left, Min {reminder.attack_threshold} Atk**\n" \
-                        f"{missing_text}" \
-                        f"\n{reminder.custom_text}"
-
-        try:
-            await channel.send(content=reminder_text)
-        except:
-            pass
+        for text in missing_text_list:
+            reminder_text = f"**{badge}{clan.name}(Raid Weekend)\n{time} Hours Left, Min {reminder.attack_threshold} Atk**\n" \
+                            f"{missing_text}" \
+                            f"\n{reminder.custom_text}"
+            if text == missing_text_list[-1]:
+                reminder_text += f"\n{reminder.custom_text}"
+            try:
+                await channel.send(content=reminder_text)
+            except:
+                pass
 
 
 async def clan_games_reminder(bot: CustomClient, reminder_time):
