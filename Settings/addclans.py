@@ -158,6 +158,10 @@ class addClan(commands.Cog, name="Clan Setup"):
             {"server": ctx.guild.id}
         ]})
 
+        await self.bot.reminders.delete_many({"$and": [
+            {"clan": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
         embed = disnake.Embed(
             description=f"{clan.name} removed as a family clan.",
             color=disnake.Color.green())
