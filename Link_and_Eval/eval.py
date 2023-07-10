@@ -107,11 +107,6 @@ class eval(commands.Cog, name="Eval"):
         change_nick = await server.nickname_choice
         await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[user], role_or_user=user, test=test, change_nick=change_nick)
 
-    @eval.sub_command(name="settings", description="Change settings for autoeval")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def eval_settings(self, ctx: disnake.ApplicationCommandInteraction, options = commands.Param(choices=["Blacklist Roles", "Role Treatment", "Nickname Change"])):
-        pass
-
     @autoeval.sub_command(name="blacklist-roles", description="Set blacklisted roles in autoeval (people with these roles will not be autoevaled)")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def auto_eval_blacklist(self, ctx: disnake.ApplicationCommandInteraction, add: disnake.Role = None, remove: disnake.Role = None):
