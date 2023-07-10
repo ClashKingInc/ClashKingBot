@@ -95,21 +95,23 @@ async def roster_embed(bot: CustomClient, war: coc.ClanWar):
     roster = ""
     tags = []
     lineup = []
-    for player in war.clan.members:
-        tags.append(player.tag)
-        lineup.append(player.map_position)
+    for player in war.members:
+        if player not in war.opponent.members:
+            tags.append(player.tag)
+            lineup.append(player.map_position)
 
     x = 0
-    total_hero_strength = 0
-    players = await bot.get_players(tags)
-    players = sorted(players, key=lambda x: x.town_hall)
-    for player in players:
+    async for player in bot.coc_client.get_players(tags):
         th = player.town_hall
         th_emoji = emojiDictionary(th)
         place = str(lineup[x]) + "."
         place = place.ljust(3)
-        hero_total = sum([hero.level for hero in player.heroes if hero.is_home_base])
-        total_hero_strength += hero_total
+        hero_total = 0
+        hero_names = ["Barbarian King", "Archer Queen", "Royal Champion", "Grand Warden"]
+        heros = player.heroes
+        for hero in heros:
+            if hero.name in hero_names:
+                hero_total += hero.level
         if hero_total == 0:
             hero_total = ""
         roster += f"`{place}` {th_emoji} {player.name} | {hero_total}\n"
@@ -118,9 +120,38 @@ async def roster_embed(bot: CustomClient, war: coc.ClanWar):
     embed = disnake.Embed(title=f"{war.clan.name} War Roster", description=roster,
                           color=disnake.Color.green())
     embed.set_thumbnail(url=war.clan.badge.large)
-    embed.set_footer(text=f"Total Hero Stength: {total_hero_strength}")
     return embed
 
+
+async def opp_roster_embed(bot: CustomClient, war):
+    roster = ""
+    tags = []
+    lineup = []
+    for player in war.opponent.members:
+        tags.append(player.tag)
+        lineup.append(player.map_position)
+
+    x = 0
+    async for player in bot.coc_client.get_players(tags):
+        th = player.town_hall
+        th_emoji = emojiDictionary(th)
+        place = str(lineup[x]) + "."
+        place = place.ljust(3)
+        hero_total = 0
+        hero_names = ["Barbarian King", "Archer Queen", "Royal Champion", "Grand Warden"]
+        heros = player.heroes
+        for hero in heros:
+            if hero.name in hero_names:
+                hero_total += hero.level
+        if hero_total == 0:
+            hero_total = ""
+        roster += f"`{place}` {th_emoji} {player.name} | {hero_total}\n"
+        x += 1
+
+    embed = disnake.Embed(title=f"{war.opponent.name} War Roster", description=roster,
+                          color=disnake.Color.green())
+    embed.set_thumbnail(url=war.opponent.badge.large)
+    return embed
 
 
 async def attacks_embed(bot: CustomClient, war: coc.ClanWar):
@@ -415,7 +446,6 @@ async def league_missed_hits(league_wars: List[coc.ClanWar], clan: coc.clans):
 
     return embed
 
-
 def get_latest_war(clan_league_wars: List[coc.ClanWar]):
     last_prep = None
     last_current = None
@@ -642,9 +672,7 @@ async def all_members(bot: CustomClient, group:coc.ClanWarLeagueGroup, clan: coc
     tags = [member.tag for member in members]
 
     x = 1
-    players = await bot.get_players(tags)
-    players = sorted(players, key=lambda x: x.town_hall)
-    for player in players:
+    for player in await bot.get_players(tags):
         if player is None:
             continue
         th = player.town_hall
@@ -667,6 +695,7 @@ async def all_members(bot: CustomClient, group:coc.ClanWarLeagueGroup, clan: coc
                           color=disnake.Color.green())
     embed.set_thumbnail(url=clan.badge.large)
     return embed
+
 
 
 async def page_manager(bot:CustomClient, page:str, group: coc.ClanWarLeagueGroup, war: coc.ClanWar, next_war: coc.ClanWar,

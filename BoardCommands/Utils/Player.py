@@ -195,178 +195,192 @@ async def create_profile_troops(bot, result):
 
 
 async def upgrade_embed(bot: CustomClient, player: MyCustomPlayer):
-    print(f"{player.troop_rushed.total_loot_left.dark_elixir}/{player.troop_rushed.total_loot.dark_elixir}")
-    print(f"{player.troop_rushed.total_loot_left.elixir}/{player.troop_rushed.total_loot.elixir}")
+    areas = [player.troop_rushed, player.hero_rushed, player.spell_rushed, player.pets_rushed]
 
-    print(f"{player.troop_rushed.total_time_left}/{player.troop_rushed.total_time}")
-    print(f"{player.troop_rushed.total_levels_left}/{player.troop_rushed.total_levels}")
+    total_time = sum([area.total_time for area in areas])
+    total_time_done = sum([area.time_done for area in areas])
+    total_time_remaining = sum([area.total_time_left for area in areas])
+
+    total_elixir = sum([area.total_loot.elixir for area in areas])
+    total_elixir_done = sum([area.loot_done.elixir for area in areas])
+    total_elixir_remaining = sum([area.total_loot_left.elixir for area in areas])
+
+    total_de = sum([area.total_loot.dark_elixir for area in areas])
+    total_de_done = sum([area.loot_done.dark_elixir for area in areas])
+    total_de_remaining = sum([area.total_loot_left.dark_elixir for area in areas])
+
+    total_levels = sum([area.total_levels for area in areas])
+    total_levels_done = sum([area.levels_done for area in areas])
+    total_levels_remaining = sum([area.total_levels_left for area in areas])
+
+    total_h_levels = sum([area.total_levels for area in [player.hero_rushed]])
+    total_h_levels_done = sum([area.levels_done for area in [player.hero_rushed]])
+    total_h_levels_remaining = sum([area.total_levels_left for area in [player.hero_rushed]])
+
+    def seconds_convert(secs: int):
+        day = secs // (24 * 3600)
+        secs = secs % (24 * 3600)
+        hour = secs // 3600
+        return f"{day}D"
+
+    embed2 = disnake.Embed(title="Totals", color=disnake.Color.green())
+    embed2.add_field(name=f"{bot.emoji.clock}Time",
+                     value=f"- Percent Done: {round(total_time_done/total_time * 100, 2)}%\n"
+                           f"- Done: {seconds_convert(total_time_done)}\n"
+                           f"- Total: {seconds_convert(total_time)}\n"
+                           f"- Remaining: {seconds_convert(total_time_remaining)}")
+    embed2.add_field(name=f"{bot.emoji.elixir}Elixir",
+                     value=f"- Percent Done: {round(total_elixir_done/total_elixir * 100, 2)}%\n"
+                           f"- Done: {total_elixir_done:,}\n"
+                           f"- Total: {total_elixir:,}\n"
+                           f"- Remaining: {total_elixir_remaining:,}")
+    if player.heroes:
+        embed2.add_field(name=f"{bot.emoji.dark_elixir}Dark Elixir",
+                         value=f"- Percent Done: {round(total_de_done / total_de * 100, 2)}%\n"
+                               f"- Done: {total_de_done:,}\n"
+                               f"- Total: {total_de:,}\n"
+                               f"- Remaining: {total_de_remaining:,}")
+    embed2.add_field(name=f"{bot.emoji.up_green_arrow}All Levels",
+                     value=f"- Percent Done: {round(total_levels_done / total_levels * 100, 2)}%\n"
+                           f"- Done: {total_levels_done:,}\n"
+                           f"- Total: {total_levels:,}\n"
+                           f"- Remaining: {total_levels_remaining:,}")
+    if player.heroes:
+        embed2.add_field(name=f"{bot.fetch_emoji(name='Barbarian King')}Hero Levels",
+                         value=f"- Percent Done: {round(total_h_levels_done / total_h_levels * 100, 2)}%\n"
+                               f"- Done: {total_h_levels_done:,}\n"
+                               f"- Total: {total_h_levels:,}\n"
+                               f"- Remaining: {total_h_levels_remaining:,}")
 
 
+
+    not_unlocked = []
     home_elixir_troops = ""
-    home_de_troops = ""
-    siege_machines = ""
-    bb_troops = ""
-
-    troops_found = []
-    troop_levels = 0
-    troop_levels_missing = 0
-    for troop in player.troops:
-        if troop.is_super_troop:
+    for troop in player.troop_rushed.rushed_items + player.troop_rushed.not_max_items: #type: coc.Troop
+        if not troop.is_elixir_troop:
             continue
-        troops_found.append(troop.name)
-        troop_emoji = bot.fetch_emoji(name=troop.name)
-        prev_level_max = troop.get_max_level_for_townhall(player.town_hall - 1)
-        if prev_level_max is None:
-            prev_level_max = troop.level
-
         th_max = troop.get_max_level_for_townhall(player.town_hall)
-        troop_levels += th_max
-        troop_levels_missing += (th_max - troop.level)
         th_max = f"{th_max}".ljust(2)
         level = f"{troop.level}".rjust(2)
         days = f"{int(troop.upgrade_time.hours / 24)}".rjust(2)
         hours = f"{(int(troop.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
         time = f"{days}D {hours}"
         cost = f"{numerize.numerize(troop.upgrade_cost)}".ljust(5)
-        if troop.level < prev_level_max:  # rushed
-            if troop.is_siege_machine:
-                siege_machines += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`✗\n"
-            elif troop.is_elixir_troop:
-                home_elixir_troops += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`✗\n"
-            elif troop.is_dark_troop:
-                home_de_troops += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`✗\n"
-            elif troop.is_builder_base:
-                bb_troops += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`✗\n"
-
-        elif troop.level < troop.get_max_level_for_townhall(player.town_hall):  # not max
-            if troop.is_elixir_troop:
-                if troop.is_siege_machine:
-                    siege_machines += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`\n"
-                else:
-                    home_elixir_troops += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`\n"
-            elif troop.is_dark_troop:
-                home_de_troops += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`\n"
-            elif troop.is_builder_base:
-                bb_troops += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`\n"
-
-    for troop in coc.HOME_TROOP_ORDER:
-        if troop not in troops_found:
-            troop: coc.Troop = bot.coc_client.get_troop(name=troop, is_home_village=True, townhall=player.town_hall)
-            troop_emoji = bot.fetch_emoji(name=troop.name)
-            th_max = troop.get_max_level_for_townhall(player.town_hall)
-            troop_unlock = troop.lab_level[2]
-            convert_lab = troop.lab_to_townhall
-            troop_unlock = convert_lab[troop_unlock]
-            if player.town_hall >= troop_unlock:
-                troop_levels += th_max
-                troop_levels_missing += (th_max)
-                th_max = f"{th_max}".ljust(2)
-                level = f"0".rjust(2)
-                if troop.is_siege_machine:
-                    siege_machines += f"{troop_emoji} `{level}/{th_max}` `Not Unlocked`\n"
-                elif troop.is_elixir_troop:
-                    home_elixir_troops += f"{troop_emoji} `{level}/{th_max}` `Not Unlocked`\n"
-                elif troop.is_dark_troop:
-                    home_de_troops += f"{troop_emoji} `{level}/{th_max}` `Not Unlocked`\n"
-
-    elixir_spells = ""
-    de_spells = ""
-    found_spells = []
-    spell_levels= 0
-    spell_levels_missing = 0
-    for spell in player.spells:
-        troop_emoji = bot.fetch_emoji(name=spell.name)
-        found_spells.append(spell.name)
-        prev_level_max = spell.get_max_level_for_townhall(player.town_hall - 1)
-        if prev_level_max is None:
-            prev_level_max = spell.level
+        home_elixir_troops += f"{bot.fetch_emoji(name=troop.name)} `{level}/{th_max}` `{time}` `{cost}`"
+        if troop in player.troop_rushed.rushed_items:
+            home_elixir_troops += "✗"
+        home_elixir_troops += "\n"
 
 
-        th_max = spell.get_max_level_for_townhall(player.town_hall)
-        spell_levels += th_max
-        spell_levels_missing += (th_max - spell.level)
+    home_de_troops = ""
+    for troop in player.troop_rushed.rushed_items + player.troop_rushed.not_max_items:  # type: coc.Troop
+        if not troop.is_dark_troop:
+            continue
+        th_max = troop.get_max_level_for_townhall(player.town_hall)
         th_max = f"{th_max}".ljust(2)
-        level = f"{spell.level}".rjust(2)
-        days = f"{int(spell.upgrade_time.hours / 24)}".rjust(2)
-        hours = f"{(int(spell.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
+        level = f"{troop.level}".rjust(2)
+        days = f"{int(troop.upgrade_time.hours / 24)}".rjust(2)
+        hours = f"{(int(troop.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
         time = f"{days}D {hours}"
-        cost = f"{numerize.numerize(spell.upgrade_cost)}".ljust(5)
-        if spell.level < prev_level_max:  # rushed
-            if spell.is_elixir_spell:
-                elixir_spells += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`✗\n"
-            elif spell.is_dark_spell:
-                de_spells += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`✗\n"
-        elif spell.level < spell.get_max_level_for_townhall(player.town_hall):  # not max
-            if spell.is_elixir_spell:
-                elixir_spells += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`\n"
-            elif spell.is_dark_spell:
-                de_spells += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`\n"
+        cost = f"{numerize.numerize(troop.upgrade_cost)}".ljust(5)
+        home_de_troops += f"{bot.fetch_emoji(name=troop.name)} `{level}/{th_max}` `{time}` `{cost}`"
+        if troop in player.troop_rushed.rushed_items:
+            home_de_troops += "✗"
+        home_de_troops += "\n"
+
+    siege_machines = ""
+    for troop in player.troop_rushed.rushed_items + player.troop_rushed.not_max_items:  # type: coc.Troop
+        if not troop.is_siege_machine:
+            continue
+        th_max = troop.get_max_level_for_townhall(player.town_hall)
+        th_max = f"{th_max}".ljust(2)
+        level = f"{troop.level}".rjust(2)
+        days = f"{int(troop.upgrade_time.hours / 24)}".rjust(2)
+        hours = f"{(int(troop.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
+        time = f"{days}D {hours}"
+        cost = f"{numerize.numerize(troop.upgrade_cost)}".ljust(5)
+        siege_machines += f"{bot.fetch_emoji(name=troop.name)} `{level}/{th_max}` `{time}` `{cost}`"
+        if troop in player.troop_rushed.rushed_items:
+            siege_machines += "✗"
+        siege_machines += "\n"
 
 
-    for spell in coc.SPELL_ORDER:
-        if spell not in found_spells:
-            spell: coc.Spell = bot.coc_client.get_spell(name=spell, townhall=player.town_hall)
-            troop_emoji = bot.fetch_emoji(name=spell.name)
-            th_max = spell.get_max_level_for_townhall(player.town_hall)
-            if th_max is None:
-                continue
-            spell_levels += th_max
-            spell_levels_missing += (th_max)
-            troop_unlock = spell.lab_level[2]
-            convert_lab = spell.lab_to_townhall
-            troop_unlock = convert_lab[troop_unlock]
-            if player.town_hall >= troop_unlock:
-                th_max = f"{th_max}".ljust(2)
-                level = f"0".rjust(2)
-                if spell.is_elixir_spell:
-                    elixir_spells += f"{troop_emoji} `{level}/{th_max}` `Not Unlocked`\n"
-                elif spell.is_dark_spell:
-                    de_spells += f"{troop_emoji} `{level}/{th_max}` `Not Unlocked`\n"
-
-    hero_levels = 0
-    hero_levels_missing = 0
     hero_text = ""
-    for hero in player.heroes:
-        troop_emoji = bot.fetch_emoji(name=hero.name)
-        hero_levels += hero.level
-        if hero.required_th_level == player.town_hall:
-            prev_level_max = None
-        else:
-            prev_level_max = hero.get_max_level_for_townhall(player.town_hall - 1)
-        if prev_level_max is None:
-            prev_level_max = hero.level
-
-
+    for hero in player.hero_rushed.rushed_items + player.hero_rushed.not_max_items:  # type: coc.hero.Hero
+        if not hero.is_home_base:
+            continue
         th_max = hero.get_max_level_for_townhall(player.town_hall)
-        hero_levels_missing += (th_max - hero.level)
         th_max = f"{th_max}".ljust(2)
         level = f"{hero.level}".rjust(2)
         days = f"{int(hero.upgrade_time.hours / 24)}".rjust(2)
         hours = f"{(int(hero.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
         time = f"{days}D {hours}"
         cost = f"{numerize.numerize(hero.upgrade_cost)}".ljust(5)
-        if hero.level < prev_level_max:  # rushed
-            hero_text += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`✗\n"
-
-        elif hero.level < hero.get_max_level_for_townhall(player.town_hall):  # not max
-            hero_text += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`\n"
+        hero_text += f"{bot.fetch_emoji(name=hero.name)} `{level}/{th_max}` `{time}` `{cost}`"
+        if hero in player.hero_rushed.rushed_items:
+            hero_text += "✗"
+        hero_text += "\n"
 
     pet_text = ""
+    for pet in player.pets_rushed.rushed_items + player.pets_rushed.not_max_items:  # type: coc.Pet
+        if player.town_hall == 14:
+            prev_level_max = 0
+            max = 10
+        else:
+            if pet in ["L.A.S.S.I", "Mighty Yak", "Electro Owl", "Unicorn"]:
+                if pet in ["L.A.S.S.I", "Mighty Yak"]:
+                    max = 15
+                else:
+                    max = 10
+                prev_level_max = 10
+            else:
+                prev_level_max = 0
+                max = 10
 
-    for pet in player.pets:
-        troop_emoji = bot.fetch_emoji(name=pet.name)
-        new_pets = ["Diggy", "Frosty", "Phoenix", "Poison Lizard"]
-
-        th_max = f"{10}".ljust(2)
+        th_max = max
+        th_max = f"{th_max}".ljust(2)
         level = f"{pet.level}".rjust(2)
         days = f"{int(pet.upgrade_time.hours / 24)}".rjust(2)
         hours = f"{(int(pet.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
         time = f"{days}D {hours}"
         cost = f"{numerize.numerize(pet.upgrade_cost)}".ljust(5)
-        if pet.level < 10 and pet.name not in new_pets and player.town_hall == 15:  # rushed
-            pet_text += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`✗\n"
-        elif pet.level < 10:  # not max
-            pet_text += f"{troop_emoji} `{level}/{th_max}` `{time}` `{cost}`\n"
+        pet_text += f"{bot.fetch_emoji(name=pet.name)} `{level}/{th_max}` `{time}` `{cost}`"
+        if pet in player.pets_rushed.rushed_items:
+            pet_text += "✗"
+        pet_text += "\n"
+
+    elixir_spells = ""
+    for spell in player.spell_rushed.rushed_items + player.spell_rushed.not_max_items:  # type: coc.Spell
+        if spell.is_dark_spell:
+            continue
+        th_max = spell.get_max_level_for_townhall(player.town_hall)
+        th_max = f"{th_max}".ljust(2)
+        level = f"{spell.level}".rjust(2)
+        days = f"{int(spell.upgrade_time.hours / 24)}".rjust(2)
+        hours = f"{(int(spell.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
+        time = f"{days}D {hours}"
+        cost = f"{numerize.numerize(spell.upgrade_cost)}".ljust(5)
+        elixir_spells += f"{bot.fetch_emoji(name=spell.name)} `{level}/{th_max}` `{time}` `{cost}`"
+        if spell in player.spell_rushed.rushed_items:
+            elixir_spells += "✗"
+        elixir_spells += "\n"
+
+    de_spells = ""
+    for spell in player.spell_rushed.rushed_items + player.spell_rushed.not_max_items:  # type: coc.Spell
+        if not spell.is_dark_spell:
+            continue
+        th_max = spell.get_max_level_for_townhall(player.town_hall)
+        th_max = f"{th_max}".ljust(2)
+        level = f"{spell.level}".rjust(2)
+        days = f"{int(spell.upgrade_time.hours / 24)}".rjust(2)
+        hours = f"{(int(spell.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
+        time = f"{days}D {hours}"
+        cost = f"{numerize.numerize(spell.upgrade_cost)}".ljust(5)
+        de_spells += f"{bot.fetch_emoji(name=spell.name)} `{level}/{th_max}` `{time}` `{cost}`"
+        if spell in player.spell_rushed.rushed_items:
+            de_spells += "✗"
+        de_spells += "\n"
+
 
 
     full_text = ""
@@ -384,15 +398,10 @@ async def upgrade_embed(bot: CustomClient, player: MyCustomPlayer):
         full_text += f"**Dark Elixir Spells**\n{de_spells}\n"
     if siege_machines != "":
         full_text += f"**Siege Machines**\n{siege_machines}\n"
-
-    embed2 = False
-    if bb_troops != "":
-        embed2 = disnake.Embed(description=f"**Builder Base Troops**\n{bb_troops}\n",colour=disnake.Color.green())
-
     if full_text == "":
         full_text = "No Heros, Pets, Spells, or Troops left to upgrade\n"
 
-    if hero_levels_missing == 0:
+    '''if hero_levels_missing == 0:
         hero_levels_missing = "0.00%"
     else:
         hero_levels_missing = f"{round((hero_levels_missing/(hero_levels+hero_levels_missing)) * 100, 2)}%"
@@ -405,18 +414,13 @@ async def upgrade_embed(bot: CustomClient, player: MyCustomPlayer):
     if spell_levels_missing == 0:
         spell_levels_missing = "0.00%"
     else:
-        spell_levels_missing = f"{round((spell_levels_missing / (spell_levels)) * 100, 2)}%"
+        spell_levels_missing = f"{round((spell_levels_missing / (spell_levels)) * 100, 2)}%"'''
 
     #print(full_text)
     embed = disnake.Embed(title=f"{player.name} | TH{player.town_hall}", description=full_text, colour=disnake.Color.green())
-    if embed2 is not False:
-        embeds = [embed, embed2]
-    else:
-        embeds = [embed]
-    embeds[-1].set_footer(text="✗ = rushed for th level")
-    embeds[-1].description += f"Hero Lvl Left: {hero_levels_missing}\n" \
-                 f"Troop Lvl Left: {troop_levels_missing}\n" \
-                 f"Spell Lvl Left: {spell_levels_missing}\n"
+
+    embeds = [embed, embed2]
+    embeds[0].set_footer(text="✗ = rushed for th level")
     return embeds
 
 

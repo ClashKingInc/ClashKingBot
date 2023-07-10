@@ -441,8 +441,10 @@ class MyCustomPlayer(coc.Player):
         for hero_name in coc.HERO_ORDER:
             hero = self.get_hero(name=hero_name)
             if hero is None:
-                hero = self.bot.coc_client.get_hero(name=hero_name, townhall=self.town_hall, level=1)
+                hero: coc.Hero = self.bot.coc_client.get_hero(name=hero_name, townhall=self.town_hall, level=1)
                 if not hero.name in HOME_VILLAGE_HEROES:
+                    continue
+                if hero.required_th_level > self.town_hall:
                     continue
                 th_max = hero.get_max_level_for_townhall(self.town_hall)
                 if th_max is None:
@@ -534,6 +536,52 @@ class MyCustomPlayer(coc.Player):
                 all_items.append(self.bot.coc_client.get_troop(name=troop_name, townhall=self.town_hall, level=1))
         return RushedInfo(player=self, rushed_items=rushed_items, not_max_items=not_max_items, locked_items=locked_items, all_items=all_items)
 
+    @property
+    def pets_rushed(self):
+        rushed_items = []
+        not_max_items = []
+        locked_items = []
+        all_items = []
+        names = coc.PETS_ORDER.copy()
+        for pet in self.pets:
+            names.remove(pet.name)
+            if not pet.is_home_base:
+                continue
+
+            if self.town_hall == 14:
+                prev_level_max = 0
+                max = 10
+            else:
+                if pet in ["L.A.S.S.I", "Mighty Yak", "Electro Owl", "Unicorn"]:
+                    if pet in ["L.A.S.S.I", "Mighty Yak"]:
+                        max = 15
+                    else:
+                        max = 10
+                    prev_level_max = 10
+                else:
+                    prev_level_max = 0
+                    max = 10
+
+            if pet.level < prev_level_max:  # rushed
+                rushed_items.append(pet)
+            elif pet.level < max:  # not max
+                not_max_items.append(pet)
+            all_items.append(self.bot.coc_client.get_pet(name=pet.name, townhall=self.town_hall, level=1))
+
+        for pet_name in names:
+            pet = self.bot.coc_client.get_pet(name=pet_name, townhall=self.town_hall, level=1)
+            if self.town_hall < 14 or (pet.name not in ["L.A.S.S.I", "Mighty Yak", "Electro Owl", "Unicorn"] and self.town_hall == 14):
+                continue
+            th_max = pet.get_max_level_for_townhall(self.town_hall)
+            if th_max is None:
+                continue
+            if self.town_hall >= pet.required_th_level:
+                locked_items.append(pet)
+            all_items.append(pet)
+
+        return RushedInfo(player=self, rushed_items=rushed_items, not_max_items=not_max_items,
+                          locked_items=locked_items, all_items=all_items)
+
 
 class RushedInfo():
     def __init__(self, player, rushed_items: List, not_max_items: List, locked_items: List, all_items: List):
@@ -555,6 +603,20 @@ class RushedInfo():
             item.level = og_level
         return time
 
+    @property
+    def total_time(self):
+        time = 0
+        for item in self.all_items:
+            og_level = item.level
+            while item.level <= item.get_max_level_for_townhall(self.player.town_hall):
+                time += item.upgrade_time.total_seconds()
+                item.level += 1
+            item.level = og_level
+        return time
+
+    @property
+    def time_done(self):
+        return self.total_time - self.total_time_left
 
     @property
     def total_loot_left(self):
@@ -565,6 +627,7 @@ class RushedInfo():
             og_level = item.level
             while item.level < item.get_max_level_for_townhall(self.player.town_hall):
                 if (item.name in ["Barbarian King", "Archer Queen", "Royal Champion"] and item.is_home_base) or \
+                        (item.name in coc.PETS_ORDER) or \
                     (item.name in coc.HOME_TROOP_ORDER and item.is_dark_troop) or (item.name in coc.SPELL_ORDER and item.is_dark_spell):
                     dark_elixir += item.upgrade_cost
                 elif (item.name in ["Battle Machine", "Battle Copter"] and item.is_builder_base) or (item.is_builder_base):
@@ -586,17 +649,12 @@ class RushedInfo():
             item.level = og_level
         return levels_left
 
-
     @property
-    def total_time(self):
-        time = 0
-        for item in self.all_items:
-            og_level = item.level
-            while item.level < item.get_max_level_for_townhall(self.player.town_hall):
-                time += item.upgrade_time.total_seconds()
-                item.level += 1
-            item.level = og_level
-        return time
+    def loot_done(self):
+        return LootObject(elixir=(self.total_loot.elixir - self.total_loot_left.elixir),
+                          dark_elixir=(self.total_loot.dark_elixir - self.total_loot_left.dark_elixir),
+                          builder_elixir=(self.total_loot.builder_elixir - self.total_loot_left.builder_elixir))
+
 
     @property
     def total_loot(self):
@@ -605,9 +663,11 @@ class RushedInfo():
         builder_elixir = 0
         for item in self.all_items:
             og_level = item.level
-            while item.level < item.get_max_level_for_townhall(self.player.town_hall):
-                if (item.name in ["Barbarian King", "Archer Queen", "Royal Champion"] and item.is_home_base) or (
-                        item.name not in coc.HERO_ORDER and (item.is_dark_spell or item.is_dark_troop)):
+            while item.level <= item.get_max_level_for_townhall(self.player.town_hall):
+                if (item.name in ["Barbarian King", "Archer Queen", "Royal Champion"] and item.is_home_base) or \
+                        (item.name in coc.PETS_ORDER) or \
+                        (item.name in coc.HOME_TROOP_ORDER and item.is_dark_troop) or (
+                        item.name in coc.SPELL_ORDER and item.is_dark_spell):
                     dark_elixir += item.upgrade_cost
                 elif (item.name in ["Battle Machine", "Battle Copter"] and item.is_builder_base) or (
                 item.is_builder_base):
@@ -623,12 +683,15 @@ class RushedInfo():
         levels_left = 0
         for item in self.all_items:
             og_level = item.level
-            while item.level < item.get_max_level_for_townhall(self.player.town_hall):
+            while item.level <= item.get_max_level_for_townhall(self.player.town_hall):
                 levels_left += 1
                 item.level += 1
             item.level = og_level
         return levels_left
 
+    @property
+    def levels_done(self):
+        return self.total_levels - self.total_levels_left
 
 class LootObject():
     def __init__(self, elixir= 0, dark_elixir= 0, builder_elixir= 0):
