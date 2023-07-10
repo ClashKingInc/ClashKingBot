@@ -524,8 +524,11 @@ async def get_custom_text(bot:CustomClient, res: disnake.MessageInteraction):
         )
     except:
         raise ExpiredComponents
-    await modal_inter.response.defer(ephemeral=True)
-    await modal_inter.send(content="Custom Text Stored", delete_after=3)
+    try:
+        await modal_inter.response.defer(ephemeral=True)
+    except:
+        pass
+    await modal_inter.send(content="Custom Text Stored", delete_after=2)
     custom_text = modal_inter.text_values["custom_text"]
     return custom_text
 

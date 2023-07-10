@@ -114,7 +114,7 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
         else:
             search_query = str(discord_user.id)
 
-        players = await search_results(self.bot, search_query)
+        players = await search_results(self.bot, search_query)[:25]
         embed = await player_embeds.upgrade_embed(self.bot, players[0])
         components = []
         if len(players) > 1:
