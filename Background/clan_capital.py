@@ -46,7 +46,7 @@ class StoreClanCapital(commands.Cog):
             if raid_log_entry is None:
                 continue
             file = await generate_raid_result_image(raid_entry=raid_log_entry, clan=clan)
-            (raid_embed, total_looted, total_attacks) = clan_raid_weekend_raid_stats(bot=self.bot, clan=clan, raid_log_entry=raid_log_entry)
+            (raid_embed, total_looted, total_attacks) = await clan_raid_weekend_raid_stats(bot=self.bot, clan=clan, raid_log_entry=raid_log_entry)
             donation_embed = await clan_raid_weekend_donation_stats(clan=clan, weekend=weekend, bot=self.bot)
 
             try:
