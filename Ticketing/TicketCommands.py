@@ -379,14 +379,38 @@ class TicketCommands(commands.Cog):
 
     @ticket.sub_command(name="message", description="Customize the message that is sent when a ticket is opened")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def ticket_message(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, button: str,  custom_embed: str = None, ping_staff = commands.Param(default=None, choices=["True", "False"])):
-        if ping_staff is None and custom_embed is None:
-            return await ctx.send("Must use the `custom_embed` or `ping_staff` field.")
+    async def ticket_message(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, button: str,  embed_link: str = None, ping_staff = commands.Param(default=None, choices=["True", "False"])):
+        if ping_staff is None:
+            return await ctx.send("Must use the `ping_staff` field.")
 
-        await ctx.response.defer()
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:
             raise PanelNotFound
+
+        if embed_link is None:
+            modal_inter, embed = await self.basic_embed_modal(ctx=ctx, previous_embed=disnake.Embed.from_dict(
+                data=result.get("embed")))
+            ctx = modal_inter
+        else:
+            await ctx.response.defer()
+            try:
+                if "discord.com" not in embed_link:
+                    return await ctx.send(content="Not a valid message link", ephemeral=True)
+                link_split = embed_link.split("/")
+                message_id = link_split[-1]
+                channel_id = link_split[-2]
+
+                channel = await self.bot.getch_channel(channel_id=int(channel_id))
+                if channel is None:
+                    return await ctx.send(content="Cannot access the channel this embed is in", ephemeral=True)
+                message = await channel.fetch_message(int(message_id))
+                if not message.embeds:
+                    return await ctx.send(content="Message has no embeds", ephemeral=True)
+                embed = message.embeds[0]
+            except:
+                return await ctx.edit_original_message(content=f"Something went wrong :/ An error occured with the message link.")
+
+
         button_id = next((x for x in result.get("components") if x.get("label") == button), None)
         if button_id is None:
             raise ButtonNotFound
@@ -397,10 +421,6 @@ class TicketCommands(commands.Cog):
                                                   f"{button_id.get('custom_id')}_settings.ping_staff": (ping_staff == "True")}})
             return await ctx.send(content=f"**Ping Staff Setting changed to {ping_staff == 'True'}**")
 
-        try:
-            embed = await self.bot.parse_to_embed(custom_json=custom_embed, guild=ctx.guild)
-        except:
-            raise FaultyJson
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         button_id = next((x for x in result.get("components") if x.get("label") == button), None)
         await self.bot.tickets.update_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]},
