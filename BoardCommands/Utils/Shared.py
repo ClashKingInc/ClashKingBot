@@ -438,6 +438,8 @@ async def player_sort(bot: CustomClient, player_tags: List[str], sort_by: str, f
         players = await bot.player_cache.aggregate(pipeline=pipeline).to_list(length=None)
         players = [{"data" : player.get("data")[0].get("data")} for player in players]
 
+    if sort_by == "townHallLevel":
+        sort_by = "town_hall"
     def get_longest(players, attribute):
         longest = 0
         for player in players:
@@ -483,7 +485,7 @@ async def player_sort(bot: CustomClient, player_tags: List[str], sort_by: str, f
             emoji = bot.emoji.war_star
         elif sort_by in ["ach_Conqueror", "attack_wins"]:
             emoji = bot.emoji.thick_sword
-        elif sort_by in ["ach_Unbreakable"]:
+        elif sort_by in ["ach_Unbreakable", "defense_wins"]:
             emoji = bot.emoji.shield
         elif sort_by in ["ach_Games Champion"]:
             emoji = bot.emoji.clan_games
