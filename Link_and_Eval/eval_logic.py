@@ -439,8 +439,7 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
                             new_name = f"{top_account.name} | {family_label}"
                             name_changes = f"`{top_account.name} | {family_label}`"
 
-                if change_nick in ["Clan Abbreviations", "Family Name"] and not GLOBAL_IS_FAMILY and len(
-                        list_accounts) >= 1:
+                if change_nick in ["Clan Abbreviations", "Family Name"] and not GLOBAL_IS_FAMILY and len(list_accounts) >= 1:
                     results = sorted(list_accounts, key=lambda l: l[0], reverse=True)
                     top_account: coc.Player = results[0][1]
                     clan_name = ""
@@ -451,7 +450,7 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
                     new_name = f"{top_account.name} {clan_name}"
                     name_changes = f"`{top_account.name} {clan_name}`"
 
-
+        old_name = member.display_name
         if not test and (new_name or FINAL_ROLES_TO_ADD or FINAL_ROLES_TO_REMOVE):
             try:
                 if new_name is None and current_member_roles == member.roles:
@@ -466,7 +465,7 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
                 added = "Permissions Error"
                 removed = "Permissions Error"
 
-        if name_changes[1:-1] == member.display_name:
+        if name_changes[1:-1] == old_name:
             name_changes = "None"
         if added == "":
             added = "None"
