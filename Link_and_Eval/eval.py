@@ -160,7 +160,7 @@ class eval(commands.Cog, name="Eval"):
     async def auto_eval_nickchange(self, ctx: disnake.ApplicationCommandInteraction, change_nickname: str = commands.Param(choices=["True", "False"])):
         await ctx.response.defer()
         db_server = await self.bot.get_custom_server(guild_id=ctx.guild.id)
-        await db_server.set_auto_eval_nickname(type=(change_nickname == "True"))
+        await db_server.set_auto_eval_nickname(change_nickname == "True")
         embed = disnake.Embed(description=f"AutoEval will change nicknames -> `{change_nickname}`", color=disnake.Color.green())
         return await ctx.edit_original_message(embed=embed)
 
