@@ -18,6 +18,8 @@ item_to_name = {"Player Tag" : "tag", "Role" : "role",
                 "Versus Trophy Record" : "ach-Champion Builder", "Trophy Record" : "ach-Sweet Victory!",
                 "Clan Games Points" : "ach-Games Champion", "Versus Battles Won" : "versus-attack-wins", "Best Season Rank" : "legendStatistics.bestSeason.rank", "Townhall Level" : "town-hall"}
 
+HOME_VILLAGE_HEROES = ["Barbarian King", "Archer Queen", "Royal Champion", "Grand Warden"]
+
 locations = ["global", 32000007, 32000008, 32000009, 32000010, 32000011, 32000012, 32000013, 32000014, 32000015, 32000016,
              32000017,
              32000018, 32000019, 32000020, 32000021, 32000022, 32000023, 32000024, 32000025, 32000026, 32000027,

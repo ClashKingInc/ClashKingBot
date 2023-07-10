@@ -176,19 +176,19 @@ class DatabaseClan():
         await self.bot.clan_db.update_one({"$and": [
             {"tag": self.tag},
             {"server": self.server_id}
-        ]}, {'$set': {"strike_button": set}})
+        ]}, {'$set': {"logs.leave_log.strike_button": set}})
 
     async def set_ban_button(self, set: bool):
         await self.bot.clan_db.update_one({"$and": [
             {"tag": self.tag},
             {"server": self.server_id}
-        ]}, {'$set': {"ban_button": set}})
+        ]}, {'$set': {"logs.leave_log.ban_button": set}})
 
     async def set_profile_button(self, set: bool):
         await self.bot.clan_db.update_one({"$and": [
             {"tag": self.tag},
             {"server": self.server_id}
-        ]}, {'$set': {"profile_button": set}})
+        ]}, {'$set': {"logs.join_log.profile_button": set}})
 
 
 

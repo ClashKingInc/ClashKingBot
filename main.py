@@ -87,8 +87,8 @@ initial_extensions = [
     "BoardCommands.FamilyCommands",
     "BoardCommands.PlayerCommands",
     "BoardCommands.Utils.Buttons",
-    "BoardCommands.WarCommands",
-    "Exceptions.ExceptionHandler",
+    #"BoardCommands.WarCommands",
+    #"Exceptions.ExceptionHandler",
     "Export.ExportsCog",
     "FamilyManagement.Reminders.Reminders",
     "FamilyManagement.bans",
@@ -147,12 +147,12 @@ if not IS_BETA:
         "discord_events",
     ]
 
-@bot.command(name="r")
+@bot.command(name="reload")
 @commands.is_owner()
 async def r(ctx):
     for extension in initial_extensions:
         bot.reload_extension(extension)
-    await ctx.message.delete()
+    #await ctx.message.delete()
 
 def before_send(event, hint):
     try:

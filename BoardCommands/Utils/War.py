@@ -122,37 +122,6 @@ async def roster_embed(bot: CustomClient, war: coc.ClanWar):
     return embed
 
 
-async def opp_roster_embed(bot: CustomClient, war):
-    roster = ""
-    tags = []
-    lineup = []
-    for player in war.opponent.members:
-        tags.append(player.tag)
-        lineup.append(player.map_position)
-
-    x = 0
-    players = await bot.get_players(tags=tags)
-    players = sorted(players, key=lambda x: x.town_hall)
-
-    total_hero_strength = 0
-    for player in players:
-        th = player.town_hall
-        th_emoji = emojiDictionary(th)
-        place = str(lineup[x]) + "."
-        place = place.ljust(3)
-        hero_total = sum([hero.level for hero in player.heroes if hero.is_home_base])
-        total_hero_strength += hero_total
-        if hero_total == 0:
-            hero_total = ""
-        roster += f"`{place}` {th_emoji} {player.name} | {hero_total}\n"
-        x += 1
-
-    embed = disnake.Embed(title=f"{war.opponent.name} War Roster", description=roster,
-                          color=disnake.Color.green())
-    embed.set_thumbnail(url=war.opponent.badge.large)
-    embed.set_footer(text=f"Total Hero Stength: {total_hero_strength}")
-    return embed
-
 
 async def attacks_embed(bot: CustomClient, war: coc.ClanWar):
     attacks = ""

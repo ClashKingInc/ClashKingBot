@@ -194,7 +194,14 @@ async def create_profile_troops(bot, result):
     return embed
 
 
-async def upgrade_embed(bot: CustomClient, player: coc.Player):
+async def upgrade_embed(bot: CustomClient, player: MyCustomPlayer):
+    print(f"{player.troop_rushed.total_loot_left.dark_elixir}/{player.troop_rushed.total_loot.dark_elixir}")
+    print(f"{player.troop_rushed.total_loot_left.elixir}/{player.troop_rushed.total_loot.elixir}")
+
+    print(f"{player.troop_rushed.total_time_left}/{player.troop_rushed.total_time}")
+    print(f"{player.troop_rushed.total_levels_left}/{player.troop_rushed.total_levels}")
+
+
     home_elixir_troops = ""
     home_de_troops = ""
     siege_machines = ""

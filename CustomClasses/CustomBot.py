@@ -110,7 +110,7 @@ class CustomClient(commands.AutoShardedBot):
         self.autoboard_db: collection_class = self.db_client.usafam.autoboard_db
 
 
-        self.coc_client = login.coc_client
+        self.coc_client: coc.Client = login.coc_client
 
         self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwarapi.login(username=os.getenv("FW_USER"), password=os.getenv("FW_PW"), coc_client=self.coc_client))
 
