@@ -16,7 +16,7 @@ item_to_name = {"Player Tag" : "tag", "Role" : "role",
                 "DE Looted" : "ach-Heroic Heist", "CWL Stars" : "ach-War League Legend", "Attacks Won (all time)" : "ach-Conqueror",
                 "Attacks Won (season)" : "attack-wins", "Defenses Won (season)" : "defense-wins", "Defenses Won (all time)" : "ach-Unbreakable", "Total Donated" : "ach-Friend in Need",
                 "Versus Trophy Record" : "ach-Champion Builder", "Trophy Record" : "ach-Sweet Victory!",
-                "Clan Games Points" : "ach-Games Champion", "Versus Battles Won" : "versus-attack-wins", "Best Season Rank" : "legendStatistics.bestSeason.rank", "Townhall Level" : "town-hall"}
+                "Clan Games Points" : "ach-Games Champion", "Versus Battles Won" : "versus-attack-wins", "Best Season Rank" : "legendStatistics.bestSeason.rank", "Townhall Level" : "townHallLevel"}
 
 HOME_VILLAGE_HEROES = ["Barbarian King", "Archer Queen", "Royal Champion", "Grand Warden"]
 
