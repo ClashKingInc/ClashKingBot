@@ -296,6 +296,20 @@ class Strikes(commands.Cog, name="Strikes"):
         names = await self.bot.family_names(query=query, guild=ctx.guild)
         return names
 
+    @strike_list.autocomplete("clan")
+    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id}).sort("name", 1)
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
+        clan_list = []
+        for tClan in await tracked.to_list(length=limit):
+            name = tClan.get("name")
+            tag = tClan.get("tag")
+            if query.lower() in name.lower():
+                clan_list.append(f"{name} | {tag}")
+
+        return clan_list[0:25]
+
+
     async def add_autostrike(self, guild: disnake.Guild, autostrike_type: str, basic_filter: float, weight: int,
                              rollover_days: int):
         pass

@@ -31,7 +31,7 @@ class SetupCommands(commands.Cog , name="Setup"):
     @setup.sub_command(name="autoeval", description="Turn autoeval on/off")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def autoeval(self, ctx: disnake.ApplicationCommandInteraction, option=commands.Param(choices=["On", "Off"]),
-                       log: disnake.TextChannel = commands.Param(default=None, name="log")):
+                       log: Union[disnake.TextChannel, disnake.Thread] = commands.Param(default=None, name="log")):
         await ctx.response.defer()
 
         await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"autoeval": option == "On"}})
@@ -118,7 +118,7 @@ class SetupCommands(commands.Cog , name="Setup"):
 
     @setup.sub_command(name="reddit-recruit-feed", description="Feed of searching for a clan posts on the recruiting subreddit")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def reddit_recruit(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel,
+    async def reddit_recruit(self, ctx: disnake.ApplicationCommandInteraction, channel: Union[disnake.TextChannel, disnake.Thread],
                              role_to_ping: disnake.Role = None,
                              remove=commands.Param(default=None, choices=["Remove Feed"])):
         """
