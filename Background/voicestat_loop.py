@@ -7,6 +7,7 @@ utc = pytz.utc
 
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import DatabaseClan
+from Exceptions.CustomExceptions import MissingWebhookPerms
 
 class VoiceStatCron(commands.Cog):
 
@@ -105,12 +106,12 @@ class VoiceStatCron(commands.Cog):
                 time_ = await calculate_time("War", war=war)
                 prev_name = channel.name
                 if ":" not in prev_name:
-                    raise disnake.NotFound
+                    raise MissingWebhookPerms
                 previous_identifier = prev_name.split(":")[0]
                 text = f"{previous_identifier}: {time_}"
                 if text != channel.name:
                     await channel.edit(name=text)
-            except (disnake.NotFound, disnake.Forbidden):
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await db_clan.set_war_countdown(id=None)
 
 

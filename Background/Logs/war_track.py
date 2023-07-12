@@ -67,7 +67,7 @@ class War_Log(commands.Cog):
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
-                        raise disnake.NotFound
+                        MissingWebhookPerms
             except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)
@@ -111,7 +111,7 @@ class War_Log(commands.Cog):
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
-                        raise disnake.NotFound
+                        MissingWebhookPerms
             except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)

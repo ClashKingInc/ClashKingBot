@@ -146,7 +146,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
                     if log.thread is not None:
                         thread = await self.bot.getch_channel(log.thread, raise_exception=True)
                         if thread.locked:
-                            raise disnake.NotFound
+                            MissingWebhookPerms
                     if thread is None:
                         message = await webhook.send(embed=embed, wait=True)
                     else:
