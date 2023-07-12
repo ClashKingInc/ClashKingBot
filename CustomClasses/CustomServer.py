@@ -235,7 +235,11 @@ class ClanLog():
                 except:
                     return None
             else:
-                return await self.parent.bot.getch_channel(self.thread)
+                try:
+                    channel = await self.parent.bot.getch_channel(self.thread, raise_exception=True)
+                    return channel.mention
+                except:
+                    return None
         return None
 
     async def set_webhook(self, id: Union[int, None]):
