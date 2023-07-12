@@ -8,7 +8,6 @@ from Exceptions.CustomExceptions import *
 from datetime import datetime
 from operator import attrgetter
 
-
 def partial_emoji_gen(bot, emoji_string, animated=False):
     emoji = ''.join(filter(str.isdigit, emoji_string))
     emoji = bot.get_emoji(int(emoji))
@@ -207,9 +206,9 @@ async def get_webhook_for_channel(bot, channel: Union[disnake.TextChannel, disna
         webhook = next((w for w in webhooks if w.user.id == bot.user.id), None)
         if webhook is None:
             if isinstance(channel, disnake.Thread):
-                webhook = await channel.parent.create_webhook(name="ClashKing", avatar=bot.user.avatar, reason="Log Creation")
+                webhook = await channel.parent.create_webhook(name=bot.user.name, avatar=bot.user.avatar, reason="Log Creation")
             else:
-                webhook = await channel.create_webhook(name="ClashKing", avatar=bot.user.avatar, reason="Log Creation")
+                webhook = await channel.create_webhook(name=bot.user.name, avatar=bot.user.avatar, reason="Log Creation")
         return webhook
     except Exception:
         raise MissingWebhookPerms
