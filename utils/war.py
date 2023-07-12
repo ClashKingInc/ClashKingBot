@@ -128,6 +128,8 @@ async def send_or_update_war_end(bot: CustomClient, clan_tag:str, preparation_st
 
         try:
             webhook = await bot.getch_webhook(log.webhook)
+            if isinstance(webhook.channel, disnake.ForumChannel) and log.thread is None:
+                raise disnake.Forbidden
             if log.thread is not None:
                 thread = await bot.getch_channel(log.thread)
                 if thread.locked:

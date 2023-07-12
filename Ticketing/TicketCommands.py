@@ -299,6 +299,7 @@ class TicketCommands(commands.Cog):
         await ctx.send(embed=disnake.Embed(description=f"{button} button removed from {panel_name} panel", color=disnake.Color.red()))
 
 
+
     #ACTIONS
     @ticket.sub_command(name="questions", description="Create a set of questions (up to 5) that will be asked when a ticket is opened")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -359,8 +360,7 @@ class TicketCommands(commands.Cog):
         await modal_inter.send(embed=disnake.Embed(title=f"Questionnaire Created - {button}", description=f"Questions:\n{text}"))
 
 
-    @ticket.sub_command(name="private-thread",
-                        description="Turn private thread use - on/off")
+    @ticket.sub_command(name="private-thread", description="Turn private thread use - on/off")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_thread(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, button: str, option=commands.Param(choices=["On", "Off"])):
         await ctx.response.defer()
@@ -376,6 +376,7 @@ class TicketCommands(commands.Cog):
                                           {"$set": {f"{button_id.get('custom_id')}_settings.private_thread": (option == "On")}})
         return await ctx.send(
             embed=disnake.Embed(description=f"Private Thread Settings Updated!",color=disnake.Color.green()))
+
 
     @ticket.sub_command(name="message", description="Customize the message that is sent when a ticket is opened")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -1537,8 +1538,3 @@ class TicketCommands(commands.Cog):
 
 
 
-
-
-
-    '''async def cog_slash_command_error(self, inter: disnake.ApplicationCommandInteraction, error: Exception):
-        print(error)'''

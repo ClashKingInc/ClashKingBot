@@ -25,10 +25,10 @@ from Link_and_Eval.eval_logic import eval_logic
 from CustomClasses.ReminderClass import Reminder
 from utils.ClanCapital import get_raidlog_entry, gen_raid_weekend_datestrings
 from BoardCommands.Utils.Clan import clan_raid_weekend_raid_stats, clan_raid_weekend_donation_stats
-from ImageGen.ClanCapitalResult import generate_raid_result_image
+from ImageGen.ClanCapitalResult import generate_raid_result_image, calc_raid_medals
 from pymongo import UpdateOne
-from coc.raid import RaidLogEntry
-
+from coc.raid import RaidLogEntry, RaidAttack
+from numerize import numerize
 
 class OwnerCommands(commands.Cog):
 
@@ -51,45 +51,28 @@ class OwnerCommands(commands.Cog):
                 created += f"{emoji} - `<:{emoji.name}:{emoji.id}>`\n"
         await ctx.send(content=created)
 
-    @commands.slash_command(name="resend", guild_ids=[923764211845312533])
+    @commands.slash_command(name="resend", guild_ids=[1103679645439754335])
     @commands.is_owner()
-    async def test(self, ctx: disnake.ApplicationCommandInteraction, ):
-        tracked = self.bot.clan_db.find({"clan_capital": {"$ne": None}})
-        limit = await self.bot.clan_db.count_documents(filter={"clan_capital": {"$ne": None}})
-        for cc in await tracked.to_list(length=limit):
-            clancapital_channel = cc.get("clan_capital")
-            if clancapital_channel is None:
-                continue
-            try:
-                clancapital_channel = await self.bot.getch_channel(clancapital_channel)
-            except (disnake.NotFound, disnake.Forbidden):
-                await self.bot.clan_db.update_one({"$and": [
-                    {"tag": cc.get("tag")},
-                    {"server": cc.get("server")}
-                ]}, {'$set': {"clan_capital": None}})
-                continue
+    async def test(self, ctx: disnake.ApplicationCommandInteraction):
+        clan = await self.bot.getClan(clan_tag="#2JGYRJVL")
+        weekend = gen_raid_weekend_datestrings(2)[1]
+        raid_log_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot)
+        member = raid_log_entry.members[0]
+        attack: RaidAttack = member.attacks[0]
+        channel = ctx.channel
+        embed = disnake.Embed(
+            description=f"[**{member.name}**]({member.share_link}) raided {self.bot.emoji.capital_gold}2456\n"
+            , color=disnake.Color.green())
+        clan = await self.bot.clan_cache.find_one({"tag": raid_log_entry.clan_tag})
+        clan = coc.Clan(data=clan.get("data"), client=self.bot.coc_client)
+        embed.set_author(name=f"{clan.name}", icon_url=clan.badge.url)
 
-            clan = await self.bot.getClan(clan_tag=cc.get("tag"))
-            if clan is None:
-                continue
-            weekend = gen_raid_weekend_datestrings(2)[1]
-            raid_log_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot)
-            if raid_log_entry is None:
-                continue
-            file = await generate_raid_result_image(raid_entry=raid_log_entry, clan=clan)
-            (raid_embed, total_looted, total_attacks) = await clan_raid_weekend_raid_stats(bot=self.bot, clan=clan,
-                                                                                           raid_log_entry=raid_log_entry)
-            donation_embed = await clan_raid_weekend_donation_stats(clan=clan, weekend=weekend, bot=self.bot)
-            donation_embed.set_image(file=file)
-            try:
-                await clancapital_channel.send(embed=raid_embed)
-                await clancapital_channel.send(embed=donation_embed)
-                #await clancapital_channel.send(file=file)
-            except:
-                continue
+        off_medal_reward = calc_raid_medals(raid_log_entry.attack_log)
+        embed.set_footer(text=f"#{member.attack_count}/{member.attack_limit + member.bonus_attack_limit} | {numerize.numerize(raid_log_entry.total_loot, 2)} Total | Medals: {off_medal_reward}")
+        await channel.send(embed=embed)
 
 
-    @commands.slash_command(name="restart-customs", guild_ids=[923764211845312533])
+    @commands.slash_command(name="restart-customs", guild_ids=[1103679645439754335])
     @commands.is_owner()
     async def restart_custom(self, ctx: disnake.ApplicationCommandInteraction, top: int):
         for x in range(4, top+1):
@@ -97,7 +80,7 @@ class OwnerCommands(commands.Cog):
 
 
 
-    @commands.slash_command(name="migrate", guild_ids=[923764211845312533])
+    @commands.slash_command(name="migrate", guild_ids=[1103679645439754335])
     @commands.is_owner()
     async def migrate(self, ctx: disnake.ApplicationCommandInteraction):
 

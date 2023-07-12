@@ -7,6 +7,7 @@ from CustomClasses.CustomBot import CustomClient
 from Background.Logs.event_websockets import player_ee
 from datetime import datetime
 from pytz import utc
+from coc.raid import RaidLogEntry, RaidAttack
 
 class clan_capital_events(commands.Cog, name="Clan Capital Events"):
 
@@ -50,6 +51,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
                 await log.set_webhook(id=None)
                 continue
 
+
     '''@coc.RaidEvents.new_offensive_opponent()
     async def new_opponent(self, clan: coc.RaidClan, raid: RaidLogEntry):
         channel = await self.bot.getch_channel(1071566470137511966)
@@ -69,7 +71,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
                               color=disnake.Color.green())
         embed.add_field(name="Districts", value=district_text)
         embed.set_thumbnail(url=clan.badge.url)
-        await channel.send(embed=embed)
+        await channel.send(embed=embed)'''
 
     @coc.RaidEvents.raid_attack()
     async def member_attack(self, old_member: coc.RaidMember, member: coc.RaidMember, raid: RaidLogEntry):
@@ -87,43 +89,8 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
         embed.set_footer(text=f"{numerize.numerize(raid.total_loot, 2)} Total CG | Calc Medals: {off_medal_reward}")
         await channel.send(embed=embed)
 
-    @coc.RaidEvents.defense_district_destruction_change()
-    async def district_destruction(self, previous_district: coc.RaidDistrict, district: coc.RaidDistrict):
-        if self.count >= 20:
-            return
-        self.count += 1
-        channel = await self.bot.getch_channel(1071566470137511966)
-        # print(district.destruction)
-        name = "District"
-        if district.id == 70000000:
-            name = "Capital"
-        name = f"{name}_Hall{district.hall_level}"
-        district_emoji = self.bot.fetch_emoji(name=name).partial_emoji
-        color = disnake.Color.yellow()
-        if district.destruction == 100:
-            color = disnake.Color.red()
 
-        if previous_district is None:
-            previous_destr = 0
-            previous_gold = 0
-        else:
-            previous_destr = previous_district.destruction
-            previous_gold = previous_district.looted
-
-        added = ""
-        cg_added = ""
-        if district.destruction - previous_destr != 0:
-            added = f" (+{district.destruction - previous_destr}%)"
-            cg_added = f" (+{district.looted - previous_gold})"
-
-        embed = disnake.Embed(
-            description=f"{self.bot.emoji.thick_sword}{district.destruction}%{added} | {self.bot.emoji.capital_gold}{district.looted}{cg_added} | Atk #{district.attack_count}\n"
-            , color=color)
-        clan_name = await self.bot.clan_db.find_one({"tag": district.raid_clan.raid_log_entry.clan_tag})
-        embed.set_author(icon_url=district_emoji.url, name=f"{district.name} Defense | {clan_name['name']}")
-        embed.set_footer(icon_url=district.raid_clan.badge.url,
-                         text=f"{district.raid_clan.name} | {district.raid_clan.destroyed_district_count}/{len(district.raid_clan.districts)} Districts Destroyed")
-        await channel.send(embed=embed)'''
+    @coc.RaidEvents.state()
 
 
 def setup(bot: CustomClient):
