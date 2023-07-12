@@ -19,8 +19,9 @@ parser = argparse.ArgumentParser(description="Just an example",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-c", "--custom", action="store_true", help="custom mode")
 parser.add_argument("-b", "--beta", action="store_true", help="beta mode")
+parser.add_argument("-k", "--test", action="store_true", help="test mode")
 parser.add_argument("-t", "--token", help="token")
-parser.add_argument("-k", "--test", help="test")
+
 args = parser.parse_args()
 config = vars(args)
 
