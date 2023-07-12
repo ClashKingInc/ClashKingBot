@@ -18,7 +18,7 @@ class board_loop(commands.Cog):
         limit = await self.bot.server_db.count_documents(filter={"topboardchannel": {"$ne" : None}})
         tasks = []
         date = self.bot.gen_legend_date()
-        all_tags = await self.bot.clan_db.distinct("tag")
+        all_tags = await self.bot.clan_db.distinct("tag", {"server" : {"$in" : self.bot.OUR_GUILDS}})
         all_clans = await self.bot.get_clans(tags=all_tags)
         clan_dict = {}
         for clan in all_clans:

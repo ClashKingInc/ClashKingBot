@@ -24,9 +24,6 @@ class StoreClanCapital(commands.Cog):
 
 
     async def send_boards(self):
-        if not self.bot.user.public_flags.verified_bot:
-            return
-
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"logs.capital_weekly_summary.webhook": {"$ne": None}})
         clans = await self.bot.get_clans(tags=clan_tags)
         for cc in await self.bot.clan_db.find({"logs.capital_weekly_summary.webhook": {"$ne": None}}).to_list(length=None):

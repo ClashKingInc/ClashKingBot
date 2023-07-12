@@ -131,11 +131,7 @@ if not IS_BETA and not IS_CUSTOM:
         "Background.region_lb_update"
     ]
     initial_extensions += [
-        "Background.Logs.auto_eval",
-        "Background.autoboard_loop",
-        "Background.clan_capital",
         "Background.legends_history",
-        "Background.voicestat_loop",
         "Other.erikuh_comp",
         "discord_events",
     ]
@@ -143,6 +139,10 @@ if not IS_BETA and not IS_CUSTOM:
 #only the local version can not run
 if not IS_TEST:
     initial_extensions += [
+        "Background.voicestat_loop",
+        "Background.Logs.auto_eval",
+        "Background.autoboard_loop",
+        "Background.clan_capital",
         "Background.Logs.ban_events",
         "Background.Logs.clan_capital_events",
         "Background.Logs.donations",

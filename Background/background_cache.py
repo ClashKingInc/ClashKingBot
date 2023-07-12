@@ -33,6 +33,8 @@ class BackgroundCache(commands.Cog):
         if self.bot.user.public_flags.verified_bot:
             all_guilds = [str(g) for g in guild_fetch]
             await self.bot.server_db.update_one({"server" : 923764211845312533}, {"$set" : {"all_servers" : all_guilds}})
+        else:
+            guild_fetch = [guild.id for guild in self.bot.guilds]
         x = set(guild_fetch)
         if self.bot.user.public_flags.verified_bot:
             active_custom_bots = await self.bot.credentials.distinct("server", filter={"active" : True})
