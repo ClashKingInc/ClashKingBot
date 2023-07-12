@@ -19,9 +19,10 @@ class DiscordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        len_g = len(self.bot.guilds)
-        for count, shard in self.bot.shards.items():
-            await self.bot.change_presence(activity=disnake.Activity(name=f'{len_g} servers | Shard {count + 1}' ,type=3), shard_id=shard.id)  # type 3 watching type#1 - playing
+        if self.bot.user.public_flags.verified_bot:
+            len_g = len(self.bot.guilds)
+            for count, shard in self.bot.shards.items():
+                await self.bot.change_presence(activity=disnake.Activity(name=f'{len_g} servers | Shard {count + 1}' ,type=3), shard_id=shard.id)  # type 3 watching type#1 - playing
 
     @commands.Cog.listener()
     async def on_connect(self):
@@ -55,10 +56,26 @@ class DiscordEvents(commands.Cog):
             scheduler.add_job(SendReminders.inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
             scheduler.add_job(SendReminders.roster_reminder, trigger='interval', args=[self.bot], minutes=2, misfire_grace_time=None)
 
-            tags = await self.bot.clan_db.distinct("tag", filter={"server" : {"$in" : [guild.id for guild in self.bot.guilds]}})
+            guild_fetch = await self.bot.server_db.distinct("server")
+            if self.bot.user.public_flags.verified_bot:
+                all_guilds = [str(g) for g in guild_fetch]
+                await self.bot.server_db.update_one({"server": 923764211845312533}, {"$set": {"all_servers": all_guilds}})
+            else:
+                guild_fetch = [guild.id for guild in self.bot.guilds]
+            x = set(guild_fetch)
+            if self.bot.user.public_flags.verified_bot:
+                active_custom_bots = await self.bot.credentials.distinct("server")
+                for bot in active_custom_bots:
+                    try:
+                        x.remove(bot)
+                    except:
+                        pass
+            self.bot.OUR_GUILDS = x
+
+            tags = await self.bot.clan_db.distinct("tag", filter={"server" : {"$in" : self.bot.OUR_GUILDS}})
             self.bot.clan_list = tags
 
-            reminder_tags = await self.bot.reminders.distinct("clan", filter={"$and" : [{"type" : "War"}, {"server" : {"$in" : [guild.id for guild in self.bot.guilds]}}]})
+            reminder_tags = await self.bot.reminders.distinct("clan", filter={"$and" : [{"type" : "War"}, {"server" : {"$in" : self.bot.OUR_GUILDS}}]})
             current_war_times = await self.bot.get_current_war_times(tags=reminder_tags)
             for tag in current_war_times.keys():
                 new_war, war_end_time = current_war_times[tag]
@@ -99,13 +116,6 @@ class DiscordEvents(commands.Cog):
                             "lbboardChannel": None,
                             "lbhour": None
                         })
-
-                '''for x in range(6, 15):
-                    os.system(f"pm2 delete {x}")
-    
-                tokens = await self.bot.credentials.distinct("bot_token")
-                for token in tokens:
-                    os.system(f"pm2 start main.py --interpreter=/usr/bin/python3 --custom --token {token}")'''
 
             print('We have logged in')
 
