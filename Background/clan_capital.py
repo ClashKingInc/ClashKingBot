@@ -46,7 +46,7 @@ class StoreClanCapital(commands.Cog):
 
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
-                if isinstance(webhook, disnake.ForumChannel) and log.thread is None:
+                if isinstance(webhook.channel, disnake.ForumChannel) and log.thread is None:
                     raise disnake.Forbidden
                 if webhook.user.id != self.bot.user.id:
                     webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
