@@ -103,7 +103,7 @@ class OwnerCommands(commands.Cog):
                     continue
             except:
                 continue
-            message = await ctx.channel.send(f"Sent {x}/{len(clan_tags)}")
+            await message.edit(f"Sent {x}/{len(clan_tags)}")
             x += 1
 
         await ctx.channel.send(f"Done")
