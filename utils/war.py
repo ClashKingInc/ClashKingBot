@@ -177,7 +177,7 @@ async def send_or_update_war_end(bot: CustomClient, clan_tag:str, preparation_st
 
 async def update_war_message(bot: CustomClient, war: coc.ClanWar, db_clan: DatabaseClan, clan: coc.Clan = None):
     log = db_clan.war_panel
-
+    webhook_id = log.webhook
     message_id = log.message_id
     if log.war_id != f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}":
         message_id = None
@@ -187,23 +187,18 @@ async def update_war_message(bot: CustomClient, war: coc.ClanWar, db_clan: Datab
     try:
         if message_id is None:
             raise Exception
-        try:
-            webhook = await bot.getch_webhook(db_clan.war_panel.webhook)
-            if webhook.user.id != bot.user.id:
-                webhook = await get_webhook_for_channel(bot=bot, channel=webhook.channel)
-                await log.set_webhook(id=webhook.id)
-            await webhook.edit_message(message_id, embed=embed)
-        except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
-            await log.set_thread(id=None)
-            await log.set_webhook(id=None)
-            return
+        webhook = await bot.getch_webhook(webhook_id)
+        if webhook.user.id != bot.user.id:
+            raise Exception
+        await webhook.edit_message(message_id, embed=embed)
+ 
     except:
         button = war_buttons(bot=bot, new_war=war)
         log = db_clan.war_panel
 
         thread = None
         try:
-            webhook = await bot.getch_webhook(db_clan.war_panel.webhook)
+            webhook = await bot.getch_webhook(webhook_id)
             if webhook.user.id != bot.user.id:
                 webhook = await get_webhook_for_channel(bot=bot, channel=webhook.channel)
                 await log.set_webhook(id=webhook.id)
