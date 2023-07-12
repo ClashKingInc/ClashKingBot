@@ -124,14 +124,14 @@ class LinkWelcomeMessages(commands.Cog):
                 verified = True
 
             if link_id == ctx.author.id:
-                embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                embed = await eval_logic(bot=self.bot, guild=ctx.guild, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                                 test=False,
                                                 change_nick=change_nickname,
                                                 return_embed=True)
                 return await modal_inter.send(embed=embed, ephemeral=True)
             elif verified:
                 await player.add_link(ctx.author)
-                embed: disnake.Embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                embed: disnake.Embed = await eval_logic(bot=self.bot, guild=ctx.guild, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                                 test=False,
                                                 change_nick=change_nickname,
                                                 return_embed=True)

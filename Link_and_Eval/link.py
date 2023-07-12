@@ -449,7 +449,7 @@ class Linking(commands.Cog):
 
         if ctx.data.custom_id == "Refresh Roles":
             await ctx.response.defer()
-            embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+            embed = await eval_logic(bot=self.bot, guild=ctx.guild, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                             test=False,
                                             change_nick="Off",
                                             return_embed=True)
