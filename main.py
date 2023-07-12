@@ -118,7 +118,6 @@ initial_extensions = [
 
 ]
 
-print(IS_CUSTOM)
 #let local & main run only
 if not IS_CUSTOM:
     initial_extensions += [
