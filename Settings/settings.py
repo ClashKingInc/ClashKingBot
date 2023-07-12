@@ -127,7 +127,7 @@ class misc(commands.Cog, name="Settings"):
             await db_server.set_api_token(status=(api_token == "Use"))
             changed_text += f"- **Api Token:** `{api_token}`\n"
         if leadership_eval is not None:
-            await db_server.set_api_token(status=(leadership_eval == "True"))
+            await db_server.set_leadership_eval(status=(leadership_eval == "True"))
             changed_text += f"- **Leadership Eval:** `{leadership_eval}`\n"
 
         if changed_text == "":

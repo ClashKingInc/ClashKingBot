@@ -62,7 +62,7 @@ class DiscordEvents(commands.Cog):
                 await self.bot.server_db.update_one({"server": 923764211845312533}, {"$set": {"all_servers": all_guilds}})
             else:
                 guild_fetch = [guild.id for guild in self.bot.guilds]
-            x = set(guild_fetch)
+            x = guild_fetch
             if self.bot.user.public_flags.verified_bot:
                 active_custom_bots = await self.bot.credentials.distinct("server")
                 for bot in active_custom_bots:
@@ -70,7 +70,7 @@ class DiscordEvents(commands.Cog):
                         x.remove(bot)
                     except:
                         pass
-            self.bot.OUR_GUILDS = x
+            self.bot.OUR_GUILDS = set(x)
 
             tags = await self.bot.clan_db.distinct("tag", filter={"server" : {"$in" : self.bot.OUR_GUILDS}})
             self.bot.clan_list = tags
