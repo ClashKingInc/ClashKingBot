@@ -134,7 +134,6 @@ if not IS_BETA and not IS_CUSTOM:
     initial_extensions += [
         "Background.legends_history",
         "Other.erikuh_comp",
-        "discord_events",
         "Background.clan_capital",
     ]
 
@@ -152,6 +151,7 @@ if not IS_TEST:
         "Background.Logs.player_upgrade_events",
         "Background.Logs.war_track",
         "Background.background_cache",
+        "discord_events",
     ]
 
 
