@@ -8,6 +8,8 @@ from CustomClasses.CustomServer import DatabaseClan
 from Background.Logs.event_websockets import clan_ee
 from utils.clash import leagueAndTrophies
 from pymongo import UpdateOne
+from utils.discord_utils import get_webhook_for_channel
+from Exceptions.CustomExceptions import MissingWebhookPerms
 
 class Donations(commands.Cog, name="Donations"):
 
@@ -67,6 +69,9 @@ class Donations(commands.Cog, name="Donations"):
             log = clan.donation_log
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
+                if webhook.user.id != self.bot.user.id:
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
@@ -74,7 +79,7 @@ class Donations(commands.Cog, name="Donations"):
                     await webhook.send(embed=embed, thread=thread)
                 else:
                     await webhook.send(embed=embed)
-            except (disnake.NotFound, disnake.Forbidden):
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)
                 continue

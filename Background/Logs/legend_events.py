@@ -6,6 +6,8 @@ from CustomClasses.CustomServer import DatabaseClan
 from Background.Logs.event_websockets import player_ee
 from datetime import datetime
 from pytz import utc
+from utils.discord_utils import get_webhook_for_channel
+from Exceptions.CustomExceptions import MissingWebhookPerms
 
 class LegendEvents(commands.Cog):
 
@@ -48,6 +50,9 @@ class LegendEvents(commands.Cog):
                 log = clan.legend_log_defenses
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
+                if webhook.user.id != self.bot.user.id:
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
@@ -55,7 +60,7 @@ class LegendEvents(commands.Cog):
                     await webhook.send(embed=embed, thread=thread)
                 else:
                     await webhook.send(embed=embed)
-            except (disnake.NotFound, disnake.Forbidden):
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)
                 continue

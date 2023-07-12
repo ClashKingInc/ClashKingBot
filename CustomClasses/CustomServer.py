@@ -106,7 +106,7 @@ class DatabaseClan():
         self.capital_attacks = ClanLog(parent=self, type="capital_attacks")
         self.raid_map = ClanLog(parent=self, type="raid_map")
         self.capital_weekly_summary = ClanLog(parent=self, type="capital_weekly_summary")
-        self.raid_panel = ClanLog(parent=self, type="new_raid_panel")
+        self.raid_panel = CapitalPanel(parent=self, type="new_raid_panel")
         self.donation_log = ClanLog(parent=self, type="donation_log")
         self.super_troop_boost_log = ClanLog(parent=self, type="super_troop_boost")
         self.role_change = ClanLog(parent=self, type="role_change")
@@ -253,6 +253,7 @@ class Join_Log(ClanLog):
         self.ban_button = self.data.get("ban_button", False)
         self.profile_button = self.data.get("profile_button", False)
 
+
 class WarPanel(ClanLog):
     def __init__(self, parent: DatabaseClan, type: str):
         super().__init__(parent=parent, type=type)
@@ -270,7 +271,18 @@ class WarPanel(ClanLog):
     async def set_channel_id(self, id: Union[str, None]):
         await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]}, {"$set" : {f"logs.{self.type}.war_channel" : id}})
 
+class CapitalPanel(ClanLog):
+    def __init__(self, parent: DatabaseClan, type: str):
+        super().__init__(parent=parent, type=type)
+        self.raid_id = self.data.get("raid_id")
+        self.message_id = self.data.get("raid_message")
 
+    async def set_raid_id(self, raid: coc.RaidLogEntry):
+        raid_id = f"{raid.clan_tag}v{int(raid.start_time.time.timestamp())}"
+        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]}, {"$set" : {f"logs.{self.type}.raid_id" : raid_id}})
+
+    async def set_message_id(self, id: Union[str, None]):
+        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]}, {"$set" : {f"logs.{self.type}.raid_message" : id}})
 
 
 class CustomServer():

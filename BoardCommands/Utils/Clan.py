@@ -478,8 +478,7 @@ async def clan_capital_overview(bot: CustomClient, clan: coc.Clan, raid_log_entr
         attack_count += member.attack_count
     embed = disnake.Embed(title=f"{clan.name} Raid Weekend Overview", color=disnake.Color.green())
     embed.set_footer(
-        text=f"{str(raid_log_entry.start_time.time.date()).replace('-', '/')}-{str(raid_log_entry.end_time.time.date()).replace('-', '/')}",
-        icon_url=clan.badge.url)
+        text=f"{str(raid_log_entry.start_time.time.date()).replace('-', '/')}-{str(raid_log_entry.end_time.time.date()).replace('-', '/')}", icon_url=clan.badge.url)
     embed.add_field(name="Overview",
                     value=f"- {bot.emoji.capital_gold}{'{:,}'.format(raid_log_entry.total_loot)} Looted\n"
                           f"- {bot.fetch_emoji('District_Hall5')}{raid_log_entry.destroyed_district_count} Districts Destroyed\n"

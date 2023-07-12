@@ -8,6 +8,8 @@ from CustomClasses.CustomBot import CustomClient
 from Background.Logs.event_websockets import player_ee
 from utils.clash import league_emoji
 from pytz import utc
+from utils.discord_utils import get_webhook_for_channel
+from Exceptions.CustomExceptions import MissingWebhookPerms
 
 class UpgradeEvent(commands.Cog):
 
@@ -36,6 +38,9 @@ class UpgradeEvent(commands.Cog):
             log = clan.league_change
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
+                if webhook.user.id != self.bot.user.id:
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
@@ -43,7 +48,7 @@ class UpgradeEvent(commands.Cog):
                     await webhook.send(content=content, thread=thread)
                 else:
                     await webhook.send(content=content)
-            except (disnake.NotFound, disnake.Forbidden):
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)
                 continue
@@ -67,6 +72,9 @@ class UpgradeEvent(commands.Cog):
             log = clan.name_change
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
+                if webhook.user.id != self.bot.user.id:
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
@@ -74,7 +82,7 @@ class UpgradeEvent(commands.Cog):
                     await webhook.send(content=content, thread=thread)
                 else:
                     await webhook.send(content=content)
-            except (disnake.NotFound, disnake.Forbidden):
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)
                 continue
@@ -96,6 +104,9 @@ class UpgradeEvent(commands.Cog):
             log = clan.th_upgrade
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
+                if webhook.user.id != self.bot.user.id:
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
@@ -103,7 +114,7 @@ class UpgradeEvent(commands.Cog):
                     await webhook.send(content=content, thread=thread)
                 else:
                     await webhook.send(content=content)
-            except (disnake.NotFound, disnake.Forbidden):
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)
                 continue
@@ -159,6 +170,9 @@ class UpgradeEvent(commands.Cog):
 
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
+                if webhook.user.id != self.bot.user.id:
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
@@ -166,7 +180,7 @@ class UpgradeEvent(commands.Cog):
                     await webhook.send(content=text, thread=thread)
                 else:
                     await webhook.send(content=text)
-            except (disnake.NotFound, disnake.Forbidden):
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)
                 continue
@@ -206,6 +220,9 @@ class UpgradeEvent(commands.Cog):
 
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
+                if webhook.user.id != self.bot.user.id:
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
@@ -213,7 +230,7 @@ class UpgradeEvent(commands.Cog):
                     await webhook.send(content=text, thread=thread)
                 else:
                     await webhook.send(content=text)
-            except (disnake.NotFound, disnake.Forbidden):
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)
                 continue
@@ -253,6 +270,9 @@ class UpgradeEvent(commands.Cog):
 
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
+                if webhook.user.id != self.bot.user.id:
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
@@ -260,7 +280,7 @@ class UpgradeEvent(commands.Cog):
                     await webhook.send(content=text, thread=thread)
                 else:
                     await webhook.send(content=text)
-            except (disnake.NotFound, disnake.Forbidden):
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)
                 continue

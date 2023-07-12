@@ -198,7 +198,7 @@ async def generate_embed(bot, our_embed: dict, embed=None):
     return embed
 
 
-async def get_webhook_for_channel(bot, channel: Union[disnake.TextChannel, disnake.Thread]):
+async def get_webhook_for_channel(bot, channel: Union[disnake.TextChannel, disnake.Thread]) -> disnake.Webhook:
     try:
         if isinstance(channel, disnake.Thread):
             webhooks = await channel.parent.webhooks()

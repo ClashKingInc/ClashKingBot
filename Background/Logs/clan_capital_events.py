@@ -4,10 +4,13 @@ import coc
 
 from CustomClasses.CustomServer import DatabaseClan
 from CustomClasses.CustomBot import CustomClient
-from Background.Logs.event_websockets import player_ee
+from Background.Logs.event_websockets import player_ee, raid_ee
 from datetime import datetime
 from pytz import utc
-from coc.raid import RaidLogEntry, RaidAttack
+from coc.raid import RaidLogEntry, RaidAttack, RaidMember
+from numerize import numerize
+from ImageGen.ClanCapitalResult import calc_raid_medals
+from BoardCommands.Utils import Clan as clan_embeds
 
 class clan_capital_events(commands.Cog, name="Clan Capital Events"):
 
@@ -15,7 +18,8 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
         self.bot = bot
         self.player_ee = player_ee
         self.player_ee.on("Most Valuable Clanmate", self.cg_dono_event)
-
+        self.raid_ee = raid_ee
+        self.raid_ee.on("raid_attacks", self.member_attack_log)
 
     async def cg_dono_event(self, event):
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
@@ -32,7 +36,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
 
             log = db_clan.capital_donations
             embed = disnake.Embed(
-                description=f"[**{new_player.name}**]({new_player.share_link}) donated <:capitalgold:987861320286216223>{dono_change}",
+                description=f"[**{new_player.name}**]({new_player.share_link}) donated {self.bot.emoji.capital_gold}{dono_change}",
                 color=disnake.Color.green())
             embed.set_footer(icon_url=new_player.clan.badge.url, text=new_player.clan.name)
             embed.timestamp = utc_time
@@ -73,24 +77,92 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
         embed.set_thumbnail(url=clan.badge.url)
         await channel.send(embed=embed)'''
 
-    @coc.RaidEvents.raid_attack()
-    async def member_attack(self, old_member: coc.RaidMember, member: coc.RaidMember, raid: RaidLogEntry):
-        channel = await self.bot.getch_channel(1071566470137511966)
-        previous_loot = old_member.capital_resources_looted if old_member is not None else 0
-        looted_amount = member.capital_resources_looted - previous_loot
-        if looted_amount == 0:
+
+    async def member_attack_log(self, event):
+        raid = RaidLogEntry(data=event["raid"], client=self.bot.coc_client, clan_tag=event["clan_tag"])
+        old_member = RaidMember(data=event["old_member"], client=self.bot.coc_client, raid_log_entry=raid)
+        new_member = RaidMember(data=event["new_member"], client=self.bot.coc_client, raid_log_entry=raid)
+
+        clan = await self.bot.clan_cache.find_one({"tag": raid.clan_tag})
+        if clan is None:
             return
-        embed = disnake.Embed(
-            description=f"[**{member.name}**]({member.share_link}) raided {self.bot.emoji.capital_gold}{looted_amount} | {self.bot.emoji.thick_sword} Attack #{member.attack_count}/{member.attack_limit + member.bonus_attack_limit}\n"
-            , color=disnake.Color.green())
-        clan_name = await self.bot.clan_db.find_one({"tag": raid.clan_tag})
-        embed.set_author(name=f"{clan_name['name']}")
-        off_medal_reward = calc_raid_medals(raid.attack_log)
-        embed.set_footer(text=f"{numerize.numerize(raid.total_loot, 2)} Total CG | Calc Medals: {off_medal_reward}")
-        await channel.send(embed=embed)
+        clan = coc.Clan(data=clan.get("data"), client=self.bot.coc_client)
+
+        for cc in await self.bot.clan_db.find({"$and": [{"tag": raid.clan_tag}, {"logs.capital_attacks.webhook": {"$ne" : None}}]}).to_list(length=None):
+            db_clan = DatabaseClan(bot=self.bot, data=cc)
+            if db_clan.server_id not in self.bot.OUR_GUILDS:
+                continue
+
+            log = db_clan.capital_attacks
+
+            previous_loot = old_member.capital_resources_looted if old_member is not None else 0
+            looted_amount = new_member.capital_resources_looted - previous_loot
+
+            embed = disnake.Embed(
+                description=f"[**{new_member.name}**]({new_member.share_link}) raided {self.bot.emoji.capital_gold}{looted_amount}",
+                color=disnake.Color.green())
+            embed.set_author(name=f"{clan.name}", icon_url=clan.badge.url)
+
+            off_medal_reward = calc_raid_medals(raid.attack_log)
+            embed.set_footer(text=f"{numerize.numerize(raid.total_loot, 2)} Total CG | Calc Medals: {off_medal_reward}")
+
+            try:
+                webhook = await self.bot.getch_webhook(log.webhook)
+                if log.thread is not None:
+                    thread = await self.bot.getch_channel(log.thread)
+                    if thread.locked:
+                        continue
+                    await webhook.send(embed=embed, thread=thread)
+                else:
+                    await webhook.send(embed=embed)
+            except (disnake.NotFound, disnake.Forbidden):
+                await log.set_thread(id=None)
+                await log.set_webhook(id=None)
+                continue
 
 
-    @coc.RaidEvents.state()
+        for cc in await self.bot.clan_db.find({"$and": [{"tag": raid.clan_tag}, {"logs.new_raid_panel.webhook": {"$ne": None}}]}).to_list(length=None):
+            db_clan = DatabaseClan(bot=self.bot, data=cc)
+            if db_clan.server_id not in self.bot.OUR_GUILDS:
+                continue
+
+            log = db_clan.raid_panel
+            embed = await clan_embeds.clan_capital_overview(bot=self.bot, clan=clan, raid_log_entry=raid)
+
+            try:
+                if log.message_id is None:
+                    raise Exception
+                try:
+                    webhook = await self.bot.getch_webhook(log.webhook)
+                    await webhook.edit_message(log.message_id, embed=embed)
+                except (disnake.NotFound, disnake.Forbidden):
+                    await log.set_thread(id=None)
+                    await log.set_webhook(id=None)
+                    continue
+            except:
+                thread = None
+                try:
+                    webhook = await self.bot.getch_webhook(db_clan.war_panel.webhook)
+                    if log.thread is not None:
+                        thread = await self.bot.getch_channel(log.thread, raise_exception=True)
+                        if thread.locked:
+                            raise disnake.NotFound
+                    if thread is None:
+                        message = await webhook.send(embed=embed, wait=True)
+                    else:
+                        message = await webhook.send(embed=embed, thread=thread, wait=True)
+                except (disnake.NotFound, disnake.Forbidden):
+                    await log.set_thread(id=None)
+                    await log.set_webhook(id=None)
+                    continue
+
+                await log.set_raid_id(raid=raid)
+                await log.set_message_id(id=message.id)
+
+
+
+
+
 
 
 def setup(bot: CustomClient):

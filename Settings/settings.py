@@ -71,7 +71,7 @@ class misc(commands.Cog, name="Settings"):
             await db_clan.set_ban_button(set=(ban_button == "True"))
             changed_text += f"- **Ban Button:** `{ban_button}`\n"
         if profile_button is not None:
-            await db_clan.set_ban_button(set=(profile_button == "True"))
+            await db_clan.set_profile_button(set=(profile_button == "True"))
             changed_text += f"- **Profile Button:** `{profile_button}`\n"
         if changed_text == "":
             changed_text = "No Changes Made!"

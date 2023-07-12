@@ -16,7 +16,8 @@ from utils.war import create_reminders, schedule_war_boards, war_start_embed, ma
 from utils.general import create_superscript
 from CustomClasses.CustomServer import DatabaseClan
 from BoardCommands.Utils.War import attacks_embed, defenses_embed
-
+from utils.discord_utils import get_webhook_for_channel
+from Exceptions.CustomExceptions import MissingWebhookPerms
 
 class War_Log(commands.Cog):
 
@@ -60,11 +61,14 @@ class War_Log(commands.Cog):
             thread = None
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
+                if webhook.user.id != self.bot.user.id:
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
                         raise disnake.NotFound
-            except (disnake.NotFound, disnake.Forbidden):
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)
                 continue
@@ -101,11 +105,14 @@ class War_Log(commands.Cog):
             thread = None
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
+                if webhook.user.id != self.bot.user.id:
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
                         raise disnake.NotFound
-            except (disnake.NotFound, disnake.Forbidden):
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)
                 continue
@@ -199,6 +206,9 @@ class War_Log(commands.Cog):
                               f" {star_str} **{attack.destruction}%** {emojiDictionary(attack.attacker.town_hall)}{create_superscript(num=attack.attacker.map_position)}"
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
+                if webhook.user.id != self.bot.user.id:
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
@@ -206,7 +216,7 @@ class War_Log(commands.Cog):
                     await webhook.send(content=hit_message, thread=thread)
                 else:
                     await webhook.send(content=hit_message)
-            except (disnake.NotFound, disnake.Forbidden):
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)
                 continue

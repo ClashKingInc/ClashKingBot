@@ -10,7 +10,7 @@ import argparse
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
-from Background.Logs.event_websockets import player_websocket, clan_websocket, war_websocket
+from Background.Logs.event_websockets import player_websocket, clan_websocket, war_websocket, raid_websocket
 
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
@@ -20,11 +20,13 @@ parser = argparse.ArgumentParser(description="Just an example",
 parser.add_argument("-c", "--custom", action="store_true", help="custom mode")
 parser.add_argument("-b", "--beta", action="store_true", help="beta mode")
 parser.add_argument("-t", "--token", help="token")
+parser.add_argument("-k", "--test", help="test")
 args = parser.parse_args()
 config = vars(args)
 
 IS_BETA = config.get("beta", False)
 IS_CUSTOM = config.get("custom", False)
+IS_TEST = config.get("test", False)
 TOKEN = config.get("token")
 
 discClient = Client()
@@ -116,20 +118,31 @@ initial_extensions = [
 
 ]
 
+#let local & main run only
 if not IS_CUSTOM:
     initial_extensions += [
         "owner_commands"
     ]
 
+#dont let custom or local run
 if not IS_BETA and not IS_CUSTOM:
     initial_extensions += [
         "Background.reddit_recruit_feed",
         "Background.region_lb_update"
     ]
-
-if not IS_BETA:
     initial_extensions += [
         "Background.Logs.auto_eval",
+        "Background.autoboard_loop",
+        "Background.clan_capital",
+        "Background.legends_history",
+        "Background.voicestat_loop",
+        "Other.erikuh_comp",
+        "discord_events",
+    ]
+
+#only the local version can not run
+if not IS_TEST:
+    initial_extensions += [
         "Background.Logs.ban_events",
         "Background.Logs.clan_capital_events",
         "Background.Logs.donations",
@@ -137,15 +150,9 @@ if not IS_BETA:
         "Background.Logs.legend_events",
         "Background.Logs.player_upgrade_events",
         "Background.Logs.war_track",
-
-        "Background.autoboard_loop",
         "Background.background_cache",
-        "Background.clan_capital",
-        "Background.legends_history",
-        "Background.voicestat_loop",
-        "Other.erikuh_comp",
-        "discord_events",
     ]
+
 
 @bot.command(name="reload")
 @commands.is_owner()
@@ -183,4 +190,5 @@ if __name__ == "__main__":
         bot.loop.create_task(player_websocket())
         bot.loop.create_task(clan_websocket())
         bot.loop.create_task(war_websocket())
+        bot.loop.create_task(raid_websocket())
     bot.run(TOKEN)

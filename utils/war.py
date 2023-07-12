@@ -10,6 +10,8 @@ from CustomClasses.CustomServer import DatabaseClan
 from CustomClasses.CustomBot import CustomClient
 from BoardCommands.Utils.War import main_war_page, missed_hits
 from ImageGen.WarEndResult import generate_war_result_image
+from utils.discord_utils import get_webhook_for_channel
+from Exceptions.CustomExceptions import MissingWebhookPerms
 
 async def create_reminders(bot: CustomClient, times, clan_tag):
     for time in times:
@@ -177,7 +179,6 @@ async def update_war_message(bot: CustomClient, war: coc.ClanWar, db_clan: Datab
     log = db_clan.war_panel
 
     message_id = log.message_id
-    channel_id = log.channel_id
     if log.war_id != f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}":
         message_id = None
 
@@ -188,8 +189,11 @@ async def update_war_message(bot: CustomClient, war: coc.ClanWar, db_clan: Datab
             raise Exception
         try:
             webhook = await bot.getch_webhook(db_clan.war_panel.webhook)
+            if webhook.user.id != bot.user.id:
+                webhook = await get_webhook_for_channel(bot=bot, channel=webhook.channel)
+                await log.set_webhook(id=webhook.id)
             await webhook.edit_message(message_id, embed=embed)
-        except (disnake.NotFound, disnake.Forbidden):
+        except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
             await log.set_thread(id=None)
             await log.set_webhook(id=None)
             return
@@ -200,11 +204,14 @@ async def update_war_message(bot: CustomClient, war: coc.ClanWar, db_clan: Datab
         thread = None
         try:
             webhook = await bot.getch_webhook(db_clan.war_panel.webhook)
+            if webhook.user.id != bot.user.id:
+                webhook = await get_webhook_for_channel(bot=bot, channel=webhook.channel)
+                await log.set_webhook(id=webhook.id)
             if log.thread is not None:
                 thread = await bot.getch_channel(log.thread, raise_exception=True)
                 if thread.locked:
                     raise disnake.NotFound
-        except (disnake.NotFound, disnake.Forbidden):
+        except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
             await log.set_thread(id=None)
             await log.set_webhook(id=None)
             return

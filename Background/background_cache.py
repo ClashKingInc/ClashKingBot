@@ -27,7 +27,7 @@ class BackgroundCache(commands.Cog):
                     print(f"{25000 * spot} docs")
             print(f"done cache, {time.time() - r} sec")
 
-    @tasks.loop(seconds=120)
+    @tasks.loop(seconds=60)
     async def guilds(self):
         guild_fetch = await self.bot.server_db.distinct("server")
         if self.bot.user.public_flags.verified_bot:
