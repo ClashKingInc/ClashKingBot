@@ -75,7 +75,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                     await webhook.send(embed=embed, thread=thread, components=components)
                 else:
                     await webhook.send(embed=embed, components=components)
-            except (disnake.NotFound, disnake.Forbidden):
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)
                 continue

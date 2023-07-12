@@ -57,56 +57,7 @@ class OwnerCommands(commands.Cog):
     @commands.slash_command(name="resend", guild_ids=[1103679645439754335])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
-
-        clan_tags = await self.bot.clan_db.distinct("tag", filter={"logs.capital_weekly_summary.webhook": {"$ne": None}})
-        message = await ctx.channel.send(f"Sent 0/{len(clan_tags)}")
-        clans = await self.bot.get_clans(tags=clan_tags)
-        x = 1
-        for cc in await self.bot.clan_db.find({"logs.capital_weekly_summary.webhook": {"$ne": None}}).to_list(length=None):
-            try:
-                db_clan = DatabaseClan(bot=self.bot, data=cc)
-                log = db_clan.capital_weekly_summary
-
-                clan = coc.utils.get(clans, tag=db_clan.tag)
-                if clan is None:
-                    continue
-
-                weekend = gen_raid_weekend_datestrings(2)[1]  # get previous weekend
-                raid_log_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot, limit=1)
-                if raid_log_entry is None:
-                    continue
-
-                file = await generate_raid_result_image(raid_entry=raid_log_entry, clan=clan)
-                raid_embed = await clan_raid_weekend_raid_stats(bot=self.bot, clan=clan, raid_log_entry=raid_log_entry)
-                donation_embed = await clan_raid_weekend_donation_stats(clan=clan, weekend=weekend, bot=self.bot)
-                donation_embed.set_image(file=file)
-
-                try:
-                    webhook = await self.bot.getch_webhook(log.webhook)
-                    if isinstance(webhook.channel, disnake.ForumChannel) and log.thread is None:
-                        raise MissingWebhookPerms
-                    if webhook.user.id != self.bot.user.id:
-                        webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
-                        await log.set_webhook(id=webhook.id)
-                    if log.thread is not None:
-                        thread = await self.bot.getch_channel(log.thread, raise_exception=True)
-                        if thread.locked:
-                            continue
-                        await webhook.send(embed=raid_embed, thread=thread)
-                        await webhook.send(embed=donation_embed, thread=thread)
-                    else:
-                        await webhook.send(embed=raid_embed)
-                        await webhook.send(embed=donation_embed)
-                except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
-                    await log.set_thread(id=None)
-                    await log.set_webhook(id=None)
-                    continue
-            except:
-                continue
-            await message.edit(f"Sent {x}/{len(clan_tags)}")
-            x += 1
-
-        await ctx.channel.send(f"Done")
+        pass
 
     @commands.slash_command(name="restart-customs", guild_ids=[1103679645439754335])
     @commands.is_owner()
