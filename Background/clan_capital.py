@@ -28,9 +28,6 @@ class StoreClanCapital(commands.Cog):
         clans = await self.bot.get_clans(tags=clan_tags)
         for cc in await self.bot.clan_db.find({"logs.capital_weekly_summary.webhook": {"$ne": None}}).to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=cc)
-            if db_clan.server_id not in self.bot.OUR_GUILDS:
-                continue
-
             log = db_clan.capital_weekly_summary
 
             clan = coc.utils.get(clans, tag=db_clan.tag)

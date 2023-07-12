@@ -134,6 +134,7 @@ if not IS_BETA and not IS_CUSTOM:
         "Background.legends_history",
         "Other.erikuh_comp",
         "discord_events",
+        "Background.clan_capital",
     ]
 
 #only the local version can not run
@@ -142,7 +143,6 @@ if not IS_TEST:
         "Background.voicestat_loop",
         "Background.Logs.auto_eval",
         "Background.autoboard_loop",
-        "Background.clan_capital",
         "Background.Logs.ban_events",
         "Background.Logs.clan_capital_events",
         "Background.Logs.donations",
