@@ -37,7 +37,7 @@ class BackgroundCache(commands.Cog):
             guild_fetch = [guild.id for guild in self.bot.guilds]
         x = set(guild_fetch)
         if self.bot.user.public_flags.verified_bot:
-            active_custom_bots = await self.bot.credentials.distinct("server", filter={"active" : True})
+            active_custom_bots = await self.bot.credentials.distinct("server")
             for bot in active_custom_bots:
                 try:
                     x.remove(bot)
