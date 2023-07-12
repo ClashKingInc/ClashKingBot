@@ -552,7 +552,7 @@ async def clan_raid_weekend_donation_stats(bot: CustomClient, clan: coc.Clan, we
     donation_text = ""
 
     players.sort(key=lambda x: sum(x.clan_capital_stats(week=weekend).donated), reverse=True)
-    for player in players:  # type: MyCustomPlayer
+    for player in players[:60]:  # type: MyCustomPlayer
         sum_donated = 0
         len_donated = 0
         cc_stats = player.clan_capital_stats(week=weekend)
@@ -569,7 +569,7 @@ async def clan_raid_weekend_donation_stats(bot: CustomClient, clan: coc.Clan, we
 
     donation_embed = Embed(
         title=f"**{clan.name} Donation Totals**",
-        description=donation_text, color=Color.green())
+        description=donation_text[:4075], color=Color.green())
 
     donation_embed.set_footer(text=f"Donated: {'{:,}'.format(sum(donated_data.values()))} | Week: {weekend}")
     return donation_embed
