@@ -72,10 +72,10 @@ class DiscordEvents(commands.Cog):
                         pass
             self.bot.OUR_GUILDS = set(x)
 
-            tags = await self.bot.clan_db.distinct("tag", filter={"server" : {"$in" : self.bot.OUR_GUILDS}})
+            tags = await self.bot.clan_db.distinct("tag", filter={"server" : {"$in" : list(self.bot.OUR_GUILDS)}})
             self.bot.clan_list = tags
 
-            reminder_tags = await self.bot.reminders.distinct("clan", filter={"$and" : [{"type" : "War"}, {"server" : {"$in" : self.bot.OUR_GUILDS}}]})
+            reminder_tags = await self.bot.reminders.distinct("clan", filter={"$and" : [{"type" : "War"}, {"server" : {"$in" : list(self.bot.OUR_GUILDS)}}]})
             current_war_times = await self.bot.get_current_war_times(tags=reminder_tags)
             for tag in current_war_times.keys():
                 new_war, war_end_time = current_war_times[tag]
