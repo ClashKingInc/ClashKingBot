@@ -233,9 +233,6 @@ class War_Log(commands.Cog):
             await update_war_message(bot=self.bot, war=war, db_clan=db_clan, clan=clan)
 
 
-
-
-
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
         if "listwarattacks_" in str(ctx.data.custom_id):
