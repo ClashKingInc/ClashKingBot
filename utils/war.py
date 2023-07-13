@@ -190,7 +190,11 @@ async def update_war_message(bot: CustomClient, war: coc.ClanWar, db_clan: Datab
         webhook: disnake.Webhook = await bot.getch_webhook(webhook_id)
         if webhook.user.id != bot.user.id:
             raise Exception
-        await webhook.edit_message(message_id, embed=embed)
+        try:
+            await webhook.edit_message(message_id, embed=embed)
+        except:
+            message = await webhook.fetch_message(id=webhook_id)
+            await message.edit(embed=embed)
     except Exception as e:
         button = war_buttons(bot=bot, new_war=war)
         log = db_clan.war_panel
