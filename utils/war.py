@@ -185,20 +185,13 @@ async def update_war_message(bot: CustomClient, war: coc.ClanWar, db_clan: Datab
     war_league = clan.war_league if clan is not None else None
     embed = await main_war_page(bot=bot, war=war, war_league=war_league)
     try:
-        if db_clan.server_id == 923764211845312533:
-            print(f"m_id: {message_id}\n")
         if message_id is None:
             raise Exception
         webhook: disnake.Webhook = await bot.getch_webhook(webhook_id)
-        if db_clan.server_id == 923764211845312533:
-            print(f"w_id: {webhook.user.id}")
-            print(f"w_id: {bot.user.id}")
         if webhook.user.id != bot.user.id:
             raise Exception
         await webhook.edit_message(message_id, embed=embed)
     except Exception as e:
-        if db_clan.server_id == 923764211845312533:
-            print(f"Exception: {e}")
         button = war_buttons(bot=bot, new_war=war)
         log = db_clan.war_panel
 
