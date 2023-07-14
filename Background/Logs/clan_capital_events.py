@@ -11,6 +11,7 @@ from coc.raid import RaidLogEntry, RaidAttack, RaidMember
 from numerize import numerize
 from ImageGen.ClanCapitalResult import calc_raid_medals
 from BoardCommands.Utils import Clan as clan_embeds
+from Exceptions.CustomExceptions import MissingWebhookPerms
 
 class clan_capital_events(commands.Cog, name="Clan Capital Events"):
 
@@ -132,21 +133,17 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
             try:
                 if log.message_id is None:
                     raise Exception
-                try:
-                    webhook = await self.bot.getch_webhook(log.webhook)
-                    await webhook.edit_message(log.message_id, embed=embed)
-                except (disnake.NotFound, disnake.Forbidden):
-                    await log.set_thread(id=None)
-                    await log.set_webhook(id=None)
-                    continue
+                webhook = await self.bot.getch_webhook(log.webhook)
+                await webhook.edit_message(log.message_id, embed=embed)
             except:
                 thread = None
+                message = None
                 try:
-                    webhook = await self.bot.getch_webhook(db_clan.war_panel.webhook)
+                    webhook = await self.bot.getch_webhook(log.webhook)
                     if log.thread is not None:
                         thread = await self.bot.getch_channel(log.thread, raise_exception=True)
                         if thread.locked:
-                            MissingWebhookPerms
+                            raise MissingWebhookPerms
                     if thread is None:
                         message = await webhook.send(embed=embed, wait=True)
                     else:
