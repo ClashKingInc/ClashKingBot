@@ -15,6 +15,8 @@ class LinkParsing(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message : disnake.Message):
+        if message.guild.id not in self.bot.OUR_GUILDS:
+            return
         if "https://link.clashofclans.com/" in message.content and "action=OpenPlayerProfile&tag=" in message.content:
             m = message.content.replace("\n", " ")
             spots = m.split(" ")
