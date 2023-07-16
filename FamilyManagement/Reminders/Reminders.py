@@ -209,7 +209,7 @@ class ReminderCreation(commands.Cog, name="Reminders"):
         return all_times
 
     def gen_roster_times(self):
-        all_times = [0.25, 0.5, 1, 1.5, 2, 3, 4, 6, 8, 10, 12, 24, 36, 48, 72, 96, 120, 144]
+        all_times = [0.25, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 48, 64, 72, 96, 112, 120, 136, 144]
         all_times = [f"{time}hr" for time in all_times]
         return all_times
 
