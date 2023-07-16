@@ -41,7 +41,7 @@ async def permanent_image(bot, url: str):
 
 
 async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteraction, disnake.MessageInteraction], msg:disnake.Message = None,
-                              function: Callable = None, no_defer = False, ephemeral= False):
+                              function: Callable = None, no_defer = False, ephemeral= False, any_check=False):
     if msg is None:
         msg = await ctx.original_message()
 
@@ -61,7 +61,7 @@ async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteract
         except Exception:
             raise ExpiredComponents
 
-        if res.author.id != ctx.author.id:
+        if any_check is False and res.author.id != ctx.author.id:
             await res.send(content="You must run the command to interact with components.", ephemeral=True)
             continue
 

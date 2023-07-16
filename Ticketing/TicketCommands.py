@@ -900,7 +900,7 @@ class TicketCommands(commands.Cog):
                             else:
                                 await message.edit(content="No accounts linked to you. Click the button below to link. **Once you are done, please click continue.**",
                                                components=buttons)
-                            res = await interaction_handler(bot=self.bot, ctx=ctx, msg=message, no_defer=True)
+                            res = await interaction_handler(bot=self.bot, ctx=ctx, msg=message, no_defer=True, any_check=True)
                             if res.data.custom_id == "continue":
                                 linked_accounts = await self.bot.get_tags(ping=str(ctx.user.id))
                                 if linked_accounts != []:

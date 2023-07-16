@@ -9,7 +9,7 @@ from .eval_logic import eval_logic
 class LinkWelcomeMessages(commands.Cog):
 
     def __init__(self, bot: CustomClient):
-        self.bot = bot
+        self.bot: CustomClient = bot
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
@@ -130,6 +130,10 @@ class LinkWelcomeMessages(commands.Cog):
                                                 return_embed=True)
                 return await modal_inter.send(embed=embed, ephemeral=True)
             elif verified:
+                try:
+                    await self.bot.link_client.delete_link(player.tag)
+                except:
+                    pass
                 await player.add_link(ctx.author)
                 embed: disnake.Embed = await eval_logic(bot=self.bot, guild=ctx.guild, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                                 test=False,
