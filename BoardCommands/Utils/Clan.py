@@ -1107,7 +1107,11 @@ async def simple_clan_embed(bot: CustomClient, clan: coc.Clan):
     if str(clan.location) == "International":
         flag = "<a:earth:861321402909327370>"
     else:
-        flag = f":flag_{clan.location.country_code.lower()}:"
+        try:
+            flag = f":flag_{clan.location.country_code.lower()}:"
+        except:
+            flag = "<a:earth:861321402909327370>"
+
     embed = disnake.Embed(title=f"**{clan.name}**",
                           description=f"Tag: [{clan.tag}]({clan.share_link})\n"
                                       f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.versus_points}\n"
