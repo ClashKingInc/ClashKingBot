@@ -5,6 +5,7 @@ from utils.clash import heros, heroPets
 from CustomClasses.CustomBot import CustomClient
 from utils.clash import cwl_league_emojis
 import coc
+from BoardCommands.Utils import Clan as clan_embeds
 
 class LinkParsing(commands.Cog):
 
@@ -125,6 +126,32 @@ class LinkParsing(commands.Cog):
             for button in stat_buttons:
                 buttons.append_item(button)
             await message.channel.send(embed=embed, components=[buttons])
+
+        elif message.content.startswith("-show "):
+            clans = message.content.replace("-show ",  "")
+            if clans == "":
+                return
+            if "," not in clans:
+                clans = [clans]
+            else:
+                clans = clans.split(",")[:5]
+            clan_tags = []
+            for clan in clans:
+                results = await self.bot.clan_db.find_one({"$and": [
+                    {"server": message.guild.id},
+                    {"name": {"$regex": f"^(?i).*{clan}.*$"}}
+                ]})
+                if not results:
+                    continue
+                clan_tags.append(results.get("tag"))
+
+            if clan_tags:
+                embeds = []
+                clans = await self.bot.get_clans(tags=clan_tags)
+                for clan in clans:
+                    embed = await clan_embeds.simple_clan_embed(bot=self.bot, clan=clan)
+                    embeds.append(embed)
+                await message.channel.send(embeds=embeds)
 
 
 def setup(bot: CustomClient):
