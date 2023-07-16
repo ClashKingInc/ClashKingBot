@@ -149,6 +149,7 @@ async def clan_capital_reminder(bot:CustomClient, reminder_time):
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
+
 async def clan_games_reminder(bot: CustomClient, reminder_time):
     for reminder in await bot.reminders.find({"$and": [{"type": "Clan Games"}, {"time": reminder_time}]}).to_list(length=None):
         reminder = Reminder(bot=bot, data=reminder)
@@ -312,24 +313,34 @@ async def roster_reminder(bot: CustomClient):
             if not members:
                 continue
             links = await bot.link_client.get_links(*[p.get("tag") for p in members])
+            missing_text_list = []
             text = ""
             for player_tag, discord_id in links:
                 name = next((player for player in members if player.get("tag") == player_tag), {})
                 name = name.get("name")
                 member = await server.getch_member(discord_id)
+                if len(text) + len(reminder.custom_text) + 100 >= 2000:
+                    missing_text_list.append(text)
+                    text = ""
                 if member is None:
                     text += f"{name} | {player_tag}\n"
                 else:
                     text += f"{name} | {member.mention}\n"
+
+            if text != "":
+                missing_text_list.append(text)
             badge = await bot.create_new_badge_emoji(url=reminder.roster.clan_badge)
-            reminder_text = f"**{badge}{reminder.roster.clan_name} | {reminder.roster.alias} | {bot.timestamper(reminder.roster.time).relative}**\n\n" \
-                            f"{text}" \
-                            f"\n{reminder.custom_text}"
-            button = disnake.ui.Button(label="Clan Link", emoji="🔗", style=disnake.ButtonStyle.url,
-                                  url=f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{reminder.roster.roster_result.get('clan_tag').strip('#')}")
-            buttons = disnake.ui.ActionRow(button)
-            try:
-                await channel.send(content=reminder_text, components=[buttons])
-            finally:
-                pass
+            for text in missing_text_list:
+                reminder_text = f"**{badge}{reminder.roster.clan_name} | {reminder.roster.alias} | {bot.timestamper(reminder.roster.time).relative}**\n\n" \
+                                f"{text}"
+                buttons = []
+                if text == missing_text_list[-1]:
+                    reminder_text += f"\n{reminder.custom_text}"
+                    button = disnake.ui.Button(label="Clan Link", emoji="🔗", style=disnake.ButtonStyle.url,
+                                      url=f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{reminder.roster.roster_result.get('clan_tag').strip('#')}")
+                    buttons = [disnake.ui.ActionRow(button)]
+                try:
+                    await channel.send(content=reminder_text, components=buttons)
+                except:
+                    pass
 
