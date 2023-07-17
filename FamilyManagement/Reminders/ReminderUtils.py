@@ -692,7 +692,7 @@ async def edit_reminder(bot: CustomClient, clan: coc.Clan, ctx: disnake.Applicat
                     ping_type = res.values[0]
                 elif res.values[0].isnumeric() and int(res.values[0]) in [250, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000]:
                     points = int(res.values[0])
-                elif res.values[0].isnumeric() and int(res.values[0]) in [1, 2, 3, 4, 5]:
+                elif res.values[0].isnumeric() and int(res.values[0]) in [1, 2, 3, 4, 5, 6]:
                     atks = int(res.values[0])
             if not save and not deleted:
                 embed.description = chosen_text(bot=bot, ths=ths, roles=roles_chosen, points=points, atk=atks,
