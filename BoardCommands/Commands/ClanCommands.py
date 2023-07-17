@@ -52,57 +52,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             ephemeral = True
         await ctx.response.defer(ephemeral=ephemeral)
 
-    @clan.sub_command(name="search", description="look up a clan by tag")
-    async def search(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
-                     simple: str = commands.Param(default=False, choices=["True"]),
-                     button_text: str = None, button_link: str = None, image: disnake.Attachment = None):
-        """
-            Parameters
-            ----------
-            clan: Use clan tag or select an option from the autocomplete
-            simple: A smaller, more concise embed
-            button_text: can add an extra button to this board, this is the text for it
-            button_link:can add an extra button to this board, this is the link for it
-            image: image to add to embed
-        """
-        if not simple:
-            embed = await clan_embeds.clan_overview(clan=clan, bot=self.bot, guild=ctx.guild)
-        else:
-            embed = await clan_embeds.simple_clan_embed(bot=self.bot, clan=clan)
 
-        file = None
-        if image is not None:
-            file = image.id
-            await image.save(f"TemplateStorage/{image.id}.png")
-            embed.set_image(file=disnake.File(f"TemplateStorage/{image.id}.png"))
-
-        page_buttons = [
-            disnake.ui.Button(label="", emoji=self.bot.partial_emoji_gen((await self.bot.create_new_badge_emoji(url=clan.badge.url))),
-                              style=disnake.ButtonStyle.grey,
-                              custom_id=f"clanoverview_{clan.tag}_{simple}_{file}"),
-            disnake.ui.Button(label="", emoji=self.bot.emoji.thick_sword.partial_emoji,
-                              style=disnake.ButtonStyle.grey,
-                              custom_id=f"clanwarcwlhist_{clan.tag}"),
-            disnake.ui.Button(label="", emoji=self.bot.emoji.discord.partial_emoji,
-                          style=disnake.ButtonStyle.grey,
-                          custom_id=f"clanlinked_{clan.tag}"),
-        ]
-
-        buttons = disnake.ui.ActionRow()
-        for button in page_buttons:
-            buttons.append_item(button)
-
-        buttons.append_item(disnake.ui.Button(label="", emoji="🔗", url=clan.share_link))
-        if button_text is not None and button_link is not None:
-            buttons.append_item(disnake.ui.Button(label=button_text, url=button_link))
-
-        try:
-            await ctx.edit_original_message(embed=embed, components=buttons)
-        except disnake.errors.HTTPException:
-            embed = disnake.Embed(description="Not a valid button link.",color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
-
-    @clan.sub_command(name="boards", description="Various clan boards - donation, links, etc")
+    @clan.sub_command(name="search", description="Various clan boards - donation, links, etc")
     async def clan_boards(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
                           type: str= commands.Param(choices=BOARD_TYPES),
                           season: str= commands.Param(default=None, converter=season_convertor)):
