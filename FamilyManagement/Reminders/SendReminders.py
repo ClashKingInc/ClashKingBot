@@ -140,7 +140,7 @@ async def clan_capital_reminder(bot:CustomClient, reminder_time):
                 else:
                     num_missing = f"({(player.attack_limit + player.bonus_attack_limit) - player.attack_count}/{(player.attack_limit + player.bonus_attack_limit)})"
                 discord_user = await server.getch_member(discord_id)
-                if len(missing_text) + len(reminder.custom_text) + 100 >= 2000:
+                if len(missing_text) + len(reminder.custom_text) + 150 >= 2000:
                     missing_text_list.append(missing_text)
                     missing_text = ""
 
@@ -335,7 +335,7 @@ async def roster_reminder(bot: CustomClient):
                 name = next((player for player in members if player.get("tag") == player_tag), {})
                 name = name.get("name")
                 member = await server.getch_member(discord_id)
-                if len(text) + len(reminder.custom_text) + 100 >= 2000:
+                if len(text) + len(reminder.custom_text) + 150 >= 2000:
                     missing_text_list.append(text)
                     text = ""
                 if member is None:
