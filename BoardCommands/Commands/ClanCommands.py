@@ -263,7 +263,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
     @activity_graph.autocomplete("clan")
     @clan_capital.autocomplete("clan")
-    @search.autocomplete("clan")
     @progress.autocomplete("clan")
     @sorted.autocomplete("clan")
     @compo.autocomplete("clan")
