@@ -4,7 +4,7 @@ import time
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-from ..ButtonSwitcher import button_click_to_embed
+from BoardCommands.Buttons.ButtonSwitcher import button_click_to_embed
 
 
 class Buttons(commands.Cog):

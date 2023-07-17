@@ -32,6 +32,9 @@ from numerize import numerize
 from CustomClasses.CustomServer import DatabaseClan
 from utils.discord_utils import get_webhook_for_channel
 from Exceptions.CustomExceptions import MissingWebhookPerms
+from datetime import datetime
+from pytz import utc
+
 
 class OwnerCommands(commands.Cog):
 
@@ -54,10 +57,87 @@ class OwnerCommands(commands.Cog):
                 created += f"{emoji} - `<:{emoji.name}:{emoji.id}>`\n"
         await ctx.send(content=created)
 
-    @commands.slash_command(name="resend", guild_ids=[1103679645439754335])
+    @commands.slash_command(name="go", guild_ids=[412991112161001472])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
+        bot = self.bot
+        pipeline = [
+            {"$match": {"type": "roster"}},
+            {"$lookup": {"from": "rosters", "localField": "roster", "foreignField": "_id", "as": "roster"}},
+            {"$set": {"roster": {"$first": "$roster"}}}
+        ]
+        for reminder in await bot.reminders.aggregate(pipeline=pipeline).to_list(length=None):
+            reminder = Reminder(bot=bot, data=reminder)
+            if reminder.server_id not in [412991112161001472]:
+                continue
+            if not reminder.roster.is_valid or reminder.time is None or len(reminder.roster.players) == 0:
+                continue
+
+            try:
+                channel = await bot.getch_channel(reminder.channel_id)
+            except (disnake.NotFound, disnake.Forbidden):
+                await reminder.delete()
+                continue
+
+            server = await bot.getch_guild(reminder.server_id)
+            if server is None:
+                continue
+
+            time = reminder.time.replace(" hr", "")
+            seconds_before_to_ping = int(float(time) * 3600)
+
+            max_diff = 2 * 60  # time in seconds between runs
+            now = datetime.now(tz=utc)
+            roster_time = datetime.fromtimestamp(float(reminder.roster.time), tz=utc)
+            time_until_time = (roster_time - now).total_seconds()
+            # goes negative if now >= time
+            # gets smaller as we get closer
+
+            # we want to ping when we are closer to the time than further, so when seconds_before
+            # larger - smaller >= 0
+            # smaller - larger <= 0
+            if seconds_before_to_ping - time_until_time >= 0 and seconds_before_to_ping - time_until_time <= max_diff:
+                members = []
+                if reminder.ping_type == "All Roster Members":
+                    members = reminder.roster.players
+                elif reminder.ping_type == "Not in Clan":
+                    members = await reminder.roster.missing_list(reverse=False)
+                elif reminder.ping_type == "Subs Only":
+                    members = [p for p in reminder.roster.players if p.get("sub", False)]
+
+                if not members:
+                    continue
+                links = await bot.link_client.get_links(*[p.get("tag") for p in members])
+                missing_text_list = []
+                text = ""
+                for player_tag, discord_id in links:
+                    name = next((player for player in members if player.get("tag") == player_tag), {})
+                    name = name.get("name")
+                    member = await server.getch_member(discord_id)
+                    if len(text) + len(reminder.custom_text) + 100 >= 2000:
+                        missing_text_list.append(text)
+                        text = ""
+                    if member is None:
+                        text += f"{name} | {player_tag}\n"
+                    else:
+                        text += f"{name} | {member.mention}\n"
+
+                if text != "":
+                    missing_text_list.append(text)
+                badge = await bot.create_new_badge_emoji(url=reminder.roster.clan_badge)
+                for text in missing_text_list:
+                    reminder_text = f"**{badge}{reminder.roster.clan_name} | {reminder.roster.alias} | {bot.timestamper(reminder.roster.time).relative}**\n\n" \
+                                    f"{text}"
+                    buttons = []
+                    if text == missing_text_list[-1]:
+                        reminder_text += f"\n{reminder.custom_text}"
+                        button = disnake.ui.Button(label="Clan Link", emoji="🔗", style=disnake.ButtonStyle.url,
+                                                   url=f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{reminder.roster.roster_result.get('clan_tag').strip('#')}")
+                        buttons = [disnake.ui.ActionRow(button)]
+                    try:
+                        await channel.send(content=reminder_text, components=buttons)
+                    except:
+                        pass
 
     @commands.slash_command(name="restart-customs", guild_ids=[1103679645439754335])
     @commands.is_owner()

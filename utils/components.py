@@ -3,6 +3,9 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from typing import List
 import coc
+from utils.clash import gen_season_date
+from utils.constants import BOARD_TYPES
+from typing import Union
 
 def create_components(current_page, embeds, print=False):
     length = len(embeds)
@@ -107,6 +110,32 @@ def player_components(players: List[MyCustomPlayer]):
     st2.append_item(profile_select)
 
     return [st2]
+
+def clan_board_components(bot: CustomClient, season: Union[str, None], clan_tag: str, type: str):
+    buttons = disnake.ui.ActionRow()
+    if season is None or season == bot.gen_season_date():
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey, custom_id=f"00_{type}_{season}_{clan_tag}"))
+    buttons.append_item(disnake.ui.Button(
+        label="", emoji=bot.emoji.red_pin.partial_emoji,
+        style=disnake.ButtonStyle.grey, custom_id=f"00_FREEZE" if season is None else "00_PIN"))
+    buttons.append_item(disnake.ui.Button(
+        label="", emoji=bot.emoji.calendar.partial_emoji,
+        style=disnake.ButtonStyle.grey, custom_id=f"00_SEASON_{type}_{season}_{clan_tag}"))
+
+    types_select = []
+    emojis = [bot.emoji.globe, bot.emoji.globe, bot.emoji.magnify_glass, bot.emoji.troop, bot.emoji.clan_castle, bot.emoji.ratio, bot.emoji.discord,
+              bot.emoji.opt_in, bot.fetch_emoji("Super Hog Rider"), bot.emoji.clan_games, bot.emoji.clock,
+              bot.emoji.calendar, bot.emoji.war_star, bot.emoji.cwl_medal]
+    for b_type, emoji in zip(BOARD_TYPES, emojis):
+        types_select.append(
+            disnake.SelectOption(label=b_type, emoji=emoji.partial_emoji,
+                                 value=f"00_{b_type.replace(' ', '-').lower()}_{season}_{clan_tag}"))
+    types_select = disnake.ui.Select(options=types_select, placeholder="Board Types", max_values=1)
+    types_select = disnake.ui.ActionRow(types_select)
+    components = [types_select, buttons]
+    return components
 
 
 def clan_component(bot: CustomClient, all_clans: List[coc.Clan], clan_page:int =0):

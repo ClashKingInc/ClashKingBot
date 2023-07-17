@@ -5,6 +5,15 @@ from Assets.levelEmojis import levelEmojis, maxLevelEmojis
 from collections import defaultdict
 from utils.discord_utils import fetch_emoji
 from utils.constants import DARK_ELIXIR, SUPER_TROOPS
+from pytz import utc
+
+def gen_season_date():
+    end = coc.utils.get_season_end().replace(tzinfo=utc).date()
+    month = end.month
+    if end.month <= 9:
+        month = f"0{month}"
+    return f"{end.year}-{month}"
+
 
 async def superTroops(player, asArray=False):
     troops = player.troop_cls

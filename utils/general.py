@@ -264,7 +264,7 @@ def response_to_line(response, clan):
 
     year = season[0:4]
     month = season[5:]
-    month = calendar.month_name[int(month)]
+    month = calendar.month_abbr[int(month)]
     #month = month.ljust(9)
     date = f"`{month}`"
     league = str(league_name).replace('League ', '')

@@ -9,7 +9,7 @@ from CustomClasses.ReminderClass import Reminder
 import sentry_sdk
 
 async def war_reminder(bot: CustomClient, clan_tag, reminder_time):
-    war = await bot.get_clanwar(clanTag=clan_tag)
+    war: coc.ClanWar = await bot.get_clanwar(clanTag=clan_tag)
     if war is None:
         return
     missing = {}; names = {}; ths = {}
@@ -23,6 +23,9 @@ async def war_reminder(bot: CustomClient, clan_tag, reminder_time):
     if not missing:
         return
     links = await bot.link_client.get_links(*tags)
+    links = dict(links)
+    players = await bot.get_players(tags=tags, custom=False)
+    players.sort(key=lambda x: x.town_hall, reverse=True)
     all_reminders = bot.reminders.find({"$and": [
         {"clan": clan_tag},
         {"type": "War"},
@@ -31,6 +34,10 @@ async def war_reminder(bot: CustomClient, clan_tag, reminder_time):
     for reminder in await all_reminders.to_list(length=None):
         reminder = Reminder(bot=bot, data=reminder)
         if reminder.server_id not in bot.OUR_GUILDS:
+            continue
+
+        war_type = war.type.capitalize() if war.type != "cwl" else war.type.upper()
+        if war_type not in reminder.war_types:
             continue
         try:
             channel = await bot.getch_channel(reminder.channel_id)
@@ -44,17 +51,22 @@ async def war_reminder(bot: CustomClient, clan_tag, reminder_time):
 
         missing_text_list = []
         missing_text = ""
-        for player_tag, discord_id in links:
-            num_missing = missing[player_tag]
-            name = names[player_tag]
+        for war_member in players:
+            if str(war_member.role) not in reminder.roles:
+                continue
+            if war_member.town_hall not in reminder.townhalls:
+                continue
+            num_missing = missing[war_member.tag]
+            name = names[war_member.tag]
+            discord_id = links[war_member.tag]
             member = await server.getch_member(discord_id)
             if len(missing_text) + len(reminder.custom_text) + 100 >= 2000:
                 missing_text_list.append(missing_text)
                 missing_text = ""
             if member is None:
-                missing_text += f"({num_missing}/{war.attacks_per_member}) {bot.fetch_emoji(ths[player_tag])}{name} | {player_tag}\n"
+                missing_text += f"({num_missing}/{war.attacks_per_member}) {bot.fetch_emoji(ths[war_member.tag])}{name} | {war_member.tag}\n"
             else:
-                missing_text += f"({num_missing}/{war.attacks_per_member}) {bot.fetch_emoji(ths[player_tag])}{name} | {member.mention}\n"
+                missing_text += f"({num_missing}/{war.attacks_per_member}) {bot.fetch_emoji(ths[war_member.tag])}{name} | {member.mention}\n"
 
         if missing_text != "":
             missing_text_list.append(missing_text)

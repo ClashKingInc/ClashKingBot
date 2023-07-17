@@ -10,6 +10,7 @@ from Assets.emojiDictionary import emojiDictionary, legend_emojis
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis, EmojiType
 from CustomClasses.CustomServer import DatabaseServer
+from CustomClasses.DatabaseClasses import StatsClan
 from urllib.request import urlopen
 from collections import defaultdict
 from utils.clash import cwl_league_emojis
@@ -66,6 +67,7 @@ class CustomClient(commands.AutoShardedBot):
         self.lineups: collection_class = self.looper_db.clashking.lineups
         self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
         self.bot_stats: collection_class = self.looper_db.clashking.bot_stats
+        self.clan_stats: collection_class = self.new_looper.clan_stats
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
         self.clan_db: collection_class = self.db_client.usafam.clans
@@ -959,6 +961,24 @@ class CustomClient(commands.AutoShardedBot):
             is_raids = False
         return is_raids
 
+    def is_games(self):
+        is_games = True
+        now = datetime.utcnow().replace(tzinfo=utc)
+        year = now.year
+        month = now.month
+        day = now.day
+        hour = now.hour
+        first = datetime(year, month, 22, hour=8, tzinfo=utc)
+        end = datetime(year, month, 28, hour=8, tzinfo=utc)
+        if (day >= 22 and day <= 28):
+            if (day == 22 and hour < 8) or (day == 28 and hour >= 8):
+                is_games = False
+            else:
+                is_games = True
+        else:
+            is_games = False
+        return is_games
+
 
     #OTHER
     async def get_custom_clans(self, tags: List[str], server = disnake.Guild, add_clan=False):
@@ -967,6 +987,15 @@ class CustomClient(commands.AutoShardedBot):
 
         clan_db_results = await self.clan_db.find({"$and" : [{"tag" : {"$in" : tags}}, {"server" : server.id}]}).to_list(length=None)
         reminder_results = await self.clan_db.find({"$and" : [{"clan" : {"$in" : tags}}, {"server" : server.id}]})
+
+
+    async def get_stat_clan(self, clan_tag: str, clan=None):
+        results = await self.clan_stats.find_one({"tag" : clan_tag})
+        if clan is None:
+            clan = await self.getClan(clan_tag=clan_tag, raise_exceptions=True)
+        if results is None:
+            results = {}
+        return StatsClan(data=results, clan=clan, bot=self)
 
     async def get_custom_server(self, guild_id):
         pipeline = [
