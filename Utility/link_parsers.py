@@ -135,7 +135,7 @@ class LinkParsing(commands.Cog):
                 if "," not in clans:
                     clans = [clans]
                 else:
-                    clans = clans.split(",")[:5]
+                    clans = clans.split(", ")[:5]
                 clan_tags = []
                 for clan in clans:
                     results = await self.bot.clan_db.find_one({"$and": [
