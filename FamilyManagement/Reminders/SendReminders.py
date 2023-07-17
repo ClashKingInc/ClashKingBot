@@ -51,8 +51,10 @@ async def war_reminder(bot: CustomClient, clan_tag, reminder_time):
 
         missing_text_list = []
         missing_text = ""
+        badge = await bot.create_new_badge_emoji(url=war.clan.badge.url)
+        start_text = f"**12 Hours Remaining in War**\n**{badge}{war.clan.name} vs {war.opponent.name}**\n\n"
         for war_member in players:
-            if str(war_member.role) not in reminder.roles:
+            if war_member.clan is not None and war_member.clan.tag == war.clan_tag and str(war_member.role) not in reminder.roles:
                 continue
             if war_member.town_hall not in reminder.townhalls:
                 continue
@@ -60,7 +62,8 @@ async def war_reminder(bot: CustomClient, clan_tag, reminder_time):
             name = names[war_member.tag]
             discord_id = links[war_member.tag]
             member = await server.getch_member(discord_id)
-            if len(missing_text) + len(reminder.custom_text) + 100 >= 2000:
+            text_to_check = start_text if len(missing_text_list) == 0 else reminder.custom_text
+            if len(missing_text) + len(text_to_check) + 50 >= 2000:
                 missing_text_list.append(missing_text)
                 missing_text = ""
             if member is None:
@@ -70,15 +73,16 @@ async def war_reminder(bot: CustomClient, clan_tag, reminder_time):
 
         if missing_text != "":
             missing_text_list.append(missing_text)
-        badge = await bot.create_new_badge_emoji(url=war.clan.badge.url)
+
         for text in missing_text_list:
-            reminder_text = f"**{reminder_time} Hours Remaining in War**\n" \
-                            f"**{badge}{war.clan.name} vs {war.opponent.name}**\n\n" \
-                            f"{text}"
+            if text == missing_text_list[0]:
+                text = f"**{reminder_time} Hours Remaining in War**\n" \
+                       f"**{badge}{war.clan.name} vs {war.opponent.name}**\n\n" \
+                       f"{text}"
             if text == missing_text_list[-1]:
-                reminder_text += f"\n{reminder.custom_text}"
+                text += f"\n{reminder.custom_text}"
             try:
-                await channel.send(content=reminder_text)
+                await channel.send(content=text)
             except:
                 pass
 
