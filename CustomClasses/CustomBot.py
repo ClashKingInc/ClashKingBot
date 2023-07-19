@@ -68,6 +68,8 @@ class CustomClient(commands.AutoShardedBot):
         self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
         self.bot_stats: collection_class = self.looper_db.clashking.bot_stats
         self.clan_stats: collection_class = self.new_looper.clan_stats
+        self.raid_weekend_db: collection_class = self.looper_db.looper.raid_weekends
+
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
         self.clan_db: collection_class = self.db_client.usafam.clans
@@ -97,7 +99,7 @@ class CustomClient(commands.AutoShardedBot):
         self.global_chat_db: collection_class = self.db_client.usafam.global_chats
         self.global_reports: collection_class = self.db_client.usafam.reports
         self.strikelist: collection_class = self.db_client.usafam.strikes
-        self.raid_weekend_db: collection_class = self.db_client.usafam.raid_weekends
+
         self.tickets: collection_class = self.db_client.usafam.tickets
         self.open_tickets: collection_class = self.db_client.usafam.open_tickets
         self.custom_embeds: collection_class = self.db_client.usafam.custom_embeds

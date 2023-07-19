@@ -551,7 +551,7 @@ class TicketCommands(commands.Cog):
         await res.edit_original_message(content=f"**{button} Button {mode} Saved!**", components=[])
 
 
-    @ticket.sub_command(name="account-apply", description="Set settings regarding")
+    @ticket.sub_command(name="account-apply", description="Set settings regarding accounts applying")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_account_apply(self, ctx: disnake.ApplicationCommandInteraction, panel_name: str, button: str, option = commands.Param(default=None, choices=["On", "Off"]), number_of_accounts: int = None, send_player_info = commands.Param(default = None, choices=["True", "False"]),
                                    townhall_minimum: int = commands.Param(default=None, name="townhall_minimum")):

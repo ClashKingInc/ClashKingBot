@@ -10,6 +10,7 @@ from utils.clash import league_emoji
 from pytz import utc
 from utils.discord_utils import get_webhook_for_channel
 from Exceptions.CustomExceptions import MissingWebhookPerms
+from BoardCommands.Utils.Player import upgrade_embed
 
 class UpgradeEvent(commands.Cog):
 
@@ -67,7 +68,7 @@ class UpgradeEvent(commands.Cog):
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
-            content = f"{self.bot.fetch_emoji(name=new_player.town_hall)}{old_name} changed their name to {new_name}"
+            content = f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{old_name}]({new_player.share_link}) changed their name to {new_name}"
 
             log = clan.name_change
             try:
@@ -99,10 +100,13 @@ class UpgradeEvent(commands.Cog):
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
-            content = f"{name} upgraded to {self.bot.fetch_emoji(name=new_player.town_hall)}Townhall {new_player.town_hall}"
+            content = f"[{name}]({new_player.share_link}) upgraded to {self.bot.fetch_emoji(name=new_player.town_hall)}Townhall {new_player.town_hall}"
 
             log = clan.th_upgrade
             try:
+                buttons = disnake.ui.ActionRow(disnake.ui.Button(label="", emoji=self.bot.emoji.troop.partial_emoji,
+                                                                 style=disnake.ButtonStyle.green,
+                                                                 custom_id=f"logrushed_{new_player.tag}"))
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
                     webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
@@ -111,9 +115,9 @@ class UpgradeEvent(commands.Cog):
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
                         continue
-                    await webhook.send(content=content, thread=thread)
+                    await webhook.send(content=content, thread=thread, components=buttons)
                 else:
-                    await webhook.send(content=content)
+                    await webhook.send(content=content, components=buttons)
             except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)
@@ -162,11 +166,11 @@ class UpgradeEvent(commands.Cog):
 
                 text = ""
                 for troop in unlocked:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} unlocked {self.bot.fetch_emoji(name=troop.name)}{troop.name}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}]({new_player.share_link}) unlocked {self.bot.fetch_emoji(name=troop.name)}{troop.name}\n"
                 for troop in boosted:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} boosted {self.bot.fetch_emoji(name=troop.name)}{troop.name}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}]({new_player.share_link}) boosted {self.bot.fetch_emoji(name=troop.name)}{troop.name}\n"
                 for troop in leveled_up:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} leveled up {self.bot.fetch_emoji(name=troop.name)}{troop.name} to lv{self.bot.get_number_emoji(color='white', number=troop.level)}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}]({new_player.share_link}) leveled up {self.bot.fetch_emoji(name=troop.name)}{troop.name} to lv{troop.level}\n"
 
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
@@ -214,9 +218,9 @@ class UpgradeEvent(commands.Cog):
                     return
                 text = ""
                 for hero in unlocked:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} unlocked {self.bot.fetch_emoji(name=hero.name)}{hero.name}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}]({new_player.share_link}) unlocked {self.bot.fetch_emoji(name=hero.name)}{hero.name}\n"
                 for hero in leveled_up:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} leveled up {self.bot.fetch_emoji(name=hero.name)}{hero.name} to lv{self.bot.get_number_emoji(color='white', number=hero.level)}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}]({new_player.share_link}) leveled up {self.bot.fetch_emoji(name=hero.name)}{hero.name} to lv{hero.level}\n"
 
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
@@ -264,9 +268,9 @@ class UpgradeEvent(commands.Cog):
                     return
                 text = ""
                 for spell in unlocked:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} unlocked {self.bot.fetch_emoji(name=spell.name)}{spell.name}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}]({new_player.share_link}) unlocked {self.bot.fetch_emoji(name=spell.name)}{spell.name}\n"
                 for spell in leveled_up:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} leveled up {self.bot.fetch_emoji(name=spell.name)}{spell.name} to lv{self.bot.get_number_emoji(color='white', number=spell.level)}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}]({new_player.share_link}) leveled up {self.bot.fetch_emoji(name=spell.name)}{spell.name} to lv{spell.level}\n"
 
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
@@ -285,6 +289,17 @@ class UpgradeEvent(commands.Cog):
                 await log.set_webhook(id=None)
                 continue
 
+
+    @commands.Cog.listener()
+    async def on_button_click(self, ctx: disnake.MessageInteraction):
+        if "logrushed_" in str(ctx.data.custom_id):
+            await ctx.response.defer(ephemeral=True, with_message=True)
+            tag = (str(ctx.data.custom_id).split("_"))[-1]
+            player = await self.bot.getPlayer(player_tag=tag, custom=True)
+            if player is None:
+                return await ctx.edit_original_response(content="No player found.")
+            embed = await upgrade_embed(self.bot, player)
+            await ctx.edit_original_response(embed=embed)
 
 def setup(bot: CustomClient):
     bot.add_cog(UpgradeEvent(bot))
