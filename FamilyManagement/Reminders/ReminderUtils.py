@@ -565,10 +565,10 @@ def chosen_text(bot: CustomClient, clans: List[coc.Clan], ths=None, roles=None, 
             text += f"• {role}\n"
 
     if atk is not None:
-        text += f"\n**Attack Threshold:** {atk}+ left\n"
+        text += f"\n**Attack Threshold:** {atk} attacks\n"
 
     if points is not None:
-        text += f"\n**Point Threshold:** ≤ {points} left\n"
+        text += f"\n**Point Threshold:** ≤ {points} points\n"
 
     if times is not None:
         text += "\n**TIMES:**\n"
