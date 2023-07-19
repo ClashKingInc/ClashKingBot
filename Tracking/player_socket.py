@@ -140,7 +140,7 @@ class User(BaseModel):
 last_changed: Dict[str, Tuple[int, dict]] = {}
 
 async def broadcast(tags, keys, loop, cache, loops):
-    throttler = Throttler(rate_limit=15000, period=60)
+    throttler = Throttler(rate_limit=40000, period=60)
     if loops in (1, 2):
         throttler = Throttler(rate_limit=60000, period=60)
 
@@ -303,7 +303,10 @@ async def main(keys, PLAYER_CLIENTS):
 
         if BETA:
             all_tags_to_track = all_tags_to_track[:200000]
-        split_tags = list(np.array_split(all_tags_to_track, 8))
+        num_split = 2
+        if loops in (1, 2):
+            num_split = 6
+        split_tags = list(np.array_split(all_tags_to_track, num_split))
         print(f"{len(all_tags_to_track)} tags")
         print(f"{time.time() - start_time}, starting workers")
 
@@ -315,7 +318,7 @@ async def main(keys, PLAYER_CLIENTS):
 
         print(f"{time.time() - time_inside} seconds inside")
 
-        for x in range(6):
+        for x in range(num_split):
             set_keys = set(split_tags[x])
             worker = Worker(target=broadcast, kwargs={"cache" : {key: PLAYER_CACHE.get(key) for key in PLAYER_CACHE.keys() if key in set_keys},
                                                       "tags" : split_tags[x], "keys" : keys, "loop" : x, "loops" : loops})
