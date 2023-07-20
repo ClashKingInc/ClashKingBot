@@ -298,8 +298,8 @@ class UpgradeEvent(commands.Cog):
             player = await self.bot.getPlayer(player_tag=tag, custom=True)
             if player is None:
                 return await ctx.edit_original_response(content="No player found.")
-            embed = await upgrade_embed(self.bot, player)
-            await ctx.edit_original_response(embed=embed)
+            embeds = await upgrade_embed(self.bot, player)
+            await ctx.edit_original_response(embeds=embeds)
 
 def setup(bot: CustomClient):
     bot.add_cog(UpgradeEvent(bot))
