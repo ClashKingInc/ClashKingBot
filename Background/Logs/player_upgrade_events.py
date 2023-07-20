@@ -68,7 +68,7 @@ class UpgradeEvent(commands.Cog):
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
-            content = f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{old_name}]({new_player.share_link}) changed their name to {new_name}"
+            content = f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{old_name}](<{new_player.share_link}>) changed their name to {new_name}"
 
             log = clan.name_change
             try:
@@ -100,7 +100,7 @@ class UpgradeEvent(commands.Cog):
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
-            content = f"[{name}]({new_player.share_link}) upgraded to {self.bot.fetch_emoji(name=new_player.town_hall)}Townhall {new_player.town_hall}"
+            content = f"[{name}](<{new_player.share_link}>) upgraded to {self.bot.fetch_emoji(name=new_player.town_hall)}Townhall {new_player.town_hall}"
 
             log = clan.th_upgrade
             try:
@@ -166,11 +166,11 @@ class UpgradeEvent(commands.Cog):
 
                 text = ""
                 for troop in unlocked:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}]({new_player.share_link}) unlocked {self.bot.fetch_emoji(name=troop.name)}{troop.name}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}](<{new_player.share_link}>) unlocked {self.bot.fetch_emoji(name=troop.name)}{troop.name}\n"
                 for troop in boosted:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}]({new_player.share_link}) boosted {self.bot.fetch_emoji(name=troop.name)}{troop.name}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}](<{new_player.share_link}>) boosted {self.bot.fetch_emoji(name=troop.name)}{troop.name}\n"
                 for troop in leveled_up:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}]({new_player.share_link}) leveled up {self.bot.fetch_emoji(name=troop.name)}{troop.name} to lv{troop.level}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}](<{new_player.share_link}>) leveled up {self.bot.fetch_emoji(name=troop.name)}{troop.name} to lv{troop.level}\n"
 
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
@@ -218,9 +218,9 @@ class UpgradeEvent(commands.Cog):
                     return
                 text = ""
                 for hero in unlocked:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}]({new_player.share_link}) unlocked {self.bot.fetch_emoji(name=hero.name)}{hero.name}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}](<{new_player.share_link}>) unlocked {self.bot.fetch_emoji(name=hero.name)}{hero.name}\n"
                 for hero in leveled_up:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}]({new_player.share_link}) leveled up {self.bot.fetch_emoji(name=hero.name)}{hero.name} to lv{hero.level}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}](<{new_player.share_link}>) leveled up {self.bot.fetch_emoji(name=hero.name)}{hero.name} to lv{hero.level}\n"
 
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
@@ -268,9 +268,9 @@ class UpgradeEvent(commands.Cog):
                     return
                 text = ""
                 for spell in unlocked:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}]({new_player.share_link}) unlocked {self.bot.fetch_emoji(name=spell.name)}{spell.name}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}](<{new_player.share_link}>) unlocked {self.bot.fetch_emoji(name=spell.name)}{spell.name}\n"
                 for spell in leveled_up:
-                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}]({new_player.share_link}) leveled up {self.bot.fetch_emoji(name=spell.name)}{spell.name} to lv{spell.level}\n"
+                    text += f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}](<{new_player.share_link}>) leveled up {self.bot.fetch_emoji(name=spell.name)}{spell.name} to lv{spell.level}\n"
 
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
