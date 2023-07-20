@@ -15,6 +15,8 @@ class LinkParsing(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message : disnake.Message):
+        if message.webhook_id is not None:
+            return
         if message.guild.id in self.bot.OUR_GUILDS:
             if "https://link.clashofclans.com/" in message.content and "action=OpenPlayerProfile&tag=" in message.content:
                 m = message.content.replace("\n", " ")

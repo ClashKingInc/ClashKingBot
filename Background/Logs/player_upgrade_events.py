@@ -35,7 +35,7 @@ class UpgradeEvent(commands.Cog):
             clan = DatabaseClan(bot=self.bot, data=cc)
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
-            content = f"{self.bot.fetch_emoji(name=new_player.town_hall)}{name} moved from {league_emoji(old_player)}{old_player.league.name} to {league_emoji(new_player)}{new_player.league.name}"
+            content = f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{name}](<{new_player.share_link}>) moved from {league_emoji(old_player)}{old_player.league.name} to {league_emoji(new_player)}{new_player.league.name}"
             log = clan.league_change
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
