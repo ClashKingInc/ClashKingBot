@@ -130,14 +130,20 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
             log = db_clan.raid_panel
             embed = await clan_embeds.clan_capital_overview(bot=self.bot, clan=clan, raid_log_entry=raid)
 
+            message_id = log.message_id
+            if f"{raid.clan_tag}v{int(raid.start_time.time.timestamp())}" != log.raid_id:
+                message_id = None
             try:
-                if log.message_id is None:
+                if message_id is None:
                     raise Exception
                 webhook = await self.bot.getch_webhook(log.webhook)
-                await webhook.edit_message(log.message_id, embed=embed)
+                if log.thread is not None:
+                    thread = await self.bot.getch_channel(log.thread, raise_exception=True)
+                    await webhook.edit_message(message_id, thread=thread, embed=embed)
+                else:
+                    await webhook.edit_message(message_id, embed=embed)
             except:
                 thread = None
-                message = None
                 try:
                     webhook = await self.bot.getch_webhook(log.webhook)
                     if log.thread is not None:
