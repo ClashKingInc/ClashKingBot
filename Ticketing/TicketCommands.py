@@ -849,8 +849,11 @@ class TicketCommands(commands.Cog):
 
             button_label = next((x for x in result.get("components") if x.get("custom_id") == ctx.data.custom_id), None)
 
-            await self.send_log(guild=ctx.guild, panel_name=result.get("name"), user=ctx.user,
-                                action_text=f"{ctx.user.mention} started a ticket with {button_label.get('label')} button | {result.get('name')} panel")
+            try:
+                await self.send_log(guild=ctx.guild, panel_name=result.get("name"), user=ctx.user,
+                                    action_text=f"{ctx.user.mention} started a ticket with {button_label.get('label')} button | {result.get('name')} panel")
+            except:
+                pass
 
             actions = ["questions", "account_apply", "apply_clans", "open_ticket", "message", "roles_to_add", "roles_to_remove", "private_thread", "player_info", "question_answers"]
 

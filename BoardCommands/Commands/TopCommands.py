@@ -53,6 +53,30 @@ class TopCommands(commands.Cog, name="Top"):
             style=disnake.ButtonStyle.grey, custom_id=f"topreceivedplayer_"))
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
+    @top.sub_command(name="compo", description="Composition of a family. (with a twist?)")
+    async def family_compo(self, ctx: disnake.ApplicationCommandInteraction,
+                           type: str = commands.Param(default="Totals", choices=["Totals", "Hitrate"])):
+        """
+            Parameters
+            ----------
+            clan: Use clan tag or select an option from the autocomplete
+            type: type of compo calculation
+        """
+
+        member_tags = []
+
+        if type == "Totals":
+            embed = await shared_embeds.th_composition(bot=self.bot,
+                                                       player_tags=member_tags,
+                                                       title=f"Bot Townhall Composition", thumbnail=self.bot.user.avatar.url)
+        elif type == "Hitrate":
+            embed = await shared_embeds.th_hitrate(bot=self.bot,
+                                                   player_tags=member_tags,
+                                                   title=f"Bot TH Hitrate Compo", thumbnail=self.bot.user.avatar.url)
+
+
+        await ctx.edit_original_message(embed=embed, components=None)
+
 
     @top.sub_command(name="activities", description="Members with the highest activity on the bot")
     async def activities(self, ctx: disnake.ApplicationCommandInteraction, season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor)):

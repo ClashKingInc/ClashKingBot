@@ -554,10 +554,17 @@ async def th_composition(bot: CustomClient, player_tags: List[str], title: str, 
 
 async def th_hitrate(bot: CustomClient, player_tags: List[str], title: str, thumbnail: str, embed_color: disnake.Color = disnake.Color.green()):
     text = f""
-    pipeline = [
-        {"$match": {"$and": [{"tag": {"$in": player_tags}}, {"$expr": {"$eq": ["$townhall", "$defender_townhall"]}}]}},
-        {"$group": {"_id": {"townhall": "$townhall", "stars": "$stars"}, "count": {"$sum": 1}}}
-    ]
+    if player_tags:
+        pipeline = [
+            {"$match": {"$and": [{"tag": {"$in": player_tags}}, {"$expr": {"$eq": ["$townhall", "$defender_townhall"]}}]}},
+            {"$group": {"_id": {"townhall": "$townhall", "stars": "$stars"}, "count": {"$sum": 1}}}
+        ]
+    else:
+        pipeline = [
+            {"$match": {
+                "$and": [{"_time" : {"$gte": 1686632460}}, {"$expr": {"$eq": ["$townhall", "$defender_townhall"]}}]}},
+            {"$group": {"_id": {"townhall": "$townhall", "stars": "$stars"}, "count": {"$sum": 1}}}
+        ]
     results = await bot.warhits.aggregate(pipeline=pipeline).to_list(length=None)
 
     th_results = defaultdict(lambda: defaultdict(int))

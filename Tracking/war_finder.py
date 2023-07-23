@@ -128,50 +128,6 @@ last_checked = {}
 last_in_war = {}
 to_check = set()
 
-async def create_tags_to_check():
-    print("here")
-    while True:
-        DAYS = 24 * 60 * 60
-        HOURS = 60 * 60
-        async for result in clan_tags.find({"isValid": {"$eq": True}}):
-            #if currently in war, then already scheduled
-            if result.get("tag") in currently_in_war:
-                continue
-
-            #if we have checked for a war in last 30 min, dont check again
-            #will be useful if loop shortens
-            last_check = time.time() - last_checked.get(result.get("tag"), 0)
-            if last_check <= 1800:
-                continue
-
-            #check the last time there was a war
-            last_war = time.time() - last_in_war.get(result.get("tag"), time.time())
-
-            #30 days & 24 hour check
-            if last_war >= 30 * DAYS and last_check <= 24 * HOURS:
-                continue
-            #21 days & 12 hour check
-            if last_war >= 21 * DAYS and last_check <= 12 * HOURS:
-                continue
-            #14 days & 8 hour check
-            if last_war >= 14 * DAYS and last_check <= 8 * HOURS:
-                continue
-            #7 days & 4 hour check
-            if last_war >= 7 * DAYS and last_check <= 4 * HOURS:
-                continue
-            #3 days & 2 hour check
-            if last_war >= 3 * DAYS and last_check <= 2 * HOURS:
-                continue
-            #1 days & 1 hour check
-            if last_war >= 1 * DAYS and last_check <= 1 * HOURS:
-                continue
-            #0.5 days & 0.5 hour check
-            if last_war >= 12 * HOURS and last_check <= 0.5 * HOURS:
-                continue
-
-            to_check.add(result.get("tag"))
-
-
 
 async def broadcast(keys):
     await asyncio.sleep(10)
@@ -283,5 +239,4 @@ loop = asyncio.get_event_loop()
 keys = create_keys()
 coc_client.login_with_keys(*keys[:10])
 loop.create_task(broadcast(keys))
-loop.create_task(create_tags_to_check())
 loop.run_forever()

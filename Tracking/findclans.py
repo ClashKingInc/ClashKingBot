@@ -35,7 +35,7 @@ looper = client.looper
 clan_tags = looper.clan_tags
 war_logs = looper.war_logs
 
-EMAIL_PW = os.getenv("EMAIL_PW")
+EMAIL_PW = os.getenv("COC_PASSWORD")
 
 #DATABASE
 import orjson
@@ -156,6 +156,7 @@ async def broadcast(keys):
             responses = await asyncio.gather(*tasks, return_exceptions=True)
             await session3.close()
 
+        right_now = int(datetime.now().timestamp())
         for response in responses:
             try:
                 warlog = ujson.loads(response)
@@ -170,23 +171,15 @@ async def broadcast(keys):
                 t = int(Timestamp(data=item["endTime"]).time.timestamp())
                 item["timeStamp"] = t
                 items_to_push.append(InsertOne(item))
-                if len(clan_tag_list) < 500000:
+                if len(clan_tag_list) < 500000 and (right_now - t <= 2592000):
                     clan_tag_list.add(item["opponent"]["tag"])
 
-
-        if items_to_push != []:
-            try:
-                results = await war_logs.bulk_write(items_to_push, ordered=False)
-                print(results.bulk_api_result)
-            except BulkWriteError as e:
-                pass
 
         if tags_to_add != []:
             try:
                 results = await clan_tags.bulk_write(tags_to_add, ordered=False)
                 print(results.bulk_api_result)
             except BulkWriteError as e:
-                #print(e.details)
                 pass
 
 loop = asyncio.get_event_loop()
