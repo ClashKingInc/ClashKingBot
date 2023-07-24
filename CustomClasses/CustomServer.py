@@ -157,7 +157,10 @@ class DatabaseClan():
         ]}, {'$set': {"ban_alert_channel": id}})
 
     async def set_greeting(self, text: str):
-        await self.bot.clan_db.update_one({"server": self.server_id}, {'$set': {"greeting": text}})
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": self.tag},
+            {"server": self.server_id}
+        ]}, {'$set': {"greeting": text}})
 
     async def set_category(self, category: str):
         await self.bot.clan_db.update_one({"$and": [
