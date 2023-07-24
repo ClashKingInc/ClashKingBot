@@ -20,7 +20,7 @@ class StoreClanCapital(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         scheduler.add_job(self.store_cc, "cron", day_of_week="mon", hour=7, minute=45, misfire_grace_time=None)
-        scheduler.add_job(self.send_boards, "cron", day_of_week="mon", hour=7, minute=15, misfire_grace_time=None)
+        scheduler.add_job(self.send_boards, "cron", day_of_week="mon", hour=16, minute=35, misfire_grace_time=None)
 
 
     async def send_boards(self):
@@ -47,7 +47,7 @@ class StoreClanCapital(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if isinstance(webhook.channel, disnake.ForumChannel) and log.thread is None:
-                    raise disnake.Forbidden
+                    raise MissingWebhookPerms
                 if webhook.user.id != self.bot.user.id:
                     webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                     await log.set_webhook(id=webhook.id)
