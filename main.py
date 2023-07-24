@@ -92,7 +92,7 @@ initial_extensions = [
     "BoardCommands.Buttons.Buttons",
     "BoardCommands.Commands.WarCommands",
     "BoardCommands.Buttons.Clan",
-    #"Exceptions.ExceptionHandler",
+    "Exceptions.ExceptionHandler",
     "Export.ExportsCog",
     "FamilyManagement.Reminders.Reminders",
     "FamilyManagement.bans",
