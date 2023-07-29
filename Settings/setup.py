@@ -10,6 +10,7 @@ from utils.discord_utils import get_webhook_for_channel
 from Exceptions.CustomExceptions import *
 from utils.discord_utils import  interaction_handler, basic_embed_modal
 from CustomClasses.CustomServer import DatabaseClan
+from utils.components import clan_component
 
 class SetupCommands(commands.Cog , name="Setup"):
 
@@ -27,6 +28,86 @@ class SetupCommands(commands.Cog , name="Setup"):
     @commands.slash_command(name="setup")
     async def setup(self, ctx: disnake.ApplicationCommandInteraction):
         pass
+
+
+    @setup.sub_command(name="list", description="List of setup & settings")
+    async def settings_list(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        db_server = await self.bot.get_custom_server(guild_id=ctx.guild_id)
+
+        clans = await self.bot.get_clans(tags=(await self.bot.get_guild_clans(guild_id=ctx.guild.id)))
+
+        embed = disnake.Embed(title=f"{ctx.guild.name} Server Settings", color=disnake.Color.green())
+        banlist_channel = f"<#{db_server.banlist_channel}>" if db_server.banlist_channel is not None else None
+        reddit_feed = f"<#{db_server.reddit_feed}>" if db_server.reddit_feed is not None else None
+
+        embed.add_field(name="Banlist Channel:", value=banlist_channel, inline=True)
+        embed.add_field(name="Reddit Feed:", value=reddit_feed, inline=True)
+        embed.add_field(name="Leadership Eval:", value=f"{db_server.leadership_eval}", inline=True)
+        embed.add_field(name="Use API Token:", value=f"{db_server.use_api_token}", inline=True)
+        embed.add_field(name="Nickname Setting:", value=f"{db_server.auto_nickname}", inline=True)
+
+        dropdown = [clan_component(bot=self.bot, all_clans=clans, clan_page=0, max_choose=1)]
+
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+        embeds = [embed]
+        tag_to_spot = {}
+        spot = 1
+        for clan in db_server.clans: #type: DatabaseClan
+            got_clan = await self.bot.getClan(clan.tag)
+            tag_to_spot[clan.tag] = spot
+            spot += 1
+            if got_clan is None:
+                continue
+            embed = disnake.Embed(title=f"{clan.name}", color=disnake.Color.green())
+            embed.set_thumbnail(url=got_clan.badge.url)
+            member_role = f"<@&{clan.member_role}>" if clan.member_role is not None else None
+            leader_role = f"<@&{clan.leader_role}>" if clan.leader_role is not None else None
+            clan_channel = f"<#{clan.clan_channel}>" if clan.clan_channel is not None else None
+            embed.add_field(name="Member Role:", value=member_role, inline=True)
+            embed.add_field(name="Leadership Role:", value=leader_role, inline=True)
+            embed.add_field(name="Clan Channel:", value=clan_channel, inline=True)
+            if clan.greeting:
+                embed.add_field(name="Greeting:", value=f"{clan.greeting}", inline=True)
+
+
+            embed.add_field(name="Join Log:", value=f"{(await clan.join_log.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Leave Log:", value=f"{(await clan.leave_log.get_webhook_channel_mention())}", inline=True)
+
+            embed.add_field(name="War Log:", value=f"{(await clan.war_log.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="War Panel:", value=f"{(await clan.war_panel.get_webhook_channel_mention())}", inline=True)
+
+
+            embed.add_field(name="Capital Dono Log:", value=f"{(await clan.capital_donations.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Capital Atk Log:", value=f"{(await clan.capital_attacks.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Capital Weekly Summary:", value=f"{(await clan.capital_weekly_summary.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Capital Raid Panel:", value=f"{(await clan.raid_panel.get_webhook_channel_mention())}", inline=True)
+
+            embed.add_field(name="Donation Log:", value=f"{(await clan.donation_log.get_webhook_channel_mention())}", inline=True)
+
+            embed.add_field(name="Super Troop Boost Log:", value=f"{(await clan.super_troop_boost_log.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Role Change Log:", value=f"{(await clan.role_change.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Troop Upgrade Log:", value=f"{(await clan.troop_upgrade.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="TH Upgrade Log:", value=f"{(await clan.th_upgrade.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="League Change Log:", value=f"{(await clan.league_change.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Spell Upgrade Log:", value=f"{(await clan.spell_upgrade.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Hero Upgrade Log:", value=f"{(await clan.hero_upgrade.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Name Change Log:", value=f"{(await clan.name_change.get_webhook_channel_mention())}", inline=True)
+
+            embed.add_field(name="Legend Atk Log:", value=f"{(await clan.legend_log_attacks.get_webhook_channel_mention())}", inline=True)
+            embed.add_field(name="Legend Def Log:", value=f"{(await clan.legend_log_defenses.get_webhook_channel_mention())}", inline=True)
+
+            embeds.append(embed)
+
+        await ctx.edit_original_message(embed=embeds[0], components=dropdown)
+        while True:
+            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
+            clan_tag = res.values[0].split("_")[-1]
+            spot = tag_to_spot.get(clan_tag)
+            await res.edit_original_message(embed=embeds[spot])
+
+
 
     @setup.sub_command(name="autoeval", description="Turn autoeval on/off")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())

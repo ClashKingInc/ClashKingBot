@@ -305,8 +305,8 @@ async def main(keys, PLAYER_CLIENTS):
             all_tags_to_track = all_tags_to_track[:200000]
 
         r_tags = all_tags_to_track
-        if loops % 25 != 0:
-            r_tags = [tag for tag in all_tags_to_track if tag not in gone_for_a_week]
+        '''if loops % 10 != 0:
+            r_tags = [tag for tag in all_tags_to_track if tag not in gone_for_a_week]'''
         '''num_split = 2
         if loops in (1, 2):
             num_split = 6

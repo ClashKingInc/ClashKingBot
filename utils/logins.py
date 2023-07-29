@@ -8,7 +8,7 @@ from coc import Client
 from typing import AsyncGenerator
 
 
-class AbstractClient:
+'''class AbstractClient:
     """Class holding the async generator used to get the client and login on demand"""
 
     def __init__(self):
@@ -46,10 +46,10 @@ class AbstractClient:
         """Log out and close the ClientSession"""
         await self.__async_gen.aclose()
 
-abstractClient = AbstractClient()
+abstractClient = AbstractClient()'''
 
-'''coc_client = coc.Client(key_count=10, key_names="DiscordBot", throttle_limit=25, cache_max_size=50000,
+coc_client = coc.Client(key_count=10, key_names="DiscordBot", throttle_limit=25, cache_max_size=50000,
                         load_game_data=coc.LoadGameData(always=True), raw_attribute=True, stats_max_size=10000)
-asyncio.get_event_loop().run_until_complete(coc_client.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD")))'''
+asyncio.get_event_loop().run_until_complete(coc_client.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD")))
 
-coc_client = asyncio.get_event_loop().run_until_complete(abstractClient.get_client())
+#coc_client = asyncio.get_event_loop().run_until_complete(abstractClient.get_client())

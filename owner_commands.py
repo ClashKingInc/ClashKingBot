@@ -36,14 +36,11 @@ from datetime import datetime
 from pytz import utc
 from BoardCommands.Utils.Player import upgrade_embed
 
-
 class OwnerCommands(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        #self.bot.coc_client.add_events(self.member_attack)
         self.count = 0
-
 
     @commands.message_command(name="emoji_creator")
     async def emoji_creator(self, ctx: disnake.MessageCommandInteraction, message: disnake.Message):
