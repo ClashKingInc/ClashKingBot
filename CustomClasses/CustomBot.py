@@ -69,7 +69,7 @@ class CustomClient(commands.AutoShardedBot):
         self.bot_stats: collection_class = self.looper_db.clashking.bot_stats
         self.clan_stats: collection_class = self.new_looper.clan_stats
         self.raid_weekend_db: collection_class = self.looper_db.looper.raid_weekends
-
+        self.clan_join_leave: collection_class = self.new_looper.clan_join_leave
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
         self.clan_db: collection_class = self.db_client.usafam.clans
