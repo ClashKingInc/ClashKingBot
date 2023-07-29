@@ -44,8 +44,8 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                 except (disnake.NotFound, disnake.Forbidden):
                     await db_clan.member_count_warning.set_channel(id=None)
 
-            join_result = await self.bot.clan_join_leave.find_one({"$and" : [{"tag" : member.tag}, {"clan" : clan.tag}]})
-            if join_result is None:
+            join_result = await self.bot.clan_join_leave.count_documents({"$and" : [{"tag" : member.tag}, {"clan" : clan.tag}]})
+            if join_result <= 1:
                 linked = await self.bot.link_client.get_link(member.tag)
                 if linked is not None:
                     greeting = db_clan.greeting
