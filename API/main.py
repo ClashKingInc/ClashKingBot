@@ -46,6 +46,7 @@ player_cache_db = new_looper.player_cache
 clan_cache_db = new_looper.clan_cache
 clan_wars = looper.clan_wars
 legend_history = client.looper.legend_history
+base_stats = looper.base_stats
 
 ranking_history = client.ranking_history
 player_trophies = ranking_history.player_trophies
@@ -113,8 +114,8 @@ async def player_stat(player_tag: str, request: Request, response: Response):
 
     return dict(result)
 
+
 @app.get("/player/{player_tag}/legends",
-         response_model=Player,
          tags=["Player Endpoints"],
          name="Legend stats for a player")
 @limiter.limit("10/second")
@@ -148,6 +149,7 @@ async def player_legend(player_tag: str, request: Request, response: Response):
             pass
 
     return dict(result)
+
 
 @app.get("/player/{player_tag}/historical",
          tags=["Player Endpoints"],
@@ -221,6 +223,8 @@ async def clan_historical(clan_tag: str, request: Request, response: Response):
 @limiter.limit("10/second")
 async def clan_cache(clan_tag: str, request: Request, response: Response):
     cache_data = await clan_cache_db.find_one({"tag": fix_tag(clan_tag)})
+    if not cache_data:
+        return {"No Clan Found": clan_tag}
     del cache_data["data"]["_response_retry"]
     return cache_data["data"]
 
@@ -301,6 +305,16 @@ async def redirect_fastapi(player_tag: str):
          name="Shortform Clan Profile URL")
 async def redirect_fastapi_clan(clan_tag: str):
     return f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{clan_tag}"
+
+
+@app.get("/b/{base_id}",
+         response_class=RedirectResponse,
+         tags=["Redirect"],
+         name="Shortform Base Link URL")
+async def redirect_fastapi_base(base_id: str):
+    await base_stats.update_one({"base_id" : base_id}, {"$inc" : {"downloads" : 1}}, upsert=True)
+    return f"https://link.clashofclans.com/en?action=OpenLayout&id={base_id}"
+
 
 #SEARCH ENDPOINTS
 @app.get("/search-clan/{name}",
@@ -555,4 +569,4 @@ def custom_openapi():
 app.openapi = custom_openapi
 
 if __name__ == '__main__':
-    uvicorn.run("main:app", host='localhost', port=8080, reload=True)
+    uvicorn.run("main:app", host='0.0.0.0', port=8080, reload=True)

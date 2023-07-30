@@ -13,7 +13,11 @@ class Bases(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @commands.slash_command(name='base', description="Upload a base so your clan mates can download it & leave reviews")
+    @commands.slash_command(name="base")
+    async def base(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
+
+    @base.sub_command(name='post', description="Upload a base so your clan mates can download it & leave reviews")
     async def uploadBase(self, ctx: disnake.ApplicationCommandInteraction, base_link: str, description: str, photo: disnake.Attachment):
 
         if 'https://link.clashofclans.com/' and "=OpenLayout&id=" not in base_link:
@@ -54,6 +58,11 @@ class Bases(commands.Cog):
             "downloaders": [],
             "feedback": []
         })
+
+
+    @base.sub_command(name="search", description="Search WBB's vault of bases by th & other filters")
+    async def search(self, ):
+
 
     @commands.Cog.listener()
     async def on_message_interaction(self, res: disnake.MessageInteraction):
