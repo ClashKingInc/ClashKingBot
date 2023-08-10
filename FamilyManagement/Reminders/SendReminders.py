@@ -322,7 +322,7 @@ async def roster_reminder(bot: CustomClient):
             if reminder.ping_type == "All Roster Members":
                 members = reminder.roster.players
             elif reminder.ping_type == "Not in Clan":
-                members = await reminder.roster.missing_list()
+                members = await reminder.roster.missing_list(reverse=False)
             elif reminder.ping_type == "Subs Only":
                 members = [p for p in reminder.roster.players if p.get("sub", False)]
 

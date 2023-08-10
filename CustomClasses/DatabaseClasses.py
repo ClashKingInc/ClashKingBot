@@ -21,9 +21,15 @@ class StatsClan():
         if season == gen_season_date():
             member_tags += [member.tag for member in self.clan.members]
             other_data = {member.tag : {} for member in self.clan.members}
-        season_players = await self.bot.player_cache.find({"tag" : {"$in" : member_tags}}).to_list(length=None)
-        season_players = {p.get("tag") : p for p in season_players}
+        season_players = await self.bot.get_players(custom=False, tags=member_tags, use_cache=True)
+        season_players = {p.tag : p._raw_data for p in season_players}
         other_data |= season_data
+
+        #print(season_players)
+
+        for tag, member_tags in season_data.items():
+            if season_players.get(tag) is None:
+                print(tag)
 
         return Season(data=season_data, player_data=season_players, bot=self.bot)
 
@@ -37,7 +43,7 @@ class Season():
 class SeasonMembers():
     def __init__(self, bot, tag: str, data: dict, p_data:dict):
         self.tag = tag
-        self.player = MyCustomPlayer(data=p_data.get("data"), client=bot.coc_client, bot=bot, results={})
+        self.player = MyCustomPlayer(data=p_data, client=bot.coc_client, bot=bot, results={})
         self.activity = data.get("activity", 0)
         self.donated = data.get("donated", 0)
         self.received = data.get("received", 0)

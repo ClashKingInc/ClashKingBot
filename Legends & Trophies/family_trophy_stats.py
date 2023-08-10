@@ -27,6 +27,8 @@ class FamilyStats(commands.Cog, name="Family Trophy Stats"):
         for clan in await tracked.to_list(length=l):
             tag = clan.get("tag")
             clan = await self.bot.getClan(tag)
+            if clan is None:
+                continue
             for player in clan.members:
                 try:
                     playerStats = []
