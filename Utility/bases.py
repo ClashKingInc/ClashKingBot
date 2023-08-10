@@ -60,9 +60,6 @@ class Bases(commands.Cog):
         })
 
 
-    @base.sub_command(name="search", description="Search WBB's vault of bases by th & other filters")
-    async def search(self, ):
-
 
     @commands.Cog.listener()
     async def on_message_interaction(self, res: disnake.MessageInteraction):
