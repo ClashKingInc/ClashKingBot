@@ -23,7 +23,7 @@ class DiscordEvents(commands.Cog):
         if self.bot.user.public_flags.verified_bot:
             len_g = len(self.bot.guilds)
             for count, shard in self.bot.shards.items():
-                await self.bot.change_presence(activity=disnake.CustomActivity(state="Use Code ClashKing ",name="Custom Status"), shard_id=shard.id)
+                await self.bot.change_presence(activity=disnake.CustomActivity(state="Use Code ClashKing 👀",name="Custom Status"), shard_id=shard.id)
         global has_started
         if not has_started:
             has_started = True
@@ -144,7 +144,7 @@ class DiscordEvents(commands.Cog):
         len_g = len(self.bot.guilds)
         for count, shard in self.bot.shards.items():
             await self.bot.change_presence(
-                activity=disnake.CustomActivity(state="Use Code ClashKing ",name="Custom Status"), shard_id=shard.id)  # type 3 watching type#1 - playing
+                activity=disnake.CustomActivity(state="Use Code ClashKing 👀",name="Custom Status"), shard_id=shard.id)  # type 3 watching type#1 - playing
 
         channel = self.bot.get_channel(937528942661877851)
         await channel.edit(name=f"ClashKing: {len_g} Servers")
@@ -175,7 +175,7 @@ class DiscordEvents(commands.Cog):
         len_g = len(self.bot.guilds)
         for count, shard in self.bot.shards.items():
             await self.bot.change_presence(
-                activity=disnake.CustomActivity(state="Use Code ClashKing ",name="Custom Status"), shard_id=shard.id)  # type 3 watching type#1 - playing
+                activity=disnake.CustomActivity(state="Use Code ClashKing 👀",name="Custom Status"), shard_id=shard.id)  # type 3 watching type#1 - playing
         channel = self.bot.get_channel(937528942661877851)
         await channel.edit(name=f"ClashKing: {len_g} Servers")
 
