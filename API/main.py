@@ -25,6 +25,9 @@ from typing import List, Union
 from fastapi.responses import HTMLResponse
 from collections import defaultdict
 from helper import IMAGE_CACHE, download_image
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
+from fastapi_cache.decorator import cache
 
 utc = pytz.utc
 load_dotenv()
@@ -56,6 +59,7 @@ player_versus_trophies = ranking_history.player_versus_trophies
 clan_trophies = ranking_history.clan_trophies
 clan_versus_trophies = ranking_history.clan_versus_trophies
 capital = ranking_history.capital
+from redis import asyncio as aioredis
 
 link_client = None
 CACHED_SEASONS = []
@@ -69,6 +73,8 @@ def fix_tag(tag:str):
 async def startup_event():
     global link_client
     link_client = coc.ext.discordlinks.DiscordLinkClient = await discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW"))
+    redis = aioredis.Redis(host='85.10.200.219', port=6379, db=1, password=os.getenv("REDIS_PW"))
+    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
 
 
 @app.get("/",
@@ -81,7 +87,8 @@ async def docs():
          response_model=Player,
          tags=["Player Endpoints"],
          name="Overview of stats for a player")
-@limiter.limit("10/second")
+@cache(expire=300)
+@limiter.limit("30/second")
 async def player_stat(player_tag: str, request: Request, response: Response):
     player_tag = player_tag and "#" + re.sub(r"[^A-Z0-9]+", "", player_tag.upper()).replace("O", "0")
     result = await player_stats_db.find_one({"tag": player_tag})
@@ -127,7 +134,8 @@ async def player_stat(player_tag: str, request: Request, response: Response):
 @app.get("/player/{player_tag}/legends",
          tags=["Player Endpoints"],
          name="Legend stats for a player")
-@limiter.limit("10/second")
+@cache(expire=300)
+@limiter.limit("30/second")
 async def player_legend(player_tag: str, request: Request, response: Response):
     player_tag = player_tag and "#" + re.sub(r"[^A-Z0-9]+", "", player_tag.upper()).replace("O", "0")
     result = await player_stats_db.find_one({"tag": player_tag})
@@ -163,14 +171,15 @@ async def player_legend(player_tag: str, request: Request, response: Response):
 @app.get("/player/{player_tag}/historical",
          tags=["Player Endpoints"],
          name="Historical data for player events")
-@limiter.limit("10/second")
+@cache(expire=300)
+@limiter.limit("30/second")
 async def player_historical(player_tag: str, request: Request, response: Response):
     return {}
 
 @app.get("/player/{player_tag}/legend_rankings",
          tags=["Player Endpoints"],
          name="Previous player legend rankings")
-@limiter.limit("10/second")
+@limiter.limit("30/second")
 async def player_legend_rankings(player_tag: str, request: Request, response: Response, limit:int = 10):
 
     player_tag = fix_tag(player_tag)
@@ -183,7 +192,7 @@ async def player_legend_rankings(player_tag: str, request: Request, response: Re
 @app.get("/player/{player_tag}/cache",
          tags=["Player Endpoints"],
          name="Cached endpoint response")
-@limiter.limit("10/second")
+@limiter.limit("30/second")
 async def player_cache(player_tag: str, request: Request, response: Response):
     cache_data = await player_cache_db.find_one({"tag": fix_tag(player_tag)})
     if not cache_data:
@@ -193,7 +202,7 @@ async def player_cache(player_tag: str, request: Request, response: Response):
 @app.post("/player/bulk",
           tags=["Player Endpoints"],
           name="Cached endpoint response (bulk fetch)")
-@limiter.limit("10/second")
+@limiter.limit("5/second")
 async def player_bulk(player_tags: List[str], request: Request, resonse: Response):
     cache_data = await player_cache_db.find({"tag": {"$in": [fix_tag(tag) for tag in player_tags]}}).to_list(length=500)
     modified_result = []
@@ -207,14 +216,14 @@ async def player_bulk(player_tags: List[str], request: Request, resonse: Respons
 @app.get("/capital/{clan_tag}",
          tags=["Clan Capital Endpoints"],
          name="Log of Raid Weekends")
-@limiter.limit("10/second")
+@limiter.limit("30/second")
 async def capital_log(clan_tag: str, request: Request, response: Response):
     return {}
 
 @app.post("/capital/bulk",
          tags=["Clan Capital Endpoints"],
          name="Fetch Raid Weekends in Bulk")
-@limiter.limit("10/second")
+@limiter.limit("5/second")
 async def capital(clan_tags: List[str], request: Request, response: Response):
     return {}
 
@@ -222,14 +231,14 @@ async def capital(clan_tags: List[str], request: Request, response: Response):
 @app.get("/clan/{clan_tag}/historical",
          tags=["Clan Endpoints"],
          name="Historical data for clan events")
-@limiter.limit("10/second")
+@limiter.limit("30/second")
 async def clan_historical(clan_tag: str, request: Request, response: Response):
     return {}
 
 @app.get("/clan/{clan_tag}/cache",
          tags=["Clan Endpoints"],
          name="Cached endpoint response")
-@limiter.limit("10/second")
+@limiter.limit("30/second")
 async def clan_cache(clan_tag: str, request: Request, response: Response):
     cache_data = await clan_cache_db.find_one({"tag": fix_tag(clan_tag)})
     if not cache_data:
@@ -240,7 +249,7 @@ async def clan_cache(clan_tag: str, request: Request, response: Response):
 @app.post("/clan/bulk-cache",
          tags=["Clan Endpoints"],
          name="Cached endpoint response (bulk fetch)")
-@limiter.limit("10/second")
+@limiter.limit("5/second")
 async def bulk_clan_cache(clan_tags: List[str], request: Request, response: Response):
     cache_data = await clan_cache_db.find({"tag": {"$in": [fix_tag(tag) for tag in clan_tags]}}).to_list(length=500)
     modified_result = []
@@ -254,7 +263,7 @@ async def bulk_clan_cache(clan_tags: List[str], request: Request, response: Resp
 @app.get("/war/{clan_tag}/log",
          tags=["War Endpoints"],
          name="Warlog for a clan, filled in with data where possible")
-@limiter.limit("10/second")
+@limiter.limit("30/second")
 async def war_log(clan_tag: str, request: Request, response: Response, limit: int= 50):
     clan_tag = fix_tag(clan_tag)
     clan_results = await war_logs_db.find({"clan.tag" : clan_tag}).to_list(length=None)
@@ -338,14 +347,14 @@ async def redirect_fastapi_base(id: str):
 @app.get("/search-clan/{name}",
          tags=["Search"],
          name="Search for clans by name")
-@limiter.limit("10/second")
+@limiter.limit("30/second")
 async def search_clans(name: str, request: Request, response: Response):
     return {}
 
 @app.get("/search-player/{name}",
          tags=["Search"],
          name="Search for players by name")
-@limiter.limit("10/second")
+@limiter.limit("30/second")
 async def search_players(player: str, request: Request, response: Response):
     return {}
 
@@ -353,7 +362,7 @@ async def search_players(player: str, request: Request, response: Response):
 @app.get("/player_trophies/{location}/{date}",
          tags=["Leaderboard History"],
          name="Top 200 Daily Leaderboard History. Date: yyyy-mm-dd")
-@limiter.limit("10/second")
+@limiter.limit("30/second")
 async def player_trophies_ranking(location: Union[int, str], date: str, request: Request, response: Response):
     r = await player_trophies.find_one({"$and" : [{"location" : location}, {"date" : date}]})
     return r.get("data")
@@ -362,7 +371,7 @@ async def player_trophies_ranking(location: Union[int, str], date: str, request:
 @app.post("/table",
          tags=["Utils"],
          name="Custom Table")
-@limiter.limit("10/second")
+@limiter.limit("5/second")
 async def table_render(info: Dict, request: Request, response: Response):
     columns = info.get("columns")
     positions = info.get("positions")
@@ -371,152 +380,148 @@ async def table_render(info: Dict, request: Request, response: Response):
     badge_columns = info.get("badge_columns")
     title = info.get("title")
 
-    image_bytes = IMAGE_CACHE.get(title)
-    if image_bytes is None:
-        fig = plt.figure(figsize=(8, 10), dpi=300)
-        img = plt.imread("clouds.jpg")
-        ax = plt.subplot()
+    fig = plt.figure(figsize=(8, 10), dpi=300)
+    img = plt.imread("clouds.jpg")
+    ax = plt.subplot()
 
-        df_final = pd.DataFrame(data, columns=columns)
-        ncols = len(columns) + 1
-        nrows = df_final.shape[0]
+    df_final = pd.DataFrame(data, columns=columns)
+    ncols = len(columns) + 1
+    nrows = df_final.shape[0]
 
-        ax.set_xlim(0, ncols + 1)
-        ax.set_ylim(0, nrows + 1)
+    ax.set_xlim(0, ncols + 1)
+    ax.set_ylim(0, nrows + 1)
 
-        positions = [0.15, 3.5, 4.5, 5.5, 6.5, 7.5][:len(columns)]
+    positions = [0.15, 3.5, 4.5, 5.5, 6.5, 7.5][:len(columns)]
 
-        # -- Add table's main text
-        for i in range(nrows):
-            for j, column in enumerate(columns):
-                if j == 0:
-                    ha = 'left'
-                else:
-                    ha = 'center'
-                if column == 'Min':
-                    continue
-                else:
-                    text_label = f'{df_final[column].iloc[i]}'
-                    weight = 'normal'
-                ax.annotate(
-                    xy=(positions[j], i + .5),
-                    text=text_label,
-                    ha=ha,
-                    va='center',
-                    weight=weight
-                )
-
-        # -- Transformation functions
-        DC_to_FC = ax.transData.transform
-        FC_to_NFC = fig.transFigure.inverted().transform
-        # -- Take data coordinates and transform them to normalized figure coordinates
-        DC_to_NFC = lambda x: FC_to_NFC(DC_to_FC(x))
-        # -- Add nation axes
-        ax_point_1 = DC_to_NFC([2.25, 0.25])
-        ax_point_2 = DC_to_NFC([2.75, 0.75])
-        ax_width = abs(ax_point_1[0] - ax_point_2[0])
-        ax_height = abs(ax_point_1[1] - ax_point_2[1])
-
-        for x in range(0, nrows):
-            ax_coords = DC_to_NFC([2.25, x + .25])
-            flag_ax = fig.add_axes(
-                [ax_coords[0], ax_coords[1], ax_width, ax_height]
-            )
-
-            badge = await download_image(badge_columns[x])
-            flag_ax.imshow(Image.open(badge))
-            flag_ax.axis('off')
-
-        ax_point_1 = DC_to_NFC([4, 0.05])
-        ax_point_2 = DC_to_NFC([5, 0.95])
-        ax_width = abs(ax_point_1[0] - ax_point_2[0])
-        ax_height = abs(ax_point_1[1] - ax_point_2[1])
-
-        # -- Add column names
-        column_names = columns
-        for index, c in enumerate(column_names):
-            if index == 0:
+    # -- Add table's main text
+    for i in range(nrows):
+        for j, column in enumerate(columns):
+            if j == 0:
                 ha = 'left'
             else:
                 ha = 'center'
+            if column == 'Min':
+                continue
+            else:
+                text_label = f'{df_final[column].iloc[i]}'
+                weight = 'normal'
             ax.annotate(
-                xy=(positions[index], nrows + .25),
-                text=column_names[index],
+                xy=(positions[j], i + .5),
+                text=text_label,
                 ha=ha,
-                va='bottom',
-                weight='bold'
+                va='center',
+                weight=weight
             )
 
-        # Add dividing lines
-        ax.plot([ax.get_xlim()[0], ax.get_xlim()[1]], [nrows, nrows], lw=1.5, color='black', marker='', zorder=4)
-        ax.plot([ax.get_xlim()[0], ax.get_xlim()[1]], [0, 0], lw=1.5, color='black', marker='', zorder=4)
-        for x in range(1, nrows):
-            ax.plot([ax.get_xlim()[0], ax.get_xlim()[1]], [x, x], lw=1.15, color='gray', ls=':', zorder=3, marker='')
+    # -- Transformation functions
+    DC_to_FC = ax.transData.transform
+    FC_to_NFC = fig.transFigure.inverted().transform
+    # -- Take data coordinates and transform them to normalized figure coordinates
+    DC_to_NFC = lambda x: FC_to_NFC(DC_to_FC(x))
+    # -- Add nation axes
+    ax_point_1 = DC_to_NFC([2.25, 0.25])
+    ax_point_2 = DC_to_NFC([2.75, 0.75])
+    ax_width = abs(ax_point_1[0] - ax_point_2[0])
+    ax_height = abs(ax_point_1[1] - ax_point_2[1])
 
-        ax.fill_between(
-            x=[0, 2],
-            y1=nrows,
-            y2=0,
-            color='lightgrey',
-            alpha=0.5,
-            ec='None'
+    for x in range(0, nrows):
+        ax_coords = DC_to_NFC([2.25, x + .25])
+        flag_ax = fig.add_axes(
+            [ax_coords[0], ax_coords[1], ax_width, ax_height]
         )
 
-        ax.set_axis_off()
+        badge = await download_image(badge_columns[x])
+        flag_ax.imshow(Image.open(badge))
+        flag_ax.axis('off')
 
-        # -- Final details
-        logo_ax = fig.add_axes(
-            [0.825, 0.89, .05, .05]
-        )
-        club_icon = await download_image(logo)
-        logo_ax.imshow(Image.open(club_icon))
-        logo_ax.axis('off')
-        fig.text(
-            x=0.15, y=.90,
-            s=title,
-            ha='left',
+    ax_point_1 = DC_to_NFC([4, 0.05])
+    ax_point_2 = DC_to_NFC([5, 0.95])
+    ax_width = abs(ax_point_1[0] - ax_point_2[0])
+    ax_height = abs(ax_point_1[1] - ax_point_2[1])
+
+    # -- Add column names
+    column_names = columns
+    for index, c in enumerate(column_names):
+        if index == 0:
+            ha = 'left'
+        else:
+            ha = 'center'
+        ax.annotate(
+            xy=(positions[index], nrows + .25),
+            text=column_names[index],
+            ha=ha,
             va='bottom',
-            weight='bold',
-            size=12
+            weight='bold'
         )
-        temp = io.BytesIO()
-        # plt.imshow(img,  aspect="auto")
-        background_ax = plt.axes([.10, .08, .85, .87])  # create a dummy subplot for the background
-        background_ax.set_zorder(-1)  # set the background subplot behind the others
-        background_ax.axis("off")
-        background_ax.imshow(img, aspect='auto')  # show the backgroud image
-        fig.savefig(
-            temp,
-            dpi=200,
-            transparent=True,
-            bbox_inches='tight'
-        )
-        IMAGE_CACHE.ttl(title, temp, 300)
-        plt.close(fig)
-    else:
-        temp = IMAGE_CACHE.get(title)
+
+    # Add dividing lines
+    ax.plot([ax.get_xlim()[0], ax.get_xlim()[1]], [nrows, nrows], lw=1.5, color='black', marker='', zorder=4)
+    ax.plot([ax.get_xlim()[0], ax.get_xlim()[1]], [0, 0], lw=1.5, color='black', marker='', zorder=4)
+    for x in range(1, nrows):
+        ax.plot([ax.get_xlim()[0], ax.get_xlim()[1]], [x, x], lw=1.15, color='gray', ls=':', zorder=3, marker='')
+
+    ax.fill_between(
+        x=[0, 2],
+        y1=nrows,
+        y2=0,
+        color='lightgrey',
+        alpha=0.5,
+        ec='None'
+    )
+
+    ax.set_axis_off()
+
+    # -- Final details
+    logo_ax = fig.add_axes(
+        [0.825, 0.89, .05, .05]
+    )
+    club_icon = await download_image(logo)
+    logo_ax.imshow(Image.open(club_icon))
+    logo_ax.axis('off')
+    fig.text(
+        x=0.15, y=.90,
+        s=title,
+        ha='left',
+        va='bottom',
+        weight='bold',
+        size=12
+    )
+    temp = io.BytesIO()
+    # plt.imshow(img,  aspect="auto")
+    background_ax = plt.axes([.10, .08, .85, .87])  # create a dummy subplot for the background
+    background_ax.set_zorder(-1)  # set the background subplot behind the others
+    background_ax.axis("off")
+    background_ax.imshow(img, aspect='auto')  # show the backgroud image
+    fig.savefig(
+        temp,
+        dpi=200,
+        transparent=True,
+        bbox_inches='tight'
+    )
+    plt.close(fig)
     temp.seek(0)
-    return Response(content=temp.read(), media_type="image/png")
+    await upload_to_cdn(picture=temp, title=title)
+    return Response(content=f"https://cdn.clashking.xyz/{title}.png", media_type="text/plain")
 
 
 @app.get("/guild_links/{guild_id}",
          tags=["Utils"],
          name="Get clans that are linked to a discord guild")
-@limiter.limit("10/second")
+@limiter.limit("30/second")
 async def guild_links(guild_id: int, request: Request, response: Response):
     return {}
 
 @app.get("/all_player_tags",
          tags=["Utils"],
          name="Get a list of all player tags in database")
-@limiter.limit("10/second")
+@limiter.limit("30/second")
 async def player_tags(request: Request, response: Response):
     return {}
 
 @app.get("/all_clan_tags",
          tags=["Utils"],
          name="Get a list of all clan tags in database")
-@limiter.limit("10/second")
+@limiter.limit("30/second")
 async def clan_tags(request: Request, response: Response):
     return {}
 
@@ -564,16 +569,29 @@ async def render(url: str):
 @app.post("/discord_links",
          tags=["Utils"],
          name="Get discord links for tags")
-@limiter.limit("10/second")
+@limiter.limit("2/second")
 async def discord_link(player_tags: List[str], request: Request, response: Response):
     result = await link_client.get_links(*player_tags)
     return dict(result)
 
 
+async def upload_to_cdn(picture, title):
+    headers = {
+        "content-type": "application/octet-stream",
+        "AccessKey": os.getenv("BUNNY_ACCESS_KEY")
+    }
+    payload = await picture.read()
+    async with aiohttp.ClientSession() as session:
+        async with session.put(url=f"https://ny.storage.bunnycdn.com/clashking/{title}.png", headers=headers, data=payload) as response:
+            r = await response.read()
+            await session.close()
+
+
 description = """
 ### Clash of Clans Based API 👑
 - No Auth Required
-- Ratelimit is 10 req/sec
+- Ratelimit is largely 30 req/sec, 5 req/sec on post requests
+- 300 second cache on everything
 - Not perfect, stats are collected by polling the Official API
 - [Discord Server](https://discord.gg/gChZm3XCrS)
 """
