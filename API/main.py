@@ -382,7 +382,6 @@ async def player_trophies_ranking(location: Union[int, str], date: str, request:
 @app.post("/table",
          tags=["Utils"],
          name="Custom Table")
-@cache(expire=300)
 @limiter.limit("5/second")
 async def table_render(info: Dict, request: Request, response: Response):
     columns = info.get("columns")
