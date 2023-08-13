@@ -84,7 +84,6 @@ async def docs():
 
 
 @app.get("/player/{player_tag}/stats",
-         response_model=Player,
          tags=["Player Endpoints"],
          name="Overview of stats for a player")
 @cache(expire=300)
@@ -179,6 +178,7 @@ async def player_historical(player_tag: str, request: Request, response: Respons
 @app.get("/player/{player_tag}/legend_rankings",
          tags=["Player Endpoints"],
          name="Previous player legend rankings")
+@cache(expire=300)
 @limiter.limit("30/second")
 async def player_legend_rankings(player_tag: str, request: Request, response: Response, limit:int = 10):
 
@@ -192,6 +192,7 @@ async def player_legend_rankings(player_tag: str, request: Request, response: Re
 @app.get("/player/{player_tag}/cache",
          tags=["Player Endpoints"],
          name="Cached endpoint response")
+@cache(expire=300)
 @limiter.limit("30/second")
 async def player_cache(player_tag: str, request: Request, response: Response):
     cache_data = await player_cache_db.find_one({"tag": fix_tag(player_tag)})
@@ -202,6 +203,7 @@ async def player_cache(player_tag: str, request: Request, response: Response):
 @app.post("/player/bulk",
           tags=["Player Endpoints"],
           name="Cached endpoint response (bulk fetch)")
+@cache(expire=300)
 @limiter.limit("5/second")
 async def player_bulk(player_tags: List[str], request: Request, resonse: Response):
     cache_data = await player_cache_db.find({"tag": {"$in": [fix_tag(tag) for tag in player_tags]}}).to_list(length=500)
@@ -216,6 +218,7 @@ async def player_bulk(player_tags: List[str], request: Request, resonse: Respons
 @app.get("/capital/{clan_tag}",
          tags=["Clan Capital Endpoints"],
          name="Log of Raid Weekends")
+@cache(expire=300)
 @limiter.limit("30/second")
 async def capital_log(clan_tag: str, request: Request, response: Response):
     return {}
@@ -223,6 +226,7 @@ async def capital_log(clan_tag: str, request: Request, response: Response):
 @app.post("/capital/bulk",
          tags=["Clan Capital Endpoints"],
          name="Fetch Raid Weekends in Bulk")
+@cache(expire=300)
 @limiter.limit("5/second")
 async def capital(clan_tags: List[str], request: Request, response: Response):
     return {}
@@ -231,6 +235,7 @@ async def capital(clan_tags: List[str], request: Request, response: Response):
 @app.get("/clan/{clan_tag}/historical",
          tags=["Clan Endpoints"],
          name="Historical data for clan events")
+@cache(expire=300)
 @limiter.limit("30/second")
 async def clan_historical(clan_tag: str, request: Request, response: Response):
     return {}
@@ -238,6 +243,7 @@ async def clan_historical(clan_tag: str, request: Request, response: Response):
 @app.get("/clan/{clan_tag}/cache",
          tags=["Clan Endpoints"],
          name="Cached endpoint response")
+@cache(expire=300)
 @limiter.limit("30/second")
 async def clan_cache(clan_tag: str, request: Request, response: Response):
     cache_data = await clan_cache_db.find_one({"tag": fix_tag(clan_tag)})
@@ -249,6 +255,7 @@ async def clan_cache(clan_tag: str, request: Request, response: Response):
 @app.post("/clan/bulk-cache",
          tags=["Clan Endpoints"],
          name="Cached endpoint response (bulk fetch)")
+@cache(expire=300)
 @limiter.limit("5/second")
 async def bulk_clan_cache(clan_tags: List[str], request: Request, response: Response):
     cache_data = await clan_cache_db.find({"tag": {"$in": [fix_tag(tag) for tag in clan_tags]}}).to_list(length=500)
@@ -263,6 +270,7 @@ async def bulk_clan_cache(clan_tags: List[str], request: Request, response: Resp
 @app.get("/war/{clan_tag}/log",
          tags=["War Endpoints"],
          name="Warlog for a clan, filled in with data where possible")
+@cache(expire=300)
 @limiter.limit("30/second")
 async def war_log(clan_tag: str, request: Request, response: Response, limit: int= 50):
     clan_tag = fix_tag(clan_tag)
@@ -347,6 +355,7 @@ async def redirect_fastapi_base(id: str):
 @app.get("/search-clan/{name}",
          tags=["Search"],
          name="Search for clans by name")
+@cache(expire=300)
 @limiter.limit("30/second")
 async def search_clans(name: str, request: Request, response: Response):
     return {}
@@ -354,6 +363,7 @@ async def search_clans(name: str, request: Request, response: Response):
 @app.get("/search-player/{name}",
          tags=["Search"],
          name="Search for players by name")
+@cache(expire=300)
 @limiter.limit("30/second")
 async def search_players(player: str, request: Request, response: Response):
     return {}
@@ -362,6 +372,7 @@ async def search_players(player: str, request: Request, response: Response):
 @app.get("/player_trophies/{location}/{date}",
          tags=["Leaderboard History"],
          name="Top 200 Daily Leaderboard History. Date: yyyy-mm-dd")
+@cache(expire=300)
 @limiter.limit("30/second")
 async def player_trophies_ranking(location: Union[int, str], date: str, request: Request, response: Response):
     r = await player_trophies.find_one({"$and" : [{"location" : location}, {"date" : date}]})
@@ -371,6 +382,7 @@ async def player_trophies_ranking(location: Union[int, str], date: str, request:
 @app.post("/table",
          tags=["Utils"],
          name="Custom Table")
+@cache(expire=300)
 @limiter.limit("5/second")
 async def table_render(info: Dict, request: Request, response: Response):
     columns = info.get("columns")
@@ -507,6 +519,7 @@ async def table_render(info: Dict, request: Request, response: Response):
 @app.get("/guild_links/{guild_id}",
          tags=["Utils"],
          name="Get clans that are linked to a discord guild")
+@cache(expire=300)
 @limiter.limit("30/second")
 async def guild_links(guild_id: int, request: Request, response: Response):
     return {}
@@ -514,14 +527,16 @@ async def guild_links(guild_id: int, request: Request, response: Response):
 @app.get("/all_player_tags",
          tags=["Utils"],
          name="Get a list of all player tags in database")
-@limiter.limit("30/second")
+@cache(expire=300)
+@limiter.limit("5/second")
 async def player_tags(request: Request, response: Response):
     return {}
 
 @app.get("/all_clan_tags",
          tags=["Utils"],
          name="Get a list of all clan tags in database")
-@limiter.limit("30/second")
+@cache(expire=300)
+@limiter.limit("5/second")
 async def clan_tags(request: Request, response: Response):
     return {}
 
@@ -569,7 +584,8 @@ async def render(url: str):
 @app.post("/discord_links",
          tags=["Utils"],
          name="Get discord links for tags")
-@limiter.limit("2/second")
+@cache(expire=300)
+@limiter.limit("5/second")
 async def discord_link(player_tags: List[str], request: Request, response: Response):
     result = await link_client.get_links(*player_tags)
     return dict(result)
@@ -590,8 +606,8 @@ async def upload_to_cdn(picture, title):
 description = """
 ### Clash of Clans Based API 👑
 - No Auth Required
-- Ratelimit is largely 30 req/sec, 5 req/sec on post requests
-- 300 second cache on everything
+- Ratelimit is largely 30 req/sec, 5 req/sec on post & large requests
+- 300 second cache
 - Not perfect, stats are collected by polling the Official API
 - [Discord Server](https://discord.gg/gChZm3XCrS)
 """
