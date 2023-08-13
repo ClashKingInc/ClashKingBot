@@ -65,7 +65,7 @@ async def create_family_clans(bot: CustomClient, guild: disnake.Guild, embed_col
     if guild.icon:
         master_embed.set_thumbnail(url=guild.icon.url)
     master_embed.set_footer(icon_url=guild.icon.url if guild.icon is not None else bot.user.avatar.url,
-                            text=f"{guild.name} Server | {member_count} Accounts")
+                            text=f"{guild.name} | {member_count} Players/{len(clans)} Clans")
     return master_embed
 
 
