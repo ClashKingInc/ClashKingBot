@@ -595,10 +595,9 @@ async def upload_to_cdn(picture, title):
         "content-type": "application/octet-stream",
         "AccessKey": os.getenv("BUNNY_ACCESS_KEY")
     }
-    payload = await picture.read()
+    payload = picture.read()
     async with aiohttp.ClientSession() as session:
         async with session.put(url=f"https://ny.storage.bunnycdn.com/clashking/{title}.png", headers=headers, data=payload) as response:
-            r = await response.read()
             await session.close()
 
 
