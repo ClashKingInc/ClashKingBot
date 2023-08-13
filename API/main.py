@@ -1,5 +1,4 @@
 import os
-import time
 import re
 import aiohttp
 import asyncio
@@ -8,7 +7,10 @@ import motor.motor_asyncio
 import uvicorn
 import io
 import pandas as pd
+import coc
 
+from coc.ext import discordlinks
+from datetime import datetime
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response, Query, HTTPException
 from fastapi.responses import RedirectResponse
@@ -32,7 +34,7 @@ app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
+client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
 
 looper = client.looper
 new_looper = client.new_looper
@@ -55,6 +57,7 @@ clan_trophies = ranking_history.clan_trophies
 clan_versus_trophies = ranking_history.clan_versus_trophies
 capital = ranking_history.capital
 
+link_client = None
 CACHED_SEASONS = []
 
 def fix_tag(tag:str):
@@ -62,12 +65,18 @@ def fix_tag(tag:str):
     tag = "#" + re.sub(r"[^A-Z0-9]+", "", tag.upper()).replace("O", "0")
     return tag
 
+@app.on_event("startup")
+async def startup_event():
+    global link_client
+    link_client = coc.ext.discordlinks.DiscordLinkClient = await discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW"))
+
+
 @app.get("/",
          response_class=RedirectResponse)
 async def docs():
     return f"https://api.clashking.xyz/docs"
 
-#PLAYER STATS
+
 @app.get("/player/{player_tag}/stats",
          response_model=Player,
          tags=["Player Endpoints"],
@@ -307,13 +316,22 @@ async def redirect_fastapi_clan(clan_tag: str):
     return f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{clan_tag}"
 
 
-@app.get("/b/{base_id}",
+@app.get("/base",
          response_class=RedirectResponse,
          tags=["Redirect"],
-         name="Shortform Base Link URL")
-async def redirect_fastapi_base(base_id: str):
-    await base_stats.update_one({"base_id" : base_id}, {"$inc" : {"downloads" : 1}}, upsert=True)
-    return f"https://link.clashofclans.com/en?action=OpenLayout&id={base_id}"
+         name="Base Link URL")
+async def redirect_fastapi_base(id: str):
+    id = id.split("=")[-1]
+    base_id = id.replace(":", "%3A")
+    await base_stats.update_one({"base_id": base_id}, {"$inc": {"downloads": 1},
+                                                       "$set": {"unix_time": int(datetime.now().timestamp()),
+                                                                "time": datetime.today().replace(microsecond=0)}},
+                                upsert=True)
+    HTMLFile = open("test.html", "r")
+
+    # Reading the file
+    index = HTMLFile.read()
+    return HTMLResponse(content=index, status_code=200)
 
 
 #SEARCH ENDPOINTS
@@ -542,6 +560,14 @@ async def render(url: str):
         response = await fetch(str(url), session)
         await session.close()
     return HTMLResponse(content=response, status_code=200)
+
+@app.post("/discord_links",
+         tags=["Utils"],
+         name="Get discord links for tags")
+@limiter.limit("10/second")
+async def discord_link(player_tags: List[str], request: Request, response: Response):
+    result = await link_client.get_links(*player_tags)
+    return dict(result)
 
 
 description = """

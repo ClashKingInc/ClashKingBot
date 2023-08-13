@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Dict, Union, Any
 
 
@@ -21,6 +21,7 @@ class LegendDays(Dict):
 
 
 class Player(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     tag: str
     name: str
     clan_tag: Union[str, None] = None
