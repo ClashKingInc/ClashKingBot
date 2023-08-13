@@ -512,6 +512,7 @@ async def table_render(info: Dict, request: Request, response: Response):
     plt.close(fig)
     temp.seek(0)
     await upload_to_cdn(picture=temp, title=title)
+    title = title.replace(" ", "_").lower()
     return {"link" : f"https://cdn.clashking.xyz/{title}.png"}
 
 
