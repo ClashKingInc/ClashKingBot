@@ -36,6 +36,9 @@ async def create_family_clans(bot: CustomClient, guild: disnake.Guild, embed_col
     text = ""
     member_count = 0
     clans = await bot.get_clans(tags=clan_tags)
+    no_emoji = False
+    if len(clans) > 25:
+        no_emoji = True
     for category in categories:
         if category == "All Clans":
             continue
@@ -49,7 +52,10 @@ async def create_family_clans(bot: CustomClient, guild: disnake.Guild, embed_col
             #leader = coc.utils.get(clan.members, role=coc.Role.leader)
             #text += f"[{clan.name}]({clan.share_link}) | ({clan.member_count}/50)\n" \
                     #f"**Leader:** {leader.name}\n\n"
-            text += f"{cwl_league_emojis(clan.war_league.name)}{clan.name} | ({clan.member_count}/50)\n"
+            if not no_emoji:
+                text += f"{cwl_league_emojis(clan.war_league.name)}{clan.name} | ({clan.member_count}/50)\n"
+            else:
+                text += f"{clan.name} | ({clan.member_count}/50)\n"
             member_count += clan.member_count
 
         #master_embed.add_field(name=, value=text, inline=False)
