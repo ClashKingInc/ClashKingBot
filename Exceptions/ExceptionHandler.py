@@ -145,6 +145,11 @@ class ExceptionHandler(commands.Cog):
         if isinstance(error, ExpiredComponents):
             return await ctx.edit_original_message(components=[])
 
+        embed = disnake.Embed(description=f"{str(error)[:2500]}", color=disnake.Color.red())
+        if not ctx.response.is_done():
+            await ctx.edit_original_message(embed=embed)
+        else:
+            await ctx.send(embed=embed)
         sentry_sdk.capture_exception(error)
 
 
