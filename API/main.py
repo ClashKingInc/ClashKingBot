@@ -513,7 +513,7 @@ async def table_render(info: Dict, request: Request, response: Response):
     plt.close(fig)
     temp.seek(0)
     await upload_to_cdn(picture=temp, title=title)
-    return Response(content=f"https://cdn.clashking.xyz/{title}.png", media_type="text/plain")
+    return {"link" : f"https://cdn.clashking.xyz/{title}.png"}
 
 
 @app.get("/guild_links/{guild_id}",
