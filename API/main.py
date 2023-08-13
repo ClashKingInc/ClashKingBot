@@ -590,12 +590,13 @@ async def discord_link(player_tags: List[str], request: Request, response: Respo
     return dict(result)
 
 
-async def upload_to_cdn(picture, title):
+async def upload_to_cdn(picture, title: str):
     headers = {
         "content-type": "application/octet-stream",
         "AccessKey": os.getenv("BUNNY_ACCESS_KEY")
     }
     payload = picture.read()
+    title = title.replace(" ", "_").lower()
     async with aiohttp.ClientSession() as session:
         async with session.put(url=f"https://ny.storage.bunnycdn.com/clashking/{title}.png", headers=headers, data=payload) as response:
             await session.close()
