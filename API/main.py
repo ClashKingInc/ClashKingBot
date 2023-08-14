@@ -341,7 +341,13 @@ async def redirect_fastapi_player(tag: str):
             item = await response.json()
     name = item.get("name")
     trophies = item.get("trophies")
-    print(name)
+    league_icon = item.get("league", {}).get("iconUrls", {}).get("small", "https://clashking.b-cdn.net/unranked.png")
+    league = item.get("league", {}).get("name", "Unranked League")
+    war_stars = item.get("warStars")
+    townhall = item.get("townHallLevel")
+    donations = item.get("donations")
+    received = item.get("donationsReceived")
+
     HTMLFile = open("test.html", "r")
     # Reading the file
     index = HTMLFile.read()
@@ -349,6 +355,23 @@ async def redirect_fastapi_player(tag: str):
     metatag = soup.new_tag('meta')
     metatag.attrs["property"] = 'og:title'
     metatag.attrs['content'] = f"{name} | {trophies} trophies"
+    soup.head.append(metatag)
+
+    metatag = soup.new_tag('meta')
+    metatag.attrs["property"] = 'og:title'
+    metatag.attrs['content'] = f"{name} | Townhall {townhall}"
+    soup.head.append(metatag)
+
+    metatag = soup.new_tag('meta')
+    metatag.attrs["property"] = 'og:description'
+    metatag.attrs['content'] = f"•{trophies} trophies, {league}\n" \
+                               f"•Donations: ▲{donations} ▼{received}\n" \
+                               f"•⭐{war_stars} War Stars\n"
+    soup.head.append(metatag)
+
+    metatag = soup.new_tag('meta')
+    metatag.attrs["property"] = 'og:image'
+    metatag.attrs['content'] = league_icon
     soup.head.append(metatag)
 
     with open("output1.html", "w", encoding='utf-8') as file:
