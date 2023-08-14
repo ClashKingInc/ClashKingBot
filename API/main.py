@@ -414,7 +414,7 @@ async def redirect_fastapi_base(id: str):
 
     metatag = soup.new_tag('meta')
     metatag.attrs["property"] = 'og:title'
-    metatag.attrs['content'] = f"Townhall {base.get('townhall')} base by {base.get('builder')}"
+    metatag.attrs['content'] = f"Townhall {base.get('townhall')} Base by {base.get('builder')}"
     soup.head.append(metatag)
 
     metatag = soup.new_tag('meta')
@@ -431,6 +431,12 @@ async def redirect_fastapi_base(id: str):
     metatag.attrs["property"] = 'og:image'
     metatag.attrs['content'] = f"https://cdn.clashking.xyz/{base_id}.png"
     soup.head.append(metatag)
+
+    metatag = soup.new_tag('meta')
+    metatag.attrs["property"] = 'og:image:type'
+    metatag.attrs['content'] = f"image/png"
+    soup.head.append(metatag)
+
 
     with open("output1.html", "w", encoding='utf-8') as file:
         file.write(str(soup))
