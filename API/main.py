@@ -334,6 +334,8 @@ async def redirect_fastapi(player_tag: str):
          name="Player Link URL")
 async def redirect_fastapi_player(id: str):
     tag = id.split("=")[-1]
+    tag = "#" + tag
+    print(tag)
     headers = {"Accept": "application/json", "authorization": f"Bearer {os.getenv('COC_KEY')}"}
     async with aiohttp.ClientSession() as session:
         async with session.get(
@@ -342,11 +344,8 @@ async def redirect_fastapi_player(id: str):
             item = await response.json()
     name = item.get("name")
     trophies = item.get("trophies")
-
+    print(name)
     HTMLFile = open("test.html", "r")
-
-    '''        <meta property="og:title" content="Clash of Clans" />
-            '''
     # Reading the file
     index = HTMLFile.read()
     soup = BeautifulSoup(index)
@@ -354,10 +353,12 @@ async def redirect_fastapi_player(id: str):
     metatag.attrs["property"] = 'og:title'
     metatag.attrs['content'] = f"{name} | {trophies} trophies"
 
+    print(soup)
     with open("output1.html", "w", encoding='utf-8') as file:
         file.write(str(soup))
 
-    return HTMLResponse(content=file.read(), status_code=200)
+    HTMLFile = open("output1.html", "r")
+    return HTMLResponse(content=HTMLFile.read(), status_code=200)
 
 
 
