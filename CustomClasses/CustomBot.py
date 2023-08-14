@@ -685,7 +685,7 @@ class CustomClient(commands.AutoShardedBot):
 
     async def get_players(self, tags: list, custom=True, use_cache=True, fake_results=False, found_results=None):
         if custom and fake_results is False:
-            if found_results is not None:
+            if found_results is None:
                 results_list = await self.player_stats.find({"tag" : {"$in" : tags}}).to_list(length=2500)
             else:
                 results_list = found_results
