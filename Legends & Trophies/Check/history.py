@@ -53,7 +53,7 @@ class History(commands.Cog):
 
         text = ""
         oldyear = "2015"
-        embed = disnake.Embed(title=f"**{player.name}'s Legends History**", description="🏆= trophies, 🌎= global rank",color=disnake.Color.blue())
+        embed = disnake.Embed(title=f"**{player.name}'s Legends History**", description="🏆= trophies, 🌎= global rank",color=disnake.Color.from_rgb(r=43, g=45, b=49))
         if names != []:
           names = ", ".join(names)
           embed.add_field(name = "**Previous Names**", value=names, inline=False)
