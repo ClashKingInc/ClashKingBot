@@ -354,7 +354,10 @@ async def redirect_fastapi_player(id: str):
     metatag.attrs["property"] = 'og:title'
     metatag.attrs['content'] = f"{name} | {trophies} trophies"
 
-    return HTMLResponse(content=soup, status_code=200)
+    with open("output1.html", "w", encoding='utf-8') as file:
+        file.write(str(soup))
+
+    return HTMLResponse(content=file.read(), status_code=200)
 
 
 
