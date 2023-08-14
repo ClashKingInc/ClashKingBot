@@ -349,13 +349,12 @@ async def redirect_fastapi_player(tag: str):
     metatag = soup.new_tag('meta')
     metatag.attrs["property"] = 'og:title'
     metatag.attrs['content'] = f"{name} | {trophies} trophies"
+    soup.head.append(metatag)
 
-    print(soup)
-    with open("output1.html", "w", encoding='utf-8') as file:
+    with open("output1.html", "wr", encoding='utf-8') as file:
         file.write(str(soup))
 
-    HTMLFile = open("output1.html", "r")
-    return HTMLResponse(content=HTMLFile.read(), status_code=200)
+    return HTMLResponse(content=file.read(), status_code=200)
 
 
 
