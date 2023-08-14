@@ -38,6 +38,8 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
             season_date = self.bot.gen_season_date()
         return season_date
 
+
+
     @commands.slash_command(name="player")
     async def player(self, ctx: disnake.ApplicationCommandInteraction):
         result = await self.bot.user_settings.find_one({"discord_user": ctx.author.id})

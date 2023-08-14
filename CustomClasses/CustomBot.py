@@ -54,7 +54,7 @@ class CustomClient(commands.AutoShardedBot):
         self.leaderboard_db: collection_class = self.new_looper.leaderboard_db
         self.clan_leaderboard_db: collection_class = self.new_looper.clan_leaderboard_db
 
-        self.history_db = self.looper_db.looper.legend_history
+        self.history_db: collection_class = self.looper_db.looper.legend_history
         self.warhits: collection_class = self.looper_db.looper.warhits
         self.webhook_message_db: collection_class = self.looper_db.looper.webhook_messages
         self.user_name = "admin"

@@ -20,7 +20,7 @@ class StoreClanCapital(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         scheduler.add_job(self.store_cc, "cron", day_of_week="mon", hour=7, minute=45, misfire_grace_time=None)
-        scheduler.add_job(self.send_boards, "cron", day_of_week="mon", hour=16, minute=35, misfire_grace_time=None)
+        scheduler.add_job(self.send_boards, "cron", day_of_week="mon", hour=11, minute=30, misfire_grace_time=None)
 
 
     async def send_boards(self):
