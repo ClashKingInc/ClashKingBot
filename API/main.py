@@ -28,6 +28,7 @@ from helper import IMAGE_CACHE, download_image
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
+from bs4 import BeautifulSoup
 
 utc = pytz.utc
 load_dotenv()
@@ -322,7 +323,39 @@ async def war_log(clan_tag: str, request: Request, response: Response, limit: in
          tags=["Redirect"],
          name="Shortform Player Profile URL")
 async def redirect_fastapi(player_tag: str):
+
+
     return f"https://link.clashofclans.com/en?action=OpenPlayerProfile&tag=%23{player_tag}"
+
+"?action=OpenClanProfile&tag=2YCR8RPLC"
+@app.get("/player",
+         response_class=RedirectResponse,
+         tags=["Redirect"],
+         name="Player Link URL")
+async def redirect_fastapi_player(id: str):
+    tag = id.split("=")[-1]
+    headers = {"Accept": "application/json", "authorization": f"Bearer {os.getenv('COC_KEY')}"}
+    async with aiohttp.ClientSession() as session:
+        async with session.get(
+                f"https://cocproxy.royaleapi.dev/v1/players/{tag.replace('#', '%23')}",
+                headers=headers) as response:
+            item = await response.json()
+    name = item.get("name")
+    trophies = item.get("trophies")
+
+    HTMLFile = open("test.html", "r")
+
+    '''        <meta property="og:title" content="Clash of Clans" />
+            '''
+    # Reading the file
+    index = HTMLFile.read()
+    soup = BeautifulSoup(index)
+    metatag = soup.new_tag('meta')
+    metatag.attrs["property"] = 'og:title'
+    metatag.attrs['content'] = f"{name} | {trophies} trophies"
+
+    return HTMLResponse(content=soup, status_code=200)
+
 
 
 @app.get("/c/{clan_tag}",
