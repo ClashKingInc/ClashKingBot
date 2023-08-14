@@ -406,11 +406,38 @@ async def redirect_fastapi_base(id: str):
                                                        "$set": {"unix_time": int(datetime.now().timestamp()),
                                                                 "time": datetime.today().replace(microsecond=0)}},
                                 upsert=True)
+    base = await base_stats.find_one({"base_id" : base_id})
     HTMLFile = open("test.html", "r")
-
     # Reading the file
     index = HTMLFile.read()
-    return HTMLResponse(content=index, status_code=200)
+    soup = BeautifulSoup(index)
+
+    metatag = soup.new_tag('meta')
+    metatag.attrs["property"] = 'og:title'
+    metatag.attrs['content'] = f"Townhall {base.get('townhall')} base by {base.get('builder')}"
+    soup.head.append(metatag)
+
+    metatag = soup.new_tag('meta')
+    metatag.attrs["property"] = 'og:description'
+    metatag.attrs['content'] = f"Open link in Clash of Clans or download the game."
+    soup.head.append(metatag)
+
+    metatag = soup.new_tag('meta')
+    metatag.attrs["name"] = 'description'
+    metatag.attrs['content'] = f"Open link in Clash of Clans or download the game."
+    soup.head.append(metatag)
+
+    metatag = soup.new_tag('meta')
+    metatag.attrs["property"] = 'og:image'
+    metatag.attrs['content'] = f"https://cdn.clashking.xyz/{base_id}.png"
+    soup.head.append(metatag)
+
+    with open("output1.html", "w", encoding='utf-8') as file:
+        file.write(str(soup))
+
+    HTMLFile = open("output1.html", "r")
+    return HTMLResponse(content=HTMLFile.read(), status_code=200)
+
 
 
 #SEARCH ENDPOINTS
