@@ -323,17 +323,14 @@ async def war_log(clan_tag: str, request: Request, response: Response, limit: in
          tags=["Redirect"],
          name="Shortform Player Profile URL")
 async def redirect_fastapi(player_tag: str):
-
-
     return f"https://link.clashofclans.com/en?action=OpenPlayerProfile&tag=%23{player_tag}"
 
-"?action=OpenClanProfile&tag=2YCR8RPLC"
+
 @app.get("/player",
-         response_class=RedirectResponse,
          tags=["Redirect"],
          name="Player Link URL")
-async def redirect_fastapi_player(id: str):
-    tag = id.split("=")[-1]
+async def redirect_fastapi_player(tag: str):
+    tag = tag.split("=")[-1]
     tag = "#" + tag
     print(tag)
     headers = {"Accept": "application/json", "authorization": f"Bearer {os.getenv('COC_KEY')}"}
