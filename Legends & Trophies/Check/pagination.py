@@ -5,7 +5,7 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 import asyncio
 
-stat_types = ["Previous Days", "Legends Overview", "Graph & Stats", "Legends History", "Quick Check & Daily Report Add", "Quick Check & Daily Report Remove"]
+stat_types = ["Previous Days", "Legends Overview", "Legends History"]
 
 class Pagination(commands.Cog):
 
@@ -24,13 +24,8 @@ class Pagination(commands.Cog):
             results.append("x")
             player_order= 1
         text = ""
-        tasks = []
 
-
-        for tag in tags:
-            task = asyncio.ensure_future(self.bot.getPlayer(player_tag=tag, custom=True))
-            tasks.append(task)
-        responses = await asyncio.gather(*tasks)
+        responses = await self.bot.get_players(tags=tags, custom=True, use_cache=True)
         for player in responses:
             player: MyCustomPlayer
             if player is None:
@@ -124,8 +119,6 @@ class Pagination(commands.Cog):
             return await check.checkEmbed(results[current_page])
         elif stat_type == "Previous Days":
             return await check.checkYEmbed(results[current_page])
-        elif stat_type == "Graph & Stats":
-            return await check.createPosterEmbed(results[current_page])
         elif stat_type == "Legends History":
             return await check.create_history(results[current_page].tag)
 
