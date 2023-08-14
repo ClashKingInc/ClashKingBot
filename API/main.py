@@ -425,7 +425,7 @@ async def redirect_fastapi_base(id: str):
 
     metatag = soup.new_tag('meta')
     metatag.attrs["name"] = 'description'
-    metatag.attrs['content'] = f"{base.get('downloads')} downloads. Type: {type_}"
+    metatag.attrs['content'] = f"{base.get('downloads')} downloads | Tags: {type_}"
     soup.head.append(metatag)
 
     metatag = soup.new_tag('meta')
