@@ -188,21 +188,20 @@ async def main(PLAYER_CLIENTS):
 
         return (new_json, fields_to_update)
 
-
+    loop_spot = -1
     while True:
+        loop_spot += 1
 
         clan_tags = await clan_db.distinct("tag")
 
-
-
         tasks = []
-        connector = aiohttp.TCPConnector(limit=100)
+        connector = aiohttp.TCPConnector(limit=250)
+        keys = collections.deque(keys)
         async with aiohttp.ClientSession(connector=connector) as session:
             for tag in clan_tags:
                 headers = {"Authorization": f"Bearer {keys[0]}"}
                 tag = tag.replace("#", "%23")
                 url = f"https://api.clashofclans.com/v1/clans/{tag}"
-                keys = collections.deque(keys)
                 keys.rotate(1)
                 async def fetch(url, session, headers):
                     async with session.get(url, headers=headers) as response:
@@ -222,8 +221,21 @@ async def main(PLAYER_CLIENTS):
             except:
                 pass
 
-        db_tags = await player_stats.distinct("tag")
-        all_tags_to_track = list(set(db_tags + CLAN_MEMBERS))
+
+        #people only become unpaused by joining a clan again or being tracked in legends again
+        gone_for_a_month = int(datetime.now().timestamp()) - 2592000
+        await player_stats.update_many({"last_online" : {"$lte" : gone_for_a_month}}, {"$set" : {"paused" : True}})
+        await player_stats.update_many({"tag": {"$in": CLAN_MEMBERS}}, {"$set" : {"paused" : False}})
+
+
+        #9/10 loops, only track legend members & clan members
+        if loop_spot % 10 != 0:
+            db_tags = await player_stats.distinct("tag", filter= {"league": "Legend League"})
+            all_tags_to_track = list(set(db_tags + CLAN_MEMBERS))
+        #1/10 loops, track anyone not paused + clan members
+        else:
+            db_tags = await player_stats.distinct("tag", filter={"paused": {"$ne": True}})
+            all_tags_to_track = list(set(db_tags + CLAN_MEMBERS))
 
 
         if BETA:
@@ -259,14 +271,12 @@ async def main(PLAYER_CLIENTS):
 
         players_tracked = set()
 
-
-
         tasks = []
         deque = collections.deque
         connector = aiohttp.TCPConnector(limit=2000, ttl_dns_cache=300)
         keys = deque(keys)
         url = "https://api.clashofclans.com/v1/players/"
-        timeout = aiohttp.ClientTimeout(total=int(len(all_tags_to_track) * 0.0012))
+        timeout = aiohttp.ClientTimeout(total=1800)
         async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session3:
             for tag in all_tags_to_track:
                 tag = tag.replace("#", "%23")
@@ -277,6 +287,7 @@ async def main(PLAYER_CLIENTS):
                         if new_response.status == 404:  # remove banned players
                             t = url.split("%23")[-1]
                             await player_stats.delete_one({"tag": f"#{t}"})
+                            await cache.getdel(f"#{t}")
                             return None
                         new_response = await new_response.read()
 
@@ -314,6 +325,10 @@ async def main(PLAYER_CLIENTS):
                                                 "attackWins",
                                                 "builderBaseTrophies", "donations", "donationsReceived", "trophies",
                                                 "versusBattleWins", "versusTrophies"}
+
+                            special_types = {"War League Legend", "warStars", "Aggressive Capitalism", "Nice and Tidy", "Well Seasoned",
+                                         "clanCapitalContributions", "Games Champion"}
+
                             ws_types = {"clanCapitalContributions", "name", "troops", "heroes", "spells",
                                         "townHallLevel",
                                         "league", "trophies", "Most Valuable Clanmate"}
@@ -321,6 +336,11 @@ async def main(PLAYER_CLIENTS):
                             ws_tasks = []
                             if changes:
                                 for (parent, type_), (old_value, value) in changes.items():
+                                    if type_ in special_types:
+                                        bulk_db_changes.append(UpdateOne({"tag": tag},
+                                                                         {"$set": {f"{type_.replace(' ','_').lower()}": value}},
+                                                                         upsert=True))
+
                                     if type_ not in skip_store_types:
                                         if old_value is None:
                                             bulk_insert.append(InsertOne({"tag": tag, "type": type_, "value": value,
@@ -445,8 +465,7 @@ async def main(PLAYER_CLIENTS):
                                             ws_tasks.append(asyncio.ensure_future(send_ws(ws=ws, json=json_data)))
 
                             # LEGENDS CODE, dont fix what aint broke
-                            if new_response["trophies"] != previous_response["trophies"] and new_response[
-                                "trophies"] >= 4900 and league == "Legend League":
+                            if new_response["trophies"] != previous_response["trophies"] and new_response["trophies"] >= 4900 and league == "Legend League":
                                 diff_trophies = new_response["trophies"] - previous_response["trophies"]
                                 diff_attacks = new_response["attackWins"] - previous_response["attackWins"]
                                 if diff_trophies <= - 1:
@@ -502,13 +521,18 @@ async def main(PLAYER_CLIENTS):
                                 bulk_db_changes.append(
                                     UpdateOne({"tag": tag}, {
                                         "$inc": {f"activity.{season}": 1},
+                                        "$push" : {f"last_online_times.{season}" : _time},
                                         "$set": {"last_online": _time}
                                     }, upsert=True))
+                                bulk_clan_changes.append(
+                                    UpdateOne({"tag": clan_tag},
+                                              {"$inc": {f"{season}.{tag}.activity": 1}},
+                                              upsert=True))
 
                             await asyncio.gather(*ws_tasks)
 
                 tasks.append(fetch(f"{url}{tag}", session3, {"Authorization": f"Bearer {keys[0]}"}))
-            await asyncio.gather(*tasks)
+            await asyncio.gather(*tasks, return_exceptions=True)
             await session3.close()
 
         print(f"{time.time() - time_inside} seconds inside")
@@ -519,8 +543,6 @@ async def main(PLAYER_CLIENTS):
             results = await player_stats.bulk_write(bulk_db_changes)
             print(results.bulk_api_result)
             print(f"STAT CHANGES INSERT: {time.time() - time_inside}")
-
-
 
         if bulk_insert != []:
             results = await client.new_looper.player_history.bulk_write(bulk_insert)

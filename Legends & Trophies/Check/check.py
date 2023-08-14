@@ -75,6 +75,10 @@ class Check(commands.Cog):
                 description=f"{player.name} now tracked. View stats with `/check search {player.tag}`.\n**Note:** Legends stats aren't given, so they have to be collected as they happen. Stats will appear from now & forward :)",
                 color=disnake.Color.green())
             return await msg.edit(content=None, embed=embed)
+        else:
+            r = await self.bot.player_stats.find_one({"tag" : search_query})
+            if r.get("paused") is True:
+                await self.bot.player_stats.update_one({"tag": search_query}, {"$set": {"paused": False}})
 
 
         pagination = self.bot.get_cog("Legends")

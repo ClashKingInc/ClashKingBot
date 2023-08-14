@@ -7,6 +7,7 @@ import io
 from Exceptions.CustomExceptions import *
 from datetime import datetime
 from operator import attrgetter
+import aiohttp
 
 def partial_emoji_gen(bot, emoji_string, animated=False):
     emoji = ''.join(filter(str.isdigit, emoji_string))
@@ -38,6 +39,18 @@ async def permanent_image(bot, url: str):
     msg = await pic_channel.send(file=file)
     pic = msg.attachments[0].url
     return pic
+
+
+async def upload_to_cdn(picture: disnake.Attachment):
+    headers = {
+        "content-type": "application/octet-stream",
+        "AccessKey": "6444241f-0a55-4058-996de4f78323-75eb-498b"
+    }
+    payload = await picture.read()
+    async with aiohttp.ClientSession() as session:
+        async with session.put(url=f"https://ny.storage.bunnycdn.com/clashking/{picture.id}.png", headers=headers, data=payload) as response:
+            r = await response.read()
+            await session.close()
 
 
 async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteraction, disnake.MessageInteraction], msg:disnake.Message = None,

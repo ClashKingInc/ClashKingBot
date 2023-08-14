@@ -1,5 +1,7 @@
 from datetime import datetime
 from datetime import timedelta
+
+import ujson
 from coc import utils
 from coc.ext import discordlinks
 from coc.ext.fullwarapi import FullWarClient
@@ -18,9 +20,10 @@ from CustomClasses.PlayerHistory import COSPlayerHistory
 from utils.constants import locations, BADGE_GUILDS
 from typing import Tuple, List
 from utils import logins as login
-from utils.general import fetch, get_clan_member_tags
+from utils.general import fetch, get_clan_member_tags, create_superscript
 from math import ceil
 from expiring_dict import ExpiringDict
+from redis import asyncio as redis
 
 import dateutil.relativedelta
 import ast
@@ -58,7 +61,6 @@ class CustomClient(commands.AutoShardedBot):
         self.cwl_db: collection_class = self.looper_db.looper.cwl_db
         self.leveling: collection_class = self.new_looper.leveling
         self.clan_wars: collection_class = self.looper_db.looper.clan_wars
-        self.player_cache: collection_class = self.new_looper.player_cache
         self.command_stats: collection_class = self.new_looper.command_stats
         self.player_history: collection_class = self.new_looper.player_history
         self.clan_history: collection_class = self.new_looper.clan_history
@@ -70,6 +72,7 @@ class CustomClient(commands.AutoShardedBot):
         self.clan_stats: collection_class = self.new_looper.clan_stats
         self.raid_weekend_db: collection_class = self.looper_db.looper.raid_weekends
         self.clan_join_leave: collection_class = self.new_looper.clan_join_leave
+        self.base_stats: collection_class = self.looper_db.looper.base_stats
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
         self.clan_db: collection_class = self.db_client.usafam.clans
@@ -117,6 +120,9 @@ class CustomClient(commands.AutoShardedBot):
         self.coc_client: coc.Client = login.coc_client
 
         self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwarapi.login(username=os.getenv("FW_USER"), password=os.getenv("FW_PW"), coc_client=self.coc_client))
+
+        #self.elasticsearch = AsyncElasticsearch("https://my-deployment-f48bd5.es.us-east-1.aws.found.io:443", api_key=os.getenv("ES_TOKEN"))
+        self.redis = redis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"))
 
         self.emoji = Emojis()
         self.locations = locations
@@ -218,6 +224,8 @@ class CustomClient(commands.AutoShardedBot):
             r = await self.player_stats.find_one({"tag" : player.tag})
             if r is None:
                 await self.player_stats.insert_one({"tag" : player.tag, "name" : player.name})
+            elif r.get("paused") is True:
+                await self.player_stats.update_one({"tag": player.tag}, {"$set" : {"paused" : False}})
         return "Done"
 
     async def track_clans(self, tags: list):
@@ -395,7 +403,11 @@ class CustomClient(commands.AutoShardedBot):
                 name = document.get("name")
                 if name is None:
                     continue
-                names.append(name + " | " + document.get("tag"))
+                league = document.get("league")
+                if league == "Unknown":
+                    league = "Unranked"
+                league = league.replace(" League", "")
+                names.append(f'{create_superscript(document.get("townhall"))}{name} ({league})' + " | " + document.get("tag"))
             return names
 
         # ignore capitalization
@@ -414,7 +426,12 @@ class CustomClient(commands.AutoShardedBot):
             ]}
         ).limit(24)
         for document in await results.to_list(length=24):
-            names.append(document.get("name") + " | " + document.get("tag"))
+            league = document.get("league")
+            if league == "Unknown":
+                league = "Unranked"
+            league = league.replace(" League", "")
+            names.append(
+                f'{create_superscript(document.get("townhall"))}{document.get("name")} ({league})' + " | " + document.get("tag"))
         return names
 
     async def family_names(self, query, guild):
@@ -666,9 +683,12 @@ class CustomClient(commands.AutoShardedBot):
             else:
                 return None
 
-    async def get_players(self, tags: list, custom=True, use_cache=True, fake_results=False):
+    async def get_players(self, tags: list, custom=True, use_cache=True, fake_results=False, found_results=None):
         if custom and fake_results is False:
-            results_list = await self.player_stats.find({"tag" : {"$in" : tags}}).to_list(length=2500)
+            if found_results is not None:
+                results_list = await self.player_stats.find({"tag" : {"$in" : tags}}).to_list(length=2500)
+            else:
+                results_list = found_results
             results_dict = {}
             for item in results_list:
                 results_dict[item["tag"]] = item
@@ -677,23 +697,24 @@ class CustomClient(commands.AutoShardedBot):
 
         players = []
         tag_set = set(tags)
-
+        pipe = self.redis.pipeline()
         if use_cache:
-            cache_data = await self.player_cache.find({"tag" : {"$in" : tags}}).to_list(length=2500)
+            for tag in tag_set:
+                await pipe.get(tag)
+            cache_data = await pipe.execute()
         else:
             cache_data = []
         for data in cache_data:
+            if data is None:
+                continue
+            data = ujson.loads(data)
             tag_set.remove(data.get("tag"))
             if not custom:
-                player = coc.Player(data=data.get("data"), client=self.coc_client)
+                player = coc.Player(data=data, client=self.coc_client)
             else:
-                player = MyCustomPlayer(data=data.get("data"), client=self.coc_client, bot=self, results=results_dict.get(data["tag"]))
-            try:
-                player.troops
-                players.append(player)
-            except:
-                tag_set.add(data.get("tag"))
-                continue
+                player = MyCustomPlayer(data=data, client=self.coc_client, bot=self, results=results_dict.get(data["tag"]))
+            players.append(player)
+
         tasks = []
         for tag in tag_set:
             task = asyncio.ensure_future(self.getPlayer(player_tag=tag, custom=custom))

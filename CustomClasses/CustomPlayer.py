@@ -45,7 +45,7 @@ class MyCustomPlayer(coc.Player):
         try:
             clan_badge = self.clan.badge.url
         except:
-            clan_badge = "https://cdn.discordapp.com/attachments/880895199696531466/911187298513747998/601618883853680653.png"
+            clan_badge = "https://clashking.b-cdn.net/unranked.png"
         return clan_badge
 
     def clan_name(self):
@@ -266,6 +266,13 @@ class MyCustomPlayer(coc.Player):
         if l_results.get(season_date) is None:
             return []
         return l_results.get(season_date)
+
+    def activity(self, season_date = None):
+        if season_date is None:
+            season_date = self.bot.gen_season_date()
+        if self.results is None:
+            return 0
+        return self.results.get("activity", {}).get(season_date, 0)
 
 
     async def hit_rate(self, townhall_level:list = [], fresh_type: list = [False, True], start_timestamp:int = 0, end_timestamp: int = 9999999999,

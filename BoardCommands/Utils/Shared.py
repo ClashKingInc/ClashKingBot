@@ -37,13 +37,13 @@ async def image_board(bot: CustomClient, players: List[MyCustomPlayer], logo_url
             data.append([f"{c:3} {player.name}", player.trophy_start(), f"{day.attack_sum}{day.num_attacks.superscript}", f"{day.defense_sum}{day.num_defenses.superscript}", net_gain, player.trophies])
 
     elif type == "trophies":
-        columns = ['Name', "Trophies", "League"]
-        badges = [player.clan_badge_link() for player in players]
+        columns = ['Name', "Trophies", "League", "Builder", "B-League"]
+        badges = [player.league.icon.url for player in players]
         count = len(players) + 1
         for player in players:
             count -= 1
             c = f"{count}."
-            data.append([f"{c:3} {player.name}", player.trophies, str(player.league)])
+            data.append([f"{c:3} {player.name}", player.trophies, str(player.league).replace(" League", ""), player.versus_trophies, str(player.builder_league).replace(" League", "")])
 
     elif type == "activities":
         columns = ['Name', "Donated", "Received", "Last Online", "Activity"]
@@ -63,11 +63,9 @@ async def image_board(bot: CustomClient, players: List[MyCustomPlayer], logo_url
     }
     async with aiohttp.ClientSession(json_serialize=ujson.dumps) as session:
         async with session.post("https://api.clashking.xyz/table", json=data) as response:
-            temp = io.BytesIO(await response.read())
-            temp.seek(0)
+            link = await response.json()
         await session.close()
-    file = disnake.File(fp=temp, filename="filename.png")
-    return file
+    return link.get("link")
 
 
 async def donation_board(bot: CustomClient, players: List[MyCustomPlayer], season: str, footer_icon: str, title_name: str, type: str,

@@ -186,11 +186,8 @@ class FamCommands(commands.Cog, name="Family Commands"):
             board_type = "famboardact"
         elif board == "Legends":
             clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
-            clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
-            member_tags = get_clan_member_tags(clans=clans)
-            top_50 = await self.bot.player_cache.find({"$and" : [{"tag": {"$in": member_tags}}, {"data.league.name" : "Legend League"}]},
-                                                      {"tag": 1}).sort(f"data.trophies", -1).limit(30).to_list(length=40)
-            players = await self.bot.get_players(tags=[p["tag"] for p in top_50], custom=True)
+            top_30 = await self.bot.player_stats.find({"$and" : [{"clan_tag": {"$in": clan_tags}}, {"league" : "Legend League"}]}).sort(f"trophies", -1).limit(30).to_list(length=30)
+            players = await self.bot.get_players(tags=[p["tag"] for p in top_30], found_results=top_30, custom=True)
             players.sort(key=lambda x: x.trophies, reverse=False)
             file = await shared_embeds.image_board(bot=self.bot, players=players, logo_url=guild_icon,
                                                    title=f'{guild.name} Legend Board', type="legend")
@@ -198,10 +195,8 @@ class FamCommands(commands.Cog, name="Family Commands"):
 
         elif board == "Trophies":
             clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
-            clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
-            member_tags = get_clan_member_tags(clans=clans)
-            top_50 = await self.bot.player_cache.find({"tag": {"$in": member_tags}}, {"tag": 1}).sort(f"data.trophies", -1).limit(30).to_list(length=50)
-            players = await self.bot.get_players(tags=[p["tag"] for p in top_50], custom=True)
+            top_30 = await self.bot.player_stats.find({"clan_tag": {"$in": clan_tags}}).sort(f"trophies", -1).limit(30).to_list(length=30)
+            players = await self.bot.get_players(tags=[p["tag"] for p in top_30], found_results=top_30, custom=True)
             players.sort(key=lambda x: x.trophies, reverse=False)
             file = await shared_embeds.image_board(bot=self.bot, players=players, logo_url=guild_icon,
                                                    title=f'{guild.name} Trophy Board', type="trophies")
@@ -213,7 +208,7 @@ class FamCommands(commands.Cog, name="Family Commands"):
         buttons.append_item(disnake.ui.Button(
             label="", emoji=self.bot.emoji.refresh.partial_emoji,
             style=disnake.ButtonStyle.grey, custom_id=f"{board_type}_{guild.id}"))
-        await ctx.channel.send(file=file, components=[buttons])
+        await ctx.channel.send(content=file, components=[buttons])
 
 
     @family.sub_command(name="leagues", description="List of clans by cwl or capital league")

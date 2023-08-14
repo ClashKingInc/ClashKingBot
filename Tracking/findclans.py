@@ -182,6 +182,8 @@ async def broadcast(keys):
             except BulkWriteError as e:
                 pass
 
+
+
 loop = asyncio.get_event_loop()
 keys = create_keys()
 loop.create_task(broadcast(keys))
