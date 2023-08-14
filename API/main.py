@@ -432,6 +432,16 @@ async def redirect_fastapi_base(id: str):
     metatag.attrs['content'] = f"https://cdn.clashking.xyz/{base.get('pic_id')}.png"
     soup.head.append(metatag)
 
+    metatag = soup.new_tag('meta')
+    metatag.attrs["name"] = 'twitter:card'
+    metatag.attrs['content'] = f"summary_large_image"
+    soup.head.append(metatag)
+
+    metatag = soup.new_tag('meta')
+    metatag.attrs["name"] = 'twitter:image'
+    metatag.attrs['content'] = f"https://cdn.clashking.xyz/{base.get('pic_id')}.png"
+    soup.head.append(metatag)
+
     with open("output1.html", "w", encoding='utf-8') as file:
         file.write(str(soup))
 
