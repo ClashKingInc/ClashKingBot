@@ -22,7 +22,7 @@ class Buttons(commands.Cog):
                 else:
                     await ctx.edit_original_message(embeds=embed)
             elif isinstance(embed, str):
-                await ctx.edit_original_message(content=embed)
+                await ctx.edit_original_message(content=embed, attachments=[])
             else:
                 if send:
                     await ctx.send(embed=embed, ephemeral=True)
