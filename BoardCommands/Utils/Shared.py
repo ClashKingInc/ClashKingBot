@@ -65,7 +65,7 @@ async def image_board(bot: CustomClient, players: List[MyCustomPlayer], logo_url
         async with session.post("https://api.clashking.xyz/table", json=data) as response:
             link = await response.json()
         await session.close()
-    return link.get("link")
+    return f'{link.get("link")}?{int(datetime.now().timestamp())}'
 
 
 async def donation_board(bot: CustomClient, players: List[MyCustomPlayer], season: str, footer_icon: str, title_name: str, type: str,
