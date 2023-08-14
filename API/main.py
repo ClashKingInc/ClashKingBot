@@ -354,10 +354,10 @@ async def redirect_fastapi_player(tag: str):
     soup = BeautifulSoup(index)
 
 
-    '''metatag = soup.new_tag('meta')
+    metatag = soup.new_tag('meta')
     metatag.attrs["property"] = 'og:title'
     metatag.attrs['content'] = f"{name} | Townhall {townhall}"
-    soup.head.append(metatag)'''
+    soup.head.append(metatag)
 
     metatag = soup.new_tag('meta')
     metatag.attrs["property"] = 'og:description'
