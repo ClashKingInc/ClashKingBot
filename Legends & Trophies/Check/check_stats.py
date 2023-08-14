@@ -32,7 +32,7 @@ class CheckStats(commands.Cog):
                         f"- {legend_day.num_attacks.integer} attacks for +{legend_day.attack_sum} trophies\n" +
                         f"- {legend_day.num_defenses.integer} defenses for -{legend_day.defense_sum} trophies\n"
                         f"- Net Trophies: {legend_day.net_gain} trophies\n- Current Streak: {player.streak}",
-            color=disnake.Color.blue())
+            color=disnake.Color.from_rgb(r=43, g=45, b=49))
 
         ranking = await player.ranking()
         embed.add_field(name="**Stats**",
@@ -108,7 +108,7 @@ class CheckStats(commands.Cog):
             text += "\n**No Previous Days Tracked**"
         embed = disnake.Embed(title=f"Season Legends Overview",
                               description=text,
-                              color=disnake.Color.blue())
+                              color=disnake.Color.from_rgb(r=43, g=45, b=49))
 
 
         embed.set_author(name=f"{player.name} | {player.clan_name()}", icon_url=f"{player.clan_badge_link()}", url=player.share_link)
