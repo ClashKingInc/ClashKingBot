@@ -76,8 +76,8 @@ class Check(commands.Cog):
                 color=disnake.Color.green())
             return await msg.edit(content=None, embed=embed)
         else:
-            r = await self.bot.player_stats.find_one({"tag" : search_query})
-            if r.get("paused") is True:
+            r = await self.bot.player_stats.find_one({"tag" : results[0]})
+            if r is not None and r.get("paused") is True:
                 await self.bot.player_stats.update_one({"tag": search_query}, {"$set": {"paused": False}})
 
 
