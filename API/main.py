@@ -352,10 +352,7 @@ async def redirect_fastapi_player(tag: str):
     # Reading the file
     index = HTMLFile.read()
     soup = BeautifulSoup(index)
-    metatag = soup.new_tag('meta')
-    metatag.attrs["property"] = 'og:title'
-    metatag.attrs['content'] = f"{name} | {trophies} trophies"
-    soup.head.append(metatag)
+
 
     metatag = soup.new_tag('meta')
     metatag.attrs["property"] = 'og:title'
@@ -364,6 +361,13 @@ async def redirect_fastapi_player(tag: str):
 
     metatag = soup.new_tag('meta')
     metatag.attrs["property"] = 'og:description'
+    metatag.attrs['content'] = f"•{trophies} trophies, {league}\n" \
+                               f"•Donations: ▲{donations} ▼{received}\n" \
+                               f"•⭐{war_stars} War Stars\n"
+    soup.head.append(metatag)
+
+    metatag = soup.new_tag('meta')
+    metatag.attrs["name"] = 'description'
     metatag.attrs['content'] = f"•{trophies} trophies, {league}\n" \
                                f"•Donations: ▲{donations} ▼{received}\n" \
                                f"•⭐{war_stars} War Stars\n"
