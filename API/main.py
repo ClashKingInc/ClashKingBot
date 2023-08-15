@@ -694,7 +694,7 @@ async def discord_link(player_tags: List[str], request: Request, response: Respo
          tags=["Utils"],
          name="Test a coc api endpoint, very high ratelimit, only for testing without auth")
 @cache(expire=60)
-@limiter.limit("10/minute")
+@limiter.limit("1/second")
 async def test_endpoint(url: str, request: Request, response: Response):
     url = url.replace("#", '%23')
     headers = {"Accept": "application/json", "authorization": f"Bearer {os.getenv('COC_KEY')}"}
