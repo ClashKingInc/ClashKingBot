@@ -179,7 +179,7 @@ class FamCommands(commands.Cog, name="Family Commands"):
             member_tags = get_clan_member_tags(clans=clans)
             top_50 = await self.bot.player_stats.find({"tag": {"$in": member_tags}}, {"tag": 1}).sort(f"donations.{self.bot.gen_season_date()}.donated", -1).limit(30).to_list(length=50)
             players = await self.bot.get_players(tags=[p["tag"] for p in top_50], custom=True)
-            players.sort(key=lambda x: x.donos().donated, reverse=False)
+            players.sort(key=lambda x: x.donos().donated, reverse=True)
             file = await shared_embeds.image_board(bot=self.bot, players=players, logo_url=guild_icon,
                                                    title=f'{guild.name} Activity/Donation Board',
                                                    season=self.bot.gen_season_date(), type="activities")
@@ -188,7 +188,7 @@ class FamCommands(commands.Cog, name="Family Commands"):
             clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
             top_30 = await self.bot.player_stats.find({"$and" : [{"clan_tag": {"$in": clan_tags}}, {"league" : "Legend League"}]}).sort(f"trophies", -1).limit(30).to_list(length=30)
             players = await self.bot.get_players(tags=[p["tag"] for p in top_30], found_results=top_30, custom=True)
-            players.sort(key=lambda x: x.trophies, reverse=False)
+            players.sort(key=lambda x: x.trophies, reverse=True)
             file = await shared_embeds.image_board(bot=self.bot, players=players, logo_url=guild_icon,
                                                    title=f'{guild.name} Legend Board', type="legend")
             board_type = "famboardlegend"
@@ -197,7 +197,7 @@ class FamCommands(commands.Cog, name="Family Commands"):
             clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
             top_30 = await self.bot.player_stats.find({"clan_tag": {"$in": clan_tags}}).sort(f"trophies", -1).limit(30).to_list(length=30)
             players = await self.bot.get_players(tags=[p["tag"] for p in top_30], found_results=top_30, custom=True)
-            players.sort(key=lambda x: x.trophies, reverse=False)
+            players.sort(key=lambda x: x.trophies, reverse=True)
             file = await shared_embeds.image_board(bot=self.bot, players=players, logo_url=guild_icon,
                                                    title=f'{guild.name} Trophy Board', type="trophies")
             board_type = "famboardtrophies"

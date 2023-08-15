@@ -21,7 +21,7 @@ import re
 async def image_board(bot: CustomClient, players: List[MyCustomPlayer], logo_url: str, title: str, type: str, **kwargs):
 
     data = []
-
+    players = list(reversed(players))
     if type == "legend":
         columns = ['Name', "Start", "Atk", "Def", "Net", "Current"]
         badges = [player.clan_badge_link() for player in players]

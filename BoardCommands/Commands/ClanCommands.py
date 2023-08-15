@@ -183,17 +183,17 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         players: List[MyCustomPlayer] = await self.bot.get_players(tags=[member.tag for member in clan.members], custom=True)
 
         if board == "Activity":
-            players.sort(key=lambda x: x.donos().donated, reverse=False)
+            players.sort(key=lambda x: x.donos().donated, reverse=True)
             file = await shared_embeds.image_board(bot=self.bot, players=players, logo_url=clan.badge.url, title=f'{clan.name} Activity/Donation Board',
                                                             season=self.bot.gen_season_date(), type="activities")
             board_type = "clanboardact"
         elif board == "Legends":
             players = [player for player in players if player.is_legends()]
-            players.sort(key=lambda x: x.trophies, reverse=False)
+            players.sort(key=lambda x: x.trophies, reverse=True)
             file = await shared_embeds.image_board(bot=self.bot, players=players, logo_url=clan.badge.url, title=f'{clan.name} Legend Board', type="legend")
             board_type = "clanboardlegend"
         elif board == "Trophies":
-            players.sort(key=lambda x: x.trophies, reverse=False)
+            players.sort(key=lambda x: x.trophies, reverse=True)
             file = await shared_embeds.image_board(bot=self.bot, players=players, logo_url=clan.badge.url, title=f'{clan.name} Trophy Board', type="trophies")
             board_type = "clanboardtrophies"
 

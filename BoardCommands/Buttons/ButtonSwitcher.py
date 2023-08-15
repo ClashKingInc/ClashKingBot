@@ -206,20 +206,20 @@ async def clan_parser(bot: CustomClient, ctx: disnake.MessageInteraction, custom
 
     elif "clanboardact_" in custom_id:
         players = await bot.get_players(tags=[member.tag for member in clan.members], custom=True)
-        players.sort(key=lambda x: x.donos().donated, reverse=False)
+        players.sort(key=lambda x: x.donos().donated, reverse=True)
 
         embed = await shared_embeds.image_board(bot=bot, players=players, logo_url=clan.badge.url, title=f'{clan.name} Activity/Donation Board', type="activities", season=bot.gen_season_date())
 
     elif "clanboardlegend_" in custom_id:
         players = await bot.get_players(tags=[member.tag for member in clan.members], custom=True)
         players = [player for player in players if player.is_legends()]
-        players.sort(key=lambda x: x.trophies, reverse=False)
+        players.sort(key=lambda x: x.trophies, reverse=True)
         embed= await shared_embeds.image_board(bot=bot, players=players, logo_url=clan.badge.url, title=f'{clan.name} Legend Board', type="legend")
 
 
     elif "clanboardtrophies_" in custom_id:
         players = await bot.get_players(tags=[member.tag for member in clan.members], custom=True)
-        players.sort(key=lambda x: x.trophies, reverse=False)
+        players.sort(key=lambda x: x.trophies, reverse=True)
         embed = await shared_embeds.image_board(bot=bot, players=players, logo_url=clan.badge.url, title=f'{clan.name} Trophy Board', type="trophies")
 
     return embed
@@ -319,7 +319,7 @@ async def family_parser(bot: CustomClient, ctx: disnake.MessageInteraction, cust
         top_50 = await bot.player_stats.find({"tag": {"$in": member_tags}}, {"tag": 1}).sort(
             f"donations.{bot.gen_season_date()}.donated", -1).limit(30).to_list(length=50)
         players = await bot.get_players(tags=[p["tag"] for p in top_50], custom=True)
-        players.sort(key=lambda x: x.donos().donated, reverse=False)
+        players.sort(key=lambda x: x.donos().donated, reverse=True)
 
         embed = await shared_embeds.image_board(bot=bot, players=players, logo_url=guild_icon, title=f'{guild.name} Activity/Donation Board', type="activities", season=bot.gen_season_date())
 
@@ -329,7 +329,7 @@ async def family_parser(bot: CustomClient, ctx: disnake.MessageInteraction, cust
         top_30 = await bot.player_stats.find(
             {"$and": [{"clan_tag": {"$in": clan_tags}}, {"league": "Legend League"}]}).sort(f"trophies", -1).limit(30).to_list(length=30)
         players = await bot.get_players(tags=[p["tag"] for p in top_30], found_results=top_30, custom=True)
-        players.sort(key=lambda x: x.trophies, reverse=False)
+        players.sort(key=lambda x: x.trophies, reverse=True)
         embed = await shared_embeds.image_board(bot=bot, players=players, logo_url=guild_icon, title=f'{guild.name} Legend Board', type="legend")
 
 
@@ -337,7 +337,7 @@ async def family_parser(bot: CustomClient, ctx: disnake.MessageInteraction, cust
         clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
         top_30 = await bot.player_stats.find({"clan_tag": {"$in": clan_tags}}).sort(f"trophies", -1).limit(30).to_list(length=30)
         players = await bot.get_players(tags=[p["tag"] for p in top_30], found_results=top_30, custom=True)
-        players.sort(key=lambda x: x.trophies, reverse=False)
+        players.sort(key=lambda x: x.trophies, reverse=True)
         embed = await shared_embeds.image_board(bot=bot, players=players, logo_url=guild_icon,
                                                title=f'{guild.name} Trophy Board', type="trophies")
 
