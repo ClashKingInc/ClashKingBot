@@ -192,7 +192,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                     legend_players.sort(key=lambda x: x.trophies, reverse=True)
 
                 # chunk into groups of 30
-                legend_players_chunked = [legend_players[i * 30:(i + 1) * 30] for i in range((len(legend_players) + 30 - 1) // 30)]
+                legend_players_chunked = [legend_players[i * 20:(i + 1) * 20] for i in range((len(legend_players) + 20 - 1) // 20)]
                 picture = await shared_embeds.image_board(bot=self.bot, players=legend_players_chunked[current_page], logo_url=guild_icon,
                                                           title=f'{ctx.guild.name} Legend Board', type="legend", start_number=20 * current_page)
                 await res.edit_original_message(content=picture,
