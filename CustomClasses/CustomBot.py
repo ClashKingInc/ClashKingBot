@@ -400,7 +400,6 @@ class CustomClient(commands.AutoShardedBot):
                     "autocomplete": {
                         "query": query,
                         "path": "name",
-                        "fuzzy": {}
                     },
                 }
                 },
