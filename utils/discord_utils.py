@@ -1,3 +1,5 @@
+import os
+
 import disnake
 from Assets.emojiDictionary import emojiDictionary, legend_emojis
 from typing import Callable, Union
@@ -8,6 +10,7 @@ from Exceptions.CustomExceptions import *
 from datetime import datetime
 from operator import attrgetter
 import aiohttp
+from dotenv import load_dotenv
 
 def partial_emoji_gen(bot, emoji_string, animated=False):
     emoji = ''.join(filter(str.isdigit, emoji_string))
@@ -44,7 +47,7 @@ async def permanent_image(bot, url: str):
 async def upload_to_cdn(picture: disnake.Attachment):
     headers = {
         "content-type": "application/octet-stream",
-        "AccessKey": "6444241f-0a55-4058-996de4f78323-75eb-498b"
+        "AccessKey": os.getenv("BUNNY_ACCESS")
     }
     payload = await picture.read()
     async with aiohttp.ClientSession() as session:
@@ -55,16 +58,16 @@ async def upload_to_cdn(picture: disnake.Attachment):
 async def general_upload_to_cdn(bytes_, id):
     headers = {
         "content-type": "application/octet-stream",
-        "AccessKey": "6444241f-0a55-4058-996de4f78323-75eb-498b"
+        "AccessKey": os.getenv("BUNNY_ACCESS")
     }
     payload = bytes_
     async with aiohttp.ClientSession() as session:
         async with session.put(url=f"https://ny.storage.bunnycdn.com/clashking/{id}.png", headers=headers, data=payload) as response:
             await session.close()
-    return f"https://cdn.clashking.xyz/{id}.png"
+    return f"https://cdn.clashking.xyz/{id}.png?{int(datetime.now().timestamp())}"
 
 async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteraction, disnake.MessageInteraction], msg:disnake.Message = None,
-                              function: Callable = None, no_defer = False, ephemeral= False, any_check=False):
+                              function: Callable = None, no_defer = False, ephemeral= False, any_run=False):
     if msg is None:
         msg = await ctx.original_message()
 
@@ -84,7 +87,7 @@ async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteract
         except Exception:
             raise ExpiredComponents
 
-        if any_check is False and res.author.id != ctx.author.id:
+        if any_run is False and res.author.id != ctx.author.id:
             await res.send(content="You must run the command to interact with components.", ephemeral=True)
             continue
 

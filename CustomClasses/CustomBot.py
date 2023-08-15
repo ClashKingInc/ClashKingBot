@@ -697,11 +697,8 @@ class CustomClient(commands.AutoShardedBot):
 
         players = []
         tag_set = set(tags)
-        pipe = self.redis.pipeline()
         if use_cache:
-            for tag in tag_set:
-                await pipe.get(tag)
-            cache_data = await pipe.execute()
+            cache_data = await self.redis.mget(keys=list(tag_set))
         else:
             cache_data = []
         for data in cache_data:

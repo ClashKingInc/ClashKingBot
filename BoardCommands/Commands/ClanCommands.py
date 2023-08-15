@@ -204,7 +204,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         buttons.append_item(disnake.ui.Button(
             label="", emoji=self.bot.emoji.refresh.partial_emoji,
             style=disnake.ButtonStyle.grey, custom_id=f"{board_type}_{clan.tag}"))
-        await ctx.channel.send(file=file, components=[buttons])
+        await ctx.channel.send(content=file, components=[buttons])
 
 
 

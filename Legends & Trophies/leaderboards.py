@@ -3,9 +3,12 @@ import disnake
 import coc
 from utils.components import create_components
 from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomServer import CustomServer
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from utils.components import leaderboard_components
+from BoardCommands.Utils import Shared as shared_embeds
+from Exceptions.CustomExceptions import MessageException
+from utils.discord_utils import interaction_handler
+
 import math
 import emoji
 
@@ -130,91 +133,79 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
 
     @leaderboard.sub_command(name="legends", description="Server's legend players leaderboard")
     async def legend_leaderboard(self, ctx: disnake.ApplicationCommandInteraction):
-        server = CustomServer(ctx.guild, self.bot)
-
         await ctx.response.defer()
-        clan_list = await server.clan_list
 
-        if clan_list == []:
-            embed = disnake.Embed(description="No clans linked to this server. Get started with `/addclan`.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
+        legend_players = await self.bot.player_stats.find({"$and": [{"clan_tag": {"$in": clan_tags}}, {"league": "Legend League"}]}).sort(f"trophies", -1).to_list(length=None)
+        if not legend_players:
+            raise MessageException("No Players in Family are in Legend League.")
+        legend_players = await self.bot.get_players(tags=[p["tag"] for p in legend_players], found_results=legend_players, custom=True)
+        legend_players.sort(key=lambda x : x.trophies, reverse=False)
+        guild_icon = ctx.guild.icon.url if ctx.guild.icon else self.bot.user.avatar.url
 
-        member_tags = []
-        async for clan in self.bot.coc_client.get_clans(clan_list):
-            for member in clan.members:
-                if str(member.league) == "Legend League":
-                    member_tags.append(member.tag)
+        #chunk into groups of 30
+        legend_players_chunked = [legend_players[i * 30:(i + 1) * 30] for i in range((len(legend_players) + 30 - 1) // 30)]
 
-        if member_tags == []:
-            embed = disnake.Embed(description="No players in family in legends", color=disnake.Color.red())
-            return await ctx.send(embed=embed)
 
-        ranking = []
-        legend_players = await self.bot.get_players(member_tags)
-        for player in legend_players:
-            try:
-                player: MyCustomPlayer
-                legend_day = player.legend_day()
-                ranking.append(
-                    [player.name, player.trophy_start(), legend_day.attack_sum, legend_day.num_attacks.superscript,
-                     legend_day.defense_sum, legend_day.num_defenses.superscript, player.trophies])
-            except:
-                pass
-        ranking = sorted(ranking, key=lambda l: l[6], reverse=True)
-
-        ALPHABET = 0;
-        STARTED = 1;
-        OFFENSE = 2;
-        DEFENSE = 4;
-        TROPHIES = 6
         sort_types = {0: "Alphabetically", 1: "by Start Trophies", 2: "by Offense", 4: "by Defense",
                       6: "by Current Trophies"}
         sort_type = 6
-        embeds = await self.create_player_embed(ctx, ranking)
-        embed = embeds[0]
-        embed.set_footer(text=f"Sorted {sort_types[sort_type]}")
         current_page = 0
-        await ctx.edit_original_message(embed=embed,
-                                        components=leaderboard_components(self.bot, current_page, embeds, ctx))
-        msg = await ctx.original_message()
 
-        def check(res: disnake.MessageInteraction):
-            return res.message.id == msg.id
+        embed = disnake.Embed(color=disnake.Color.from_rgb(r=43, g=45, b=49))
+        picture = await shared_embeds.image_board(bot=self.bot, players=legend_players_chunked[current_page], logo_url=guild_icon, title=f'{ctx.guild.name} Legend Board', type="legend")
+        embed.set_image(url=picture)
+        embed.set_footer(text=f"Sorted {sort_types[sort_type]}")
+
+        await ctx.edit_original_message(embed=embed, components=leaderboard_components(self.bot, current_page, len(legend_players_chunked)))
 
         while True:
-            try:
-                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
-                                                                          timeout=600)
-            except:
-                break
+            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, any_run=True)
 
+            #check if is the dropdown or buttons, buttons is type 2
             if res.data.component_type.value == 2:
                 if res.data.custom_id == "Previous":
                     current_page -= 1
-                    embed = embeds[current_page]
+                    picture = await shared_embeds.image_board(bot=self.bot, players=legend_players_chunked[current_page], logo_url=guild_icon,
+                                                              title=f'{ctx.guild.name} Legend Board', type="legend")
+                    embed.set_image(url=picture)
                     embed.set_footer(text=f"Sorted by {sort_types[sort_type]}")
-                    await res.response.edit_message(embed=embed,
-                                                    components=leaderboard_components(self.bot, current_page, embeds,
-                                                                                      ctx))
+                    await res.edit_original_message(embed=embed,
+                                                    components=leaderboard_components(self.bot, current_page, len(legend_players_chunked)))
 
                 elif res.data.custom_id == "Next":
                     current_page += 1
-                    embed = embeds[current_page]
+                    picture = await shared_embeds.image_board(bot=self.bot, players=legend_players_chunked[current_page], logo_url=guild_icon,
+                                                              title=f'{ctx.guild.name} Legend Board', type="legend")
+                    embed.set_image(url=picture)
                     embed.set_footer(text=f"Sorted by {sort_types[sort_type]}")
-                    await res.response.edit_message(embed=embed,
-                                                    components=leaderboard_components(self.bot, current_page, embeds,
-                                                                                      ctx))
+                    await res.edit_original_message(embed=embed,
+                                                    components=leaderboard_components(self.bot, current_page, len(legend_players_chunked)))
+
             else:
                 current_page = 0
                 sort_type = int(res.values[0])
-                ranking = sorted(ranking, key=lambda l: l[int(res.values[0])],
-                                 reverse=int(res.values[0]) != 0 and int(res.values[0]) != 4)
-                embeds = await self.create_player_embed(ctx, ranking)
-                embed = embeds[current_page]
+                sort_types = {0: "Alphabetically", 1: "by Start Trophies", 2: "by Offense", 4: "by Defense",
+                              6: "by Current Trophies"}
+                if sort_type == 0:
+                    legend_players.sort(key=lambda x: x.name.lower(), reverse=True)
+                elif sort_type == 1:
+                    legend_players.sort(key=lambda x: x.trophy_start(), reverse=False)
+                elif sort_type == 2:
+                    legend_players.sort(key=lambda x: x.legend_day().attack_sum, reverse=False)
+                elif sort_type == 4:
+                    legend_players.sort(key=lambda x: x.legend_day().defense_sum, reverse=False)
+                elif sort_type == 6:
+                    legend_players.sort(key=lambda x: x.trophies, reverse=False)
+
+                # chunk into groups of 30
+                legend_players_chunked = [legend_players[i * 30:(i + 1) * 30] for i in range((len(legend_players) + 30 - 1) // 30)]
+                picture = await shared_embeds.image_board(bot=self.bot, players=legend_players_chunked[current_page], logo_url=guild_icon,
+                                                          title=f'{ctx.guild.name} Legend Board', type="legend")
+                embed.set_image(url=picture)
                 embed.set_footer(text=f"Sorted by {sort_types[sort_type]}")
-                await res.response.edit_message(embed=embed,
-                                                components=leaderboard_components(self.bot, current_page, embeds, ctx))
+                await res.edit_original_message(embed=embed,
+                                                components=leaderboard_components(self.bot, current_page, len(legend_players_chunked)))
 
     async def create_player_embed(self, ctx, ranking):
         text = ""

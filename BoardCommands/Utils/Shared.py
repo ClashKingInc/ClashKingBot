@@ -65,7 +65,7 @@ async def image_board(bot: CustomClient, players: List[MyCustomPlayer], logo_url
         async with session.post("https://api.clashking.xyz/table", json=data) as response:
             link = await response.json()
         await session.close()
-    return f'{link.get("link")}?{int(datetime.now().timestamp())}'
+    return f'{link.get("link")}?t={int(datetime.now().timestamp())}'
 
 
 async def donation_board(bot: CustomClient, players: List[MyCustomPlayer], season: str, footer_icon: str, title_name: str, type: str,
@@ -510,10 +510,10 @@ async def player_sort(bot: CustomClient, player_tags: List[str], sort_by: str, f
 async def th_composition(bot: CustomClient, player_tags: List[str], title: str, thumbnail: str, embed_color: disnake.Color = disnake.Color.green()):
     pipeline = [
         {"$match": {"tag": {"$in": player_tags}}},
-        {"$group": {"_id": "$data.townHallLevel", "count" : {"$sum" : 1}, "list_tags" : {"$push" : "$tag"}}},
+        {"$group": {"_id": "$townhall", "count" : {"$sum" : 1}, "list_tags" : {"$push" : "$tag"}}},
         {"$sort" : {"_id" : -1}}
     ]
-    results = await bot.player_cache.aggregate(pipeline=pipeline).to_list(length=None)
+    results = await bot.player_stats.aggregate(pipeline=pipeline).to_list(length=None)
 
     th_count_dict = defaultdict(int)
     th_sum = 0
