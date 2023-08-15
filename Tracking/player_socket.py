@@ -145,6 +145,8 @@ async def main(PLAYER_CLIENTS):
 
     db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
     clan_db = db_client.usafam.clans
+    player_search = db_client.usafam.player_search
+
 
     cache = redis.Redis(host='localhost', port=6379, db=0, password=os.getenv("REDIS_PW"), decode_responses=False)
 
@@ -236,6 +238,25 @@ async def main(PLAYER_CLIENTS):
         else:
             db_tags = await player_stats.distinct("tag", filter={"paused": {"$ne": True}})
             all_tags_to_track = list(set(db_tags + CLAN_MEMBERS))
+            autocomplete_tags = await player_search.distinct("tag")
+            autocomplete_tags = set(autocomplete_tags)
+            add_to_autocomplete = [tag for tag in all_tags_to_track if tag not in autocomplete_tags]
+            auto_changes = []
+            for tag in add_to_autocomplete:
+                try:
+                    r = await cache.get(tag)
+                    if r is None:
+                        continue
+                    r = ujson.loads(r)
+                    clan_tag = r.get("clan", {}).get("tag", "Unknown")
+                    league = r.get("league", {}).get("name", "Unranked")
+                    auto_changes.append(InsertOne(
+                        {"name": r.get("name"), "clan": clan_tag, "league": league, "tag": r.get("tag"),
+                         "th": r.get("townHallLevel")}))
+                except:
+                    continue
+            await player_search.bulk_write(auto_changes)
+
 
 
         if BETA:
@@ -251,6 +272,7 @@ async def main(PLAYER_CLIENTS):
         bulk_db_changes = []
         bulk_insert = []
         bulk_clan_changes = []
+        auto_complete = []
 
         async def send_ws(ws, json):
             try:
@@ -288,6 +310,7 @@ async def main(PLAYER_CLIENTS):
                             t = url.split("%23")[-1]
                             await player_stats.delete_one({"tag": f"#{t}"})
                             await cache.getdel(f"#{t}")
+                            await player_search.delete_one({"tag": f"#{t}"})
                             return None
                         new_response = await new_response.read()
 
@@ -309,6 +332,7 @@ async def main(PLAYER_CLIENTS):
                             prev_league = previous_response.get("league", {}).get("name", "Unranked")
                             if league != prev_league:
                                 bulk_db_changes.append(UpdateOne({"tag": tag}, {"$set": {"league": league}}))
+                                auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"league": league}}))
 
                             is_clan_member = clan_tag in set_clan_tags
 
@@ -328,7 +352,6 @@ async def main(PLAYER_CLIENTS):
 
                             special_types = {"War League Legend", "warStars", "Aggressive Capitalism", "Nice and Tidy", "Well Seasoned",
                                          "clanCapitalContributions", "Games Champion"}
-
                             ws_types = {"clanCapitalContributions", "name", "troops", "heroes", "spells",
                                         "townHallLevel",
                                         "league", "trophies", "Most Valuable Clanmate"}
@@ -438,14 +461,16 @@ async def main(PLAYER_CLIENTS):
                                                           {"$set": {f"{season}.{tag}.attack_wins": value}},
                                                           upsert=True))
                                     elif type_ == "name":
-                                        bulk_db_changes.append(
-                                            UpdateOne({"tag": tag}, {"$set": {"name": value}}, upsert=True))
+                                        bulk_db_changes.append(UpdateOne({"tag": tag}, {"$set": {"name": value}}, upsert=True))
+                                        auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"name": value}}))
                                     elif type_ == "clan":
-                                        bulk_db_changes.append(
-                                            UpdateOne({"tag": tag}, {"$set": {"clan_tag": clan_tag}}, upsert=True))
+                                        bulk_db_changes.append(UpdateOne({"tag": tag}, {"$set": {"clan_tag": clan_tag}}, upsert=True))
+                                        auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"clan": clan_tag}}))
+
                                     elif type_ == "townHallLevel":
-                                        bulk_db_changes.append(
-                                            UpdateOne({"tag": tag}, {"$set": {"townhall": value}}, upsert=True))
+                                        bulk_db_changes.append(UpdateOne({"tag": tag}, {"$set": {"townhall": value}}, upsert=True))
+                                        auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"th": value}}))
+
                                     elif parent in {"troops", "heroes", "spells"}:
                                         type_ = parent
                                         if only_once[parent] == 1:
@@ -543,6 +568,11 @@ async def main(PLAYER_CLIENTS):
             results = await player_stats.bulk_write(bulk_db_changes)
             print(results.bulk_api_result)
             print(f"STAT CHANGES INSERT: {time.time() - time_inside}")
+
+        if auto_complete != []:
+            results = await player_search.bulk_write(auto_complete)
+            print(results.bulk_api_result)
+            print(f"AUTOCOMPLETE CHANGES: {time.time() - time_inside}")
 
         if bulk_insert != []:
             results = await client.new_looper.player_history.bulk_write(bulk_insert)

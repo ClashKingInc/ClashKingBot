@@ -11,6 +11,7 @@ from CustomClasses.CustomPlayer import MyCustomPlayer
 from datetime import datetime, timedelta
 from Exceptions.CustomExceptions import *
 from collections import defaultdict
+from utils.discord_utils import general_upload_to_cdn
 
 class Roster():
     def __init__(self, bot: CustomClient, roster_result=None):
@@ -89,9 +90,12 @@ class Roster():
         else:
             time = f"**Starts:** <t:{time}:f>\n\n"
         if not members:
-            embed = disnake.Embed(description=f"{pre_description}{time}No roster members.")
+            embed = disnake.Embed(description=f"{pre_description}{time}No roster members.", color=disnake.Color.from_rgb(r=43, g=45, b=49))
             embed.set_author(icon_url=self.roster_result.get("clan_badge"),
-                             name=f"{self.roster_result.get('clan_name')} | {self.roster_result.get('alias')} Roster")
+                             name=f"{self.roster_result.get('clan_name')} | {self.roster_result.get('alias')}")
+            embed.timestamp = datetime.now()
+            if self.image is not None and move_text == "":
+                embed.set_image(url=self.image)
             return embed
 
         roster_text = []
@@ -162,11 +166,11 @@ class Roster():
                     s_text += f"{co}{text}"
                 roster_text = f"{roster_text}\n**{group_name}**\n{s_text}"
 
-        embed = disnake.Embed(title=f"__{self.roster_result.get('alias')} Roster__", description=f"{pre_description}{time}{roster_text}")
+        embed = disnake.Embed(description=f"{pre_description}{time}{roster_text}", color=disnake.Color.from_rgb(r=43, g=45, b=49))
         footer_text = "".join(f"Th{index}: {th} " for index, th in sorted(thcount.items(), reverse=True) if th != 0)
         embed.set_footer(text=f"{footer_text}\nTh{self.th_min}-Th{self.th_max} | {self.roster_size} Account Limit\n{move_text}")
         embed.set_author(icon_url=self.roster_result.get("clan_badge"),
-                         name=f"{self.roster_result.get('clan_name')} | {self.roster_result.get('alias')} Roster")
+                         name=f"{self.roster_result.get('clan_name')} | {self.roster_result.get('alias')}")
         embed.title = ""
         embed.timestamp = datetime.now()
         if self.image is not None and move_text == "":
@@ -523,10 +527,7 @@ class Roster():
         try:
             req = Request(url=url, headers={'User-Agent': 'Mozilla/5.0'})
             f = io.BytesIO(urlopen(req).read())
-            file = disnake.File(fp=f, filename="pic.png")
-            pic_channel = await self.bot.fetch_channel(884951195406458900)
-            msg = await pic_channel.send(file=file)
-            pic = msg.attachments[0].url
+            pic = await general_upload_to_cdn(bytes_=f, id=self.roster_result.get("_id"))
         except:
             pic = "https://cdn.discordapp.com/attachments/1028905437300531271/1028905577662922772/unknown.png"
         await self.bot.rosters.update_one(

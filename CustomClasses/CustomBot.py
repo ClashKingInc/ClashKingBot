@@ -73,6 +73,8 @@ class CustomClient(commands.AutoShardedBot):
         self.raid_weekend_db: collection_class = self.looper_db.looper.raid_weekends
         self.clan_join_leave: collection_class = self.new_looper.clan_join_leave
         self.base_stats: collection_class = self.looper_db.looper.base_stats
+        self.autoboards: collection_class = self.looper_db.clashking.autoboards
+
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
         self.clan_db: collection_class = self.db_client.usafam.clans
@@ -90,7 +92,6 @@ class CustomClient(commands.AutoShardedBot):
         self.achievementroles: collection_class = self.db_client.usafam.achievementroles
         self.statusroles: collection_class = self.db_client.usafam.statusroles
         self.welcome: collection_class = self.db_client.usafam.welcome
-        self.autoboards: collection_class = self.db_client.usafam.autoboards
         self.erikuh: collection_class = self.db_client.usafam.erikuh
         self.button_db: collection_class = self.db_client.usafam.button_db
         self.legend_profile: collection_class = self.db_client.usafam.legend_profile
@@ -115,7 +116,7 @@ class CustomClient(commands.AutoShardedBot):
         self.custom_boards: collection_class = self.db_client.usafam.custom_boards
         self.trials: collection_class = self.db_client.usafam.trials
         self.autoboard_db: collection_class = self.db_client.usafam.autoboard_db
-
+        self.player_search: collection_class = self.db_client.usafam.player_search
 
         self.coc_client: coc.Client = login.coc_client
 
@@ -387,88 +388,65 @@ class CustomClient(commands.AutoShardedBot):
 
     async def search_name_with_tag(self, query, poster=False):
         names = []
-        if query != "" and poster is False:
-            names.append(query)
-        # if search is a player tag, pull stats of the player tag
-
-        if len(query) >= 5 and utils.is_valid_tag(query) is True:
-            t = utils.correct_tag(tag=query)
-            query = query.lower()
-            query = re.escape(query)
-            results = self.player_stats.find({"$and": [
-                {"league": {"$eq": "Legend League"}},
-                {"tag": {"$regex": f"^(?i).*{t}.*$"}}
-            ]}).limit(24)
-            for document in await results.to_list(length=24):
-                name = document.get("name")
-                if name is None:
-                    continue
-                league = document.get("league")
-                if league == "Unknown":
-                    league = "Unranked"
-                league = league.replace(" League", "")
-                names.append(f'{create_superscript(document.get("townhall"))}{name} ({league})' + " | " + document.get("tag"))
-            return names
-
-        # ignore capitalization
-        # results 3 or larger check for partial match
-        # results 2 or shorter must be exact
-        # await ongoing_stats.create_index([("name", "text")])
-
-        query = query.lower()
-        query = re.escape(query)
-        results = self.player_stats.find({
-            "$and": [
-                {"league": {"$eq": "Legend League"}},
+        if query == "":
+            pipeline = [
+                {"$match" : {"league" : "Legend League"}},
+                {"$limit": 25}]
+        else:
+            pipeline= [
                 {
-                    "name": {"$regex": f"^(?i).*{query}.*$"}
+                "$search": {
+                    "index": "player_search",
+                    "text": {
+                        "query": query,
+                        "path": "name",
+                        "fuzzy": {}
+                    },
                 }
-            ]}
-        ).limit(24)
-        for document in await results.to_list(length=24):
+                },
+                {"$match" : {"league" : "Legend League"}},
+                {"$limit": 25}
+            ]
+        results = await self.player_search.aggregate(pipeline=pipeline).to_list(length=None)
+        for document in results:
             league = document.get("league")
             if league == "Unknown":
                 league = "Unranked"
             league = league.replace(" League", "")
-            names.append(
-                f'{create_superscript(document.get("townhall"))}{document.get("name")} ({league})' + " | " + document.get("tag"))
+            names.append(f'{create_superscript(document.get("th"))}{document.get("name")} ({league})' + " | " + document.get("tag"))
         return names
 
     async def family_names(self, query, guild):
-        names = []
-        # if search is a player tag, pull stats of the player tag
-        if query != "":
-            names.append(query)
         clan_tags = await self.clan_db.distinct("tag", filter={"server": guild.id})
-        if utils.is_valid_tag(query) is True:
-            t = utils.correct_tag(tag=query)
-            query = query.lower()
-            query = re.escape(query)
-            results = self.player_stats.find({"$and": [
-                {"clan_tag": {"$in": clan_tags}},
-                {"tag": {"$regex": f"^(?i).*{t}.*$"}}
-            ]}).limit(24)
-            for document in await results.to_list(length=25):
-                name = document.get("name")
-                if name is None:
-                    continue
-                names.append(name + " | " + document.get("tag"))
-            return names[:25]
-
-        # ignore capitalization
-        # results 3 or larger check for partial match
-        # results 2 or shorter must be exact
-        # await ongoing_stats.create_index([("name", "text")])
-
-        query = query.lower()
-        query = re.escape(query)
-        results = self.player_stats.find({"$and": [
-            {"clan_tag": {"$in": clan_tags}},
-            {"name": {"$regex": f"^(?i).*{query}.*$"}}
-        ]}).limit(24)
-        for document in await results.to_list(length=25):
-            names.append(document.get("name") + " | " + document.get("tag"))
-        return names[:25]
+        names = []
+        if query == "":
+            pipeline = [
+                {"$match": {"clan": {"$in" : clan_tags}}},
+                {"$limit": 25}
+            ]
+        else:
+            pipeline = [
+                {
+                    "$search": {
+                        "index": "player_search",
+                        "text": {
+                            "query": query,
+                            "path": "name",
+                            "fuzzy": {}
+                        },
+                    }
+                },
+                {"$match": {"clan": {"$in" : clan_tags}}},
+                {"$limit": 25}
+            ]
+        results = await self.player_search.aggregate(pipeline=pipeline).to_list(length=None)
+        for document in results:
+            league = document.get("league")
+            if league == "Unknown":
+                league = "Unranked"
+            league = league.replace(" League", "")
+            names.append(f'{create_superscript(document.get("th"))}{document.get("name")} ({league})' + " | " + document.get("tag"))
+        return names
 
     async def get_reminder_times(self, clan_tag):
         all_reminders = self.reminders.find({"$and": [

@@ -396,7 +396,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         await ctx.response.defer()
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
-        print(_roster.roster_result)
         embed = await _roster.embed()
         ad_buttons = [
             disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey,
@@ -538,7 +537,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
         await ctx.send(embed=embed)
 
-    @roster.sub_command(name="edit-layout", description="Edit roster name, description")
+    @roster.sub_command(name="layout", description="Edit roster name, description")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_edit_layout(self, ctx: disnake.ApplicationCommandInteraction, roster: str, clear = commands.Param(default=None, choices=["Description", "Image"])):
         if clear is not None:
@@ -632,7 +631,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             embed.set_image(url=pic)
 
         embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
-        await ctx.send(embed=embed)
+        await modal_inter.edit_original_message(embed=embed)
 
     @roster.sub_command(name="time", description="Set a time for roster/event")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
