@@ -164,14 +164,14 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                 if res.data.custom_id == "Previous":
                     current_page -= 1
                     picture = await shared_embeds.image_board(bot=self.bot, players=legend_players_chunked[current_page], logo_url=guild_icon,
-                                                              title=f'{ctx.guild.name} Legend Board', type="legend")
+                                                              title=f'{ctx.guild.name} Legend Board', type="legend", start_number=20 * current_page)
                     await res.edit_original_message(content=picture,
                                                     components=leaderboard_components(self.bot, current_page, len(legend_players_chunked)))
 
                 elif res.data.custom_id == "Next":
                     current_page += 1
                     picture = await shared_embeds.image_board(bot=self.bot, players=legend_players_chunked[current_page], logo_url=guild_icon,
-                                                              title=f'{ctx.guild.name} Legend Board', type="legend")
+                                                              title=f'{ctx.guild.name} Legend Board', type="legend", start_number=20 * current_page)
                     await res.edit_original_message(content=picture,
                                                     components=leaderboard_components(self.bot, current_page, len(legend_players_chunked)))
 
@@ -194,7 +194,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                 # chunk into groups of 30
                 legend_players_chunked = [legend_players[i * 30:(i + 1) * 30] for i in range((len(legend_players) + 30 - 1) // 30)]
                 picture = await shared_embeds.image_board(bot=self.bot, players=legend_players_chunked[current_page], logo_url=guild_icon,
-                                                          title=f'{ctx.guild.name} Legend Board', type="legend")
+                                                          title=f'{ctx.guild.name} Legend Board', type="legend", start_number=20 * current_page)
                 await res.edit_original_message(content=picture,
                                                 components=leaderboard_components(self.bot, current_page, len(legend_players_chunked)))
 

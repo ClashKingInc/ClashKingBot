@@ -20,12 +20,13 @@ import re
 
 async def image_board(bot: CustomClient, players: List[MyCustomPlayer], logo_url: str, title: str, type: str, **kwargs):
 
+    start_number = kwargs.get("start_number", 0)
     data = []
     players = list(reversed(players))
     if type == "legend":
         columns = ['Name', "Start", "Atk", "Def", "Net", "Current"]
         badges = [player.clan_badge_link() for player in players]
-        count = len(players) + 1
+        count = len(players) + 1 + start_number
         for player in players:
             count -= 1
             c = f"{count}."
