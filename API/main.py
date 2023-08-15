@@ -76,18 +76,17 @@ def fix_tag(tag:str):
     tag = "#" + re.sub(r"[^A-Z0-9]+", "", tag.upper()).replace("O", "0")
     return tag
 
-@scheduler.scheduled_job(trigger='interval', hours=12)
+'''@scheduler.scheduled_job(trigger='interval', hours=12)
 async def apk_fetch():
-    headers = {"Accept": "application/json", "authorization": f"Bearer {os.getenv('COC_KEY')}"}
     async with aiohttp.ClientSession() as session:
-        async with session.get(f"https://d.apkpure.com/b/APK/com.supercell.clashofclans?version=latest", headers=headers) as response:
+        async with session.get(f"https://d.apkpure.com/b/APK/com.supercell.clashofclans?version=latest") as response:
             async with aiofiles.open("apks/clash.zip", "wb") as fd:
                 while True:
                     chunk = await response.content.read(1024)
                     if not chunk:
                         break
                     await fd.write(chunk)
-            return await response.release()
+            return await response.release()'''
 
 
 @app.on_event("startup")
