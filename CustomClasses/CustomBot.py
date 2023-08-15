@@ -425,16 +425,16 @@ class CustomClient(commands.AutoShardedBot):
                 {"$limit": 25}
             ]
         else:
+            print("here")
             pipeline = [
                 {
-                    "$search": {
-                        "index": "player_search",
-                        "autocomplete": {
-                            "query": query,
-                            "path": "name",
-                            "fuzzy": {}
-                        },
-                    }
+                "$search": {
+                    "index": "player_search",
+                    "autocomplete": {
+                        "query": query,
+                        "path": "name",
+                    },
+                }
                 },
                 {"$match": {"clan": {"$in" : clan_tags}}},
                 {"$limit": 25}
