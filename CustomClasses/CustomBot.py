@@ -400,7 +400,7 @@ class CustomClient(commands.AutoShardedBot):
                     "text": {
                         "query": query,
                         "path": "name",
-                        "fuzzy": {}
+                        "fuzzy": {"maxEdits" : 3}
                     },
                 }
                 },
@@ -432,7 +432,7 @@ class CustomClient(commands.AutoShardedBot):
                         "text": {
                             "query": query,
                             "path": "name",
-                            "fuzzy": {}
+                            "fuzzy": {"maxEdits": 3}
                         },
                     }
                 },
