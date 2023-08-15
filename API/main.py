@@ -700,7 +700,7 @@ async def test_endpoint(url: str, request: Request, response: Response):
     headers = {"Accept": "application/json", "authorization": f"Bearer {os.getenv('COC_KEY')}"}
     async with aiohttp.ClientSession() as session:
         async with session.get(
-                f"https://cocproxy.royaleapi.dev/v1/{url}", headers=headers) as response:
+                f"https://cocproxy.royaleapi.dev/v1/{url}?limit=200", headers=headers) as response:
             item = await response.json()
     return item
 
