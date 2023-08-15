@@ -478,10 +478,8 @@ async def redirect_fastapi_base(id: str):
 @limiter.limit("30/second")
 async def search_clans(name: str, request: Request, response: Response):
     os.makedirs(os.path.dirname("apks/clash.zip"), exist_ok=True)
-    headers = {"Accept": "application/json", "authorization": f"Bearer {os.getenv('COC_KEY')}"}
     async with aiohttp.ClientSession() as session:
-        async with session.get(f"https://d.apkpure.com/b/APK/com.supercell.clashofclans?version=latest",
-                               headers=headers) as response:
+        async with session.get(f"https://d.apkpure.com/b/APK/com.supercell.clashofclans?version=latest") as response:
             async with aiofiles.open("apks/clash.zip", "wb") as fd:
                 while True:
                     chunk = await response.content.read(1024)
