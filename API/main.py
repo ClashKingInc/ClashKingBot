@@ -696,6 +696,7 @@ async def discord_link(player_tags: List[str], request: Request, response: Respo
 @cache(expire=60)
 @limiter.limit("10/minute")
 async def discord_link(url: str, request: Request, response: Response):
+    print(url)
     headers = {"Accept": "application/json", "authorization": f"Bearer {os.getenv('COC_KEY')}"}
     async with aiohttp.ClientSession() as session:
         async with session.get(
