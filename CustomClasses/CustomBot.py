@@ -397,7 +397,7 @@ class CustomClient(commands.AutoShardedBot):
                 {
                 "$search": {
                     "index": "player_search",
-                    "text": {
+                    "autocomplete": {
                         "query": query,
                         "path": "name",
                         "fuzzy": {}
@@ -429,7 +429,7 @@ class CustomClient(commands.AutoShardedBot):
                 {
                     "$search": {
                         "index": "player_search",
-                        "text": {
+                        "autocomplete": {
                             "query": query,
                             "path": "name",
                             "fuzzy": {}
