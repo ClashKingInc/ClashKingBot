@@ -690,7 +690,7 @@ async def discord_link(player_tags: List[str], request: Request, response: Respo
     return dict(result)
 
 
-@app.post("/test/{url}",
+@app.get("/test/{url}",
          tags=["Utils"],
          name="Test a coc api endpoint, very high ratelimit, only for testing without auth")
 @cache(expire=60)
