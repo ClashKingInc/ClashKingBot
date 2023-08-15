@@ -8,6 +8,7 @@ import uvicorn
 import io
 import pandas as pd
 import coc
+import aiofiles
 
 from coc.ext import discordlinks
 from datetime import datetime
@@ -29,6 +30,11 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
 from bs4 import BeautifulSoup
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from pytz import utc
+scheduler = AsyncIOScheduler(timezone=utc)
+scheduler.start()
 
 utc = pytz.utc
 load_dotenv()
@@ -69,6 +75,20 @@ def fix_tag(tag:str):
     tag = tag.replace('%23', '')
     tag = "#" + re.sub(r"[^A-Z0-9]+", "", tag.upper()).replace("O", "0")
     return tag
+
+@scheduler.scheduled_job(trigger='interval', hours=12)
+async def apk_fetch():
+    headers = {"Accept": "application/json", "authorization": f"Bearer {os.getenv('COC_KEY')}"}
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"https://d.apkpure.com/b/APK/com.supercell.clashofclans?version=latest", headers=headers) as response:
+            async with aiofiles.open("apks/clash.zip", "wb") as fd:
+                while True:
+                    chunk = await response.content.read(1024)
+                    if not chunk:
+                        break
+                    await fd.write(chunk)
+            return await response.release()
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -457,7 +477,17 @@ async def redirect_fastapi_base(id: str):
 @cache(expire=300)
 @limiter.limit("30/second")
 async def search_clans(name: str, request: Request, response: Response):
-    return {}
+    headers = {"Accept": "application/json", "authorization": f"Bearer {os.getenv('COC_KEY')}"}
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"https://d.apkpure.com/b/APK/com.supercell.clashofclans?version=latest",
+                               headers=headers) as response:
+            async with aiofiles.open("apks/clash.zip", "wb") as fd:
+                while True:
+                    chunk = await response.content.read(1024)
+                    if not chunk:
+                        break
+                    await fd.write(chunk)
+            return await response.release()
 
 @app.get("/search-player/{name}",
          tags=["Search"],
