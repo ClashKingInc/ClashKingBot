@@ -332,7 +332,6 @@ async def redirect_fastapi(player_tag: str):
 async def redirect_fastapi_player(tag: str):
     tag = tag.split("=")[-1]
     tag = "#" + tag
-    print(tag)
     headers = {"Accept": "application/json", "authorization": f"Bearer {os.getenv('COC_KEY')}"}
     async with aiohttp.ClientSession() as session:
         async with session.get(
@@ -690,6 +689,19 @@ async def discord_link(player_tags: List[str], request: Request, response: Respo
     result = await link_client.get_links(*player_tags)
     return dict(result)
 
+
+@app.post("/test/{url}",
+         tags=["Utils"],
+         name="Test a coc api endpoint, very high ratelimit, only for testing without auth")
+@cache(expire=60)
+@limiter.limit("10/minute")
+async def discord_link(url: str, request: Request, response: Response):
+    headers = {"Accept": "application/json", "authorization": f"Bearer {os.getenv('COC_KEY')}"}
+    async with aiohttp.ClientSession() as session:
+        async with session.get(
+                f"https://cocproxy.royaleapi.dev/v1/{url}", headers=headers) as response:
+            item = await response.json()
+    return item
 
 async def upload_to_cdn(picture, title: str):
     headers = {
