@@ -697,6 +697,7 @@ async def discord_link(player_tags: List[str], request: Request, response: Respo
 @limiter.limit("1/second")
 async def test_endpoint(url: str, request: Request, response: Response):
     url = url.replace("#", '%23')
+    url = url.split("?")[0]
     headers = {"Accept": "application/json", "authorization": f"Bearer {os.getenv('COC_KEY')}"}
     async with aiohttp.ClientSession() as session:
         async with session.get(
