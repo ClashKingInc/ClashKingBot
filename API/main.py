@@ -498,6 +498,7 @@ async def search_players(name: str, request: Request, response: Response):
         {"$limit": 25}
     ]
     results = await player_search.aggregate(pipeline=pipeline).to_list(length=None)
+    print(results)
     return {"items" : results}
 
 #Ranking History
