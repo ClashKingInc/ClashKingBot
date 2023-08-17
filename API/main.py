@@ -483,6 +483,7 @@ async def search_clans(name: str, request: Request, response: Response):
 @app.get("/search/player/{name}",
          tags=["Search"],
          name="Search for players by name")
+@cache(expire=300)
 @limiter.limit("30/second")
 async def search_players(name: str, request: Request, response: Response):
     pipeline = [
@@ -498,7 +499,8 @@ async def search_players(name: str, request: Request, response: Response):
         {"$limit": 25}
     ]
     results = await player_search.aggregate(pipeline=pipeline).to_list(length=None)
-    print(results)
+    for result in results:
+        del result["_id"]
     return {"items" : results}
 
 #Ranking History
