@@ -519,6 +519,8 @@ async def th_composition(bot: CustomClient, player_tags: List[str], title: str, 
     th_count_dict = defaultdict(int)
     th_sum = 0
     for result in results:
+        if result.get('_id') is None:
+            continue
         th_sum += (result["_id"] * result["count"])
         th_count_dict[result["_id"]] += result["count"]
 
