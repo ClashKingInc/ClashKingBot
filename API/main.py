@@ -45,7 +45,9 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
+other_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("STATIC_DB_LOGIN"))
 
+player_search = other_client.usafam.player_search
 looper = client.looper
 new_looper = client.new_looper
 
@@ -470,7 +472,7 @@ async def redirect_fastapi_base(id: str):
 
 
 #SEARCH ENDPOINTS
-@app.get("/search-clan/{name}",
+@app.get("/search/clan/{name}",
          tags=["Search"],
          name="Search for clans by name")
 @cache(expire=300)
@@ -478,13 +480,26 @@ async def redirect_fastapi_base(id: str):
 async def search_clans(name: str, request: Request, response: Response):
     return {}
 
-@app.get("/search-player/{name}",
+@app.get("/search/player/{name}",
          tags=["Search"],
          name="Search for players by name")
 @cache(expire=300)
 @limiter.limit("30/second")
-async def search_players(player: str, request: Request, response: Response):
-    return {}
+async def search_players(name: str, request: Request, response: Response):
+    pipeline = [
+        {
+            "$search": {
+                "index": "player_search",
+                "autocomplete": {
+                    "query": name,
+                    "path": "name",
+                },
+            }
+        },
+        {"$limit": 25}
+    ]
+    results = await player_search.aggregate(pipeline=pipeline).to_list(length=None)
+    return results
 
 #Ranking History
 @app.get("/player_trophies/{location}/{date}",
