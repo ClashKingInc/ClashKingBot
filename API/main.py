@@ -483,7 +483,6 @@ async def search_clans(name: str, request: Request, response: Response):
 @app.get("/search/player/{name}",
          tags=["Search"],
          name="Search for players by name")
-@cache(expire=300)
 @limiter.limit("30/second")
 async def search_players(name: str, request: Request, response: Response):
     pipeline = [
