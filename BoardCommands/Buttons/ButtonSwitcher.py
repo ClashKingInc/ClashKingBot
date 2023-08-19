@@ -99,6 +99,7 @@ async def button_click_to_embed(bot: CustomClient, ctx: disnake.MessageInteracti
 async def clan_parser(bot: CustomClient, ctx: disnake.MessageInteraction, custom_id: str):
     split = custom_id.split("_")
     clan_tag = split[1]
+    limit = int(split[-1]) if split[-1].isnumeric() else 50
     clan = await bot.getClan(clan_tag=clan_tag)
     embed = None
     if "clanoverview_" in custom_id:
@@ -208,19 +209,19 @@ async def clan_parser(bot: CustomClient, ctx: disnake.MessageInteraction, custom
         players = await bot.get_players(tags=[member.tag for member in clan.members], custom=True)
         players.sort(key=lambda x: x.donos().donated, reverse=True)
 
-        embed = await shared_embeds.image_board(bot=bot, players=players, logo_url=clan.badge.url, title=f'{clan.name} Activity/Donation Board', type="activities", season=bot.gen_season_date())
+        embed = await shared_embeds.image_board(bot=bot, players=players[:limit], logo_url=clan.badge.url, title=f'{clan.name} Activity/Donation Board', type="activities", season=bot.gen_season_date())
 
     elif "clanboardlegend_" in custom_id:
         players = await bot.get_players(tags=[member.tag for member in clan.members], custom=True)
         players = [player for player in players if player.is_legends()]
         players.sort(key=lambda x: x.trophies, reverse=True)
-        embed= await shared_embeds.image_board(bot=bot, players=players, logo_url=clan.badge.url, title=f'{clan.name} Legend Board', type="legend")
+        embed= await shared_embeds.image_board(bot=bot, players=players[:limit], logo_url=clan.badge.url, title=f'{clan.name} Legend Board', type="legend")
 
 
     elif "clanboardtrophies_" in custom_id:
         players = await bot.get_players(tags=[member.tag for member in clan.members], custom=True)
         players.sort(key=lambda x: x.trophies, reverse=True)
-        embed = await shared_embeds.image_board(bot=bot, players=players, logo_url=clan.badge.url, title=f'{clan.name} Trophy Board', type="trophies")
+        embed = await shared_embeds.image_board(bot=bot, players=players[:limit], logo_url=clan.badge.url, title=f'{clan.name} Trophy Board', type="trophies")
 
     return embed
 

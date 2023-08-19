@@ -35,25 +35,26 @@ async def image_board(bot: CustomClient, players: List[MyCustomPlayer], logo_url
                 net_gain = f"+{day.net_gain}"
             else:
                 net_gain = f"{day.net_gain}"
-            data.append([f"{c:3} {player.name}", player.trophy_start(), f"{day.attack_sum}{day.num_attacks.superscript}", f"{day.defense_sum}{day.num_defenses.superscript}", net_gain, player.trophies])
+            data.append([f"{c:3} {player.name.replace('$','')}", player.trophy_start(), f"{day.attack_sum}{day.num_attacks.superscript}", f"{day.defense_sum}{day.num_defenses.superscript}", net_gain, player.trophies])
 
     elif type == "trophies":
         columns = ['Name', "Trophies", "League", "Builder", "B-League"]
-        badges = [player.league.icon.url for player in players]
+        badges = [player.league.icon.url if player.league.name != "Unranked" else "https://clashking.b-cdn.net/unranked.png" for player in players]
         count = len(players) + 1
         for player in players:
             count -= 1
             c = f"{count}."
-            data.append([f"{c:3} {player.name}", player.trophies, str(player.league).replace(" League", ""), player.versus_trophies, str(player.builder_league).replace(" League", "")])
+            data.append([f"{c:3} {player.name.replace('$','')}", player.trophies, str(player.league).replace(" League", ""), player.versus_trophies, str(player.builder_league).replace(" League", "")])
 
     elif type == "activities":
         columns = ['Name', "Donated", "Received", "Last Online", "Activity"]
-        badges = [player.clan_badge_link() for player in players]
+        badges = [player.league.icon.url if player.league.name != "Unranked" else "https://clashking.b-cdn.net/unranked.png" for player in players]
         count = len(players) + 1
+        now_seconds = int(datetime.now().timestamp())
         for player in players:
             count -= 1
             c = f"{count}."
-            data.append([f"{c:3} {player.name}", player.donos().donated, player.donos().received, convert_seconds(player.last_online), len(player.season_last_online())])
+            data.append([f"{c:3} {player.name.replace('$','')}", player.donos().donated, player.donos().received, convert_seconds(now_seconds - player.last_online), len(player.season_last_online())])
 
     data = {
         "columns" : columns,
