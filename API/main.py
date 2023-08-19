@@ -422,9 +422,11 @@ async def redirect_fastapi_clan(clan_tag: str):
 async def redirect_fastapi_base(id: str):
     id = id.split("=")[-1]
     base_id = id.replace(":", "%3A")
-    await base_stats.update_one({"base_id": base_id}, {"$inc": {"downloads": 1},
-                                                       "$set": {"unix_time": int(datetime.now().timestamp()),
-                                                                "time": datetime.today().replace(microsecond=0)}},
+    base = await base_stats.find_one({"base_id": base_id})
+    if base is not None:
+        await base_stats.update_one({"base_id": base_id}, {"$inc": {"downloads": 1},
+                                                           "$set": {"unix_time": int(datetime.now().timestamp()),
+                                                                    "time": datetime.today().replace(microsecond=0)}},
                                 upsert=True)
     base = await base_stats.find_one({"base_id" : base_id})
     HTMLFile = open("test.html", "r")
