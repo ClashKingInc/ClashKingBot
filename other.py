@@ -1,5 +1,4 @@
 
-import contextlib
 import disnake
 from disnake.ext import commands
 import time
@@ -11,7 +10,8 @@ import openai
 import os
 from main import check_commands
 from utils.discord_utils import permanent_image
-
+import asyncio
+import functools
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 class ChatBot:
@@ -28,7 +28,8 @@ class ChatBot:
         return result
 
     def execute(self):
-        completion = openai.ChatCompletion.create(model="gpt-3.5-turbo-16k-0613", messages=self.messages)
+        loop = asyncio.get_event_loop()
+        completion = await loop.run_in_executor(None, functools.partial(openai.ChatCompletion.create, model="gpt-3.5-turbo-16k-0613", messages=self.messages))
         # Uncomment this to print out token usage each time, e.g.
         # {"completion_tokens": 86, "prompt_tokens": 26, "total_tokens": 112}
         # print(completion.usage)
