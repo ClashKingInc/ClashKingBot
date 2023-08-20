@@ -4,7 +4,7 @@ from typing import Optional
 from base64 import b64decode as base64_b64decode
 from json import loads as json_loads
 from datetime import datetime
-from dotenv import dotenv_values
+from dotenv import dotenv_values, load_dotenv
 from msgspec.json import decode
 from msgspec import Struct
 from pymongo import UpdateOne, InsertOne
@@ -21,10 +21,10 @@ import coc
 import string
 import random
 
+load_dotenv()
 keys = []
-config = dotenv_values()
 
-client = motor.motor_asyncio.AsyncIOMotorClient(config.get("LOOPER_DB_LOGIN"))
+client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
 looper = client.looper
 clan_tags = looper.clan_tags
 clan_wars = looper.clan_war
@@ -40,7 +40,7 @@ passwords = []
 for x in range(26,30):
     emails.append(f"apiclashofclans+test{x}@gmail.com")
     #print(os.getenv("COC_PASSWORD"))
-    passwords.append(config.get("COC_PASSWORD"))
+    passwords.append(os.getenv("COC_PASSWORD"))
 
 coc_client = coc.Client(key_count=10, throttle_limit=25, cache_max_size=0, raw_attribute=True)
 

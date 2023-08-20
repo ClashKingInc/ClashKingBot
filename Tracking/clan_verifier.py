@@ -21,7 +21,7 @@ keys = []
 utc = pytz.utc
 load_dotenv()
 
-client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
+client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
 looper = client.looper
 clan_tags = looper.clan_tags
 throttler = Throttler(rate_limit=1000, period=1)

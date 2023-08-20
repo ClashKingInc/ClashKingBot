@@ -73,7 +73,7 @@ locations = ["global", 32000007, 32000008, 32000009, 32000010, 32000011, 3200001
 keys = []
 load_dotenv()
 
-client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
+client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
 looper = client.looper
 clan_tags = looper.clan_tags
 player_history = client.new_looper.player_history
