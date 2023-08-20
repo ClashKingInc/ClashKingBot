@@ -8,7 +8,6 @@ from PIL import Image, ImageDraw, ImageFont
 from utils.components import create_components
 import openai
 import os
-from main import check_commands
 from utils.discord_utils import permanent_image
 import asyncio
 
@@ -21,12 +20,13 @@ class ChatBot:
             self.messages.append({"role": "system", "content": system})
 
     def __call__(self, message):
+        loop = asyncio.get_event_loop()
         self.messages.append({"role": "user", "content": message})
-        result = self.execute()
+        result = loop.run_until_complete(self.execute())
         self.messages.append({"role": "assistant", "content": result})
         return result
 
-    def execute(self):
+    async def execute(self):
         loop = asyncio.get_event_loop()
         def foo():
             return openai.ChatCompletion.create(model="gpt-3.5-turbo-16k-0613", messages=self.messages)
