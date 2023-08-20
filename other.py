@@ -175,12 +175,12 @@ class misc(commands.Cog, name="Other"):
             texts.append(text)
         returned_messages = []
         for t in texts:
-            magicbot = ChatBot(f"Could you please provide a concise and comprehensive summary of the given text? The summary should capture the main points and key details of the text while conveying the author's intended meaning accurately. Please ensure that the summary is well-organized and easy to read, with clear headings and subheadings to guide the reader through each section. The length of the summary should be appropriate to capture the main points and key details of the text, without including unnecessary information or becoming overly long.")
+            magicbot = ChatBot(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. Use up to 25 bullet points.")
             message = magicbot(t)
             returned_messages.append(message)
 
         if len(returned_messages) >= 2:
-            magicbot = ChatBot(f"Could you please provide a concise and comprehensive summary of the given text? The summary should capture the main points and key details of the text while conveying the author's intended meaning accurately. Please ensure that the summary is well-organized and easy to read, with clear headings and subheadings to guide the reader through each section. The length of the summary should be appropriate to capture the main points and key details of the text, without including unnecessary information or becoming overly long.")
+            magicbot = ChatBot(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. Use up to 25 bullet points.")
             message = magicbot("\n".join(returned_messages)[:16000])
         else:
             message = returned_messages[0]
