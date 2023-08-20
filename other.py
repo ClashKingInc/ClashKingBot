@@ -168,7 +168,7 @@ class misc(commands.Cog, name="Other"):
             if len(message_text) + len(f"{message.author.display_name} said: {message.content}\n") > 4000:
                 continue
             message_text += f"{message.author.display_name} said: {message.content}\n"
-        magicbot = ChatBot(f"Summarize, aka TLDR this conversation")
+        magicbot = ChatBot(f"Summarize, aka TLDR, this conversation using as few bullet points as possible")
         message = magicbot(message_text)
         content = f"Summary, {num_messages} messages, #{channel.name}:\n {message}"
         await ctx.edit_original_message(content=content[:2000])
