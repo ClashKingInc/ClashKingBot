@@ -63,7 +63,7 @@ async def get_keys(emails: list, passwords: list, key_names: str, key_count: int
         resp = await session.post("https://developer.clashofclans.com/api/login", json=body)
         if resp.status == 403:
             raise RuntimeError(
-                "Invalid Credentials"
+                f"Invalid Credentials, {email} | {password}"
             )
 
         resp_paylaod = await resp.json()
