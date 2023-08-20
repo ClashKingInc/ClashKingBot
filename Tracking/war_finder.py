@@ -10,7 +10,6 @@ from msgspec import Struct
 from pymongo import UpdateOne, InsertOne
 from datetime import timedelta
 from asyncio_throttle import Throttler
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
 
 import motor.motor_asyncio
