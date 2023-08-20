@@ -31,8 +31,7 @@ clan_wars = looper.clan_war
 warhits = looper.warhits
 
 throttler = Throttler(rate_limit=1000, period=1)
-scheduler = AsyncIOScheduler(timezone=utc)
-scheduler.start()
+
 
 emails = []
 passwords = []

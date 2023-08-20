@@ -129,56 +129,60 @@ async def broadcast(keys):
         async with session.get(url, headers=headers) as response:
             return (await response.read())
 
-    pipeline = [{"$match": {}}, {"$group": {"_id": "$tag"}}]
-    all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
-    clan_tags_alr_found = set(all_tags)
-    size_break = 50000
-    all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
+    while True:
+        pipeline = [{"$match": {}}, {"$group": {"_id": "$tag"}}]
+        all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
+        clan_tags_alr_found = set(all_tags)
+        size_break = 50000
+        all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
 
-    for tag_group in all_tags:
-        tags_to_add = []
-        tasks = []
-        deque = collections.deque
-        connector = aiohttp.TCPConnector(limit=250, ttl_dns_cache=300)
-        keys = deque(keys)
-        url = "https://api.clashofclans.com/v1/clans/"
-        async with aiohttp.ClientSession(connector=connector) as session3:
-            for tag in tag_group:
-                tag = tag.replace("#", "%23")
-                keys.rotate(1)
-                tasks.append(fetch(f"{url}{tag}/warlog?limit=200", session3, {"Authorization": f"Bearer {keys[0]}"}))
-            responses = await asyncio.gather(*tasks, return_exceptions=True)
-            await session3.close()
-        right_now = int(datetime.now().timestamp())
-        for response in responses:
-            try:
-                warlog = ujson.loads(response)
-            except:
-                continue
-
-            for item in warlog.get("items", []):
-                if item.get("opponent").get("tag") is None:
+        for tag_group in all_tags:
+            tags_to_add = []
+            tasks = []
+            deque = collections.deque
+            connector = aiohttp.TCPConnector(limit=250, ttl_dns_cache=300)
+            keys = deque(keys)
+            url = "https://api.clashofclans.com/v1/clans/"
+            async with aiohttp.ClientSession(connector=connector) as session3:
+                for tag in tag_group:
+                    tag = tag.replace("#", "%23")
+                    keys.rotate(1)
+                    tasks.append(fetch(f"{url}{tag}/warlog?limit=200", session3, {"Authorization": f"Bearer {keys[0]}"}))
+                responses = await asyncio.gather(*tasks, return_exceptions=True)
+                await session3.close()
+            right_now = int(datetime.now().timestamp())
+            for response in responses:
+                try:
+                    warlog = ujson.loads(response)
+                except:
                     continue
-                del item["clan"]["badgeUrls"]
-                del item["opponent"]["badgeUrls"]
-                t = int(Timestamp(data=item["endTime"]).time.timestamp())
-                item["timeStamp"] = t
-                if (right_now - t <= 2592000) and item["opponent"]["tag"] not in clan_tags_alr_found:
-                    tags_to_add.append(InsertOne({"tag" : item["opponent"]["tag"]}))
 
-        if tags_to_add:
-            try:
-                results = await clan_tags.bulk_write(tags_to_add, ordered=False)
-                print(results.bulk_api_result)
-            except Exception:
-                print(f"potentially added {len(tags_to_add)} tags")
+                for item in warlog.get("items", []):
+                    if item.get("opponent").get("tag") is None:
+                        continue
+                    del item["clan"]["badgeUrls"]
+                    del item["opponent"]["badgeUrls"]
+                    t = int(Timestamp(data=item["endTime"]).time.timestamp())
+                    item["timeStamp"] = t
+                    if (right_now - t <= 2592000) and item["opponent"]["tag"] not in clan_tags_alr_found:
+                        tags_to_add.append(InsertOne({"tag" : item["opponent"]["tag"]}))
 
-        '''if items_to_push:
-            try:
-                results = await war_logs.bulk_write(items_to_push, ordered=False)
-                print(results.bulk_api_result)
-            except Exception:
-                print(f"potentially added {len(items_to_push)} logs")'''
+            if tags_to_add:
+                try:
+                    results = await clan_tags.bulk_write(tags_to_add, ordered=False)
+                    print(results.bulk_api_result)
+                except Exception:
+                    print(f"potentially added {len(tags_to_add)} tags")
+
+            '''if items_to_push:
+                try:
+                    results = await war_logs.bulk_write(items_to_push, ordered=False)
+                    print(results.bulk_api_result)
+                except Exception:
+                    print(f"potentially added {len(items_to_push)} logs")'''
+
+        #sec * min * hour, sleep for 6 hours
+        await asyncio.sleep(60 * 60 * 6)
 
 
 

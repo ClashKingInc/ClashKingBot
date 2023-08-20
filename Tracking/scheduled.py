@@ -86,7 +86,7 @@ clan_trophies = ranking_history.clan_trophies
 clan_versus_trophies = ranking_history.clan_versus_trophies
 capital = ranking_history.capital
 
-
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 throttler = Throttler(rate_limit=200, period=1)
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
