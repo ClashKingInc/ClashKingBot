@@ -19,14 +19,9 @@ class ChatBot:
         if self.system:
             self.messages.append({"role": "system", "content": system})
 
-    def __call__(self, message):
-        loop = asyncio.get_event_loop()
+    async def execute(self, message):
         self.messages.append({"role": "user", "content": message})
-        result = loop.run_until_complete(self.execute())
-        self.messages.append({"role": "assistant", "content": result})
-        return result
 
-    async def execute(self):
         loop = asyncio.get_event_loop()
         def foo():
             return openai.ChatCompletion.create(model="gpt-3.5-turbo-16k-0613", messages=self.messages)
@@ -34,6 +29,7 @@ class ChatBot:
         # Uncomment this to print out token usage each time, e.g.
         # {"completion_tokens": 86, "prompt_tokens": 26, "total_tokens": 112}
         # print(completion.usage)
+        self.messages.append({"role": "assistant", "content": completion.choices[0].message.content})
         return completion.choices[0].message.content
 
 class misc(commands.Cog, name="Other"):
@@ -177,13 +173,15 @@ class misc(commands.Cog, name="Other"):
             texts.append(text)
         returned_messages = []
         for t in texts:
-            magicbot = ChatBot(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. Use up to 25 bullet points.")
-            message = magicbot(t)
+            magicbot = ChatBot()
+            await magicbot.execute(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. Use up to 25 bullet points.")
+            message = await magicbot.execute(t)
             returned_messages.append(message)
 
         if len(returned_messages) >= 2:
-            magicbot = ChatBot(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. Use up to 25 bullet points.")
-            message = magicbot("\n".join(returned_messages)[:16000])
+            magicbot = ChatBot()
+            await magicbot.execute(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. Use up to 25 bullet points.")
+            message = await magicbot.execute("\n".join(returned_messages)[:16000])
         else:
             message = returned_messages[0]
 
