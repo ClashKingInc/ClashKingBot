@@ -186,7 +186,12 @@ class misc(commands.Cog, name="Other"):
             message = returned_messages[0]
 
         content = f"Summary, {num_messages} messages, #{channel.name}:\n {message}"
-        await ctx.edit_original_message(content=content[:2000])
+        lines = [content[i:i + 2000] for i in range(0, len(content), 2000)]
+        for line in lines:
+            if line == lines[0]:
+                await ctx.edit_original_message(content=line)
+            else:
+                await ctx.followup.send(content=line, ephemeral=True)
 
 
     @commands.slash_command(name="pepe",
