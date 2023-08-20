@@ -10,6 +10,7 @@ from msgspec import Struct
 from pymongo import UpdateOne, InsertOne
 from datetime import timedelta
 from asyncio_throttle import Throttler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
 
 import motor.motor_asyncio
@@ -30,7 +31,8 @@ clan_wars = looper.clan_war
 warhits = looper.warhits
 
 throttler = Throttler(rate_limit=1000, period=1)
-
+scheduler = AsyncIOScheduler(timezone=utc)
+scheduler.start()
 
 emails = []
 passwords = []
