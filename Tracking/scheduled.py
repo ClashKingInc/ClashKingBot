@@ -92,8 +92,8 @@ scheduler.start()
 
 emails = []
 passwords = []
-#21-25 (26)
-for x in range(22,26):
+#14-17 (18)
+for x in range(14,18):
     emails.append(f"apiclashofclans+test{x}@gmail.com")
     passwords.append(os.getenv("EMAIL_PW"))
 

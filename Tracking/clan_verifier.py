@@ -29,7 +29,7 @@ throttler = Throttler(rate_limit=1000, period=1)
 emails = []
 passwords = []
 #26-29 (30)
-for x in range(22,26):
+for x in range(23,26):
     emails.append(f"apiclashofclans+test{x}@gmail.com")
     passwords.append(os.getenv("COC_PASSWORD"))
 
