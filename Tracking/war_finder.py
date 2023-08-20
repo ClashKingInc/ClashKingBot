@@ -48,7 +48,7 @@ for x in range(31,38):
     #print(os.getenv("COC_PASSWORD"))
     passwords.append(os.getenv("COC_PASSWORD"))
 
-coc_client = coc.Client(key_count=20, throttle_limit=30, cache_max_size=0, raw_attribute=True)
+coc_client = coc.Client(key_count=10, throttle_limit=30, cache_max_size=0, raw_attribute=True)
 
 async def get_keys(emails: list, passwords: list, key_names: str, key_count: int):
     total_keys = []
@@ -277,6 +277,6 @@ async def store_war(clan_tag: str, prep_time: int):
 
 loop = asyncio.get_event_loop()
 keys = create_keys()
-coc_client.login_with_keys(*keys[:20])
-loop.create_task(broadcast(keys[21:]))
+coc_client.login_with_keys(*keys[:10])
+loop.create_task(broadcast(keys[11:]))
 loop.run_forever()
