@@ -185,10 +185,6 @@ async def broadcast():
             except Exception:
                 print(f"potentially added {len(items_to_push)} logs")'''
 
-    #sec * min * hour, sleep for 6 hours
-
-
-
 
 loop = asyncio.get_event_loop()
 keys = create_keys()
