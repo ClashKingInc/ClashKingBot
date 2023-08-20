@@ -6,7 +6,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from msgspec.json import decode
 from msgspec import Struct
-from pymongo import UpdateOne
+from pymongo import UpdateOne, DeleteOne
 from datetime import timedelta
 from asyncio_throttle import Throttler
 
@@ -21,17 +21,17 @@ keys = []
 utc = pytz.utc
 load_dotenv()
 
-client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("STATS_DB"))
+client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
 looper = client.looper
 clan_tags = looper.clan_tags
-throttler = Throttler(rate_limit=200, period=1)
+throttler = Throttler(rate_limit=1000, period=1)
 
 emails = []
 passwords = []
 #26-29 (30)
-for x in range(26,30):
+for x in range(22,26):
     emails.append(f"apiclashofclans+test{x}@gmail.com")
-    passwords.append(os.getenv("EMAIL_PW"))
+    passwords.append(os.getenv("COC_PASSWORD"))
 
 async def get_keys(emails: list, passwords: list, key_names: str, key_count: int):
     total_keys = []
@@ -140,7 +140,7 @@ async def broadcast(keys):
             return await asyncio.gather(*(sem_task(task) for task in tasks), return_exceptions=True)
 
 
-        pipeline = [{"$match" : {"isValid" : {"$ne" : False}}}, { "$group" : { "_id" : "$tag" } } ]
+        pipeline = [{"$match" : {}}, { "$group" : { "_id" : "$tag" } } ]
         all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
         size_break = 50000
         all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
@@ -167,10 +167,7 @@ async def broadcast(keys):
                 clan = decode(response, type=Clan)
 
                 if clan.members == 0:
-                    changes.append(UpdateOne({"tag": clan.tag},
-                                                  {"$set":
-                                                       {"isValid": clan.members != 0}},
-                                                  upsert=True))
+                    changes.append(DeleteOne({"tag": clan.tag}))
                 else:
                     changes.append(UpdateOne({"tag": clan.tag},
                                                   {"$set":
@@ -182,7 +179,7 @@ async def broadcast(keys):
                                                         "warWinStreak" : clan.warWinStreak,
                                                         "warWins" : clan.warWins,
                                                         "clanCapitalHallLevel" : clan.clanCapital.capitalHallLevel,
-                                                        "isValid" : clan.members != 0,
+                                                        "isValid" : clan.members >= 10,
                                                          "changes" : {
                                                              f"clanCapital" : {raid_week : {"trophies" : clan.clanCapitalPoints,
                                                                                              "league" : clan.capitalLeague.name}}

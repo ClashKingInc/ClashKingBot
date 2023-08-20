@@ -129,33 +129,26 @@ async def broadcast(keys):
         async with session.get(url, headers=headers) as response:
             return (await response.read())
 
-    pipeline = [ { "$sample": { "size": 100 } } ]
-    clan_tag_list = set([x["tag"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))])
+    pipeline = [{"$match": {}}, {"$group": {"_id": "$tag"}}]
+    all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
+    clan_tags_alr_found = set(all_tags)
+    size_break = 50000
+    all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
 
-    while clan_tag_list:
-        items_to_push = []
+    for tag_group in all_tags:
         tags_to_add = []
-        tags = []
-        for x in clan_tag_list.copy():
-            tags.append(x)
-            clan_tag_list.remove(x)
-            if len(tags) == 25000:
-                break
-
         tasks = []
         deque = collections.deque
         connector = aiohttp.TCPConnector(limit=250, ttl_dns_cache=300)
         keys = deque(keys)
         url = "https://api.clashofclans.com/v1/clans/"
         async with aiohttp.ClientSession(connector=connector) as session3:
-            for tag in tags:
-                tags_to_add.append(InsertOne({"tag" : tag}))
+            for tag in tag_group:
                 tag = tag.replace("#", "%23")
                 keys.rotate(1)
                 tasks.append(fetch(f"{url}{tag}/warlog?limit=200", session3, {"Authorization": f"Bearer {keys[0]}"}))
             responses = await asyncio.gather(*tasks, return_exceptions=True)
             await session3.close()
-
         right_now = int(datetime.now().timestamp())
         for response in responses:
             try:
@@ -170,17 +163,23 @@ async def broadcast(keys):
                 del item["opponent"]["badgeUrls"]
                 t = int(Timestamp(data=item["endTime"]).time.timestamp())
                 item["timeStamp"] = t
-                items_to_push.append(InsertOne(item))
-                if len(clan_tag_list) < 500000 and (right_now - t <= 2592000):
-                    clan_tag_list.add(item["opponent"]["tag"])
+                if (right_now - t <= 2592000) and item["opponent"]["tag"] not in clan_tags_alr_found:
+                    tags_to_add.append(InsertOne({"tag" : item["opponent"]["tag"]}))
 
-
-        if tags_to_add != []:
+        if tags_to_add:
             try:
                 results = await clan_tags.bulk_write(tags_to_add, ordered=False)
                 print(results.bulk_api_result)
-            except BulkWriteError as e:
-                pass
+            except Exception:
+                print(f"potentially added {len(tags_to_add)} tags")
+
+        '''if items_to_push:
+            try:
+                results = await war_logs.bulk_write(items_to_push, ordered=False)
+                print(results.bulk_api_result)
+            except Exception:
+                print(f"potentially added {len(items_to_push)} logs")'''
+
 
 
 

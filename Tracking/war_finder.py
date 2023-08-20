@@ -4,10 +4,10 @@ from typing import Optional
 from base64 import b64decode as base64_b64decode
 from json import loads as json_loads
 from datetime import datetime
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 from msgspec.json import decode
 from msgspec import Struct
-from pymongo import UpdateOne
+from pymongo import UpdateOne, InsertOne
 from datetime import timedelta
 from asyncio_throttle import Throttler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -22,12 +22,13 @@ import string
 import random
 
 keys = []
-load_dotenv()
+config = dotenv_values()
 
-client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("STATS_DB"))
+client = motor.motor_asyncio.AsyncIOMotorClient(config.get("LOOPER_DB_LOGIN"))
 looper = client.looper
 clan_tags = looper.clan_tags
 clan_wars = looper.clan_war
+warhits = looper.warhits
 
 throttler = Throttler(rate_limit=1000, period=1)
 scheduler = AsyncIOScheduler(timezone=utc)
@@ -38,7 +39,9 @@ passwords = []
 #26-29 (30)
 for x in range(26,30):
     emails.append(f"apiclashofclans+test{x}@gmail.com")
-    passwords.append(os.getenv("EMAIL_PW"))
+    #print(os.getenv("COC_PASSWORD"))
+    passwords.append(config.get("COC_PASSWORD"))
+
 coc_client = coc.Client(key_count=10, throttle_limit=25, cache_max_size=0, raw_attribute=True)
 
 async def get_keys(emails: list, passwords: list, key_names: str, key_count: int):
@@ -126,12 +129,11 @@ class War(Struct):
 currently_in_war = set()
 last_checked = {}
 last_in_war = {}
-to_check = set()
+in_war = set()
 
 
 async def broadcast(keys):
-    await asyncio.sleep(10)
-    print("sleep")
+    global in_war
     while True:
         async def fetch(url, session: aiohttp.ClientSession, headers, tag):
             async with session.get(url, headers=headers) as response:
@@ -148,14 +150,17 @@ async def broadcast(keys):
 
             return await asyncio.gather(*(sem_task(task) for task in tasks), return_exceptions=True)
 
-        global to_check
-        all_tags = list(to_check)
+        pipeline = [{"$match": {"isValid": {"$ne": False}}}, {"$group": {"_id": "$tag"}}]
+        all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
         size_break = 50000
+        #all_tags = await clan_tags.distinct("tag", filter={"isValid": {"$ne": False}})
+        all_tags = [tag for tag in all_tags if tag not in in_war]
+        print(len(all_tags))
         all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
 
         for tag_group in all_tags:
             tasks = []
-            connector = aiohttp.TCPConnector(limit=250, ttl_dns_cache=300)
+            connector = aiohttp.TCPConnector(limit=500, ttl_dns_cache=600)
             keys = collections.deque(keys)
             async with aiohttp.ClientSession(connector=connector) as session:
                 for tag in tag_group:
@@ -165,7 +170,7 @@ async def broadcast(keys):
                 await session.close()
 
             changes = []
-            for response, tag in responses: #type: bytes
+            for response, tag in responses:
                 # we shouldnt have completely invalid tags, they all existed at some point
                 if response is None or response == 503:
                     continue
@@ -181,9 +186,7 @@ async def broadcast(keys):
                     last_checked[tag] = time.time()
                     last_in_war[tag] = int(war_end.time.timestamp())
                     currently_in_war.add(tag)
-                    to_check.remove(tag)
-                    if war.state == "inWar":
-                        print(war.clan.tag)
+                    in_war.add(tag)
                     changes.append(UpdateOne({"war_id" : f"{tag}-{int(coc.Timestamp(data=war.preparationStartTime).time.timestamp())}"},
                                               {"$set": {
                                                   "clan" : war.clan.tag,
@@ -197,28 +200,29 @@ async def broadcast(keys):
             if changes:
                 try:
                     results = await clan_wars.bulk_write(changes, ordered=False)
-                    print(results.bulk_api_result)
-                except:
+                except Exception:
                     pass
 
 async def store_war(clan_tag: str, prep_time: int):
+    global in_war
     found = False
     a_war = False
     while not found:
         try:
             war = await coc_client.get_clan_war(clan_tag=clan_tag)
-            if (war.preparation_start_time.time.timestamp()) != prep_time:
+            if int(war.preparation_start_time.time.timestamp()) != prep_time:
                 found = True
             elif war.state == "warEnded":
                 found = True
                 a_war = True
+            await asyncio.sleep(war._response_retry)
         except (coc.NotFound, coc.errors.Forbidden, coc.errors.PrivateWarLog):
             found = True
         except coc.errors.Maintenance:
             await asyncio.sleep(30)
         except Exception:
             found = True
-
+    in_war.remove(clan_tag)
     if not a_war:
         return
 
@@ -229,10 +233,39 @@ async def store_war(clan_tag: str, prep_time: int):
         custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
         is_used = await clan_wars.find_one({"custom_id": custom_id})
     last_checked[clan_tag] = time.time()
-    await clan_wars.update_one({"war_id": f"{war.clan.tag}-{int(war.preparation_start_time.time.timestamp())}"}, {
+    await clan_wars.update_one({"war_id": f"{war.clan.tag}-{int(war.preparation_start_time.time.timestamp())}"},
+        {"$set" : {
         "custom_id": custom_id,
-        "data": war._raw_data
-    }, upsert=True)
+        "data": war._raw_data}}, upsert=True
+    )
+    to_add = []
+    current_time = int(datetime.now().timestamp())
+    for attack in war.attacks:
+        data = {
+            "tag" : attack.attacker.tag,
+            "name" : attack.attacker.name,
+            "townhall" : attack.attacker.town_hall,
+            "_time" : current_time,
+            "destruction" : attack.destruction,
+            "stars" : attack.stars,
+            "fresh" : attack.is_fresh_attack,
+            "war_start" : int(war.preparation_start_time.time.timestamp()),
+            "defender_tag" : attack.defender.tag,
+            "defender_name" : attack.defender.name,
+            "defender_townhall" : attack.defender.town_hall,
+            "war_type" : str(war.type),
+            "war_status" : str(war.status),
+            "attack_order" : attack.order,
+            "map_position" : attack.attacker.map_position,
+            "war_size" : war.team_size,
+            "clan" : attack.attacker.clan.tag,
+            "clan_name" : attack.attacker.clan.name
+        }
+        to_add.append(InsertOne({"data" : data}))
+    try:
+        results = await warhits.bulk_write(to_add, ordered=False)
+    except Exception:
+        pass
 
 
 loop = asyncio.get_event_loop()

@@ -7,7 +7,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from msgspec.json import decode
 from msgspec import Struct
-from pymongo import UpdateOne, DeleteOne
+from pymongo import UpdateOne, DeleteOne, InsertOne
 from datetime import timedelta
 from asyncio_throttle import Throttler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -190,7 +190,7 @@ async def store_clan_capital():
         return await asyncio.gather(*(sem_task(task) for task in tasks), return_exceptions=True)
 
     global keys
-    pipeline = [{"$match": {"isValid": {"$eq": True}}}, {"$group": {"_id": "$tag"}}]
+    pipeline = [{"$match": {}}, {"$group": {"_id": "$tag"}}]
     all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
     size_break = 50000
     all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
@@ -210,15 +210,18 @@ async def store_clan_capital():
 
         changes = []
         for response, tag in responses:
-            # we shouldnt have completely invalid tags, they all existed at some point
-            if response is None:
-                continue
-            if len(response["items"]) == 0:
-                continue
-            date = coc.Timestamp(data=response["items"][0]["endTime"])
-            #-3600 = 1 hour has passed
-            #if 60 >= date.seconds_until >= -86400:
-            changes.append(InsertOne({"clan_tag" : tag, "data" : response["items"][0]}))
+            try:
+                # we shouldnt have completely invalid tags, they all existed at some point
+                if response is None:
+                    continue
+                if len(response["items"]) == 0:
+                    continue
+                date = coc.Timestamp(data=response["items"][0]["endTime"])
+                #-3600 = 1 hour has passed
+                if 60 >= date.seconds_until >= -86400:
+                    changes.append(InsertOne({"clan_tag" : tag, "data" : response["items"][0]}))
+            except:
+                pass
 
         await looper.raid_weekends.bulk_write(changes)
 
