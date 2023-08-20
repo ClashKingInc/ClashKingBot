@@ -46,7 +46,6 @@ import orjson
 
 emails = []
 passwords = []
-
 #18-27
 for x in range(18,22):
     emails.append(f"apiclashofclans+test{x}@gmail.com")
@@ -129,8 +128,8 @@ def create_keys():
 
 
 @scheduler.scheduled_job("cron", day_of_week="wed", hour=10)
-async def broadcast(keys):
-
+async def broadcast():
+    global keys
     async def fetch(url, session: aiohttp.ClientSession, headers):
         async with session.get(url, headers=headers) as response:
             return (await response.read())
