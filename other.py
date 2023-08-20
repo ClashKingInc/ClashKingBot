@@ -174,13 +174,13 @@ class misc(commands.Cog, name="Other"):
         returned_messages = []
         for t in texts:
             magicbot = ChatBot()
-            await magicbot.execute(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. Use up to 25 bullet points.")
+            await magicbot.execute(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. ONLY use up to 25 bullet points, do not go over this, no matter what.")
             message = await magicbot.execute(t)
             returned_messages.append(message)
 
         if len(returned_messages) >= 2:
             magicbot = ChatBot()
-            await magicbot.execute(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. Use up to 25 bullet points.")
+            await magicbot.execute(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. ONLY use up to 25 bullet points, do not go over this, no matter what.")
             message = await magicbot.execute("\n".join(returned_messages)[:16000])
         else:
             message = returned_messages[0]
