@@ -28,7 +28,7 @@ class ChatBot:
         return result
 
     def execute(self):
-        completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=self.messages)
+        completion = openai.ChatCompletion.create(model="gpt-3.5-turbo-16k-0613", messages=self.messages)
         # Uncomment this to print out token usage each time, e.g.
         # {"completion_tokens": 86, "prompt_tokens": 26, "total_tokens": 112}
         # print(completion.usage)
@@ -168,10 +168,9 @@ class misc(commands.Cog, name="Other"):
             if len(message_text) + len(f"{message.author.display_name} said: {message.content}\n") > 4000:
                 continue
             message_text += f"{message.author.display_name} said: {message.content}\n"
-        magicbot = ChatBot(
-            f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. Use up to 25 bullet points.")
+        magicbot = ChatBot(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. Use as many bullet points as wanted, but only up to 1900 total characters.")
         message = magicbot(message_text)
-        content = f"Summary of the last {num_messages} messages in {channel.name}:\n {message}"
+        content = f"Summary, {num_messages} messages, {channel.name}:\n {message}"
         await ctx.edit_original_message(content=content[:2000])
 
 
