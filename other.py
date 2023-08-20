@@ -153,23 +153,38 @@ class misc(commands.Cog, name="Other"):
     async def summary(self, ctx: disnake.ApplicationCommandInteraction, num_messages: int = 100):
         await ctx.response.defer(ephemeral=True)
         channel: disnake.TextChannel = ctx.channel
-        message_text = "Please summarize this conversation:\n"
         try:
             messages = await channel.history(limit=num_messages).flatten()
         except:
             messages = []
         if not messages:
             return await ctx.edit_original_message(content="I don't have permission to view this channel")
-        for message in reversed(messages):
+        text = ""
+        texts = []
+        for count, message in enumerate(reversed(messages), 1):
             if message.webhook_id is None and message.author.bot:
                 continue
             if message.content == "":
                 continue
-            if len(message_text) + len(f"{message.author.display_name} said: {message.content}\n") > 4000:
-                continue
-            message_text += f"{message.author.display_name} said: {message.content}\n"
-        magicbot = ChatBot(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. Use up to 25 bullet points.")
-        message = magicbot(message_text)
+            if len(text) + len(f"{message.author.display_name} said: {message.content}\n") > 16000:
+                texts.append(text)
+                text = ""
+            text += f"{message.author.display_name} said: {message.content}\n"
+
+        if text != "":
+            texts.append(text)
+        returned_messages = []
+        for t in texts:
+            magicbot = ChatBot(f"Could you please provide a concise and comprehensive summary of the given text? The summary should capture the main points and key details of the text while conveying the author's intended meaning accurately. Please ensure that the summary is well-organized and easy to read, with clear headings and subheadings to guide the reader through each section. The length of the summary should be appropriate to capture the main points and key details of the text, without including unnecessary information or becoming overly long.")
+            message = magicbot(t)
+            returned_messages.append(message)
+
+        if len(returned_messages) >= 2:
+            magicbot = ChatBot(f"Could you please provide a concise and comprehensive summary of the given text? The summary should capture the main points and key details of the text while conveying the author's intended meaning accurately. Please ensure that the summary is well-organized and easy to read, with clear headings and subheadings to guide the reader through each section. The length of the summary should be appropriate to capture the main points and key details of the text, without including unnecessary information or becoming overly long.")
+            message = magicbot("\n".join(returned_messages)[:16000])
+        else:
+            message = returned_messages[0]
+
         content = f"Summary, {num_messages} messages, #{channel.name}:\n {message}"
         await ctx.edit_original_message(content=content[:2000])
 
