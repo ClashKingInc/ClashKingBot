@@ -149,7 +149,7 @@ class misc(commands.Cog, name="Other"):
         return disnake.Embed(title="COC Api Ping by Endpoint", description=ping_text, color=disnake.Color.green())
 
 
-    @commands.slash_command(name="summary")
+    @commands.slash_command(name="summary", description="Get a summary of messages in a channel")
     async def summary(self, ctx: disnake.ApplicationCommandInteraction, num_messages: int = 100):
         await ctx.response.defer(ephemeral=True)
         channel: disnake.TextChannel = ctx.channel
@@ -168,7 +168,7 @@ class misc(commands.Cog, name="Other"):
             if len(message_text) + len(f"{message.author.display_name} said: {message.content}\n") > 4000:
                 continue
             message_text += f"{message.author.display_name} said: {message.content}\n"
-        magicbot = ChatBot(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. Use as many bullet points as wanted, but only up to 1900 total characters.")
+        magicbot = ChatBot(f"You are a chatbot that helps summarize conversations in a discord. Summarize primarily using bullet points. Be concise, but tell the whole story.")
         message = magicbot(message_text)
         content = f"Summary, {num_messages} messages, {channel.name}:\n {message}"
         await ctx.edit_original_message(content=content[:2000])
