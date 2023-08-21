@@ -44,12 +44,9 @@ if not BETA:
     for x in range(1,13):
         emails.append(f"apiclashofclans+test{x}@gmail.com")
         passwords.append(os.getenv("COC_PASSWORD"))
-    #14-17
-    for x in range(14,18):
-        emails.append(f"apiclashofclans+test{x}@gmail.com")
-        passwords.append(os.getenv("COC_PASSWORD"))
 else:
-    for x in range(20,25):
+    # 14-17
+    for x in range(14, 18):
         emails.append(f"apiclashofclans+test{x}@gmail.com")
         passwords.append(os.getenv("COC_PASSWORD"))
 
@@ -563,6 +560,7 @@ async def main(PLAYER_CLIENTS):
         print(f"{time.time() - time_inside} seconds inside")
         print(f"{len(players_tracked)} players tracked")
 
+
         print(f"{len(bulk_db_changes)} db changes")
         if bulk_db_changes != []:
             results = await player_stats.bulk_write(bulk_db_changes)
@@ -583,6 +581,27 @@ async def main(PLAYER_CLIENTS):
             results = await clan_stats.bulk_write(bulk_clan_changes)
             print(results.bulk_api_result)
             print(f"CLAN CHANGES UPDATE: {time.time() - time_inside}")
+
+        fix_changes = []
+        not_set_entirely = await player_stats.distinct("tag", filter={"$and": [{"paused": False}, {
+            "$or": [{"name": None}, {"league": None}, {"townhall": None}, {"clan_tag": None}]}]})
+        print(f'{len(not_set_entirely)} tags to fix')
+        for tag in not_set_entirely:
+            try:
+                response = await cache.get(tag)
+                response = ujson.loads(response)
+                clan_tag = response.get("clan", {}).get("tag", "Unknown")
+                league = response.get("league", {}).get("name", "Unranked")
+                fix_changes.append(UpdateOne({"tag": tag}, {
+                    "$set": {"name": response.get('name'), "townhall": response.get('townHallLevel'), "league": league,
+                             "clan_tag": clan_tag}}))
+            except:
+                continue
+
+        if fix_changes != []:
+            results = await player_stats.bulk_write(fix_changes)
+            print(results.bulk_api_result)
+            print(f"FIX CHANGES: {time.time() - time_inside}")
 
 
 
