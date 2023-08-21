@@ -132,11 +132,7 @@ class War(Struct):
     clan: Clan
     opponent: Clan
 
-currently_in_war = set()
-last_checked = {}
-last_in_war = {}
 in_war = set()
-
 
 async def broadcast(keys):
     global in_war
@@ -184,9 +180,6 @@ async def broadcast(keys):
                     run_time = war_end.time.replace(tzinfo=utc)
                     if war_end.seconds_until < 0:
                         run_time = datetime.utcnow()
-                    last_checked[tag] = time.time()
-                    last_in_war[tag] = int(war_end.time.replace(tzinfo=utc).timestamp())
-                    currently_in_war.add(tag)
                     in_war.add(tag)
                     changes.append(InsertOne({"war_id" : f"{tag}-{int(coc.Timestamp(data=war.preparationStartTime).time.replace(tzinfo=utc).timestamp())}",
                                                   "clan" : war.clan.tag,
@@ -231,7 +224,6 @@ async def store_war(clan_tag: str, prep_time: int):
     while is_used is not None:
         custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
         is_used = await clan_wars.find_one({"custom_id": custom_id})
-    last_checked[clan_tag] = time.time()
     await clan_wars.update_one({"war_id": f"{war.clan.tag}-{int(war.preparation_start_time.time.timestamp())}"},
         {"$set" : {
         "custom_id": custom_id,
@@ -240,7 +232,7 @@ async def store_war(clan_tag: str, prep_time: int):
     to_add = []
     current_time = int(datetime.now().timestamp())
     for attack in war.attacks:
-        data = {
+        to_add.append(InsertOne({
             "tag" : attack.attacker.tag,
             "name" : attack.attacker.name,
             "townhall" : attack.attacker.town_hall,
@@ -259,10 +251,9 @@ async def store_war(clan_tag: str, prep_time: int):
             "war_size" : war.team_size,
             "clan" : attack.attacker.clan.tag,
             "clan_name" : attack.attacker.clan.name
-        }
-        to_add.append(InsertOne({"data" : data}))
+        }))
     try:
-        results = await warhits.bulk_write(to_add, ordered=False)
+        await warhits.bulk_write(to_add, ordered=False)
     except Exception:
         pass
 
