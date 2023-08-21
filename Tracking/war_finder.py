@@ -181,9 +181,6 @@ async def broadcast(keys):
                     continue
                 if war.state != "notInWar":
                     war_end = coc.Timestamp(data=war.endTime)
-                    print(int(war_end.time.replace(tzinfo=utc).timestamp()))
-                    print(tag)
-                    raise Exception
                     run_time = war_end.time.replace(tzinfo=utc)
                     if war_end.seconds_until < 0:
                         run_time = datetime.utcnow()
