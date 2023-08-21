@@ -159,7 +159,7 @@ async def broadcast(keys):
         all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
 
         for count, tag_group in enumerate(all_tags, 1):
-            print(f"Group {count}/{len(tag_group)}")
+            print(f"Group {count}/{len(all_tags)}")
             tasks = []
             connector = aiohttp.TCPConnector(limit=500, ttl_dns_cache=600)
             keys = collections.deque(keys)
@@ -183,6 +183,7 @@ async def broadcast(keys):
                     war_end = coc.Timestamp(data=war.endTime)
                     print(int(war_end.time.replace(tzinfo=utc).timestamp()))
                     print(tag)
+                    raise Exception
                     run_time = war_end.time.replace(tzinfo=utc)
                     if war_end.seconds_until < 0:
                         run_time = datetime.utcnow()
