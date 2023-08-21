@@ -479,11 +479,15 @@ async def to_do_embed(bot: CustomClient, discord_user, linked_accounts , embed_c
 
     pass_to_do = await get_pass(bot=bot, linked_accounts=linked_accounts)
     if pass_to_do != "":
-        embed.add_field(name="Season Pass", value=pass_to_do, inline=False)
+        embed.add_field(name="Season Pass (Top 10)", value=pass_to_do, inline=False)
 
     inactive_to_do = await get_inactive(linked_accounts=linked_accounts)
     if inactive_to_do != "":
         embed.add_field(name="Inactive Accounts (48+ hr)", value=inactive_to_do, inline=False)
+
+    donation_to_do = await get_last_donated(bot=bot, linked_accounts=linked_accounts)
+    if donation_to_do != "":
+        embed.add_field(name="Last Capital Dono", value=donation_to_do, inline=False)
 
     if len(embed.fields) == 0:
         embed.description = "You're all caught up chief!"
@@ -606,11 +610,26 @@ async def get_clan_games(linked_accounts: List[MyCustomPlayer]):
 async def get_pass(bot: CustomClient, linked_accounts: List[MyCustomPlayer]):
     pass_text = ""
     points = 3000 if bot.gen_games_season() == "2023-06" else 4000
-    l = sorted(linked_accounts, key=lambda x: x.season_pass(), reverse=True)
+    l = sorted(linked_accounts, key=lambda x: x.season_pass(), reverse=True)[:10]
     for player in l:
         season_pass_points = player.season_pass()
         if season_pass_points < points and season_pass_points != 0:
-            pass_text += f"({season_pass_points}/3000) - {player.name}\n"
+            pass_text += f"({season_pass_points}/{points}) - {player.name}\n"
+    return pass_text
+
+
+async def get_last_donated(bot: CustomClient, linked_accounts: List[MyCustomPlayer]):
+    pass_text = ""
+    pipeline = [
+        {"$match": {"$and": [{"tag": {"$in": [p.tag for p in linked_accounts]}}, {"type": "clanCapitalContributions"}]}},
+        {"$group" : {"_id": "$tag", "last_change": {"$last": "$time"}}},
+        {"$sort" : {"last_change" : -1}}
+    ]
+    results = await bot.player_history.aggregate(pipeline=pipeline).to_list(length=None)
+    tag_to_player = {p.tag : p for p in linked_accounts}
+    for result in results:
+        time = result.get('last_change')
+        pass_text += f"<t:{time}:R> - {tag_to_player.get(result.get('_id')).name}\n"
     return pass_text
 
 
