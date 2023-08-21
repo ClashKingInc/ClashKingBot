@@ -23,8 +23,6 @@ class reddit_feed(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.bot.loop.create_task(self.reddit_task())
-        self.sent = []
-
 
     async def reddit_task(self):
         print("feed")
@@ -36,13 +34,6 @@ class reddit_feed(commands.Cog):
                     if count < 100:  # This removes the 100 historical submissions that SubredditStream pulls.
                         count += 1
                         continue
-
-                    if submission.id in self.sent:
-                        continue
-                    if len(self.sent) == 100:
-                        del self.sent[:50]
-                    self.sent.append(submission.id)
-
                     if submission.link_flair_text == 'Searching':
                         text = f"{submission.selftext} {submission.title}"
                         tags = re.findall('[#PYLQGRJCUVOpylqgrjcuvo0289]{5,11}', text)
@@ -52,9 +43,8 @@ class reddit_feed(commands.Cog):
                             if player is not None:
                                 break
 
-                        results = self.bot.server_db.find({"reddit_feed": {"$ne": None}})
-                        limit = await self.bot.server_db.count_documents(filter={"reddit_feed": {"$ne": None}})
-                        for r in await results.to_list(length=limit):
+                        results = await self.bot.server_db.find({"reddit_feed": {"$ne": None}}).to_list(length=None)
+                        for r in results:
                             try:
                                 channel = await self.bot.getch_channel(r.get("reddit_feed"), raise_exception=True)
                                 role = r.get("reddit_role")
@@ -75,7 +65,7 @@ class reddit_feed(commands.Cog):
 
                             except (disnake.NotFound, disnake.Forbidden):
                                 serv = r.get("server")
-                                await self.bot.server_db.update_one({"server": serv}, {"$set": {"reddit_feed": None, "reddit_role" : None}})
+                                #await self.bot.server_db.update_one({"server": serv}, {"$set": {"reddit_feed": None, "reddit_role" : None}})
 
             except Exception as e:
                 print(e)
