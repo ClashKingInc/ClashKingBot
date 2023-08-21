@@ -30,7 +30,6 @@ clan_tags = looper.clan_tags
 clan_wars = looper.clan_war
 warhits = looper.warhits
 
-throttler = Throttler(rate_limit=1000, period=1)
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
 
@@ -150,12 +149,6 @@ async def broadcast(keys):
                     return (503, 503)
                 return (None, None)
 
-        async def gather_with_concurrency(*tasks):
-            async def sem_task(task):
-                async with throttler:
-                    return await task
-
-            return await asyncio.gather(*(sem_task(task) for task in tasks), return_exceptions=True)
 
         pipeline = [{"$match": {"isValid": {"$ne": False}}}, {"$group": {"_id": "$tag"}}]
         all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
@@ -165,7 +158,8 @@ async def broadcast(keys):
         print(len(all_tags))
         all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
 
-        for tag_group in all_tags:
+        for count, tag_group in enumerate(all_tags, 1):
+            print(f"Group {count}/{len(tag_group)}")
             tasks = []
             connector = aiohttp.TCPConnector(limit=500, ttl_dns_cache=600)
             keys = collections.deque(keys)
@@ -173,7 +167,7 @@ async def broadcast(keys):
                 for tag in tag_group:
                     keys.rotate(1)
                     tasks.append(fetch(f"https://api.clashofclans.com/v1/clans/{tag.replace('#', '%23')}/currentwar", session, {"Authorization": f"Bearer {keys[0]}"}, tag))
-                responses = await gather_with_concurrency(*tasks)
+                responses = await asyncio.gather(*tasks, return_exceptions=True)
                 await session.close()
 
             changes = []
@@ -187,26 +181,26 @@ async def broadcast(keys):
                     continue
                 if war.state != "notInWar":
                     war_end = coc.Timestamp(data=war.endTime)
-                    run_time = war_end.time
+                    print(int(war_end.time.replace(tzinfo=utc).timestamp()))
+                    print(tag)
+                    run_time = war_end.time.replace(tzinfo=utc)
                     if war_end.seconds_until < 0:
                         run_time = datetime.utcnow()
                     last_checked[tag] = time.time()
-                    last_in_war[tag] = int(war_end.time.timestamp())
+                    last_in_war[tag] = int(war_end.time.replace(tzinfo=utc).timestamp())
                     currently_in_war.add(tag)
                     in_war.add(tag)
-                    changes.append(UpdateOne({"war_id" : f"{tag}-{int(coc.Timestamp(data=war.preparationStartTime).time.timestamp())}"},
-                                              {"$set": {
+                    changes.append(InsertOne({"war_id" : f"{tag}-{int(coc.Timestamp(data=war.preparationStartTime).time.replace(tzinfo=utc).timestamp())}",
                                                   "clan" : war.clan.tag,
                                                   "opponent" : war.opponent.tag,
-                                                  "endTime" : int(war_end.time.timestamp())
-                                              }},
-                                                upsert=True))
+                                                  "endTime" : int(war_end.time.replace(tzinfo=utc).timestamp())
+                                              }))
                     #schedule getting war
                     scheduler.add_job(store_war, 'date', run_date=run_time, args=[tag, int(coc.Timestamp(data=war.preparationStartTime).time.timestamp())],
                                       id=f"war_end_{tag}", name=f"{tag}_war_end", misfire_grace_time=3600)
             if changes:
                 try:
-                    results = await clan_wars.bulk_write(changes, ordered=False)
+                    await clan_wars.bulk_write(changes, ordered=False)
                 except Exception:
                     pass
 
