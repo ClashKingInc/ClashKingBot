@@ -121,7 +121,11 @@ class DiscordEvents(commands.Cog):
     async def on_guild_join(self, guild:disnake.Guild):
         if not self.bot.user.public_flags.verified_bot:
             return
-        msg = "Thanks for inviting me to your server! I'm ClashKing, your friendly Clash of Clans bot. With me around, you can easily track legends, create autoboards, and fully manage your clan & families with everything from rosters to ticketing. To get started, simply type in the `/help` command to see a list of available commands. If you need any further assistance, don't hesitate to check out our documentation (in progress) or join our support server. We're always here to help you get the most out of your Clash experience! Thanks again for having me on board."
+        msg = "Thanks for inviting ClashKing to your server! It comes packed with a decent amount of features like legends tracking, autoboards, a plethora of stats, & the ability to help manage your clan & families with features like role management, ticketing, & rosters. I recommend starting by taking a look over the entire `/help` command, " \
+              "in general I have done my best to make the names self explanatory (aside from a few legacy names, like /check being legend commands, don't ask why lol). " \
+              "If you need any further help, don't hesitate to check out the documentation (in progress) or join my support server (I don't mind being a walking encyclopedia of answers to your questions).\n" \
+              "One last thing to note - the bot is still under heavy development & is relatively young, so please reach out with any issues & if you end up enjoying what is here, consider using Creator Code ClashKing " \
+              "in-game to help support the project"
         results = await self.bot.server_db.find_one({"server": guild.id})
         botAdmin = guild.get_member(self.bot.user.id).guild_permissions.administrator
         if results is None:
