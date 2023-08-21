@@ -487,7 +487,7 @@ async def to_do_embed(bot: CustomClient, discord_user, linked_accounts , embed_c
 
     donation_to_do = await get_last_donated(bot=bot, linked_accounts=linked_accounts)
     if donation_to_do != "":
-        embed.add_field(name="Last Capital Dono", value=donation_to_do, inline=False)
+        embed.add_field(name="Capital Dono (24+ hr)", value=donation_to_do, inline=False)
 
     if len(embed.fields) == 0:
         embed.description = "You're all caught up chief!"
@@ -620,6 +620,7 @@ async def get_pass(bot: CustomClient, linked_accounts: List[MyCustomPlayer]):
 
 async def get_last_donated(bot: CustomClient, linked_accounts: List[MyCustomPlayer]):
     pass_text = ""
+    now = int(datetime.now(tz=utc).timestamp())
     pipeline = [
         {"$match": {"$and": [{"tag": {"$in": [p.tag for p in linked_accounts]}}, {"type": "clanCapitalContributions"}]}},
         {"$group" : {"_id": "$tag", "last_change": {"$last": "$time"}}},
@@ -629,7 +630,8 @@ async def get_last_donated(bot: CustomClient, linked_accounts: List[MyCustomPlay
     tag_to_player = {p.tag : p for p in linked_accounts}
     for result in results:
         time = result.get('last_change')
-        pass_text += f"<t:{time}:R> - {tag_to_player.get(result.get('_id')).name}\n"
+        if now - time >= (24 * 60 * 60):
+            pass_text += f"<t:{time}:R> - {tag_to_player.get(result.get('_id')).name}\n"
     return pass_text
 
 
