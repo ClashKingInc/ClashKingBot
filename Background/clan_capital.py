@@ -82,11 +82,11 @@ class StoreClanCapital(commands.Cog):
             if clan is None:
                 return (None, None)
             raid_log_entry: RaidLogEntry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot)
-            if raid_log_entry is not None:
+            '''if raid_log_entry is not None:
                 await self.bot.raid_weekend_db.insert_one({
                     "clan_tag" : clan.tag,
                     "data" : raid_log_entry._raw_data
-                })
+                })'''
             return (clan, raid_log_entry)
 
         for tag in tags:
