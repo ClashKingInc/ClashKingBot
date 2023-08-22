@@ -140,28 +140,6 @@ class War_Log(commands.Cog):
             war = coc.ClanWar(data=event["war"], client=self.bot.coc_client, clan_tag=event.get("clan_tag"))
         attack = coc.WarAttack(data=event["attack"], client=self.bot.coc_client, war=war)
 
-        current_time = int(datetime.now().timestamp())
-        await self.bot.warhits.insert_one({
-            "tag" : attack.attacker.tag,
-            "name" : attack.attacker.name,
-            "townhall" : attack.attacker.town_hall,
-            "_time" : current_time,
-            "destruction" : attack.destruction,
-            "stars" : attack.stars,
-            "fresh" : attack.is_fresh_attack,
-            "war_start" : int(war.preparation_start_time.time.timestamp()),
-            "defender_tag" : attack.defender.tag,
-            "defender_name" : attack.defender.name,
-            "defender_townhall" : attack.defender.town_hall,
-            "war_type" : str(war.type),
-            "war_status" : str(war.status),
-            "attack_order" : attack.order,
-            "map_position" : attack.attacker.map_position,
-            "war_size" : war.team_size,
-            "clan" : attack.attacker.clan.tag,
-            "clan_name" : attack.attacker.clan.name
-        })
-
         point_to_point = {0:0, 1: 400, 2: 800, 3 : 1200}
 
         if str(war.type) == "cwl" or str(war.type) == "random":
