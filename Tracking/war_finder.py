@@ -149,7 +149,6 @@ async def broadcast(keys):
         pipeline = [{"$match": {"isValid": {"$ne": False}}}, {"$group": {"_id": "$tag"}}]
         all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
         size_break = 50000
-        #all_tags = await clan_tags.distinct("tag", filter={"isValid": {"$ne": False}})
         all_tags = [tag for tag in all_tags if tag not in in_war]
         print(len(all_tags))
         all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
@@ -180,16 +179,17 @@ async def broadcast(keys):
                     run_time = war_end.time.replace(tzinfo=utc)
                     if war_end.seconds_until < 0:
                         run_time = datetime.utcnow()
+                    opponent_tag = war.opponent.tag if war.opponent.tag != tag else war.clan.tag
                     in_war.add(tag)
-                    in_war.add(war.opponent.tag)
+                    in_war.add(opponent_tag)
                     changes.append(InsertOne({"war_id" : f"{tag}-{int(coc.Timestamp(data=war.preparationStartTime).time.replace(tzinfo=utc).timestamp())}",
-                                                  "clan" : war.clan.tag,
-                                                  "opponent" : war.opponent.tag,
+                                                  "clan" : tag,
+                                                  "opponent" : opponent_tag,
                                                   "endTime" : int(war_end.time.replace(tzinfo=utc).timestamp())
                                               }))
                     #schedule getting war
-                    scheduler.add_job(store_war, 'date', run_date=run_time, args=[tag, war.opponent.tag, int(coc.Timestamp(data=war.preparationStartTime).time.timestamp())],
-                                      id=f"war_end_{tag}_{war.opponent.tag}", name=f"{tag}_war_end_{war.opponent.tag}", misfire_grace_time=3600)
+                    scheduler.add_job(store_war, 'date', run_date=run_time, args=[tag, opponent_tag, int(coc.Timestamp(data=war.preparationStartTime).time.timestamp())],
+                                      id=f"war_end_{tag}_{opponent_tag}", name=f"{tag}_war_end_{opponent_tag}", misfire_grace_time=3600)
             if changes:
                 try:
                     await clan_wars.bulk_write(changes, ordered=False)
