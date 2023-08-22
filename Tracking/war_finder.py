@@ -181,21 +181,22 @@ async def broadcast(keys):
                     if war_end.seconds_until < 0:
                         run_time = datetime.utcnow()
                     in_war.add(tag)
+                    in_war.add(war.opponent.tag)
                     changes.append(InsertOne({"war_id" : f"{tag}-{int(coc.Timestamp(data=war.preparationStartTime).time.replace(tzinfo=utc).timestamp())}",
                                                   "clan" : war.clan.tag,
                                                   "opponent" : war.opponent.tag,
                                                   "endTime" : int(war_end.time.replace(tzinfo=utc).timestamp())
                                               }))
                     #schedule getting war
-                    scheduler.add_job(store_war, 'date', run_date=run_time, args=[tag, int(coc.Timestamp(data=war.preparationStartTime).time.timestamp())],
-                                      id=f"war_end_{tag}", name=f"{tag}_war_end", misfire_grace_time=3600)
+                    scheduler.add_job(store_war, 'date', run_date=run_time, args=[tag, war.opponent.tag, int(coc.Timestamp(data=war.preparationStartTime).time.timestamp())],
+                                      id=f"war_end_{tag}_{war.opponent.tag}", name=f"{tag}_war_end_{war.opponent.tag}", misfire_grace_time=3600)
             if changes:
                 try:
                     await clan_wars.bulk_write(changes, ordered=False)
                 except Exception:
                     pass
 
-async def store_war(clan_tag: str, prep_time: int):
+async def store_war(clan_tag: str, opponent_tag: str, prep_time: int):
     global in_war
     found = False
     a_war = False
@@ -214,7 +215,12 @@ async def store_war(clan_tag: str, prep_time: int):
             await asyncio.sleep(30)
         except Exception:
             found = True
-    in_war.remove(clan_tag)
+
+    if clan_tag in in_war:
+        in_war.remove(clan_tag)
+    if opponent_tag in in_war:
+        in_war.remove(opponent_tag)
+
     if not a_war:
         return
 
@@ -250,7 +256,10 @@ async def store_war(clan_tag: str, prep_time: int):
             "map_position" : attack.attacker.map_position,
             "war_size" : war.team_size,
             "clan" : attack.attacker.clan.tag,
-            "clan_name" : attack.attacker.clan.name
+            "clan_name" : attack.attacker.clan.name,
+            "defending_clan" : attack.defender.clan.tag,
+            "defending_clan_name" : attack.defender.clan.name,
+            "full_war" : custom_id
         }))
     try:
         await warhits.bulk_write(to_add, ordered=False)
