@@ -164,27 +164,30 @@ async def broadcast(keys):
                 # we shouldnt have completely invalid tags, they all existed at some point
                 if response is None:
                     continue
-                clan = decode(response, type=Clan)
+                try:
+                    clan = decode(response, type=Clan)
 
-                if clan.members == 0:
-                    changes.append(DeleteOne({"tag": clan.tag}))
-                else:
-                    changes.append(UpdateOne({"tag": clan.tag},
-                                                  {"$set":
-                                                       {"name": clan.name,
-                                                        "members" : clan.members,
-                                                        "clanCapitalPoints" : clan.clanCapitalPoints,
-                                                        "capitalLeague" : clan.capitalLeague.name,
-                                                        "warLeague" : clan.warLeague.name,
-                                                        "warWinStreak" : clan.warWinStreak,
-                                                        "warWins" : clan.warWins,
-                                                        "clanCapitalHallLevel" : clan.clanCapital.capitalHallLevel,
-                                                        "isValid" : clan.members >= 10,
-                                                         "changes" : {
-                                                             f"clanCapital" : {raid_week : {"trophies" : clan.clanCapitalPoints,
-                                                                                             "league" : clan.capitalLeague.name}}
-                                                         }}},
-                                                  upsert=True))
+                    if clan.members == 0:
+                        changes.append(DeleteOne({"tag": clan.tag}))
+                    else:
+                        changes.append(UpdateOne({"tag": clan.tag},
+                                                      {"$set":
+                                                           {"name": clan.name,
+                                                            "members" : clan.members,
+                                                            "clanCapitalPoints" : clan.clanCapitalPoints,
+                                                            "capitalLeague" : clan.capitalLeague.name,
+                                                            "warLeague" : clan.warLeague.name,
+                                                            "warWinStreak" : clan.warWinStreak,
+                                                            "warWins" : clan.warWins,
+                                                            "clanCapitalHallLevel" : clan.clanCapital.capitalHallLevel,
+                                                            "isValid" : clan.members >= 10,
+                                                             "changes" : {
+                                                                 f"clanCapital" : {raid_week : {"trophies" : clan.clanCapitalPoints,
+                                                                                                 "league" : clan.capitalLeague.name}}
+                                                             }}},
+                                                      upsert=True))
+                except Exception:
+                    pass
 
             if changes:
                 results = await clan_tags.bulk_write(changes)
