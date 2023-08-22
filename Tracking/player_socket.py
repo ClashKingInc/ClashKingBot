@@ -252,7 +252,8 @@ async def main(PLAYER_CLIENTS):
                          "th": r.get("townHallLevel")}))
                 except:
                     continue
-            await player_search.bulk_write(auto_changes)
+            if auto_changes:
+                await player_search.bulk_write(auto_changes)
 
 
 
