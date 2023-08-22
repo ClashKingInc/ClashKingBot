@@ -152,6 +152,7 @@ async def broadcast(keys):
         all_tags = [tag for tag in all_tags if tag not in in_war]
         print(len(all_tags))
         all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
+        ones_that_tried_again = []
 
         for count, tag_group in enumerate(all_tags, 1):
             print(f"Group {count}/{len(all_tags)}")
@@ -188,13 +189,19 @@ async def broadcast(keys):
                                                   "endTime" : int(war_end.time.replace(tzinfo=utc).timestamp())
                                               }))
                     #schedule getting war
-                    scheduler.add_job(store_war, 'date', run_date=run_time, args=[tag, opponent_tag, int(coc.Timestamp(data=war.preparationStartTime).time.timestamp())],
-                                      id=f"war_end_{tag}_{opponent_tag}", name=f"{tag}_war_end_{opponent_tag}", misfire_grace_time=3600)
+                    try:
+                        scheduler.add_job(store_war, 'date', run_date=run_time, args=[tag, opponent_tag, int(coc.Timestamp(data=war.preparationStartTime).time.timestamp())],
+                                          id=f"war_end_{tag}_{opponent_tag}", name=f"{tag}_war_end_{opponent_tag}", misfire_grace_time=1200)
+                    except Exception:
+                        ones_that_tried_again.append(tag)
+                        pass
             if changes:
                 try:
                     await clan_wars.bulk_write(changes, ordered=False)
                 except Exception:
                     pass
+        if ones_that_tried_again:
+            print(f"{len(ones_that_tried_again)} tried again, examples: {ones_that_tried_again[:5]}")
 
 async def store_war(clan_tag: str, opponent_tag: str, prep_time: int):
     global in_war
