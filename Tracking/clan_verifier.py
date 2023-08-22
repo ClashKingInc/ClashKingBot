@@ -181,10 +181,9 @@ async def broadcast(keys):
                                                             "warWins" : clan.warWins,
                                                             "clanCapitalHallLevel" : clan.clanCapital.capitalHallLevel,
                                                             "isValid" : clan.members >= 10,
-                                                             "changes" : {
-                                                                 f"clanCapital" : {raid_week : {"trophies" : clan.clanCapitalPoints,
-                                                                                                 "league" : clan.capitalLeague.name}}
-                                                             }}},
+                                                            f"changes.clanCapital.{raid_week}": {"trophies" : clan.clanCapitalPoints, "league" : clan.capitalLeague.name}
+                                                            }
+                                                       },
                                                       upsert=True))
                 except Exception:
                     pass
