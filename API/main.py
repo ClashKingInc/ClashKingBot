@@ -68,6 +68,7 @@ clan_wars = looper.clan_war
 legend_history = client.looper.legend_history
 base_stats = looper.base_stats
 capital = looper.raid_weekends
+clan_stats = new_looper.clan_stats
 
 clan_history = new_looper.clan_history
 clan_join_leave = new_looper.clan_join_leave
@@ -314,6 +315,18 @@ async def capital_bulk(clan_tags: List[str], request: Request, response: Respons
 
 
 #CLAN ENDPOINTS
+@app.get("/clan/{clan_tag}/stats",
+         tags=["Clan Endpoints"],
+         name="All stats for a clan (activity, donations, etc)")
+@cache(expire=300)
+@limiter.limit("30/second")
+async def clan_historical(clan_tag: str, request: Request, response: Response):
+    clan_tag = fix_tag(clan_tag)
+    result = await clan_stats.find_one({"tag": clan_tag})
+    if result is not None:
+        del result["_id"]
+    return result
+
 @app.get("/clan/{clan_tag}/historical/{season}",
          tags=["Clan Endpoints"],
          name="Historical data for clan events")
@@ -325,7 +338,7 @@ async def clan_historical(clan_tag: str, season: str, request: Request, response
     month = season[-2:]
     season_start = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
     season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
-    historical_data = await clan_history.find({"$and": [{"tag": clan_tag},
+    historical_data = await clan_history.find({"$and": [{"tag": fix_tag(clan_tag)},
                                                           {"time": {"$gte": season_start.timestamp()}},
                                                           {"time": {"$lte": season_end.timestamp()}}]}).sort("time", 1).to_list(length=None)
     breakdown = defaultdict(list)
