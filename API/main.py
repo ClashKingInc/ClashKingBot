@@ -8,7 +8,7 @@ import uvicorn
 import io
 import pandas as pd
 import coc
-import aiofiles
+import ujson
 
 from coc.ext import discordlinks
 from datetime import datetime
@@ -23,29 +23,34 @@ from fastapi.openapi.utils import get_openapi
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 from typing import List, Union
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse
 from collections import defaultdict
 from helper import IMAGE_CACHE, download_image
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
 from bs4 import BeautifulSoup
+from redis import asyncio as aioredis
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
-scheduler = AsyncIOScheduler(timezone=utc)
-scheduler.start()
-
-utc = pytz.utc
 load_dotenv()
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
+async def catch_exceptions_middleware(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception:
+        # you probably want some kind of logging here
+        return Response("Not Found", status_code=404)
+
+#app.middleware('http')(catch_exceptions_middleware)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
-other_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("STATIC_DB_LOGIN"))
+client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
+other_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
+redis = aioredis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"))
 
 player_search = other_client.usafam.player_search
 looper = client.looper
@@ -55,20 +60,24 @@ war_logs_db = looper.war_logs
 player_stats_db = new_looper.player_stats
 attack_db = looper.warhits
 player_leaderboard_db = new_looper.leaderboard_db
-player_history = new_looper.player_history
+player_history = new_looper.get_collection("player_history")
+
 player_cache_db = new_looper.player_cache
 clan_cache_db = new_looper.clan_cache
-clan_wars = looper.clan_wars
+clan_wars = looper.clan_war
 legend_history = client.looper.legend_history
 base_stats = looper.base_stats
+capital = looper.raid_weekends
 
+clan_history = new_looper.clan_history
+clan_join_leave = new_looper.clan_join_leave
 ranking_history = client.ranking_history
 player_trophies = ranking_history.player_trophies
 player_versus_trophies = ranking_history.player_versus_trophies
 clan_trophies = ranking_history.clan_trophies
 clan_versus_trophies = ranking_history.clan_versus_trophies
-capital = ranking_history.capital
-from redis import asyncio as aioredis
+capital_trophies = ranking_history.capital
+
 
 link_client = None
 CACHED_SEASONS = []
@@ -77,18 +86,6 @@ def fix_tag(tag:str):
     tag = tag.replace('%23', '')
     tag = "#" + re.sub(r"[^A-Z0-9]+", "", tag.upper()).replace("O", "0")
     return tag
-
-'''@scheduler.scheduled_job(trigger='interval', hours=12)
-async def apk_fetch():
-    async with aiohttp.ClientSession() as session:
-        async with session.get(f"https://d.apkpure.com/b/APK/com.supercell.clashofclans?version=latest") as response:
-            async with aiofiles.open("apks/clash.zip", "wb") as fd:
-                while True:
-                    chunk = await response.content.read(1024)
-                    if not chunk:
-                        break
-                    await fd.write(chunk)
-            return await response.release()'''
 
 
 @app.on_event("startup")
@@ -107,23 +104,38 @@ async def docs():
 
 @app.get("/player/{player_tag}/stats",
          tags=["Player Endpoints"],
-         name="Overview of stats for a player")
+         name="All collected Stats for a player (clan games, looted, activity, etc)")
 @cache(expire=300)
 @limiter.limit("30/second")
 async def player_stat(player_tag: str, request: Request, response: Response):
     player_tag = player_tag and "#" + re.sub(r"[^A-Z0-9]+", "", player_tag.upper()).replace("O", "0")
     result = await player_stats_db.find_one({"tag": player_tag})
     lb_spot = await player_leaderboard_db.find_one({"tag": player_tag})
-    war_hits = await attack_db.find({"tag": player_tag}).to_list(length=250)
-    historical_data = await player_history.find({"tag": player_tag}).sort("time", 1).to_list(length=25000)
 
     if result is None:
         raise HTTPException(status_code=404, detail=f"No player found")
-    del result["_id"]
     try:
         del result["legends"]["streak"]
     except:
         pass
+    result = {
+        "donations" : result.get("donations"),
+        "name" : result.get("name"),
+        "townhall" : result.get("townhall"),
+        "legends" : result.get("legends"),
+        "last_online" : result.get("last_online"),
+        "looted" : {"gold": result.get("gold", {}), "elixir": result.get("elixir", {}), "dark_elixir": result.get("dark_elixir", {})},
+        "trophies" : result.get("trophies", 0),
+        "warStars" : result.get("warStars"),
+        "clanCapitalContributions" : result.get("aggressive_capitalism"),
+        "capital" : result.get("capital_gold"),
+        "clan_games" : result.get("clan_games"),
+        "season_pass" : result.get("season_pass"),
+        "activity" : result.get("activity"),
+        "clan_tag" : result.get("clan_tag"),
+        "league" : result.get("league")
+    }
+
     if lb_spot is not None:
         try:
             result["legends"]["global_rank"] = lb_spot["global_rank"]
@@ -134,22 +146,8 @@ async def player_stat(player_tag: str, request: Request, response: Response):
             result["location"] = lb_spot["country_name"]
         except:
             pass
-    hits = []
-    for hit in war_hits:
-        del hit["_id"]
-        hits.append(hit)
-    result["war_hits"] = hits
 
-    breakdown = defaultdict(list)
-    for data in historical_data:
-        del data["_id"]
-        breakdown[data["type"]].append(data)
-
-    result["historical_data"] = {}
-    for key, item in breakdown.items():
-        result["historical_data"][key] = item
-
-    return dict(result)
+    return result
 
 
 @app.get("/player/{player_tag}/legends",
@@ -189,13 +187,41 @@ async def player_legend(player_tag: str, request: Request, response: Response):
     return dict(result)
 
 
-@app.get("/player/{player_tag}/historical",
+@app.get("/player/{player_tag}/historical/{season}",
          tags=["Player Endpoints"],
          name="Historical data for player events")
 @cache(expire=300)
 @limiter.limit("30/second")
-async def player_historical(player_tag: str, request: Request, response: Response):
-    return {}
+async def player_historical(player_tag: str, season:str, request: Request, response: Response):
+    player_tag = player_tag and "#" + re.sub(r"[^A-Z0-9]+", "", player_tag.upper()).replace("O", "0")
+    year = season[:4]
+    month = season[-2:]
+    season_start = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
+    season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
+    historical_data = await player_history.find({"$and" : [{"tag": player_tag}, {"time" : {"$gte" : season_start.timestamp()}}, {"time" : {"$lte" : season_end.timestamp()}}]}).sort("time", 1).to_list(length=25000)
+    breakdown = defaultdict(list)
+    for data in historical_data:
+        del data["_id"]
+        breakdown[data["type"]].append(data)
+
+    result = {}
+    for key, item in breakdown.items():
+        result[key] = item
+
+    return dict(result)
+
+@app.get("/player/{player_tag}/warhits",
+         tags=["Player Endpoints"],
+         name="War attacks done by a player")
+@cache(expire=300)
+@limiter.limit("30/second")
+async def player_warhits(player_tag: str, request: Request, response: Response, limit: int = 200):
+    results = await attack_db.find({"tag" : fix_tag(player_tag)}).sort("_time", -1).limit(limit).to_list(length=None)
+    if results:
+        for result in results:
+            del result["_id"]
+    return results
+
 
 @app.get("/player/{player_tag}/legend_rankings",
          tags=["Player Endpoints"],
@@ -211,6 +237,7 @@ async def player_legend_rankings(player_tag: str, request: Request, response: Re
 
     return results
 
+
 @app.get("/player/{player_tag}/cache",
          tags=["Player Endpoints"],
          name="Cached endpoint response")
@@ -222,17 +249,43 @@ async def player_cache(player_tag: str, request: Request, response: Response):
         return {"No Player Found" : player_tag}
     return cache_data["data"]
 
+
+@app.get("/player/search/{name}",
+         tags=["Player Endpoints"],
+         name="Search for players by name")
+@cache(expire=300)
+@limiter.limit("30/second")
+async def search_players(name: str, request: Request, response: Response):
+    pipeline = [
+        {
+            "$search": {
+                "index": "player_search",
+                "autocomplete": {
+                    "query": name,
+                    "path": "name",
+                },
+            }
+        },
+        {"$limit": 25}
+    ]
+    results = await player_search.aggregate(pipeline=pipeline).to_list(length=None)
+    for result in results:
+        del result["_id"]
+    return {"items" : results}
+
+
 @app.post("/player/bulk",
           tags=["Player Endpoints"],
           name="Cached endpoint response (bulk fetch)")
-@cache(expire=300)
 @limiter.limit("5/second")
 async def player_bulk(player_tags: List[str], request: Request, resonse: Response):
-    cache_data = await player_cache_db.find({"tag": {"$in": [fix_tag(tag) for tag in player_tags]}}).to_list(length=500)
-    modified_result = []
+    cache_data = await redis.mget(keys=[fix_tag(tag) for tag in player_tags])
+    modified_result = {}
     for data in cache_data:
-        del data["_id"]
-        modified_result.append(data["data"])
+        if data is None:
+            continue
+        data = ujson.loads(data)
+        modified_result[data.get("tag")] = data
     return modified_result
 
 
@@ -243,24 +296,68 @@ async def player_bulk(player_tags: List[str], request: Request, resonse: Respons
 @cache(expire=300)
 @limiter.limit("30/second")
 async def capital_log(clan_tag: str, request: Request, response: Response):
-    return {}
+    results = await capital.find({"clan_tag" : fix_tag(clan_tag)}).to_list(length=None)
+    return results
 
 @app.post("/capital/bulk",
          tags=["Clan Capital Endpoints"],
-         name="Fetch Raid Weekends in Bulk")
-@cache(expire=300)
+         name="Fetch Raid Weekends in Bulk (max 100 tags)")
 @limiter.limit("5/second")
-async def capital(clan_tags: List[str], request: Request, response: Response):
-    return {}
+async def capital_bulk(clan_tags: List[str], request: Request, response: Response):
+    results = await capital.find({"clan_tag": {"$in" : [fix_tag(tag) for tag in clan_tags[:100]]}}).to_list(length=None)
+    fixed_results = defaultdict(list)
+    for result in results:
+        tag = result.get("clan_tag")
+        del result["clan_tag"]
+        fixed_results[tag].append(result.get("data"))
+    return dict(fixed_results)
+
 
 #CLAN ENDPOINTS
-@app.get("/clan/{clan_tag}/historical",
+@app.get("/clan/{clan_tag}/historical/{season}",
          tags=["Clan Endpoints"],
          name="Historical data for clan events")
 @cache(expire=300)
-@limiter.limit("30/second")
-async def clan_historical(clan_tag: str, request: Request, response: Response):
-    return {}
+@limiter.limit("5/second")
+async def clan_historical(clan_tag: str, season: str, request: Request, response: Response):
+    clan_tag = fix_tag(clan_tag)
+    year = season[:4]
+    month = season[-2:]
+    season_start = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
+    season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
+    historical_data = await clan_history.find({"$and": [{"tag": clan_tag},
+                                                          {"time": {"$gte": season_start.timestamp()}},
+                                                          {"time": {"$lte": season_end.timestamp()}}]}).sort("time", 1).to_list(length=None)
+    breakdown = defaultdict(list)
+    for data in historical_data:
+        del data["_id"]
+        breakdown[data["type"]].append(data)
+
+    result = {}
+    for key, item in breakdown.items():
+        result[key] = item
+    return dict(result)
+
+
+@app.get("/clan/{clan_tag}/join-leave/{season}",
+         tags=["Clan Endpoints"],
+         name="Join Leaves in a season")
+@cache(expire=300)
+@limiter.limit("5/second")
+async def clan_join_leave(clan_tag: str, season: str, request: Request, response: Response):
+    clan_tag = fix_tag(clan_tag)
+    year = season[:4]
+    month = season[-2:]
+    season_start = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
+    season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
+    result = await clan_join_leave.find({"$and": [{"tag": clan_tag},
+                                                          {"time": {"$gte": season_start.timestamp()}},
+                                                          {"time": {"$lte": season_end.timestamp()}}]}).sort("time", 1).to_list(length=None)
+    if result:
+        for r in result:
+            del r["_id"]
+    return dict(result)
+
 
 @app.get("/clan/{clan_tag}/cache",
          tags=["Clan Endpoints"],
@@ -274,10 +371,10 @@ async def clan_cache(clan_tag: str, request: Request, response: Response):
     del cache_data["data"]["_response_retry"]
     return cache_data["data"]
 
-@app.post("/clan/bulk-cache",
+
+@app.post("/clan/bulk",
          tags=["Clan Endpoints"],
          name="Cached endpoint response (bulk fetch)")
-@cache(expire=300)
 @limiter.limit("5/second")
 async def bulk_clan_cache(clan_tags: List[str], request: Request, response: Response):
     cache_data = await clan_cache_db.find({"tag": {"$in": [fix_tag(tag) for tag in clan_tags]}}).to_list(length=500)
@@ -286,6 +383,7 @@ async def bulk_clan_cache(clan_tags: List[str], request: Request, response: Resp
         del data["data"]["_response_retry"]
         modified_result.append(data["data"])
     return modified_result
+
 
 
 #WAR STATS
@@ -337,19 +435,35 @@ async def war_log(clan_tag: str, request: Request, response: Response, limit: in
     actual_results = sorted(actual_results, key=lambda x: x["timeStamp"], reverse=True)
     return actual_results[:limit]
 
+@app.get("/war/{clan_tag}/basic",
+         tags=["War Endpoints"],
+         name="Basic War Info, Bypasses Private War Log if Possible")
+@cache(expire=300)
+@limiter.limit("30/second")
+async def basic_war_info(clan_tag: str, request: Request, response: Response):
+    now = datetime.utcnow().timestamp() - 183600
+    result = await clan_wars.find_one({"$and" : [{"clan" : fix_tag(clan_tag)}, {"custom_id": None}, {"endTime" : {"$gte" : now}}]})
+    if result is None:
+        result = await clan_wars.find_one({"$and" : [{"opponent" : fix_tag(clan_tag)}, {"custom_id" : None}, {"endTime" : {"$gte" : now}}]})
+    if result is not None:
+        del result["_id"]
+    return result
+
 
 #REDIRECT
 @app.get("/p/{player_tag}",
          response_class=RedirectResponse,
          tags=["Redirect"],
-         name="Shortform Player Profile URL")
+         name="Shortform Player Profile URL",
+         include_in_schema=False)
 async def redirect_fastapi(player_tag: str):
     return f"https://link.clashofclans.com/en?action=OpenPlayerProfile&tag=%23{player_tag}"
 
 
 @app.get("/player",
          tags=["Redirect"],
-         name="Player Link URL")
+         name="Player Link URL",
+         include_in_schema=False)
 async def redirect_fastapi_player(tag: str):
     tag = tag.split("=")[-1]
     tag = "#" + tag
@@ -410,7 +524,8 @@ async def redirect_fastapi_player(tag: str):
 @app.get("/c/{clan_tag}",
          response_class=RedirectResponse,
          tags=["Redirect"],
-         name="Shortform Clan Profile URL")
+         name="Shortform Clan Profile URL",
+         include_in_schema=False)
 async def redirect_fastapi_clan(clan_tag: str):
     return f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{clan_tag}"
 
@@ -418,7 +533,8 @@ async def redirect_fastapi_clan(clan_tag: str):
 @app.get("/base",
          response_class=RedirectResponse,
          tags=["Redirect"],
-         name="Base Link URL")
+         name="Base Link URL",
+         include_in_schema=False)
 async def redirect_fastapi_base(id: str):
     id = id.split("=")[-1]
     base_id = id.replace(":", "%3A")
@@ -472,41 +588,8 @@ async def redirect_fastapi_base(id: str):
     return HTMLResponse(content=HTMLFile.read(), status_code=200)
 
 
-
-#SEARCH ENDPOINTS
-@app.get("/search/clan/{name}",
-         tags=["Search"],
-         name="Search for clans by name")
-@cache(expire=300)
-@limiter.limit("30/second")
-async def search_clans(name: str, request: Request, response: Response):
-    return {}
-
-@app.get("/search/player/{name}",
-         tags=["Search"],
-         name="Search for players by name")
-@cache(expire=300)
-@limiter.limit("30/second")
-async def search_players(name: str, request: Request, response: Response):
-    pipeline = [
-        {
-            "$search": {
-                "index": "player_search",
-                "autocomplete": {
-                    "query": name,
-                    "path": "name",
-                },
-            }
-        },
-        {"$limit": 25}
-    ]
-    results = await player_search.aggregate(pipeline=pipeline).to_list(length=None)
-    for result in results:
-        del result["_id"]
-    return {"items" : results}
-
 #Ranking History
-@app.get("/player_trophies/{location}/{date}",
+@app.get("/ranking/player-trophies/{location}/{date}",
          tags=["Leaderboard History"],
          name="Top 200 Daily Leaderboard History. Date: yyyy-mm-dd")
 @cache(expire=300)
@@ -515,10 +598,78 @@ async def player_trophies_ranking(location: Union[int, str], date: str, request:
     r = await player_trophies.find_one({"$and" : [{"location" : location}, {"date" : date}]})
     return r.get("data")
 
+@app.get("/ranking/player-builder/{location}/{date}",
+         tags=["Leaderboard History"],
+         name="Top 200 Daily Leaderboard History. Date: yyyy-mm-dd")
+@cache(expire=300)
+@limiter.limit("30/second")
+async def player_builder_ranking(location: Union[int, str], date: str, request: Request, response: Response):
+    r = await player_versus_trophies.find_one({"$and" : [{"date" : date}, {"location" : location}]})
+    return r.get("data")
+
+@app.get("/ranking/clan-trophies/{location}/{date}",
+         tags=["Leaderboard History"],
+         name="Top 200 Daily Leaderboard History. Date: yyyy-mm-dd")
+@cache(expire=300)
+@limiter.limit("30/second")
+async def clan_trophies_ranking(location: Union[int, str], date: str, request: Request, response: Response):
+    r = await clan_trophies.find_one({"$and" : [{"date" : date}, {"location" : location}]})
+    return r.get("data")
+
+
+@app.get("/ranking/clan-builder/{location}/{date}",
+         tags=["Leaderboard History"],
+         name="Top 200 Daily Leaderboard History. Date: yyyy-mm-dd")
+@cache(expire=300)
+@limiter.limit("30/second")
+async def clan_builder_ranking(location: Union[int, str], date: str, request: Request, response: Response):
+    r = await clan_versus_trophies.find_one({"$and" : [{"date" : date}, {"location" : location}]})
+    return r.get("data")
+
+@app.get("/ranking/clan-capital/{location}/{date}",
+         tags=["Leaderboard History"],
+         name="Top 200 Daily Leaderboard History. Date: yyyy-mm-dd")
+@cache(expire=300)
+@limiter.limit("30/second")
+async def clan_capital_ranking(location: Union[int, str], date: str, request: Request, response: Response):
+    r = await capital_trophies.find_one({"$and" : [{"date" : date}, {"location" : location}]})
+    return r.get("data")
+
+
+#GAME FILES
+@app.get("/assets",
+         tags=["Game Files"],
+         name="Link to download a zip with all assets")
+@limiter.limit("5/second")
+async def assets(request: Request, response: Response):
+    return {"download-link" : "https://cdn.clashking.xyz/Out-Sprites.zip"}
+
+
+@app.get("/csv",
+         tags=["Game Files"],
+         name="Download zip of all csv files")
+@limiter.limit("30/second")
+async def csv(request: Request, response: Response):
+    file_name = "compressed-csv.zip"
+    file_path = os.getcwd() + "/" + file_name
+    return FileResponse(path=file_path, media_type='application/octet-stream', filename="gamefile-csv.zip")
+
+@app.get("/json/{file}",
+         tags=["Game Files"],
+         name="Download json game data (/json/list, for list of files)")
+@limiter.limit("30/second")
+async def json(file: str, request: Request, response: Response):
+    if file == "list":
+        return {"files" : ["troops.json", "heroes.json", "spells.json", "buildings.json", "pets.json", "supers.json", "townhalls.json", "translations.json"]}
+    file_name = f"game-json/{file}"
+    file_path = os.getcwd() + "/" + file_name
+    return FileResponse(path=file_path, media_type='application/octet-stream', filename=f"{file}")
+
 #UTILS
 @app.post("/table",
          tags=["Utils"],
-         name="Custom Table")
+         name="Custom Table",
+         include_in_schema=False)
 @limiter.limit("5/second")
 async def table_render(info: Dict, request: Request, response: Response):
     columns = info.get("columns")
@@ -655,27 +806,21 @@ async def table_render(info: Dict, request: Request, response: Response):
 
 @app.get("/guild_links/{guild_id}",
          tags=["Utils"],
-         name="Get clans that are linked to a discord guild")
+         name="Get clans that are linked to a discord guild",
+         include_in_schema=False)
 @cache(expire=300)
 @limiter.limit("30/second")
 async def guild_links(guild_id: int, request: Request, response: Response):
     return {}
 
-@app.get("/all_player_tags",
+@app.get("/player_tags",
          tags=["Utils"],
          name="Get a list of all player tags in database")
-@cache(expire=300)
-@limiter.limit("5/second")
+@cache(expire=3600)
+@limiter.limit("1/minute")
 async def player_tags(request: Request, response: Response):
-    return {}
-
-@app.get("/all_clan_tags",
-         tags=["Utils"],
-         name="Get a list of all clan tags in database")
-@cache(expire=300)
-@limiter.limit("5/second")
-async def clan_tags(request: Request, response: Response):
-    return {}
+    tags = await player_stats_db.distinct("tag")
+    return {"tags" : tags}
 
 
 @app.get("/permalink/{clanTag}",
@@ -706,7 +851,8 @@ async def permalink(clan_tag: str):
 
 @app.get("/renderhtml",
          tags=["Utils"],
-         name="Render links to HTML as a page")
+         name="Render links to HTML as a page",
+         include_in_schema=False)
 async def render(url: str):
     async def fetch(u, session):
         async with session.get(u) as response:
@@ -720,7 +866,8 @@ async def render(url: str):
 
 @app.post("/discord_links",
          tags=["Utils"],
-         name="Get discord links for tags")
+         name="Get discord links for tags",
+         include_in_schema=False)
 @cache(expire=300)
 @limiter.limit("5/second")
 async def discord_link(player_tags: List[str], request: Request, response: Response):
@@ -732,7 +879,7 @@ async def discord_link(player_tags: List[str], request: Request, response: Respo
          tags=["Utils"],
          name="Test a coc api endpoint, very high ratelimit, only for testing without auth")
 @cache(expire=60)
-@limiter.limit("1/second")
+@limiter.limit("5/minute")
 async def test_endpoint(url: str, request: Request, response: Response):
     url = url.replace("#", '%23')
     url = url.split("?")[0]
@@ -782,3 +929,4 @@ app.openapi = custom_openapi
 
 if __name__ == '__main__':
     uvicorn.run("main:app", host='0.0.0.0', port=443, ssl_keyfile="/etc/letsencrypt/live/api.clashking.xyz/privkey.pem", ssl_certfile="/etc/letsencrypt/live/api.clashking.xyz/fullchain.pem", workers=6)
+    #uvicorn.run("main:app", host='localhost', port=80, workers=2)
