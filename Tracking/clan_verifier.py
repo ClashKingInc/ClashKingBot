@@ -112,6 +112,9 @@ class League(Struct):
 class ClanCapital(Struct):
     capitalHallLevel: Optional[int] = 0
 
+class Badge(Struct):
+    large: Optional[str] = ""
+
 class Clan(Struct):
     name: str
     tag: str
@@ -122,6 +125,7 @@ class Clan(Struct):
     warWinStreak: int
     warWins: int
     clanCapital: ClanCapital
+    badgeUrls: Badge
 
 async def broadcast(keys):
 
@@ -173,6 +177,7 @@ async def broadcast(keys):
                         changes.append(UpdateOne({"tag": clan.tag},
                                                       {"$set":
                                                            {"name": clan.name,
+                                                            "badge" : clan.badge.large,
                                                             "members" : clan.members,
                                                             "clanCapitalPoints" : clan.clanCapitalPoints,
                                                             "capitalLeague" : clan.capitalLeague.name,
