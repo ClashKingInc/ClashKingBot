@@ -670,24 +670,23 @@ async def clan_capital_ranking(location: Union[int, str], date: str, request: Re
 async def assets(request: Request, response: Response):
     return {"download-link" : "https://cdn.clashking.xyz/Out-Sprites.zip"}
 
-
 @app.get("/csv",
          tags=["Game Files"],
          name="Download zip of all csv files")
-@limiter.limit("30/second")
+@limiter.limit("5/second")
 async def csv(request: Request, response: Response):
     file_name = "compressed-csv.zip"
     file_path = os.getcwd() + "/" + file_name
     return FileResponse(path=file_path, media_type='application/octet-stream', filename="gamefile-csv.zip")
 
-@app.get("/json/{file}",
+@app.get("/json/{type}",
          tags=["Game Files"],
-         name="View json game data (/json/list, for list of files)")
-@limiter.limit("30/second")
-async def json(file: str, request: Request, response: Response):
-    if file == "list":
-        return {"files" : ["troops.json", "heroes.json", "spells.json", "buildings.json", "pets.json", "supers.json", "townhalls.json", "translations.json"]}
-    file_name = f"game-json/{file}"
+         name="View json game data (/json/list, for list of types)")
+@limiter.limit("5/second")
+async def json(type: str, request: Request, response: Response):
+    if type == "list":
+        return {"files" : ["troops", "heroes", "spells", "buildings", "pets", "supers", "townhalls", "translations"]}
+    file_name = f"game-json/{type}.json"
     file_path = os.getcwd() + "/" + file_name
     with open(file_path) as json_file:
         data = ujson.load(json_file)
