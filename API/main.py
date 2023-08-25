@@ -682,14 +682,16 @@ async def csv(request: Request, response: Response):
 
 @app.get("/json/{file}",
          tags=["Game Files"],
-         name="Download json game data (/json/list, for list of files)")
+         name="View json game data (/json/list, for list of files)")
 @limiter.limit("30/second")
 async def json(file: str, request: Request, response: Response):
     if file == "list":
         return {"files" : ["troops.json", "heroes.json", "spells.json", "buildings.json", "pets.json", "supers.json", "townhalls.json", "translations.json"]}
     file_name = f"game-json/{file}"
     file_path = os.getcwd() + "/" + file_name
-    return FileResponse(path=file_path, media_type='application/octet-stream', filename=f"{file}")
+    with open(file_path) as json_file:
+        data = ujson.load(json_file)
+        return data
 
 #UTILS
 @app.post("/table",
