@@ -903,9 +903,10 @@ async def discord_link(player_tags: List[str], request: Request, response: Respo
 
 @app.get("/v1/{url:path}",
          tags=["Utils"],
-         name="Test a coc api endpoint, very high ratelimit, only for testing without auth")
+         name="Test a coc api endpoint, very high ratelimit, only for testing without auth",
+         include_in_schema=False)
 @cache(expire=60)
-@limiter.limit("5/minute")
+@limiter.limit("30/minute")
 async def test_endpoint(url: str, request: Request, response: Response):
     url = url.replace("#", '%23')
     url = url.replace("!", '%23')
