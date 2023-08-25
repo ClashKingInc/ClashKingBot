@@ -44,7 +44,7 @@ async def catch_exceptions_middleware(request: Request, call_next):
         # you probably want some kind of logging here
         return Response("Not Found", status_code=404)
 
-#app.middleware('http')(catch_exceptions_middleware)
+app.middleware('http')(catch_exceptions_middleware)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -78,7 +78,7 @@ player_versus_trophies = ranking_history.player_versus_trophies
 clan_trophies = ranking_history.clan_trophies
 clan_versus_trophies = ranking_history.clan_versus_trophies
 capital_trophies = ranking_history.capital
-
+basic_clan = looper.clan_tags
 
 link_client = None
 CACHED_SEASONS = []
@@ -326,6 +326,19 @@ async def clan_historical(clan_tag: str, request: Request, response: Response):
     if result is not None:
         del result["_id"]
     return result
+
+@app.get("/clan/{clan_tag}/basic",
+         tags=["Clan Endpoints"],
+         name="Basic Clan Object")
+@cache(expire=300)
+@limiter.limit("30/second")
+async def clan_basic(clan_tag: str, request: Request, response: Response):
+    clan_tag = fix_tag(clan_tag)
+    result = await basic_clan.find_one({"tag": clan_tag})
+    if result is not None:
+        del result["_id"]
+    return result
+
 
 @app.get("/clan/{clan_tag}/historical/{season}",
          tags=["Clan Endpoints"],
@@ -895,6 +908,7 @@ async def discord_link(player_tags: List[str], request: Request, response: Respo
 @limiter.limit("5/minute")
 async def test_endpoint(url: str, request: Request, response: Response):
     url = url.replace("#", '%23')
+    url = url.replace("!", '%23')
     url = url.split("?")[0]
     headers = {"Accept": "application/json", "authorization": f"Bearer {os.getenv('COC_KEY')}"}
     async with aiohttp.ClientSession() as session:
