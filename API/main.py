@@ -298,6 +298,8 @@ async def player_bulk(player_tags: List[str], request: Request, resonse: Respons
 @limiter.limit("30/second")
 async def capital_log(clan_tag: str, request: Request, response: Response):
     results = await capital.find({"clan_tag" : fix_tag(clan_tag)}).to_list(length=None)
+    for result in results:
+        del result["_id"]
     return results
 
 @app.post("/capital/bulk",
@@ -308,6 +310,7 @@ async def capital_bulk(clan_tags: List[str], request: Request, response: Respons
     results = await capital.find({"clan_tag": {"$in" : [fix_tag(tag) for tag in clan_tags[:100]]}}).to_list(length=None)
     fixed_results = defaultdict(list)
     for result in results:
+        del result["_id"]
         tag = result.get("clan_tag")
         del result["clan_tag"]
         fixed_results[tag].append(result.get("data"))
