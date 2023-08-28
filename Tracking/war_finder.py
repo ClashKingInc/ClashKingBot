@@ -166,6 +166,7 @@ async def broadcast(keys):
                 responses = await asyncio.gather(*tasks, return_exceptions=True)
                 await session.close()
 
+            responses = [r for r in responses if type(r) is tuple]
             changes = []
             for response, tag in responses:
                 # we shouldnt have completely invalid tags, they all existed at some point
@@ -191,7 +192,7 @@ async def broadcast(keys):
                     #schedule getting war
                     try:
                         scheduler.add_job(store_war, 'date', run_date=run_time, args=[tag, opponent_tag, int(coc.Timestamp(data=war.preparationStartTime).time.timestamp())],
-                                          id=f"war_end_{tag}_{opponent_tag}", name=f"{tag}_war_end_{opponent_tag}", misfire_grace_time=1200, max_instances=500)
+                                          id=f"war_end_{tag}_{opponent_tag}", name=f"{tag}_war_end_{opponent_tag}", misfire_grace_time=1200, max_instances=250)
                     except Exception:
                         ones_that_tried_again.append(tag)
                         pass
