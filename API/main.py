@@ -682,7 +682,7 @@ async def builder_base_leagues(request: Request, response: Response):
                 tier = len(split[-1])
             else:
                 tier = 1
-            item["iconUrls"] = f"https://cdn.clashking.xyz/clash-assets/builder_base_{split[0].lower()}_{split[1].lower()}_{tier}.png"
+            item["iconUrls"] = {"medium" : f"https://cdn.clashking.xyz/clash-assets/builder_base_{split[0].lower()}_{split[1].lower()}_{tier}.png"}
         return data
 
 
