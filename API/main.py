@@ -686,16 +686,16 @@ async def builder_base_leagues(request: Request, response: Response):
         return data
 
 
-#GAME FILES
+#GAME DATA
 @app.get("/assets",
-         tags=["Game Files"],
+         tags=["Game Data"],
          name="Link to download a zip with all assets")
 @limiter.limit("5/second")
 async def assets(request: Request, response: Response):
     return {"download-link" : "https://cdn.clashking.xyz/Out-Sprites.zip"}
 
 @app.get("/csv",
-         tags=["Game Files"],
+         tags=["Game Data"],
          name="Download zip of all csv files")
 @limiter.limit("5/second")
 async def csv(request: Request, response: Response):
@@ -704,7 +704,7 @@ async def csv(request: Request, response: Response):
     return FileResponse(path=file_path, media_type='application/octet-stream', filename="gamefile-csv.zip")
 
 @app.get("/json/{type}",
-         tags=["Game Files"],
+         tags=["Game Data"],
          name="View json game data (/json/list, for list of types)")
 @limiter.limit("5/second")
 async def json(type: str, request: Request, response: Response):
@@ -715,6 +715,13 @@ async def json(type: str, request: Request, response: Response):
     with open(file_path) as json_file:
         data = ujson.load(json_file)
         return data
+
+@app.get("/goldpass",
+         tags=["Game Data"],
+         name="Gold Pass Item Info")
+@limiter.limit("30/second")
+async def gold_pass(type: str, request: Request, response: Response):
+    return {"type" : "Work In Progress"}
 
 #UTILS
 @app.post("/table",
