@@ -1,0 +1,172 @@
+{
+  "items": [
+    {
+      "id": 44000000,
+      "name": "Wood League V"
+    },
+    {
+      "id": 44000001,
+      "name": "Wood League IV"
+    },
+    {
+      "id": 44000002,
+      "name": "Wood League III"
+    },
+    {
+      "id": 44000003,
+      "name": "Wood League II"
+    },
+    {
+      "id": 44000004,
+      "name": "Wood League I"
+    },
+    {
+      "id": 44000005,
+      "name": "Clay League V"
+    },
+    {
+      "id": 44000006,
+      "name": "Clay League IV"
+    },
+    {
+      "id": 44000007,
+      "name": "Clay League III"
+    },
+    {
+      "id": 44000008,
+      "name": "Clay League II"
+    },
+    {
+      "id": 44000009,
+      "name": "Clay League I"
+    },
+    {
+      "id": 44000010,
+      "name": "Stone League V"
+    },
+    {
+      "id": 44000011,
+      "name": "Stone League IV"
+    },
+    {
+      "id": 44000012,
+      "name": "Stone League III"
+    },
+    {
+      "id": 44000013,
+      "name": "Stone League II"
+    },
+    {
+      "id": 44000014,
+      "name": "Stone League I"
+    },
+    {
+      "id": 44000015,
+      "name": "Copper League V"
+    },
+    {
+      "id": 44000016,
+      "name": "Copper League IV"
+    },
+    {
+      "id": 44000017,
+      "name": "Copper League III"
+    },
+    {
+      "id": 44000018,
+      "name": "Copper League II"
+    },
+    {
+      "id": 44000019,
+      "name": "Copper League I"
+    },
+    {
+      "id": 44000020,
+      "name": "Brass League III"
+    },
+    {
+      "id": 44000021,
+      "name": "Brass League II"
+    },
+    {
+      "id": 44000022,
+      "name": "Brass League I"
+    },
+    {
+      "id": 44000023,
+      "name": "Iron League III"
+    },
+    {
+      "id": 44000024,
+      "name": "Iron League II"
+    },
+    {
+      "id": 44000025,
+      "name": "Iron League I"
+    },
+    {
+      "id": 44000026,
+      "name": "Steel League III"
+    },
+    {
+      "id": 44000027,
+      "name": "Steel League II"
+    },
+    {
+      "id": 44000028,
+      "name": "Steel League I"
+    },
+    {
+      "id": 44000029,
+      "name": "Titanium League III"
+    },
+    {
+      "id": 44000030,
+      "name": "Titanium League II"
+    },
+    {
+      "id": 44000031,
+      "name": "Titanium League I"
+    },
+    {
+      "id": 44000032,
+      "name": "Platinum League III"
+    },
+    {
+      "id": 44000033,
+      "name": "Platinum League II"
+    },
+    {
+      "id": 44000034,
+      "name": "Platinum League I"
+    },
+    {
+      "id": 44000035,
+      "name": "Emerald League III"
+    },
+    {
+      "id": 44000036,
+      "name": "Emerald League II"
+    },
+    {
+      "id": 44000037,
+      "name": "Emerald League I"
+    },
+    {
+      "id": 44000038,
+      "name": "Ruby League III"
+    },
+    {
+      "id": 44000039,
+      "name": "Ruby League II"
+    },
+    {
+      "id": 44000040,
+      "name": "Ruby League I"
+    },
+    {
+      "id": 44000041,
+      "name": "Diamond League"
+    }
+  ]
+}

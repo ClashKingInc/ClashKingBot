@@ -665,6 +665,27 @@ async def clan_capital_ranking(location: Union[int, str], date: str, request: Re
     return r.get("data")
 
 
+@app.get("/builderbaseleagues",
+         tags=["Leagues"],
+         name="Builder Base Leagues w/ Icons")
+@cache(expire=300)
+@limiter.limit("30/second")
+async def builder_base_leagues(request: Request, response: Response):
+    file_name = "builder_league.json"
+    file_path = os.getcwd() + "/" + file_name
+    with open(file_path) as json_file:
+        data = ujson.load(json_file)
+        for item in data.get("items"):
+            league = item.get("name")
+            split = league.split(" ")
+            if len(split) == 3:
+                tier = len(split[-1])
+            else:
+                tier = 1
+            item["iconUrls"] = f"https://cdn.clashking.xyz/clash-assets/builder_base_{split[0].lower()}_{split[1].lower()}_{tier}.png"
+        return data
+
+
 #GAME FILES
 @app.get("/assets",
          tags=["Game Files"],
