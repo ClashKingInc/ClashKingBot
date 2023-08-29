@@ -720,7 +720,7 @@ async def json(type: str, request: Request, response: Response):
          tags=["Game Data"],
          name="Gold Pass Item Info")
 @limiter.limit("30/second")
-async def gold_pass(type: str, request: Request, response: Response):
+async def gold_pass(season: str, request: Request, response: Response):
     return {"type" : "Work In Progress"}
 
 #UTILS
