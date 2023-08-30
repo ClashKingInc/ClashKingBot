@@ -679,7 +679,10 @@ async def builder_base_leagues(request: Request, response: Response):
             league = item.get("name")
             split = league.split(" ")
             if len(split) == 3:
-                tier = len(split[-1])
+                if "V" in split[-1]:
+                    tier = len(split[-1]) + 4
+                else:
+                    tier = len(split[-1])
             else:
                 tier = 1
             item["iconUrls"] = {"medium" : f"https://cdn.clashking.xyz/clash-assets/builder_base_{split[0].lower()}_{split[1].lower()}_{tier}.png"}
