@@ -679,8 +679,10 @@ async def builder_base_leagues(request: Request, response: Response):
             league = item.get("name")
             split = league.split(" ")
             if len(split) == 3:
-                if "V" in split[-1]:
-                    tier = len(split[-1]) + 4
+                if "IV" in split[-1]:
+                    tier = 4
+                elif "V" in split[-1]:
+                    tier = 5
                 else:
                     tier = len(split[-1])
             else:
