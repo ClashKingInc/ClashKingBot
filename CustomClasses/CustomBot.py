@@ -123,7 +123,7 @@ class CustomClient(commands.AutoShardedBot):
 
         self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwarapi.login(username=os.getenv("FW_USER"), password=os.getenv("FW_PW"), coc_client=self.coc_client))
 
-        self.redis = redis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"), retry_on_timeout=True, single_connection_client=True)
+        self.redis = redis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"), retry_on_timeout=True, max_connections=25)
 
         self.emoji = Emojis()
         self.locations = locations
