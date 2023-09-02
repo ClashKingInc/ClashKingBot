@@ -19,7 +19,6 @@ async def main(page: ft.Page):
         appbar = ft.AppBar(
             leading=ft.Icon(ft.icons.MENU),
             leading_width=40,
-            title=ft.Text("ClashKing"),
             center_title=False,
             actions=[
                 ft.PopupMenuButton(
