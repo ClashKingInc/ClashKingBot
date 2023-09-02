@@ -74,6 +74,7 @@ class CustomClient(commands.AutoShardedBot):
         self.clan_join_leave: collection_class = self.new_looper.clan_join_leave
         self.base_stats: collection_class = self.looper_db.looper.base_stats
         self.autoboards: collection_class = self.looper_db.clashking.autoboards
+        self.clan_war: collection_class = self.looper_db.looper.clan_war
 
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
@@ -122,8 +123,7 @@ class CustomClient(commands.AutoShardedBot):
 
         self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwarapi.login(username=os.getenv("FW_USER"), password=os.getenv("FW_PW"), coc_client=self.coc_client))
 
-        #self.elasticsearch = AsyncElasticsearch("https://my-deployment-f48bd5.es.us-east-1.aws.found.io:443", api_key=os.getenv("ES_TOKEN"))
-        self.redis = redis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"))
+        self.redis = redis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"), retry_on_timeout=True, single_connection_client=True)
 
         self.emoji = Emojis()
         self.locations = locations
@@ -772,8 +772,16 @@ class CustomClient(commands.AutoShardedBot):
                 if war.state == "notInWar":
                     return None
                 return war
-            except:
-                return None
+            except coc.PrivateWarLog:
+                now = datetime.utcnow().timestamp()
+                result = await self.clan_war.find_one({"$and" : [{"endTime" : {"$gte" : now}}, {"opponent" : coc.utils.correct_tag(clanTag)}]})
+                if result is None:
+                    return None
+                clan_to_use = result.get("clan")
+                war = await self.coc_client.get_current_war(clan_tag=clan_to_use)
+                raw_data = war._raw_data
+                war = coc.ClanWar(client=self.coc_client, data=raw_data, clan_tag=war.opponent.tag)
+                return war
         else:
             try:
                 war = await self.coc_client.get_current_war(clanTag, cwl_round=coc.WarRound.current_preparation)
