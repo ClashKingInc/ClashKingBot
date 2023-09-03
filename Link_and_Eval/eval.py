@@ -66,20 +66,19 @@ class eval(commands.Cog, name="Eval"):
         server = CustomServer(guild=ctx.guild, bot=self.bot)
         change_nick = await server.nickname_choice
         members = [await ctx.guild.getch_member(member.id) for member in role.members]
-        clan = await self.bot.clan_db.find_one({"generalRole": role.id})
-        if clan is not None:
+        clans = await self.bot.clan_db.find({"generalRole": role.id}).to_list(length=None)
+        if clans:
+            clans = await self.bot.get_clans(tags=[clan.get("tag") for clan in clans])
             embed = disnake.Embed(
                 description="<a:loading:884400064313819146> Adding current clan members to eval...",
                 color=disnake.Color.green())
             await ctx.edit_original_message(embed=embed)
-            clanTag = clan.get("tag")
-            clan = await self.bot.getClan(clanTag)
-            async for player in clan.get_detailed_members():
-                tag = player.tag
-                member = await self.bot.link_client.get_link(tag)
-                member = await self.bot.pingToMember(ctx, str(member))
-                if (member not in members) and (member is not None):
-                    members.append(member)
+            for clan in clans:
+                for player in clan.members:
+                    member = await self.bot.link_client.get_link(player.tag)
+                    member = await self.bot.pingToMember(ctx, str(member))
+                    if (member not in members) and (member is not None):
+                        members.append(member)
         await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=members, role_or_user=role, test=test, change_nick=change_nick, role_types_to_eval=default_eval)
 
     @eval.sub_command(name="tag", description="Evaluate the role of the user connected to a tag")
