@@ -590,8 +590,6 @@ async def linked_players(bot: CustomClient, clan: coc.Clan, guild: disnake.Guild
         player_link_count += 1
         if db_clan is None:
             member = await guild.getch_member(player_link)
-        else:
-            member = await bot.getch_user(player_link)
         # member not found in server
         if member is None:
             member = ""
