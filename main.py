@@ -37,7 +37,7 @@ intents.guilds = True
 intents.emojis = True
 intents.messages = True
 intents.message_content = True
-bot = CustomClient(shard_count=2 if not IS_BETA else 1, command_prefix="??",help_command=None, intents=intents)
+bot = CustomClient(command_prefix="??",help_command=None, intents=intents)
 
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
@@ -92,7 +92,7 @@ initial_extensions = [
     "BoardCommands.Buttons.Buttons",
     "BoardCommands.Commands.WarCommands",
     "BoardCommands.Buttons.Clan",
-    #"Exceptions.ExceptionHandler",
+    "Exceptions.ExceptionHandler",
     "Export.ExportsCog",
     "FamilyManagement.Reminders.Reminders",
     "FamilyManagement.bans",
@@ -117,12 +117,13 @@ initial_extensions = [
     "poster.poster",
     "other",
     "Link_and_Eval.link_button",
+    "discord_events"
 ]
 
 #let local & main run only
 if not IS_CUSTOM:
     initial_extensions += [
-        "owner_commands"
+        "owner_commands",
     ]
 
 #dont let custom or local run
@@ -151,7 +152,6 @@ if not IS_TEST:
         "Background.Logs.player_upgrade_events",
         "Background.Logs.war_track",
         "Background.background_cache",
-        "discord_events",
     ]
 
 
