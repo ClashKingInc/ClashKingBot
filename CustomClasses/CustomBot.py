@@ -123,7 +123,7 @@ class CustomClient(commands.AutoShardedBot):
 
         self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwarapi.login(username=os.getenv("FW_USER"), password=os.getenv("FW_PW"), coc_client=self.coc_client))
 
-        self.redis = redis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"), retry_on_timeout=True, max_connections=25)
+        self.redis = redis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"), retry_on_timeout=True, max_connections=25, retry_on_error=[redis.ConnectionError])
 
         self.emoji = Emojis()
         self.locations = locations
@@ -730,12 +730,8 @@ class CustomClient(commands.AutoShardedBot):
                 clan_tag = search[1]
 
         clan_tag = coc.utils.correct_tag(clan_tag)
-        clan_data = await self.clan_cache.find_one({"tag": clan_tag})
         try:
-            if clan_data is None:
-                clan = await self.coc_client.get_clan(clan_tag)
-            else:
-                clan = coc.Clan(data=clan_data.get("data"), client=self.coc_client)
+            clan = await self.coc_client.get_clan(clan_tag)
         except:
             if raise_exceptions:
                 raise
