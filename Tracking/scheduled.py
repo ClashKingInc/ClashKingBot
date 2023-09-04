@@ -173,7 +173,7 @@ def create_keys():
             print(e)
 
 
-@scheduler.scheduled_job("cron", day_of_week="mon", hour=20, minute=45)
+@scheduler.scheduled_job("cron", day_of_week="mon", hour=21, minute=45)
 async def store_clan_capital():
     async def fetch(url, session: aiohttp.ClientSession, headers, tag):
         async with session.get(url, headers=headers) as response:
@@ -181,12 +181,6 @@ async def store_clan_capital():
                 return ((await response.json()), tag)
             return (None, None)
 
-    async def gather_with_concurrency(*tasks):
-        async def sem_task(task):
-            async with throttler:
-                return await task
-
-        return await asyncio.gather(*(sem_task(task) for task in tasks), return_exceptions=True)
 
     global keys
     pipeline = [{"$match": {}}, {"$group": {"_id": "$tag"}}]
@@ -205,7 +199,7 @@ async def store_clan_capital():
                 keys.rotate(1)
                 tasks.append(fetch(f"https://api.clashofclans.com/v1/clans/{tag.replace('#', '%23')}/capitalraidseasons?limit=1", session,
                                    {"Authorization": f"Bearer {keys[0]}"}, tag))
-            responses = await gather_with_concurrency(*tasks)
+            responses = await asyncio.gather(*tasks, return_exceptions=True)
             await session.close()
 
         changes = []
