@@ -3,6 +3,7 @@ from redis import asyncio as aioredis
 import os
 import re
 from dotenv import load_dotenv
+
 load_dotenv()
 client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
 other_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
@@ -40,3 +41,11 @@ def fix_tag(tag:str):
     tag = tag.replace('%23', '')
     tag = "#" + re.sub(r"[^A-Z0-9]+", "", tag.upper()).replace("O", "0")
     return tag
+
+
+leagues = ["Legend League", "Titan League I" , "Titan League II" , "Titan League III" ,"Champion League I", "Champion League II", "Champion League III",
+                   "Master League I", "Master League II", "Master League III",
+                   "Crystal League I","Crystal League II", "Crystal League III",
+                   "Gold League I","Gold League II", "Gold League III",
+                   "Silver League I","Silver League II","Silver League III",
+                   "Bronze League I", "Bronze League II", "Bronze League III", "Unranked"]

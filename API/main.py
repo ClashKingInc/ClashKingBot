@@ -31,7 +31,7 @@ from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
 from bs4 import BeautifulSoup
 from redis import asyncio as aioredis
-from routers import leagues, player, capital
+from routers import leagues, player, capital, other
 
 load_dotenv()
 
@@ -51,6 +51,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.include_router(player.router)
 app.include_router(capital.router)
 app.include_router(leagues.router)
+app.include_router(other.router)
 
 client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
 other_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
@@ -91,7 +92,6 @@ def fix_tag(tag:str):
     tag = tag.replace('%23', '')
     tag = "#" + re.sub(r"[^A-Z0-9]+", "", tag.upper()).replace("O", "0")
     return tag
-
 
 @app.on_event("startup")
 async def startup_event():
@@ -699,7 +699,7 @@ async def render(url: str):
 @app.post("/discord_links",
          tags=["Utils"],
          name="Get discord links for tags",
-         include_in_schema=True)
+         include_in_schema=False)
 @limiter.limit("5/second")
 async def discord_link(player_tags: List[str], request: Request, response: Response):
     global link_client
@@ -764,5 +764,5 @@ def custom_openapi():
 app.openapi = custom_openapi
 
 if __name__ == '__main__':
-    uvicorn.run("main:app", host='0.0.0.0', port=443, ssl_keyfile="/etc/letsencrypt/live/api.clashking.xyz/privkey.pem", ssl_certfile="/etc/letsencrypt/live/api.clashking.xyz/fullchain.pem", workers=6)
-    #uvicorn.run("main:app", host='localhost', port=80)
+    #uvicorn.run("main:app", host='0.0.0.0', port=443, ssl_keyfile="/etc/letsencrypt/live/api.clashking.xyz/privkey.pem", ssl_certfile="/etc/letsencrypt/live/api.clashking.xyz/fullchain.pem", workers=6)
+    uvicorn.run("main:app", host='localhost', port=80)
