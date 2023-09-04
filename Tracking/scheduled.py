@@ -173,7 +173,7 @@ def create_keys():
             print(e)
 
 
-@scheduler.scheduled_job("cron", day_of_week="mon", hour=21, minute=45)
+@scheduler.scheduled_job("cron", day_of_week="mon", hour=9)
 async def store_clan_capital():
     async def fetch(url, session: aiohttp.ClientSession, headers, tag):
         async with session.get(url, headers=headers) as response:
