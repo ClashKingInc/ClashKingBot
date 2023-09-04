@@ -59,6 +59,7 @@ async def capital_stats_district(weekend: str, request: Request, response: Respo
 @cache(expire=8000000)
 @limiter.limit("30/second")
 async def capital_stats_leagues(weekend: str, request: Request, response: Response):
+    og_weekend = weekend
     weekend_to_iso = datetime.strptime(weekend, "%Y-%m-%d")
     if (datetime.now() - weekend_to_iso).total_seconds() <= 273600:
         raise HTTPException(status_code=404, detail=f"Please wait until 4 hours after Raid Weekend is completed to collect stats")
@@ -106,7 +107,7 @@ async def capital_stats_leagues(weekend: str, request: Request, response: Respon
     }, {
         '$set': {
             'league': {
-                '$first': '$league.changes.clanCapital.2023-09-01.league'
+                '$first': f'$league.changes.clanCapital.{og_weekend}.league'
             }
         }
     },
