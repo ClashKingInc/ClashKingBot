@@ -54,14 +54,15 @@ async def image_board(bot: CustomClient, players: List[MyCustomPlayer], logo_url
         for player in players:
             count -= 1
             c = f"{count}."
-            data.append([f"{c:3} {player.name.replace('$','')}", player.donos().donated, player.donos().received, convert_seconds(now_seconds - player.last_online), len(player.season_last_online())])
+            lo = convert_seconds(now_seconds - player.last_online) if player.last_online else "N/A"
+            data.append([f"{c:3} {player.name.replace('$','')}", player.donos().donated, player.donos().received, lo, len(player.season_last_online())])
 
     data = {
         "columns" : columns,
         "data" : data,
         "logo" : logo_url,
         "badge_columns" : badges,
-        "title" : title
+        "title" : re.sub('[*_`~/"#]', '', title),
     }
     async with aiohttp.ClientSession(json_serialize=ujson.dumps) as session:
         async with session.post("https://api.clashking.xyz/table", json=data) as response:
