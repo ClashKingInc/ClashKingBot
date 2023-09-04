@@ -173,7 +173,7 @@ def create_keys():
             print(e)
 
 
-@scheduler.scheduled_job("cron", day_of_week="mon", hour=9)
+@scheduler.scheduled_job("cron", day_of_week="mon", hour=20, minute=45)
 async def store_clan_capital():
     async def fetch(url, session: aiohttp.ClientSession, headers, tag):
         async with session.get(url, headers=headers) as response:
@@ -199,7 +199,8 @@ async def store_clan_capital():
         deque = collections.deque
         connector = aiohttp.TCPConnector(limit=250, ttl_dns_cache=300)
         keys = deque(keys)
-        async with aiohttp.ClientSession(connector=connector, json_serialize=ujson.dumps) as session:
+        timeout = aiohttp.ClientTimeout(total=1800)
+        async with aiohttp.ClientSession(connector=connector, timeout=timeout, json_serialize=ujson.dumps) as session:
             for tag in tag_group:
                 keys.rotate(1)
                 tasks.append(fetch(f"https://api.clashofclans.com/v1/clans/{tag.replace('#', '%23')}/capitalraidseasons?limit=1", session,
@@ -208,6 +209,7 @@ async def store_clan_capital():
             await session.close()
 
         changes = []
+        responses = [r for r in responses if type(r) is tuple]
         for response, tag in responses:
             try:
                 # we shouldnt have completely invalid tags, they all existed at some point
