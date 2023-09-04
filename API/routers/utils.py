@@ -1,5 +1,6 @@
 import motor.motor_asyncio
 from redis import asyncio as aioredis
+import redis
 import os
 import re
 from dotenv import load_dotenv
@@ -7,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
 other_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
-redis = aioredis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"))
+redis = aioredis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"), retry_on_timeout=True, max_connections=25, retry_on_error=[redis.ConnectionError])
 
 player_search = other_client.usafam.player_search
 looper = client.looper
