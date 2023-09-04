@@ -39,16 +39,11 @@ passwords = []
 
 BETA = False
 
-if not BETA:
-    #1-12
-    for x in range(1,13):
-        emails.append(f"apiclashofclans+test{x}@gmail.com")
-        passwords.append(os.getenv("COC_PASSWORD"))
-else:
-    # 14-17
-    for x in range(14, 18):
-        emails.append(f"apiclashofclans+test{x}@gmail.com")
-        passwords.append(os.getenv("COC_PASSWORD"))
+
+for x in range(1,13):
+    emails.append(f"apiclashofclans+test{x}@gmail.com")
+    passwords.append(os.getenv("COC_PASSWORD"))
+
 
 
 async def get_keys(emails: list, passwords: list, key_names: str, key_count: int):
@@ -366,11 +361,11 @@ async def main(PLAYER_CLIENTS):
                                         if old_value is None:
                                             bulk_insert.append(InsertOne({"tag": tag, "type": type_, "value": value,
                                                                           "time": int(datetime.now().timestamp()),
-                                                                          "clan": clan_tag}))
+                                                                          "clan": clan_tag, "th" : new_response.get("townHallLevel")}))
                                         else:
                                             bulk_insert.append(InsertOne(
                                                 {"tag": tag, "type": type_, "p_value": old_value, "value": value,
-                                                 "time": int(datetime.now().timestamp()), "clan": clan_tag}))
+                                                 "time": int(datetime.now().timestamp()), "clan": clan_tag, "th" : new_response.get("townHallLevel")}))
                                     if type_ == "donations":
                                         previous_dono = 0 if (previous_dono := previous_response["donations"]) > (
                                             current_dono := new_response["donations"]) else previous_dono
