@@ -64,7 +64,6 @@ async def capital_stats_leagues(weekend: str, request: Request, response: Respon
         raise HTTPException(status_code=404, detail=f"Please wait until 4 hours after Raid Weekend is completed to collect stats")
     weekend_to_iso = weekend_to_iso.replace(hour=7)
     weekend = weekend_to_iso.strftime('%Y%m%dT%H%M%S.000Z')
-    weekend_to_iso = datetime.strptime(weekend, "%Y-%m-%d")
     pipeline = [
     {
         '$match': {
