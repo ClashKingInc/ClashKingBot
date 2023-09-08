@@ -132,7 +132,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             sort_by: Sort by any attribute
             limit: change amount of results shown
         """
-
         embed = await shared_embeds.player_sort(bot=self.bot, player_tags=[member.tag for member in clan.members], sort_by=sort_by,
                                                 footer_icon=clan.badge.url, title_name=f"{clan.name} sorted by {sort_by}", limit=limit)
 

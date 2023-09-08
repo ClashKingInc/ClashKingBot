@@ -50,7 +50,7 @@ class BanEvents(commands.Cog):
 
                     try:
                         channel = await self.bot.getch_channel(channel_id=db_clan.clan_channel if db_clan.ban_alert_channel is None else db_clan.ban_alert_channel)
-                        await channel.send(embed=embed)
+                        await channel.send(content=role, embed=embed)
                     except (disnake.NotFound, disnake.Forbidden):
                         if db_clan.ban_alert_channel is None:
                             await db_clan.set_clan_channel(id=None)

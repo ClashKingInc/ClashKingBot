@@ -1,15 +1,13 @@
 import asyncio
 import datetime
-import os
-
+import random
 import disnake
-import coc
 from main import scheduler
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-import sentry_sdk
 from FamilyManagement.Reminders import SendReminders
 from utils.war import create_reminders, send_or_update_war_end, send_or_update_war_start
+from utils.constants import USE_CODE_TEXT
 has_started = False
 
 class DiscordEvents(commands.Cog):
@@ -20,6 +18,8 @@ class DiscordEvents(commands.Cog):
     @commands.Cog.listener()
     async def on_connect(self):
         print("connected")
+        if self.bot.user.id == 808566437199216691:
+            return
         if self.bot.user.public_flags.verified_bot:
             len_g = len(self.bot.guilds)
             for count, shard in self.bot.shards.items():
@@ -184,7 +184,20 @@ class DiscordEvents(commands.Cog):
         await channel.edit(name=f"ClashKing: {len_g} Servers")
 
     @commands.Cog.listener()
-    async def on_application_command(self, ctx:disnake.ApplicationCommandInteraction):
+    async def on_application_command(self, ctx: disnake.ApplicationCommandInteraction):
+        try:
+            msg = await ctx.original_message()
+            if not msg.flags.ephemeral and (ctx.locale == disnake.Locale.en_US or ctx.locale == disnake.Locale.en_GB):
+                last_run = await self.bot.command_stats.find_one(filter={"user" : ctx.author.id}, sort=[("time", -1)])
+                last_run = None
+                if last_run is None or int(datetime.datetime.now().timestamp()) - last_run.get('time') >= 7 * 86400:
+                    while msg.flags.loading:
+                        await asyncio.sleep(1.5)
+                        msg = await ctx.channel.fetch_message(msg.id)
+                    await ctx.followup.send(f"{random.choice(USE_CODE_TEXT)}\n", ephemeral=True)
+        except Exception:
+            pass
+
         await self.bot.command_stats.insert_one({
             "user": ctx.author.id,
             "command_name" : ctx.application_command.qualified_name,

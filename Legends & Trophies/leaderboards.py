@@ -389,8 +389,13 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                     await ctx.send(embed=embed)
 
     @leaderboard.sub_command(name="players", description="Player leaderboard of a location")
-    async def player_leaderboards(self, ctx: disnake.ApplicationCommandInteraction, country: str):
-
+    async def player_leaderboards(self, ctx: disnake.ApplicationCommandInteraction, country: str, limit=100):
+        """
+            Parameters
+            ----------
+            country: country to fetch leaderboard for
+            limit: default 100, set to 25 for a refreshable board
+        """
         await ctx.response.defer()
         loc = await self.bot.coc_client.get_location_named(country)
         if country == "Global":

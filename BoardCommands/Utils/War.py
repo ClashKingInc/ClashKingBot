@@ -282,15 +282,40 @@ async def opp_overview(bot: CustomClient, war: coc.ClanWar):
     return embed
 
 
-async def plan_embed(bot: CustomClient, plans, war: coc.ClanWar, embed_color = disnake.Color.green()) -> disnake.Embed:
+async def plan_text(bot: CustomClient, plans, war: coc.ClanWar) -> str:
     plans = [WarPlan(p) for p in plans]
-    text = ""
-    for plan in sorted(plans, key=lambda x: x.map_position):
-        text += f"({plan.map_position}){bot.fetch_emoji(name=plan.townhall_level)}{plan.name} | {plan.plan_text}\n"
+    same_ones = defaultdict(list)
+    for plan in plans:
+        same_ones[plan.plan_text].append(plan)
 
-    if text == "":
-        text = "No Plans Inserted Yet"
-    embed = disnake.Embed(title=f"{war.clan.name} vs {war.opponent.name} WarPlan", description=text, colour=embed_color)
+    badge = await bot.create_new_badge_emoji(url=war.clan.badge.url)
+    text = f"## {badge}War Plan ({war.clan.name})\n"
+    for p, plan_list in sorted(same_ones.items(), key=lambda x: (len(x[1]), -(sum(z.map_position for z in x[1]))), reverse=True):
+        '''title = "("
+        title += ",".join([f"#{plan.map_position}" for plan in plan_list])
+        title += ") **"'''
+        title = "**"
+        title += ",".join([f"{plan.name}{create_superscript(num=plan.townhall_level)}" for plan in plan_list])
+        title += "**\n"
+        text += f"{title}{plan_list[-1].plan_text}\n"
+
+    if text == f"## {badge}War Plan ({war.clan.name})\n":
+        text += "No Plans Inserted Yet"
+
+    return text
+
+async def plan_embed(bot: CustomClient, plans, war: coc.ClanWar) -> disnake.Embed:
+    plans = [WarPlan(p) for p in plans]
+    badge = await bot.create_new_badge_emoji(url=war.clan.badge.url)
+    description = ""
+    for plan in sorted(plans, key=lambda x: x.map_position):
+        description += f"{bot.fetch_emoji(name=plan.townhall_level)}**{plan.name}**{create_superscript(num=plan.map_position)}\n{plan.plan_text}\n"
+
+    if description == "":
+        description += "No Plans Inserted Yet"
+
+    embed = disnake.Embed(title=f"###  {badge}War Plan ({war.clan.name} vs {war.opponent.name})\n",
+                          color=disnake.Color.from_rgb(r=43, g=45, b=49))
     return embed
 
 
@@ -334,18 +359,18 @@ async def create_components(bot: CustomClient, plans, war: coc.ClanWar):
 async def open_modal(bot: CustomClient, res: disnake.MessageInteraction):
     components = [
         disnake.ui.TextInput(
-            label=f"Expected Stars",
-            placeholder='can be a range like "1-2" or single like "2"',
-            custom_id=f"stars",
-            required=True,
+            label=f"Plan One",
+            placeholder='Can be any notes, tips, etc for player(s) selected',
+            custom_id=f"plan",
+            required=False,
             style=disnake.TextInputStyle.single_line,
             max_length=50,
         ),
         disnake.ui.TextInput(
-            label=f"Enter the target(s)",
-            placeholder='can be a range like "1-10" or single like "5"',
-            custom_id=f"target",
-            required=True,
+            label=f"Plan Two",
+            placeholder='Can be any notes, tips, etc for player(s) selected',
+            custom_id=f"plan_two",
+            required=False,
             style=disnake.TextInputStyle.single_line,
             max_length=50,
         )
@@ -365,9 +390,9 @@ async def open_modal(bot: CustomClient, res: disnake.MessageInteraction):
         timeout=300,
     )
     await modal_inter.send(content="Added.", ephemeral=True, delete_after=1)
-    stars = modal_inter.text_values["stars"]
-    target = modal_inter.text_values["target"]
-    return (stars, target)
+    plan = modal_inter.text_values["plan"]
+    plan_two = modal_inter.text_values["plan_two"]
+    return plan, plan_two
 
 
 async def war_th_comps(bot: CustomClient, war: coc.ClanWar):

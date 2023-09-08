@@ -9,7 +9,7 @@ from utils.discord_utils import interaction_handler
 from utils.constants import leagues, war_leagues
 from coc.miscmodels import Timestamp
 from pymongo import UpdateOne
-from BoardCommands.Utils.War import plan_embed, create_components, open_modal, main_war_page, roster_embed, opp_roster_embed, \
+from BoardCommands.Utils.War import plan_text, create_components, open_modal, main_war_page, roster_embed, opp_roster_embed, \
     attacks_embed, opp_overview, defenses_embed, opp_defenses_embed, get_cwl_wars, get_latest_war, get_wars_at_round, component_handler, \
     page_manager, create_cwl_status, cwl_ranking_create
 
@@ -175,12 +175,14 @@ class War(commands.Cog):
 
         if option == "Manual Set":
             await ctx.edit_original_message(
-                embed=await plan_embed(bot=self.bot, plans=result.get("plans", []), war=war),
+                content=await plan_text(bot=self.bot, plans=result.get("plans", []), war=war),
                 components=await create_components(bot=self.bot, plans=result.get("plans", []), war=war))
             done = False
             while not done:
                 res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, no_defer=True)
-                stars, targets = await open_modal(bot=self.bot, res=res)
+                plan_one, plan_two = await open_modal(bot=self.bot, res=res)
+                if plan_one == "" and plan_two == "":
+                    continue
                 value_tags = set([x.split("_")[-1] for x in res.values])
                 to_remove = []
                 for plan in result.get("plans", []):
@@ -194,18 +196,18 @@ class War(commands.Cog):
                     war_member = coc.utils.get(war.clan.members, tag=tag)
                     to_update.append(UpdateOne({"server_id" : ctx.guild.id, "clan_tag" : clan.tag, "warStart" : f"{int(war.preparation_start_time.time.timestamp())}"},
                                                {"$push" : {"plans" : {"name" : war_member.name, "player_tag" : war_member.tag, "townhall_level" : war_member.town_hall,
-                                                 "stars" : stars, "targets" : targets, "map_position" : war_member.map_position}}}))
+                                                 "plan" : plan_one, "plan_two" : plan_two, "map_position" : war_member.map_position}}}))
 
                 if to_update:
                     await self.bot.lineups.bulk_write(to_update)
 
                 result = await self.bot.lineups.find_one({"$and": [{"server_id": ctx.guild.id, "clan_tag": clan.tag, "warStart": f"{int(war.preparation_start_time.time.timestamp())}"}]})
-                await ctx.edit_original_message(embed=await plan_embed(bot=self.bot, plans=result.get("plans", []), war=war),
+                await ctx.edit_original_message(content=await plan_text(bot=self.bot, plans=result.get("plans", []), war=war),
                                                 components=await create_components(bot=self.bot, plans=result.get("plans", []), war=war))
         elif option == "Post Plan":
             result = await self.bot.lineups.find_one({"$and": [{"server_id": ctx.guild.id, "clan_tag": clan.tag,
                                                                 "warStart": f"{int(war.preparation_start_time.time.timestamp())}"}]})
-            await ctx.edit_original_message(embed=await plan_embed(bot=self.bot, plans=result.get("plans", []), war=war), components=[])
+            await ctx.edit_original_message(content=await plan_text(bot=self.bot, plans=result.get("plans", []), war=war), components=[])
 
 
 

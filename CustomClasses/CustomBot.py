@@ -42,6 +42,8 @@ import emoji
 utc = pytz.utc
 load_dotenv()
 
+
+
 class CustomClient(commands.AutoShardedBot):
     def __init__(self, **options):
         super().__init__(**options)

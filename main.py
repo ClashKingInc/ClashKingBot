@@ -15,8 +15,7 @@ from Background.Logs.event_websockets import player_websocket, clan_websocket, w
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
 
-parser = argparse.ArgumentParser(description="Just an example",
-                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser = argparse.ArgumentParser(description="Just an example", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-c", "--custom", action="store_true", help="custom mode")
 parser.add_argument("-b", "--beta", action="store_true", help="beta mode")
 parser.add_argument("-k", "--test", action="store_true", help="test mode")
@@ -85,14 +84,14 @@ def check_commands():
     return commands.check(predicate)
 
 initial_extensions = [
-    "BoardCommands.Commands.ClanCommands",
-    "BoardCommands.Commands.TopCommands",
-    "BoardCommands.Commands.FamilyCommands",
-    "BoardCommands.Commands.PlayerCommands",
-    "BoardCommands.Buttons.Buttons",
-    "BoardCommands.Commands.WarCommands",
-    "BoardCommands.Buttons.Clan",
-    "Exceptions.ExceptionHandler",
+    #"BoardCommands.Commands.ClanCommands",
+    #"BoardCommands.Commands.TopCommands",
+    #"BoardCommands.Commands.FamilyCommands",
+    #"BoardCommands.Commands.PlayerCommands",
+    #"BoardCommands.Buttons.Buttons",
+    #"BoardCommands.Commands.WarCommands",
+    #"BoardCommands.Buttons.Clan",
+    #"Exceptions.ExceptionHandler",
     "Export.ExportsCog",
     "FamilyManagement.Reminders.Reminders",
     "FamilyManagement.bans",
@@ -113,12 +112,16 @@ initial_extensions = [
     "Utility.boost",
     "Utility.bases",
     "Utility.link_parsers",
-    "help",
+    "Utility.help",
     "poster.poster",
-    "other",
+    "Utility.other",
     "Link_and_Eval.link_button",
-    "discord_events"
+    "Commands.donations",
+    "Discord.events",
+    "Discord.autocomplete",
+    "Discord.converters"
 ]
+
 
 #let local & main run only
 if not IS_CUSTOM:

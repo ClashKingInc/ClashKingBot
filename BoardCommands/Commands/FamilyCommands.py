@@ -396,7 +396,7 @@ class FamCommands(commands.Cog, name="Family Commands"):
     @clan_games.autocomplete("server")
     @family_history.autocomplete("server")
     @trophies.autocomplete("server")
-    async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+    async def server(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         matches = []
         for guild in self.bot.guilds:
             if guild.member_count < 250:

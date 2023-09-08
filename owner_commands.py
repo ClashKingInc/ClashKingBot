@@ -35,6 +35,16 @@ from Exceptions.CustomExceptions import MissingWebhookPerms
 from datetime import datetime
 from pytz import utc
 from BoardCommands.Utils.Player import upgrade_embed
+from base64 import b64decode as base64_b64decode
+from json import loads as json_loads
+from datetime import datetime
+from pymongo import InsertOne
+import aiohttp
+import asyncio
+from collections import deque
+from msgspec.json import decode
+from msgspec import Struct
+
 
 class OwnerCommands(commands.Cog):
 
@@ -55,14 +65,13 @@ class OwnerCommands(commands.Cog):
                 created += f"{emoji} - `<:{emoji.name}:{emoji.id}>`\n"
         await ctx.send(content=created)
 
-    @commands.slash_command(name="go", guild_ids=[1103679645439754335])
+    @commands.slash_command(name="go")
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
-        player = await self.bot.getPlayer(player_tag="#2LGQJ2GU8")
-        buttons = disnake.ui.ActionRow(disnake.ui.Button(label="", emoji=self.bot.emoji.troop.partial_emoji,
-                                                         style=disnake.ButtonStyle.green,
-                                                         custom_id=f"logrushed_{player.tag}"))
-        await ctx.send(content=f"[{player.name}](<{player.share_link}>) upgraded townhall", components=buttons)
+        pipeline = [{"$group" : {"_id" : "$type", "count" : {"$sum" : 1}}} ]
+        result = await self.bot.clan_history.aggregate(pipeline=pipeline).to_list(length=None)
+        print(result)
+
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):

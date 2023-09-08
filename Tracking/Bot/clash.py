@@ -7,11 +7,10 @@ from utils.keys import get_keys
 load_dotenv()
 from coc import Client
 from typing import AsyncGenerator
-EMAILS = ["apiclashofclans+test30@gmail.com",
-          "apiclashofclans+test39@gmail.com",
-          "apiclashofclans+test41@gmail.com",
-          "apiclashofclans+test42@gmail.com",
-          "apiclashofclans+test43@gmail.com"]
+EMAILS = ["apiclashofclans+test44@gmail.com",
+          "apiclashofclans+test45@gmail.com",
+          "apiclashofclans+test46@gmail.com",
+          "apiclashofclans+test47@gmail.com"]
 PASSWORDS = [os.getenv("COC_PASSWORD") for x in range(len(EMAILS))]
 
 class AbstractClient:
@@ -59,5 +58,6 @@ class AbstractClient:
 abstractClient = AbstractClient()
 
 
-
-coc_client = asyncio.get_event_loop().run_until_complete(abstractClient.get_client())
+async def setup_coc():
+    coc_client = await abstractClient.get_client()
+    return coc_client

@@ -39,10 +39,16 @@ async def search_name_with_tag(query):
         names.append((f'{create_superscript(document.get("th"))}{document.get("name")} ({league})' + " | " + document.get("tag"), document.get("th")))
     return names
 
-def printer(e):
-    print("")
+
 
 class SearchBar(ft.UserControl):
+    def __init__(self, page):
+        super().__init__()
+        self.page = page
+
+    def printer(self, tag):
+        self.page.go(f"/players/{tag}")
+
     async def textbox_changed(self, string):
         NAMES = await search_name_with_tag(query=string.control.value)
         list_items = {
@@ -52,7 +58,7 @@ class SearchBar(ft.UserControl):
                 leading=ft.Image(
                     src=thDictionary(th),
                     fit=ft.ImageFit.CONTAIN),
-                on_click=printer,
+                on_click=self.printer(name.split("| ")[-1]),
                 expand=True
             )
             for name, th in NAMES
@@ -85,9 +91,7 @@ async def MainView(page:ft.Page):
     async def open_settings(e):
         await page.go_async("/players/#2PP")
 
-
-
-    padding = SearchBar()
+    padding = SearchBar(page)
     button = ft.ElevatedButton("Go to settings", on_click=open_settings)
 
     return ft.View(
