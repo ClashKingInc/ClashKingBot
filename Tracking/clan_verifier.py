@@ -1,4 +1,5 @@
 import os
+import coc
 from typing import Optional
 from base64 import b64decode as base64_b64decode
 from json import loads as json_loads
@@ -160,6 +161,7 @@ async def broadcast(keys):
 
             changes = []
             raid_week = gen_raid_date()
+            season = gen_season_date()
             for response in responses: #type: bytes
                 # we shouldnt have completely invalid tags, they all existed at some point
                 if response is None:
@@ -181,7 +183,9 @@ async def broadcast(keys):
                                                             "warWins" : clan.warWins,
                                                             "clanCapitalHallLevel" : clan.clanCapital.capitalHallLevel,
                                                             "isValid" : clan.members >= 10,
-                                                            f"changes.clanCapital.{raid_week}": {"trophies" : clan.clanCapitalPoints, "league" : clan.capitalLeague.name}
+                                                            f"changes.clanCapital.{raid_week}": {"trophies" : clan.clanCapitalPoints, "league" : clan.capitalLeague.name},
+                                                            f"changes.clanWarLeague.{season}": {
+                                                                "league": clan.warLeague.name}
                                                             }
                                                        },
                                                       upsert=True))
@@ -207,6 +211,12 @@ def gen_raid_date():
         forward = 4 - current_dayofweek
         raidDate = (now + timedelta(forward)).date()
         return str(raidDate)
+def gen_season_date():
+    end = coc.utils.get_season_end().replace(tzinfo=utc).date()
+    month = end.month
+    if end.month <= 9:
+        month = f"0{month}"
+    return f"{end.year}-{month}"
 
 loop = asyncio.get_event_loop()
 keys = create_keys()
