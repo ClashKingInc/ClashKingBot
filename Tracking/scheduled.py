@@ -77,6 +77,7 @@ looper = client.looper
 clan_tags = looper.clan_tags
 player_history = client.new_looper.player_history
 new_history = client.new_looper.new_player_history
+cwl_group = client.new_looper.cwl_group
 
 ranking_history = client.ranking_history
 player_trophies = ranking_history.player_trophies
@@ -221,6 +222,68 @@ async def store_clan_capital():
         await looper.raid_weekends.bulk_write(changes)
 
 
+@scheduler.scheduled_job("cron", day="1-11", hour="*", minute=7)
+async def store_cwl():
+    season = gen_season_date()
+    async def fetch(url, session: aiohttp.ClientSession, headers, tag):
+        async with session.get(url, headers=headers) as response:
+            if response.status == 200:
+                return ((await response.json()), tag)
+            return (None, None)
+
+
+    global keys
+    pipeline = [{"$match": {}}, {"$group": {"_id": "$tag"}}]
+    all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
+
+    pipeline = [{"$match": {"$and" : [{"data.season" : season}, {"data.state" : "ended"}]}}, {"$group": {"_id": "$data.clans.tag"}}]
+    done_for_this_season = [x["_id"] for x in (await cwl_group.aggregate(pipeline).to_list(length=None))]
+    done_for_this_season = set([j for sub in done_for_this_season for j in sub])
+
+    all_tags = [tag for tag in all_tags if tag not in done_for_this_season]
+
+    size_break = 50000
+    all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
+
+    was_found_in_a_previous_group = set()
+    for tag_group in all_tags:
+        tasks = []
+        deque = collections.deque
+        connector = aiohttp.TCPConnector(limit=250, ttl_dns_cache=300)
+        keys = deque(keys)
+        timeout = aiohttp.ClientTimeout(total=1800)
+        async with aiohttp.ClientSession(connector=connector, timeout=timeout, json_serialize=ujson.dumps) as session:
+            for tag in tag_group:
+                if tag in was_found_in_a_previous_group:
+                    continue
+                keys.rotate(1)
+                tasks.append(fetch(f"https://api.clashofclans.com/v1/clans/{tag.replace('#', '%23')}/currentwar/leaguegroup", session,
+                                   {"Authorization": f"Bearer {keys[0]}"}, tag))
+            responses = await asyncio.gather(*tasks, return_exceptions=True)
+            await session.close()
+
+        changes = []
+        responses = [r for r in responses if type(r) is tuple]
+        for response, tag in responses:
+            try:
+                # we shouldnt have completely invalid tags, they all existed at some point
+                if response is None:
+                    continue
+                if len(response["items"]) == 0:
+                    continue
+                season = response.get("season")
+                for clan in response.get("clans"):
+                    was_found_in_a_previous_group.add(clan.get("tag"))
+                tags = sorted([clan.get("tag").replace('#','') for clan in response.get("clans")])
+                cwl_id = f"{season}-{'-'.join(tags)}"
+                changes.append(UpdateOne({"cwl_id" : cwl_id}, {"$set" : {"data" : response}}, upsert=True))
+            except:
+                pass
+
+        await cwl_group.bulk_write(changes)
+
+
+
 @scheduler.scheduled_job("cron", hour=4, minute=56)
 async def store_all_leaderboards():
     for database, function in \
@@ -244,6 +307,12 @@ async def store_all_leaderboards():
 
         await database.bulk_write(store_tasks)
 
+def gen_season_date():
+    end = coc.utils.get_season_end().replace(tzinfo=utc).date()
+    month = end.month
+    if end.month <= 9:
+        month = f"0{month}"
+    return f"{end.year}-{month}"
 
 loop = asyncio.get_event_loop()
 keys = create_keys()
