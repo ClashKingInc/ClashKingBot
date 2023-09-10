@@ -222,7 +222,7 @@ async def store_clan_capital():
         await looper.raid_weekends.bulk_write(changes)
 
 
-@scheduler.scheduled_job("cron", day="1-11", hour="*", minute=7)
+@scheduler.scheduled_job("cron", day="9-11", hour="*", minute=11)
 async def store_cwl():
     season = gen_season_date()
     async def fetch(url, session: aiohttp.ClientSession, headers, tag):
@@ -269,8 +269,6 @@ async def store_cwl():
                 # we shouldnt have completely invalid tags, they all existed at some point
                 if response is None:
                     continue
-                if len(response["items"]) == 0:
-                    continue
                 season = response.get("season")
                 for clan in response.get("clans"):
                     was_found_in_a_previous_group.add(clan.get("tag"))
@@ -279,8 +277,9 @@ async def store_cwl():
                 changes.append(UpdateOne({"cwl_id" : cwl_id}, {"$set" : {"data" : response}}, upsert=True))
             except:
                 pass
-
-        await cwl_group.bulk_write(changes)
+        if changes:
+            await cwl_group.bulk_write(changes)
+            print(f"{len(changes)} Changes Updated/Inserted")
 
 
 
