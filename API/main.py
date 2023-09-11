@@ -32,6 +32,7 @@ from fastapi_cache.decorator import cache
 from bs4 import BeautifulSoup
 from redis import asyncio as aioredis
 from routers import leagues, player, capital, other
+from bson.objectid import ObjectId
 
 load_dotenv()
 
@@ -212,7 +213,7 @@ async def bulk_clan_cache(clan_tags: List[str], request: Request, response: Resp
 async def clan_filter(request: Request, response: Response,  limit: int= 100, location_id: int = None, minMembers: int = None, maxMembers: int = None,
                       minLevel: int = None, maxLevel: int = None, openType: str = None,
                           minWarWinStreak: int = None, minWarWins: int = None, minClanTrophies: int = None, maxClanTrophies: int = None, capitalLeague: str= None,
-                          warLeague: str= None, memberList: bool = True):
+                          warLeague: str= None, memberList: bool = True, before:str =None, after: str=None):
     queries = {}
     queries['$and'] = []
     if location_id:
@@ -251,18 +252,28 @@ async def clan_filter(request: Request, response: Response,  limit: int= 100, lo
     if maxClanTrophies:
         queries['$and'].append({"clanPoints": {"$gte": maxClanTrophies}})
 
+    if after:
+        queries['$and'].append({"_id": {"$gt": ObjectId(after)}})
+
+    if before:
+        queries['$and'].append({"_id": {"$lt": ObjectId(before)}})
+
 
     if queries["$and"] == []:
-        raise HTTPException(status_code=404, detail=f"Must Use At Least One Filter")
+        queries = {}
 
-    if location_id is None:
-        limit = min(limit, 25000)
-    results = await basic_clan.find(queries).limit(limit).to_list(length=limit)
-    for data in results:
-        del data["_id"]
-        if not memberList:
-            del data["memberList"]
-    return results
+    limit = min(limit, 1000)
+    results = await basic_clan.find(queries).limit(limit).sort("_id", 1).to_list(length=limit)
+    return_data = {"items" : [], "before": "", "after" : ""}
+    if results:
+        return_data["before"] = str(results[0].get("_id"))
+        return_data["after"] = str(results[-1].get("_id"))
+        for data in results:
+            del data["_id"]
+            if not memberList:
+                del data["memberList"]
+        return_data["items"] = results
+    return return_data
 
 
 
