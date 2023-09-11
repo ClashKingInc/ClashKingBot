@@ -259,12 +259,10 @@ async def clan_filter(request: Request, response: Response,  limit: int= 100, lo
 
     if location_id is None:
         limit = min(limit, 25000)
-    cache_data = await basic_clan.find(queries).limit(limit).to_list(length=limit)
-    modified_result = []
-    for data in cache_data:
-        del data["data"]["_response_retry"]
-        modified_result.append(data["data"])
-    return modified_result
+    results = await basic_clan.find(queries).limit(limit).to_list(length=limit)
+    for data in results:
+        del data["_id"]
+    return results
 
 
 
