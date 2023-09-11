@@ -55,7 +55,7 @@ app.include_router(other.router)
 
 client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
 other_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
-redis = aioredis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"))
+redis = aioredis.Redis(host='85.10.200.219', port=6379, db=1, password=os.getenv("REDIS_PW"))
 
 player_search = other_client.usafam.player_search
 looper = client.looper
