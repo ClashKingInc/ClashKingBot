@@ -213,7 +213,7 @@ async def bulk_clan_cache(clan_tags: List[str], request: Request, response: Resp
 async def clan_filter(request: Request, response: Response,  limit: int= 100, location_id: int = None, minMembers: int = None, maxMembers: int = None,
                       minLevel: int = None, maxLevel: int = None, openType: str = None,
                           minWarWinStreak: int = None, minWarWins: int = None, minClanTrophies: int = None, maxClanTrophies: int = None, capitalLeague: str= None,
-                          warLeague: str= None, memberList: bool = True, before:str =None, after: str=None):
+                          warLeague: str= None, memberList: bool = True, partialData: bool = False, before:str =None, after: str=None):
     queries = {}
     queries['$and'] = []
     if location_id:
@@ -266,12 +266,26 @@ async def clan_filter(request: Request, response: Response,  limit: int= 100, lo
     results = await basic_clan.find(queries).limit(limit).sort("_id", 1).to_list(length=limit)
     return_data = {"items" : [], "before": "", "after" : ""}
     if results:
+        if partialData and memberList:
+            member_tags = []
+            for clan in results:
+                for member in clan.get("memberList"):
+                    member_tags.append(member.get("tag"))
+            pipeline = [{"$match" : {"tag" : {"$in" : member_tags}}},
+                        {"$group" : {"_id" : "$tag", "th" : {"$last" : "$townhall"}}}]
+            th_results = await attack_db.aggregate(pipeline).to_list(length=None)
+            th_results = {item.get("_id") : item.get("th") for item in th_results}
+
         return_data["before"] = str(results[0].get("_id"))
         return_data["after"] = str(results[-1].get("_id"))
         for data in results:
             del data["_id"]
             if not memberList:
                 del data["memberList"]
+            else:
+                for member in data["memberList"]:
+                    tag = member.get("tag")
+                    member["townHallLevel"] = th_results.get(tag, None)
         return_data["items"] = results
     return return_data
 
