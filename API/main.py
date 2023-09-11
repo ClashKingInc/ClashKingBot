@@ -287,7 +287,7 @@ async def clan_filter(request: Request, response: Response,  limit: int= 100, lo
                     tag = member.get("tag")
                     member["townHallLevel"] = th_results.get(tag, None)
         return_data["items"] = results
-    return Response(content=ujson.dumps(return_data), media_type="application/json")
+    return return_data
 
 
 
