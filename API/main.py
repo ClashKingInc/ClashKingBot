@@ -252,8 +252,6 @@ async def clan_filter(request: Request, response: Response,  limit: int= 100, lo
         queries['$and'].append({"clanPoints": {"$gte": maxClanTrophies}})
 
 
-
-
     if queries["$and"] == []:
         raise HTTPException(status_code=404, detail=f"Must Use At Least One Filter")
 
