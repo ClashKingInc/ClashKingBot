@@ -203,8 +203,8 @@ async def broadcast(keys):
                                                             "members" : members
                                                        },
                                                       upsert=True))
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(e)
 
             if changes:
                 results = await clan_tags.bulk_write(changes)
