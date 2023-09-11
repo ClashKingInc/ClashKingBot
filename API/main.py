@@ -285,7 +285,8 @@ async def clan_filter(request: Request, response: Response,  limit: int= 100, lo
             else:
                 for member in data["memberList"]:
                     tag = member.get("tag")
-                    member["townHallLevel"] = th_results.get(tag, None)
+                    if townhallData:
+                        member["townHallLevel"] = th_results.get(tag, None)
         return_data["items"] = results
     return return_data
 
