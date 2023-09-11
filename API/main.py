@@ -254,6 +254,29 @@ async def war_log(clan_tag: str, request: Request, response: Response, limit: in
     actual_results = sorted(actual_results, key=lambda x: x["timeStamp"], reverse=True)
     return actual_results[:limit]
 
+
+@app.get("/war/{clan_tag}/previous",
+         tags=["War Endpoints"],
+         name="Previous Wars for a clan")
+@cache(expire=300)
+@limiter.limit("30/second")
+async def war_previous(clan_tag: str, request: Request, response: Response, limit: int= 50):
+    clan_tag = fix_tag(clan_tag)
+    full_wars = await clan_wars.find({"$and" : [{"$or" : [{"data.clan.tag" : clan_tag}, {"data.opponent.tag" : clan_tag}]}]}).limit(limit).to_list(length=None)
+    full_wars = [i for n, i in enumerate(full_wars) if i not in full_wars[:n]]
+    new_wars = []
+    for war in full_wars:
+        try:
+            del war["_response_retry"]
+        except:
+            pass
+        new_wars.append(war.get("data"))
+
+    print(new_wars)
+    actual_results = sorted(new_wars, key=lambda x: x.get("endTime", 0), reverse=True)
+    return actual_results
+
+
 @app.get("/war/{clan_tag}/basic",
          tags=["War Endpoints"],
          name="Basic War Info, Bypasses Private War Log if Possible")
