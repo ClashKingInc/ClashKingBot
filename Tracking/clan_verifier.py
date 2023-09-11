@@ -131,6 +131,7 @@ class Clan(Struct):
     name: str
     tag: str
     type: str
+    clanLevel: int
     members: int
     clanPoints: int
     clanCapitalPoints: int
@@ -190,6 +191,7 @@ async def broadcast(keys):
                                                       {"$set":
                                                            {"name": clan.name,
                                                             "members" : clan.members,
+                                                            "level" : clan.clanLevel,
                                                             "type" : clan.type,
                                                             "location" : {"id" :clan.location.id if clan.location else clan.location, "name" : clan.location.name if clan.location else clan.location},
                                                             "clanCapitalPoints" : clan.clanCapitalPoints,
