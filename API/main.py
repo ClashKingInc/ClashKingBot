@@ -266,7 +266,7 @@ async def war_previous(clan_tag: str, request: Request, response: Response, limi
     found_ids = set()
     new_wars = []
     for war in full_wars:
-        id = war.get("endTime")
+        id = war.get("data").get("preparationStartTime")
         if id in found_ids:
             continue
         try:
