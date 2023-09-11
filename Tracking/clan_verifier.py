@@ -181,14 +181,14 @@ async def broadcast(keys):
                     if clan.members == 0:
                         changes.append(DeleteOne({"tag": clan.tag}))
                     else:
-                        members = {{"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
+                        members = [{"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
                                     "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}
-                                   for member in clan.memberList}
+                                   for member in clan.memberList]
                         changes.append(UpdateOne({"tag": clan.tag},
                                                       {"$set":
                                                            {"name": clan.name,
                                                             "members" : clan.members,
-                                                            "location" : {"id" :clan.location.id, "name" : clan.location.name},
+                                                            "location" : {"id" :clan.location.id if clan.location else clan.location, "name" : clan.location.name if clan.location else clan.location},
                                                             "clanCapitalPoints" : clan.clanCapitalPoints,
                                                             "capitalLeague" : clan.capitalLeague.name,
                                                             "warLeague" : clan.warLeague.name,
@@ -198,13 +198,13 @@ async def broadcast(keys):
                                                             "isValid" : clan.members >= 10,
                                                             f"changes.clanCapital.{raid_week}": {"trophies" : clan.clanCapitalPoints, "league" : clan.capitalLeague.name},
                                                             f"changes.clanWarLeague.{season}": {
-                                                                "league": clan.warLeague.name}
+                                                                "league": clan.warLeague.name},
+                                                            "memberList": members
                                                             },
-                                                            "members" : members
                                                        },
                                                       upsert=True))
-                except Exception as e:
-                    print(e)
+                except Exception:
+                    continue
 
             if changes:
                 results = await clan_tags.bulk_write(changes)
@@ -225,6 +225,7 @@ def gen_raid_date():
         forward = 4 - current_dayofweek
         raidDate = (now + timedelta(forward)).date()
         return str(raidDate)
+
 def gen_season_date():
     end = coc.utils.get_season_end().replace(tzinfo=utc).date()
     month = end.month
