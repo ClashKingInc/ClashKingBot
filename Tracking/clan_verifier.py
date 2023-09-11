@@ -137,8 +137,8 @@ class Clan(Struct):
     warWinStreak: int
     warWins: int
     clanCapital: ClanCapital
-    location: Optional[Location] = None
     memberList : List[Members]
+    location: Optional[Location] = None
 
 async def broadcast(keys):
 
