@@ -204,6 +204,69 @@ async def bulk_clan_cache(clan_tags: List[str], request: Request, response: Resp
     return modified_result
 
 
+@app.get("/clan/search",
+         tags=["Clan Endpoints"],
+         name="Search Clans by Filtering")
+@cache(expire=300)
+@limiter.limit("30/second")
+async def clan_filter(request: Request, response: Response,  limit: int= 100, location_id: int = None, minMembers: int = None, maxMembers: int = None,
+                      minLevel: int = None, maxLevel: int = None, openType: str = None,
+                          minWarWinStreak: int = None, minWarWins: int = None, minClanTrophies: int = None, maxClanTrophies: int = None, capitalLeague: str= None,
+                          warLeague: str= None):
+    queries = {}
+    queries['$and'] = []
+    if location_id:
+        queries['$and'].append({'location.id': location_id})
+
+    if minMembers:
+        queries['$and'].append({"members": {"$gte" : minMembers}})
+
+    if maxMembers:
+        queries['$and'].append({"members": {"$lte" : maxMembers}})
+
+    if minLevel:
+        queries['$and'].append({"level": {"$gte" : minLevel}})
+
+    if maxLevel:
+        queries['$and'].append({"level": {"$lte" : maxLevel}})
+
+    if openType:
+        queries['$and'].append({"type": openType})
+
+    if capitalLeague:
+        queries['$and'].append({"capitalLeague": capitalLeague})
+
+    if warLeague:
+        queries['$and'].append({"warLeague": warLeague})
+
+    if minWarWinStreak:
+        queries['$and'].append({"warWinStreak": {"$gte": minWarWinStreak}})
+
+    if minWarWins:
+        queries['$and'].append({"warWins": {"$gte": minWarWins}})
+
+    if minClanTrophies:
+        queries['$and'].append({"clanPoints": {"$gte": minClanTrophies}})
+
+    if maxClanTrophies:
+        queries['$and'].append({"clanPoints": {"$gte": maxClanTrophies}})
+
+
+
+
+    if queries["$and"] == []:
+        raise HTTPException(status_code=404, detail=f"Must Use At Least One Filter")
+
+    if location_id is None:
+        limit = min(limit, 25000)
+    cache_data = await basic_clan.find(queries).limit(limit).to_list(length=limit)
+    modified_result = []
+    for data in cache_data:
+        del data["data"]["_response_retry"]
+        modified_result.append(data["data"])
+    return modified_result
+
+
 
 #WAR STATS
 @app.get("/war/{clan_tag}/log",
