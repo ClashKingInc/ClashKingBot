@@ -213,7 +213,7 @@ async def bulk_clan_cache(clan_tags: List[str], request: Request, response: Resp
 async def clan_filter(request: Request, response: Response,  limit: int= 100, location_id: int = None, minMembers: int = None, maxMembers: int = None,
                       minLevel: int = None, maxLevel: int = None, openType: str = None,
                           minWarWinStreak: int = None, minWarWins: int = None, minClanTrophies: int = None, maxClanTrophies: int = None, capitalLeague: str= None,
-                          warLeague: str= None, memberList: bool = True, partialData: bool = False, before:str =None, after: str=None):
+                          warLeague: str= None, memberList: bool = True, townhallData: bool = False, before:str =None, after: str=None):
     queries = {}
     queries['$and'] = []
     if location_id:
@@ -266,7 +266,7 @@ async def clan_filter(request: Request, response: Response,  limit: int= 100, lo
     results = await basic_clan.find(queries).limit(limit).sort("_id", 1).to_list(length=limit)
     return_data = {"items" : [], "before": "", "after" : ""}
     if results:
-        if partialData and memberList:
+        if townhallData and memberList:
             member_tags = []
             for clan in results:
                 for member in clan.get("memberList"):
