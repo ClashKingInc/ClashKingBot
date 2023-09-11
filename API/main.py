@@ -44,7 +44,7 @@ async def catch_exceptions_middleware(request: Request, call_next):
         # you probably want some kind of logging here
         return Response("Not Found", status_code=404)
 
-app.middleware('http')(catch_exceptions_middleware)
+#app.middleware('http')(catch_exceptions_middleware)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -262,18 +262,22 @@ async def war_log(clan_tag: str, request: Request, response: Response, limit: in
 @limiter.limit("30/second")
 async def war_previous(clan_tag: str, request: Request, response: Response, limit: int= 50):
     clan_tag = fix_tag(clan_tag)
-    full_wars = await clan_wars.find({"$and" : [{"$or" : [{"data.clan.tag" : clan_tag}, {"data.opponent.tag" : clan_tag}]}]}).limit(limit).to_list(length=None)
-    full_wars = [i for n, i in enumerate(full_wars) if i not in full_wars[:n]]
+    full_wars = await clan_wars.find({"$and" : [{"$or" : [{"data.clan.tag" : clan_tag}, {"data.opponent.tag" : clan_tag}]}]}).to_list(length=None)
+    found_ids = set()
     new_wars = []
     for war in full_wars:
+        id = war.get("war_id")
+        if id in found_ids:
+            continue
         try:
             del war["_response_retry"]
         except:
             pass
         new_wars.append(war.get("data"))
+        found_ids.add(id)
 
     actual_results = sorted(new_wars, key=lambda x: x.get("endTime", 0), reverse=True)
-    return actual_results
+    return actual_results[:limit]
 
 
 @app.get("/war/{clan_tag}/basic",
@@ -782,5 +786,5 @@ def custom_openapi():
 app.openapi = custom_openapi
 
 if __name__ == '__main__':
-    uvicorn.run("main:app", host='0.0.0.0', port=443, ssl_keyfile="/etc/letsencrypt/live/api.clashking.xyz/privkey.pem", ssl_certfile="/etc/letsencrypt/live/api.clashking.xyz/fullchain.pem", workers=6)
-    #uvicorn.run("main:app", host='localhost', port=80)
+    #uvicorn.run("main:app", host='0.0.0.0', port=443, ssl_keyfile="/etc/letsencrypt/live/api.clashking.xyz/privkey.pem", ssl_certfile="/etc/letsencrypt/live/api.clashking.xyz/fullchain.pem", workers=6)
+    uvicorn.run("main:app", host='localhost', port=80)
