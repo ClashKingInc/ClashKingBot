@@ -1,6 +1,6 @@
 import os
 import coc
-from typing import Optional
+from typing import Optional, List
 from base64 import b64decode as base64_b64decode
 from json import loads as json_loads
 from datetime import datetime
@@ -113,6 +113,20 @@ class League(Struct):
 class ClanCapital(Struct):
     capitalHallLevel: Optional[int] = 0
 
+class Location(Struct):
+    name: str
+    id: int
+
+class Members(Struct):
+    tag: str
+    name: str
+    expLevel: int
+    trophies: int
+    role: str
+    builderBaseTrophies: int
+    donations: int
+    donationsReceived: int
+
 class Clan(Struct):
     name: str
     tag: str
@@ -123,6 +137,8 @@ class Clan(Struct):
     warWinStreak: int
     warWins: int
     clanCapital: ClanCapital
+    location: Optional[Location] = None
+    memberList : List[Members]
 
 async def broadcast(keys):
 
@@ -132,13 +148,6 @@ async def broadcast(keys):
                 if response.status == 200:
                     return (await response.read())
                 return None
-
-        async def gather_with_concurrency(*tasks):
-            async def sem_task(task):
-                async with throttler:
-                    return await task
-
-            return await asyncio.gather(*(sem_task(task) for task in tasks), return_exceptions=True)
 
 
         pipeline = [{"$match" : {}}, { "$group" : { "_id" : "$tag" } } ]
@@ -156,7 +165,7 @@ async def broadcast(keys):
                     tag = tag.replace("#", "%23")
                     keys.rotate(1)
                     tasks.append(fetch(f"https://api.clashofclans.com/v1/clans/{tag}", session, {"Authorization": f"Bearer {keys[0]}"}))
-                responses = await gather_with_concurrency(*tasks)
+                responses = await asyncio.gather(*tasks)
                 await session.close()
 
             changes = []
@@ -172,10 +181,14 @@ async def broadcast(keys):
                     if clan.members == 0:
                         changes.append(DeleteOne({"tag": clan.tag}))
                     else:
+                        members = {{"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
+                                    "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}
+                                   for member in clan.memberList}
                         changes.append(UpdateOne({"tag": clan.tag},
                                                       {"$set":
                                                            {"name": clan.name,
                                                             "members" : clan.members,
+                                                            "location" : {"id" :clan.location.id, "name" : clan.location.name},
                                                             "clanCapitalPoints" : clan.clanCapitalPoints,
                                                             "capitalLeague" : clan.capitalLeague.name,
                                                             "warLeague" : clan.warLeague.name,
@@ -186,7 +199,8 @@ async def broadcast(keys):
                                                             f"changes.clanCapital.{raid_week}": {"trophies" : clan.clanCapitalPoints, "league" : clan.capitalLeague.name},
                                                             f"changes.clanWarLeague.{season}": {
                                                                 "league": clan.warLeague.name}
-                                                            }
+                                                            },
+                                                            "members" : members
                                                        },
                                                       upsert=True))
                 except Exception:
