@@ -49,7 +49,7 @@ async def catch_exceptions_middleware(request: Request, call_next):
 app.middleware('http')(catch_exceptions_middleware)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-app.add_middleware(Analytics, api_key="8c1725470a644a3f8b7b45fcc8a3609c")
+app.add_middleware(Analytics, api_key="9f56d999-b945-4be5-8787-2448ab222ad3")
 
 app.include_router(player.router)
 app.include_router(capital.router)
