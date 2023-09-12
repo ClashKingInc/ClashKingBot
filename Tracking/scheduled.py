@@ -222,7 +222,7 @@ async def store_clan_capital():
         await looper.raid_weekends.bulk_write(changes)
 
 
-@scheduler.scheduled_job("cron", day="9-11", hour="*", minute=11)
+@scheduler.scheduled_job("cron", day="9-12", hour="*", minute=30)
 async def store_cwl():
     season = gen_season_date()
     async def fetch(url, session: aiohttp.ClientSession, headers, tag):
