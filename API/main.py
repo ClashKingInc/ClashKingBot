@@ -33,6 +33,7 @@ from bs4 import BeautifulSoup
 from redis import asyncio as aioredis
 from routers import leagues, player, capital, other
 from bson.objectid import ObjectId
+from api_analytics.fastapi import Analytics
 
 load_dotenv()
 
@@ -48,6 +49,7 @@ async def catch_exceptions_middleware(request: Request, call_next):
 app.middleware('http')(catch_exceptions_middleware)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(Analytics, api_key="9f56d999-b945-4be5-8787-2448ab222ad3")
 
 app.include_router(player.router)
 app.include_router(capital.router)
