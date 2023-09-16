@@ -287,7 +287,7 @@ async def store_cwl():
 
 
 #@scheduler.scheduled_job("cron", day="12", hour="1-22", minute=10)
-@scheduler.scheduled_job("cron", day="16", hour="18", minute=37)
+@scheduler.scheduled_job("cron", day="16", hour="18", minute=54)
 async def store_rounds():
     season = gen_season_date()
     pipeline = [{"$match": {"data.season": season}},
