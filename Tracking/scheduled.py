@@ -21,6 +21,8 @@ import asyncio
 import ujson
 import coc
 import numpy as np
+import random
+import string
 
 locations = ["global", 32000007, 32000008, 32000009, 32000010, 32000011, 32000012, 32000013, 32000014, 32000015, 32000016,
              32000017,
@@ -78,6 +80,8 @@ clan_tags = looper.clan_tags
 player_history = client.new_looper.player_history
 new_history = client.new_looper.new_player_history
 cwl_group = client.new_looper.cwl_group
+clan_war = client.looper.clan_war
+attack_db = client.looper.warhits
 
 ranking_history = client.ranking_history
 player_trophies = ranking_history.player_trophies
@@ -174,7 +178,7 @@ def create_keys():
             print(e)
 
 
-@scheduler.scheduled_job("cron", day_of_week="mon", hour=9)
+@scheduler.scheduled_job("cron", day_of_week="mon", hour=10)
 async def store_clan_capital():
     async def fetch(url, session: aiohttp.ClientSession, headers, tag):
         async with session.get(url, headers=headers) as response:
@@ -222,7 +226,7 @@ async def store_clan_capital():
         await looper.raid_weekends.bulk_write(changes)
 
 
-@scheduler.scheduled_job("cron", day="9-12", hour="*", minute=30)
+@scheduler.scheduled_job("interval", day="9-12", hour="*", minute=35)
 async def store_cwl():
     season = gen_season_date()
     async def fetch(url, session: aiohttp.ClientSession, headers, tag):
@@ -280,6 +284,117 @@ async def store_cwl():
         if changes:
             await cwl_group.bulk_write(changes)
             print(f"{len(changes)} Changes Updated/Inserted")
+
+
+#@scheduler.scheduled_job("cron", day="12", hour="1-22", minute=10)
+@scheduler.scheduled_job("cron", day="16", hour="18", minute=34)
+async def store_rounds():
+    season = gen_season_date()
+    pipeline = [{"$match": {"data.season": season}},
+                {"$group": {"_id": "$data.rounds.warTags"}}]
+    result = cwl_group.aggregate(pipeline).to_list(length=None)
+    done_for_this_season = [x["_id"] for x in result]
+    done_for_this_season = [j for sub in done_for_this_season for j in sub]
+    all_tags = list(set([j for sub in done_for_this_season for j in sub]))
+    size_break = 50000
+    all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
+
+    global keys
+    global coc_client
+    async def fetch(url, session: aiohttp.ClientSession, headers, tag):
+        async with session.get(url, headers=headers) as response:
+            if response.status == 200:
+                return ((await response.json()), tag)
+            return (None, None)
+
+
+    for tag_group in all_tags:
+        tasks = []
+        deque = collections.deque
+        connector = aiohttp.TCPConnector(limit=250, ttl_dns_cache=300)
+        keys = deque(keys)
+        timeout = aiohttp.ClientTimeout(total=1800)
+        async with aiohttp.ClientSession(connector=connector, timeout=timeout, json_serialize=ujson.dumps) as session:
+            for tag in tag_group:
+                keys.rotate(1)
+                tasks.append(fetch(f"https://api.clashofclans.com/v1/clanwarleagues/wars/{tag.replace('#', '%23')}", session,
+                                   {"Authorization": f"Bearer {keys[0]}"}, tag))
+            responses = await asyncio.gather(*tasks, return_exceptions=True)
+            await session.close()
+
+        changes = []
+        add_war = []
+        add_war_hits = []
+        responses = [r for r in responses if type(r) is tuple]
+        for response, tag in responses:
+            try:
+                # we shouldnt have completely invalid tags, they all existed at some point
+                if response is None:
+                    continue
+                response["tag"] = tag
+                war = coc.ClanWar(data=response, client=coc_client)
+                changes.append(UpdateOne({"$and" : [{"data.season": season}, {"data.rounds.warTags" : tag}]}, {"$set" : {"data.rounds.warTags" : response}}))
+
+                source = string.ascii_letters
+                custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
+                is_used = await clan_war.find_one({"custom_id": custom_id})
+                while is_used is not None:
+                    custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
+                    is_used = await clan_war.find_one({"custom_id": custom_id})
+                add_war.append(UpdateOne(
+                    {"war_id": f"{war.clan.tag}-{int(war.preparation_start_time.time.timestamp())}"},
+                    {"$set": {
+                        "custom_id": custom_id,
+                        "data": war._raw_data}}, upsert=True
+                    ))
+                for attack in war.attacks:
+                    add_war_hits.append(InsertOne({
+                        "tag": attack.attacker.tag,
+                        "name": attack.attacker.name,
+                        "townhall": attack.attacker.town_hall,
+                        "_time": int(war.preparation_start_time.time.timestamp()),
+                        "destruction": attack.destruction,
+                        "stars": attack.stars,
+                        "fresh": attack.is_fresh_attack,
+                        "war_start": int(war.preparation_start_time.time.timestamp()),
+                        "defender_tag": attack.defender.tag,
+                        "defender_name": attack.defender.name,
+                        "defender_townhall": attack.defender.town_hall,
+                        "war_type": str(war.type),
+                        "war_status": str(war.status),
+                        "attack_order": attack.order,
+                        "map_position": attack.attacker.map_position,
+                        "war_size": war.team_size,
+                        "clan": attack.attacker.clan.tag,
+                        "clan_name": attack.attacker.clan.name,
+                        "defending_clan": attack.defender.clan.tag,
+                        "defending_clan_name": attack.defender.clan.name,
+                        "full_war": custom_id
+                    }))
+            except:
+                pass
+        if changes:
+            try:
+                await cwl_group.bulk_write(changes, ordered=False)
+                print(f"{len(changes)} Changes Updated/Inserted")
+            except:
+                pass
+        if add_war:
+            try:
+                await clan_war.bulk_write(add_war, ordered=False)
+                print(f"{len(add_war)} Wars Updated/Inserted")
+            except:
+                pass
+        if add_war_hits:
+            try:
+                await attack_db.bulk_write(add_war_hits, ordered=False)
+                print(f"{len(add_war_hits)} Attacks Updated/Inserted")
+            except:
+                pass
+
+
+
+
 
 
 
