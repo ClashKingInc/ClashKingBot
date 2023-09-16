@@ -333,7 +333,7 @@ async def store_rounds():
                     continue
                 response["tag"] = tag
                 war = coc.ClanWar(data=response, client=coc_client)
-                changes.append(UpdateOne({"$and" : [{"data.season": season}, {"data.rounds.warTags" : tag}]}, {"$set" : {"data.rounds.warTags" : response}}))
+                changes.append(UpdateOne({"$and" : [{"data.season": season}, {"data.rounds.warTags" : tag}]}, {"$set" : {"data.rounds.$[].warTags.$" : response}}))
 
                 source = string.ascii_letters
                 custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
