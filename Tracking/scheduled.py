@@ -378,19 +378,19 @@ async def store_rounds():
                 await cwl_group.bulk_write(changes, ordered=False)
                 print(f"{len(changes)} Changes Updated/Inserted")
             except:
-                pass
+                print(f"{len(changes)} Changes Updated/Inserted")
         if add_war:
             try:
                 await clan_war.bulk_write(add_war, ordered=False)
                 print(f"{len(add_war)} Wars Updated/Inserted")
             except:
-                pass
+                print(f"{len(add_war)} Wars Updated/Inserted")
         if add_war_hits:
             try:
                 await attack_db.bulk_write(add_war_hits, ordered=False)
                 print(f"{len(add_war_hits)} Attacks Updated/Inserted")
             except:
-                pass
+                print(f"{len(add_war_hits)} Attacks Updated/Inserted")
 
 
 
