@@ -28,7 +28,8 @@ client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
 looper = client.looper
 clan_tags = looper.clan_tags
 throttler = Throttler(rate_limit=1000, period=1)
-redis_db = aioredis.Redis(host='85.10.200.219', port=6379, db=3, password=os.getenv("REDIS_PW"), retry_on_timeout=True, max_connections=2000, retry_on_error=[redis.ConnectionError])
+redis_db = aioredis.Redis(host='85.10.200.219', port=6379, db=3, password=os.getenv("REDIS_PW"), socket_timeout=600, socket_connect_timeout=600,
+                          retry_on_timeout=True, max_connections=2000, retry_on_error=[redis.ConnectionError])
 
 emails = []
 passwords = []
@@ -190,6 +191,8 @@ async def broadcast(keys):
                     else:
                         for member in clan.memberList:
                             pipe.zadd("trophies", {member.tag : member.trophies})
+                            pipe.zadd("builderbase", {member.tag : member.trophies})
+                            pipe.zadd("donations", {member.tag : member.donations})
                         members = [{"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
                                     "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}
                                    for member in clan.memberList]
