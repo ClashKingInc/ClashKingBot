@@ -179,6 +179,7 @@ async def broadcast(keys):
             raid_week = gen_raid_date()
             season = gen_season_date()
             pipe = redis_db.pipeline()
+            added = 0
             for response in responses: #type: bytes
                 # we shouldnt have completely invalid tags, they all existed at some point
                 if response is None:
@@ -193,6 +194,10 @@ async def broadcast(keys):
                             pipe.zadd("trophies", {member.tag : member.trophies})
                             pipe.zadd("builderbase", {member.tag : member.trophies})
                             pipe.zadd("donations", {member.tag : member.donations})
+                            added += 3
+                        if added >= 1000000:
+                            await pipe.execute()
+                            added = 0
                         members = [{"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
                                     "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}
                                    for member in clan.memberList]
@@ -220,8 +225,9 @@ async def broadcast(keys):
                                                       upsert=True))
                 except Exception:
                     continue
-
-            await pipe.execute()
+            if added != 0:
+                await pipe.execute()
+            await pipe.close()
             if changes:
                 results = await clan_tags.bulk_write(changes)
                 print(results.bulk_api_result)
