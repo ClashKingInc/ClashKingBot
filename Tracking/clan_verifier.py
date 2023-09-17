@@ -29,7 +29,7 @@ looper = client.looper
 clan_tags = looper.clan_tags
 throttler = Throttler(rate_limit=1000, period=1)
 redis_db = aioredis.Redis(host='85.10.200.219', port=6379, db=3, password=os.getenv("REDIS_PW"), socket_timeout=600, socket_connect_timeout=600,
-                          retry_on_timeout=True, max_connections=2000, retry_on_error=[redis.ConnectionError])
+                          retry_on_timeout=True, max_connections=2000, retry_on_error=[redis.ConnectionError], auto_close_connection_pool=True)
 
 emails = []
 passwords = []
