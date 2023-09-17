@@ -24,7 +24,7 @@ keys = []
 utc = pytz.utc
 load_dotenv()
 
-client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
+client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"), maxPoolSize=1000)
 looper = client.looper
 clan_tags = looper.clan_tags
 rankings = client.new_looper.rankings
