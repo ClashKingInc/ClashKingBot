@@ -171,7 +171,8 @@ async def broadcast(keys):
             deque = collections.deque
             connector = aiohttp.TCPConnector(limit=250, ttl_dns_cache=300)
             keys = deque(keys)
-            async with aiohttp.ClientSession(connector=connector) as session:
+            timeout = aiohttp.ClientTimeout(total=1800)
+            async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
                 for tag in tag_group:
                     tag = tag.replace("#", "%23")
                     keys.rotate(1)
