@@ -163,6 +163,9 @@ async def broadcast(keys):
         size_break = 50000
         all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
 
+        pipeline = [{"$match": {}}, {"$group": {"_id": "$tag"}}]
+        ranking_members = set([x["_id"] for x in (await rankings.aggregate(pipeline).to_list(length=None))])
+
         for tag_group in all_tags:
             tasks = []
             deque = collections.deque
@@ -195,6 +198,7 @@ async def broadcast(keys):
                                     "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}
                                    for member in clan.memberList]
                         for member in clan.memberList:
+                            ranking_members.remove(member.tag)
                             if member != member_store.get(member.tag):
                                 member_store[member.tag] = member
                                 member_updates.append(UpdateOne({"tag" : clan.tag}, {"$set" : {"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
@@ -229,6 +233,9 @@ async def broadcast(keys):
             if member_updates:
                 await rankings.bulk_write(member_updates)
                 print(f"{len(member_updates)} Members Updated")
+
+
+        await rankings.delete_many({"tag" : {"$in" : list(ranking_members)}})
 
 
 def gen_raid_date():
