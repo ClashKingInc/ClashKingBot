@@ -27,9 +27,8 @@ load_dotenv()
 client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
 looper = client.looper
 clan_tags = looper.clan_tags
+rankings = client.new_looper.rankings
 throttler = Throttler(rate_limit=1000, period=1)
-redis_db = aioredis.Redis(host='85.10.200.219', port=6379, db=3, password=os.getenv("REDIS_PW"), socket_timeout=600, socket_connect_timeout=600,
-                          retry_on_timeout=True, max_connections=2000, retry_on_error=[redis.ConnectionError], auto_close_connection_pool=True)
 
 emails = []
 passwords = []
@@ -147,6 +146,8 @@ class Clan(Struct):
     memberList : List[Members]
     location: Optional[Location] = None
 
+member_store = {}
+
 async def broadcast(keys):
 
     while True:
@@ -176,10 +177,9 @@ async def broadcast(keys):
                 await session.close()
 
             changes = []
+            member_updates = []
             raid_week = gen_raid_date()
             season = gen_season_date()
-            pipe = redis_db.pipeline()
-            added = 0
             for response in responses: #type: bytes
                 # we shouldnt have completely invalid tags, they all existed at some point
                 if response is None:
@@ -190,17 +190,15 @@ async def broadcast(keys):
                     if clan.members == 0:
                         changes.append(DeleteOne({"tag": clan.tag}))
                     else:
-                        for member in clan.memberList:
-                            pipe.zadd("trophies", {member.tag : member.trophies})
-                            pipe.zadd("builderbase", {member.tag : member.trophies})
-                            pipe.zadd("donations", {member.tag : member.donations})
-                            added += 3
-                        if added >= 1000000:
-                            await pipe.execute()
-                            added = 0
+
                         members = [{"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
                                     "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}
                                    for member in clan.memberList]
+                        for member in clan.memberList:
+                            if member != member_store.get(member.tag):
+                                member_store[member.tag] = member
+                                member_updates.append(UpdateOne({"tag" : clan.tag}, {"$set" : {"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
+                                    "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}}, upsert=True))
                         changes.append(UpdateOne({"tag": clan.tag},
                                                       {"$set":
                                                            {"name": clan.name,
@@ -225,11 +223,12 @@ async def broadcast(keys):
                                                       upsert=True))
                 except Exception:
                     continue
-            if added != 0:
-                await pipe.execute()
             if changes:
                 results = await clan_tags.bulk_write(changes)
                 print(results.bulk_api_result)
+            if member_updates:
+                await rankings.bulk_write(member_updates)
+                print(f"{len(member_updates)} Members Updated")
 
 
 def gen_raid_date():
