@@ -227,7 +227,6 @@ async def broadcast(keys):
                     continue
             if added != 0:
                 await pipe.execute()
-            await pipe.close()
             if changes:
                 results = await clan_tags.bulk_write(changes)
                 print(results.bulk_api_result)
