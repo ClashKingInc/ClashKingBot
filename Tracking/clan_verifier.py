@@ -201,7 +201,7 @@ async def broadcast(keys):
                                                             "warWinStreak" : clan.warWinStreak,
                                                             "warWins" : clan.warWins,
                                                             "clanCapitalHallLevel" : clan.clanCapital.capitalHallLevel,
-                                                            "isValid" : clan.members >= 10,
+                                                            "isValid" : clan.members >= 5,
                                                             f"changes.clanCapital.{raid_week}": {"trophies" : clan.clanCapitalPoints, "league" : clan.capitalLeague.name},
                                                             f"changes.clanWarLeague.{season}": {
                                                                 "league": clan.warLeague.name},
