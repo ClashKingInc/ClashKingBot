@@ -10,7 +10,9 @@ from msgspec import Struct
 from pymongo import UpdateOne, DeleteOne
 from datetime import timedelta
 from asyncio_throttle import Throttler
+from redis import asyncio as aioredis
 
+import redis
 import motor.motor_asyncio
 import collections
 import aiohttp
@@ -26,6 +28,7 @@ client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
 looper = client.looper
 clan_tags = looper.clan_tags
 throttler = Throttler(rate_limit=1000, period=1)
+redis_db = aioredis.Redis(host='85.10.200.219', port=6379, db=3, password=os.getenv("REDIS_PW"), retry_on_timeout=True, max_connections=500, retry_on_error=[redis.ConnectionError])
 
 emails = []
 passwords = []
@@ -184,6 +187,10 @@ async def broadcast(keys):
                     if clan.members == 0:
                         changes.append(DeleteOne({"tag": clan.tag}))
                     else:
+                        pipe = redis_db.pipeline()
+                        for member in clan.memberList:
+                            pipe.zadd("trophies", {member.tag : member.trophies})
+                        await pipe.execute()
                         members = [{"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
                                     "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}
                                    for member in clan.memberList]
