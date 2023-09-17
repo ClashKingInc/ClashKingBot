@@ -287,7 +287,7 @@ async def store_cwl():
 
 
 #@scheduler.scheduled_job("cron", day="12", hour="1-22", minute=10)
-@scheduler.scheduled_job("cron", day="16", hour="18", minute=54)
+@scheduler.scheduled_job("cron", day="17", hour="0", minute=59)
 async def store_rounds():
     season = gen_season_date()
     pipeline = [{"$match": {"data.season": season}},
@@ -322,7 +322,6 @@ async def store_rounds():
             responses = await asyncio.gather(*tasks, return_exceptions=True)
             await session.close()
 
-        changes = []
         add_war = []
         add_war_hits = []
         responses = [r for r in responses if type(r) is tuple]
@@ -332,8 +331,8 @@ async def store_rounds():
                 if response is None:
                     continue
                 response["tag"] = tag
+                response["season"] = season
                 war = coc.ClanWar(data=response, client=coc_client)
-                changes.append(UpdateOne({"$and" : [{"data.season": season}, {"data.rounds.warTags" : tag}]}, {"$set" : {"data.rounds.$[].warTags.$" : response}}))
 
                 source = string.ascii_letters
                 custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
@@ -373,12 +372,6 @@ async def store_rounds():
                     }))
             except:
                 pass
-        if changes:
-            try:
-                await cwl_group.bulk_write(changes, ordered=False)
-                print(f"{len(changes)} Changes Updated/Inserted")
-            except:
-                print(f"{len(changes)} Changes Updated/Inserted")
         if add_war:
             try:
                 await clan_war.bulk_write(add_war, ordered=False)
