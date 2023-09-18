@@ -245,22 +245,22 @@ async def broadcast(keys):
             ranking_dict = {}
             member_store.sort(key=lambda x : x[1], reverse=True) #trophy sort
             for count, member in enumerate(member_store[:100000], 1):
-                ranking_dict[member[0]] = {"trophies" : member[1], "trophiesRank" : count}
+                ranking_dict[member[0]] = {"name" : member[0], "trophies" : member[1], "trophiesRank" : count}
 
             member_store.sort(key=lambda x: x[2], reverse=True)  # builder trophy sort
             for count, member in enumerate(member_store[:100000], 1):
                 prev_dict = ranking_dict.get(member[0], {})
-                ranking_dict[member[0]] = prev_dict | {"builderTrophies": member[2], "builderTrophiesRank": count}
+                ranking_dict[member[0]] = prev_dict | {"name" : member[0], "builderTrophies": member[2], "builderTrophiesRank": count}
 
             member_store.sort(key=lambda x: x[3], reverse=True)  # donation sort
             for count, member in enumerate(member_store[:100000], 1):
                 prev_dict = ranking_dict.get(member[0], {})
-                ranking_dict[member[0]] = prev_dict | {"donations": member[3], "donationsRank": count, "donationsReceived" : member[4]}
+                ranking_dict[member[0]] = prev_dict | {"name" : member[0], "donations": member[3], "donationsRank": count, "donationsReceived" : member[4]}
 
             member_store.sort(key=lambda x: x[4], reverse=True)  # donation sort
             for count, member in enumerate(member_store[:100000], 1):
                 prev_dict = ranking_dict.get(member[0], {})
-                ranking_dict[member[0]] = prev_dict | {"donationsReceived": member[4], "donationsReceivedRank": count, "donations" : member[3]}
+                ranking_dict[member[0]] = prev_dict | {"name" : member[0], "donationsReceived": member[4], "donationsReceivedRank": count, "donations" : member[3]}
 
 
             await rankings.bulk_write([UpdateOne({"_id" : tag}, {"$set" : d}, upsert=True) for tag, d in ranking_dict.items()], ordered=False)
