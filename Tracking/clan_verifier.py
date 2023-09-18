@@ -163,7 +163,7 @@ async def broadcast(keys):
 
         pipeline = [{"$match" : {}}, { "$group" : { "_id" : "$tag" } } ]
         all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
-        size_break = 100000
+        size_break = 50000
         all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
 
 
@@ -172,7 +172,7 @@ async def broadcast(keys):
         for tag_group in all_tags:
             tasks = []
             deque = collections.deque
-            connector = aiohttp.TCPConnector(limit=1000, ttl_dns_cache=300)
+            connector = aiohttp.TCPConnector(limit=250, ttl_dns_cache=300)
             keys = deque(keys)
             timeout = aiohttp.ClientTimeout(total=1800)
             async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
