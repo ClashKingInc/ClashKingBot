@@ -167,7 +167,7 @@ async def broadcast(keys):
         if x % 10 == 0:
             pipeline = [{"$match" : {"$or" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, { "$group" : { "_id" : "$tag" } } ]
         else:
-            pipeline = [{"$match": {"$or" : [{"members" : {"$gte" : 10}}, {"level" : {"$gte" : 3}}, {"capitalLeague" : {"$ne" :"Unranked"}}]}}, {"$group": {"_id": "$tag"}}]
+            pipeline = [{"$match": {"$nor" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, {"$group": {"_id": "$tag"}}]
         x += 1
         all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
         size_break = 50000
