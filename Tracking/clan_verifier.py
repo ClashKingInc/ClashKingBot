@@ -1,3 +1,4 @@
+import gc
 import os
 import coc
 from typing import Optional, List
@@ -167,7 +168,7 @@ async def broadcast(keys):
         all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
 
 
-        member_store = {}
+        member_store = []
 
         for tag_group in all_tags:
             tasks = []
@@ -200,7 +201,7 @@ async def broadcast(keys):
                                     "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}
                                    for member in clan.memberList]
                         for member in clan.memberList:
-                            member_store[member.tag] = {"t" : member.tag, "tr" : member.trophies, "bT" : member.builderBaseTrophies, "d" : member.donations, "dR" : member.donationsReceived}
+                            member_store.append([member.tag, member.trophies, member.builderBaseTrophies, member.donations, member.donationsReceived])
                         changes.append(UpdateOne({"tag": clan.tag},
                                                       {"$set":
                                                            {"name": clan.name,
@@ -228,30 +229,30 @@ async def broadcast(keys):
             if changes:
                 results = await clan_tags.bulk_write(changes, ordered=False)
                 print(results.bulk_api_result)
+            gc.collect()
 
         ranking_dict = {}
-        member_sort = [v for v in member_store.values()]
-        member_sort.sort(key=lambda x : x.get("tr"), reverse=True) #trophy sort
-        for count, member in enumerate(member_sort[:100000], 1):
-            ranking_dict[member.get("t")] = {"trophies" : member.get("tr"), "trophiesRank" : count}
+        member_store.sort(key=lambda x : x[1], reverse=True) #trophy sort
+        for count, member in enumerate(member_store[:100000], 1):
+            ranking_dict[member[0]] = {"trophies" : member[1], "trophiesRank" : count}
 
-        member_sort.sort(key=lambda x: x.get("bT"), reverse=True)  # builder trophy sort
-        for count, member in enumerate(member_sort[:100000], 1):
-            prev_dict = ranking_dict.get(member.get("t"), {})
-            ranking_dict[member.get("t")] = prev_dict | { "builderTrophies": member.get("bT"), "builderTrophiesRank": count}
+        member_store.sort(key=lambda x: x[2], reverse=True)  # builder trophy sort
+        for count, member in enumerate(member_store[:100000], 1):
+            prev_dict = ranking_dict.get(member[0], {})
+            ranking_dict[member[0]] = prev_dict | {"builderTrophies": member[2], "builderTrophiesRank": count}
 
-        member_sort.sort(key=lambda x: x.get("d"), reverse=True)  # donation sort
-        for count, member in enumerate(member_sort[:100000], 1):
-            prev_dict = ranking_dict.get(member.get("t"), {})
-            ranking_dict[member.get("t")] = prev_dict | {"donations": member.get("d"), "donationsRank": count}
+        member_store.sort(key=lambda x: x[3], reverse=True)  # donation sort
+        for count, member in enumerate(member_store[:100000], 1):
+            prev_dict = ranking_dict.get(member[0], {})
+            ranking_dict[member[0]] = prev_dict | {"donations": member[3], "donationsRank": count}
 
-        member_sort.sort(key=lambda x: x.get("dR"), reverse=True)  # donation sort
-        for count, member in enumerate(member_sort[:100000], 1):
-            prev_dict = ranking_dict.get(member.get("t"), {})
-            ranking_dict[member.get("t")] = prev_dict | {"donationsReceived": member.get("dR"), "donationsReceivedRank": count}
+        member_store.sort(key=lambda x: x[4], reverse=True)  # donation sort
+        for count, member in enumerate(member_store[:100000], 1):
+            prev_dict = ranking_dict.get(member[0], {})
+            ranking_dict[member[0]] = prev_dict | {"donationsReceived": member[4], "donationsReceivedRank": count}
 
 
-        await rankings.bulk_write([UpdateOne({"_id" : tag}, d, upsert=True) for tag, d in ranking_dict.items()], ordered=False)
+        await rankings.bulk_write([UpdateOne({"_id" : tag}, {"$set" : d}, upsert=True) for tag, d in ranking_dict.items()], ordered=False)
         print(f"{len(ranking_dict)} Members Updated")
         await rankings.delete_many({"_id" : {"$nin" : list(ranking_dict.keys())}})
 
