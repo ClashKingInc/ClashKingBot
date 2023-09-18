@@ -207,7 +207,7 @@ async def broadcast(keys):
                                     "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}
                                    for member in clan.memberList]
                         for member in clan.memberList:
-                            member_store.append([member.tag, member.trophies, member.builderBaseTrophies, member.donations, member.donationsReceived])
+                            member_store.append((member.name, member.trophies, member.builderBaseTrophies, member.donations, member.donationsReceived, member.tag))
                         changes.append(UpdateOne({"tag": clan.tag},
                                                       {"$set":
                                                            {"name": clan.name,
@@ -230,13 +230,9 @@ async def broadcast(keys):
                                                             },
                                                        },
                                                       upsert=True))
-                        del members
-                    del clan
                 except Exception:
                     continue
 
-            del responses
-            gc.collect()
             if changes:
                 results = await clan_tags.bulk_write(changes, ordered=False)
                 print(results.bulk_api_result)
@@ -245,30 +241,27 @@ async def broadcast(keys):
             ranking_dict = {}
             member_store.sort(key=lambda x : x[1], reverse=True) #trophy sort
             for count, member in enumerate(member_store[:100000], 1):
-                ranking_dict[member[0]] = {"name" : member[0], "trophies" : member[1], "trophiesRank" : count}
+                ranking_dict[member[-1]] = {"name" : member[0], "trophies" : member[1], "trophiesRank" : count}
 
             member_store.sort(key=lambda x: x[2], reverse=True)  # builder trophy sort
             for count, member in enumerate(member_store[:100000], 1):
-                prev_dict = ranking_dict.get(member[0], {})
-                ranking_dict[member[0]] = prev_dict | {"name" : member[0], "builderTrophies": member[2], "builderTrophiesRank": count}
+                prev_dict = ranking_dict.get(member[-1], {})
+                ranking_dict[member[-1]] = prev_dict | {"name" : member[0], "builderTrophies": member[2], "builderTrophiesRank": count}
 
             member_store.sort(key=lambda x: x[3], reverse=True)  # donation sort
             for count, member in enumerate(member_store[:100000], 1):
-                prev_dict = ranking_dict.get(member[0], {})
-                ranking_dict[member[0]] = prev_dict | {"name" : member[0], "donations": member[3], "donationsRank": count, "donationsReceived" : member[4]}
+                prev_dict = ranking_dict.get(member[-1], {})
+                ranking_dict[member[-1]] = prev_dict | {"name" : member[0], "donations": member[3], "donationsRank": count, "donationsReceived" : member[4]}
 
             member_store.sort(key=lambda x: x[4], reverse=True)  # donation sort
             for count, member in enumerate(member_store[:100000], 1):
-                prev_dict = ranking_dict.get(member[0], {})
-                ranking_dict[member[0]] = prev_dict | {"name" : member[0], "donationsReceived": member[4], "donationsReceivedRank": count, "donations" : member[3]}
+                prev_dict = ranking_dict.get(member[-1], {})
+                ranking_dict[member[-1]] = prev_dict | {"name" : member[0], "donationsReceived": member[4], "donationsReceivedRank": count, "donations" : member[3]}
 
 
             await rankings.bulk_write([UpdateOne({"_id" : tag}, {"$set" : d}, upsert=True) for tag, d in ranking_dict.items()], ordered=False)
             print(f"{len(ranking_dict)} Members Updated")
             await rankings.delete_many({"_id" : {"$nin" : list(ranking_dict.keys())}})
-            del ranking_dict
-            del member_store
-            gc.collect()
 
 def gen_raid_date():
     now = datetime.utcnow().replace(tzinfo=utc)
