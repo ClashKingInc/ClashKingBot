@@ -156,7 +156,7 @@ class Clan(Struct):
 
 async def broadcast(keys):
 
-    x = 1
+    x = 0
     while True:
         async def fetch(url, session: aiohttp.ClientSession, headers):
             async with session.get(url, headers=headers) as response:
