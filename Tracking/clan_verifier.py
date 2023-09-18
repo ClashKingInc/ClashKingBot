@@ -134,11 +134,13 @@ class Members(Struct):
     donations: int
     donationsReceived: int
 
+
 class Clan(Struct):
     name: str
     tag: str
     type: str
     clanLevel: int
+    isWarLogPublic: bool
     members: int
     clanPoints: int
     clanCapitalPoints: int
@@ -154,6 +156,7 @@ class Clan(Struct):
 
 async def broadcast(keys):
 
+    x = 0
     while True:
         async def fetch(url, session: aiohttp.ClientSession, headers):
             async with session.get(url, headers=headers) as response:
@@ -161,8 +164,11 @@ async def broadcast(keys):
                     return (await response.read())
                 return None
 
-
-        pipeline = [{"$match" : {}}, { "$group" : { "_id" : "$tag" } } ]
+        if x % 20 == 0:
+            pipeline = [{"$match" : {}}, { "$group" : { "_id" : "$tag" } } ]
+        else:
+            pipeline = [{"$match": {"$or" : [{"members" : {"$gte" : 10}}, {"level" : {"$gte" : 3}}, {"capitalLeague" : {"$ne" :"Unranked"}}]}}, {"$group": {"_id": "$tag"}}]
+        x += 1
         all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
         size_break = 50000
         all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
@@ -217,6 +223,7 @@ async def broadcast(keys):
                                                             "warWins" : clan.warWins,
                                                             "clanCapitalHallLevel" : clan.clanCapital.capitalHallLevel,
                                                             "isValid" : clan.members >= 5,
+                                                            "openWarLog" : clan.isWarLogPublic,
                                                             f"changes.clanCapital.{raid_week}": {"trophies" : clan.clanCapitalPoints, "league" : clan.capitalLeague.name},
                                                             f"changes.clanWarLeague.{season}": {
                                                                 "league": clan.warLeague.name},
