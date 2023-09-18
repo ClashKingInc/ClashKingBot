@@ -237,7 +237,7 @@ async def broadcast(keys):
                 results = await clan_tags.bulk_write(changes, ordered=False)
                 print(results.bulk_api_result)
 
-        if x % 20 != 0:
+        if x % 10 != 0:
             ranking_dict = {}
             member_store.sort(key=lambda x : x[1], reverse=True) #trophy sort
             for count, member in enumerate(member_store[:100000], 1):
