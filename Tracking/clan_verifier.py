@@ -190,16 +190,17 @@ async def broadcast(keys):
                     continue
                 try:
                     clan = decode(response, type=Clan)
-
                     if clan.members == 0:
                         changes.append(DeleteOne({"tag": clan.tag}))
                     else:
-
                         members = [{"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
                                     "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}
                                    for member in clan.memberList]
                         for member in clan.memberList:
-                            ranking_members.remove(member.tag)
+                            try:
+                                ranking_members.remove(member.tag)
+                            except:
+                                pass
                             if member != member_store.get(member.tag):
                                 member_store[member.tag] = member
                                 member_updates.append(UpdateOne({"tag" : clan.tag}, {"$set" : {"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
