@@ -232,9 +232,11 @@ async def broadcast(keys):
                                                       upsert=True))
                         del members
                     del clan
-                    gc.collect()
                 except Exception:
                     continue
+
+            del responses
+            gc.collect()
             if changes:
                 results = await clan_tags.bulk_write(changes, ordered=False)
                 print(results.bulk_api_result)
