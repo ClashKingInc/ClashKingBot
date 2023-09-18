@@ -164,7 +164,7 @@ async def broadcast(keys):
                     return (await response.read())
                 return None
 
-        if x % 20 == 0:
+        if x % 10 == 0:
             pipeline = [{"$match" : {"$or" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, { "$group" : { "_id" : "$tag" } } ]
         else:
             pipeline = [{"$match": {"$or" : [{"members" : {"$gte" : 10}}, {"level" : {"$gte" : 3}}, {"capitalLeague" : {"$ne" :"Unranked"}}]}}, {"$group": {"_id": "$tag"}}]
