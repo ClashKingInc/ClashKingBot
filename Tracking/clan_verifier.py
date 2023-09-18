@@ -200,7 +200,7 @@ async def broadcast(keys):
                                     "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}
                                    for member in clan.memberList]
                         for member in clan.memberList:
-                            member_store[member.tag] = (member)
+                            member_store[member.tag] = {"t" : member.tag, "tr" : member.trophies, "bT" : member.builderBaseTrophies, "d" : member.donations, "dR" : member.donationsReceived}
                         changes.append(UpdateOne({"tag": clan.tag},
                                                       {"$set":
                                                            {"name": clan.name,
@@ -231,24 +231,24 @@ async def broadcast(keys):
 
         ranking_dict = {}
         member_sort = [v for v in member_store.values()]
-        member_sort.sort(key=lambda x : x.trophies, reverse=True) #trophy sort
+        member_sort.sort(key=lambda x : x.get("tr"), reverse=True) #trophy sort
         for count, member in enumerate(member_sort[:100000], 1):
-            ranking_dict[member.tag] = {"name": member.name, "trophies" : member.trophies, "trophiesRank" : count}
+            ranking_dict[member.get("t")] = {"trophies" : member.get("tr"), "trophiesRank" : count}
 
-        member_sort.sort(key=lambda x: x.builderBaseTrophies, reverse=True)  # builder trophy sort
+        member_sort.sort(key=lambda x: x.get("bT"), reverse=True)  # builder trophy sort
         for count, member in enumerate(member_sort[:100000], 1):
-            prev_dict = ranking_dict.get(member.tag, {})
-            ranking_dict[member.tag] = prev_dict | {"name": member.name, "builderTrophies": member.builderBaseTrophies, "builderTrophiesRank": count}
+            prev_dict = ranking_dict.get(member.get("t"), {})
+            ranking_dict[member.get("t")] = prev_dict | { "builderTrophies": member.get("bT"), "builderTrophiesRank": count}
 
-        member_sort.sort(key=lambda x: x.donations, reverse=True)  # donation sort
+        member_sort.sort(key=lambda x: x.get("d"), reverse=True)  # donation sort
         for count, member in enumerate(member_sort[:100000], 1):
-            prev_dict = ranking_dict.get(member.tag, {})
-            ranking_dict[member.tag] = prev_dict | {"name": member.name, "donations": member.donations, "donationsRank": count}
+            prev_dict = ranking_dict.get(member.get("t"), {})
+            ranking_dict[member.get("t")] = prev_dict | {"donations": member.get("d"), "donationsRank": count}
 
-        member_sort.sort(key=lambda x: x.donationsReceived, reverse=True)  # donation sort
+        member_sort.sort(key=lambda x: x.get("dR"), reverse=True)  # donation sort
         for count, member in enumerate(member_sort[:100000], 1):
-            prev_dict = ranking_dict.get(member.tag, {})
-            ranking_dict[member.tag] = prev_dict | {"name": member.name, "donationsReceived": member.donationsReceived, "donationsReceivedRank": count}
+            prev_dict = ranking_dict.get(member.get("t"), {})
+            ranking_dict[member.get("t")] = prev_dict | {"donationsReceived": member.get("dR"), "donationsReceivedRank": count}
 
 
         await rankings.bulk_write([UpdateOne({"_id" : tag}, d, upsert=True) for tag, d in ranking_dict.items()], ordered=False)
