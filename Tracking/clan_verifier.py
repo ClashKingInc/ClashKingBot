@@ -4,6 +4,8 @@ from typing import Optional, List
 from base64 import b64decode as base64_b64decode
 from json import loads as json_loads
 from datetime import datetime
+
+import ujson
 from dotenv import load_dotenv
 from msgspec.json import decode
 from msgspec import Struct
@@ -28,6 +30,7 @@ client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"), maxPoolSi
 looper = client.looper
 clan_tags = looper.clan_tags
 rankings = client.new_looper.rankings
+deleted_clans = client.new_looper.deleted_clans
 throttler = Throttler(rate_limit=1000, period=1)
 
 emails = []
@@ -190,6 +193,7 @@ async def broadcast(keys):
                 try:
                     clan = decode(response, type=Clan)
                     if clan.members == 0:
+                        await deleted_clans.insert_one(ujson.loads(response))
                         changes.append(DeleteOne({"tag": clan.tag}))
                     else:
                         members = [{"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
@@ -228,21 +232,21 @@ async def broadcast(keys):
         ranking_dict = {}
         member_sort = [v for v in member_store.values()]
         member_sort.sort(key=lambda x : x.trophies, reverse=True) #trophy sort
-        for count, member in enumerate(member_sort[:250000], 1):
+        for count, member in enumerate(member_sort[:100000], 1):
             ranking_dict[member.tag] = {"name": member.name, "trophies" : member.trophies, "trophiesRank" : count}
 
         member_sort.sort(key=lambda x: x.builderBaseTrophies, reverse=True)  # builder trophy sort
-        for count, member in enumerate(member_sort[:250000], 1):
+        for count, member in enumerate(member_sort[:100000], 1):
             prev_dict = ranking_dict.get(member.tag, {})
             ranking_dict[member.tag] = prev_dict | {"name": member.name, "builderTrophies": member.builderBaseTrophies, "builderTrophiesRank": count}
 
         member_sort.sort(key=lambda x: x.donations, reverse=True)  # donation sort
-        for count, member in enumerate(member_sort[:250000], 1):
+        for count, member in enumerate(member_sort[:100000], 1):
             prev_dict = ranking_dict.get(member.tag, {})
             ranking_dict[member.tag] = prev_dict | {"name": member.name, "donations": member.donations, "donationsRank": count}
 
         member_sort.sort(key=lambda x: x.donationsReceived, reverse=True)  # donation sort
-        for count, member in enumerate(member_sort[:250000], 1):
+        for count, member in enumerate(member_sort[:100000], 1):
             prev_dict = ranking_dict.get(member.tag, {})
             ranking_dict[member.tag] = prev_dict | {"name": member.name, "donationsReceived": member.donationsReceived, "donationsReceivedRank": count}
 
