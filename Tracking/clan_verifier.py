@@ -203,7 +203,7 @@ async def broadcast(keys):
                                 pass
                             if member != member_store.get(member.tag):
                                 member_store[member.tag] = member
-                                member_updates.append(UpdateOne({"tag" : clan.tag}, {"$set" : {"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
+                                member_updates.append(UpdateOne({"_id" : member.tag}, {"$set" : {"name": member.name, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
                                     "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}}, upsert=True))
                         changes.append(UpdateOne({"tag": clan.tag},
                                                       {"$set":
