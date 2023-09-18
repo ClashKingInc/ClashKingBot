@@ -156,7 +156,7 @@ class Clan(Struct):
 
 async def broadcast(keys):
 
-    x = 0
+    x = 1
     while True:
         async def fetch(url, session: aiohttp.ClientSession, headers):
             async with session.get(url, headers=headers) as response:
@@ -165,7 +165,7 @@ async def broadcast(keys):
                 return None
 
         if x % 20 == 0:
-            pipeline = [{"$match" : {}}, { "$group" : { "_id" : "$tag" } } ]
+            pipeline = [{"$match" : {"$or" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, { "$group" : { "_id" : "$tag" } } ]
         else:
             pipeline = [{"$match": {"$or" : [{"members" : {"$gte" : 10}}, {"level" : {"$gte" : 3}}, {"capitalLeague" : {"$ne" :"Unranked"}}]}}, {"$group": {"_id": "$tag"}}]
         x += 1
@@ -225,8 +225,7 @@ async def broadcast(keys):
                                                             "isValid" : clan.members >= 5,
                                                             "openWarLog" : clan.isWarLogPublic,
                                                             f"changes.clanCapital.{raid_week}": {"trophies" : clan.clanCapitalPoints, "league" : clan.capitalLeague.name},
-                                                            f"changes.clanWarLeague.{season}": {
-                                                                "league": clan.warLeague.name},
+                                                            f"changes.clanWarLeague.{season}": {"league": clan.warLeague.name},
                                                             "memberList": members
                                                             },
                                                        },
