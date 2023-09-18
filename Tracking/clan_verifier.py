@@ -146,7 +146,7 @@ class Clan(Struct):
     memberList : List[Members]
     location: Optional[Location] = None
 
-member_store = {}
+
 
 async def broadcast(keys):
 
@@ -163,8 +163,8 @@ async def broadcast(keys):
         size_break = 50000
         all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
 
-        pipeline = [{"$match": {}}, {"$group": {"_id": "$tag"}}]
-        ranking_members = set([x["_id"] for x in (await rankings.aggregate(pipeline).to_list(length=None))])
+
+        member_store = {}
 
         for tag_group in all_tags:
             tasks = []
@@ -181,7 +181,6 @@ async def broadcast(keys):
                 await session.close()
 
             changes = []
-            member_updates = []
             raid_week = gen_raid_date()
             season = gen_season_date()
             for response in responses: #type: bytes
@@ -197,14 +196,7 @@ async def broadcast(keys):
                                     "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}
                                    for member in clan.memberList]
                         for member in clan.memberList:
-                            try:
-                                ranking_members.remove(member.tag)
-                            except:
-                                pass
-                            if member != member_store.get(member.tag):
-                                member_store[member.tag] = member
-                                member_updates.append(UpdateOne({"_id" : member.tag}, {"$set" : {"name": member.name, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
-                                    "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}}, upsert=True))
+                            member_store[member.tag] = (member)
                         changes.append(UpdateOne({"tag": clan.tag},
                                                       {"$set":
                                                            {"name": clan.name,
@@ -230,14 +222,34 @@ async def broadcast(keys):
                 except Exception:
                     continue
             if changes:
-                results = await clan_tags.bulk_write(changes)
+                results = await clan_tags.bulk_write(changes, ordered=False)
                 print(results.bulk_api_result)
-            if member_updates:
-                await rankings.bulk_write(member_updates)
-                print(f"{len(member_updates)} Members Updated")
+
+        ranking_dict = {}
+        member_sort = [v for v in member_store.values()]
+        member_sort.sort(key=lambda x : x.trophies, reverse=True) #trophy sort
+        for count, member in enumerate(member_sort[:250000], 1):
+            ranking_dict[member.tag] = {"name": member.name, "trophies" : member.trophies, "trophiesRank" : count}
+
+        member_sort.sort(key=lambda x: x.builderBaseTrophies, reverse=True)  # builder trophy sort
+        for count, member in enumerate(member_sort[:250000], 1):
+            prev_dict = ranking_dict.get(member.tag, {})
+            ranking_dict[member.tag] = prev_dict | {"name": member.name, "builderTrophies": member.builderBaseTrophies, "builderTrophiesRank": count}
+
+        member_sort.sort(key=lambda x: x.donations, reverse=True)  # donation sort
+        for count, member in enumerate(member_sort[:250000], 1):
+            prev_dict = ranking_dict.get(member.tag, {})
+            ranking_dict[member.tag] = prev_dict | {"name": member.name, "donations": member.donations, "donationsRank": count}
+
+        member_sort.sort(key=lambda x: x.donationsReceived, reverse=True)  # donation sort
+        for count, member in enumerate(member_sort[:250000], 1):
+            prev_dict = ranking_dict.get(member.tag, {})
+            ranking_dict[member.tag] = prev_dict | {"name": member.name, "donationsReceived": member.donationsReceived, "donationsReceivedRank": count}
 
 
-        await rankings.delete_many({"tag" : {"$in" : list(ranking_members)}})
+        await rankings.bulk_write([UpdateOne({"_id" : tag}, d, upsert=True) for tag, d in ranking_dict.items()], ordered=False)
+        print(f"{len(ranking_dict)} Members Updated")
+        await rankings.delete_many({"_id" : {"$nin" : list(ranking_dict.keys())}})
 
 
 def gen_raid_date():
