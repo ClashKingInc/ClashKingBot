@@ -290,9 +290,7 @@ async def store_cwl():
             await cwl_group.bulk_write(changes)
             print(f"{len(changes)} Changes Updated/Inserted")
 
-
-#@scheduler.scheduled_job("cron", day="12", hour="1-22", minute=10)
-@scheduler.scheduled_job("cron", day="19", hour="2", minute=19)
+@scheduler.scheduled_job("cron", day="14", hour="5", minute=5)
 async def store_rounds():
     season = gen_season_date()
     pipeline = [{"$match": {"data.season": season}},
@@ -338,22 +336,20 @@ async def store_rounds():
                 response["tag"] = tag
                 response["season"] = season
                 war = coc.ClanWar(data=response, client=coc_client)
-                war_alr = await clan_war.find_one({"war_id" : f"{war.clan.tag}-{int(war.preparation_start_time.time.timestamp())}"})
-                if war_alr is None:
-                    source = string.ascii_letters
+
+                source = string.ascii_letters
+                custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
+                is_used = await clan_war.find_one({"custom_id": custom_id})
+                while is_used is not None:
                     custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
                     is_used = await clan_war.find_one({"custom_id": custom_id})
-                    while is_used is not None:
-                        custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
-                        is_used = await clan_war.find_one({"custom_id": custom_id})
-                    add_war.append(UpdateOne(
-                        {"war_id": f"{war.clan.tag}-{int(war.preparation_start_time.time.timestamp())}"},
-                        {"$set": {
-                            "custom_id": custom_id,
-                            "data": war._raw_data}}, upsert=True
-                        ))
-                else:
-                    custom_id = war_alr.get("custom_id")
+                add_war.append(UpdateOne(
+                    {"war_id": f"{war.clan.tag}-{int(war.preparation_start_time.time.timestamp())}"},
+                    {"$set": {
+                        "custom_id": custom_id,
+                        "data": war._raw_data}}, upsert=True
+                    ))
+
                 for attack in war.attacks:
                     add_war_hits.append(UpdateOne(
                         {"$and" : [{"tag" : attack.attacker_tag},
@@ -399,6 +395,63 @@ async def store_rounds():
                 print(e)
                 print(f"{len(add_war_hits)} Attacks Updated/Inserted")
 
+
+@scheduler.scheduled_job("cron", day="19", hour=2, minute=32)
+async def fix_rounds():
+    cursor = clan_war.find({"season" : "2023-09"})
+    num_wars = 0
+    add_war_hits = []
+    async for document in cursor:
+        document = await document
+        num_wars += 1
+        war = coc.ClanWar(data=document.get("data"), client=coc_client)
+        for attack in war.attacks:
+            add_war_hits.append(UpdateOne(
+                {"$and": [{"tag": attack.attacker_tag},
+                          {"defender_tag": attack.defender_tag},
+                          {"war_start": int(war.preparation_start_time.time.timestamp())}]},
+                {"$set": {
+                    "tag": attack.attacker.tag,
+                    "name": attack.attacker.name,
+                    "townhall": attack.attacker.town_hall,
+                    "_time": int(war.preparation_start_time.time.timestamp()),
+                    "destruction": attack.destruction,
+                    "stars": attack.stars,
+                    "fresh": attack.is_fresh_attack,
+                    "war_start": int(war.preparation_start_time.time.timestamp()),
+                    "defender_tag": attack.defender.tag,
+                    "defender_name": attack.defender.name,
+                    "defender_townhall": attack.defender.town_hall,
+                    "war_type": str(war.type),
+                    "war_status": str(war.status),
+                    "attack_order": attack.order,
+                    "map_position": attack.attacker.map_position,
+                    "war_size": war.team_size,
+                    "clan": attack.attacker.clan.tag,
+                    "clan_name": attack.attacker.clan.name,
+                    "defending_clan": attack.defender.clan.tag,
+                    "defending_clan_name": attack.defender.clan.name,
+                    "season": "2023-09",
+                    "full_war": document.get("custom_id")
+                }}, upsert=True))
+
+        if num_wars % 50000 == 0:
+            if add_war_hits:
+                try:
+                    await attack_db.bulk_write(add_war_hits)
+                    print(f"{len(add_war_hits)} Attacks Updated/Inserted")
+                except Exception as e:
+                    print(e)
+                    print(f"{len(add_war_hits)} Attacks Updated/Inserted")
+            add_war_hits = []
+
+    if add_war_hits:
+        try:
+            await attack_db.bulk_write(add_war_hits)
+            print(f"{len(add_war_hits)} Attacks Updated/Inserted")
+        except Exception as e:
+            print(e)
+            print(f"{len(add_war_hits)} Attacks Updated/Inserted")
 
 @scheduler.scheduled_job("cron", hour=4, minute=56)
 async def store_all_leaderboards():
