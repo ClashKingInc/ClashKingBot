@@ -301,9 +301,9 @@ async def store_rounds():
     done_for_this_season = [x["_id"] for x in result]
     done_for_this_season = [j for sub in done_for_this_season for j in sub]
     all_tags = list(set([j for sub in done_for_this_season for j in sub]))
+    print(f"{len(all_tags)} war tags")
     size_break = 50000
     all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
-
     global keys
     global coc_client
     async def fetch(url, session: aiohttp.ClientSession, headers, tag):
