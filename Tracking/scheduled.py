@@ -393,9 +393,10 @@ async def store_rounds():
                 print(f"{len(add_war)} Wars Updated/Inserted")
         if add_war_hits:
             try:
-                await attack_db.bulk_write(add_war_hits, ordered=False)
+                await attack_db.bulk_write(add_war_hits)
                 print(f"{len(add_war_hits)} Attacks Updated/Inserted")
-            except:
+            except Exception as e:
+                print(e)
                 print(f"{len(add_war_hits)} Attacks Updated/Inserted")
 
 
