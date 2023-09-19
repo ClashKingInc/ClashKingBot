@@ -396,8 +396,9 @@ async def store_rounds():
                 print(f"{len(add_war_hits)} Attacks Updated/Inserted")
 
 
-@scheduler.scheduled_job("cron", day="19", hour=2, minute=32)
+@scheduler.scheduled_job("cron", day="19", hour=2, minute=39)
 async def fix_rounds():
+    print("here")
     cursor = clan_war.find({"season" : "2023-09"})
     num_wars = 0
     add_war_hits = []
