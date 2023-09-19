@@ -399,7 +399,7 @@ async def store_rounds():
 @scheduler.scheduled_job("cron", day="19", hour=2, minute=43)
 async def fix_rounds():
     print("here")
-    cursor = clan_war.find({"season" : "2023-09"}).batch_size(50000)
+    cursor = clan_war.find({"data.season" : "2023-09"}).batch_size(50000)
     num_wars = 0
     add_war_hits = []
     async for document in cursor:
