@@ -396,14 +396,13 @@ async def store_rounds():
                 print(f"{len(add_war_hits)} Attacks Updated/Inserted")
 
 
-@scheduler.scheduled_job("cron", day="19", hour=2, minute=43)
+@scheduler.scheduled_job("cron", day="19", hour=2, minute=46)
 async def fix_rounds():
     print("here")
     cursor = clan_war.find({"data.season" : "2023-09"})
     num_wars = 0
     add_war_hits = []
-    async for document in cursor:
-        document = await document
+    async for document in cursor: #type: dict
         num_wars += 1
         war = coc.ClanWar(data=document.get("data"), client=coc_client)
         for attack in war.attacks:
