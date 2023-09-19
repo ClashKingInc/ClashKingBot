@@ -359,7 +359,7 @@ async def store_rounds():
                         {"$and" : [{"tag" : attack.attacker_tag},
                         {"defender_tag" : attack.defender_tag},
                         {"war_start" : int(war.preparation_start_time.time.timestamp())}]},
-                        {
+                        {"$set" : {
                         "tag": attack.attacker.tag,
                         "name": attack.attacker.name,
                         "townhall": attack.attacker.town_hall,
@@ -382,7 +382,7 @@ async def store_rounds():
                         "defending_clan_name": attack.defender.clan.name,
                         "season" : season,
                         "full_war": custom_id
-                        }, upsert=True))
+                        }}, upsert=True))
             except:
                 pass
         if add_war:
