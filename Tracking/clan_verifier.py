@@ -169,10 +169,9 @@ async def broadcast(keys):
         else:
             pipeline = [{"$match": {"$nor" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, {"$group": {"_id": "$tag"}}]
         x += 1
-        all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
+        all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))][:50000]
         size_break = 50000
         all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
-
 
         member_store = []
 
