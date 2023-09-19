@@ -146,7 +146,7 @@ async def broadcast(keys):
                 return (None, None)
 
 
-        pipeline = [{"$match": {"isValid": {"$ne": False}}}, {"$group": {"_id": "$tag"}}]
+        pipeline = [{"$match": {"openWarLog": True}}, {"$group": {"_id": "$tag"}}]
         all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
         size_break = 50000
         all_tags = [tag for tag in all_tags if tag not in in_war]
