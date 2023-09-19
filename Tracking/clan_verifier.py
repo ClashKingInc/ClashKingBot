@@ -151,9 +151,9 @@ class Clan(Struct):
     clanCapital: ClanCapital
     memberList : List[Members]
     location: Optional[Location] = None
+from memory_profiler import profile
 
-
-
+@profile
 async def broadcast(keys):
 
     x = 0
