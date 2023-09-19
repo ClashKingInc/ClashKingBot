@@ -157,110 +157,110 @@ from memory_profiler import profile
 async def broadcast(keys):
 
     x = 0
-    while True:
-        async def fetch(url, session: aiohttp.ClientSession, headers):
-            async with session.get(url, headers=headers) as response:
-                if response.status == 200:
-                    return (await response.read())
-                return None
+    #while True:
+    async def fetch(url, session: aiohttp.ClientSession, headers):
+        async with session.get(url, headers=headers) as response:
+            if response.status == 200:
+                return (await response.read())
+            return None
 
-        if x % 10 == 0:
-            pipeline = [{"$match" : {"$or" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, { "$group" : { "_id" : "$tag" } } ]
-        else:
-            pipeline = [{"$match": {"$nor" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, {"$group": {"_id": "$tag"}}]
-        x += 1
-        all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))][:50000]
-        size_break = 50000
-        all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
+    if x % 10 == 0:
+        pipeline = [{"$match" : {"$or" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, { "$group" : { "_id" : "$tag" } } ]
+    else:
+        pipeline = [{"$match": {"$nor" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, {"$group": {"_id": "$tag"}}]
+    x += 1
+    all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))][:50000]
+    size_break = 50000
+    all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
 
-        member_store = []
+    member_store = []
 
-        for tag_group in all_tags:
-            tasks = []
-            deque = collections.deque
-            connector = aiohttp.TCPConnector(limit=250, ttl_dns_cache=300)
-            keys = deque(keys)
-            timeout = aiohttp.ClientTimeout(total=1800)
-            async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
-                for tag in tag_group:
-                    tag = tag.replace("#", "%23")
-                    keys.rotate(1)
-                    tasks.append(fetch(f"https://api.clashofclans.com/v1/clans/{tag}", session, {"Authorization": f"Bearer {keys[0]}"}))
-                responses = await asyncio.gather(*tasks)
-                await session.close()
+    for tag_group in all_tags:
+        tasks = []
+        deque = collections.deque
+        connector = aiohttp.TCPConnector(limit=250, ttl_dns_cache=300)
+        keys = deque(keys)
+        timeout = aiohttp.ClientTimeout(total=1800)
+        async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+            for tag in tag_group:
+                tag = tag.replace("#", "%23")
+                keys.rotate(1)
+                tasks.append(fetch(f"https://api.clashofclans.com/v1/clans/{tag}", session, {"Authorization": f"Bearer {keys[0]}"}))
+            responses = await asyncio.gather(*tasks)
+            await session.close()
 
-            changes = []
-            raid_week = gen_raid_date()
-            season = gen_season_date()
-            for response in responses: #type: bytes
-                # we shouldnt have completely invalid tags, they all existed at some point
-                if response is None:
-                    continue
-                try:
-                    clan = decode(response, type=Clan)
-                    if clan.members == 0:
-                        await deleted_clans.insert_one(ujson.loads(response))
-                        changes.append(DeleteOne({"tag": clan.tag}))
-                    else:
-                        members = [{"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
-                                    "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}
-                                   for member in clan.memberList]
-                        for member in clan.memberList:
-                            member_store.append((member.name, member.trophies, member.builderBaseTrophies, member.donations, member.donationsReceived, member.tag))
-                        changes.append(UpdateOne({"tag": clan.tag},
-                                                      {"$set":
-                                                           {"name": clan.name,
-                                                            "members" : clan.members,
-                                                            "level" : clan.clanLevel,
-                                                            "type" : clan.type,
-                                                            "location" : {"id" :clan.location.id if clan.location else clan.location, "name" : clan.location.name if clan.location else clan.location},
-                                                            "clanCapitalPoints" : clan.clanCapitalPoints,
-                                                            "clanPoints" : clan.clanPoints,
-                                                            "capitalLeague" : clan.capitalLeague.name,
-                                                            "warLeague" : clan.warLeague.name,
-                                                            "warWinStreak" : clan.warWinStreak,
-                                                            "warWins" : clan.warWins,
-                                                            "clanCapitalHallLevel" : clan.clanCapital.capitalHallLevel,
-                                                            "isValid" : clan.members >= 5,
-                                                            "openWarLog" : clan.isWarLogPublic,
-                                                            f"changes.clanCapital.{raid_week}": {"trophies" : clan.clanCapitalPoints, "league" : clan.capitalLeague.name},
-                                                            f"changes.clanWarLeague.{season}": {"league": clan.warLeague.name},
-                                                            "memberList": members
-                                                            },
-                                                       },
-                                                      upsert=True))
-                except Exception:
-                    continue
+        changes = []
+        raid_week = gen_raid_date()
+        season = gen_season_date()
+        for response in responses: #type: bytes
+            # we shouldnt have completely invalid tags, they all existed at some point
+            if response is None:
+                continue
+            try:
+                clan = decode(response, type=Clan)
+                if clan.members == 0:
+                    await deleted_clans.insert_one(ujson.loads(response))
+                    changes.append(DeleteOne({"tag": clan.tag}))
+                else:
+                    members = [{"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
+                                "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}
+                               for member in clan.memberList]
+                    for member in clan.memberList:
+                        member_store.append((member.name, member.trophies, member.builderBaseTrophies, member.donations, member.donationsReceived, member.tag))
+                    changes.append(UpdateOne({"tag": clan.tag},
+                                                  {"$set":
+                                                       {"name": clan.name,
+                                                        "members" : clan.members,
+                                                        "level" : clan.clanLevel,
+                                                        "type" : clan.type,
+                                                        "location" : {"id" :clan.location.id if clan.location else clan.location, "name" : clan.location.name if clan.location else clan.location},
+                                                        "clanCapitalPoints" : clan.clanCapitalPoints,
+                                                        "clanPoints" : clan.clanPoints,
+                                                        "capitalLeague" : clan.capitalLeague.name,
+                                                        "warLeague" : clan.warLeague.name,
+                                                        "warWinStreak" : clan.warWinStreak,
+                                                        "warWins" : clan.warWins,
+                                                        "clanCapitalHallLevel" : clan.clanCapital.capitalHallLevel,
+                                                        "isValid" : clan.members >= 5,
+                                                        "openWarLog" : clan.isWarLogPublic,
+                                                        f"changes.clanCapital.{raid_week}": {"trophies" : clan.clanCapitalPoints, "league" : clan.capitalLeague.name},
+                                                        f"changes.clanWarLeague.{season}": {"league": clan.warLeague.name},
+                                                        "memberList": members
+                                                        },
+                                                   },
+                                                  upsert=True))
+            except Exception:
+                continue
 
-            if changes:
-                results = await clan_tags.bulk_write(changes, ordered=False)
-                print(results.bulk_api_result)
+        if changes:
+            results = await clan_tags.bulk_write(changes, ordered=False)
+            print(results.bulk_api_result)
 
-        if x % 10 != 0:
-            ranking_dict = {}
-            member_store.sort(key=lambda x : x[1], reverse=True) #trophy sort
-            for count, member in enumerate(member_store[:100000], 1):
-                ranking_dict[member[-1]] = {"name" : member[0], "trophies" : member[1], "trophiesRank" : count}
+    if x % 10 != 0:
+        ranking_dict = {}
+        member_store.sort(key=lambda x : x[1], reverse=True) #trophy sort
+        for count, member in enumerate(member_store[:100000], 1):
+            ranking_dict[member[-1]] = {"name" : member[0], "trophies" : member[1], "trophiesRank" : count}
 
-            member_store.sort(key=lambda x: x[2], reverse=True)  # builder trophy sort
-            for count, member in enumerate(member_store[:100000], 1):
-                prev_dict = ranking_dict.get(member[-1], {})
-                ranking_dict[member[-1]] = prev_dict | {"name" : member[0], "builderTrophies": member[2], "builderTrophiesRank": count}
+        member_store.sort(key=lambda x: x[2], reverse=True)  # builder trophy sort
+        for count, member in enumerate(member_store[:100000], 1):
+            prev_dict = ranking_dict.get(member[-1], {})
+            ranking_dict[member[-1]] = prev_dict | {"name" : member[0], "builderTrophies": member[2], "builderTrophiesRank": count}
 
-            member_store.sort(key=lambda x: x[3], reverse=True)  # donation sort
-            for count, member in enumerate(member_store[:100000], 1):
-                prev_dict = ranking_dict.get(member[-1], {})
-                ranking_dict[member[-1]] = prev_dict | {"name" : member[0], "donations": member[3], "donationsRank": count, "donationsReceived" : member[4]}
+        member_store.sort(key=lambda x: x[3], reverse=True)  # donation sort
+        for count, member in enumerate(member_store[:100000], 1):
+            prev_dict = ranking_dict.get(member[-1], {})
+            ranking_dict[member[-1]] = prev_dict | {"name" : member[0], "donations": member[3], "donationsRank": count, "donationsReceived" : member[4]}
 
-            member_store.sort(key=lambda x: x[4], reverse=True)  # donation sort
-            for count, member in enumerate(member_store[:100000], 1):
-                prev_dict = ranking_dict.get(member[-1], {})
-                ranking_dict[member[-1]] = prev_dict | {"name" : member[0], "donationsReceived": member[4], "donationsReceivedRank": count, "donations" : member[3]}
+        member_store.sort(key=lambda x: x[4], reverse=True)  # donation sort
+        for count, member in enumerate(member_store[:100000], 1):
+            prev_dict = ranking_dict.get(member[-1], {})
+            ranking_dict[member[-1]] = prev_dict | {"name" : member[0], "donationsReceived": member[4], "donationsReceivedRank": count, "donations" : member[3]}
 
 
-            await rankings.bulk_write([UpdateOne({"_id" : tag}, {"$set" : d}, upsert=True) for tag, d in ranking_dict.items()], ordered=False)
-            print(f"{len(ranking_dict)} Members Updated")
-            await rankings.delete_many({"_id" : {"$nin" : list(ranking_dict.keys())}})
+        await rankings.bulk_write([UpdateOne({"_id" : tag}, {"$set" : d}, upsert=True) for tag, d in ranking_dict.items()], ordered=False)
+        print(f"{len(ranking_dict)} Members Updated")
+        await rankings.delete_many({"_id" : {"$nin" : list(ranking_dict.keys())}})
 
 def gen_raid_date():
     now = datetime.utcnow().replace(tzinfo=utc)
