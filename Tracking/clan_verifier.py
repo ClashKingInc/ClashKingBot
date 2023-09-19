@@ -189,8 +189,7 @@ def display_top(snapshot, key_type='lineno', limit=5):
     print("Total allocated size: %.1f KiB" % (total / 1024))
 
 
-connector = TCPConnector(limit=250, ttl_dns_cache=300)
-timeout = ClientTimeout(total=1800)
+
 tracemalloc.start()
 async def broadcast(keys):
 
@@ -211,11 +210,12 @@ async def broadcast(keys):
 
         for tag_group in all_tags:
             tasks = []
+            connector = TCPConnector(limit=250, enable_cleanup_closed=True)
+            timeout = ClientTimeout(total=1800)
             async with ClientSession(connector=connector, timeout=timeout) as session:
                 for tag in tag_group:
-                    tag = tag.replace("#", "%23")
                     keys.rotate(1)
-                    tasks.append(fetch(f"https://api.clashofclans.com/v1/clans/{tag}", session, {"Authorization": f"Bearer {keys[0]}"}))
+                    tasks.append(fetch(f"https://api.clashofclans.com/v1/clans/{tag.replace('#', '%23')}", session, {"Authorization": f"Bearer {keys[0]}"}))
                 responses = await asyncio.gather(*tasks)
                 await session.close()
             print(f"fetched {len(responses)} responses")
@@ -232,10 +232,10 @@ async def broadcast(keys):
                         await deleted_clans.insert_one(ujson.loads(response))
                         changes.append(DeleteOne({"tag": clan.tag}))
                     else:
-                        members = [{"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
-                                    "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived}
-                                   for member in clan.memberList]
+                        members = []
                         for member in clan.memberList:
+                            members.append({"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
+                                    "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived})
                             member_store.append((member.name, member.trophies, member.builderBaseTrophies, member.donations, member.donationsReceived, member.tag))
                         changes.append(UpdateOne({"tag": clan.tag},
                                                       {"$set":
