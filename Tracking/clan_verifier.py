@@ -14,9 +14,7 @@ from msgspec import Struct
 from pymongo import UpdateOne, DeleteOne
 from datetime import timedelta
 from asyncio_throttle import Throttler
-from redis import asyncio as aioredis
 from aiohttp import TCPConnector, ClientTimeout, ClientSession
-import redis
 import motor.motor_asyncio
 import collections
 import aiohttp
@@ -153,8 +151,6 @@ class Clan(Struct):
     memberList : List[Members]
     location: Optional[Location] = None
 
-import tracemalloc
-import linecache
 
 async def fetch(url, session: aiohttp.ClientSession, headers):
     async with session.get(url, headers=headers) as response:
@@ -163,34 +159,6 @@ async def fetch(url, session: aiohttp.ClientSession, headers):
         return None
 
 
-def display_top(snapshot, key_type='lineno', limit=5):
-    snapshot = snapshot.filter_traces((
-        tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),
-        tracemalloc.Filter(False, "<unknown>"),
-    ))
-    top_stats = snapshot.statistics(key_type)
-
-    print("Top %s lines" % limit)
-    for index, stat in enumerate(top_stats[:limit], 1):
-        frame = stat.traceback[0]
-        # replace "/path/to/module/file.py" with "module/file.py"
-        filename = os.sep.join(frame.filename.split(os.sep)[-2:])
-        print("#%s: %s:%s: %.1f KiB"
-              % (index, filename, frame.lineno, stat.size / 1024))
-        line = linecache.getline(frame.filename, frame.lineno).strip()
-        if line:
-            print('    %s' % line)
-
-    other = top_stats[limit:]
-    if other:
-        size = sum(stat.size for stat in other)
-        print("%s other: %.1f KiB" % (len(other), size / 1024))
-    total = sum(stat.size for stat in top_stats)
-    print("Total allocated size: %.1f KiB" % (total / 1024))
-
-
-
-tracemalloc.start()
 async def broadcast(keys):
 
     x = 0
@@ -205,8 +173,6 @@ async def broadcast(keys):
         print(f"{len(all_tags)} tags")
         size_break = 50000
         all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
-
-        member_store = []
 
         for tag_group in all_tags:
             tasks = []
@@ -236,7 +202,6 @@ async def broadcast(keys):
                         for member in clan.memberList:
                             members.append({"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
                                     "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived})
-                            member_store.append((member.name, member.trophies, member.builderBaseTrophies, member.donations, member.donationsReceived, member.tag))
                         changes.append(UpdateOne({"tag": clan.tag},
                                                       {"$set":
                                                            {"name": clan.name,
@@ -265,34 +230,7 @@ async def broadcast(keys):
             if changes:
                 results = await clan_tags.bulk_write(changes, ordered=False)
                 print(results.bulk_api_result)
-            snapshot = tracemalloc.take_snapshot()
-            display_top(snapshot)
 
-        if x % 10 != 0:
-            ranking_dict = {}
-            member_store.sort(key=lambda x : x[1], reverse=True) #trophy sort
-            for count, member in enumerate(member_store[:100000], 1):
-                ranking_dict[member[-1]] = {"name" : member[0], "trophies" : member[1], "trophiesRank" : count}
-
-            member_store.sort(key=lambda x: x[2], reverse=True)  # builder trophy sort
-            for count, member in enumerate(member_store[:100000], 1):
-                prev_dict = ranking_dict.get(member[-1], {})
-                ranking_dict[member[-1]] = prev_dict | {"name" : member[0], "builderTrophies": member[2], "builderTrophiesRank": count}
-
-            member_store.sort(key=lambda x: x[3], reverse=True)  # donation sort
-            for count, member in enumerate(member_store[:100000], 1):
-                prev_dict = ranking_dict.get(member[-1], {})
-                ranking_dict[member[-1]] = prev_dict | {"name" : member[0], "donations": member[3], "donationsRank": count, "donationsReceived" : member[4]}
-
-            member_store.sort(key=lambda x: x[4], reverse=True)  # donation sort
-            for count, member in enumerate(member_store[:100000], 1):
-                prev_dict = ranking_dict.get(member[-1], {})
-                ranking_dict[member[-1]] = prev_dict | {"name" : member[0], "donationsReceived": member[4], "donationsReceivedRank": count, "donations" : member[3]}
-
-
-            await rankings.bulk_write([UpdateOne({"_id" : tag}, {"$set" : d}, upsert=True) for tag, d in ranking_dict.items()], ordered=False)
-            print(f"{len(ranking_dict)} Members Updated")
-            await rankings.delete_many({"_id" : {"$nin" : list(ranking_dict.keys())}})
 
 def gen_raid_date():
     now = datetime.utcnow().replace(tzinfo=utc)
