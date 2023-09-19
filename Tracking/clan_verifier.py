@@ -5,6 +5,7 @@ from typing import Optional, List
 from base64 import b64decode as base64_b64decode
 from json import loads as json_loads
 from datetime import datetime
+from collections import deque
 
 import ujson
 from dotenv import load_dotenv
@@ -14,7 +15,7 @@ from pymongo import UpdateOne, DeleteOne
 from datetime import timedelta
 from asyncio_throttle import Throttler
 from redis import asyncio as aioredis
-
+from aiohttp import TCPConnector, ClientTimeout, ClientSession
 import redis
 import motor.motor_asyncio
 import collections
@@ -152,43 +153,72 @@ class Clan(Struct):
     memberList : List[Members]
     location: Optional[Location] = None
 
+import tracemalloc
+import linecache
+
+async def fetch(url, session: aiohttp.ClientSession, headers):
+    async with session.get(url, headers=headers) as response:
+        if response.status == 200:
+            return (await response.read())
+        return None
+
+
+def display_top(snapshot, key_type='lineno', limit=5):
+    snapshot = snapshot.filter_traces((
+        tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),
+        tracemalloc.Filter(False, "<unknown>"),
+    ))
+    top_stats = snapshot.statistics(key_type)
+
+    print("Top %s lines" % limit)
+    for index, stat in enumerate(top_stats[:limit], 1):
+        frame = stat.traceback[0]
+        # replace "/path/to/module/file.py" with "module/file.py"
+        filename = os.sep.join(frame.filename.split(os.sep)[-2:])
+        print("#%s: %s:%s: %.1f KiB"
+              % (index, filename, frame.lineno, stat.size / 1024))
+        line = linecache.getline(frame.filename, frame.lineno).strip()
+        if line:
+            print('    %s' % line)
+
+    other = top_stats[limit:]
+    if other:
+        size = sum(stat.size for stat in other)
+        print("%s other: %.1f KiB" % (len(other), size / 1024))
+    total = sum(stat.size for stat in top_stats)
+    print("Total allocated size: %.1f KiB" % (total / 1024))
+
+
+connector = TCPConnector(limit=250, ttl_dns_cache=300)
+timeout = ClientTimeout(total=1800)
 
 async def broadcast(keys):
 
     x = 0
     while True:
-        async def fetch(url, session: aiohttp.ClientSession, headers):
-            async with session.get(url, headers=headers) as response:
-                if response.status == 200:
-                    return (await response.read())
-                return None
-
+        keys = deque(keys)
         if x % 10 == 0:
             pipeline = [{"$match" : {"$or" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, { "$group" : { "_id" : "$tag" } } ]
         else:
             pipeline = [{"$match": {"$nor" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, {"$group": {"_id": "$tag"}}]
         x += 1
         all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
+        print(f"{len(all_tags)} tags")
         size_break = 50000
         all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
-
 
         member_store = []
 
         for tag_group in all_tags:
             tasks = []
-            deque = collections.deque
-            connector = aiohttp.TCPConnector(limit=250, ttl_dns_cache=300)
-            keys = deque(keys)
-            timeout = aiohttp.ClientTimeout(total=1800)
-            async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+            async with ClientSession(connector=connector, timeout=timeout) as session:
                 for tag in tag_group:
                     tag = tag.replace("#", "%23")
                     keys.rotate(1)
                     tasks.append(fetch(f"https://api.clashofclans.com/v1/clans/{tag}", session, {"Authorization": f"Bearer {keys[0]}"}))
                 responses = await asyncio.gather(*tasks)
                 await session.close()
-
+            print(f"fetched {len(responses)} responses")
             changes = []
             raid_week = gen_raid_date()
             season = gen_season_date()
@@ -235,6 +265,8 @@ async def broadcast(keys):
             if changes:
                 results = await clan_tags.bulk_write(changes, ordered=False)
                 print(results.bulk_api_result)
+            snapshot = tracemalloc.take_snapshot()
+            display_top(snapshot)
 
         if x % 10 != 0:
             ranking_dict = {}
