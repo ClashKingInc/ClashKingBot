@@ -400,8 +400,6 @@ async def store_rounds():
                 print(f"{len(add_war_hits)} Attacks Updated/Inserted")
 
 
-
-
 @scheduler.scheduled_job("cron", hour=4, minute=56)
 async def store_all_leaderboards():
     for database, function in \
