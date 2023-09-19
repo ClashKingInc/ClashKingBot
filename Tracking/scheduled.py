@@ -75,20 +75,25 @@ keys = []
 load_dotenv()
 
 client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
-looper = client.looper
-clan_tags = looper.clan_tags
-player_history = client.new_looper.player_history
-new_history = client.new_looper.new_player_history
-cwl_group = client.new_looper.cwl_group
-clan_war = client.looper.clan_war
-attack_db = client.looper.warhits
+looper = client.get_database("looper")
+clan_tags = looper.get_collection("clan_tags")
+collection_class = clan_tags.__class__
 
-ranking_history = client.ranking_history
-player_trophies = ranking_history.player_trophies
-player_versus_trophies = ranking_history.player_versus_trophies
-clan_trophies = ranking_history.clan_trophies
-clan_versus_trophies = ranking_history.clan_versus_trophies
-capital = ranking_history.capital
+player_history: collection_class = client.new_looper.player_history
+new_history: collection_class = client.new_looper.new_player_history
+cwl_group: collection_class = client.new_looper.cwl_group
+clan_war: collection_class = client.looper.clan_war
+attack_db: collection_class = client.looper.warhits
+
+ranking_history: collection_class = client.ranking_history
+player_trophies: collection_class = ranking_history.player_trophies
+player_versus_trophies: collection_class = ranking_history.player_versus_trophies
+clan_trophies: collection_class = ranking_history.clan_trophies
+clan_versus_trophies: collection_class = ranking_history.clan_versus_trophies
+capital: collection_class = ranking_history.capital
+
+rankings = client.get_database("rankings")
+donation_rankings: collection_class = rankings.donations
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 throttler = Throttler(rate_limit=200, period=1)
@@ -287,7 +292,7 @@ async def store_cwl():
 
 
 #@scheduler.scheduled_job("cron", day="12", hour="1-22", minute=10)
-@scheduler.scheduled_job("cron", day="17", hour="1", minute=0)
+@scheduler.scheduled_job("cron", day="19", hour="0", minute=53)
 async def store_rounds():
     season = gen_season_date()
     pipeline = [{"$match": {"data.season": season}},
@@ -333,21 +338,28 @@ async def store_rounds():
                 response["tag"] = tag
                 response["season"] = season
                 war = coc.ClanWar(data=response, client=coc_client)
-
-                source = string.ascii_letters
-                custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
-                is_used = await clan_war.find_one({"custom_id": custom_id})
-                while is_used is not None:
+                war_alr = await clan_war.find_one({"war_id" : f"{war.clan.tag}-{int(war.preparation_start_time.time.timestamp())}"})
+                if war_alr is None:
+                    source = string.ascii_letters
                     custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
                     is_used = await clan_war.find_one({"custom_id": custom_id})
-                add_war.append(UpdateOne(
-                    {"war_id": f"{war.clan.tag}-{int(war.preparation_start_time.time.timestamp())}"},
-                    {"$set": {
-                        "custom_id": custom_id,
-                        "data": war._raw_data}}, upsert=True
-                    ))
+                    while is_used is not None:
+                        custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
+                        is_used = await clan_war.find_one({"custom_id": custom_id})
+                    add_war.append(UpdateOne(
+                        {"war_id": f"{war.clan.tag}-{int(war.preparation_start_time.time.timestamp())}"},
+                        {"$set": {
+                            "custom_id": custom_id,
+                            "data": war._raw_data}}, upsert=True
+                        ))
+                else:
+                    custom_id = war_alr.get("custom_id")
                 for attack in war.attacks:
-                    add_war_hits.append(InsertOne({
+                    add_war_hits.append(UpdateOne(
+                        {"$and" : [{"tag" : attack.attacker_tag},
+                        {"defender_tag" : attack.defender_tag},
+                        {"war_start" : int(war.preparation_start_time.time.timestamp())}]},
+                        {
                         "tag": attack.attacker.tag,
                         "name": attack.attacker.name,
                         "townhall": attack.attacker.town_hall,
@@ -368,8 +380,9 @@ async def store_rounds():
                         "clan_name": attack.attacker.clan.name,
                         "defending_clan": attack.defender.clan.tag,
                         "defending_clan_name": attack.defender.clan.name,
+                        "season" : season,
                         "full_war": custom_id
-                    }))
+                        }, upsert=True))
             except:
                 pass
         if add_war:
@@ -384,9 +397,6 @@ async def store_rounds():
                 print(f"{len(add_war_hits)} Attacks Updated/Inserted")
             except:
                 print(f"{len(add_war_hits)} Attacks Updated/Inserted")
-
-
-
 
 
 
