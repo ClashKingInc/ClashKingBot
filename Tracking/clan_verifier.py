@@ -191,7 +191,7 @@ def display_top(snapshot, key_type='lineno', limit=5):
 
 connector = TCPConnector(limit=250, ttl_dns_cache=300)
 timeout = ClientTimeout(total=1800)
-
+tracemalloc.start()
 async def broadcast(keys):
 
     x = 0
