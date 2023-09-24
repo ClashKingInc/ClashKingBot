@@ -9,7 +9,7 @@ from fastapi_cache.decorator import cache
 from typing import List
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
-from .utils import player_stats_db, player_leaderboard_db, player_history, attack_db, fix_tag, legend_history, player_cache_db, player_search, redis
+from .utils import player_stats_db, player_leaderboard_db, player_history, attack_db, fix_tag, legend_history, player_search, redis
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(tags=["Player Endpoints"])
@@ -158,7 +158,7 @@ async def player_legend_rankings(player_tag: str, request: Request, response: Re
 @cache(expire=300)
 @limiter.limit("30/second")
 async def player_cache(player_tag: str, request: Request, response: Response):
-    cache_data = await player_cache_db.find_one({"tag": fix_tag(player_tag)})
+    cache_data = None
     if not cache_data:
         return {"No Player Found" : player_tag}
     return cache_data["data"]

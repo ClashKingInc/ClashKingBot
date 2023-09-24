@@ -31,10 +31,10 @@ from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
 from bs4 import BeautifulSoup
 from redis import asyncio as aioredis
-from routers import leagues, player, capital, other
-from bson.objectid import ObjectId
+from routers import leagues, player, capital, other, clan, stats
 from api_analytics.fastapi import Analytics
 
+LOCAL = FALSE
 load_dotenv()
 
 limiter = Limiter(key_func=get_remote_address)
@@ -46,15 +46,19 @@ async def catch_exceptions_middleware(request: Request, call_next):
         # you probably want some kind of logging here
         return Response("Not Found", status_code=404)
 
-app.middleware('http')(catch_exceptions_middleware)
+if not LOCAL:
+    app.middleware('http')(catch_exceptions_middleware)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(Analytics, api_key="9f56d999-b945-4be5-8787-2448ab222ad3")
 
 app.include_router(player.router)
+app.include_router(clan.router)
 app.include_router(capital.router)
 app.include_router(leagues.router)
 app.include_router(other.router)
+app.include_router(stats.router)
+
 
 client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
 other_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
@@ -110,187 +114,6 @@ async def docs():
 
 
 
-#CLAN ENDPOINTS
-@app.get("/clan/{clan_tag}/stats",
-         tags=["Clan Endpoints"],
-         name="All stats for a clan (activity, donations, etc)")
-@cache(expire=300)
-@limiter.limit("30/second")
-async def clan_historical(clan_tag: str, request: Request, response: Response):
-    clan_tag = fix_tag(clan_tag)
-    result = await clan_stats.find_one({"tag": clan_tag})
-    if result is not None:
-        del result["_id"]
-    return result
-
-@app.get("/clan/{clan_tag}/basic",
-         tags=["Clan Endpoints"],
-         name="Basic Clan Object")
-@cache(expire=300)
-@limiter.limit("30/second")
-async def clan_basic(clan_tag: str, request: Request, response: Response):
-    clan_tag = fix_tag(clan_tag)
-    result = await basic_clan.find_one({"tag": clan_tag})
-    if result is not None:
-        del result["_id"]
-    return result
-
-
-@app.get("/clan/{clan_tag}/historical/{season}",
-         tags=["Clan Endpoints"],
-         name="Historical data for clan events")
-@cache(expire=300)
-@limiter.limit("5/second")
-async def clan_historical(clan_tag: str, season: str, request: Request, response: Response):
-    clan_tag = fix_tag(clan_tag)
-    year = season[:4]
-    month = season[-2:]
-    season_start = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
-    season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
-    historical_data = await clan_history.find({"$and": [{"tag": fix_tag(clan_tag)},
-                                                          {"time": {"$gte": season_start.timestamp()}},
-                                                          {"time": {"$lte": season_end.timestamp()}}]}).sort("time", 1).to_list(length=None)
-    breakdown = defaultdict(list)
-    for data in historical_data:
-        del data["_id"]
-        breakdown[data["type"]].append(data)
-
-    result = {}
-    for key, item in breakdown.items():
-        result[key] = item
-    return dict(result)
-
-
-@app.get("/clan/{clan_tag}/join-leave/{season}",
-         tags=["Clan Endpoints"],
-         name="Join Leaves in a season")
-@cache(expire=300)
-@limiter.limit("5/second")
-async def clan_join_leave(clan_tag: str, season: str, request: Request, response: Response):
-    clan_tag = fix_tag(clan_tag)
-    year = season[:4]
-    month = season[-2:]
-    season_start = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
-    season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
-    result = await clan_join_leave.find({"$and": [{"tag": clan_tag},
-                                                          {"time": {"$gte": season_start.timestamp()}},
-                                                          {"time": {"$lte": season_end.timestamp()}}]}).sort("time", 1).to_list(length=None)
-    if result:
-        for r in result:
-            del r["_id"]
-    return dict(result)
-
-
-@app.get("/clan/{clan_tag}/cache",
-         tags=["Clan Endpoints"],
-         name="Cached endpoint response")
-@cache(expire=300)
-@limiter.limit("30/second")
-async def clan_cache(clan_tag: str, request: Request, response: Response):
-    cache_data = await clan_cache_db.find_one({"tag": fix_tag(clan_tag)})
-    if not cache_data:
-        return {"No Clan Found": clan_tag}
-    del cache_data["data"]["_response_retry"]
-    return cache_data["data"]
-
-
-@app.post("/clan/bulk",
-         tags=["Clan Endpoints"],
-         name="Cached endpoint response (bulk fetch)")
-@limiter.limit("5/second")
-async def bulk_clan_cache(clan_tags: List[str], request: Request, response: Response):
-    cache_data = await clan_cache_db.find({"tag": {"$in": [fix_tag(tag) for tag in clan_tags]}}).to_list(length=500)
-    modified_result = []
-    for data in cache_data:
-        del data["data"]["_response_retry"]
-        modified_result.append(data["data"])
-    return modified_result
-
-
-@app.get("/clan/search",
-         tags=["Clan Endpoints"],
-         name="Search Clans by Filtering")
-@cache(expire=300)
-@limiter.limit("30/second")
-async def clan_filter(request: Request, response: Response,  limit: int= 100, location_id: int = None, minMembers: int = None, maxMembers: int = None,
-                      minLevel: int = None, maxLevel: int = None, openType: str = None,
-                          minWarWinStreak: int = None, minWarWins: int = None, minClanTrophies: int = None, maxClanTrophies: int = None, capitalLeague: str= None,
-                          warLeague: str= None, memberList: bool = True, townhallData: bool = False, before:str =None, after: str=None):
-    queries = {}
-    queries['$and'] = []
-    if location_id:
-        queries['$and'].append({'location.id': location_id})
-
-    if minMembers:
-        queries['$and'].append({"members": {"$gte" : minMembers}})
-
-    if maxMembers:
-        queries['$and'].append({"members": {"$lte" : maxMembers}})
-
-    if minLevel:
-        queries['$and'].append({"level": {"$gte" : minLevel}})
-
-    if maxLevel:
-        queries['$and'].append({"level": {"$lte" : maxLevel}})
-
-    if openType:
-        queries['$and'].append({"type": openType})
-
-    if capitalLeague:
-        queries['$and'].append({"capitalLeague": capitalLeague})
-
-    if warLeague:
-        queries['$and'].append({"warLeague": warLeague})
-
-    if minWarWinStreak:
-        queries['$and'].append({"warWinStreak": {"$gte": minWarWinStreak}})
-
-    if minWarWins:
-        queries['$and'].append({"warWins": {"$gte": minWarWins}})
-
-    if minClanTrophies:
-        queries['$and'].append({"clanPoints": {"$gte": minClanTrophies}})
-
-    if maxClanTrophies:
-        queries['$and'].append({"clanPoints": {"$gte": maxClanTrophies}})
-
-    if after:
-        queries['$and'].append({"_id": {"$gt": ObjectId(after)}})
-
-    if before:
-        queries['$and'].append({"_id": {"$lt": ObjectId(before)}})
-
-
-    if queries["$and"] == []:
-        queries = {}
-
-    limit = min(limit, 1000)
-    results = await basic_clan.find(queries).limit(limit).sort("_id", 1).to_list(length=limit)
-    return_data = {"items" : [], "before": "", "after" : ""}
-    if results:
-        if townhallData and memberList:
-            member_tags = []
-            for clan in results:
-                for member in clan.get("memberList"):
-                    member_tags.append(member.get("tag"))
-            pipeline = [{"$match" : {"tag" : {"$in" : member_tags}}},
-                        {"$group" : {"_id" : "$tag", "th" : {"$last" : "$townhall"}}}]
-            th_results = await attack_db.aggregate(pipeline).to_list(length=None)
-            th_results = {item.get("_id") : item.get("th") for item in th_results}
-
-        return_data["before"] = str(results[0].get("_id"))
-        return_data["after"] = str(results[-1].get("_id"))
-        for data in results:
-            del data["_id"]
-            if not memberList:
-                del data["memberList"]
-            else:
-                for member in data["memberList"]:
-                    tag = member.get("tag")
-                    if townhallData:
-                        member["townHallLevel"] = th_results.get(tag, None)
-        return_data["items"] = results
-    return return_data
 
 
 
@@ -875,5 +698,7 @@ def custom_openapi():
 app.openapi = custom_openapi
 
 if __name__ == '__main__':
-    uvicorn.run("main:app", host='0.0.0.0', port=443, ssl_keyfile="/etc/letsencrypt/live/api.clashking.xyz/privkey.pem", ssl_certfile="/etc/letsencrypt/live/api.clashking.xyz/fullchain.pem", workers=6)
-    #uvicorn.run("main:app", host='localhost', port=80)
+    if not LOCAL:
+        uvicorn.run("main:app", host='0.0.0.0', port=443, ssl_keyfile="/etc/letsencrypt/live/api.clashking.xyz/privkey.pem", ssl_certfile="/etc/letsencrypt/live/api.clashking.xyz/fullchain.pem", workers=6)
+    else:
+        uvicorn.run("main:app", host='localhost', port=80)
