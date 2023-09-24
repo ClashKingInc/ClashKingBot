@@ -31,7 +31,6 @@ async def donations(request: Request, response: Response,
                            limit: int = 50):
     limit = min(limit, 500)
     season = gen_season_date() if season is None else season
-    fields = ["name", "tag", "townhall", "rank", "donations", "donationsReceived"]
     if server:
         clans = await clans_db.distinct("tag", filter={"server" : server})
 
@@ -88,7 +87,7 @@ async def donations(request: Request, response: Response,
 
         new_data = list(player_struct.values())
 
-    new_data = sorted(new_data, key=lambda x: x.get(sort_field), reverse=(sort_field != "name"))[:limit]
+
     totals = {"donations" : 0, "donationsReceived" : 0, "average_townhall" : []}
     for data in new_data:
         totals["donations"] += data.get("donations")
@@ -97,6 +96,13 @@ async def donations(request: Request, response: Response,
             totals["average_townhall"].append(data.get("townhall"))
     totals["average_townhall"] = round(mean(totals.get("average_townhall")), 2)
 
+    if townhalls:
+        townhalls = [int(th) for th in townhalls if th.isnumeric()]
+        for count, data in enumerate(new_data.copy()):
+            if data.get("townhall") not in townhalls:
+                del new_data[count]
+
+    new_data = sorted(new_data, key=lambda x: x.get(sort_field), reverse=(sort_field != "name"))[:limit]
     for count, data in enumerate(new_data, 1):
         data["rank"] = count
 
