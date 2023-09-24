@@ -98,9 +98,7 @@ async def donations(request: Request, response: Response,
 
     if townhalls:
         townhalls = [int(th) for th in townhalls if th.isnumeric()]
-        for count, data in enumerate(new_data.copy()):
-            if data.get("townhall") not in townhalls:
-                del new_data[count]
+        new_data = [data for data in new_data if data.get("townhall") in townhalls]
 
     new_data = sorted(new_data, key=lambda x: x.get(sort_field), reverse=(sort_field != "name"))[:limit]
     for count, data in enumerate(new_data, 1):
