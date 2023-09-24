@@ -72,7 +72,7 @@ async def donations(request: Request, response: Response,
         member_data = await player_stats_db.find({"tag" : {"$in" : member_tags}}, {"tag" : 1, "donations" : 1, "townhall" : 1}).to_list(length=None)
         for member in member_data:
             if not tied_donations_only:
-                player_struct[member.get("tag")]["donations"] = member.get("donations", {}).get(season, {}).get("donations", 0)
+                player_struct[member.get("tag")]["donations"] = member.get("donations", {}).get(season, {}).get("donated", 0)
                 player_struct[member.get("tag")]["donationsReceived"] = member.get("donations", {}).get(season, {}).get("received", 0)
             player_struct[member.get("tag")]["townhall"] = member.get("townhall", None)
         if tied_donations_only:
