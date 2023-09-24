@@ -18,7 +18,7 @@ router = APIRouter(tags=["Stat Endpoints"])
 
 @router.get("/donations",
          name="Donation Stats")
-#@cache(expire=300)
+@cache(expire=300)
 @limiter.limit("30/second")
 async def donations(request: Request, response: Response,
                            players: Annotated[List[str], Query(max_length=50)]=None,
@@ -54,7 +54,7 @@ async def donations(request: Request, response: Response,
     elif players:
         stat_results = await player_stats_db.find({"tag" : {"$in" : [fix_tag(player) for player in players]}}, {"tag" : 1, "name" : 1, "donations" : 1, "townhall" : 1}).to_list(length=None)
         player_struct = {m.get("tag") : {"tag" : m.get("tag"), "name" : m.get("name"), "rank" : 0,
-                                         "donations" : m.get("donations", {}).get(season, {}).get("donations", 0),
+                                         "donations" : m.get("donations", {}).get(season, {}).get("donated", 0),
                                          "donationsReceived" : m.get("donations", {}).get(season, {}).get("received", 0), "townhall" : m.get("townhall")} for m in stat_results}
         new_data = list(player_struct.values())
 
