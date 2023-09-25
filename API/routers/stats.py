@@ -175,7 +175,7 @@ async def activity(request: Request, response: Response,
     for data in new_data:
         totals["total_activity"] += data.get("activity")
         if data.get("townhall"):
-            totals["average_activity"].append(data.get("activity"))
+            totals["median_activity"].append(data.get("activity"))
             totals["average_townhall"].append(data.get("townhall"))
     totals["median_activity"] = round(median(totals.get("median_activity")), 2)
     totals["average_townhall"] = round(mean(totals.get("average_townhall")), 2)
