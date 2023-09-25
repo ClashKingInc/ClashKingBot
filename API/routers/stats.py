@@ -138,7 +138,7 @@ async def activity(request: Request, response: Response,
                                                   {"tag" : 1, "name" : 1, "activity" : 1, "townhall" : 1, "last_online" : 1}).to_list(length=None)
         player_struct = {m.get("tag") : {"tag" : m.get("tag"), "name" : m.get("name"), "rank" : 0,
                                          "activity" : m.get("activity", {}).get(season, 0),
-                                         "last_online" : m.get("last_online", 0), "townhall" : m.get("townhall", 0)} for m in stat_results}
+                                         "last_online" : m.get("last_online", 0) if m.get("last_online") is not None else 0, "townhall" : m.get("townhall", 0)} for m in stat_results}
         new_data = list(player_struct.values())
 
     elif clans:
@@ -156,7 +156,7 @@ async def activity(request: Request, response: Response,
         for member in member_data:
             if not tied_only:
                 player_struct[member.get("tag")]["activity"] = member.get("activity", {}).get(season, 0)
-            player_struct[member.get("tag")]["last_online"] = member.get("last_online", 0)
+            player_struct[member.get("tag")]["last_online"] = member.get("last_online", 0) if member.get("last_online") is not None else 0
             player_struct[member.get("tag")]["townhall"] = member.get("townhall", None)
         if tied_only:
             for result in stat_results:
