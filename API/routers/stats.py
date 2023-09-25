@@ -338,6 +338,8 @@ async def clan_games(request: Request, response: Response,
         clan_results = await basic_clan.find({"tag" : {"$in" : list(by_clan.keys())}})
         clan_to_name = {c.get("tag"): c.get("name") for c in clan_results}
     for k, v in by_clan.items():
+        if clan_to_name.get(k) is None:
+            continue
         by_clan_totals.append({"tag" : k, "name" : clan_to_name.get(k), "points" : v.get("points")})
     return {"items" : new_data, "totals" : totals, "clan_totals" : by_clan_totals,
             "metadata" : {"sort_order" : ("descending" if descending else "ascending"), "sort_field" : sort_field, "season" : season}}
