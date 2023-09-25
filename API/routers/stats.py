@@ -7,7 +7,7 @@ from fastapi_cache.decorator import cache
 from typing import List, Annotated
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
-from .utils import fix_tag, capital, leagues, clan_cache_db, clan_stats, basic_clan, clan_history, attack_db, clans_db, gen_season_date, player_stats_db, rankings, player_history, is_games, gen_games_season
+from .utils import fix_tag, capital, leagues, clan_cache_db, clan_stats, basic_clan, clan_history, attack_db, clans_db, gen_season_date, player_stats_db, rankings, player_history, gen_games_season
 from statistics import mean, median
 from datetime import datetime
 from pytz import utc
