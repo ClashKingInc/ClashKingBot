@@ -38,6 +38,9 @@ async def donations(request: Request, response: Response,
 
     new_data = []
     clan_to_name = {}
+    by_clan = defaultdict(lambda : defaultdict(int))
+    field_to_use = "donations" if sort_field != "donationsReceived" else "donationsReceived"
+
     if players == clans == server == None:
         rank_results = await rankings.find({"donationsRank" : {"$ne" : None}}, {"_id" : 1, "name" : 1, "donations" : 1, "donationsRank" : 1, "donationsReceived" : 1})\
             .sort("donationsRank", 1).limit(limit=limit).to_list(length=None)
@@ -60,6 +63,8 @@ async def donations(request: Request, response: Response,
                                          "donations" : m.get("donations", {}).get(season, {}).get("donated", 0),
                                          "donationsReceived" : m.get("donations", {}).get(season, {}).get("received", 0), "townhall" : m.get("townhall"), "clan_tag" : m.get("clan_tag")} for m in stat_results}
         new_data = list(player_struct.values())
+        for data in new_data:
+            by_clan[data.get("clan_tag")][field_to_use] += data.get(field_to_use)
 
     elif clans:
         clan_members = await basic_clan.find({"tag" : {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
@@ -90,17 +95,15 @@ async def donations(request: Request, response: Response,
                     player_struct[tag]["clan_tag"] = clan_tag
                     if not tied_only:
                         continue
+                    by_clan[clan_tag][field_to_use] += this_player.get(field_to_use)
                     player_struct[tag]["donations"] += this_player.get("donated", 0)
                     player_struct[tag]["donationsReceived"] += this_player.get("received", 0)
 
         new_data = list(player_struct.values())
 
-    field_to_use = "donations" if sort_field != "donationsReceived" else "donationsReceived"
     totals = {"donations" : 0, "donationsReceived" : 0, "average_townhall" : []}
-    by_clan = defaultdict(lambda : defaultdict(int))
     for data in new_data:
         totals["donations"] += data.get("donations")
-        by_clan[data.get("clan_tag")][field_to_use] += data.get(field_to_use)
         totals["donationsReceived"] += data.get("donationsReceived")
         if data.get("townhall"):
             totals["average_townhall"].append(data.get("townhall"))
@@ -150,6 +153,8 @@ async def activity(request: Request, response: Response,
 
     new_data = []
     clan_to_name = {}
+    by_clan = defaultdict(lambda : defaultdict(int))
+
     if players:
         stat_results = await player_stats_db.find({"tag" : {"$in" : [fix_tag(player) for player in players]}},
                                                   {"tag" : 1, "name" : 1, "activity" : 1, "townhall" : 1, "last_online" : 1, "clan_tag" : 1}).to_list(length=None)
@@ -158,6 +163,8 @@ async def activity(request: Request, response: Response,
                                          "last_online" : m.get("last_online", 0) if m.get("last_online") is not None else 0,
                                          "townhall" : m.get("townhall", 0), "clan_tag" : m.get("clan_tag")} for m in stat_results}
         new_data = list(player_struct.values())
+        for data in new_data:
+            by_clan[data.get("clan_tag")]["activity"] += data.get("activity")
     elif clans:
         clan_members = await basic_clan.find({"tag" : {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
         clan_to_name = {c.get("tag") : c.get("name") for c in clan_members}
@@ -187,15 +194,14 @@ async def activity(request: Request, response: Response,
                     player_struct[tag]["clan_tag"] = clan_tag
                     if not tied_only:
                         continue
+                    by_clan[clan_tag]["activity"] += this_player.get("activity")
                     player_struct[tag]["activity"] += this_player.get("activity", 0)
 
         new_data = list(player_struct.values())
 
 
     totals = {"activity" : 0, "median_activity" : [], "average_townhall" : []}
-    by_clan = defaultdict(lambda : defaultdict(int))
     for data in new_data:
-        by_clan[data.get("clan_tag")]["activity"] += data.get("activity")
         totals["activity"] += data.get("activity")
         if data.get("townhall"):
             totals["median_activity"].append(data.get("activity"))
@@ -258,6 +264,8 @@ async def clan_games(request: Request, response: Response,
     end = datetime(year, next_month, 1)
     new_data = []
     clan_to_name = {}
+    by_clan = defaultdict(lambda : defaultdict(int))
+
     if players:
         pipeline = [
             {"$match": {"$and": [{"tag": {"$in": [fix_tag(player) for player in players]}}, {"type": "Games Champion"},
@@ -285,6 +293,8 @@ async def clan_games(request: Request, response: Response,
                 last_time = datetime.fromtimestamp(stats["last"])
                 player_struct[tag]["time_taken"] = (last_time - first_time).seconds
         new_data = list(player_struct.values())
+        for data in new_data:
+            by_clan[data.get("clan_tag")]["points"] += data.get("points")
 
     elif clans:
         clan_members = await basic_clan.find({"tag" : {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
@@ -325,6 +335,7 @@ async def clan_games(request: Request, response: Response,
                     player_struct[tag]["clan_tag"] = clan_tag
                     if not tied_only:
                         continue
+                    by_clan[clan_tag]["points"] += this_player.get("clan_games", 0)
                     player_struct[tag]["points"] += this_player.get("clan_games", 0)
 
         for tag, value in player_struct.items():
@@ -342,9 +353,7 @@ async def clan_games(request: Request, response: Response,
 
 
     totals = {"points" : 0, "average_points" : [], "average_townhall" : []}
-    by_clan = defaultdict(lambda : defaultdict(int))
     for data in new_data:
-        by_clan[data.get("clan_tag")]["points"] += data.get("points")
         totals["points"] += data.get("points")
         if data.get("townhall"):
             totals["average_points"].append(data.get("points"))
