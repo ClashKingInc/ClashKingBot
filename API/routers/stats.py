@@ -37,6 +37,7 @@ async def donations(request: Request, response: Response,
         clans = await clans_db.distinct("tag", filter={"server" : server})
 
     new_data = []
+    clan_to_name = {}
     if players == clans == server == None:
         rank_results = await rankings.find({"donationsRank" : {"$ne" : None}}, {"_id" : 1, "name" : 1, "donations" : 1, "donationsRank" : 1, "donationsReceived" : 1})\
             .sort("donationsRank", 1).limit(limit=limit).to_list(length=None)
@@ -62,6 +63,7 @@ async def donations(request: Request, response: Response,
 
     elif clans:
         clan_members = await basic_clan.find({"tag" : {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
+        clan_to_name = {c.get("tag") : c.get("name") for c in clan_members}
         member_tags = []
         member_to_name = {}
         for c in clan_members:
@@ -90,10 +92,12 @@ async def donations(request: Request, response: Response,
 
         new_data = list(player_struct.values())
 
-
+    field_to_use = "donations" if sort_field != "donationsReceived" else "donationsReceived"
     totals = {"donations" : 0, "donationsReceived" : 0, "average_townhall" : []}
+    by_clan = defaultdict(lambda : defaultdict(int))
     for data in new_data:
         totals["donations"] += data.get("donations")
+        by_clan[data.get("clan_tag")][field_to_use] += data.get(field_to_use)
         totals["donationsReceived"] += data.get("donationsReceived")
         if data.get("townhall"):
             totals["average_townhall"].append(data.get("townhall"))
@@ -107,7 +111,16 @@ async def donations(request: Request, response: Response,
     for count, data in enumerate(new_data, 1):
         data["rank"] = count
 
-    return {"items" : new_data, "totals" : totals,
+    by_clan_totals = []
+    if not clan_to_name:
+        clan_results = await basic_clan.find({"tag": {"$in": list(by_clan.keys())}}).to_list(length=None)
+        clan_to_name = {c.get("tag"): c.get("name") for c in clan_results}
+    for k, v in by_clan.items():
+        if clan_to_name.get(k) is None:
+            continue
+        by_clan_totals.append({"tag": k, "name": clan_to_name.get(k), field_to_use: v.get(field_to_use)})
+
+    return {"items" : new_data, "totals" : totals,"clan_totals" : by_clan_totals,
             "metadata" : {"sort_order" : ("descending" if descending else "ascending"), "sort_field" : sort_field, "season" : season}}
 
 
@@ -133,7 +146,7 @@ async def activity(request: Request, response: Response,
         clans = await clans_db.distinct("tag", filter={"server" : server})
 
     new_data = []
-
+    clan_to_name = {}
     if players:
         stat_results = await player_stats_db.find({"tag" : {"$in" : [fix_tag(player) for player in players]}},
                                                   {"tag" : 1, "name" : 1, "activity" : 1, "townhall" : 1, "last_online" : 1}).to_list(length=None)
@@ -141,9 +154,9 @@ async def activity(request: Request, response: Response,
                                          "activity" : m.get("activity", {}).get(season, 0),
                                          "last_online" : m.get("last_online", 0) if m.get("last_online") is not None else 0, "townhall" : m.get("townhall", 0)} for m in stat_results}
         new_data = list(player_struct.values())
-
     elif clans:
         clan_members = await basic_clan.find({"tag" : {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
+        clan_to_name = {c.get("tag") : c.get("name") for c in clan_members}
         member_tags = []
         member_to_name = {}
         for c in clan_members:
@@ -173,7 +186,9 @@ async def activity(request: Request, response: Response,
 
 
     totals = {"activity" : 0, "median_activity" : [], "average_townhall" : []}
+    by_clan = defaultdict(lambda : defaultdict(int))
     for data in new_data:
+        by_clan[data.get("clan_tag")]["activity"] += data.get("activity")
         totals["activity"] += data.get("activity")
         if data.get("townhall"):
             totals["median_activity"].append(data.get("activity"))
@@ -189,7 +204,16 @@ async def activity(request: Request, response: Response,
     for count, data in enumerate(new_data, 1):
         data["rank"] = count
 
-    return {"items" : new_data, "totals" : totals,
+    by_clan_totals = []
+    if not clan_to_name:
+        clan_results = await basic_clan.find({"tag": {"$in": list(by_clan.keys())}}).to_list(length=None)
+        clan_to_name = {c.get("tag"): c.get("name") for c in clan_results}
+    for k, v in by_clan.items():
+        if clan_to_name.get(k) is None:
+            continue
+        by_clan_totals.append({"tag": k, "name": clan_to_name.get(k), "activity": v.get("activity")})
+
+    return {"items" : new_data, "totals" : totals, "clan_totals" : by_clan_totals,
             "metadata" : {"sort_order" : ("descending" if descending else "ascending"), "sort_field" : sort_field, "season" : season}}
 
 
@@ -335,7 +359,7 @@ async def clan_games(request: Request, response: Response,
 
     by_clan_totals = []
     if not clan_to_name:
-        clan_results = await basic_clan.find({"tag" : {"$in" : list(by_clan.keys())}})
+        clan_results = await basic_clan.find({"tag" : {"$in" : list(by_clan.keys())}}).to_list(length=None)
         clan_to_name = {c.get("tag"): c.get("name") for c in clan_results}
     for k, v in by_clan.items():
         if clan_to_name.get(k) is None:
