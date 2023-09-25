@@ -171,7 +171,7 @@ async def activity(request: Request, response: Response,
         new_data = list(player_struct.values())
 
 
-    totals = {"total_activity" : 0, "median_activity" : [], "average_townhall" : []}
+    totals = {"activity" : 0, "median_activity" : [], "average_townhall" : []}
     for data in new_data:
         totals["total_activity"] += data.get("activity")
         if data.get("townhall"):
