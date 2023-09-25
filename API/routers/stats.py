@@ -58,13 +58,21 @@ async def donations(request: Request, response: Response,
                 "donationsReceived" : r.get("donationsReceived")
             })
     elif players:
-        stat_results = await player_stats_db.find({"tag" : {"$in" : [fix_tag(player) for player in players]}}, {"tag" : 1, "name" : 1, "donations" : 1, "townhall" : 1, "clan_tag" : 1}).to_list(length=None)
-        player_struct = {m.get("tag") : {"tag" : m.get("tag"), "name" : m.get("name"), "rank" : 0,
-                                         "donations" : m.get("donations", {}).get(season, {}).get("donated", 0),
-                                         "donationsReceived" : m.get("donations", {}).get(season, {}).get("received", 0), "townhall" : m.get("townhall"), "clan_tag" : m.get("clan_tag")} for m in stat_results}
-        new_data = list(player_struct.values())
-        for data in new_data:
-            by_clan[data.get("clan_tag")][field_to_use] += data.get(field_to_use)
+            stat_results = await player_stats_db.find({"tag": {"$in": [fix_tag(player) for player in players]}},
+                                                      {"tag": 1, "name": 1, "donations": 1, "townhall": 1, "clan_tag": 1}).to_list(length=None)
+            player_struct = {m.get("tag"): {"tag": m.get("tag"), "name": m.get("name"), "rank": 0,
+                                            "donations": m.get("donations", {}).get(season, {}).get("donated", 0),
+                                            "donationsReceived": m.get("donations", {}).get(season, {}).get("received", 0), "townhall": m.get("townhall"),
+                                            "clan_tag": m.get("clan_tag")} for m in stat_results}
+            for tag in players:
+                tag = fix_tag(tag)
+                p_results = await clan_stats.find({f"{season}.{tag}" : {"$ne" : None}}, {f"{season}.{tag}" : 1, "tag" : 1}).to_list(length=None)
+                for result in p_results:
+                    by_clan[result.get("tag")][field_to_use] += result.get(season).get(tag).get("donated" if field_to_use != "donationsReceived" else "received", 0)
+
+            new_data = list(player_struct.values())
+            for data in new_data:
+                by_clan[data.get("clan_tag")][field_to_use] += data.get(field_to_use)
 
     elif clans:
         clan_members = await basic_clan.find({"tag" : {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
@@ -95,7 +103,7 @@ async def donations(request: Request, response: Response,
                     player_struct[tag]["clan_tag"] = clan_tag
                     if not tied_only:
                         continue
-                    by_clan[clan_tag][field_to_use] += this_player.get(field_to_use)
+                    by_clan[clan_tag][field_to_use] += this_player.get("donated" if field_to_use != "donationsReceived" else "received", 0)
                     player_struct[tag]["donations"] += this_player.get("donated", 0)
                     player_struct[tag]["donationsReceived"] += this_player.get("received", 0)
 
@@ -301,11 +309,13 @@ async def clan_games(request: Request, response: Response,
         clan_to_name = {c.get("tag") : c.get("name") for c in clan_members}
         member_tags = []
         member_to_name = {}
+        tag_to_clan = {}
         for c in clan_members:
             member_list = c.get("memberList", [])
             member_tags += [m.get("tag") for m in member_list]
             for m in member_list:
                 member_to_name[m.get("tag")] = m.get("name")
+                tag_to_clan[m.get("tag")] = c.get("tag")
         pipeline = [
             {"$match": {"$and": [{"tag": {"$in": member_tags}}, {"type": "Games Champion"},
                                  {"time": {"$gte": start.timestamp()}},
