@@ -320,7 +320,7 @@ async def clan_games(request: Request, response: Response,
 
     if sort_field == "time_taken":
         new_data = [data for data in new_data if data.get("points") != 0]
-        new_data = sorted(new_data, key=lambda x: (x.get("points") >= 4000, -x.get(sort_field)), reverse=descending)[:limit]
+        new_data = sorted(new_data, key=lambda x: (x.get("points") >= 4000, -x.get(sort_field) if x.get(sort_field) != 0 else 999999999), reverse=descending)[:limit]
     else:
      new_data = sorted(new_data, key=lambda x: x.get(sort_field), reverse=descending)[:limit]
     for count, data in enumerate(new_data, 1):
