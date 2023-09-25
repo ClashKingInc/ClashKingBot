@@ -68,11 +68,9 @@ async def donations(request: Request, response: Response,
                 tag = fix_tag(tag)
                 p_results = await clan_stats.find({f"{season}.{tag}" : {"$ne" : None}}, {f"{season}.{tag}" : 1, "tag" : 1}).to_list(length=None)
                 for result in p_results:
-                    by_clan[result.get("tag")][field_to_use] += result.get(season).get(tag).get("donated" if field_to_use != "donationsReceived" else "received", 0)
+                    by_clan[result.get("tag")][field_to_use] += result.get(season).get(tag).get("received" if field_to_use != "donations" else "donated", 0)
 
             new_data = list(player_struct.values())
-            for data in new_data:
-                by_clan[data.get("clan_tag")][field_to_use] += data.get(field_to_use)
 
     elif clans:
         clan_members = await basic_clan.find({"tag" : {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
