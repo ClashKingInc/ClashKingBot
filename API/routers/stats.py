@@ -173,7 +173,7 @@ async def activity(request: Request, response: Response,
 
     totals = {"activity" : 0, "median_activity" : [], "average_townhall" : []}
     for data in new_data:
-        totals["total_activity"] += data.get("activity")
+        totals["activity"] += data.get("activity")
         if data.get("townhall"):
             totals["median_activity"].append(data.get("activity"))
             totals["average_townhall"].append(data.get("townhall"))
