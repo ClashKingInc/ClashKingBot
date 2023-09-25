@@ -55,10 +55,10 @@ async def donations(request: Request, response: Response,
                 "donationsReceived" : r.get("donationsReceived")
             })
     elif players:
-        stat_results = await player_stats_db.find({"tag" : {"$in" : [fix_tag(player) for player in players]}}, {"tag" : 1, "name" : 1, "donations" : 1, "townhall" : 1}).to_list(length=None)
+        stat_results = await player_stats_db.find({"tag" : {"$in" : [fix_tag(player) for player in players]}}, {"tag" : 1, "name" : 1, "donations" : 1, "townhall" : 1, "clan_tag" : 1}).to_list(length=None)
         player_struct = {m.get("tag") : {"tag" : m.get("tag"), "name" : m.get("name"), "rank" : 0,
                                          "donations" : m.get("donations", {}).get(season, {}).get("donated", 0),
-                                         "donationsReceived" : m.get("donations", {}).get(season, {}).get("received", 0), "townhall" : m.get("townhall")} for m in stat_results}
+                                         "donationsReceived" : m.get("donations", {}).get(season, {}).get("received", 0), "townhall" : m.get("townhall"), "clan_tag" : m.get("clan_tag")} for m in stat_results}
         new_data = list(player_struct.values())
 
     elif clans:
@@ -72,23 +72,26 @@ async def donations(request: Request, response: Response,
             for m in member_list:
                 member_to_name[m.get("tag")] = m.get("name")
         stat_results = await clan_stats.find({"tag": {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
-        player_struct = {tag : {"tag" : tag, "name" : member_to_name.get(tag), "rank" : 0, "donations" : 0, "donationsReceived" : 0, "townhall" : 0} for tag in member_tags}
+        player_struct = {tag : {"tag" : tag, "name" : member_to_name.get(tag), "rank" : 0, "donations" : 0, "donationsReceived" : 0, "townhall" : 0, "clan_tag" : None} for tag in member_tags}
         member_data = await player_stats_db.find({"tag" : {"$in" : member_tags}}, {"tag" : 1, "donations" : 1, "townhall" : 1}).to_list(length=None)
         for member in member_data:
             if not tied_only:
                 player_struct[member.get("tag")]["donations"] = member.get("donations", {}).get(season, {}).get("donated", 0)
                 player_struct[member.get("tag")]["donationsReceived"] = member.get("donations", {}).get(season, {}).get("received", 0)
             player_struct[member.get("tag")]["townhall"] = member.get("townhall", None)
-        if tied_only:
-            for result in stat_results:
-                this_season = result.get(season)
-                if this_season is not None:
-                    for tag in member_tags:
-                        this_player = this_season.get(tag)
-                        if this_player is None:
-                            continue
-                        player_struct[tag]["donations"] += this_player.get("donated", 0)
-                        player_struct[tag]["donationsReceived"] += this_player.get("received", 0)
+        for result in stat_results:
+            clan_tag = result.get("tag")
+            this_season = result.get(season)
+            if this_season is not None:
+                for tag in member_tags:
+                    this_player = this_season.get(tag)
+                    if this_player is None:
+                        continue
+                    player_struct[tag]["clan_tag"] = clan_tag
+                    if not tied_only:
+                        continue
+                    player_struct[tag]["donations"] += this_player.get("donated", 0)
+                    player_struct[tag]["donationsReceived"] += this_player.get("received", 0)
 
         new_data = list(player_struct.values())
 
@@ -149,10 +152,11 @@ async def activity(request: Request, response: Response,
     clan_to_name = {}
     if players:
         stat_results = await player_stats_db.find({"tag" : {"$in" : [fix_tag(player) for player in players]}},
-                                                  {"tag" : 1, "name" : 1, "activity" : 1, "townhall" : 1, "last_online" : 1}).to_list(length=None)
+                                                  {"tag" : 1, "name" : 1, "activity" : 1, "townhall" : 1, "last_online" : 1, "clan_tag" : 1}).to_list(length=None)
         player_struct = {m.get("tag") : {"tag" : m.get("tag"), "name" : m.get("name"), "rank" : 0,
                                          "activity" : m.get("activity", {}).get(season, 0),
-                                         "last_online" : m.get("last_online", 0) if m.get("last_online") is not None else 0, "townhall" : m.get("townhall", 0)} for m in stat_results}
+                                         "last_online" : m.get("last_online", 0) if m.get("last_online") is not None else 0,
+                                         "townhall" : m.get("townhall", 0), "clan_tag" : m.get("clan_tag")} for m in stat_results}
         new_data = list(player_struct.values())
     elif clans:
         clan_members = await basic_clan.find({"tag" : {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
@@ -166,21 +170,24 @@ async def activity(request: Request, response: Response,
                 member_to_name[m.get("tag")] = m.get("name")
         stat_results = await clan_stats.find({"tag": {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
         player_struct = {tag : {"tag" : tag, "name" : member_to_name.get(tag), "rank" : 0, "activity" : 0, "last_online" : 0, "townhall" : 0} for tag in member_tags}
-        member_data = await player_stats_db.find({"tag" : {"$in" : member_tags}}, {"tag" : 1, "name" : 1, "activity" : 1, "townhall" : 1, "last_online" : 1}).to_list(length=None)
+        member_data = await player_stats_db.find({"tag" : {"$in" : member_tags}}, {"tag" : 1, "name" : 1, "activity" : 1, "townhall" : 1, "last_online" : 1, "clan_tag" : None}).to_list(length=None)
         for member in member_data:
             if not tied_only:
                 player_struct[member.get("tag")]["activity"] = member.get("activity", {}).get(season, 0)
             player_struct[member.get("tag")]["last_online"] = member.get("last_online", 0) if member.get("last_online") is not None else 0
             player_struct[member.get("tag")]["townhall"] = member.get("townhall", None)
-        if tied_only:
-            for result in stat_results:
-                this_season = result.get(season)
-                if this_season is not None:
-                    for tag in member_tags:
-                        this_player = this_season.get(tag)
-                        if this_player is None:
-                            continue
-                        player_struct[tag]["activity"] += this_player.get("activity", 0)
+        for result in stat_results:
+            clan_tag = result.get("tag")
+            this_season = result.get(season)
+            if this_season is not None:
+                for tag in member_tags:
+                    this_player = this_season.get(tag)
+                    if this_player is None:
+                        continue
+                    player_struct[tag]["clan_tag"] = clan_tag
+                    if not tied_only:
+                        continue
+                    player_struct[tag]["activity"] += this_player.get("activity", 0)
 
         new_data = list(player_struct.values())
 
