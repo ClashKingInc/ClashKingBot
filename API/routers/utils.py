@@ -6,6 +6,7 @@ import re
 from dotenv import load_dotenv
 import coc
 from pytz import utc
+from datetime import datetime
 
 load_dotenv()
 client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
@@ -56,6 +57,14 @@ def gen_season_date():
     if end.month <= 9:
         month = f"0{month}"
     return f"{end.year}-{month}"
+
+def gen_games_season():
+    now = datetime.utcnow()
+    month = now.month
+    if month <= 9:
+        month = f"0{month}"
+    return f"{now.year}-{month}"
+
 
 leagues = ["Legend League", "Titan League I" , "Titan League II" , "Titan League III" ,"Champion League I", "Champion League II", "Champion League III",
                    "Master League I", "Master League II", "Master League III",
