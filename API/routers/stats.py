@@ -28,6 +28,7 @@ async def donations(request: Request, response: Response,
                            townhalls: Annotated[List[str], Query(max_length=15)]=None,
                            season: str = None,
                            tied_donations_only: bool = True,
+                           descending: bool = True,
                            limit: int = 50):
     limit = min(limit, 500)
     season = gen_season_date() if season is None else season
@@ -100,11 +101,12 @@ async def donations(request: Request, response: Response,
         townhalls = [int(th) for th in townhalls if th.isnumeric()]
         new_data = [data for data in new_data if data.get("townhall") in townhalls]
 
-    new_data = sorted(new_data, key=lambda x: x.get(sort_field), reverse=(sort_field != "name"))[:limit]
+    new_data = sorted(new_data, key=lambda x: x.get(sort_field), reverse=descending)[:limit]
     for count, data in enumerate(new_data, 1):
         data["rank"] = count
 
-    return {"items" : new_data, "totals" : totals}
+    return {"items" : new_data, "totals" : totals,
+            "metadata" : {"sort_order" : ("descending" if descending else "ascending"), "sort_field" : sort_field, "season" : season}}
 
 
 
