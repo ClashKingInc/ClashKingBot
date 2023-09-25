@@ -79,12 +79,13 @@ async def donations(request: Request, response: Response,
         if tied_donations_only:
             for result in stat_results:
                 this_season = result.get(season)
-                for tag in member_tags:
-                    this_player = this_season.get(tag)
-                    if this_player is None:
-                        continue
-                    player_struct[tag]["donations"] += this_player.get("donated", 0)
-                    player_struct[tag]["donationsReceived"] += this_player.get("received", 0)
+                if this_season is not None:
+                    for tag in member_tags:
+                        this_player = this_season.get(tag)
+                        if this_player is None:
+                            continue
+                        player_struct[tag]["donations"] += this_player.get("donated", 0)
+                        player_struct[tag]["donationsReceived"] += this_player.get("received", 0)
 
         new_data = list(player_struct.values())
 
