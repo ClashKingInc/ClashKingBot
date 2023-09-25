@@ -226,6 +226,7 @@ async def clan_games(request: Request, response: Response,
     start = datetime(year, month, 1)
     end = datetime(year, next_month, 1)
     new_data = []
+    clan_to_name = {}
     if players:
         pipeline = [
             {"$match": {"$and": [{"tag": {"$in": [fix_tag(player) for player in players]}}, {"type": "Games Champion"},
@@ -239,10 +240,10 @@ async def clan_games(request: Request, response: Response,
         for m in results:
             member_stat_dict[m["_id"]] = {"first": m["first"], "last": m["last"]}
         stat_results = await player_stats_db.find({"tag" : {"$in" : [fix_tag(player) for player in players]}},
-                                                  {"tag" : 1, "name" : 1, "clan_games" : 1, "townhall" : 1}).to_list(length=None)
+                                                  {"tag" : 1, "name" : 1, "clan_games" : 1, "townhall" : 1, "clan_tag" : 1}).to_list(length=None)
         player_struct = {m.get("tag") : {"tag" : m.get("tag"), "name" : m.get("name"), "rank" : 0,
                                          "points" : m.get("clan_games", {}).get(season, {}).get("points", 0),
-                                         "time_taken" : 0, "townhall" : m.get("townhall", 0)} for m in stat_results}
+                                         "time_taken" : 0, "townhall" : m.get("townhall", 0), "clan_tag" : m.get("clan_tag")} for m in stat_results}
         for tag, value in player_struct.items():
             points = value.get("points")
             stats = member_stat_dict.get(tag)
@@ -256,6 +257,7 @@ async def clan_games(request: Request, response: Response,
 
     elif clans:
         clan_members = await basic_clan.find({"tag" : {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
+        clan_to_name = {c.get("tag") : c.get("name") for c in clan_members}
         member_tags = []
         member_to_name = {}
         for c in clan_members:
@@ -275,21 +277,24 @@ async def clan_games(request: Request, response: Response,
         for m in results:
             member_stat_dict[m["_id"]] = {"first": m["first"], "last": m["last"]}
         stat_results = await clan_stats.find({"tag": {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
-        player_struct = {tag : {"tag" : tag, "name" : member_to_name.get(tag), "rank" : 0, "points" : 0, "time_taken" : 0, "townhall" : 0} for tag in member_tags}
+        player_struct = {tag : {"tag" : tag, "name" : member_to_name.get(tag), "rank" : 0, "points" : 0, "time_taken" : 0, "townhall" : 0, "clan_tag": None} for tag in member_tags}
         member_data = await player_stats_db.find({"tag" : {"$in" : member_tags}}, {"tag" : 1, "name" : 1, "clan_games" : 1, "townhall" : 1}).to_list(length=None)
         for member in member_data:
             if not tied_only:
                 player_struct[member.get("tag")]["points"] = member.get("clan_games", {}).get(season, {}).get("points", 0)
             player_struct[member.get("tag")]["townhall"] = member.get("townhall", None)
-        if tied_only:
-            for result in stat_results:
-                this_season = result.get(season)
-                if this_season is not None:
-                    for tag in member_tags:
-                        this_player = this_season.get(tag)
-                        if this_player is None:
-                            continue
-                        player_struct[tag]["points"] += this_player.get("clan_games", 0)
+        for result in stat_results:
+            clan_tag = result.get("tag")
+            this_season = result.get(season)
+            if this_season is not None:
+                for tag in member_tags:
+                    this_player = this_season.get(tag)
+                    if this_player is None:
+                        continue
+                    player_struct[tag]["clan_tag"] = clan_tag
+                    if not tied_only:
+                        continue
+                    player_struct[tag]["points"] += this_player.get("clan_games", 0)
 
         for tag, value in player_struct.items():
             points = value.get("points")
@@ -306,7 +311,9 @@ async def clan_games(request: Request, response: Response,
 
 
     totals = {"points" : 0, "average_points" : [], "average_townhall" : []}
+    by_clan = defaultdict(lambda : defaultdict(int))
     for data in new_data:
+        by_clan[data.get("clan_tag")]["points"] += data.get("points")
         totals["points"] += data.get("points")
         if data.get("townhall"):
             totals["average_points"].append(data.get("points"))
@@ -326,7 +333,13 @@ async def clan_games(request: Request, response: Response,
     for count, data in enumerate(new_data, 1):
         data["rank"] = count
 
-    return {"items" : new_data, "totals" : totals,
+    by_clan_totals = []
+    if not clan_to_name:
+        clan_results = await basic_clan.find({"tag" : {"$in" : list(by_clan.keys())}})
+        clan_to_name = {c.get("tag"): c.get("name") for c in clan_results}
+    for k, v in by_clan.items():
+        by_clan_totals.append({"tag" : k, "name" : clan_to_name.get(k), "points" : v.get("points")})
+    return {"items" : new_data, "totals" : totals, "clan_totals" : by_clan_totals,
             "metadata" : {"sort_order" : ("descending" if descending else "ascending"), "sort_field" : sort_field, "season" : season}}
 
 
