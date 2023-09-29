@@ -35,6 +35,7 @@ base_stats: collection_class = looper.base_stats
 capital: collection_class = looper.raid_weekends
 clan_stats: collection_class = new_looper.clan_stats
 rankings: collection_class = new_looper.rankings
+cwl_groups: collection_class = new_looper.cwl_group
 
 clan_history: collection_class = new_looper.clan_history
 clan_join_leave: collection_class = new_looper.clan_join_leave
