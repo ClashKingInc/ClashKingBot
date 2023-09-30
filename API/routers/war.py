@@ -110,7 +110,7 @@ async def basic_war_info(clan_tag: str, request: Request, response: Response):
          name="Cwl Info for a clan in a season (yyyy-mm)")
 @cache(expire=300)
 @limiter.limit("30/second")
-async def basic_war_info(clan_tag: str, season: str, request: Request, response: Response):
+async def cwl(clan_tag: str, season: str, request: Request, response: Response):
     clan_tag = fix_tag(clan_tag)
     cwl_result = await cwl_groups.find_one({"$and" : [{"data.clans.tag" : clan_tag}, {"data.season" : season}]})
     rounds = cwl_result.get("data").get("rounds")
