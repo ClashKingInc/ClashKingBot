@@ -9,7 +9,7 @@ from fastapi_cache.decorator import cache
 from typing import List
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
-from .utils import fix_tag, capital, leagues, cwl_groups, clan_wars, war_logs_db, basic_clan, war_leagues
+from .utils import fix_tag, capital, leagues, cwl_groups, clan_wars, war_logs_db, basic_clan
 from datetime import datetime
 
 limiter = Limiter(key_func=get_remote_address)
