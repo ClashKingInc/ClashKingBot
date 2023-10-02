@@ -126,7 +126,7 @@ async def cwl(clan_tag: str, season: str, request: Request, response: Response):
             rounds[r_count].get("warTags")[count] = matching_wars.get(tag)
     cwl_result = cwl_result["data"]
     cwl_result["rounds"] = rounds
-    cwl_result["rankings"] =  ranking_create(data=cwl_result)
+    cwl_result["clan_rankings"] = ranking_create(data=cwl_result)
     return cwl_result
 
 
@@ -135,14 +135,22 @@ def ranking_create(data: dict):
     star_dict = defaultdict(int)
     dest_dict = defaultdict(int)
     tag_to_name = defaultdict(str)
+    rounds_won = defaultdict(int)
+    rounds_lost = defaultdict(int)
+    rounds_tied = defaultdict(int)
 
     for round in data.get("rounds"):
         for war in round.get("warTags"):
             war = coc.ClanWar(data=war, client=None)
             if str(war.status) == "won":
+                rounds_won[war.clan.tag] += 1
                 star_dict[war.clan.tag] += 10
             elif str(war.status) == "lost":
+                rounds_lost[war.opponent.tag] += 1
                 star_dict[war.opponent.tag] += 10
+            else:
+                rounds_tied[war.clan.tag] += 1
+                rounds_tied[war.opponent.tag] += 1
             tag_to_name[war.clan.tag] = war.clan.name
             tag_to_name[war.opponent.tag] = war.opponent.name
             on_each_player = {}
@@ -166,5 +174,6 @@ def ranking_create(data: dict):
         star_list.append([name, tag, stars, destruction])
 
     sorted_list = sorted(star_list, key=operator.itemgetter(2, 3), reverse=True)
-    return  [{"name" : x[0], "tag" : x[1], "stars": x[2], "destruction" : x[3]} for x in sorted_list]
+    return  [{"name" : x[0], "tag" : x[1], "stars": x[2], "destruction" : x[3],
+              "rounds" : {"won" : rounds_won.get(x[1], 0), "tied" : rounds_tied.get(x[1], 0), "lost" : rounds_lost.get(x[1], 0)}} for x in sorted_list]
 
