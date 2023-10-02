@@ -5,6 +5,7 @@ import os
 import re
 from dotenv import load_dotenv
 import coc
+import json
 from pytz import utc
 from datetime import datetime
 
@@ -46,6 +47,7 @@ clan_trophies: collection_class = ranking_history.clan_trophies
 clan_versus_trophies: collection_class = ranking_history.clan_versus_trophies
 capital_trophies: collection_class = ranking_history.capital
 basic_clan: collection_class = looper.clan_tags
+
 
 def fix_tag(tag:str):
     tag = tag.replace('%23', '')

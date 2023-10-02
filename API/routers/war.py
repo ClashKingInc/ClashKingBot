@@ -1,5 +1,6 @@
 
 import coc
+import operator
 
 from collections import defaultdict
 from fastapi import  Request, Response, HTTPException
@@ -8,9 +9,8 @@ from fastapi_cache.decorator import cache
 from typing import List
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
-from .utils import fix_tag, capital, leagues, cwl_groups, clan_wars, war_logs_db
+from .utils import fix_tag, capital, leagues, cwl_groups, clan_wars, war_logs_db, basic_clan, war_leagues
 from datetime import datetime
-
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(tags=["War Endpoints"])
@@ -113,6 +113,7 @@ async def basic_war_info(clan_tag: str, request: Request, response: Response):
 async def cwl(clan_tag: str, season: str, request: Request, response: Response):
     clan_tag = fix_tag(clan_tag)
     cwl_result = await cwl_groups.find_one({"$and" : [{"data.clans.tag" : clan_tag}, {"data.season" : season}]})
+
     rounds = cwl_result.get("data").get("rounds")
     war_tags = []
     for round in rounds:
@@ -125,4 +126,45 @@ async def cwl(clan_tag: str, season: str, request: Request, response: Response):
             rounds[r_count].get("warTags")[count] = matching_wars.get(tag)
     cwl_result = cwl_result["data"]
     cwl_result["rounds"] = rounds
+    cwl_result["rankings"] =  ranking_create(data=cwl_result)
     return cwl_result
+
+
+def ranking_create(data: dict):
+
+    star_dict = defaultdict(int)
+    dest_dict = defaultdict(int)
+    tag_to_name = defaultdict(str)
+
+    for round in data.get("rounds"):
+        for war in round.get("warTags"):
+            war = coc.ClanWar(data=war, client=None)
+            if str(war.status) == "won":
+                star_dict[war.clan.tag] += 10
+            elif str(war.status) == "lost":
+                star_dict[war.opponent.tag] += 10
+            tag_to_name[war.clan.tag] = war.clan.name
+            tag_to_name[war.opponent.tag] = war.opponent.name
+            on_each_player = {}
+            for player in war.members:
+                for attack in player.attacks:
+                    if on_each_player.get(attack.defender_tag) is None:
+                        on_each_player[attack.defender_tag] = (attack, player.clan.tag)
+                    else:
+                        prev, clan_tag = on_each_player.get(attack.defender_tag)
+                        if attack.stars > prev.stars or (attack.stars == prev.stars and attack.destruction > prev.destruction):
+                            on_each_player[attack.defender_tag] = (attack, player.clan.tag)
+
+            for attack, clan_tag in on_each_player.values():
+                star_dict[clan_tag] += attack.stars
+                dest_dict[clan_tag] += attack.destruction
+
+    star_list = []
+    for tag, stars in star_dict.items():
+        destruction = dest_dict[tag]
+        name = tag_to_name[tag]
+        star_list.append([name, tag, stars, destruction])
+
+    sorted_list = sorted(star_list, key=operator.itemgetter(2, 3), reverse=True)
+    return  [{"name" : x[0], "tag" : x[1], "stars": x[2], "destruction" : x[3]} for x in sorted_list]
+
