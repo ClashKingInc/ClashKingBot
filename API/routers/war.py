@@ -144,13 +144,16 @@ def ranking_create(data: dict):
             war = coc.ClanWar(data=war, client=None)
             if str(war.status) == "won":
                 rounds_won[war.clan.tag] += 1
+                rounds_lost[war.opponent.tag] += 1
                 star_dict[war.clan.tag] += 10
             elif str(war.status) == "lost":
-                rounds_lost[war.opponent.tag] += 1
+                rounds_won[war.opponent.tag] += 1
+                rounds_lost[war.clan.tag] += 1
                 star_dict[war.opponent.tag] += 10
             else:
                 rounds_tied[war.clan.tag] += 1
                 rounds_tied[war.opponent.tag] += 1
+
             tag_to_name[war.clan.tag] = war.clan.name
             tag_to_name[war.opponent.tag] = war.opponent.name
             on_each_player = {}
