@@ -137,7 +137,7 @@ async def capital_stats_leagues(weekend: str, request: Request, response: Respon
 @cache(expire=300)
 @limiter.limit("30/second")
 async def capital_log(clan_tag: str, request: Request, response: Response, limit: int = 5):
-    results = await capital.find({"clan_tag" : fix_tag(clan_tag)}).limit(limit).to_list(length=None)
+    results = await capital.find({"clan_tag" : fix_tag(clan_tag)}).limit(limit).sort("data.startTime", -1).to_list(length=None)
     for result in results:
         del result["_id"]
     return results
