@@ -8,6 +8,12 @@ import coc
 import json
 from pytz import utc
 from datetime import datetime
+from coc.ext import discordlinks
+import asyncio
+from expiring_dict import ExpiringDict
+import aiohttp
+import io
+IMAGE_CACHE = ExpiringDict()
 
 load_dotenv()
 client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
@@ -48,6 +54,20 @@ clan_versus_trophies: collection_class = ranking_history.clan_versus_trophies
 capital_trophies: collection_class = ranking_history.capital
 basic_clan: collection_class = looper.clan_tags
 
+
+
+async def download_image(url: str):
+    cached = IMAGE_CACHE.get(url)
+    if cached is None:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                image_data = await response.read()
+            await session.close()
+        image_bytes: bytes = image_data
+        IMAGE_CACHE.ttl(url, image_bytes, 3600 * 4)
+    else:
+        image_bytes = cached
+    return io.BytesIO(image_bytes)
 
 def fix_tag(tag:str):
     tag = tag.replace('%23', '')
