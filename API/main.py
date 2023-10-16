@@ -14,7 +14,7 @@ from fastapi.openapi.utils import get_openapi
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
-from routers import leagues, player, capital, other, clan, stats, war, utility
+from routers import leagues, player, capital, other, clan, stats, war, utility, ranking, redirect, game_data
 from api_analytics.fastapi import Analytics
 
 LOCAL = False
@@ -37,11 +37,14 @@ app.add_middleware(Analytics, api_key="9f56d999-b945-4be5-8787-2448ab222ad3")
 
 app.include_router(player.router)
 app.include_router(clan.router)
+app.include_router(war.router)
 app.include_router(capital.router)
 app.include_router(leagues.router)
-app.include_router(other.router)
+app.include_router(ranking.router)
+app.include_router(redirect.router)
 app.include_router(stats.router)
-app.include_router(war.router)
+app.include_router(game_data.router)
+app.include_router(other.router)
 app.include_router(utility.router)
 
 
