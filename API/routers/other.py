@@ -19,10 +19,13 @@ router = APIRouter(tags=["Other"])
          name="Super Troop Boost Rate, for a season (YYYY-MM)")
 @cache(expire=300)
 @limiter.limit("5/second")
-async def super_troop_boost_rate(season: str, request: Request, response: Response):
-    year = season[:4]; month = season[-2:]
-    SEASON_START = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
-    SEASON_END = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
+async def super_troop_boost_rate(start_season: str, end_season: str, request: Request, response: Response):
+    start_year = start_season[:4]; start_month = start_season[-2:]
+    end_year = end_season[:4]; end_month = end_season[-2:]
+
+    SEASON_START = coc.utils.get_season_start(month=int(start_month) - 1, year=int(start_year))
+    SEASON_END = coc.utils.get_season_end(month=int(end_month) - 1, year=int(end_year))
+
     pipeline = [
         {
             "$match": {
