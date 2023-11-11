@@ -24,10 +24,10 @@ class AbstractClient:
     async def __yield_client(self) -> AsyncGenerator[coc.Client, None]:
         """Get the async generator which always yields the client"""
 
-        async with coc.Client(loop=asyncio.get_event_loop_policy().get_event_loop(), key_count=10, key_names="DiscordBot", throttle_limit=25, cache_max_size=50000,
+        async with coc.Client(loop=asyncio.get_event_loop_policy().get_event_loop(), key_count=10, key_names="DiscordBot", throttle_limit=500, cache_max_size=1000,
                         load_game_data=coc.LoadGameData(always=False), raw_attribute=True, stats_max_size=10000) as client:
             if os.getenv("IS_BETA") != "yes":
-                tokens = await get_keys(emails=EMAILS, passwords=PASSWORDS, key_names="test", key_count=10)
+                tokens = await get_keys(emails=EMAILS[:1], passwords=PASSWORDS[:1], key_names="test", key_count=10)
                 await client.login_with_tokens(*tokens)
             else:
                 await client.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD"))  # be aware that hard coding credentials is bad practice!

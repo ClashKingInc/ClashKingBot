@@ -7,10 +7,13 @@ if TYPE_CHECKING:
     from CustomClasses.CustomBot import CustomClient
 else:
     from disnake.ext.commands import AutoShardedBot as CustomClient
+from Exceptions.CustomExceptions import MessageException
+from coc import utils
 
 class DatabaseServer():
     def __init__(self, bot: CustomClient, data):
         self.bot = bot
+        self.__data = data
         self.server_id = data.get("server")
         self.leadership_eval = data.get("leadership_eval", True)
         self.prefix = data.get("prefix", "do ")
@@ -35,6 +38,11 @@ class DatabaseServer():
         self.family_label = data.get("family_label", "")
         self.banlist_channel = data.get("banlist")
         self.reddit_feed = data.get("reddit_feed")
+        self.embed_color = disnake.Color(data.get("embed_color", 0x2ECC71))
+        self.tied_stats_only = data.get("tied", True)
+        self.autoeval_triggers = data.get("autoeval_triggers", [])
+
+
 
     async def set_banlist_channel(self, id: Union[int, None]):
         await self.bot.server_db.update_one({"server": self.server_id}, {'$set': {"banlist": id}})
@@ -62,6 +70,31 @@ class DatabaseServer():
 
     async def set_auto_eval_nickname(self, status: bool):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"auto_eval_nickname": status}})
+
+    async def set_tied_stats(self, state: bool):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"tied": state}})
+
+    async def set_hex_code(self, hex_code: str):
+        hex_code = hex_code.replace("#", "")
+        hex_code = int(hex_code, 16)
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"embed_color": hex_code}})
+
+    async def get_achievement_role_by_type(self, type: str, award_type: str = None):
+
+        result = self.__data.get("achievement_roles", {}).get(type, [])
+        if award_type is not None:
+            result = filter(lambda x : x.get("amount") > 100 if award_type == "amount" else x.get("amount") <= 100, result)
+        return result
+
+    async def add_achievement_role(self, type: str, season: str, amount: int):
+        await self.bot.server_db.update_one({"server": self.server_id},
+                                            {"$push": {f"achievement_roles.{type}": {"season" : season, "amount" : amount}}})
+
+    def get_clan(self, clan_tag: str):
+        matching_clan = utils.get(self.clans, tag=clan_tag)
+        if matching_clan is None:
+            raise MessageException(f"There is no clan ({clan_tag}) linked to this server.")
+        return matching_clan
 
 
 
@@ -193,6 +226,8 @@ class DatabaseClan():
             {"server": self.server_id}
         ]}, {'$set': {"logs.join_log.profile_button": set}})
 
+    async def add_refresh_board(self, type: str, scope: str, message_id: int, webhook_id: int):
+        await self.bot.refresh_boards.insert_one({"type" : type, "scope" : scope, "message_id" : message_id, "webhook_id" : webhook_id})
 
 
 class MemberCountWarning():

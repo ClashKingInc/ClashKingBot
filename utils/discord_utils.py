@@ -1,5 +1,6 @@
 import os
 
+import coc
 import disnake
 from Assets.emojiDictionary import emojiDictionary, legend_emojis
 from typing import Callable, Union
@@ -95,7 +96,8 @@ async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteract
             if ephemeral:
                 await res.response.defer(ephemeral=True)
             else:
-                await res.response.defer()
+                if not res.response.is_done():
+                    await res.response.defer()
         valid_value = await function(res=res)
 
     return valid_value
@@ -240,4 +242,7 @@ async def get_webhook_for_channel(bot, channel: Union[disnake.TextChannel, disna
         raise MissingWebhookPerms
 
 
-
+class Holder():
+    def __init__(self):
+        self.tag = None
+        self.id = None

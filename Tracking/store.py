@@ -41,7 +41,7 @@ async def test(keys):
 
     names = await history_db.distinct("season")
     print(names)
-    missing = {"2023-08"}
+    missing = {"2023-09"}
 
     headers = {
         "Accept": "application/json",

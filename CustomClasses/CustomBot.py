@@ -24,6 +24,7 @@ from utils.general import fetch, get_clan_member_tags, create_superscript
 from math import ceil
 from expiring_dict import ExpiringDict
 from redis import asyncio as redis
+from CustomClasses.ClashKingAPI.Client import ClashKingAPIClient
 
 import dateutil.relativedelta
 import ast
@@ -47,6 +48,9 @@ load_dotenv()
 class CustomClient(commands.AutoShardedBot):
     def __init__(self, **options):
         super().__init__(**options)
+
+        self.ck_client = ClashKingAPIClient()
+
         self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
         self.new_looper = self.looper_db.get_database("new_looper")
         self.user_db = self.new_looper.get_collection("user_db")
@@ -77,7 +81,9 @@ class CustomClient(commands.AutoShardedBot):
         self.base_stats: collection_class = self.looper_db.looper.base_stats
         self.autoboards: collection_class = self.looper_db.clashking.autoboards
         self.clan_war: collection_class = self.looper_db.looper.clan_war
-
+        self.cwl_groups: collection_class = self.new_looper.cwl_group
+        self.basic_clan: collection_class = self.looper_db.looper.clan_tags
+        self.button_store: collection_class = self.looper_db.clashking.button_store
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
         self.clan_db: collection_class = self.db_client.usafam.clans
@@ -86,6 +92,7 @@ class CustomClient(commands.AutoShardedBot):
         self.profile_db: collection_class = self.db_client.usafam.profile_db
         self.ignoredroles: collection_class = self.db_client.usafam.evalignore
         self.generalfamroles: collection_class = self.db_client.usafam.generalrole
+        self.familyexclusiveroles: collection_class = self.db_client.usafam.familyexclusiveroles
         self.notfamroles: collection_class = self.db_client.usafam.linkrole
         self.townhallroles: collection_class = self.db_client.usafam.townhallroles
         self.builderhallroles: collection_class = self.db_client.usafam.builderhallroles
@@ -122,8 +129,6 @@ class CustomClient(commands.AutoShardedBot):
         self.player_search: collection_class = self.db_client.usafam.player_search
 
         self.coc_client: coc.Client = login.coc_client
-
-        self.war_client: FullWarClient = asyncio.get_event_loop().run_until_complete(fullwarapi.login(username=os.getenv("FW_USER"), password=os.getenv("FW_PW"), coc_client=self.coc_client))
 
         self.redis = redis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"), retry_on_timeout=True, max_connections=25, retry_on_error=[redis.ConnectionError])
 
@@ -586,6 +591,27 @@ class CustomClient(commands.AutoShardedBot):
         else:
             msg = await webhook.send(content=content, embed=embed, file=file, components=components, wait=wait, thread=thread)
         return msg
+
+    async def parse_to_name_icon(self, discord_user: disnake.User = None, clan: coc.Clan = None, server: disnake.Guild = None, as_dict=None):
+        if as_dict:
+            if as_dict.get("user") is not None:
+                discord_user = await self.getch_user(as_dict.get("user"))
+            if as_dict.get("clan") is not None:
+                clan = await self.getClan(clan_tag=as_dict.get("clan")[0])
+            if as_dict.get("family") is not None:
+                server = await self.getch_guild(guild_id=as_dict.get("family"))
+        if discord_user:
+            return (discord_user.display_name, discord_user.avatar.url)
+        if clan:
+            return (clan.name, clan.badge.url)
+        if server:
+            if server.icon is not None:
+                return (server.name, server.icon.url)
+            else:
+                return (server.name, self.user.avatar.url)
+
+
+        return ("Global", self.user.avatar.url)
 
     #CLASH HELPERS
     async def store_all_cwls(self, clan: coc.Clan):

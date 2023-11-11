@@ -140,51 +140,83 @@ class eval(commands.Cog, name="Eval"):
             embed = disnake.Embed(description=f"{remove.mention} removed from autoeval blacklisted roles", color=disnake.Color.green())
             return await ctx.edit_original_message(embed=embed)
 
-    @autoeval.sub_command(name="role-treatment", description="Set the role treatment for autoeval")
+    @autoeval.sub_command(name="options", description="Set settings for autoeval")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def auto_eval_treatment(self, ctx: disnake.ApplicationCommandInteraction, choice: str= commands.Param(choices=["Add", "Remove", "Both"])):
+    async def auto_eval_options(self, ctx: disnake.ApplicationCommandInteraction,
+                                role_treatment: str = commands.Param(default=None, choices=["Add", "Remove", "Both"]),
+                                nickname_change: str = commands.Param(default=None, choices=["True", "False"]),
+                                blacklist_role_add: disnake.Role = None,
+                                blacklist_role_remove: disnake.Role = None):
         await ctx.response.defer()
+        if blacklist_role_add.id == blacklist_role_remove.id:
+            raise MessageException("Cannot both remove and add the same role to/from blacklist at the same time")
+
         db_server = await self.bot.get_custom_server(guild_id=ctx.guild.id)
-        if choice == "Both":
-            choices = ["Add", "Remove"]
-        else:
-            choices = [choice]
+        changed_text = ""
+        if role_treatment is not None:
+            if role_treatment == "Both":
+                choices = ["Add", "Remove"]
+            else:
+                choices = [role_treatment]
+            await db_server.set_role_treatment(treatment=choices)
+            changed_text += f"- **Role Treatment:** {choices}\n"
 
-        await db_server.set_role_treatment(treatment=choices)
-        embed = disnake.Embed(description=f"AutoEval Role Treatment set to `{choice}`", color=disnake.Color.green())
-        return await ctx.edit_original_message(embed=embed)
+        if nickname_change is not None:
+            await db_server.set_auto_eval_nickname(nickname_change == "True")
+            changed_text += f"- **Nickname Change:** {nickname_change}\n"
 
-    @autoeval.sub_command(name="nickname-change", description="Set the nickname change setting for autoeval")
+        if blacklist_role_add is not None:
+            if blacklist_role_add.id in db_server.blacklisted_roles:
+                raise MessageException(f"{blacklist_role_add.mention} is already in the autoeval blacklisted roles.")
+            await db_server.add_blacklisted_role(id=blacklist_role_add.id)
+            changed_text += f"- **BlackList Role Add:** {blacklist_role_add.mention}\n"
+
+        if blacklist_role_remove is not None:
+            if blacklist_role_remove.id not in db_server.blacklisted_roles:
+                raise MessageException(f"{blacklist_role_remove.mention} is not in the autoeval blacklisted roles.")
+            await db_server.remove_blacklisted_role(id=blacklist_role_remove.id)
+            changed_text += f"- **BlackList Role Removed:** {blacklist_role_remove.mention}\n"
+
+        if changed_text == "":
+            changed_text = "No Changes Made!"
+
+        embed = disnake.Embed(title=f"{ctx.guild.name} AutoEval Settings Changed", description=changed_text, color=db_server.embed_color)
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+        await ctx.edit_original_message(embed=embed)
+
+
+
+
+    @autoeval.sub_command(name="triggers", description="Set triggers for autoeval")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def auto_eval_nickchange(self, ctx: disnake.ApplicationCommandInteraction, change_nickname: str = commands.Param(choices=["True", "False"])):
-        await ctx.response.defer()
-        db_server = await self.bot.get_custom_server(guild_id=ctx.guild.id)
-        await db_server.set_auto_eval_nickname(change_nickname == "True")
-        embed = disnake.Embed(description=f"AutoEval will change nicknames -> `{change_nickname}`", color=disnake.Color.green())
-        return await ctx.edit_original_message(embed=embed)
+    async def auto_eval_options(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
+
+
 
     #SETTINGS
-    @eval.sub_command_group(name="family-roles")
+    @commands.slash_command(name="family-roles")
     async def family_roles(self, ctx):
         pass
 
-    @eval.sub_command_group(name="townhall-roles")
+    @commands.slash_command(name="townhall-roles")
     async def townhall_roles(self, ctx):
         pass
 
-    @eval.sub_command_group(name="league-roles")
+    @commands.slash_command(name="league-roles")
     async def league_roles(self, ctx):
         pass
 
-    @eval.sub_command_group(name="builderhall-roles")
+    @commands.slash_command(name="builderhall-roles")
     async def builderhall_roles(self, ctx):
         pass
 
-    @eval.sub_command_group(name="builder-league-roles")
+    @commands.slash_command(name="builder-league-roles")
     async def builder_league_roles(self, ctx):
         pass
 
-    @eval.sub_command_group(name="achievement-roles")
+    @commands.slash_command(name="achievement-roles")
     async def achievement_roles(self, ctx):
         pass
 
@@ -411,12 +443,14 @@ class eval(commands.Cog, name="Eval"):
     @family_roles.sub_command(name="add", description="Add Family Based Eval Roles")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def family_roles_add(self, ctx: disnake.ApplicationCommandInteraction,
-                               type=commands.Param(choices=["Only-Family Roles", "Not-Family Roles", "Ignored Roles"]),
+                               type:str = commands.Param(choices=["Only-Family Roles", "Family Exclusive Roles", "Not-Family Roles", "Ignored Roles"]),
                                role: disnake.Role = commands.Param(name="role")):
 
         await ctx.response.defer()
         if type == "Only-Family Roles":
             database = self.bot.generalfamroles
+        elif type == "Family Exclusive Roles":
+            database = self.bot.familyexclusiveroles
         elif type == "Not-Family Roles":
             database = self.bot.notfamroles
         elif type == "Ignored Roles":
@@ -426,15 +460,18 @@ class eval(commands.Cog, name="Eval"):
 
         await ctx.edit_original_message(embed=embed)
 
+
     @family_roles.sub_command(name="remove", description="Remove Family Based Eval Roles")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def family_roles_remove(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(
-        choices=["Only-Family Roles", "Not-Family Roles", "Ignored Roles"]),
+    async def family_roles_remove(self, ctx: disnake.ApplicationCommandInteraction,
+                                  type: str = commands.Param(choices=["Only-Family Roles", "Family Exclusive Roles", "Not-Family Roles", "Ignored Roles"]),
                                   role: disnake.Role = commands.Param(name="role")):
 
         await ctx.response.defer()
         if type == "Only-Family Roles":
             database = self.bot.generalfamroles
+        elif type == "Family Exclusive Roles":
+            database = self.bot.familyexclusiveroles
         elif type == "Not-Family Roles":
             database = self.bot.notfamroles
         elif type == "Ignored Roles":
@@ -856,43 +893,17 @@ class eval(commands.Cog, name="Eval"):
 
     @achievement_roles.sub_command(name="set", description="Set role for top donators/activity & more")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def achievement_roles_set(self, ctx: disnake.ApplicationCommandInteraction, donos_10000: disnake.Role = None,
-                                donos_25000: disnake.Role = None, top_donator_last_season: disnake.Role = None,
-                                top_donator_ongoing_season: disnake.Role = None):
+    async def achievement_roles_set(self, ctx: disnake.ApplicationCommandInteraction,
+                                    type: str = commands.Param(choices=["Donation", "Trophies", "Activity", "Total Looted"]),
+                                    amount_or_rank: int = commands.Param(),
+                                    season: str = commands.Param(choices=["Current Season", "Previous Season"])):
+        await ctx.response.defer()
+        db_server = await self.bot.get_custom_server(guild_id=ctx.guild.id)
+        is_rank = (amount_or_rank <= 100)
+        await db_server.add_achievement_role(type=type.lower().replace(" ", "_"), amount=amount_or_rank, season=season.lower().replace(" ", "_"))
 
-        list_roles = [donos_10000, donos_25000, top_donator_last_season, top_donator_ongoing_season]
 
-        if list_roles.count(None) == len(list_roles):
-            return await ctx.send("Please select at least one role to set.")
 
-        spot_to_text = ["donos_10000", "donos_25000", "top_donator_last_season", "top_donator_ongoing_season"]
-        roles_updated = ""
-        for count, role in enumerate(list_roles):
-            if role is None:
-                continue
-            role_text = spot_to_text[count]
-            roles_updated += f"{role_text}: {role.mention}\n"
-            results = await self.bot.achievementroles.find_one({"$and": [
-                {"role": role.id},
-                {"type": role_text},
-                {"server": ctx.guild.id}
-            ]})
-
-            if results is None:
-                await self.bot.achievementroles.insert_one(
-                    {"role": role.id,
-                     "type": role_text,
-                     "server": ctx.guild.id})
-            else:
-                await self.bot.achievementroles.update_one({"$and": [
-                    {"type": role_text},
-                    {"server": ctx.guild.id}
-                ]}, {'$set': {"role": role.id}})
-
-        embed = disnake.Embed(title="**Achievement Roles that were set:**",
-                              description=roles_updated,
-                              color=disnake.Color.green())
-        return await ctx.send(embed=embed)
 
 
 

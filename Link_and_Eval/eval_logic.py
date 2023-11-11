@@ -460,10 +460,10 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
                 elif new_name is None:
                     await member.edit(roles=current_member_roles)
                 tasks += 1
-            except:
-                name_changes = "Permissions Error"
-                added = "Permissions Error"
-                removed = "Permissions Error"
+            except Exception as e:
+                name_changes = "Error"
+                added = e[:1000]
+                removed = "Error"
 
         if name_changes[1:-1] == old_name:
             name_changes = "None"

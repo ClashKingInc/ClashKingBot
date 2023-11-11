@@ -189,12 +189,16 @@ class DiscordEvents(commands.Cog):
             msg = await ctx.original_message()
             if not msg.flags.ephemeral and (ctx.locale == disnake.Locale.en_US or ctx.locale == disnake.Locale.en_GB):
                 last_run = await self.bot.command_stats.find_one(filter={"user" : ctx.author.id}, sort=[("time", -1)])
-                last_run = None
                 if last_run is None or int(datetime.datetime.now().timestamp()) - last_run.get('time') >= 7 * 86400:
+                    tries = 0
                     while msg.flags.loading:
+                        tries += 1
                         await asyncio.sleep(1.5)
                         msg = await ctx.channel.fetch_message(msg.id)
-                    await ctx.followup.send(f"{random.choice(USE_CODE_TEXT)}\n", ephemeral=True)
+                        if tries == 10:
+                            break
+                    if tries != 10:
+                        await ctx.followup.send(f"{random.choice(USE_CODE_TEXT)}\n", ephemeral=True)
         except Exception:
             pass
 

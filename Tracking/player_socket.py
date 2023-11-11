@@ -18,6 +18,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from aiomultiprocess import Worker
 from expiring_dict import ExpiringDict
+from redis.commands.json.path import Path
 
 import ujson
 import coc
@@ -142,6 +143,8 @@ async def main(PLAYER_CLIENTS):
 
     cache = redis.Redis(host='localhost', port=6379, db=0, password=os.getenv("REDIS_PW"), decode_responses=False)
 
+
+
     def get_changes(previous_response: dict, response: dict):
         new_json = {}
         fields_to_update = []
@@ -182,422 +185,424 @@ async def main(PLAYER_CLIENTS):
 
         return (new_json, fields_to_update)
 
-    loop_spot = -1
+    loop_spot = 0
     while True:
-        loop_spot += 1
+        try:
+            loop_spot += 1
 
-        clan_tags = await clan_db.distinct("tag")
+            clan_tags = await clan_db.distinct("tag")
 
-        tasks = []
-        connector = aiohttp.TCPConnector(limit=250)
-        keys = collections.deque(keys)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            for tag in clan_tags:
-                headers = {"Authorization": f"Bearer {keys[0]}"}
-                tag = tag.replace("#", "%23")
-                url = f"https://api.clashofclans.com/v1/clans/{tag}"
-                keys.rotate(1)
-                async def fetch(url, session, headers):
-                    async with session.get(url, headers=headers) as response:
-                        try:
-                            clan = await response.json()
-                            return clan
-                        except:
-                            return None
-                tasks.append(fetch(url, session, headers))
-            responses = await asyncio.gather(*tasks, return_exceptions=True)
-            await session.close()
+            tasks = []
+            connector = aiohttp.TCPConnector(limit=250)
+            keys = collections.deque(keys)
+            async with aiohttp.ClientSession(connector=connector) as session:
+                for tag in clan_tags:
+                    headers = {"Authorization": f"Bearer {keys[0]}"}
+                    tag = tag.replace("#", "%23")
+                    url = f"https://api.clashofclans.com/v1/clans/{tag}"
+                    keys.rotate(1)
+                    async def fetch(url, session, headers):
+                        async with session.get(url, headers=headers) as response:
+                            try:
+                                clan = await response.json()
+                                return clan
+                            except:
+                                return None
+                    tasks.append(fetch(url, session, headers))
+                responses = await asyncio.gather(*tasks, return_exceptions=True)
+                await session.close()
 
-        CLAN_MEMBERS = []
-        for response in responses:
-            try:
-                CLAN_MEMBERS += [member["tag"] for member in response["memberList"]]
-            except:
-                pass
-
-
-        #people only become unpaused by joining a clan again or being tracked in legends again
-        gone_for_a_month = int(datetime.now().timestamp()) - 2592000
-        await player_stats.update_many({"last_online" : {"$lte" : gone_for_a_month}}, {"$set" : {"paused" : True}})
-        await player_stats.update_many({"tag": {"$in": CLAN_MEMBERS}}, {"$set" : {"paused" : False}})
-
-
-        #9/10 loops, only track legend members & clan members
-        if loop_spot % 10 != 0:
-            db_tags = await player_stats.distinct("tag", filter= {"league": "Legend League"})
-            all_tags_to_track = list(set(db_tags + CLAN_MEMBERS))
-        #1/10 loops, track anyone not paused + clan members
-        else:
-            db_tags = await player_stats.distinct("tag", filter={"paused": {"$ne": True}})
-            all_tags_to_track = list(set(db_tags + CLAN_MEMBERS))
-            autocomplete_tags = await player_search.distinct("tag")
-            autocomplete_tags = set(autocomplete_tags)
-            add_to_autocomplete = [tag for tag in all_tags_to_track if tag not in autocomplete_tags]
-            auto_changes = []
-            for tag in add_to_autocomplete:
+            CLAN_MEMBERS = []
+            for response in responses:
                 try:
-                    r = await cache.get(tag)
-                    if r is None:
-                        continue
-                    r = ujson.loads(r)
-                    clan_tag = r.get("clan", {}).get("tag", "Unknown")
-                    league = r.get("league", {}).get("name", "Unranked")
-                    auto_changes.append(InsertOne(
-                        {"name": r.get("name"), "clan": clan_tag, "league": league, "tag": r.get("tag"),
-                         "th": r.get("townHallLevel")}))
-                except:
-                    continue
-            if auto_changes:
-                await player_search.bulk_write(auto_changes)
-
-
-
-        if BETA:
-            all_tags_to_track = all_tags_to_track[:5000]
-
-        print(f"{len(all_tags_to_track)} tags")
-
-        time_inside = time.time()
-
-        class Player(Struct):
-            tag: str
-
-        bulk_db_changes = []
-        bulk_insert = []
-        bulk_clan_changes = []
-        auto_complete = []
-
-        async def send_ws(ws, json):
-            try:
-                await ws.send_json(json)
-            except:
-                try:
-                    PLAYER_CLIENTS.remove(ws)
+                    CLAN_MEMBERS += [member["tag"] for member in response["memberList"]]
                 except:
                     pass
 
-        season = gen_season_date()
-        raid_date = gen_raid_date()
-        games_season = gen_games_season()
-        legend_date = gen_legend_date()
+            #people only become unpaused by joining a clan again or being tracked in legends again
+            gone_for_a_month = int(datetime.now().timestamp()) - 2592000
+            await player_stats.update_many({"last_online" : {"$lte" : gone_for_a_month}}, {"$set" : {"paused" : True}})
+            await player_stats.update_many({"tag": {"$in": CLAN_MEMBERS}}, {"$set" : {"paused" : False}})
 
-        pc_copy = PLAYER_CLIENTS.copy()
-        set_clan_tags = set(await clan_db.distinct("tag"))
 
-        players_tracked = set()
+            #9/10 loops, only track legend members & clan members
+            if loop_spot % 10 != 0:
+                db_tags = await player_stats.distinct("tag", filter= {"league": "Legend League"})
+                all_tags_to_track = list(set(db_tags + CLAN_MEMBERS))
+            #1/10 loops, track anyone not paused + clan members
+            else:
+                db_tags = await player_stats.distinct("tag", filter={"paused": {"$ne": True}})
+                all_tags_to_track = list(set(db_tags + CLAN_MEMBERS))
+                autocomplete_tags = await player_search.distinct("tag")
+                autocomplete_tags = set(autocomplete_tags)
+                add_to_autocomplete = [tag for tag in all_tags_to_track if tag not in autocomplete_tags]
+                auto_changes = []
+                for tag in add_to_autocomplete:
+                    try:
+                        r = await cache.get(tag)
+                        if r is None:
+                            continue
+                        r = ujson.loads(r)
+                        clan_tag = r.get("clan", {}).get("tag", "Unknown")
+                        league = r.get("league", {}).get("name", "Unranked")
+                        auto_changes.append(InsertOne(
+                            {"name": r.get("name"), "clan": clan_tag, "league": league, "tag": r.get("tag"),
+                             "th": r.get("townHallLevel")}))
+                    except:
+                        continue
+                if auto_changes:
+                    await player_search.bulk_write(auto_changes)
 
-        tasks = []
-        deque = collections.deque
-        connector = aiohttp.TCPConnector(limit=2000, ttl_dns_cache=300)
-        keys = deque(keys)
-        url = "https://api.clashofclans.com/v1/players/"
-        timeout = aiohttp.ClientTimeout(total=1800)
-        async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session3:
-            for tag in all_tags_to_track:
-                tag = tag.replace("#", "%23")
-                keys.rotate(1)
 
-                async def fetch(url, session: aiohttp.ClientSession, headers):
-                    async with session.get(url, headers=headers) as new_response:
-                        if new_response.status == 404:  # remove banned players
-                            t = url.split("%23")[-1]
-                            await player_stats.delete_one({"tag": f"#{t}"})
-                            await cache.getdel(f"#{t}")
-                            await player_search.delete_one({"tag": f"#{t}"})
-                            return None
-                        new_response = await new_response.read()
 
-                        obj = decode(new_response, type=Player)
+            if BETA:
+                all_tags_to_track = all_tags_to_track[:5000]
 
-                        previous_response = await cache.get(obj.tag)
-                        players_tracked.add(obj.tag)
-                        if new_response != previous_response:
-                            await cache.set(obj.tag, new_response, ex=86400)
-                            if previous_response is None:
+            print(f"{len(all_tags_to_track)} tags")
+
+            time_inside = time.time()
+
+            class Player(Struct):
+                tag: str
+
+            bulk_db_changes = []
+            bulk_insert = []
+            bulk_clan_changes = []
+            auto_complete = []
+
+            async def send_ws(ws, json):
+                try:
+                    await ws.send_json(json)
+                except:
+                    try:
+                        PLAYER_CLIENTS.remove(ws)
+                    except:
+                        pass
+
+            season = gen_season_date()
+            raid_date = gen_raid_date()
+            games_season = gen_games_season()
+            legend_date = gen_legend_date()
+
+            pc_copy = PLAYER_CLIENTS.copy()
+            set_clan_tags = set(await clan_db.distinct("tag"))
+
+            players_tracked = set()
+
+            tasks = []
+            deque = collections.deque
+            connector = aiohttp.TCPConnector(limit=2000, ttl_dns_cache=300)
+            keys = deque(keys)
+            url = "https://api.clashofclans.com/v1/players/"
+            timeout = aiohttp.ClientTimeout(total=1800)
+            async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session3:
+                for tag in all_tags_to_track:
+                    tag = tag.replace("#", "%23")
+                    keys.rotate(1)
+
+                    async def fetch(url, session: aiohttp.ClientSession, headers):
+                        async with session.get(url, headers=headers) as new_response:
+                            if new_response.status == 404:  # remove banned players
+                                t = url.split("%23")[-1]
+                                await player_stats.delete_one({"tag": f"#{t}"})
+                                await cache.getdel(f"#{t}")
+                                await player_search.delete_one({"tag": f"#{t}"})
                                 return None
-                            BEEN_ONLINE = False
-                            previous_response = ujson.loads(previous_response)
-                            new_response = ujson.loads(new_response)
+                            new_response = await new_response.read()
 
-                            tag = obj.tag
-                            clan_tag = new_response.get("clan", {}).get("tag", "Unknown")
-                            league = new_response.get("league", {}).get("name", "Unranked")
-                            prev_league = previous_response.get("league", {}).get("name", "Unranked")
-                            if league != prev_league:
-                                bulk_db_changes.append(UpdateOne({"tag": tag}, {"$set": {"league": league}}))
-                                auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"league": league}}))
+                            obj = decode(new_response, type=Player)
 
-                            is_clan_member = clan_tag in set_clan_tags
+                            previous_response = await cache.get(obj.tag)
+                            players_tracked.add(obj.tag)
+                            if new_response != previous_response:
+                                await cache.set(obj.tag, new_response, ex=7776000)
+                                if previous_response is None:
+                                    return None
+                                BEEN_ONLINE = False
+                                previous_response = ujson.loads(previous_response)
+                                new_response = ujson.loads(new_response)
 
-                            changes, fields_to_update = get_changes(previous_response, new_response)
-                            online_types = {"donations", "Gold Grab", "Most Valuable Clanmate", "attackWins",
-                                            "War League Legend",
-                                            "Wall Buster", "name", "Well Seasoned", "Games Champion", "Elixir Escapade",
-                                            "Heroic Heist",
-                                            "warPreference", "warStars", "Nice and Tidy", "builderBaseTrophies"}
-                            skip_store_types = {"War League Legend", "Wall Buster", "Aggressive Capitalism",
-                                                "Baby Dragon",
-                                                "Elixir Escapade",
-                                                "Gold Grab", "Heroic Heist", "Nice and Tidy", "Well Seasoned",
-                                                "attackWins",
-                                                "builderBaseTrophies", "donations", "donationsReceived", "trophies",
-                                                "versusBattleWins", "versusTrophies"}
+                                tag = obj.tag
+                                clan_tag = new_response.get("clan", {}).get("tag", "Unknown")
+                                league = new_response.get("league", {}).get("name", "Unranked")
+                                prev_league = previous_response.get("league", {}).get("name", "Unranked")
+                                if league != prev_league:
+                                    bulk_db_changes.append(UpdateOne({"tag": tag}, {"$set": {"league": league}}))
+                                    auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"league": league}}))
 
-                            special_types = {"War League Legend", "warStars", "Aggressive Capitalism", "Nice and Tidy", "Well Seasoned",
-                                         "clanCapitalContributions", "Games Champion"}
-                            ws_types = {"clanCapitalContributions", "name", "troops", "heroes", "spells",
-                                        "townHallLevel",
-                                        "league", "trophies", "Most Valuable Clanmate"}
-                            only_once = {"troops": 0, "heroes": 0, "spells": 0}
-                            ws_tasks = []
-                            if changes:
-                                for (parent, type_), (old_value, value) in changes.items():
-                                    if type_ in special_types:
-                                        bulk_db_changes.append(UpdateOne({"tag": tag},
-                                                                         {"$set": {f"{type_.replace(' ','_').lower()}": value}},
-                                                                         upsert=True))
+                                is_clan_member = clan_tag in set_clan_tags
 
-                                    if type_ not in skip_store_types:
-                                        if old_value is None:
-                                            bulk_insert.append(InsertOne({"tag": tag, "type": type_, "value": value,
-                                                                          "time": int(datetime.now().timestamp()),
-                                                                          "clan": clan_tag, "th" : new_response.get("townHallLevel")}))
-                                        else:
-                                            bulk_insert.append(InsertOne(
-                                                {"tag": tag, "type": type_, "p_value": old_value, "value": value,
-                                                 "time": int(datetime.now().timestamp()), "clan": clan_tag, "th" : new_response.get("townHallLevel")}))
-                                    if type_ == "donations":
-                                        previous_dono = 0 if (previous_dono := previous_response["donations"]) > (
-                                            current_dono := new_response["donations"]) else previous_dono
-                                        bulk_db_changes.append(UpdateOne({"tag": tag},
-                                                                         {"$inc": {f"donations.{season}.donated": (
-                                                                                 current_dono - previous_dono)}},
-                                                                         upsert=True))
-                                        if clan_tag != "Unknown":
-                                            bulk_clan_changes.append(UpdateOne({"tag": clan_tag}, {
-                                                "$inc": {f"{season}.{tag}.donated": (current_dono - previous_dono)}},
-                                                                               upsert=True))
-                                    elif type_ == "donationsReceived":
-                                        previous_dono = 0 if (previous_dono := previous_response[
-                                            "donationsReceived"]) > (
-                                                                 current_dono := new_response[
-                                                                     "donationsReceived"]) else previous_dono
-                                        bulk_db_changes.append(UpdateOne({"tag": tag},
-                                                                         {"$inc": {f"donations.{season}.received": (
-                                                                                 current_dono - previous_dono)}},
-                                                                         upsert=True))
-                                        if clan_tag != "Unknown":
-                                            bulk_clan_changes.append(UpdateOne({"tag": clan_tag}, {
-                                                "$inc": {f"{season}.{tag}.received": (current_dono - previous_dono)}},
-                                                                               upsert=True))
-                                    elif type_ == "clanCapitalContributions":
-                                        bulk_db_changes.append(UpdateOne({"tag": tag},
-                                                                         {"$push":
-                                                                              {f"capital_gold.{raid_date}.donate":
-                                                                                   (new_response[
-                                                                                        "clanCapitalContributions"] -
-                                                                                    previous_response[
-                                                                                        "clanCapitalContributions"])}},
-                                                                         upsert=True))
-                                        type_ = "Most Valuable Clanmate"  # temporary
-                                    elif type_ == "Gold Grab":
-                                        diff = value - old_value
-                                        bulk_db_changes.append(
-                                            UpdateOne({"tag": tag}, {"$inc": {f"gold.{season}": diff}}, upsert=True))
-                                        if clan_tag != "Unknown":
-                                            bulk_clan_changes.append(
-                                                UpdateOne({"tag": clan_tag},
-                                                          {"$inc": {f"{season}.{tag}.gold_looted": value}},
+                                changes, fields_to_update = get_changes(previous_response, new_response)
+                                online_types = {"donations", "Gold Grab", "Most Valuable Clanmate", "attackWins",
+                                                "War League Legend",
+                                                "Wall Buster", "name", "Well Seasoned", "Games Champion", "Elixir Escapade",
+                                                "Heroic Heist",
+                                                "warPreference", "warStars", "Nice and Tidy", "builderBaseTrophies"}
+                                skip_store_types = {"War League Legend", "Wall Buster", "Aggressive Capitalism",
+                                                    "Baby Dragon",
+                                                    "Elixir Escapade",
+                                                    "Gold Grab", "Heroic Heist", "Nice and Tidy", "Well Seasoned",
+                                                    "attackWins",
+                                                    "builderBaseTrophies", "donations", "donationsReceived", "trophies",
+                                                    "versusBattleWins", "versusTrophies"}
+
+                                special_types = {"War League Legend", "warStars", "Aggressive Capitalism", "Nice and Tidy", "Well Seasoned",
+                                             "clanCapitalContributions", "Games Champion"}
+                                ws_types = {"clanCapitalContributions", "name", "troops", "heroes", "spells",
+                                            "townHallLevel",
+                                            "league", "trophies", "Most Valuable Clanmate"}
+                                only_once = {"troops": 0, "heroes": 0, "spells": 0}
+                                ws_tasks = []
+                                if changes:
+                                    for (parent, type_), (old_value, value) in changes.items():
+                                        if type_ in special_types:
+                                            bulk_db_changes.append(UpdateOne({"tag": tag},
+                                                                             {"$set": {f"{type_.replace(' ','_').lower()}": value}},
+                                                                             upsert=True))
+
+                                        if type_ not in skip_store_types:
+                                            if old_value is None:
+                                                bulk_insert.append(InsertOne({"tag": tag, "type": type_, "value": value,
+                                                                              "time": int(datetime.now().timestamp()),
+                                                                              "clan": clan_tag, "th" : new_response.get("townHallLevel")}))
+                                            else:
+                                                bulk_insert.append(InsertOne(
+                                                    {"tag": tag, "type": type_, "p_value": old_value, "value": value,
+                                                     "time": int(datetime.now().timestamp()), "clan": clan_tag, "th" : new_response.get("townHallLevel")}))
+                                        if type_ == "donations":
+                                            previous_dono = 0 if (previous_dono := previous_response["donations"]) > (
+                                                current_dono := new_response["donations"]) else previous_dono
+                                            bulk_db_changes.append(UpdateOne({"tag": tag},
+                                                                             {"$inc": {f"donations.{season}.donated": (
+                                                                                     current_dono - previous_dono)}},
+                                                                             upsert=True))
+                                            if clan_tag != "Unknown":
+                                                bulk_clan_changes.append(UpdateOne({"tag": clan_tag}, {
+                                                    "$inc": {f"{season}.{tag}.donated": (current_dono - previous_dono)}},
+                                                                                   upsert=True))
+                                        elif type_ == "donationsReceived":
+                                            previous_dono = 0 if (previous_dono := previous_response[
+                                                "donationsReceived"]) > (
+                                                                     current_dono := new_response[
+                                                                         "donationsReceived"]) else previous_dono
+                                            bulk_db_changes.append(UpdateOne({"tag": tag},
+                                                                             {"$inc": {f"donations.{season}.received": (
+                                                                                     current_dono - previous_dono)}},
+                                                                             upsert=True))
+                                            if clan_tag != "Unknown":
+                                                bulk_clan_changes.append(UpdateOne({"tag": clan_tag}, {
+                                                    "$inc": {f"{season}.{tag}.received": (current_dono - previous_dono)}},
+                                                                                   upsert=True))
+                                        elif type_ == "clanCapitalContributions":
+                                            bulk_db_changes.append(UpdateOne({"tag": tag},
+                                                                             {"$push":
+                                                                                  {f"capital_gold.{raid_date}.donate":
+                                                                                       (new_response[
+                                                                                            "clanCapitalContributions"] -
+                                                                                        previous_response[
+                                                                                            "clanCapitalContributions"])}},
+                                                                             upsert=True))
+                                            type_ = "Most Valuable Clanmate"  # temporary
+                                        elif type_ == "Gold Grab":
+                                            diff = value - old_value
+                                            bulk_db_changes.append(
+                                                UpdateOne({"tag": tag}, {"$inc": {f"gold.{season}": diff}}, upsert=True))
+                                            if clan_tag != "Unknown":
+                                                bulk_clan_changes.append(
+                                                    UpdateOne({"tag": clan_tag},
+                                                              {"$inc": {f"{season}.{tag}.gold_looted": value}},
+                                                              upsert=True))
+                                        elif type_ == "Elixir Escapade":
+                                            diff = value - old_value
+                                            bulk_db_changes.append(
+                                                UpdateOne({"tag": tag}, {"$inc": {f"elixir.{season}": diff}}, upsert=True))
+                                            if clan_tag != "Unknown":
+                                                bulk_clan_changes.append(
+                                                    UpdateOne({"tag": clan_tag},
+                                                              {"$inc": {f"{season}.{tag}.elixir_looted": value}},
+                                                              upsert=True))
+                                        elif type_ == "Heroic Heist":
+                                            diff = value - old_value
+                                            bulk_db_changes.append(
+                                                UpdateOne({"tag": tag}, {"$inc": {f"dark_elixir.{season}": diff}},
                                                           upsert=True))
-                                    elif type_ == "Elixir Escapade":
-                                        diff = value - old_value
-                                        bulk_db_changes.append(
-                                            UpdateOne({"tag": tag}, {"$inc": {f"elixir.{season}": diff}}, upsert=True))
-                                        if clan_tag != "Unknown":
-                                            bulk_clan_changes.append(
-                                                UpdateOne({"tag": clan_tag},
-                                                          {"$inc": {f"{season}.{tag}.elixir_looted": value}},
+                                            if clan_tag != "Unknown":
+                                                bulk_clan_changes.append(UpdateOne({"tag": clan_tag}, {
+                                                    "$inc": {f"{season}.{tag}.dark_elixir_looted": value}}, upsert=True))
+                                        elif type_ == "Well Seasoned":
+                                            diff = value - old_value
+                                            bulk_db_changes.append(
+                                                UpdateOne({"tag": tag}, {"$inc": {f"season_pass.{games_season}": diff}},
                                                           upsert=True))
-                                    elif type_ == "Heroic Heist":
-                                        diff = value - old_value
-                                        bulk_db_changes.append(
-                                            UpdateOne({"tag": tag}, {"$inc": {f"dark_elixir.{season}": diff}},
-                                                      upsert=True))
-                                        if clan_tag != "Unknown":
-                                            bulk_clan_changes.append(UpdateOne({"tag": clan_tag}, {
-                                                "$inc": {f"{season}.{tag}.dark_elixir_looted": value}}, upsert=True))
-                                    elif type_ == "Well Seasoned":
-                                        diff = value - old_value
-                                        bulk_db_changes.append(
-                                            UpdateOne({"tag": tag}, {"$inc": {f"season_pass.{games_season}": diff}},
-                                                      upsert=True))
-                                    elif type_ == "Games Champion":
-                                        diff = value - old_value
-                                        bulk_db_changes.append(UpdateOne({"tag": tag},
-                                                                         {"$inc": {
-                                                                             f"clan_games.{games_season}.points": diff},
-                                                                          "$set": {
-                                                                              f"clan_games.{games_season}.clan": clan_tag}
-                                                                          }, upsert=True))
-                                        if clan_tag != "Unknown":
-                                            bulk_clan_changes.append(
-                                                UpdateOne({"tag": clan_tag},
-                                                          {"$inc": {f"{season}.{tag}.clan_games": diff}},
+                                        elif type_ == "Games Champion":
+                                            diff = value - old_value
+                                            bulk_db_changes.append(UpdateOne({"tag": tag},
+                                                                             {"$inc": {
+                                                                                 f"clan_games.{games_season}.points": diff},
+                                                                              "$set": {
+                                                                                  f"clan_games.{games_season}.clan": clan_tag}
+                                                                              }, upsert=True))
+                                            if clan_tag != "Unknown":
+                                                bulk_clan_changes.append(
+                                                    UpdateOne({"tag": clan_tag},
+                                                              {"$inc": {f"{season}.{tag}.clan_games": diff}},
+                                                              upsert=True))
+                                        elif type_ == "attackWins":  # remove in a future version, use cache instead
+                                            bulk_db_changes.append(
+                                                UpdateOne({"tag": tag}, {"$set": {f"attack_wins.{season}": value}},
                                                           upsert=True))
-                                    elif type_ == "attackWins":  # remove in a future version, use cache instead
-                                        bulk_db_changes.append(
-                                            UpdateOne({"tag": tag}, {"$set": {f"attack_wins.{season}": value}},
-                                                      upsert=True))
-                                        if clan_tag != "Unknown":
-                                            bulk_clan_changes.append(
-                                                UpdateOne({"tag": clan_tag},
-                                                          {"$set": {f"{season}.{tag}.attack_wins": value}},
-                                                          upsert=True))
-                                    elif type_ == "name":
-                                        bulk_db_changes.append(UpdateOne({"tag": tag}, {"$set": {"name": value}}, upsert=True))
-                                        auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"name": value}}))
-                                    elif type_ == "clan":
-                                        bulk_db_changes.append(UpdateOne({"tag": tag}, {"$set": {"clan_tag": clan_tag}}, upsert=True))
-                                        auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"clan": clan_tag}}))
+                                            if clan_tag != "Unknown":
+                                                bulk_clan_changes.append(
+                                                    UpdateOne({"tag": clan_tag},
+                                                              {"$set": {f"{season}.{tag}.attack_wins": value}},
+                                                              upsert=True))
+                                        elif type_ == "name":
+                                            bulk_db_changes.append(UpdateOne({"tag": tag}, {"$set": {"name": value}}, upsert=True))
+                                            auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"name": value}}))
+                                        elif type_ == "clan":
+                                            bulk_db_changes.append(UpdateOne({"tag": tag}, {"$set": {"clan_tag": clan_tag}}, upsert=True))
+                                            auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"clan": clan_tag}}))
 
-                                    elif type_ == "townHallLevel":
-                                        bulk_db_changes.append(UpdateOne({"tag": tag}, {"$set": {"townhall": value}}, upsert=True))
-                                        auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"th": value}}))
+                                        elif type_ == "townHallLevel":
+                                            bulk_db_changes.append(UpdateOne({"tag": tag}, {"$set": {"townhall": value}}, upsert=True))
+                                            auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"th": value}}))
 
-                                    elif parent in {"troops", "heroes", "spells"}:
-                                        type_ = parent
-                                        if only_once[parent] == 1:
-                                            continue
-                                        only_once[parent] += 1
-
-                                    if type_ in online_types:
-                                        BEEN_ONLINE = True
-
-                                    if type_ in ws_types and is_clan_member:
-                                        if type_ == "trophies":
-                                            if not (value >= 4900 and league == "Legend League"):
+                                        elif parent in {"troops", "heroes", "spells"}:
+                                            type_ = parent
+                                            if only_once[parent] == 1:
                                                 continue
-                                        for ws in pc_copy:  # type: fastapi.WebSocket
-                                            json_data = {"type": type_, "old_player": previous_response,
-                                                         "new_player": new_response}
-                                            ws_tasks.append(asyncio.ensure_future(send_ws(ws=ws, json=json_data)))
+                                            only_once[parent] += 1
 
-                            # LEGENDS CODE, dont fix what aint broke
-                            if new_response["trophies"] != previous_response["trophies"] and new_response["trophies"] >= 4900 and league == "Legend League":
-                                diff_trophies = new_response["trophies"] - previous_response["trophies"]
-                                diff_attacks = new_response["attackWins"] - previous_response["attackWins"]
-                                if diff_trophies <= - 1:
-                                    diff_trophies = abs(diff_trophies)
-                                    if diff_trophies <= 100:
-                                        bulk_db_changes.append(UpdateOne({"tag": tag},
-                                                                         {"$push": {
-                                                                             f"legends.{legend_date}.defenses": diff_trophies}},
-                                                                         upsert=True))
-                                elif diff_trophies >= 1:
-                                    bulk_db_changes.append(
-                                        UpdateOne({"tag": tag},
-                                                  {"$inc": {f"legends.{legend_date}.num_attacks": diff_attacks}},
-                                                  upsert=True))
-                                    # if one attack
-                                    if diff_attacks == 1:
-                                        bulk_db_changes.append(UpdateOne({"tag": tag},
-                                                                         {"$push": {
-                                                                             f"legends.{legend_date}.attacks": diff_trophies}},
-                                                                         upsert=True))
-                                        if diff_trophies == 40:
-                                            bulk_db_changes.append(
-                                                UpdateOne({"tag": tag}, {"$inc": {f"legends.streak": 1}}))
-                                        else:
-                                            bulk_db_changes.append(
-                                                UpdateOne({"tag": tag}, {"$set": {f"legends.streak": 0}}))
-                                    # if multiple attacks, but divisible by 40
-                                    elif int(diff_trophies / 40) == diff_attacks:
-                                        for x in range(0, diff_attacks):
-                                            bulk_db_changes.append(
-                                                UpdateOne({"tag": tag},
-                                                          {"$push": {f"legends.{legend_date}.attacks": 40}},
-                                                          upsert=True))
-                                        bulk_db_changes.append(
-                                            UpdateOne({"tag": tag}, {"$inc": {f"legends.streak": diff_attacks}}))
-                                    else:
-                                        bulk_db_changes.append(UpdateOne({"tag": tag},
-                                                                         {"$push": {
-                                                                             f"legends.{legend_date}.attacks": diff_trophies}},
-                                                                         upsert=True))
-                                        bulk_db_changes.append(
-                                            UpdateOne({"tag": tag}, {"$set": {f"legends.streak": 0}}, upsert=True))
+                                        if type_ in online_types:
+                                            BEEN_ONLINE = True
 
-                                if new_response["defenseWins"] != previous_response["defenseWins"]:
-                                    diff_defenses = new_response["defenseWins"] - previous_response["defenseWins"]
-                                    for x in range(0, diff_defenses):
+                                        if type_ in ws_types and is_clan_member:
+                                            if type_ == "trophies":
+                                                if not (value >= 4900 and league == "Legend League"):
+                                                    continue
+                                            for ws in pc_copy:  # type: fastapi.WebSocket
+                                                json_data = {"type": type_, "old_player": previous_response,
+                                                             "new_player": new_response}
+                                                ws_tasks.append(asyncio.ensure_future(send_ws(ws=ws, json=json_data)))
+
+                                # LEGENDS CODE, dont fix what aint broke
+                                if new_response["trophies"] != previous_response["trophies"] and new_response["trophies"] >= 4900 and league == "Legend League":
+                                    diff_trophies = new_response["trophies"] - previous_response["trophies"]
+                                    diff_attacks = new_response["attackWins"] - previous_response["attackWins"]
+                                    if diff_trophies <= - 1:
+                                        diff_trophies = abs(diff_trophies)
+                                        if diff_trophies <= 100:
+                                            bulk_db_changes.append(UpdateOne({"tag": tag},
+                                                                             {"$push": {
+                                                                                 f"legends.{legend_date}.defenses": diff_trophies}},
+                                                                             upsert=True))
+                                    elif diff_trophies >= 1:
                                         bulk_db_changes.append(
-                                            UpdateOne({"tag": tag}, {"$push": {f"legends.{legend_date}.defenses": 0}},
+                                            UpdateOne({"tag": tag},
+                                                      {"$inc": {f"legends.{legend_date}.num_attacks": diff_attacks}},
                                                       upsert=True))
+                                        # if one attack
+                                        if diff_attacks == 1:
+                                            bulk_db_changes.append(UpdateOne({"tag": tag},
+                                                                             {"$push": {
+                                                                                 f"legends.{legend_date}.attacks": diff_trophies}},
+                                                                             upsert=True))
+                                            if diff_trophies == 40:
+                                                bulk_db_changes.append(
+                                                    UpdateOne({"tag": tag}, {"$inc": {f"legends.streak": 1}}))
+                                            else:
+                                                bulk_db_changes.append(
+                                                    UpdateOne({"tag": tag}, {"$set": {f"legends.streak": 0}}))
+                                        # if multiple attacks, but divisible by 40
+                                        elif int(diff_trophies / 40) == diff_attacks:
+                                            for x in range(0, diff_attacks):
+                                                bulk_db_changes.append(
+                                                    UpdateOne({"tag": tag},
+                                                              {"$push": {f"legends.{legend_date}.attacks": 40}},
+                                                              upsert=True))
+                                            bulk_db_changes.append(
+                                                UpdateOne({"tag": tag}, {"$inc": {f"legends.streak": diff_attacks}}))
+                                        else:
+                                            bulk_db_changes.append(UpdateOne({"tag": tag},
+                                                                             {"$push": {
+                                                                                 f"legends.{legend_date}.attacks": diff_trophies}},
+                                                                             upsert=True))
+                                            bulk_db_changes.append(
+                                                UpdateOne({"tag": tag}, {"$set": {f"legends.streak": 0}}, upsert=True))
 
-                            if BEEN_ONLINE:
-                                _time = int(datetime.now().timestamp())
-                                bulk_db_changes.append(
-                                    UpdateOne({"tag": tag}, {
-                                        "$inc": {f"activity.{season}": 1},
-                                        "$push" : {f"last_online_times.{season}" : _time},
-                                        "$set": {"last_online": _time}
-                                    }, upsert=True))
-                                bulk_clan_changes.append(
-                                    UpdateOne({"tag": clan_tag},
-                                              {"$inc": {f"{season}.{tag}.activity": 1}},
-                                              upsert=True))
+                                    if new_response["defenseWins"] != previous_response["defenseWins"]:
+                                        diff_defenses = new_response["defenseWins"] - previous_response["defenseWins"]
+                                        for x in range(0, diff_defenses):
+                                            bulk_db_changes.append(
+                                                UpdateOne({"tag": tag}, {"$push": {f"legends.{legend_date}.defenses": 0}},
+                                                          upsert=True))
 
-                            await asyncio.gather(*ws_tasks)
+                                if BEEN_ONLINE:
+                                    _time = int(datetime.now().timestamp())
+                                    bulk_db_changes.append(
+                                        UpdateOne({"tag": tag}, {
+                                            "$inc": {f"activity.{season}": 1},
+                                            "$push" : {f"last_online_times.{season}" : _time},
+                                            "$set": {"last_online": _time}
+                                        }, upsert=True))
+                                    bulk_clan_changes.append(
+                                        UpdateOne({"tag": clan_tag},
+                                                  {"$inc": {f"{season}.{tag}.activity": 1}},
+                                                  upsert=True))
 
-                tasks.append(fetch(f"{url}{tag}", session3, {"Authorization": f"Bearer {keys[0]}"}))
-            await asyncio.gather(*tasks, return_exceptions=True)
-            await session3.close()
+                                await asyncio.gather(*ws_tasks)
 
-        print(f"{time.time() - time_inside} seconds inside")
-        print(f"{len(players_tracked)} players tracked")
+                    tasks.append(fetch(f"{url}{tag}", session3, {"Authorization": f"Bearer {keys[0]}"}))
+                await asyncio.gather(*tasks, return_exceptions=True)
+                await session3.close()
+
+            print(f"{time.time() - time_inside} seconds inside")
+            print(f"{len(players_tracked)} players tracked")
 
 
-        print(f"{len(bulk_db_changes)} db changes")
-        if bulk_db_changes != []:
-            results = await player_stats.bulk_write(bulk_db_changes)
-            print(results.bulk_api_result)
-            print(f"STAT CHANGES INSERT: {time.time() - time_inside}")
+            print(f"{len(bulk_db_changes)} db changes")
+            if bulk_db_changes != []:
+                results = await player_stats.bulk_write(bulk_db_changes)
+                print(results.bulk_api_result)
+                print(f"STAT CHANGES INSERT: {time.time() - time_inside}")
 
-        if auto_complete != []:
-            results = await player_search.bulk_write(auto_complete)
-            print(results.bulk_api_result)
-            print(f"AUTOCOMPLETE CHANGES: {time.time() - time_inside}")
+            if auto_complete != []:
+                results = await player_search.bulk_write(auto_complete)
+                print(results.bulk_api_result)
+                print(f"AUTOCOMPLETE CHANGES: {time.time() - time_inside}")
 
-        if bulk_insert != []:
-            results = await client.new_looper.player_history.bulk_write(bulk_insert)
-            print(results.bulk_api_result)
-            print(f"HISTORY CHANGES INSERT: {time.time() - time_inside}")
+            if bulk_insert != []:
+                results = await client.new_looper.player_history.bulk_write(bulk_insert)
+                print(results.bulk_api_result)
+                print(f"HISTORY CHANGES INSERT: {time.time() - time_inside}")
 
-        if bulk_clan_changes != []:
-            results = await clan_stats.bulk_write(bulk_clan_changes)
-            print(results.bulk_api_result)
-            print(f"CLAN CHANGES UPDATE: {time.time() - time_inside}")
+            if bulk_clan_changes != []:
+                results = await clan_stats.bulk_write(bulk_clan_changes)
+                print(results.bulk_api_result)
+                print(f"CLAN CHANGES UPDATE: {time.time() - time_inside}")
 
-        fix_changes = []
-        not_set_entirely = await player_stats.distinct("tag", filter={"$and": [{"paused": False}, {
-            "$or": [{"name": None}, {"league": None}, {"townhall": None}, {"clan_tag": None}]}]})
-        print(f'{len(not_set_entirely)} tags to fix')
-        for tag in not_set_entirely:
-            try:
-                response = await cache.get(tag)
-                response = ujson.loads(response)
-                clan_tag = response.get("clan", {}).get("tag", "Unknown")
-                league = response.get("league", {}).get("name", "Unranked")
-                fix_changes.append(UpdateOne({"tag": tag}, {
-                    "$set": {"name": response.get('name'), "townhall": response.get('townHallLevel'), "league": league,
-                             "clan_tag": clan_tag}}))
-            except:
-                continue
+            fix_changes = []
+            not_set_entirely = await player_stats.distinct("tag", filter={"$and": [{"paused": False}, {
+                "$or": [{"name": None}, {"league": None}, {"townhall": None}, {"clan_tag": None}]}]})
+            print(f'{len(not_set_entirely)} tags to fix')
+            for tag in not_set_entirely:
+                try:
+                    response = await cache.get(tag)
+                    response = ujson.loads(response)
+                    clan_tag = response.get("clan", {}).get("tag", "Unknown")
+                    league = response.get("league", {}).get("name", "Unranked")
+                    fix_changes.append(UpdateOne({"tag": tag}, {
+                        "$set": {"name": response.get('name'), "townhall": response.get('townHallLevel'), "league": league,
+                                 "clan_tag": clan_tag}}))
+                except:
+                    continue
 
-        if fix_changes != []:
-            results = await player_stats.bulk_write(fix_changes)
-            print(results.bulk_api_result)
-            print(f"FIX CHANGES: {time.time() - time_inside}")
+            if fix_changes != []:
+                results = await player_stats.bulk_write(fix_changes)
+                print(results.bulk_api_result)
+                print(f"FIX CHANGES: {time.time() - time_inside}")
+        except Exception:
+            continue
 
 
 
@@ -647,6 +652,8 @@ if __name__ == '__main__':
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
     PLAYER_CLIENTS = set()
+    WAR_CLIENTS = set()
+    RAID_CLIENTS = set()
 
 
     @app.websocket("/players")
@@ -659,12 +666,15 @@ if __name__ == '__main__':
         except WebSocketDisconnect:
             PLAYER_CLIENTS.remove(websocket)
 
+
     config = Config(app=app, loop="asyncio", host= "85.10.200.219", port=65001, ws_ping_interval=3600, ws_ping_timeout=3600, timeout_keep_alive=3600, timeout_notify=3600)
     #config = Config(app=app, loop="asyncio", host = "localhost", port=60125, ws_ping_interval=3600, ws_ping_timeout=3600, timeout_keep_alive=3600, timeout_notify=3600)
 
     server = Server(config)
+    coc_client = coc.Client(key_count=100, throttle_limit=1000, cache_max_size=0, raw_attribute=True)
 
     keys = create_keys()
+    loop.run_until_complete(coc_client.login_with_tokens(*keys[:100]))
     loop.create_task(server.serve())
     loop.create_task(main(PLAYER_CLIENTS))
     loop.run_forever()

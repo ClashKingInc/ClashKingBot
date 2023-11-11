@@ -71,47 +71,7 @@ async def image_board(bot: CustomClient, players: List[MyCustomPlayer], logo_url
     return f'{link.get("link")}?t={int(datetime.now().timestamp())}'
 
 
-async def donation_board(bot: CustomClient, players: List[MyCustomPlayer], season: str, footer_icon: str, title_name: str, type: str,
-                         limit: int = 50,
-                         embed_color: disnake.Color = disnake.Color.green(), **kwargs):
-    if type == "donations":
-        players.sort(key=lambda x: x.donos(date=season).donated, reverse=True)
-    elif type == "received":
-        players.sort(key=lambda x: x.donos(date=season).received, reverse=True)
 
-    if type == "donations":
-        text = "`  #  DON     REC     NAME     `\n"
-    else:
-        text = "`  #  REC     DON     NAME     `\n"
-
-    total_donated = 0
-    total_received = 0
-    our_tags = kwargs.get("account_tags", [])
-    for count, player in enumerate(players, 1):
-        tag = player.tag.strip("#")
-        star = "⭐" if player.tag in our_tags else ""
-        if count <= limit:
-            if type == "donations":
-                text += f"[⌕]({SHORT_PLAYER_LINK}{tag})`{count:2} {player.donos(date=season).donated:5} {player.donos(date=season).received:5} {player.clear_name[:13]:13}`{star}\n"
-            else:
-                text += f"[⌕]({SHORT_PLAYER_LINK}{tag})`{count:2} {player.donos(date=season).received:5} {player.donos(date=season).donated:5} {player.clear_name[:13]:13}`{star}\n"
-
-        total_donated += player.donos(date=season).donated
-        total_received += player.donos(date=season).received
-    if kwargs.get("total_donos") is not None:
-        total_donated = kwargs.get("total_donos")
-    if kwargs.get("total_received") is not None:
-        total_received = kwargs.get("total_received")
-
-    embed = disnake.Embed(description=f"{text}", color=embed_color)
-    embed.set_author(name=f"{title_name} Top {min(limit, len(players))} {type.capitalize()}",
-                     icon_url=bot.emoji.clan_castle.partial_emoji.url)
-    if footer_icon is None:
-        footer_icon = bot.user.avatar.url
-    embed.set_footer(icon_url=footer_icon,
-                     text=f"Donations: {'{:,}'.format(total_donated)} | Received : {'{:,}'.format(total_received)} | {season}")
-    embed.timestamp = datetime.now()
-    return embed
 
 
 async def hero_progress(bot: CustomClient, player_tags: List[str], season: str, footer_icon: str, title_name: str, limit: int = 50, embed_color: disnake.Color = disnake.Color.green()):
@@ -373,24 +333,6 @@ async def loot_progress(bot: CustomClient, player_tags: List[str], season: str, 
     return embed
 
 
-async def activity_board(bot: CustomClient, players: List[MyCustomPlayer], season: str, footer_icon: str, title_name: str, embed_color: disnake.Color = disnake.Color.green()) -> disnake.Embed:
-    players.sort(key=lambda x: len(x.season_last_online(season_date=season)), reverse=True)
-    text = "`  #  ACT NAME      `\n"
-    total_activities = 0
-    for count, player in enumerate(players, 1):
-        tag = player.tag.strip("#")
-        if count <= 50:
-            text += f"[⌕]({SHORT_PLAYER_LINK}{tag})`{count:2} {len(player.season_last_online(season_date=season)):4} {player.clear_name[:15]:15}`\n"
-        total_activities += len(player.season_last_online(season_date=season))
-
-    embed = disnake.Embed(title=f"**{title_name} Top {len(players)} Activities**", description=f"{text}",
-                          color=embed_color)
-    if footer_icon is None:
-        footer_icon = bot.user.avatar.url
-    embed.set_footer(icon_url=footer_icon, text=f"Activities: {'{:,}'.format(total_activities)} | {season}")
-    embed.timestamp = datetime.now()
-    return embed
-
 
 async def player_sort(bot: CustomClient, player_tags: List[str], sort_by: str, footer_icon: str, title_name: str, limit: int = 50, embed_color: disnake.Color = disnake.Color.green()):
     sort_by = item_to_name[sort_by]
@@ -557,38 +499,51 @@ async def th_composition(bot: CustomClient, player_tags: List[str], title: str, 
 
 async def th_hitrate(bot: CustomClient, player_tags: List[str], title: str, thumbnail: str, embed_color: disnake.Color = disnake.Color.green()):
     text = f""
+    th_results = defaultdict(lambda: defaultdict(tuple))
+
     if player_tags:
         pipeline = [
             {"$match": {"$and": [{"tag": {"$in": player_tags}}, {"$expr": {"$eq": ["$townhall", "$defender_townhall"]}}]}},
             {"$group": {"_id": {"townhall": "$townhall", "stars": "$stars"}, "count": {"$sum": 1}}}
         ]
     else:
-        pipeline = [
-            {"$match": {
-                "$and": [{"_time" : {"$gte": 1686632460}}, {"$expr": {"$eq": ["$townhall", "$defender_townhall"]}}]}},
-            {"$group": {"_id": {"townhall": "$townhall", "stars": "$stars"}, "count": {"$sum": 1}}}
-        ]
+        pipeline = [{"$match":
+{"$and": [{"season": "2023-10"}, {"$expr": {"$eq": ["$townhall", "$defender_townhall"]}}]}},
+            {"$group": {"_id": {"townhall": "$townhall", "stars": "$stars"}, "count": {"$sum": 1}}},
+ {"$sort" : {"_id.townhall" : 1, "_id.stars" : 1}}
+ ]
     results = await bot.warhits.aggregate(pipeline=pipeline).to_list(length=None)
 
-    th_results = defaultdict(lambda: defaultdict(int))
     for result in results:
         th = result.get("_id").get("townhall")
+        if th <= 6 and not player_tags:
+            continue
         stars = result.get("_id").get("stars")
-        th_results[th][stars] = result.get("count")
+        th_results[th][stars] = (result.get("count"), result.get("avg_perc"))
 
+    sample_size = 0
     for th, stats in sorted(th_results.items(), reverse=True):
-        num_total = sum([count for count in stats.values()])
-
+        num_total = sum([count for count, perc in stats.values()])
+        sample_size += num_total
         if num_total == 0:
             continue
-        num_zeros = stats.get(0, 0)
-        num_ones = stats.get(1, 0)
-        num_twos = stats.get(2, 0)
-        num_triples = stats.get(3, 0)
+        num_zeros, zero_perc = stats.get(0, 0)
+        num_ones, one_perc = stats.get(1, 0)
+        num_twos, two_perc = stats.get(2, 0)
+        num_triples, three_perc = stats.get(3, 0)
+
+        print(f"Townhall {th}, Zeroes: {num_zeros}, {custom_round((num_zeros / num_total) * 100):>4}%, avg_dest: {zero_perc}")
+        print(f"Townhall {th}, Ones: {num_ones}, {custom_round((num_ones / num_total) * 100):>4}%, avg_dest: {one_perc}")
+        print(f"Townhall {th}, Twos: {num_twos}, {custom_round((num_twos / num_total) * 100):>4}%, avg_dest: {two_perc}")
+        print(f"Townhall {th}, Threes: {num_ones}, {custom_round((num_triples / num_total) * 100):>4}%, avg_dest: {three_perc}")
+
         text += f"{bot.fetch_emoji(name=th)}`{custom_round((num_triples / num_total) * 100):>4}% ★★★` |" \
                 f" `{custom_round((num_ones / num_total) * 100):>4}% ★☆☆`\n" \
                 f"{bot.emoji.blank}`{custom_round((num_twos / num_total) * 100):>4}% ★★☆` |" \
                 f" `{custom_round((num_zeros / num_total) * 100):>4}% ☆☆☆`\n\n"
+
+    print(f"Sample Size: {sample_size}")
+
     if not text:
         text = "No Results Found"
     embed = disnake.Embed(title=title, description=text, color=embed_color)

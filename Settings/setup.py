@@ -11,6 +11,8 @@ from Exceptions.CustomExceptions import *
 from utils.discord_utils import  interaction_handler, basic_embed_modal
 from CustomClasses.CustomServer import DatabaseClan
 from utils.components import clan_component
+from Discord.autocomplete import Autocomplete as autocomplete
+from Discord.converters import Convert as convert
 
 class SetupCommands(commands.Cog , name="Setup"):
 
@@ -28,6 +30,138 @@ class SetupCommands(commands.Cog , name="Setup"):
     @commands.slash_command(name="setup")
     async def setup(self, ctx: disnake.ApplicationCommandInteraction):
         pass
+
+
+    @commands.message_command(name="Refresh Board", dm_permission=False)
+    async def refresh_board(self, ctx: disnake.MessageCommandInteraction, message: disnake.Message):
+        check = await self.bot.white_list_check(ctx, "setup server-settings")
+        await ctx.response.defer(ephemeral=True)
+        if not check and not ctx.author.guild_permissions.manage_guild:
+            return await ctx.send(content="You cannot use this command. Missing Permissions. Must have `Manage Server` permissions or be whitelisted for `/setup server-settings`", ephemeral=True)
+        custom_id = None
+        if message.components:
+            custom_id = message.components[0].children[0].custom_id
+        result = await self.bot.button_store.find_one({"button_id": custom_id})
+        if result is None:
+            raise MessageException("Error Occurred")
+        webhook = await get_webhook_for_channel(channel=message.channel, bot=self.bot)
+        thread = None
+        if isinstance(message.channel, disnake.Thread):
+            await message.channel.add_user(self.bot.user)
+            thread = message.channel.id
+
+        if thread:
+            thread = await self.bot.getch_channel(thread)
+            webhook_message = await webhook.send(embeds=message.embeds, thread=thread, wait=True)
+        else:
+            webhook_message = await webhook.send(embeds=message.embeds, wait=True)
+
+        await self.bot.button_store.update_one({"button_id" : custom_id}, {"$set" : {"webhook_id" : webhook.id, "thread_id" : thread, "message_id" : webhook_message.id}})
+        await message.delete()
+        await ctx.send("Refresh Board Created", ephemeral=True)
+
+
+
+
+    @setup.sub_command(name="server-settings", description="Set settings for your server")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def server_settings(self, ctx: disnake.ApplicationCommandInteraction, banlist_channel: Union[disnake.TextChannel, disnake.Thread] = None,
+                              nickname_label: str = None, nickname_type: str = commands.Param(default=None, choices=["Clan Abbreviations", "Family Name", "Off"]),
+                              api_token: str = commands.Param(default=None, choices=["Use", "Don't Use"]),
+                              leadership_eval: str = commands.Param(default=None, choices=["True", "False"]),
+                              tied_stats_only: str = commands.Param(default=None, choices=["True", "False"]),
+                              embed_color: str = commands.Param(default=None, converter=convert.hex_code)):
+        await ctx.response.defer()
+        db_server = await self.bot.get_custom_server(guild_id=ctx.guild_id)
+        changed_text = ""
+        if banlist_channel is not None:
+            await db_server.set_banlist_channel(id=banlist_channel.id)
+            changed_text += f"- **Banlist Channel:** {banlist_channel.mention}\n"
+        if nickname_label is not None:
+            await db_server.set_family_label(label=nickname_label[:16])
+            changed_text += f"- **Nickname Label:** `{nickname_label[:16]}`\n"
+        if nickname_type is not None:
+            await db_server.set_nickname_type(type=nickname_type)
+            changed_text += f"- **Nickname Type:** `{nickname_type}`\n"
+        if api_token is not None:
+            await db_server.set_api_token(status=(api_token == "Use"))
+            changed_text += f"- **Api Token:** `{api_token}`\n"
+        if leadership_eval is not None:
+            await db_server.set_leadership_eval(status=(leadership_eval == "True"))
+            changed_text += f"- **Leadership Eval:** `{leadership_eval}`\n"
+        if tied_stats_only is not None:
+            await db_server.set_tied_stats(state=(tied_stats_only == "True"))
+            changed_text += f"- **Tied Stats Only:** `{tied_stats_only}`\n"
+        if embed_color is not None:
+            await db_server.set_hex_code(hex_code=embed_color)
+            changed_text += f"- **Embed Color:** `{embed_color}`\n"
+
+        if changed_text == "":
+            changed_text = "No Changes Made!"
+        embed = disnake.Embed(title=f"{ctx.guild.name} Settings Changed", description=changed_text, color=disnake.Color.green())
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+        await ctx.edit_original_message(embed=embed)
+
+
+
+    @setup.sub_command(name="clan-settings", description="Set settings for a clan")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def clan_settings(self, ctx: disnake.ApplicationCommandInteraction,
+                            clan: coc.Clan = commands.Param(converter=clan_converter, autocomplete=autocomplete.clan),
+                            member_role: disnake.Role = None,
+                            leadership_role: disnake.Role = None, clan_channel: Union[disnake.TextChannel, disnake.Thread] = None, greeting: str = None,
+                            category: str = commands.Param(default=None, autocomplete=autocomplete.category),
+                            ban_alert_channel: Union[disnake.TextChannel, disnake.Thread] = None, nickname_label: str = None,
+                            strike_button=commands.Param(default=None, choices=["True", "False"]),
+                            ban_button=commands.Param(default=None, choices=["True", "False"]),
+                            profile_button=commands.Param(default=None, choices=["True", "False"])):
+
+        await ctx.response.defer()
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        if results is None:
+            raise ThingNotFound("**This clan is not set up on this server. Use `/addclan` to get started.**")
+        db_clan = DatabaseClan(bot=self.bot, data=results)
+        changed_text = ""
+        if member_role is not None:
+            await db_clan.set_member_role(id=member_role.id)
+            changed_text += f"- **Member Role:** {member_role.mention}\n"
+        if leadership_role is not None:
+            await db_clan.set_leadership_role(id=leadership_role.id)
+            changed_text += f"- **Leadership Role:** {leadership_role.mention}\n"
+        if clan_channel is not None:
+            await db_clan.set_clan_channel(id=clan_channel.id)
+            changed_text += f"- **Clan Channel:** {clan_channel.mention}\n"
+        if greeting is not None:
+            await db_clan.set_greeting(text=greeting)
+            changed_text += f"- **Greeting:** {greeting}\n"
+        if category is not None:
+            await db_clan.set_category(category=category)
+            changed_text += f"- **Category:** `{category}`\n"
+        if ban_alert_channel is not None:
+            await db_clan.set_ban_alert_channel(id=ban_alert_channel.id)
+            changed_text += f"- **Ban Alert Channel:** {ban_alert_channel.mention}\n"
+        if nickname_label is not None:
+            await db_clan.set_nickname_label(abbreviation=nickname_label[:16])
+            changed_text += f"- **Nickname Label:** `{nickname_label[:16]}`\n"
+        if strike_button is not None:
+            await db_clan.set_strike_button(set=(strike_button == "True"))
+            changed_text += f"- **Strike Button:** `{strike_button}`\n"
+        if ban_button is not None:
+            await db_clan.set_ban_button(set=(ban_button == "True"))
+            changed_text += f"- **Ban Button:** `{ban_button}`\n"
+        if profile_button is not None:
+            await db_clan.set_profile_button(set=(profile_button == "True"))
+            changed_text += f"- **Profile Button:** `{profile_button}`\n"
+        if changed_text == "":
+            changed_text = "No Changes Made!"
+        embed = disnake.Embed(title=f"{clan.name} Settings Changed", description=changed_text, color=disnake.Color.green())
+        embed.set_thumbnail(url=clan.badge.url)
+        await ctx.edit_original_message(embed=embed)
+
 
 
     @setup.sub_command(name="list", description="List of setup & settings")

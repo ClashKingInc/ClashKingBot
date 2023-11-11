@@ -1,9 +1,10 @@
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-from Exceptions.CustomExceptions import InvalidGuildID
+from Exceptions.CustomExceptions import InvalidGuildID, MessageException
 from utils.constants import TOWNHALL_LEVELS
 import calendar
 import coc
+import re
 
 class Convert(commands.Cog, name="Convert"):
     def __init__(self, bot: CustomClient):
@@ -49,11 +50,12 @@ class Convert(commands.Cog, name="Convert"):
         return clan
 
 
+
     async def player(self, player_tags: str):
         player_tags = player_tags.split(",")[:50]
         players = []
         for player_tag in player_tags:
-            player = await self.bot.getPlayer(player_tag=player_tag)
+            player = await self.bot.getPlayer(player_tag=player_tag, custom=True)
             if player is not None:
                 players.append(player)
         if not players:
@@ -61,6 +63,11 @@ class Convert(commands.Cog, name="Convert"):
         return players
 
 
+    def hex_code(self, hex_code: str):
+        match = re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', hex_code)
+        if match:
+            return hex_code
+        raise MessageException(f"{hex_code} is not a valid hex color.")
 
 
 

@@ -85,7 +85,7 @@ def check_commands():
 
 initial_extensions = [
     #"BoardCommands.Commands.ClanCommands",
-    #"BoardCommands.Commands.TopCommands",
+    "BoardCommands.Commands.TopCommands",
     #"BoardCommands.Commands.FamilyCommands",
     #"BoardCommands.Commands.PlayerCommands",
     #"BoardCommands.Buttons.Buttons",
@@ -117,9 +117,13 @@ initial_extensions = [
     "Utility.other",
     "Link_and_Eval.link_button",
     "Commands.donations",
+    "Commands.activity",
+    "Commands.buttons",
+    "Commands.clan_games",
     "Discord.events",
     "Discord.autocomplete",
-    "Discord.converters"
+    "Discord.converters",
+    "Background.refresh_boards"
 ]
 
 

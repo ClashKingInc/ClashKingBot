@@ -441,26 +441,26 @@ async def war_stats(request: Request, response: Response,
             {"$unset": ["_id"]},
             {"$group": {"_id": "$tag", "results": {"$push": "$$ROOT"}}}
         ]
-        attacks: List[dict] = await attack_db.aggregate(pipeline).to_list(length=None)
+        attacks: List[dict] = await attack_db.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
         pipeline = [
             {"$match": {"$and": [{"defender_tag": {"$in": players}}, {"war_start": {"$gte": int(SEASON_START)}}, {"war_start": {"$lte": int(SEASON_END)}}]}},
             {"$unset" : ["_id"]},
             {"$group": {"_id": "$defender_tag", "results": {"$push": "$$ROOT"}}}
         ]
-        defenses: List[dict] = await attack_db.aggregate(pipeline).to_list(length=None)
+        defenses: List[dict] = await attack_db.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
     elif clans:
         pipeline = [
             {"$match": {"$and": [{"clan": {"$in": clans}}, {"war_start": {"$gte": int(SEASON_START)}}, {"war_start": {"$lte": int(SEASON_END)}}]}},
             {"$unset": ["_id"]},
             {"$group": {"_id": "$tag", "results": {"$push": "$$ROOT"}}}
         ]
-        attacks: List[dict] = await attack_db.aggregate(pipeline).to_list(length=None)
+        attacks: List[dict] = await attack_db.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
         pipeline = [
             {"$match": {"$and": [{"clan": {"$in": clans}}, {"war_start": {"$gte": int(SEASON_START)}}, {"war_start": {"$lte": int(SEASON_END)}}]}},
             {"$unset": ["_id"]},
             {"$group": {"_id": "$defender_tag", "results": {"$push": "$$ROOT"}}}
         ]
-        defenses: List[dict] = await attack_db.aggregate(pipeline).to_list(length=None)
+        defenses: List[dict] = await attack_db.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
         players = set()
         for a in attacks:
             for r in a.get("results"):

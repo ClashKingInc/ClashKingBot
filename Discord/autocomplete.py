@@ -16,6 +16,16 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
         return [season for season in seasons if user_input.lower() in season.lower()]
 
 
+    async def category(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
+        categories = []
+        for tClan in await tracked.to_list(length=limit):
+            category = tClan.get("category")
+            if query.lower() in category.lower() and category not in categories:
+                categories.append(category)
+        return categories[:25]
+
     async def clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         guild_id = ctx.guild.id
         if ctx.filled_options.get("family") is not None:

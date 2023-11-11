@@ -44,7 +44,10 @@ import asyncio
 from collections import deque
 from msgspec.json import decode
 from msgspec import Struct
-
+from CustomClasses.ClashKingAPI.Client import ClashKingAPIClient
+ck_client = ClashKingAPIClient()
+from collections import defaultdict
+from utils.general import custom_round
 
 class OwnerCommands(commands.Cog):
 
@@ -52,37 +55,57 @@ class OwnerCommands(commands.Cog):
         self.bot = bot
         self.count = 0
 
-    @commands.message_command(name="emoji_creator")
-    async def emoji_creator(self, ctx: disnake.MessageCommandInteraction, message: disnake.Message):
-        await ctx.response.defer(ephemeral=True)
-        if len([m for m in message.attachments if "image" in m.content_type]) == 0:
-            return await ctx.send(content="No Images")
-
-        created = ""
-        for pic in message.attachments:
-            if "image" in pic.content_type:
-                emoji = await ctx.guild.create_custom_emoji(name=pic.filename.split(".")[0], image=(await pic.read()))
-                created += f"{emoji} - `<:{emoji.name}:{emoji.id}>`\n"
-        await ctx.send(content=created)
 
     @commands.slash_command(name="go")
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
-        pipeline = [{"$group" : {"_id" : "$type", "count" : {"$sum" : 1}}} ]
-        result = await self.bot.clan_history.aggregate(pipeline=pipeline).to_list(length=None)
-        print(result)
+        await ctx.response.defer()
+        th_results = defaultdict(lambda: defaultdict(tuple))
+        bot = self.bot
+        pipeline = [{"$match":
+                         {"$and": [{"season": "2023-09"}, {"$expr": {"$eq": ["$townhall", "$defender_townhall"]}}]}},
+                    {"$group": {"_id": {"townhall": "$townhall", "stars": "$stars"}, "count": {"$sum": 1}}},
+                    {"$sort": {"_id.townhall": 1, "_id.stars": 1}}
+                    ]
+        results = await bot.warhits.aggregate(pipeline=pipeline).to_list(length=None)
+        text = ""
+        for result in results:
+            th = result.get("_id").get("townhall")
+            if th <= 6:
+                continue
+            stars = result.get("_id").get("stars")
+            th_results[th][stars] = (result.get("count"), result.get("avg_perc"))
 
+        sample_size = 0
+        for th, stats in sorted(th_results.items(), reverse=True):
+            num_total = sum([count for count, perc in stats.values()])
+            sample_size += num_total
+            if num_total == 0:
+                continue
+            num_zeros, zero_perc = stats.get(0, 0)
+            num_ones, one_perc = stats.get(1, 0)
+            num_twos, two_perc = stats.get(2, 0)
+            num_triples, three_perc = stats.get(3, 0)
 
-    @commands.Cog.listener()
-    async def on_button_click(self, ctx: disnake.MessageInteraction):
-        if "logrushed_" in str(ctx.data.custom_id):
-            await ctx.response.defer(ephemeral=True, with_message=True)
-            tag = (str(ctx.data.custom_id).split("_"))[-1]
-            player = await self.bot.getPlayer(player_tag=tag, custom=True)
-            if player is None:
-                return await ctx.edit_original_response(content="No player found.")
-            embeds = await upgrade_embed(self.bot, player)
-            await ctx.edit_original_response(embeds=embeds)
+            print(f"Townhall {th}, Zeroes: {num_zeros}, {custom_round((num_zeros / num_total) * 100):>4}%, avg_dest: {zero_perc}")
+            print(f"Townhall {th}, Ones: {num_ones}, {custom_round((num_ones / num_total) * 100):>4}%, avg_dest: {one_perc}")
+            print(f"Townhall {th}, Twos: {num_twos}, {custom_round((num_twos / num_total) * 100):>4}%, avg_dest: {two_perc}")
+            print(f"Townhall {th}, Threes: {num_ones}, {custom_round((num_triples / num_total) * 100):>4}%, avg_dest: {three_perc}")
+
+            text += f"{bot.fetch_emoji(name=th)}`{custom_round((num_triples / num_total) * 100):>4}% ★★★` |" \
+                    f" `{custom_round((num_ones / num_total) * 100):>4}% ★☆☆`\n" \
+                    f"{bot.emoji.blank}`{custom_round((num_twos / num_total) * 100):>4}% ★★☆` |" \
+                    f" `{custom_round((num_zeros / num_total) * 100):>4}% ☆☆☆`\n\n"
+
+        print(f"Sample Size: {sample_size}")
+
+        if not text:
+            text = "No Results Found"
+        embed = disnake.Embed(description=text)
+        embed.set_footer(text="Against own TH level")
+        embed.timestamp = datetime.now()
+        await ctx.send(embed=embed)
+
 
     @commands.slash_command(name="restart-customs", guild_ids=[1103679645439754335])
     @commands.is_owner()
