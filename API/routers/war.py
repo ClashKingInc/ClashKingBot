@@ -16,55 +16,6 @@ limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(tags=["War Endpoints"])
 
 
-#WAR STATS
-@router.get("/war/{clan_tag}/log",
-         tags=["War Endpoints"],
-         name="Warlog for a clan, filled in with data where possible")
-@cache(expire=300)
-@limiter.limit("30/second")
-async def war_log(clan_tag: str, request: Request, response: Response, limit: int= 50):
-    clan_tag = fix_tag(clan_tag)
-    clan_results = await war_logs_db.find({"clan.tag" : clan_tag}).to_list(length=None)
-    opponent_results = await war_logs_db.find({"opponent.tag" : clan_tag}).to_list(length=None)
-
-    data_ids = list(set([result["endTime"] for result in clan_results] + [result["endTime"] for result in opponent_results]))
-    full_wars = await clan_wars.find({"$and" : [{"$or" : [{"data.clan.tag" : clan_tag}, {"data.opponent.tag" : clan_tag}]},{"data.endTime" : {"$in" : data_ids}}]}).to_list(length=None)
-    wars_by_endtime = {}
-    for war in full_wars:
-        try:
-            del war["data"]["_response_retry"]
-        except:
-            pass
-        wars_by_endtime[war["data"]["endTime"]] = war["data"]
-
-    times_alr_found = set()
-    actual_results = []
-    for result in clan_results:
-        del result["_id"]
-        if wars_by_endtime.get(result["endTime"]) is not None:
-            result["data"] = wars_by_endtime.get(result["endTime"])
-        actual_results.append(result)
-        times_alr_found.add(result["timeStamp"])
-
-    for result in opponent_results:
-        if result["timeStamp"] not in times_alr_found:
-            del result["_id"]
-            if result["result"] == "win":
-                result["result"] = "lose"
-            elif result["result"] == "lose":
-                result["result"] = "win"
-            old_opponent = result["opponent"]
-            result["opponent"] = result["clan"]
-            result["clan"] = old_opponent
-            result["clan"]["attacks"] = 0
-            result["clan"]["expEarned"] = 0
-            if wars_by_endtime.get(result["endTime"]) is not None:
-                result["data"] = wars_by_endtime.get(result["endTime"])
-            actual_results.append(result)
-
-    actual_results = sorted(actual_results, key=lambda x: x["timeStamp"], reverse=True)
-    return actual_results[:limit]
-
 
 @router.get("/war/{clan_tag}/previous",
          tags=["War Endpoints"],
