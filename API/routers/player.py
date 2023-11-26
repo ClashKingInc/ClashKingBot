@@ -9,7 +9,7 @@ from fastapi_cache.decorator import cache
 from typing import List
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
-from .utils import player_stats_db, player_leaderboard_db, player_history, attack_db, fix_tag, legend_history, player_search, redis
+from .utils import player_stats_db, player_leaderboard_db, player_history, attack_db, fix_tag, legend_history, player_search, redis, clan_wars
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(tags=["Player Endpoints"])
@@ -126,15 +126,73 @@ async def player_historical(player_tag: str, season:str, request: Request, respo
 
 @router.get("/player/{player_tag}/warhits",
          tags=["Player Endpoints"],
-         name="War attacks done by a player")
+         name="War attacks done/defended by a player")
 @cache(expire=300)
 @limiter.limit("30/second")
-async def player_warhits(player_tag: str, request: Request, response: Response, limit: int = 200):
-    results = await attack_db.find({"tag" : fix_tag(player_tag)}).sort("_time", -1).limit(limit).to_list(length=None)
-    if results:
-        for result in results:
-            del result["_id"]
-    return results
+async def player_warhits(player_tag: str, request: Request, response: Response):
+    player_tag = fix_tag(player_tag)
+    pipeline = [
+        {"$match": {"$or": [{"data.clan.members.tag": player_tag}, {"data.opponent.members.tag": player_tag}]}},
+        {"$unset": ["_id"]},
+        {"$project": {"data": "$data"}}
+    ]
+    wars = await clan_wars.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
+    found_wars = set()
+    stats = {"attacks" : [], "defenses" : []}
+    for war in wars:
+        war = war.get("data")
+        war = coc.ClanWar(data=war, client=None)
+        war_unique_id = "-".join(sorted([war.clan_tag, war.opponent.tag])) + f"-{int(war.preparation_start_time.time.timestamp())}"
+        if war_unique_id in found_wars:
+            continue
+        found_wars.add(war_unique_id)
+        war_member = war.get_member(player_tag)
+        for attack in war_member.attacks:
+            stats["attacks"].append({
+                "tag": attack.attacker.tag,
+                "name": attack.attacker.name,
+                "townhall": attack.attacker.town_hall,
+                "destruction": attack.destruction,
+                "stars": attack.stars,
+                "fresh": attack.is_fresh_attack,
+                "war_start": int(war.preparation_start_time.time.timestamp()),
+                "defender_tag": attack.defender.tag,
+                "defender_name": attack.defender.name,
+                "defender_townhall": attack.defender.town_hall,
+                "war_type": str(war.type),
+                "war_status": str(war.status),
+                "attack_order": attack.order,
+                "map_position": attack.attacker.map_position,
+                "war_size": war.team_size,
+                "clan": attack.attacker.clan.tag,
+                "clan_name": attack.attacker.clan.name,
+                "defending_clan": attack.defender.clan.tag,
+                "defending_clan_name": attack.defender.clan.name,
+            })
+        for attack in war_member.defenses:
+            stats["defenses"].append({
+                "tag": attack.attacker.tag,
+                "name": attack.attacker.name,
+                "townhall": attack.attacker.town_hall,
+                "destruction": attack.destruction,
+                "stars": attack.stars,
+                "fresh": attack.is_fresh_attack,
+                "war_start": int(war.preparation_start_time.time.timestamp()),
+                "defender_tag": attack.defender.tag,
+                "defender_name": attack.defender.name,
+                "defender_townhall": attack.defender.town_hall,
+                "war_type": str(war.type),
+                "war_status": str(war.status),
+                "attack_order": attack.order,
+                "map_position": attack.attacker.map_position,
+                "war_size": war.team_size,
+                "clan": attack.attacker.clan.tag,
+                "clan_name": attack.attacker.clan.name,
+                "defending_clan": attack.defender.clan.tag,
+                "defending_clan_name": attack.defender.clan.name,
+            })
+
+    return stats
 
 
 @router.get("/player/{player_tag}/legend_rankings",
