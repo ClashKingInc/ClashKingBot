@@ -132,6 +132,7 @@ class Members(Struct):
     builderBaseTrophies: int
     donations: int
     donationsReceived: int
+    townHallLevel: int
 
 
 class Clan(Struct):
@@ -200,7 +201,7 @@ async def broadcast(keys):
                     else:
                         members = []
                         for member in clan.memberList:
-                            members.append({"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies,
+                            members.append({"name": member.name, "tag" : member.tag, "role" : member.role, "expLevel" : member.expLevel, "trophies" : member.trophies, "townhall" : member.townHallLevel,
                                     "builderTrophies" : member.builderBaseTrophies, "donations" : member.donations, "donationsReceived" : member.donationsReceived})
                         changes.append(UpdateOne({"tag": clan.tag},
                                                       {"$set":
