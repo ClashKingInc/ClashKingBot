@@ -184,7 +184,7 @@ async def player_tags(request: Request, response: Response):
     return {"tags" : tags}
 
 
-@router.get("/permalink/{clanTag}",
+@router.get("/permalink/{clan_tag}",
          name="Permanent Link to Clan Badge URL")
 async def permalink(clan_tag: str):
     headers = {"Accept": "application/json", "authorization": f"Bearer {os.getenv('COC_KEY')}"}
