@@ -183,7 +183,7 @@ def create_keys():
             print(e)
 
 
-@scheduler.scheduled_job("cron", day_of_week="mon", hour=10)
+@scheduler.scheduled_job("cron", day_of_week="tue", hour=0, minute=10)
 async def store_clan_capital():
     async def fetch(url, session: aiohttp.ClientSession, headers, tag):
         async with session.get(url, headers=headers) as response:
@@ -228,7 +228,10 @@ async def store_clan_capital():
             except:
                 pass
 
-        await looper.raid_weekends.bulk_write(changes)
+        try:
+            await looper.raid_weekends.bulk_write(changes, ordered=False)
+        except Exception:
+            pass
 
 
 @scheduler.scheduled_job("cron", day="9-12", hour="*", minute=35)
