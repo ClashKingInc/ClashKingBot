@@ -231,9 +231,11 @@ async def main(PLAYER_CLIENTS):
                 all_tags_to_track = list(set(db_tags + CLAN_MEMBERS))
             #1/10 loops, track anyone not paused + clan members
             else:
-                db_tags = await player_stats.distinct("tag", filter={"paused": {"$ne": True}})
+                pipeline = [{"$match": {"paused": {"$ne": True}}}, {"$project": {"tag": "$tag"}}, {"$unset": "_id"}]
+                db_tags = [x["tag"] for x in (await player_stats.aggregate(pipeline).to_list(length=None))]
                 all_tags_to_track = list(set(db_tags + CLAN_MEMBERS))
-                autocomplete_tags = await player_search.distinct("tag")
+                pipeline = [{"$match": {}}, {"$project" : {"tag" : "$tag"}}, {"$unset" : "_id"}]
+                autocomplete_tags = [x["tag"] for x in (await player_search.aggregate(pipeline).to_list(length=None))]
                 autocomplete_tags = set(autocomplete_tags)
                 add_to_autocomplete = [tag for tag in all_tags_to_track if tag not in autocomplete_tags]
                 auto_changes = []
