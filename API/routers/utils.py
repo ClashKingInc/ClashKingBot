@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import coc
 import json
 from pytz import utc
-from datetime import datetime
+from datetime import datetime, timedelta
 from coc.ext import discordlinks
 import asyncio
 from expiring_dict import ExpiringDict
@@ -88,6 +88,20 @@ def gen_games_season():
         month = f"0{month}"
     return f"{now.year}-{month}"
 
+def gen_raid_date():
+    now = datetime.utcnow().replace(tzinfo=utc)
+    current_dayofweek = now.weekday()
+    if (current_dayofweek == 4 and now.hour >= 7) or (current_dayofweek == 5) or (current_dayofweek == 6) or (
+            current_dayofweek == 0 and now.hour < 7):
+        if current_dayofweek == 0:
+            current_dayofweek = 7
+        fallback = current_dayofweek - 4
+        raidDate = (now - timedelta(fallback)).date()
+        return str(raidDate)
+    else:
+        forward = 4 - current_dayofweek
+        raidDate = (now + timedelta(forward)).date()
+        return str(raidDate)
 
 leagues = ["Legend League", "Titan League I" , "Titan League II" , "Titan League III" ,"Champion League I", "Champion League II", "Champion League III",
                    "Master League I", "Master League II", "Master League III",

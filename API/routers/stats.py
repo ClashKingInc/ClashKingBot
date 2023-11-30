@@ -8,9 +8,9 @@ from typing import List, Annotated
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from .utils import fix_tag, capital, leagues, clan_cache_db, clan_stats, basic_clan, clan_history, \
-    attack_db, clans_db, gen_season_date, player_stats_db, rankings, player_history, gen_games_season, clan_wars
+    attack_db, clans_db, gen_season_date, player_stats_db, rankings, player_history, gen_games_season, clan_wars, gen_raid_date
 from statistics import mean, median
-from datetime import datetime
+from datetime import datetime, timedelta
 from pytz import utc
 from dotenv import load_dotenv
 load_dotenv()
@@ -81,10 +81,12 @@ async def donations(request: Request, response: Response,
         clan_to_name = {c.get("tag") : c.get("name") for c in clan_members}
         member_tags = []
         member_to_name = {}
+        member_to_clan_tag = {}
         for c in clan_members:
             member_list = c.get("memberList", [])
             member_tags += [m.get("tag") for m in member_list]
             for m in member_list:
+                member_to_clan_tag[m.get("tag")] = c.get("tag")
                 member_to_name[m.get("tag")] = m.get("name")
         stat_results = await clan_stats.find({"tag": {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
         player_struct = {tag : {"tag" : tag, "name" : member_to_name.get(tag), "rank" : 0, "donations" : 0, "donationsReceived" : 0, "townhall" : 0, "clan_tag" : None} for tag in member_tags}
@@ -93,7 +95,9 @@ async def donations(request: Request, response: Response,
             if not tied_only:
                 player_struct[member.get("tag")]["donations"] = member.get("donations", {}).get(season, {}).get("donated", 0)
                 player_struct[member.get("tag")]["donationsReceived"] = member.get("donations", {}).get(season, {}).get("received", 0)
+                by_clan[member_to_clan_tag.get(member.get("tag"))][field_to_use] += member.get("donations", {}).get(season, {}).get("donated" if field_to_use != "donationsReceived" else "received", 0)
             player_struct[member.get("tag")]["townhall"] = member.get("townhall", None)
+
         for result in stat_results:
             clan_tag = result.get("tag")
             this_season = result.get(season)
@@ -127,11 +131,15 @@ async def donations(request: Request, response: Response,
     for count, data in enumerate(new_data, 1):
         data["rank"] = count
 
+    print()
     by_clan_totals = []
     if not clan_to_name:
+        print("ere")
         clan_results = await basic_clan.find({"tag": {"$in": list(by_clan.keys())}}).to_list(length=None)
         clan_to_name = {c.get("tag"): c.get("name") for c in clan_results}
+    print(clan_to_name)
     for k, v in by_clan.items():
+        print("here")
         if clan_to_name.get(k) is None:
             continue
         by_clan_totals.append({"tag": k, "name": clan_to_name.get(k), field_to_use: v.get(field_to_use)})
@@ -676,6 +684,161 @@ async def war_stats(request: Request, response: Response,
         by_clan_totals.append({"tag" : k, "name" : clan_to_name.get(k), "hitrate" : hitrate} | dict(v))
     return {"items" : new_data, "totals" : totals, "clan_totals" : by_clan_totals,
             "metadata" : {"sort_order" : ("descending" if descending else "ascending"), "sort_field" : sort_field, "season" : season_or_timestamp}}
+
+
+
+
+@router.get("/capital",
+         name="Capital Stats")
+@cache(expire=300)
+@limiter.limit("10/second")
+async def capital_stats(request: Request, response: Response,
+                           players: Annotated[List[str], Query(max_length=50)]=None,
+                           clans: Annotated[List[str], Query(max_length=25)]=None,
+                           server: int =None,
+                           sort_field: str = "raided",
+                           weekend_or_timestamp: str = None,
+                           tied_only: bool = True,
+                           descending: bool = True,
+                           limit: int = 50):
+
+    limit = min(limit, 500)
+    if server:
+        clans = await clans_db.distinct("tag", filter={"server" : server})
+
+    if weekend_or_timestamp is None:
+        weekend_or_timestamp = gen_raid_date()
+
+    if not weekend_or_timestamp.isnumeric():
+        split_date = weekend_or_timestamp.split("-")
+        WEEKEND_START = int(datetime(year=int(split_date[0]), month=int(split_date[1]), day=int(split_date[2]), tzinfo=utc).timestamp())
+        print(WEEKEND_START)
+        WEEKEND_END = WEEKEND_START + (86400 * 4)
+    else:
+        WEEKEND_START = int(weekend_or_timestamp)
+        WEEKEND_END = int(datetime.now().timestamp())
+
+    def find_fridays_between(start, end):
+        total_days: int = (end - start).days + 1
+        friday: int = 4
+        all_days = [start + timedelta(days=day) for day in range(total_days)]
+        return [day for day in all_days if day.weekday() is friday]
+
+    WEEKEND_START = datetime.fromtimestamp(WEEKEND_START, tz=utc)
+    WEEKEND_END = datetime.fromtimestamp(WEEKEND_END, tz=utc)
+    capital_dates = find_fridays_between(WEEKEND_START, WEEKEND_END)
+    WEEKEND_START = WEEKEND_START.strftime('%Y%m%dT%H%M%S.000Z')
+    WEEKEND_END = WEEKEND_END.strftime('%Y%m%dT%H%M%S.000Z')
+
+    print(WEEKEND_START)
+    print(WEEKEND_END)
+    clan_to_name = {}
+    by_clan = defaultdict(lambda : defaultdict(int))
+
+    if not players:
+        basic_clans = await basic_clan.find({"tag": {"$in" : clans}}).to_list(length=None)
+        players = []
+        for b_c in basic_clans:
+            clan_to_name[b_c.get("tag")] = b_c.get("name")
+            if not tied_only:
+                players += [m.get("tag") for m in b_c.get("memberList", [])]
+
+    stats = defaultdict(lambda : defaultdict(int))
+    if players:
+        pipeline = [
+            {"$match" : {"$and" : [{"data.members.tag" : {"$in" : players}}, {"data.startTime" : {"$gte" : WEEKEND_START}}, {"data.endTime" : {"$lte" : WEEKEND_END}}]}},
+            {"$unset": ["_id"]}
+        ]
+        raids = await capital.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
+
+        player_stats = await player_stats_db.find({"tag" : {"$in" : players}}, {"tag" : 1, "capital_gold" : 1}).to_list(length=None)
+        donated_capital = {}
+        for p in player_stats:
+            for date in capital_dates:
+                stats[p.get("tag")]["donated"] += sum(p.get("capital_gold", {}).get(str(date.date()), {}).get("donate", [0]))
+            donated_capital[p.get("tag")] = p.get("capital_gold", {})
+        for raid in raids:
+            clan_tag = raid.get("clan_tag")
+            raid = raid.get("data")
+            raid = coc.RaidLogEntry(data=raid, client=coc_client)
+            raid_date = str(raid.start_time.time.date())
+            for tag in players:
+                raid_member = raid.get_member(tag)
+                stats[tag]["name"] = raid_member.name
+                stats[tag]["tag"] = raid_member.tag
+                stats[tag]["raided"] += raid_member.capital_resources_looted
+                stats[tag]["attacks"] += raid_member.attack_count
+                stats[tag]["donated"] += sum(donated_capital.get(tag, {}).get(raid_date, {}).get("donate", [0]))
+
+                by_clan[clan_tag]["raided"] += raid_member.capital_resources_looted
+                by_clan[clan_tag]["donated"] += sum(donated_capital.get(tag, {}).get(raid_date, {}).get("donate", [0]))
+                by_clan[clan_tag]["attacks"] += raid_member.attack_count
+
+    elif clans:
+        pipeline = [
+            {"$match": {"$and": [{"clan_tag": {"$in": clans}}, {"data.startTime": {"$gte": WEEKEND_START}}, {"data.endTime": {"$lte": WEEKEND_END}}]}},
+            {"$unset": ["_id"]}
+        ]
+        raids = await capital.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
+
+        player_tags = set()
+        for raid in raids:
+            raid = raid.get("data")
+            raid = coc.RaidLogEntry(data=raid, client=coc_client)
+            for raid_member in raid.members:
+                player_tags.add(raid_member.tag)
+
+        player_stats = await player_stats_db.find({"tag": {"$in": list(player_tags)}}, {"tag": 1, "capital_gold": 1}).to_list(length=None)
+        donated_capital = {}
+        for p in player_stats:
+            for date in capital_dates:
+                stats[p.get("tag")]["donated"] += sum(p.get("capital_gold", {}).get(str(date.date()), {}).get("donate", [0]))
+            donated_capital[p.get("tag")] = p.get("capital_gold", {})
+        for raid in raids:
+            clan_tag = raid.get("clan_tag")
+            raid = raid.get("data")
+            raid = coc.RaidLogEntry(data=raid, client=coc_client)
+            raid_date = str(raid.start_time.time.date())
+            for raid_member in raid.members:
+                tag = raid_member.tag
+                stats[tag]["name"] = raid_member.name
+                stats[tag]["tag"] = raid_member.tag
+                stats[tag]["raided"] += raid_member.capital_resources_looted
+                stats[tag]["attacks"] += raid_member.attack_count
+                stats[tag]["donated"] += sum(donated_capital.get(tag, {}).get(raid_date, {}).get("donate", [0]))
+                stats[tag]["medals"] += (raid.offensive_reward * raid_member.attack_count) + raid.defensive_reward
+                by_clan[clan_tag]["raided"] += raid_member.capital_resources_looted
+                by_clan[clan_tag]["donated"] += sum(donated_capital.get(tag, {}).get(raid_date, {}).get("donate", [0]))
+                by_clan[clan_tag]["attacks"] += raid_member.attack_count
+            by_clan[clan_tag]["medals"] += raid.offensive_reward * 6 + raid.defensive_reward
+
+    totals = {"total_donated" : 0, "total_raided" : 0, "total_attacks" : 0, "total_medals" : 0}
+    for data in stats.values():
+        totals["total_donated"] += data.get("donated")
+        totals["total_raided"] += data.get("raided")
+        totals["total_attacks"] += data.get("attacks")
+        totals["total_medals"] += data.get("medals")
+
+    stats = list(stats.values())
+    new_data = sorted(stats, key=lambda x: x.get(sort_field), reverse=descending)[:limit]
+
+    for count, data in enumerate(new_data, 1):
+        data["rank"] = count
+
+    if not clan_to_name:
+        basic_clans = await basic_clan.find({"tag": {"$in" : list(by_clan.keys())}}).to_list(length=None)
+        for b_c in basic_clans:
+            clan_to_name[b_c.get("tag")] = b_c.get("name")
+
+    by_clan_totals = []
+    for k, v in by_clan.items():
+        if clan_to_name.get(k) is None:
+            continue
+        by_clan_totals.append({"tag" : k, "name" : clan_to_name.get(k)} | dict(v))
+
+
+    return {"items" : new_data, "totals" : totals, "clan_totals" : by_clan_totals,
+            "metadata" : {"sort_order" : ("descending" if descending else "ascending"), "sort_field" : sort_field, "weekend" : weekend_or_timestamp}}
 
 
 
