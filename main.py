@@ -10,7 +10,7 @@ import argparse
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
-from Background.Logs.event_websockets import player_websocket, clan_websocket, war_websocket, raid_websocket
+from Background.Logs.event_websockets import kafka_events
 
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
@@ -123,7 +123,9 @@ initial_extensions = [
     "Discord.events",
     "Discord.autocomplete",
     "Discord.converters",
-    "Background.refresh_boards"
+    "Background.refresh_boards",
+    "Graphing.Graphs",
+    "Background.Logs.join_leave_events",
 ]
 
 
@@ -194,9 +196,7 @@ if __name__ == "__main__":
             bot.load_extension(extension)
         except Exception as extension:
             traceback.print_exc()
-    if not IS_TEST:
-        bot.loop.create_task(player_websocket())
-        bot.loop.create_task(clan_websocket())
-        bot.loop.create_task(war_websocket())
-        bot.loop.create_task(raid_websocket())
+
+    bot.loop.create_task(kafka_events())
+
     bot.run(TOKEN)

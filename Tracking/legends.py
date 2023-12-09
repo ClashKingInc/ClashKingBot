@@ -2,7 +2,7 @@ import aiohttp
 import motor.motor_asyncio
 import coc
 import os
-client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
+client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://root:matthewanderson3607@65.108.77.253:27017/admin?readPreference=primary&directConnection=true&ssl=false&authMechanism=DEFAULT&authSource=admin")
 looper = client.looper
 legend_history = looper.legend_history
 from pymongo import InsertOne
@@ -25,6 +25,7 @@ async def update_legends():
             seasons = [entry["id"] for entry in data["items"]]
         await session.close()
     seasons_present = await legend_history.distinct("season")
+    print(seasons_present)
     missing = set(seasons) - set(seasons_present)
     print(missing)
 

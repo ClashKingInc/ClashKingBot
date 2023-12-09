@@ -18,7 +18,6 @@ class DatabaseServer():
         self.leadership_eval = data.get("leadership_eval", True)
         self.prefix = data.get("prefix", "do ")
         self.greeting = data.get("greeting")
-        self.auto_nickname = data.get("auto_nick", "Off")
         self.use_api_token = data.get("api_token", True)
         self.league_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get("eval", {}).get("league_roles", [])]
         self.builder_league_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get("eval", {}).get("builder_league_roles", [])]
@@ -42,13 +41,18 @@ class DatabaseServer():
         self.tied_stats_only = data.get("tied", True)
         self.autoeval_triggers = data.get("autoeval_triggers", [])
 
+        self.nickname_convention = data.get("nickname_rule", "{player_name}")
+        self.change_nickname = data.get("change_nickname", False)
 
+
+    async def set_change_nickname(self, status: bool):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"change_nickname": status}})
+
+    async def set_nickname_convention(self, rule: str):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"nickname_rule": rule}})
 
     async def set_banlist_channel(self, id: Union[int, None]):
         await self.bot.server_db.update_one({"server": self.server_id}, {'$set': {"banlist": id}})
-
-    async def set_nickname_type(self, type: str):
-        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"auto_nick": type}})
 
     async def set_family_label(self, label: str):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"family_label": label}})

@@ -58,6 +58,4 @@ class AbstractClient:
 
 abstractClient = AbstractClient()
 
-
-
 coc_client = asyncio.get_event_loop().run_until_complete(abstractClient.get_client())

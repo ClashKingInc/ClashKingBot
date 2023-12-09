@@ -60,51 +60,8 @@ class OwnerCommands(commands.Cog):
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
-        th_results = defaultdict(lambda: defaultdict(tuple))
-        bot = self.bot
-        pipeline = [{"$match":
-                         {"$and": [{"season": "2023-09"}, {"$expr": {"$eq": ["$townhall", "$defender_townhall"]}}]}},
-                    {"$group": {"_id": {"townhall": "$townhall", "stars": "$stars"}, "count": {"$sum": 1}}},
-                    {"$sort": {"_id.townhall": 1, "_id.stars": 1}}
-                    ]
-        results = await bot.warhits.aggregate(pipeline=pipeline).to_list(length=None)
-        text = ""
-        for result in results:
-            th = result.get("_id").get("townhall")
-            if th <= 6:
-                continue
-            stars = result.get("_id").get("stars")
-            th_results[th][stars] = (result.get("count"), result.get("avg_perc"))
-
-        sample_size = 0
-        for th, stats in sorted(th_results.items(), reverse=True):
-            num_total = sum([count for count, perc in stats.values()])
-            sample_size += num_total
-            if num_total == 0:
-                continue
-            num_zeros, zero_perc = stats.get(0, 0)
-            num_ones, one_perc = stats.get(1, 0)
-            num_twos, two_perc = stats.get(2, 0)
-            num_triples, three_perc = stats.get(3, 0)
-
-            print(f"Townhall {th}, Zeroes: {num_zeros}, {custom_round((num_zeros / num_total) * 100):>4}%, avg_dest: {zero_perc}")
-            print(f"Townhall {th}, Ones: {num_ones}, {custom_round((num_ones / num_total) * 100):>4}%, avg_dest: {one_perc}")
-            print(f"Townhall {th}, Twos: {num_twos}, {custom_round((num_twos / num_total) * 100):>4}%, avg_dest: {two_perc}")
-            print(f"Townhall {th}, Threes: {num_ones}, {custom_round((num_triples / num_total) * 100):>4}%, avg_dest: {three_perc}")
-
-            text += f"{bot.fetch_emoji(name=th)}`{custom_round((num_triples / num_total) * 100):>4}% ★★★` |" \
-                    f" `{custom_round((num_ones / num_total) * 100):>4}% ★☆☆`\n" \
-                    f"{bot.emoji.blank}`{custom_round((num_twos / num_total) * 100):>4}% ★★☆` |" \
-                    f" `{custom_round((num_zeros / num_total) * 100):>4}% ☆☆☆`\n\n"
-
-        print(f"Sample Size: {sample_size}")
-
-        if not text:
-            text = "No Results Found"
-        embed = disnake.Embed(description=text)
-        embed.set_footer(text="Against own TH level")
-        embed.timestamp = datetime.now()
-        await ctx.send(embed=embed)
+        await self.bot.clan_wars.delete_many({"$and" : [{"data.clan.tag" : None},{"endTime" : {"$lte" : 1699416580}}]})
+        await ctx.send("done")
 
 
     @commands.slash_command(name="restart-customs", guild_ids=[1103679645439754335])

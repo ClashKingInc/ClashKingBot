@@ -49,6 +49,18 @@ class Convert(commands.Cog, name="Convert"):
             raise coc.errors.NotFound
         return clan
 
+    async def multi_clan(self, clans: str):
+        clans = clans.split(",")
+        new_clan_list = []
+        for clan in clans:
+            if "|" in clan:
+                splitter = clan.split("|")
+                new_clan_list.append(splitter[-1])
+            else:
+                new_clan_list.append(clan)
+        new_clan_list = [coc.utils.correct_tag(t) for t in new_clan_list]
+        return new_clan_list
+
 
 
     async def player(self, player_tags: str):

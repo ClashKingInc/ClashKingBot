@@ -67,6 +67,18 @@ async def general_upload_to_cdn(bytes_, id):
             await session.close()
     return f"https://cdn.clashking.xyz/{id}.png?{int(datetime.now().timestamp())}"
 
+
+async def upload_html_to_cdn(bytes_, id):
+    headers = {
+        "content-type": "application/octet-stream",
+        "AccessKey": os.getenv("BUNNY_ACCESS")
+    }
+    payload = bytes_
+    async with aiohttp.ClientSession() as session:
+        async with session.put(url=f"https://ny.storage.bunnycdn.com/clashking/{id}.html", headers=headers, data=payload) as response:
+            await session.close()
+    return f"https://cdn.clashking.xyz/{id}.html"
+
 async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteraction, disnake.MessageInteraction], msg:disnake.Message = None,
                               function: Callable = None, no_defer = False, ephemeral= False, any_run=False):
     if msg is None:

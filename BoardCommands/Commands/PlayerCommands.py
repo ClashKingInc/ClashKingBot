@@ -84,28 +84,6 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
         await ctx.edit_original_message(embed=embed)
 
 
-    @player.sub_command(name="donations", description="Donations for all of a player's accounts")
-    async def donations(self, ctx: disnake.ApplicationCommandInteraction, discord_user: disnake.Member = None,
-                        season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor)):
-        if discord_user is None:
-            discord_user = ctx.author
-        players: List[MyCustomPlayer] = await search_results(self.bot, str(discord_user.id))
-        if not players:
-            raise NoLinkedAccounts
-
-        footer_icon = discord_user.display_avatar.url
-        embed: disnake.Embed = await shared_embeds.donation_board(bot=self.bot, players=players, season=season, footer_icon=footer_icon,
-                                                                  title_name=f"{discord_user.display_name}", type="donations")
-        buttons = disnake.ui.ActionRow()
-        buttons.append_item(disnake.ui.Button(
-            label="", emoji=self.bot.emoji.refresh.partial_emoji,
-            style=disnake.ButtonStyle.grey, custom_id=f"donatedplayer_{season}_{discord_user.id}"))
-        buttons.append_item(disnake.ui.Button(
-            label="Received", emoji=self.bot.emoji.clan_castle.partial_emoji,
-            style=disnake.ButtonStyle.grey, custom_id=f"receivedplayer_{season}_{discord_user.id}"))
-
-        await ctx.edit_original_message(embed=embed, components=[buttons])
-
 
     @player.sub_command(name="upgrades", description="Show upgrades left for an account")
     async def upgrades(self, ctx: disnake.ApplicationCommandInteraction, player_tag: str= None, discord_user: disnake.Member = None):
@@ -161,22 +139,6 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
             raise NoLinkedAccounts
         embed = await player_embeds.to_do_embed(bot=self.bot, discord_user=discord_user, linked_accounts=linked_accounts)
         await ctx.edit_original_message(embed=embed)
-
-
-    @player.sub_command(name="search", description="Search for players")
-    async def search(self, ctx: disnake.ApplicationCommandInteraction, clan:str = commands.Param(choices=["No Clan", "In Clan"], default=None),
-                     league: str = commands.Param(choices=["No League", "Has League"], default=None),
-                     townhall: int = commands.Param(default=None, gt=8), trophies: int = None, war_stars:int = None, clan_capital_donos: int = None, attacks: int = None):
-        msg = await ctx.original_message()
-        while True:
-            embed, buttons = await player_embeds.create_search(bot=self.bot, clan=clan, townhall=townhall, trophies=trophies,
-                                                               war_stars=war_stars, clan_capital_donos=clan_capital_donos,
-                                                                league=league, attacks=attacks)
-            await ctx.edit_original_message(embed=embed, components=buttons)
-            try:
-                res = await interaction_handler(bot=self.bot, ctx=ctx)
-            except:
-                await msg.edit(components=[])
 
 
     @player.sub_command(name="war-stats", description="War stats of a player or discord user")
@@ -241,75 +203,6 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
             return await player_embeds.cwl_stalk(bot=self.bot,ctx=ctx, member=member)
 
 
-    @commands.slash_command(name="game-rank", description="Get xp rank for in game activities")
-    async def game_rank(self, ctx: disnake.ApplicationCommandInteraction, member: disnake.Member = None):
-        await ctx.response.defer()
-        if member is None:
-            self.author = ctx.author
-            member = self.author
-
-        custom = await self.bot.level_cards.find_one({"user_id": ctx.author.id})
-        if custom is not None:
-            background_color = custom.get("background_color") if custom.get(
-                "background_color") is not None else "#36393f"
-            background = custom.get("background_image") if custom.get(
-                "background_image") is not None else "https://media.discordapp.net/attachments/923767060977303552/1067289914443583488/bgonly1.jpg"
-            text_color = custom.get("text_color") if custom.get("text_color") is not None else "white"
-            bar_color = custom.get("bar_color") if custom.get("bar_color") is not None else "#b5cf3d"
-        else:
-            background_color = "#36393f"
-            background = "https://media.discordapp.net/attachments/923767060977303552/1067289914443583488/bgonly1.jpg"
-            text_color = "white"
-            bar_color = "#b5cf3d"
-
-        card_settings = Settings(
-            background_color=background_color,
-            background=background,
-            text_color=text_color,
-            bar_color=bar_color
-        )
-
-        def _find_level(current_total_xp: int):
-            # check if the current xp matches the xp_needed exactly
-            if current_total_xp in LEVELS_AND_XP.values():
-                for level, xp_needed in LEVELS_AND_XP.items():
-                    if current_total_xp == xp_needed:
-                        return int(level)
-            else:
-                for level, xp_needed in LEVELS_AND_XP.items():
-                    if 0 <= current_total_xp <= xp_needed:
-                        level = int(level)
-                        level -= 1
-                        if level < 0:
-                            level = 0
-                        return level
-
-        linked_accounts: List[MyCustomPlayer] = await search_results(self.bot, str(member.id))
-        if linked_accounts == []:
-            return await ctx.send(content="No Linked Acccounts")
-
-        top_account = max(linked_accounts, key=attrgetter('level_points'))
-        print(f"{top_account.name} | {top_account.tag}")
-        level = int(max(_find_level(current_total_xp=top_account.level_points), 0))
-        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
-        results = await self.bot.player_stats.find({"clan_tag": {"$in": clan_tags}}).sort("points", -1).to_list(1500)
-        rank = None
-        for r, result in enumerate(results, 1):
-            if result.get("tag") == top_account.tag:
-                rank = r
-                break
-
-        rank_card = RankCard(
-            settings=card_settings,
-            avatar=member.display_avatar.url,
-            level=level,
-            current_exp=top_account.level_points,
-            max_exp=LEVELS_AND_XP[str(level + 1)],
-            username=f"{member}", account=top_account.name[:13],
-            rank=rank
-        )
-        image = await rank_card.card3()
-        await ctx.edit_original_message(file=disnake.File(image, filename="rank.png"))
 
     # AUTOCOMPLETES
     @war_stats_player.autocomplete("start_date")

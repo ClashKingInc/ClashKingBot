@@ -9,16 +9,11 @@ from msgspec.json import decode
 from msgspec import Struct
 from pymongo import UpdateOne, InsertOne
 from datetime import timedelta
-from uvicorn import Config, Server
-from fastapi import FastAPI, WebSocket, Depends, Query, WebSocketDisconnect
-from fastapi_jwt_auth import AuthJWT
-from fastapi_jwt_auth.exceptions import AuthJWTException
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
 from aiomultiprocess import Worker
 from expiring_dict import ExpiringDict
 from redis.commands.json.path import Path
+
+from kafka import KafkaProducer
 
 import ujson
 import coc
@@ -129,7 +124,9 @@ class User(BaseModel):
     username: str
     password: str
 
-async def main(PLAYER_CLIENTS):
+
+
+async def main(producer: KafkaProducer):
     global keys
 
     client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
@@ -272,21 +269,13 @@ async def main(PLAYER_CLIENTS):
             bulk_clan_changes = []
             auto_complete = []
 
-            async def send_ws(ws, json):
-                try:
-                    await ws.send_json(json)
-                except:
-                    try:
-                        PLAYER_CLIENTS.remove(ws)
-                    except:
-                        pass
+
 
             season = gen_season_date()
             raid_date = gen_raid_date()
             games_season = gen_games_season()
             legend_date = gen_legend_date()
 
-            pc_copy = PLAYER_CLIENTS.copy()
             set_clan_tags = set(await clan_db.distinct("tag"))
 
             players_tracked = set()
@@ -482,10 +471,10 @@ async def main(PLAYER_CLIENTS):
                                             if type_ == "trophies":
                                                 if not (value >= 4900 and league == "Legend League"):
                                                     continue
-                                            for ws in pc_copy:  # type: fastapi.WebSocket
-                                                json_data = {"type": type_, "old_player": previous_response,
-                                                             "new_player": new_response}
-                                                ws_tasks.append(asyncio.ensure_future(send_ws(ws=ws, json=json_data)))
+                                            json_data = {"type": type_, "old_player": previous_response,
+                                                         "new_player": new_response}
+                                            producer.send("player", ujson.dumps(json_data).encode("utf-8"), timestamp_ms=int(datetime.now().timestamp()) * 1000)
+
 
                                 # LEGENDS CODE, dont fix what aint broke
                                 if new_response["trophies"] != previous_response["trophies"] and new_response["trophies"] >= 4900 and league == "Legend League":
@@ -649,36 +638,14 @@ def gen_games_season():
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
-    app = FastAPI()
-    limiter = Limiter(key_func=get_remote_address)
-    app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-    PLAYER_CLIENTS = set()
-    WAR_CLIENTS = set()
-    RAID_CLIENTS = set()
 
+    producer = KafkaProducer(bootstrap_servers=["85.10.200.219:9092"], api_version=(3, 6, 0))
 
-    @app.websocket("/players")
-    async def player_websocket(websocket: WebSocket, token: str = Query(...), Authorize: AuthJWT = Depends()):
-        await websocket.accept()
-        PLAYER_CLIENTS.add(websocket)
-        try:
-            while True:
-                data = await websocket.receive_text()
-        except WebSocketDisconnect:
-            PLAYER_CLIENTS.remove(websocket)
-
-
-    config = Config(app=app, loop="asyncio", host= "85.10.200.219", port=65001, ws_ping_interval=3600, ws_ping_timeout=3600, timeout_keep_alive=3600, timeout_notify=3600)
-    #config = Config(app=app, loop="asyncio", host = "localhost", port=60125, ws_ping_interval=3600, ws_ping_timeout=3600, timeout_keep_alive=3600, timeout_notify=3600)
-
-    server = Server(config)
     coc_client = coc.Client(key_count=100, throttle_limit=1000, cache_max_size=0, raw_attribute=True)
 
     keys = create_keys()
     loop.run_until_complete(coc_client.login_with_tokens(*keys[:100]))
-    loop.create_task(server.serve())
-    loop.create_task(main(PLAYER_CLIENTS))
+    loop.create_task(main(producer=producer))
     loop.run_forever()
 
 

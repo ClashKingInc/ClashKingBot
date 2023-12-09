@@ -23,86 +23,28 @@ import motor.motor_asyncio
 looper_db = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
 new_looper = looper_db.get_database("new_looper")
 bot_stats= looper_db.clashking.bot_stats
-
-async def player_websocket():
-    while True:
-        try:
-            async with websockets.connect(f"ws://{WEBSOCKET_IP}/players?token=5", ping_timeout=None, ping_interval=None, open_timeout=None, max_queue=5000000) as websocket:
-                async for message in websocket:
-                    if "Login!" in str(message) or "decoded token" in str(message):
-                        print(message)
-                    else:
-                        try:
-                            json_message = orjson.loads(message)
-                            field = json_message["type"]
-                            awaitable = player_ee.emit_async(field, json_message)
-                            await awaitable
-                        except:
-                            pass
-        except Exception as e:
-            print(e)
-            #sentry_sdk.capture_exception(e)
-            continue
+import asyncio
+from aiokafka import AIOKafkaConsumer
 
 
-async def war_websocket():
-    while True:
-        try:
-            async with websockets.connect(f"ws://{NEW_WEBSOCKET_IP}/wars?token=5", ping_timeout=None, ping_interval=None, open_timeout=None, max_queue=10000) as websocket:
-                async for message in websocket:
-                    if "Login!" in str(message) or "decoded token" in str(message):
-                        print(message)
-                    else:
-                        try:
-                            json_message = orjson.loads(message)
-                            field = json_message["type"]
-                            awaitable = war_ee.emit_async(field, json_message)
-                            await awaitable
-                        except:
-                            pass
-        except Exception as e:
-            #sentry_sdk.capture_exception(e)
-            continue
-
-
-async def clan_websocket():
-    while True:
-        try:
-            async with websockets.connect(f"ws://{NEW_WEBSOCKET_IP}/clans?token=5", ping_timeout=None, ping_interval=None, open_timeout=None, max_queue=10000) as websocket:
-                async for message in websocket:
-                    if "Login!" in str(message) or "decoded token" in str(message):
-                        print(message)
-                    else:
-                        try:
-                            json_message = orjson.loads(message)
-                            field = json_message["type"]
-                            awaitable = clan_ee.emit_async(field, json_message)
-                            await awaitable
-                        except:
-                            pass
-
-        except Exception as e:
-            #sentry_sdk.capture_exception(e)
-            print(e)
-            continue
-
-
-async def raid_websocket():
-    while True:
-        try:
-            async with websockets.connect(f"ws://{NEW_WEBSOCKET_IP}/raids?token=5", ping_timeout=None, ping_interval=None, open_timeout=None, max_queue=10000) as websocket:
-                async for message in websocket:
-                    if "Login!" in str(message) or "decoded token" in str(message):
-                        print(message)
-                    else:
-                        try:
-                            json_message = orjson.loads(message)
-                            field = json_message["type"]
-                            awaitable = raid_ee.emit_async(field, json_message)
-                            await awaitable
-                        except:
-                            pass
-        except Exception as e:
-            #sentry_sdk.capture_exception(e)
-            print(e)
-            continue
+async def kafka_events():
+    consumer: AIOKafkaConsumer = AIOKafkaConsumer("clan", "capital", bootstrap_servers='85.10.200.219:9092')
+    await consumer.start()
+    try:
+        async for msg in consumer:
+            print(msg)
+            json_message = orjson.loads(msg.value)
+            field = json_message["type"]
+            awaitable = None
+            '''if msg.topic == "player":
+                awaitable = player_ee.emit_async(field, json_message)
+            elif msg.topic == "war":
+                awaitable = war_ee.emit_async(field, json_message)'''
+            if msg.topic == "clan":
+                awaitable = clan_ee.emit_async(field, json_message)
+            '''elif msg.topic == "capital":
+                awaitable = raid_ee.emit_async(field, json_message)'''
+            if awaitable is not None:
+                await awaitable
+    finally:
+        await consumer.stop()

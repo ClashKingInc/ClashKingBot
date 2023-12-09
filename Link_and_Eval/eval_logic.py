@@ -8,11 +8,12 @@ from typing import List
 from CustomClasses.CustomBot import CustomClient
 from utils.components import create_components
 from utils.constants import DEFAULT_EVAL_ROLE_TYPES, ROLE_TREATMENT_TYPES
-from utils.general import get_clan_member_tags
+from utils.general import get_clan_member_tags, create_superscript
 from Exceptions.CustomExceptions import ExpiredComponents
 
-async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disnake.Member],
-                     test: bool, change_nick, ctx: disnake.ApplicationCommandInteraction = None,
+
+async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disnake.Member], change_nickname: bool,
+                     test: bool, nickname_convention: str, ctx: disnake.ApplicationCommandInteraction = None,
                      guild: disnake.Guild = None, role_types_to_eval=None,
                      return_array=False, return_embed=None, role_treatment=None, reason="", auto_eval=False, auto_eval_tag=None):
 
@@ -32,7 +33,6 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
     clan_roles = [clan.member_role for clan in db_server.clans]
     clan_tags = [clan.tag for clan in db_server.clans]
     clan_role_dict = {clan.tag : clan.member_role for clan in db_server.clans}
-    abbreviations = {clan.tag: clan.abbreviation for clan in db_server.clans}
     clan_to_category = {clan.tag: clan.category for clan in db_server.clans}
     leadership_roles = [clan.leader_role for clan in db_server.clans]
     clan_leadership_role_dict = {clan.tag : clan.leader_role for clan in db_server.clans}
@@ -127,6 +127,9 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
     num_changes = 0
 
     tasks = 0
+
+    user_settings = await bot.user_settings.find({"discord_user" : {"$in" : [member.id for member in members_to_eval]}}).to_list(length=None)
+    main_account_lookup = {settings.get("discord_user") : settings.get("main_account") for settings in user_settings}
     for count, member in enumerate(members_to_eval, 1):
         if member is None or member.bot:
             continue
@@ -150,7 +153,7 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
         GLOBAL_IS_FAMILY = False
         list_accounts = []
         family_accounts = []
-        abbreviations_to_have = []
+
 
         account_tags = discord_link_dict[member.id]
         players = [player_dict.get(tag) for tag in account_tags]
@@ -158,7 +161,7 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
         for player in players:
             if isinstance(player, coc.errors.NotFound) or player is None:
                 continue
-            list_accounts.append([player.trophies, player])
+            list_accounts.append(player)
 
             # check if is a family member for 2 things - 1. to check for global roles (Not/is family) and 2. for if they shuld get roles on individual lvl
             # ignore the global if even one account is in family
@@ -246,14 +249,12 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
             if not is_family_member:
                 continue
 
-            family_accounts.append([player.trophies, player])
+            family_accounts.append(player)
             # fetch clan role using dict
             # if the user doesnt have it in their master list - add to roles they should have
             # set doesnt allow duplicates, so no check needed
             if "clan" in role_types_to_eval:
                 clan_role = clan_role_dict[player.clan.tag]
-                if abbreviations[player.clan.tag] is not None:
-                    abbreviations_to_have.append(abbreviations[player.clan.tag])
                 ROLES_SHOULD_HAVE.add(clan_role)
                 if clan_role not in MASTER_ROLES:
                     ROLES_TO_ADD.add(clan_role)
@@ -401,54 +402,32 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
                     removed = "Can not remove role(s)"
         name_changes = "None"
         new_name = None
-        # role_types_to_eval.remove("nicknames")
-        if "nicknames" in role_types_to_eval:
+        if change_nickname and "nicknames" in role_types_to_eval and list_accounts:
             if member.top_role > bot_member.top_role or not bot_member.guild_permissions.manage_nicknames:
                 name_changes = "`Cannot Change`"
             else:
-                if len(family_accounts) >= 1:
-                    if change_nick == "Clan Abbreviations":
-                        results = sorted(family_accounts, key=lambda l: l[0], reverse=True)
-                        abbreviations_to_have = list(set(abbreviations_to_have))
-                        top_account: coc.Player = results[0][1]
-                        _abbreviations = ", ".join(abbreviations_to_have)
-                        _abbreviations = "| " + _abbreviations
-                        if len(abbreviations_to_have) == 0:
-                            new_name = f"{top_account.name}"
-                        else:
-                            new_name = f"{top_account.name} {_abbreviations}"
-                        while len(new_name) > 31:
-                            to_remove = max(abbreviations_to_have, key=len)
-                            abbreviations_to_have.remove(to_remove)
-                            _abbreviations = ", ".join(abbreviations_to_have)
-                            _abbreviations = "| " + _abbreviations
-                            if len(abbreviations_to_have) == 0:
-                                new_name = f"{top_account.name}"
-                            else:
-                                new_name = f"{top_account.name} {_abbreviations}"
-                            name_changes = f"`{new_name}`"
-                    elif change_nick == "Family Name":
-                        results = sorted(family_accounts, key=lambda l: l[0], reverse=True)
-                        family_label = db_server.family_label
-                        top_account: coc.Player = results[0][1]
-
-                        if family_label == "":
-                            new_name =f"{top_account.name}"
-                            name_changes = f"`{top_account.name}`"
-                        else:
-                            new_name = f"{top_account.name} | {family_label}"
-                            name_changes = f"`{top_account.name} | {family_label}`"
-
-                if change_nick in ["Clan Abbreviations", "Family Name"] and not GLOBAL_IS_FAMILY and len(list_accounts) >= 1:
-                    results = sorted(list_accounts, key=lambda l: l[0], reverse=True)
-                    top_account: coc.Player = results[0][1]
-                    clan_name = ""
-                    try:
-                        clan_name = f"| {top_account.clan.name}"
-                    except:
-                        pass
-                    new_name = f"{top_account.name} {clan_name}"
-                    name_changes = f"`{top_account.name} {clan_name}`"
+                local_nickname_convention = nickname_convention
+                main_account = main_account_lookup.get(member.id)
+                if main_account is not None:
+                    main_account = coc.utils.get(list_accounts, tag=main_account)
+                if main_account is None:
+                    if len(family_accounts) >= 1:
+                        main_account = sorted(family_accounts, key=lambda l: l.trophies, reverse=True)[0]
+                    else:
+                        main_account = sorted(list_accounts, key=lambda l: l.trophies, reverse=True)[0]
+                types = {"{player_name}": main_account.name,
+                         "{player_tag}": main_account.tag,
+                         "{player_townhall}" : main_account.town_hall,
+                         "{player_townhall_small}" : create_superscript(main_account.town_hall),
+                         "{player_warstars}" : main_account.war_stars,
+                         "{player_role}" : main_account.role if main_account.role is not None else "",
+                         "{player_clan}" : main_account.clan.name if main_account.clan is not None else "",
+                         "{player_league}" : main_account.league_as_string,
+                        }
+                for type, replace in types.items():
+                    local_nickname_convention = local_nickname_convention.replace(type, str(replace))
+                new_name = local_nickname_convention
+                name_changes = f"`{local_nickname_convention}`"
 
         old_name = member.display_name
         if not test and (new_name or FINAL_ROLES_TO_ADD or FINAL_ROLES_TO_REMOVE):
@@ -462,7 +441,7 @@ async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disn
                 tasks += 1
             except Exception as e:
                 name_changes = "Error"
-                added = e[:1000]
+                added = str(e)[:1000]
                 removed = "Error"
 
         if name_changes[1:-1] == old_name:

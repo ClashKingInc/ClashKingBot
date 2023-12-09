@@ -148,6 +148,11 @@ async def donations(request: Request, response: Response,
             "metadata" : {"sort_order" : ("descending" if descending else "ascending"), "sort_field" : sort_field, "season" : season}}
 
 
+#FUCK FAYEZ
+#I LOVE RUGGIE
+#FOXY OP
+#MOSH :)
+
 
 
 @router.get("/activity",

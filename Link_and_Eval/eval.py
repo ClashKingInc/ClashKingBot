@@ -63,10 +63,15 @@ class eval(commands.Cog, name="Eval"):
             await res.edit_original_message(components = [])
         else:
             default_eval = None
-        server = CustomServer(guild=ctx.guild, bot=self.bot)
-        change_nick = await server.nickname_choice
+
+        server = await self.bot.get_custom_server(guild_id=ctx.guild_id)
+
         members = [await ctx.guild.getch_member(member.id) for member in role.members]
         clans = await self.bot.clan_db.find({"generalRole": role.id}).to_list(length=None)
+        if not clans:
+            result = await self.bot.generalfamroles.find_one({"role" : role.id})
+            if result:
+                clans = await self.bot.clan_db.distinct("tag", {"server" : ctx.guild.id})
         if clans:
             clans = await self.bot.get_clans(tags=[clan.get("tag") for clan in clans])
             embed = disnake.Embed(
@@ -79,7 +84,9 @@ class eval(commands.Cog, name="Eval"):
                     member = await self.bot.pingToMember(ctx, str(member))
                     if (member not in members) and (member is not None):
                         members.append(member)
-        await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=members, role_or_user=role, test=test, change_nick=change_nick, role_types_to_eval=default_eval)
+
+        await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=members, role_or_user=role, test=test, change_nickname=server.change_nickname,
+                         role_types_to_eval=default_eval, nickname_convention=server.nickname_convention)
 
     @eval.sub_command(name="tag", description="Evaluate the role of the user connected to a tag")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())

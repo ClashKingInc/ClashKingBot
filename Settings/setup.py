@@ -66,7 +66,8 @@ class SetupCommands(commands.Cog , name="Setup"):
     @setup.sub_command(name="server-settings", description="Set settings for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def server_settings(self, ctx: disnake.ApplicationCommandInteraction, banlist_channel: Union[disnake.TextChannel, disnake.Thread] = None,
-                              nickname_label: str = None, nickname_type: str = commands.Param(default=None, choices=["Clan Abbreviations", "Family Name", "Off"]),
+                              change_nicknames: str = commands.Param(default=None, choices=["On", "Off"]),
+                              nickname_convention: str = commands.Param(default=None),
                               api_token: str = commands.Param(default=None, choices=["Use", "Don't Use"]),
                               leadership_eval: str = commands.Param(default=None, choices=["True", "False"]),
                               tied_stats_only: str = commands.Param(default=None, choices=["True", "False"]),
@@ -77,12 +78,6 @@ class SetupCommands(commands.Cog , name="Setup"):
         if banlist_channel is not None:
             await db_server.set_banlist_channel(id=banlist_channel.id)
             changed_text += f"- **Banlist Channel:** {banlist_channel.mention}\n"
-        if nickname_label is not None:
-            await db_server.set_family_label(label=nickname_label[:16])
-            changed_text += f"- **Nickname Label:** `{nickname_label[:16]}`\n"
-        if nickname_type is not None:
-            await db_server.set_nickname_type(type=nickname_type)
-            changed_text += f"- **Nickname Type:** `{nickname_type}`\n"
         if api_token is not None:
             await db_server.set_api_token(status=(api_token == "Use"))
             changed_text += f"- **Api Token:** `{api_token}`\n"
@@ -95,6 +90,13 @@ class SetupCommands(commands.Cog , name="Setup"):
         if embed_color is not None:
             await db_server.set_hex_code(hex_code=embed_color)
             changed_text += f"- **Embed Color:** `{embed_color}`\n"
+        if change_nicknames is not None:
+            await db_server.set_change_nickname(status=(change_nicknames == "On"))
+            changed_text += f"- **Change Nicknames:** `{change_nicknames}`\n"
+        if nickname_convention is not None:
+            await db_server.set_nickname_convention(rule=nickname_convention)
+            changed_text += f"- **Nickname Convention:** `{nickname_convention}`\n"
+
 
         if changed_text == "":
             changed_text = "No Changes Made!"
@@ -112,7 +114,8 @@ class SetupCommands(commands.Cog , name="Setup"):
                             member_role: disnake.Role = None,
                             leadership_role: disnake.Role = None, clan_channel: Union[disnake.TextChannel, disnake.Thread] = None, greeting: str = None,
                             category: str = commands.Param(default=None, autocomplete=autocomplete.category),
-                            ban_alert_channel: Union[disnake.TextChannel, disnake.Thread] = None, nickname_label: str = None,
+                            ban_alert_channel: Union[disnake.TextChannel, disnake.Thread] = None,
+                            nickname_label: str = None,
                             strike_button=commands.Param(default=None, choices=["True", "False"]),
                             ban_button=commands.Param(default=None, choices=["True", "False"]),
                             profile_button=commands.Param(default=None, choices=["True", "False"])):
@@ -162,6 +165,11 @@ class SetupCommands(commands.Cog , name="Setup"):
         embed.set_thumbnail(url=clan.badge.url)
         await ctx.edit_original_message(embed=embed)
 
+
+    @setup.sub_command(name="user-settings", description="Set bot settings for yourself like main account or timezone")
+    async def user_settings(self, ctx: disnake.ApplicationCommandInteraction,
+                            main_account: str, timezone: str):
+        pass
 
 
     @setup.sub_command(name="list", description="List of setup & settings")

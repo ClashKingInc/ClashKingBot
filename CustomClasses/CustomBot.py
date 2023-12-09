@@ -1,11 +1,8 @@
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import ujson
 from coc import utils
 from coc.ext import discordlinks
-from coc.ext.fullwarapi import FullWarClient
-from coc.ext import fullwarapi
 from disnake.ext import commands
 from dotenv import load_dotenv
 from Assets.emojiDictionary import emojiDictionary, legend_emojis
@@ -66,7 +63,7 @@ class CustomClient(commands.AutoShardedBot):
         self.user_name = "admin"
         self.cwl_db: collection_class = self.looper_db.looper.cwl_db
         self.leveling: collection_class = self.new_looper.leveling
-        self.clan_wars: collection_class = self.looper_db.looper.clan_wars
+        self.clan_wars: collection_class = self.looper_db.looper.clan_war
         self.command_stats: collection_class = self.new_looper.command_stats
         self.player_history: collection_class = self.new_looper.player_history
         self.clan_history: collection_class = self.new_looper.clan_history
@@ -113,6 +110,7 @@ class CustomClient(commands.AutoShardedBot):
         self.global_chat_db: collection_class = self.db_client.usafam.global_chats
         self.global_reports: collection_class = self.db_client.usafam.reports
         self.strikelist: collection_class = self.db_client.usafam.strikes
+
 
         self.tickets: collection_class = self.db_client.usafam.tickets
         self.open_tickets: collection_class = self.db_client.usafam.open_tickets
@@ -760,7 +758,7 @@ class CustomClient(commands.AutoShardedBot):
         clan_tag = coc.utils.correct_tag(clan_tag)
         try:
             clan = await self.coc_client.get_clan(clan_tag)
-        except:
+        except Exception:
             if raise_exceptions:
                 raise
             return None

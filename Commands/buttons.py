@@ -37,10 +37,10 @@ class Buttons(commands.Cog):
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
-        await ctx.response.defer()
         result = await self.bot.button_store.find_one({"button_id" : ctx.data.custom_id})
         if result is None:
             return
+        await ctx.response.defer()
         embed = await basic_parser(bot=self.bot, result=result)
 
         await ctx.edit_original_message(embed=embed)
