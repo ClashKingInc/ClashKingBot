@@ -217,7 +217,7 @@ async def activity(request: Request, response: Response,
                     player_struct[tag]["clan_tag"] = clan_tag
                     if not tied_only:
                         continue
-                    by_clan[clan_tag]["activity"] += this_player.get("activity")
+                    by_clan[clan_tag]["activity"] += this_player.get("activity", 0)
                     player_struct[tag]["activity"] += this_player.get("activity", 0)
 
         new_data = list(player_struct.values())
