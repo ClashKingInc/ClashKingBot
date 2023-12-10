@@ -67,7 +67,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Discord: [Demo & Support Server](https://discord.gg/Z96S8Gg2Uv)
+Discord: [Demo & Support Server](https://discord.gg/clashking)
 
 
 
