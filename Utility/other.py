@@ -1,5 +1,6 @@
-
+import coc
 import disnake
+import ujson
 from disnake.ext import commands
 import time
 from CustomClasses.CustomBot import CustomClient
@@ -10,6 +11,8 @@ import openai
 import os
 from utils.discord_utils import permanent_image
 import asyncio
+from CommandsOlder.Utils.War import main_war_page
+from CommandsOlder.Utils.Player import to_do_embed
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 class ChatBot:
@@ -305,6 +308,43 @@ class misc(commands.Cog, name="Other"):
 
         except:
             pass
+
+    '''@commands.Cog.listener()
+    async def on_message(self, message: disnake.Message):
+        if message.content.startswith("ck "):
+            magicbot = ChatBot()
+            await magicbot.execute(f"you are an assistant for a discord bot, when someone asks for something your job is to match it to the closest fit in the available options. " \
+                                   f'Must be 100% sure it is a match, if there is no match respond with the type "No Match".' \
+                                    "Here are the options: " \
+                                    "- Show my war" \
+                                    "- Show my to-do list" \
+                                    'Return your top option in this format: {"type" : str }')
+            m = await magicbot.execute(message.content.replace("ck ", "", 1))
+            try:
+                type = ujson.loads(m)
+            except Exception:
+                return
+            if type.get("type") == "No Match":
+                return
+            accounts = await self.bot.link_client.get_linked_players(message.author.id)
+            accounts = await self.bot.get_players(tags=accounts, custom=(type.get("type") == "Show my to-do list"))
+            accounts = [a for a in accounts if a.clan is not None]
+            if not accounts:
+                return
+            main_account: coc.Player = sorted(accounts, key=lambda l: l.trophies, reverse=True)[0]
+            if type.get("type") == "Show my war":
+                reply = await message.reply(content=f"<a:loading:884400064313819146> Give me one second, grabbing the current war for {main_account.clan.name}")
+                war = await self.bot.get_clanwar(clanTag=main_account.clan.tag)
+                if war is None:
+                    return await message.reply(content=f"Sorry, {main_account.clan.name} is not in war currently")
+                clan = await main_account.get_detailed_clan()
+                embed = await main_war_page(bot=self.bot, war=war, war_league=str(clan.war_league))
+                await reply.edit(content="", embed=embed)
+
+            elif type.get("type") == "Show my to-do list":
+                reply = await message.reply(content=f"<a:loading:884400064313819146> Give me one second, grabbing your to-do list")
+                embed = await to_do_embed(bot=self.bot, discord_user=message.author, linked_accounts=accounts)
+                await reply.edit(content="", embed=embed)'''
 
 
     '''@commands.Cog.listener()

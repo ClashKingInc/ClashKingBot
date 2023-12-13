@@ -3,7 +3,7 @@ import emoji
 import re
 from utils.constants import SHORT_PLAYER_LINK
 from datetime import datetime
-from Commands.graph import comparison_bar_graph
+from CommandsOld.graph import comparison_bar_graph
 
 class Response():
     def __init__(self, data: dict):

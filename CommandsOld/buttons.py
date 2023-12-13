@@ -2,7 +2,7 @@ import disnake
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-from Commands.board_generation import donation_board, activity_board, games_board
+from CommandsOld.board_generation import donation_board, activity_board, games_board
 
 
 async def basic_parser(bot: CustomClient, result: dict):

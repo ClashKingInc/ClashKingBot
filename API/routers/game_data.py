@@ -21,20 +21,14 @@ router = APIRouter(tags=["Game Data"])
 async def assets(request: Request, response: Response):
     return {"download-link" : "https://cdn.clashking.xyz/Out-Sprites.zip"}
 
-@router.get("/csv",
-         name="Download zip of all csv files")
-@limiter.limit("5/second")
-async def csv(request: Request, response: Response):
-    file_name = "compressed-csv.zip"
-    file_path = os.getcwd() + "/" + file_name
-    return FileResponse(path=file_path, media_type='application/octet-stream', filename="gamefile-csv.zip")
+
 
 @router.get("/json/{type}",
          name="View json game data (/json/list, for list of types)")
 @limiter.limit("5/second")
 async def json(type: str, request: Request, response: Response):
     if type == "list":
-        return {"files" : ["troops", "heroes", "spells", "buildings", "pets", "supers", "townhalls", "translations"]}
+        return {"files" : ["troops", "heroes", "hero_equipment", "spells", "buildings", "pets", "supers", "townhalls", "translations"]}
     file_name = f"game-json/{type}.json"
     file_path = os.getcwd() + "/" + file_name
     with open(file_path) as json_file:

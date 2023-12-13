@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timedelta
 
 import ujson
@@ -704,6 +705,7 @@ class CustomClient(commands.AutoShardedBot):
             cache_data = await self.redis.mget(keys=list(tag_set))
         else:
             cache_data = []
+
         for data in cache_data:
             if data is None:
                 continue

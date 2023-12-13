@@ -4,18 +4,14 @@ import chat_exporter
 import io
 import pytz
 
-from operator import attrgetter
-from Exceptions.CustomExceptions import *
-from typing import List, Union
+
+from typing import List
 from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
 from datetime import datetime
-from utils.discord_utils import permanent_image
-from BoardCommands.Utils.Player import create_profile_stats, create_profile_troops, history, upgrade_embed
 from main import check_commands
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from utils.discord_utils import interaction_handler
-from typing import TYPE_CHECKING
 from CustomClasses.Ticketing import TicketPanel, LOG_TYPE, OpenTicket
 from Ticketing.TicketUtils import ask_questions, open_ticket, message_convertor
 tiz = pytz.utc

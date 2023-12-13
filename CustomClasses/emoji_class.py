@@ -33,7 +33,7 @@ class Emojis():
         self.back = EmojiType("<:back_arrow:989399022156525650>")
         self.forward = EmojiType("<:forward_arrow:989399021602877470>")
         self.print = EmojiType("<:print:989400875766251581>")
-        self.refresh = EmojiType("<:refresh:989399023087652864>")
+        self.refresh = EmojiType("<:refresh:1183532546575843410>")
         self.trashcan = EmojiType("<:trashcan:989534332425232464>")
         self.alphabet = EmojiType("<:alphabet:989649421564280872>")
         self.start = EmojiType("<:start:989649420742176818>")

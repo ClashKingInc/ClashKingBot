@@ -5,7 +5,7 @@ from utils.components import create_components
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from utils.components import leaderboard_components
-from BoardCommands.Utils import Shared as shared_embeds
+from CommandsOlder.Utils import Shared as shared_embeds
 from Exceptions.CustomExceptions import MessageException
 from utils.discord_utils import interaction_handler
 
@@ -30,9 +30,8 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
         """
         await ctx.response.defer()
         rankings = []
-        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
-        l = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
-        for clan in await tracked.to_list(length=l):
+        tracked = self.bot.clan_db.find({"server": ctx.guild_id})
+        for clan in await tracked.to_list(length=None):
             tag = clan.get("tag")
             clan = await self.bot.getClan(tag)
             if clan is None:

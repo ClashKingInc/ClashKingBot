@@ -24,7 +24,6 @@ from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from Link_and_Eval.eval_logic import eval_logic
 from CustomClasses.ReminderClass import Reminder
 from utils.ClanCapital import get_raidlog_entry, gen_raid_weekend_datestrings
-from BoardCommands.Utils.Clan import clan_raid_weekend_raid_stats, clan_raid_weekend_donation_stats
 from ImageGen.ClanCapitalResult import generate_raid_result_image, calc_raid_medals
 from pymongo import UpdateOne
 from coc.raid import RaidLogEntry, RaidAttack
@@ -34,7 +33,6 @@ from utils.discord_utils import get_webhook_for_channel
 from Exceptions.CustomExceptions import MissingWebhookPerms
 from datetime import datetime
 from pytz import utc
-from BoardCommands.Utils.Player import upgrade_embed
 from base64 import b64decode as base64_b64decode
 from json import loads as json_loads
 from datetime import datetime
@@ -54,14 +52,54 @@ class OwnerCommands(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.count = 0
+        coc_client: coc.EventsClient = self.bot.coc_client
 
 
-    @commands.slash_command(name="go")
-    @commands.is_owner()
-    async def test(self, ctx: disnake.ApplicationCommandInteraction):
+    async def test_war(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
-        await self.bot.clan_wars.delete_many({"$and" : [{"data.clan.tag" : None},{"endTime" : {"$lte" : 1699416580}}]})
+        x = 0
+        to_insert = []
+        wars_found_alr = set()
+        async for war in self.bot.clan_wars.find({"data.clan.tag" : {"$ne" : None}}, {"data" : 1}):
+            war = war.get("data")
+            war = coc.ClanWar(data=war, client=self.bot.coc_client)
+            war_unique_id = "-".join(sorted([war.clan_tag, war.opponent.tag])) + f"-{int(war.preparation_start_time.time.timestamp())}"
+            if war_unique_id in wars_found_alr:
+                continue
+            wars_found_alr.add(war_unique_id)
+            score = [0, 0]
+            winner = "clan"
+            if war.opponent.stars > war.clan.stars:
+                winner = "opponent"
+
+            if war.opponent.stars == war.clan.stars:
+                continue
+
+            for count, attack in enumerate(reversed(war.attacks), 1):
+                if not attack.is_fresh_attack:
+                    if attack != attack.defender.best_opponent_attack:
+                        continue
+                if attack.attacker.clan.tag == war.clan.tag:
+                    score[0] += attack.stars
+                else:
+                    score[1] += attack.stars
+
+                d = {
+                    "clan_score" : score[0],
+                    "opponent_score" : score[1],
+                    "winner" : winner,
+                    "attacks_left" : len(war.attacks) - count
+                }
+                to_insert.append(UpdateOne(d, update={"$inc" : {"count" : 1}}, upsert=True))
+                x += 1
+                if x >= 5000:
+                    await self.bot.new_looper.war_probability.bulk_write(to_insert, ordered=False)
+                    x = 0
+        if x >= 1:
+            await self.bot.new_looper.war_probability.bulk_write(to_insert, ordered=False)
         await ctx.send("done")
+
+
 
 
     @commands.slash_command(name="restart-customs", guild_ids=[1103679645439754335])
@@ -111,13 +149,14 @@ class OwnerCommands(commands.Cog):
                 add = 0; text = ""
 
 
-    '''@commands.slash_command(name="owner_anniversary", guild_ids=[923764211845312533])
+    @commands.slash_command(name="owner_anniversary", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def anniversary(self, ctx: disnake.ApplicationCommandInteraction):
         guild = ctx.guild
         await ctx.send(content="Starting")
         msg = await ctx.channel.send("Editing 0 Members")
         x = 0
+        eighteen_month = disnake.utils.get(ctx.guild.roles, id=1183978690019864679)
         twelve_month = disnake.utils.get(ctx.guild.roles, id=1029249316981833748)
         nine_month = disnake.utils.get(ctx.guild.roles, id=1029249365858062366)
         six_month = disnake.utils.get(ctx.guild.roles, id=1029249360178987018)
@@ -132,7 +171,12 @@ class OwnerCommands(commands.Cog):
             n_year = datetime.now().year
             n_month = datetime.now().month
             num_months = (n_year - year) * 12 + (n_month - month)
-            if num_months >= 12:
+            if num_months >= 18:
+                if eighteen_month not in member.roles:
+                    await member.add_roles(*[eighteen_month])
+                if twelve_month in member.roles or nine_month in member.roles or six_month in member.roles or three_month in member.roles:
+                    await member.remove_roles(*[twelve_month, nine_month, six_month, three_month])
+            elif num_months >= 12:
                 if twelve_month not in member.roles:
                     await member.add_roles(*[twelve_month])
                 if nine_month in member.roles or six_month in member.roles or three_month in member.roles:
@@ -153,9 +197,9 @@ class OwnerCommands(commands.Cog):
                 if twelve_month in member.roles or nine_month in member.roles or six_month in member.roles:
                     await member.remove_roles(*[twelve_month, nine_month, six_month])
             x += 1
-        await ctx.channel.send(content="Done")
+        await msg.edit(content="Done")
 
-
+    '''
     @commands.slash_command(name="raid-map", description="See the live raid map", guild_ids=[923764211845312533])
     async def raid_map(self, ctx: disnake.ApplicationCommandInteraction, clan: str):
         await ctx.response.defer()

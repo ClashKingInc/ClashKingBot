@@ -52,5 +52,7 @@ class Activity(commands.Cog, name="Activity"):
         as_dict["user"] = user.id if user is not None else None
         await self.bot.button_store.insert_one(as_dict)
 
+
+
 def setup(bot: CustomClient):
     bot.add_cog(Activity(bot))

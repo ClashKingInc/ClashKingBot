@@ -5,7 +5,7 @@ DEFAULT_EVAL_ROLE_TYPES = ["family", "not_family", "clan", "leadership", "townha
 ROLE_TREATMENT_TYPES = ["Add", "Remove"]
 
 BOARD_TYPES = ["Overview Board", "Simple Board", "Summary", "Donation", "Received", "Dono Ratio", "Discord Links", "War Preference", "Super Troops", "Clan Games", "Activity", "Last Online", "War Log", "CWL History"]
-TOWNHALL_LEVELS = [x for x in range(1, 16)]
+TOWNHALL_LEVELS = [x for x in range(1, 17)]
 MAX_NUM_SUPERS = 2
 SHORT_PLAYER_LINK = "https://api.clashking.xyz/p/"
 SHORT_CLAN_LINK = "https://api.clashking.xyz/c/"
@@ -20,6 +20,7 @@ item_to_name = {"Player Tag" : "tag", "Role" : "role",
                 "Clan Games Points" : "ach-Games Champion", "Versus Battles Won" : "versus-attack-wins", "Best Season Rank" : "legendStatistics.bestSeason.rank", "Townhall Level" : "townHallLevel"}
 
 HOME_VILLAGE_HEROES = ["Barbarian King", "Archer Queen", "Royal Champion", "Grand Warden"]
+EMBED_COLOR = 2829617
 
 locations = ["global", 32000007, 32000008, 32000009, 32000010, 32000011, 32000012, 32000013, 32000014, 32000015, 32000016,
              32000017,

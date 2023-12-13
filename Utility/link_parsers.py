@@ -5,7 +5,7 @@ from utils.clash import heros, heroPets
 from CustomClasses.CustomBot import CustomClient
 from utils.clash import cwl_league_emojis
 import coc
-from BoardCommands.Utils import Clan as clan_embeds
+from CommandsOlder.Utils import Clan as clan_embeds
 
 class LinkParsing(commands.Cog):
 

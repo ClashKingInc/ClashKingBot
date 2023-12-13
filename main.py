@@ -31,11 +31,12 @@ TOKEN = config.get("token")
 
 discClient = Client()
 intents = disnake.Intents().none()
-intents.members = True
 intents.guilds = True
+intents.members = True
 intents.emojis = True
 intents.messages = True
 intents.message_content = True
+
 bot = CustomClient(command_prefix="??",help_command=None, intents=intents)
 
 def check_commands():
@@ -85,7 +86,7 @@ def check_commands():
 
 initial_extensions = [
     #"BoardCommands.Commands.ClanCommands",
-    "BoardCommands.Commands.TopCommands",
+    #"BoardCommands.Commands.TopCommands",
     #"BoardCommands.Commands.FamilyCommands",
     #"BoardCommands.Commands.PlayerCommands",
     #"BoardCommands.Buttons.Buttons",
@@ -116,16 +117,15 @@ initial_extensions = [
     "poster.poster",
     "Utility.other",
     "Link_and_Eval.link_button",
-    "Commands.donations",
-    "Commands.activity",
-    "Commands.buttons",
-    "Commands.clan_games",
     "Discord.events",
     "Discord.autocomplete",
     "Discord.converters",
     "Background.refresh_boards",
     "Graphing.Graphs",
-    "Background.Logs.join_leave_events",
+
+    "Commands.Clan.commands",
+    "Commands.Family.commands",
+    "Commands.Buttons.click"
 ]
 
 
@@ -197,6 +197,7 @@ if __name__ == "__main__":
         except Exception as extension:
             traceback.print_exc()
 
-    bot.loop.create_task(kafka_events())
+    if not IS_BETA:
+        bot.loop.create_task(kafka_events())
 
     bot.run(TOKEN)
