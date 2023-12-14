@@ -441,9 +441,8 @@ async def war_stats(request: Request, response: Response,
         SEASON_END = int(datetime.now().timestamp())
 
     SEASON_START = datetime.fromtimestamp(SEASON_START, tz=utc).strftime('%Y%m%dT%H%M%S.000Z')
-    print(SEASON_START)
     SEASON_END = datetime.fromtimestamp(SEASON_END, tz=utc).strftime('%Y%m%dT%H%M%S.000Z')
-    print(SEASON_END)
+
     clan_to_name = {}
     by_clan = defaultdict(lambda : defaultdict(int))
     if not tied_only:
@@ -528,7 +527,6 @@ async def war_stats(request: Request, response: Response,
             {"$project": {"data": "$data"}}
         ]
         wars: List[dict] = await clan_wars.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
-        print(len(wars))
         found_wars = set()
         for war in wars:
             war = war.get("data")
