@@ -441,8 +441,9 @@ async def war_stats(request: Request, response: Response,
         SEASON_END = int(datetime.now().timestamp())
 
     SEASON_START = datetime.fromtimestamp(SEASON_START, tz=utc).strftime('%Y%m%dT%H%M%S.000Z')
+    print(SEASON_START)
     SEASON_END = datetime.fromtimestamp(SEASON_END, tz=utc).strftime('%Y%m%dT%H%M%S.000Z')
-
+    print(SEASON_END)
     clan_to_name = {}
     by_clan = defaultdict(lambda : defaultdict(int))
     if not tied_only:
@@ -535,6 +536,7 @@ async def war_stats(request: Request, response: Response,
             war_unique_id = "-".join(sorted([war.clan_tag, war.opponent.tag])) + f"-{int(war.preparation_start_time.time.timestamp())}"
             if war_unique_id in found_wars:
                 continue
+            found_wars.add(war_unique_id)
             war_sides = []
             if war.clan_tag in clans:
                 war_sides.append(war.clan)
