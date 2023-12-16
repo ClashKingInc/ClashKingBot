@@ -1,5 +1,6 @@
 import disnake
 import coc
+import secrets
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
@@ -460,171 +461,7 @@ class SetupCommands(commands.Cog , name="Setup"):
         await res.edit_original_message(content="", embed=embed, components=[])
 
 
-    '''@setup.sub_command(name="autoboards", description="Create family autoboards for your server")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def autoboard_create(self, ctx: disnake.ApplicationCommandInteraction):
-        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
 
-        if not clan_tags:
-            embed = disnake.Embed(description="**No clans set up on this server, use `/setup clan-add` to get started.**", color=disnake.Color.red())
-            await ctx.edit_original_message(embed=embed)
-
-        content = "**What kind of autoboards would you like to create?**"
-        page_buttons = [
-            disnake.ui.Button(label="Family", style=disnake.ButtonStyle.grey, custom_id="family"),
-            disnake.ui.Button(label="Location", style=disnake.ButtonStyle.grey, custom_id="location"),
-            disnake.ui.Button(label="Clan", style=disnake.ButtonStyle.grey, custom_id="clan")
-        ]
-        buttons = disnake.ui.ActionRow()
-        for button in page_buttons:
-            buttons.append_item(button)
-        await ctx.edit_original_message(content=content, components=[buttons])
-
-        res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
-
-        scope_type = res.data.custom_id
-
-        page_buttons = [
-            disnake.ui.Button(label="Save", emoji=self.bot.emoji.yes.partial_emoji, style=disnake.ButtonStyle.green, custom_id="Save"),
-        ]
-        buttons = disnake.ui.ActionRow()
-        for button in page_buttons:
-            buttons.append_item(button)
-
-        family_types = ["Troop Donations", "Capital Donations", "Player Trophies", "Clan Trophies", "Summary Leaderboard", "Legend Leaderboard"]
-        location_types = ["Player Trophies Lb", "Clan Trophies Lb", "Clan Capital Lb"]
-        clan_types = ["Capital Donations", "Player Trophies", "Summary Leaderboard", "Legend Leaderboard", "Clan Games"]
-
-        days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Clan Games End", "EOS"]
-        day_options = []
-        for day in days:
-            day_options.append(disnake.SelectOption(label=day, value=day, emoji=self.bot.emoji.calendar.partial_emoji))
-
-        day_select = disnake.ui.Select(
-            options=day_options,
-            placeholder="Days to Post",  # the placeholder text to show when no options have been chosen
-            min_values=1,  # the minimum number of options a user must select
-            max_values=len(day_options),  # the maximum number of options a user can select
-        )
-
-        if scope_type == "family":
-            options = []
-            for type in family_types:
-                options.append(disnake.SelectOption(label=type, value=type))
-            select = disnake.ui.Select(
-                options=options,
-                placeholder="Board Type",  # the placeholder text to show when no options have been chosen
-                min_values=1,  # the minimum number of options a user must select
-                max_values=1,  # the maximum number of options a user can select
-            )
-            channel = disnake.ui.ChannelSelect(placeholder="Choose Channel", max_values=1, channel_types=[disnake.ChannelType.text, disnake.ChannelType.public_thread])
-            dropdown = [disnake.ui.ActionRow(select), disnake.ui.ActionRow(day_select), disnake.ui.ActionRow(channel), buttons]
-        elif scope_type == "location":
-            clans = await self.bot.get_clans(tags=clan_tags)
-            locations = []
-            for clan in clans:
-                try:
-                    locations.append(str(clan.location))
-                except:
-                    pass
-
-            locations = ["Global"] + list(set(locations))[:24]
-            options = []
-            for country in locations:
-                options.append(disnake.SelectOption(label=f"{country}", value=f"{country}"))
-            country_select = disnake.ui.Select(
-                options=options,
-                placeholder="Locations",
-                min_values=1,  # the minimum number of options a user must select
-                max_values=1  # the maximum number of options a user can select
-            )
-
-            options = []
-            for type in location_types:
-                options.append(disnake.SelectOption(label=type, value=type))
-
-            select = disnake.ui.Select(
-                options=options,
-                placeholder="Board Type",  # the placeholder text to show when no options have been chosen
-                min_values=1,  # the minimum number of options a user must select
-                max_values=len(options),  # the maximum number of options a user can select
-            )
-            channel = disnake.ui.ChannelSelect(placeholder="Choose Channel", max_values=1, channel_types=[disnake.ChannelType.text, disnake.ChannelType.public_thread])
-            dropdown = [disnake.ui.ActionRow(select), disnake.ui.ActionRow(country_select), disnake.ui.ActionRow(day_select), disnake.ui.ActionRow(channel), buttons]
-
-        elif scope_type == "clan":
-            options = []
-            for type in clan_types:
-                options.append(disnake.SelectOption(label=type, value=type))
-            select = disnake.ui.Select(
-                options=options,
-                placeholder="Board Type",  # the placeholder text to show when no options have been chosen
-                min_values=1,  # the minimum number of options a user must select
-                max_values=1,  # the maximum number of options a user can select
-            )
-            clans: list[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
-            clans = [clan for clan in clans if clan is not None and clan.member_count != 0]
-            clans = sorted(clans, key=lambda x: x.member_count, reverse=True)
-            options = []
-            for clan in clans:
-                try:
-                    options.append(disnake.SelectOption(label=clan.name, value=clan.tag))
-                except:
-                    pass
-            clan_select = disnake.ui.Select(
-                options=options[:25],
-                placeholder="Clan",  # the placeholder text to show when no options have been chosen
-                min_values=1,  # the minimum number of options a user must select
-                max_values=1,  # the maximum number of options a user can select
-            )
-            channel = disnake.ui.ChannelSelect(placeholder="Choose Channel", max_values=1, channel_types=[disnake.ChannelType.text, disnake.ChannelType.public_thread])
-            dropdown = [disnake.ui.ActionRow(select), disnake.ui.ActionRow(clan_select), disnake.ui.ActionRow(day_select), disnake.ui.ActionRow(channel), buttons]
-
-        await ctx.edit_original_message(content="**Choose board type & Settings**\n- All Boards will post between 4:50 - 5:00 am UTC on the days you select", components=dropdown)
-
-        location = None
-        board_type = None
-        days_to_post = []
-        channel = None
-        clan = None
-        save = False
-        while not save:
-            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
-            if "button" in str(res.data.component_type):
-                if channel is None:
-                    await res.send(content="Must select a channel", ephemeral=True)
-                elif board_type is None:
-                    await res.send(content="Must select a board type", ephemeral=True)
-                elif scope_type == "clan" and clan is None:
-                    await res.send(content="Must select a clan", ephemeral=True)
-                elif scope_type == "location" and location is None:
-                    await res.send(content="Must select a location", ephemeral=True)
-                elif not days_to_post:
-                    await res.send(content="Must select days to post this autoboard on", ephemeral=True)
-                else:
-                    save = True
-            elif "string_select" in str(res.data.component_type):
-                if res.values[0] in location_types + clan_types + family_types:
-                    board_type = res.values[0]
-                elif "#" in res.values[0]:
-                    clan = res.values[0]
-                elif res.values[0] in days:
-                    days_to_post = res.values
-                else:
-                    location = res.values[0]
-            else:
-                channel = res.values[0]
-
-        await self.bot.autoboard_db.insert_one({
-            "scope" : scope_type,
-            "board_type" : board_type,
-            "location" : location,
-            "days" : days_to_post,
-            "channel" : channel
-        })
-
-        embed= disnake.Embed(description="**Autoboard Successfully Created**", color=disnake.Color.green())
-        await ctx.edit_original_message(embed=embed, components=[], content="")'''
 
     @setup.sub_command(name="welcome-link", description="Create a custom welcome message that can include linking buttons")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -680,6 +517,19 @@ class SetupCommands(commands.Cog , name="Setup"):
                 embed.set_thumbnail(url=ctx.guild.icon.url)
         await ctx.edit_original_message(content=f"Welcome Message Set in {channel.mention}\n||(buttons for demo & will work on the live version)||", embed=embed, components=stat_buttons)
 
+
+    @setup.sub_command(name="api-token", description="Create an api token for use in the clashking api to access server resources")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def api_token(self, ctx: disnake.ApplicationCommandInteraction, regenerate = commands.Param(default=False, choices=["True"])):
+        await ctx.response.defer(ephemeral=True)
+        result = await self.bot.server_db.find_one({"server" : ctx.guild.id})
+        if regenerate == "True" or result.get("api_token") is None:
+            token = secrets.token_urlsafe(20)
+            await self.bot.server_db.update_one({"server" : ctx.guild.id}, {"$set" : {"api_token" : token}})
+        else:
+            token = result.get("api_token")
+        await ctx.send(token, ephemeral=True)
+        await ctx.followup.send(content="Store the above token somewhere safe, token will be regenerated each time command is run", ephemeral=True)
 
 
 
