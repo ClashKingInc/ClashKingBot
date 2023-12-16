@@ -2,6 +2,7 @@ import os
 import re
 import motor.motor_asyncio
 import uvicorn
+import asyncio
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response
@@ -14,7 +15,7 @@ from fastapi.openapi.utils import get_openapi
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
-from routers import leagues, player, capital, other, clan, stats, war, utility, ranking, redirect, game_data
+import leagues, player, capital, other, clan, war, utility, ranking, redirect, game_data, bans
 from api_analytics.fastapi import Analytics
 
 LOCAL = True
@@ -22,6 +23,9 @@ load_dotenv()
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
+
+
+
 async def catch_exceptions_middleware(request: Request, call_next):
     try:
         return await call_next(request)
@@ -35,17 +39,21 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(Analytics, api_key="9f56d999-b945-4be5-8787-2448ab222ad3")
 
-app.include_router(player.router)
-app.include_router(clan.router)
-app.include_router(war.router)
-app.include_router(capital.router)
-app.include_router(leagues.router)
-app.include_router(ranking.router)
-app.include_router(redirect.router)
-app.include_router(stats.router)
-app.include_router(game_data.router)
-app.include_router(other.router)
-app.include_router(utility.router)
+routers = [
+    bans.router,
+    player.router,
+    clan.router,
+    war.router,
+    capital.router,
+    leagues.router,
+    ranking.router,
+    redirect.router,
+    game_data.router,
+    other.router,
+    utility.router
+]
+for router in routers:
+    app.include_router(router)
 
 
 client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
@@ -127,6 +135,16 @@ def custom_openapi():
 app.openapi = custom_openapi
 
 if __name__ == '__main__':
+    emails = []
+    passwords = []
+    # 14-17 (18)
+    for x in range(48, 53):
+        emails.append(f"apiclashofclans+test{x}@gmail.com")
+        passwords.append(os.getenv("COC_PASSWORD"))
+    from APIUtils.utils import create_keys, coc_client
+    keys = create_keys(emails=emails, passwords=passwords)
+    asyncio.get_event_loop().run_until_complete(coc_client.login_with_tokens(*keys))
+
     if not LOCAL:
         uvicorn.run("main:app", host='0.0.0.0', port=443, ssl_keyfile="/etc/letsencrypt/live/api.clashking.xyz/privkey.pem", ssl_certfile="/etc/letsencrypt/live/api.clashking.xyz/fullchain.pem", workers=6)
     else:

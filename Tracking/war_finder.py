@@ -256,6 +256,7 @@ async def store_war(clan_tag: str, opponent_tag: str, prep_time: int):
                 if not switched:
                     clan_tag = opponent_tag
                     switched = True
+                    continue
                 else:
                     break
             elif war.state == "warEnded":
@@ -263,10 +264,12 @@ async def store_war(clan_tag: str, opponent_tag: str, prep_time: int):
                 break
         elif war == "maintenance":
             await asyncio.sleep(30)
+            continue
         elif war == "no access":
             if not switched:
                 clan_tag = opponent_tag
                 switched = True
+                continue
             else:
                 break
         elif war == "error":

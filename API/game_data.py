@@ -1,15 +1,10 @@
-import coc
 import os
 import ujson
-from collections import defaultdict
 from fastapi import  Request, Response, HTTPException
 from fastapi import APIRouter
-from fastapi_cache.decorator import cache
-from typing import List, Union
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import Limiter
 from slowapi.util import get_remote_address
-from .utils import fix_tag, capital, leagues, player_trophies, player_versus_trophies, clan_trophies, capital_trophies, clan_versus_trophies
-from fastapi.responses import FileResponse
+
 
 
 limiter = Limiter(key_func=get_remote_address)

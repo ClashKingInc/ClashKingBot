@@ -9,7 +9,7 @@ from fastapi_cache.decorator import cache
 from typing import List
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
-from .utils import fix_tag, capital, leagues, cwl_groups, clan_wars, war_logs_db, basic_clan
+from APIUtils.utils import fix_tag, db_client
 from datetime import datetime
 
 limiter = Limiter(key_func=get_remote_address)
@@ -24,7 +24,7 @@ router = APIRouter(tags=["War Endpoints"])
 @limiter.limit("30/second")
 async def war_previous(clan_tag: str, request: Request, response: Response, limit: int= 50):
     clan_tag = fix_tag(clan_tag)
-    full_wars = await clan_wars.find({"$and" : [{"$or" : [{"data.clan.tag" : clan_tag}, {"data.opponent.tag" : clan_tag}]}]}).to_list(length=None)
+    full_wars = await db_client.clan_wars.find({"$and" : [{"$or" : [{"data.clan.tag" : clan_tag}, {"data.opponent.tag" : clan_tag}]}]}).to_list(length=None)
     found_ids = set()
     new_wars = []
     for war in full_wars:
@@ -49,9 +49,9 @@ async def war_previous(clan_tag: str, request: Request, response: Response, limi
 @limiter.limit("30/second")
 async def basic_war_info(clan_tag: str, request: Request, response: Response):
     now = datetime.utcnow().timestamp() - 183600
-    result = await clan_wars.find_one({"$and" : [{"clan" : fix_tag(clan_tag)}, {"custom_id": None}, {"endTime" : {"$gte" : now}}]})
+    result = await db_client.clan_wars.find_one({"$and" : [{"clan" : fix_tag(clan_tag)}, {"custom_id": None}, {"endTime" : {"$gte" : now}}]})
     if result is None:
-        result = await clan_wars.find_one({"$and" : [{"opponent" : fix_tag(clan_tag)}, {"custom_id" : None}, {"endTime" : {"$gte" : now}}]})
+        result = await db_client.clan_wars.find_one({"$and" : [{"opponent" : fix_tag(clan_tag)}, {"custom_id" : None}, {"endTime" : {"$gte" : now}}]})
     if result is not None:
         del result["_id"]
     return result
@@ -63,14 +63,14 @@ async def basic_war_info(clan_tag: str, request: Request, response: Response):
 @limiter.limit("30/second")
 async def cwl(clan_tag: str, season: str, request: Request, response: Response):
     clan_tag = fix_tag(clan_tag)
-    cwl_result = await cwl_groups.find_one({"$and" : [{"data.clans.tag" : clan_tag}, {"data.season" : season}]})
+    cwl_result = await db_client.cwl_groups.find_one({"$and" : [{"data.clans.tag" : clan_tag}, {"data.season" : season}]})
 
     rounds = cwl_result.get("data").get("rounds")
     war_tags = []
     for round in rounds:
         for tag in round.get("warTags"):
             war_tags.append(tag)
-    matching_wars = await clan_wars.find({"data.tag" : {"$in" : war_tags}}).to_list(length=None)
+    matching_wars = await db_client.clan_wars.find({"data.tag" : {"$in" : war_tags}}).to_list(length=None)
     matching_wars = {w.get("data").get("tag") : w.get("data") for w in matching_wars}
     for r_count, round in enumerate(rounds):
         for count, tag in enumerate(round.get("warTags")):

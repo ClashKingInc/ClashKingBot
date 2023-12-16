@@ -1,21 +1,14 @@
 import os
-import coc
 import aiohttp
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
-from collections import defaultdict
 from fastapi import  Request, Response, HTTPException, APIRouter, Query
-from fastapi_cache.decorator import cache
-from typing import List, Annotated
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import Limiter
 from slowapi.util import get_remote_address
-from .utils import fix_tag, capital, leagues, clan_cache_db, clan_stats, basic_clan, clan_history, \
-    attack_db, clans_db, gen_season_date, player_stats_db, rankings, player_history, gen_games_season, base_stats
+from APIUtils.utils import db_client
 
-from statistics import mean, median
 from datetime import datetime
-from pytz import utc
 from fastapi.responses import RedirectResponse, HTMLResponse
 
 limiter = Limiter(key_func=get_remote_address)
@@ -105,13 +98,13 @@ async def redirect_fastapi_clan(clan_tag: str):
 async def redirect_fastapi_base(id: str):
     id = id.split("=")[-1]
     base_id = id.replace(":", "%3A")
-    base = await base_stats.find_one({"base_id": base_id})
+    base = await db_client.base_stats.find_one({"base_id": base_id})
     if base is not None:
-        await base_stats.update_one({"base_id": base_id}, {"$inc": {"downloads": 1},
+        await db_client.base_stats.update_one({"base_id": base_id}, {"$inc": {"downloads": 1},
                                                            "$set": {"unix_time": int(datetime.now().timestamp()),
                                                                     "time": datetime.today().replace(microsecond=0)}},
                                 upsert=True)
-    base = await base_stats.find_one({"base_id" : base_id})
+    base = await db_client.base_stats.find_one({"base_id" : base_id})
     HTMLFile = open("test.html", "r")
     # Reading the file
     index = HTMLFile.read()

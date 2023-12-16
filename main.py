@@ -120,7 +120,7 @@ initial_extensions = [
     "Discord.events",
     "Discord.autocomplete",
     "Discord.converters",
-    "Background.refresh_boards",
+    #"Background.refresh_boards",
     "Graphing.Graphs",
 
     "Commands.Clan.commands",

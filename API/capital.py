@@ -8,7 +8,7 @@ from fastapi_cache.decorator import cache
 from typing import List
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
-from .utils import fix_tag, capital, leagues
+from APIUtils.utils import fix_tag, db_client, leagues
 from datetime import datetime
 
 
@@ -50,7 +50,7 @@ async def capital_stats_district(weekend: str, request: Request, response: Respo
              }},
         {"$sort": {"_id.district_name": 1, "_id.district_level": 1}}
     ]
-    results = await capital.aggregate(pipeline=pipeline).to_list(length=None)
+    results = await db_client.capital.aggregate(pipeline=pipeline).to_list(length=None)
     return results
 
 @router.get("/capital/stats/leagues",
@@ -125,7 +125,7 @@ async def capital_stats_leagues(weekend: str, request: Request, response: Respon
               "sampleSize" : {"$sum" : 1}
               }},
     ]
-    results = await capital.aggregate(pipeline=pipeline).to_list(length=None)
+    results = await db_client.capital.aggregate(pipeline=pipeline).to_list(length=None)
     results.sort(key=lambda val : leagues.index(val.get("_id")))
     return results
 
@@ -137,7 +137,7 @@ async def capital_stats_leagues(weekend: str, request: Request, response: Respon
 @cache(expire=300)
 @limiter.limit("30/second")
 async def capital_log(clan_tag: str, request: Request, response: Response, limit: int = 5):
-    results = await capital.find({"clan_tag" : fix_tag(clan_tag)}).limit(limit).sort("data.startTime", -1).to_list(length=None)
+    results = await db_client.capital.find({"clan_tag" : fix_tag(clan_tag)}).limit(limit).sort("data.startTime", -1).to_list(length=None)
     for result in results:
         del result["_id"]
     return results
@@ -147,7 +147,7 @@ async def capital_log(clan_tag: str, request: Request, response: Response, limit
          name="Fetch Raid Weekends in Bulk (max 100 tags)")
 @limiter.limit("5/second")
 async def capital_bulk(clan_tags: List[str], request: Request, response: Response):
-    results = await capital.find({"clan_tag": {"$in" : [fix_tag(tag) for tag in clan_tags[:100]]}}).to_list(length=None)
+    results = await db_client.capital.find({"clan_tag": {"$in" : [fix_tag(tag) for tag in clan_tags[:100]]}}).to_list(length=None)
     fixed_results = defaultdict(list)
     for result in results:
         del result["_id"]

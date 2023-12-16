@@ -9,7 +9,8 @@ from fastapi_cache.decorator import cache
 from typing import List
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
-from .utils import player_stats_db, player_leaderboard_db, player_history, attack_db, fix_tag, legend_history, player_search, redis, clan_wars
+from APIUtils.utils import fix_tag, redis, db_client
+
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(tags=["Player Endpoints"])
@@ -22,8 +23,8 @@ router = APIRouter(tags=["Player Endpoints"])
 @limiter.limit("30/second")
 async def player_stat(player_tag: str, request: Request, response: Response):
     player_tag = player_tag and "#" + re.sub(r"[^A-Z0-9]+", "", player_tag.upper()).replace("O", "0")
-    result = await player_stats_db.find_one({"tag": player_tag})
-    lb_spot = await player_leaderboard_db.find_one({"tag": player_tag})
+    result = await db_client.player_stats_db.find_one({"tag": player_tag})
+    lb_spot = await db_client.player_leaderboard_db.find_one({"tag": player_tag})
 
     if result is None:
         raise HTTPException(status_code=404, detail=f"No player found")
@@ -72,8 +73,8 @@ async def player_stat(player_tag: str, request: Request, response: Response):
 @limiter.limit("30/second")
 async def player_legend(player_tag: str, request: Request, response: Response):
     player_tag = player_tag and "#" + re.sub(r"[^A-Z0-9]+", "", player_tag.upper()).replace("O", "0")
-    result = await player_stats_db.find_one({"tag": player_tag})
-    lb_spot = await player_leaderboard_db.find_one({"tag": player_tag})
+    result = await db_client.player_stats_db.find_one({"tag": player_tag})
+    lb_spot = await db_client.player_leaderboard_db.find_one({"tag": player_tag})
 
     if result is None:
         raise HTTPException(status_code=404, detail=f"No player found")
@@ -113,7 +114,7 @@ async def player_historical(player_tag: str, season:str, request: Request, respo
     month = season[-2:]
     season_start = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
     season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
-    historical_data = await player_history.find({"$and" : [{"tag": player_tag}, {"time" : {"$gte" : season_start.timestamp()}}, {"time" : {"$lte" : season_end.timestamp()}}]}).sort("time", 1).to_list(length=25000)
+    historical_data = await db_client.player_history.find({"$and" : [{"tag": player_tag}, {"time" : {"$gte" : season_start.timestamp()}}, {"time" : {"$lte" : season_end.timestamp()}}]}).sort("time", 1).to_list(length=25000)
     breakdown = defaultdict(list)
     for data in historical_data:
         del data["_id"]
@@ -137,7 +138,7 @@ async def player_warhits(player_tag: str, request: Request, response: Response):
         {"$unset": ["_id"]},
         {"$project": {"data": "$data"}}
     ]
-    wars = await clan_wars.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
+    wars = await db_client.clan_wars.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
     found_wars = set()
     stats = {"attacks" : [], "defenses" : []}
     for war in wars:
@@ -204,7 +205,7 @@ async def player_warhits(player_tag: str, request: Request, response: Response):
 async def player_legend_rankings(player_tag: str, request: Request, response: Response, limit:int = 10):
 
     player_tag = fix_tag(player_tag)
-    results = await legend_history.find({"tag": player_tag}).sort("season", -1).limit(limit).to_list(length=None)
+    results = await db_client.legend_history.find({"tag": player_tag}).sort("season", -1).limit(limit).to_list(length=None)
     for result in results:
         del result["_id"]
 
@@ -241,7 +242,7 @@ async def search_players(name: str, request: Request, response: Response):
         },
         {"$limit": 25}
     ]
-    results = await player_search.aggregate(pipeline=pipeline).to_list(length=None)
+    results = await db_client.player_search.aggregate(pipeline=pipeline).to_list(length=None)
     for result in results:
         del result["_id"]
     return {"items" : results}

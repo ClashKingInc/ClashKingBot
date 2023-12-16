@@ -7,8 +7,7 @@ from fastapi_cache.decorator import cache
 from typing import List, Annotated
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
-from .utils import fix_tag, capital, leagues, clan_cache_db, clan_stats, basic_clan, clan_history, \
-    attack_db, clans_db, gen_season_date, player_stats_db, rankings, player_history, gen_games_season, clan_wars, gen_raid_date
+from APIUtils.utils import fix_tag, db_client, gen_season_date,gen_games_season
 from statistics import mean, median
 from datetime import datetime, timedelta
 from pytz import utc
@@ -38,7 +37,7 @@ async def donations(request: Request, response: Response,
     limit = min(limit, 500)
     season = gen_season_date() if season is None else season
     if server:
-        clans = await clans_db.distinct("tag", filter={"server" : server})
+        clans = await db_client.clans_db.distinct("tag", filter={"server" : server})
 
     new_data = []
     clan_to_name = {}
@@ -46,11 +45,11 @@ async def donations(request: Request, response: Response,
     field_to_use = "donations" if sort_field != "donationsReceived" else "donationsReceived"
 
     if players == clans == server == None:
-        rank_results = await rankings.find({"donationsRank" : {"$ne" : None}}, {"_id" : 1, "name" : 1, "donations" : 1, "donationsRank" : 1, "donationsReceived" : 1})\
+        rank_results = await db_client.rankings.find({"donationsRank" : {"$ne" : None}}, {"_id" : 1, "name" : 1, "donations" : 1, "donationsRank" : 1, "donationsReceived" : 1})\
             .sort("donationsRank", 1).limit(limit=limit).to_list(length=None)
         pipeline = [{"$match": {"tag": {"$in": [i.get("_id") for i in rank_results]}}},
                     {"$group": {"_id": "$tag", "th": {"$last": "$townhall"}}}]
-        th_results = await attack_db.aggregate(pipeline).to_list(length=None)
+        th_results = await db_client.attack_db.aggregate(pipeline).to_list(length=None)
         th_results = {item.get("_id"): item.get("th") for item in th_results}
         for r in rank_results:
             new_data.append({
@@ -62,7 +61,7 @@ async def donations(request: Request, response: Response,
                 "donationsReceived" : r.get("donationsReceived")
             })
     elif players:
-            stat_results = await player_stats_db.find({"tag": {"$in": [fix_tag(player) for player in players]}},
+            stat_results = await db_client.player_stats_db.find({"tag": {"$in": [fix_tag(player) for player in players]}},
                                                       {"tag": 1, "name": 1, "donations": 1, "townhall": 1, "clan_tag": 1}).to_list(length=None)
             player_struct = {m.get("tag"): {"tag": m.get("tag"), "name": m.get("name"), "rank": 0,
                                             "donations": m.get("donations", {}).get(season, {}).get("donated", 0),
@@ -70,14 +69,14 @@ async def donations(request: Request, response: Response,
                                             "clan_tag": m.get("clan_tag")} for m in stat_results}
             for tag in players:
                 tag = fix_tag(tag)
-                p_results = await clan_stats.find({f"{season}.{tag}" : {"$ne" : None}}, {f"{season}.{tag}" : 1, "tag" : 1}).to_list(length=None)
+                p_results = await db_client.clan_stats.find({f"{season}.{tag}" : {"$ne" : None}}, {f"{season}.{tag}" : 1, "tag" : 1}).to_list(length=None)
                 for result in p_results:
                     by_clan[result.get("tag")][field_to_use] += result.get(season).get(tag).get("received" if field_to_use != "donations" else "donated", 0)
 
             new_data = list(player_struct.values())
 
     elif clans:
-        clan_members = await basic_clan.find({"tag" : {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
+        clan_members = await db_client.basic_clan.find({"tag" : {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
         clan_to_name = {c.get("tag") : c.get("name") for c in clan_members}
         member_tags = []
         member_to_name = {}
@@ -148,10 +147,6 @@ async def donations(request: Request, response: Response,
             "metadata" : {"sort_order" : ("descending" if descending else "ascending"), "sort_field" : sort_field, "season" : season}}
 
 
-#FUCK FAYEZ
-#I LOVE RUGGIE
-#FOXY OP
-#MOSH :)
 
 
 
@@ -526,7 +521,7 @@ async def war_stats(request: Request, response: Response,
             {"$unset": ["_id"]},
             {"$project": {"data": "$data"}}
         ]
-        wars: List[dict] = await clan_wars.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
+        wars: List[dict] = await db_client.clan_wars.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
         found_wars = set()
         for war in wars:
             war = war.get("data")

@@ -12,7 +12,7 @@ from fastapi_cache.decorator import cache
 from typing import Dict
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from .utils import player_stats_db, download_image
+from APIUtils.utils import db_client, download_image
 import matplotlib.pyplot as plt
 from PIL import Image
 from typing import List
@@ -174,14 +174,6 @@ async def table_render(info: Dict, request: Request, response: Response):
 async def guild_links(guild_id: int, request: Request, response: Response):
     return {}
 
-
-@router.get("/player_tags",
-         name="Get a list of all player tags in database")
-@cache(expire=3600)
-@limiter.limit("1/minute")
-async def player_tags(request: Request, response: Response):
-    tags = await player_stats_db.distinct("tag")
-    return {"tags" : tags}
 
 
 @router.get("/permalink/{clan_tag}",

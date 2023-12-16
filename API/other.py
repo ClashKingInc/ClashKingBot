@@ -9,7 +9,7 @@ from fastapi_cache.decorator import cache
 from typing import List
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
-from .utils import fix_tag, player_history
+from APIUtils.utils import fix_tag
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(tags=["Other"])
@@ -68,7 +68,7 @@ async def super_troop_boost_rate(start_season: str, end_season: str, request: Re
         {"$set": {"name": "$grouped._id", "boosts": "$grouped.boosts"}},
         {"$unset": ["grouped", "total"]}
     ]
-    results = await player_history.aggregate(pipeline=pipeline).to_list(length=None)
+    results = await db_client.player_history.aggregate(pipeline=pipeline).to_list(length=None)
     return results
 
 

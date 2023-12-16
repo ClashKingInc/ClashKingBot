@@ -520,14 +520,10 @@ class SetupCommands(commands.Cog , name="Setup"):
 
     @setup.sub_command(name="api-token", description="Create an api token for use in the clashking api to access server resources")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def api_token(self, ctx: disnake.ApplicationCommandInteraction, regenerate = commands.Param(default=False, choices=["True"])):
+    async def api_token(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer(ephemeral=True)
-        result = await self.bot.server_db.find_one({"server" : ctx.guild.id})
-        if regenerate == "True" or result.get("api_token") is None:
-            token = secrets.token_urlsafe(20)
-            await self.bot.server_db.update_one({"server" : ctx.guild.id}, {"$set" : {"api_token" : token}})
-        else:
-            token = result.get("api_token")
+        token = secrets.token_urlsafe(20)
+        await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"api_token": token}})
         await ctx.send(token, ephemeral=True)
         await ctx.followup.send(content="Store the above token somewhere safe, token will be regenerated each time command is run", ephemeral=True)
 
