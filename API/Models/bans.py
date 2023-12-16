@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, validator
-
+from pydantic import BaseModel, Field, validator, RootModel
+from typing import List, Dict
 
 class BannedUser(BaseModel):
     name: str
@@ -14,3 +14,7 @@ class BannedUser(BaseModel):
 
     class Config:
         populate_by_name = True
+
+
+class BannedResponse(BaseModel):
+    items: List[BannedUser]
