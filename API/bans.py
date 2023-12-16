@@ -32,7 +32,6 @@ async def ban_add(server_id: int, player_tag: str, api_token: str, request: Requ
 
 @router.get("/ban/{server_id}/list",
          name="List of banned users on server")
-@cache(expire=300)
 @limiter.limit("5/second")
 async def ban_list(server_id: int, request: Request, response: Response, api_token: str = None) -> BannedResponse:
     await token_verify(server_id=server_id, api_token=api_token)

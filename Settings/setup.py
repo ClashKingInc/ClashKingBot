@@ -1,7 +1,7 @@
 import disnake
 import coc
 import secrets
-
+import re
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from utils.general import calculate_time
@@ -523,6 +523,8 @@ class SetupCommands(commands.Cog , name="Setup"):
     async def api_token(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer(ephemeral=True)
         token = secrets.token_urlsafe(20)
+        pattern = "[^0-9a-zA-Z\s]+"
+        token = re.sub(pattern, "", token)
         await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"api_token": token}})
         await ctx.send(token, ephemeral=True)
         await ctx.followup.send(content="Store the above token somewhere safe, token will be regenerated each time command is run", ephemeral=True)

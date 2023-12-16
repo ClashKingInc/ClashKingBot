@@ -11,9 +11,10 @@ from expiring_dict import ExpiringDict
 import io
 import asyncio
 import aiohttp
-from collections import deque
 from fastapi import HTTPException
 import ujson
+from base64 import b64decode as base64_b64decode
+from json import loads as json_loads
 
 IMAGE_CACHE = ExpiringDict()
 
@@ -21,7 +22,8 @@ load_dotenv()
 client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
 other_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
 redis = aioredis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"), retry_on_timeout=True, max_connections=25, retry_on_error=[redis.ConnectionError])
-coc_client = coc.Client(loop=asyncio.get_event_loop_policy().get_event_loop(), key_count=100, key_names="DiscordBot", throttle_limit=500, cache_max_size=0, load_game_data=coc.LoadGameData(always=False), raw_attribute=True, stats_max_size=0)
+coc_client = coc.Client(key_count=100, key_names="DiscordBot", throttle_limit=500, cache_max_size=0, load_game_data=coc.LoadGameData(always=False), raw_attribute=True, stats_max_size=0)
+
 
 class DBClient():
     def __init__(self):
@@ -71,6 +73,7 @@ db_client = DBClient()
 async def get_players(tags: list, use_cache=True):
     players = []
     tag_set = set(tags)
+
     if use_cache:
         cache_data = await redis.mget(keys=list(tag_set))
     else:
@@ -82,12 +85,13 @@ async def get_players(tags: list, use_cache=True):
         data = ujson.loads(data)
         tag_set.remove(data.get("tag"))
         player = coc.Player(data=data, client=coc_client)
-
         players.append(player)
 
+    await coc_client.get_player(list(tag_set)[0])
     tasks = []
+
     for tag in tag_set:
-        task = asyncio.ensure_future(coc_client.get_player(player_tag=tag))
+        task = asyncio.ensure_future(coc_client.get_player(tag))
         tasks.append(task)
     if tasks:
         responses = await asyncio.gather(*tasks, return_exceptions=True)
@@ -169,9 +173,8 @@ async def get_keys(emails: list, passwords: list, key_names: str, key_count: int
             )
 
         resp_paylaod = await resp.json()
-        '''ip = json_loads(base64_b64decode(resp_paylaod["temporaryAPIToken"].split(".")[1] + "====").decode("utf-8"))[
-            "limits"][1]["cidrs"][0].split("/")[0]'''
-        ip = "45.79.218.79"
+        ip = json_loads(base64_b64decode(resp_paylaod["temporaryAPIToken"].split(".")[1] + "====").decode("utf-8"))[
+            "limits"][1]["cidrs"][0].split("/")[0]
 
         resp = await session.post("https://developer.clashofclans.com/api/apikey/list")
         keys = (await resp.json())["keys"]

@@ -17,6 +17,7 @@ from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 import leagues, player, capital, other, clan, war, utility, ranking, redirect, game_data, bans
 from api_analytics.fastapi import Analytics
+from uvicorn import Config, Server
 
 LOCAL = False
 load_dotenv()
@@ -137,15 +138,22 @@ app.openapi = custom_openapi
 if __name__ == '__main__':
     emails = []
     passwords = []
-    # 14-17 (18)
-    for x in range(48, 53):
+    # 48-53 (52)
+    rng = [48, 52]
+    if LOCAL is True:
+        rng = [52, 53]
+    for x in range(rng[0], rng[1]):
         emails.append(f"apiclashofclans+test{x}@gmail.com")
         passwords.append(os.getenv("COC_PASSWORD"))
     from APIUtils.utils import create_keys, coc_client
+    loop = asyncio.get_event_loop()
     keys = create_keys(emails=emails, passwords=passwords)
-    asyncio.get_event_loop().run_until_complete(coc_client.login_with_tokens(*keys))
+    loop.run_until_complete(coc_client.login_with_tokens(*keys))
 
     if not LOCAL:
-        uvicorn.run("main:app", host='0.0.0.0', port=443, ssl_keyfile="/etc/letsencrypt/live/api.clashking.xyz/privkey.pem", ssl_certfile="/etc/letsencrypt/live/api.clashking.xyz/fullchain.pem", workers=6)
+        config = Config("main:app", host='0.0.0.0', port=443, ssl_keyfile="/etc/letsencrypt/live/api.clashking.xyz/privkey.pem", ssl_certfile="/etc/letsencrypt/live/api.clashking.xyz/fullchain.pem", workers=6)
     else:
-        uvicorn.run("main:app", host='localhost', port=80)
+        config = Config("main:app", host='localhost', port=80)
+    server = Server(config)
+    loop.create_task(server.serve())
+    loop.run_forever()
