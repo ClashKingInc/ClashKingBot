@@ -200,8 +200,8 @@ async def broadcast(keys):
                 if war.state != "notInWar":
                     war_end = coc.Timestamp(data=war.endTime)
                     run_time = war_end.time.replace(tzinfo=utc)
-                    if 0 > war_end.seconds_until >= -3600:
-                        run_time = datetime.utcnow()
+                    if war_end.seconds_until < 0:
+                        continue
                     war_prep = coc.Timestamp(data=war.preparationStartTime)
                     opponent_tag = war.opponent.tag if war.opponent.tag != tag else war.clan.tag
                     in_war.add(tag)
