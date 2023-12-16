@@ -9,6 +9,7 @@ from pymongo import  InsertOne
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
 
+import pymongo
 import motor.motor_asyncio
 import collections
 import aiohttp
@@ -154,10 +155,18 @@ async def broadcast(keys):
         if x % 20 != 0:
             right_now = datetime.now().timestamp()
             one_week_ago = int(right_now) - 604800
-            pipeline = [{"$match": {"endTime": {"$gte" : one_week_ago}}}, {"$group": {"_id": "$data.clan.tag"}}]
-            clan_side_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
-            pipeline = [{"$match": {"endTime": {"$gte": one_week_ago}}}, {"$group": {"_id": "$data.opponent.tag"}}]
-            opponent_side_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
+
+            try:
+                clan_side_tags = await clan_wars.distinct("data.clan.tag", filter={"endTime": {"$gte" : one_week_ago}})
+            except Exception:
+                pipeline = [{"$match": {"endTime": {"$gte": one_week_ago}}}, {"$group": {"_id": "$data.clan.tag"}}]
+                clan_side_tags = [x["_id"] for x in (await clan_wars.aggregate(pipeline).to_list(length=None))]
+
+            try:
+                opponent_side_tags = await clan_wars.distinct("data.opponent.tag", filter={"endTime": {"$gte" : one_week_ago}})
+            except Exception:
+                pipeline = [{"$match": {"endTime": {"$gte": one_week_ago}}}, {"$group": {"_id": "$data.opponent.tag"}}]
+                opponent_side_tags = [x["_id"] for x in (await clan_wars.aggregate(pipeline).to_list(length=None))]
             combined_tags = set(opponent_side_tags + clan_side_tags)
             all_tags = [tag for tag in all_tags if tag in combined_tags]
 
