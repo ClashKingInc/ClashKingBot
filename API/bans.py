@@ -12,7 +12,7 @@ from APIUtils.utils import fix_tag, db_client, token_verify, get_players
 from Models.bans import BannedUser
 
 limiter = Limiter(key_func=get_remote_address)
-router = APIRouter(tags=["Clan Endpoints"])
+router = APIRouter(tags=["Ban Endpoints"])
 
 
 #CLAN ENDPOINTS
