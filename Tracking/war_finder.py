@@ -205,7 +205,7 @@ async def broadcast(keys):
                     opponent_tag = war.opponent.tag if war.opponent.tag != tag else war.clan.tag
                     in_war.add(tag)
                     in_war.add(opponent_tag)
-                    war_unique_id = "-".join(sorted([war.clan_tag, war.opponent.tag])) + f"-{int(war.preparation_start_time.time.timestamp())}"
+                    war_unique_id = "-".join(sorted([war.clan.tag, war.opponent.tag])) + f"-{int(war.preparation_start_time.time.timestamp())}"
                     changes.append(InsertOne({"war_id" : war_unique_id,
                                               "clans" : [tag, opponent_tag],
                                               "endTime" : int(war_end.time.replace(tzinfo=utc).timestamp())
@@ -275,7 +275,7 @@ async def store_war(clan_tag: str, opponent_tag: str, prep_time: int):
     if not war_found:
         return
 
-    war_unique_id = "-".join(sorted([war.clan_tag, war.opponent.tag])) + f"-{int(war.preparation_start_time.time.timestamp())}"
+    war_unique_id = "-".join(sorted([war.clan.tag, war.opponent.tag])) + f"-{int(war.preparation_start_time.time.timestamp())}"
 
     war_result = await clan_wars.find_one({"war_id" : war_unique_id})
     if war_result.get("data") is not None:
