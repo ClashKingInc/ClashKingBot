@@ -18,7 +18,7 @@ from redis import asyncio as aioredis
 import leagues, player, capital, other, clan, war, utility, ranking, redirect, game_data, bans
 from api_analytics.fastapi import Analytics
 
-LOCAL = True
+LOCAL = False
 load_dotenv()
 
 limiter = Limiter(key_func=get_remote_address)
