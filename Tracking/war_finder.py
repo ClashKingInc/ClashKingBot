@@ -200,12 +200,13 @@ async def broadcast(keys):
                 if war.state != "notInWar":
                     war_end = coc.Timestamp(data=war.endTime)
                     run_time = war_end.time.replace(tzinfo=utc)
-                    if war_end.seconds_until < 0:
+                    if 0 > war_end.seconds_until >= -3600:
                         run_time = datetime.utcnow()
+                    war_prep = coc.Timestamp(data=war.preparationStartTime)
                     opponent_tag = war.opponent.tag if war.opponent.tag != tag else war.clan.tag
                     in_war.add(tag)
                     in_war.add(opponent_tag)
-                    war_unique_id = "-".join(sorted([war.clan.tag, war.opponent.tag])) + f"-{int(war.preparation_start_time.time.timestamp())}"
+                    war_unique_id = "-".join(sorted([war.clan.tag, war.opponent.tag])) + f"-{int(war_prep.time.timestamp())}"
                     changes.append(InsertOne({"war_id" : war_unique_id,
                                               "clans" : [tag, opponent_tag],
                                               "endTime" : int(war_end.time.replace(tzinfo=utc).timestamp())
