@@ -252,7 +252,7 @@ async def store_war(clan_tag: str, opponent_tag: str, prep_time: int):
     while not war_found:
         war = await get_war(clan_tag=clan_tag)
         if isinstance(war, coc.ClanWar):
-            if int(war.preparation_start_time.time.timestamp()) != prep_time:
+            if war.preparation_start_time is None or int(war.preparation_start_time.time.timestamp()) != prep_time:
                 if not switched:
                     clan_tag = opponent_tag
                     switched = True
