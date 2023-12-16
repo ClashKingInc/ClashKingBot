@@ -19,10 +19,11 @@ from utils.ClanCapital import gen_raid_weekend_datestrings, calc_raid_medals
 from utils.clash import cwl_league_emojis, clan_super_troop_comp, clan_th_comp
 from utils.discord_utils import fetch_emoji
 from utils.general import create_superscript, response_to_line, fetch, get_guild_icon
-from utils.constants import SUPER_SCRIPTS, MAX_NUM_SUPERS
+from utils.constants import SUPER_SCRIPTS, MAX_NUM_SUPERS, TOWNHALL_LEVELS
 from pytz import utc
 from CustomClasses.DatabaseClasses import StatsClan
 from utils.clash import league_to_emoji
+
 
 async def family_composition(bot: CustomClient, server: disnake.Guild, type: str, embed_color: disnake.Color = disnake.Color.green()):
     bucket = defaultdict(int)
@@ -61,6 +62,7 @@ async def family_composition(bot: CustomClient, server: disnake.Guild, type: str
         "Role": "`{value:2}` {icon}`{key}`\n",
         "League": "`{value:2}` {icon}`{key}`\n",
     }
+    footer_text = f"{total_count} accounts"
 
     def get_icon(type, key):
         if type == "Townhall":
@@ -72,17 +74,16 @@ async def family_composition(bot: CustomClient, server: disnake.Guild, type: str
         return ""
 
     text = ""
-    total = sum(int(key) * value for key, value in bucket.items() if type == "Townhall")
     for key, value in sorted(bucket.items(), key=lambda x: x[1], reverse=True):
         icon = get_icon(type, key)
         text += formats[type].format(key=key, value=value, icon=icon)
 
-    footer_text = f"{total_count} accounts"
     if type == "Townhall":
+        total = sum(int(key) * value for key, value in bucket.items())
         footer_text += f" | Avg Townhall: {round((total / total_count), 2)}"
 
-    embed = disnake.Embed(title=f"{server.name} {type} Compo", description=text, color=embed_color)
-    embed.set_thumbnail(url=get_guild_icon(guild=server))
+    embed = disnake.Embed(description=text, color=embed_color)
+    embed.set_author(name=f"{server.name} {type} Compo", icon_url=get_guild_icon(guild=server))
     embed.set_footer(text=footer_text)
     embed.timestamp = datetime.now()
     return embed

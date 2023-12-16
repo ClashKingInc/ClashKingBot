@@ -70,9 +70,7 @@ class banlists(commands.Cog, name="Bans"):
             reason: reason for ban
         """
 
-        player = await self.bot.getPlayer(tag)
-        if player is None:
-            return await self.bot.player_handle(ctx, tag)
+        player = await self.bot.getPlayer(tag, raise_exceptions=True)
         await ctx.response.defer()
         embed = await self.ban_player(ctx, player, reason)
         await ctx.edit_original_message(embed=embed)
@@ -86,10 +84,7 @@ class banlists(commands.Cog, name="Bans"):
             tag: player_tag to unban
         """
 
-        player = await self.bot.getPlayer(tag)
-        if player is None:
-            return await self.bot.player_handle(ctx, tag)
-
+        player = await self.bot.getPlayer(tag, raise_exceptions=True)
         results = await self.bot.banlist.find_one({"$and": [
             {"VillageTag": player.tag},
             {"server": ctx.guild.id}

@@ -244,9 +244,7 @@ async def main(producer: KafkaProducer):
                         r = ujson.loads(r)
                         clan_tag = r.get("clan", {}).get("tag", "Unknown")
                         league = r.get("league", {}).get("name", "Unranked")
-                        auto_changes.append(InsertOne(
-                            {"name": r.get("name"), "clan": clan_tag, "league": league, "tag": r.get("tag"),
-                             "th": r.get("townHallLevel")}))
+                        auto_changes.append(InsertOne({"name": r.get("name"), "clan": clan_tag, "league": league, "tag": r.get("tag"), "th": r.get("townHallLevel")}))
                     except:
                         continue
                 if auto_changes:

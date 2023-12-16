@@ -1493,7 +1493,6 @@ async def create_stars_leaderboard(bot: CustomClient,   clan: coc.Clan, players,
 
 async def cwl_performance(bot: CustomClient, clan: coc.Clan):
     responses = await bot.cwl_db.find({"$and" : [{"clan_tag": clan.tag}, {"data" : {"$ne" : None}}]}).sort("season", -1).to_list(length=None)
-    asyncio.create_task(bot.store_all_cwls(clan=clan))
     embed = Embed(
         title=f"**{clan.name} CWL History**",
         color=Color.green())

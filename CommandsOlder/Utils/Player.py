@@ -158,40 +158,49 @@ async def history(bot: CustomClient, ctx, player):
     return embed
 
 
-async def create_profile_troops(bot, result):
+async def create_profile_troops(bot: CustomClient, result: MyCustomPlayer, embed_color: disnake.Color = disnake.Color.green()):
     player = result
     hero = heros(bot=bot, player=player)
     pets = heroPets(bot=bot, player=player)
     troop = troops(bot=bot, player=player)
-    deTroop = deTroops(bot=bot, player=player)
     siege = siegeMachines(bot=bot, player=player)
     spell = spells(bot=bot, player=player)
+    gears = hero_gear(bot=bot, player=player)
 
-    embed = disnake.Embed(title="You are looking at " + player.name,
-                           description="Troop, hero, & spell levels for this account.",
-                           color=disnake.Color.green())
-    embed.add_field(name=f'__**{player.name}** (Th{player.town_hall})__ {player.trophies}', value="Profile: " + f'[{player.tag}]({player.share_link})',
-                     inline=False)
+    troop_embed_text = ""
+    if troop:
+        troop_embed_text += f"{bot.emoji.elixir}**Troops**\n{troop}\n\n"
 
-    if (hero is not None):
-        embed.add_field(name="**Heroes:** ", value=hero, inline=False)
+    if spell:
+        troop_embed_text += f"{bot.emoji.spells}**Spells**\n{spell}\n"
 
-    if (pets is not None):
-        embed.add_field(name="**Pets:** ", value=pets, inline=False)
+    if siege:
+        troop_embed_text += f"{bot.emoji.heart}**Siege Machines**\n{siege}"
 
-    if (troop is not None):
-        embed.add_field(name="**Elixir Troops:** ", value=troop, inline=False)
+    troop_embed = disnake.Embed(description=troop_embed_text, color=embed_color)
+    troop_embed.set_author(name=f"{player.name}", icon_url=player.town_hall_cls.image_url)
 
-    if (deTroop is not None):
-        embed.add_field(name="**Dark Elixir Troops:** ", value=deTroop, inline=False)
 
-    if (siege is not None):
-        embed.add_field(name="**Siege Machines:** ", value=siege, inline=False)
+    hero_embed_text = ""
+    if hero:
+        hero_embed_text += f"{bot.emoji.up_green_arrow}**Heroes**\n{hero}\n"
 
-    if (spell is not None):
-        embed.add_field(name="**Spells:** ", value=spell, inline=False)
+    if pets:
+        hero_embed_text += f"{bot.emoji.pet_paw}**Pets**\n{pets}\n"
 
-    return embed
+    if gears:
+        hero_embed_text += f"{bot.emoji.gear}**Other Hero Gear**\n{gears}"
+
+    hero_embed = disnake.Embed(description=hero_embed_text, color=embed_color)
+
+    print(len(hero_embed_text) + len(troop_embed_text))
+    if hero_embed_text != "":
+        hero_embed.timestamp = datetime.now()
+        return [troop_embed, hero_embed]
+    else:
+        troop_embed.timestamp = datetime.now()
+        return [troop_embed]
+
 
 
 async def upgrade_embed(bot: CustomClient, player: MyCustomPlayer):
@@ -327,8 +336,8 @@ async def upgrade_embed(bot: CustomClient, player: MyCustomPlayer):
             prev_level_max = 0
             max = 10
         else:
-            if pet in ["L.A.S.S.I", "Mighty Yak", "Electro Owl", "Unicorn"]:
-                if pet in ["L.A.S.S.I", "Mighty Yak"]:
+            if pet.name in ["L.A.S.S.I", "Mighty Yak", "Electro Owl", "Unicorn"]:
+                if pet.name in ["L.A.S.S.I", "Mighty Yak"]:
                     max = 15
                 else:
                     max = 10

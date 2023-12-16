@@ -812,7 +812,7 @@ async def overall_stat_components(bot:CustomClient):
 
 
 async def stat_components(bot:CustomClient, war: coc.ClanWar, next_war: coc.ClanWar):
-    swords = bot.partial_emoji_gen("<a:swords:944894455633297418>", animated=True)
+    swords = bot.partial_emoji_gen("<a:swords:944894455633297418>")
     troop = bot.partial_emoji_gen("<:troop:861797310224400434>")
     options = []
 

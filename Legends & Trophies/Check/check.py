@@ -60,6 +60,8 @@ class Check(commands.Cog):
         msg = await ctx.original_message()
         await self.legends(ctx=ctx, msg=msg, search_query=discord_user, ez_look=True)
 
+
+
     async def legends(self, ctx, msg, search_query, ez_look):
         results = await self.bot.search_results(search_query)
         #track for them if not found

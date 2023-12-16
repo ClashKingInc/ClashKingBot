@@ -6,6 +6,10 @@ from collections import defaultdict
 from utils.discord_utils import fetch_emoji
 from utils.constants import DARK_ELIXIR, SUPER_TROOPS
 from pytz import utc
+from CustomClasses.CustomPlayer import MyCustomPlayer
+
+from datetime import datetime
+
 
 def gen_season_date():
     end = coc.utils.get_season_end().replace(tzinfo=utc).date()
@@ -33,14 +37,32 @@ async def superTroops(player, asArray=False):
     return str(boostedTroops)
 
 
-def heros(bot, player: coc.Player):
+def heros(bot, player: MyCustomPlayer):
     def get_emoji(hero: coc.Hero):
         color = "blue"
         if hero.level == hero.get_max_level_for_townhall(townhall=player.town_hall):
             color = "gold"
         return bot.get_number_emoji(color=color, number=hero.level)
 
-    hero_string = [f"{emojiDictionary(hero.name)}{get_emoji(hero)}" for hero in player.heroes if hero.is_home_base]
+    gear_to_hero = defaultdict(list)
+    for gear in player.hero_equipment:
+        if gear.hero is not None:
+            gear_to_hero[gear.hero].append(gear)
+
+    hero_string = ""
+    for hero in player.heroes:
+        if not hero.is_home_base:
+            continue
+        gear_text = " | "
+        for gear in gear_to_hero.get(hero.name, []):
+            color = "blue"
+            if gear.level == gear.max_level:
+                color = "gold"
+            emoji = bot.get_number_emoji(color=color, number=gear.level)
+            gear_text += f"{emojiDictionary(gear.name)}{emoji}"
+        if gear_text == " | ":
+            gear_text = ""
+        hero_string += f"{emojiDictionary(hero.name)}{get_emoji(hero)}{gear_text}\n"
 
     if not hero_string:
         return None
@@ -49,12 +71,17 @@ def heros(bot, player: coc.Player):
 
 
 def spells(player, bot=None):
-    spells = player.spell_cls
     spells = player.spells
-    if (spells == []):
+    if not spells:
         return None
     spellList = ""
     levelList = ""
+
+    def get_emoji(spell: coc.Spell):
+        color = "blue"
+        if spell.level == spell.get_max_level_for_townhall(townhall=player.town_hall):
+            color = "gold"
+        return bot.get_number_emoji(color=color, number=spell.level)
 
     for x in range(len(spells)):
         theSpells = coc.SPELL_ORDER
@@ -65,90 +92,62 @@ def spells(player, bot=None):
                 spellList += "\n" + levelList + "\n"
                 levelList = ""
             spellList += f"{emojiDictionary(spell.name)} "
-            if spell.level == spell.max_level:
-                levelList += maxLevelEmojis(spell.level)
-            else:
-                levelList += levelEmojis(spell.level)
+            levelList += str(get_emoji(spell))
+
             if spell.level <= 10:
                 levelList += " "
 
     spellList += "\n" + levelList + "\n"
 
-    # print(heroList)
-    # print(troopList)
     return spellList
 
 
 def troops(player, bot=None):
-    troops = player.troop_cls
     troops = player.troops
-    if (troops == []):
+    if not troops:
         return None
     troopList = ""
     levelList = ""
 
+    def get_emoji(troop: coc.Troop):
+        color = "blue"
+        if troop.level == troop.get_max_level_for_townhall(townhall=player.town_hall):
+            color = "gold"
+        return bot.get_number_emoji(color=color, number=troop.level)
+
     z = 0
     for x in range(len(troops)):
         troop = troops[x]
-        if (troop.name not in DARK_ELIXIR) and (troop.is_home_base) and (troop.name not in coc.SIEGE_MACHINE_ORDER) and (troop.name not in SUPER_TROOPS):
+        if (troop.is_home_base) and (troop.name not in coc.SIEGE_MACHINE_ORDER) and (troop.name not in SUPER_TROOPS):
             z += 1
             troopList += emojiDictionary(troop.name) + " "
-            if troop.level == troop.max_level:
-                levelList += maxLevelEmojis(troop.level)
-            else:
-                levelList += levelEmojis(troop.level)
+            levelList += str(get_emoji(troop))
+
             if troop.level <= 11:
                 levelList += " "
 
-            if (z != 0 and z % 6 == 0):
+            if (z != 0 and z % 8 == 0):
                 troopList += "\n" + levelList + "\n"
                 levelList = ""
 
-    troopList += "\n" + levelList + "\n"
+    troopList += "\n" + levelList
 
     return troopList
 
-
-def deTroops(player, bot=None):
-    troops = player.troop_cls
-    troops = player.troops
-    if (troops == []):
-        return None
-    troopList = ""
-    levelList = ""
-
-    z = 0
-    notDe = False
-    for x in range(len(troops)):
-        regTroop = coc.HOME_TROOP_ORDER
-        troop = troops[x]
-        if (notDe == False) and (troop.name in DARK_ELIXIR) and (troop.is_home_base) and (troop.name not in coc.SIEGE_MACHINE_ORDER):
-            z += 1
-            troopList += emojiDictionary(troop.name) + " "
-            if troop.level == troop.max_level:
-                levelList += maxLevelEmojis(troop.level)
-            else:
-                levelList += levelEmojis(troop.level)
-
-            if troop.level <= 11:
-                levelList += " "
-            # print(str(z))
-            if (z >= 0 and z % 5 == 0):
-                troopList += "\n" + levelList + "\n"
-                levelList = ""
-
-    troopList += "\n" + levelList + "\n"
-
-    return troopList
 
 
 def siegeMachines(player, bot=None):
-    sieges = player.troop_cls
     sieges = player.siege_machines
-    if (sieges == []):
+    if not sieges:
         return None
     siegeList = ""
     levelList = ""
+
+    def get_emoji(troop: coc.Troop):
+        color = "blue"
+        if troop.level == troop.get_max_level_for_townhall(townhall=player.town_hall):
+            color = "gold"
+        return bot.get_number_emoji(color=color, number=troop.level)
 
     z = 0
     for x in range(len(sieges)):
@@ -158,10 +157,7 @@ def siegeMachines(player, bot=None):
         if siege.name in siegeL:
             z += 1
             siegeList += emojiDictionary(siege.name) + " "
-            if siege.level == siege.max_level:
-                levelList += maxLevelEmojis(siege.level)
-            else:
-                levelList += levelEmojis(siege.level)
+            levelList += str(get_emoji(siege))
 
             if siege.level <= 10:
                 levelList += " "
@@ -173,7 +169,7 @@ def siegeMachines(player, bot=None):
     return siegeList
 
 
-def heroPets(bot,player: coc.Player):
+def heroPets(bot, player: coc.Player):
     if not player.pets:
         return None
 
@@ -184,12 +180,27 @@ def heroPets(bot,player: coc.Player):
         return bot.get_number_emoji(color=color, number=pet.level)
 
     pet_string = ""
-    for count, pet in enumerate(player.pets):
+    for count, pet in enumerate(player.pets, 1):
         pet_string += f"{emojiDictionary(pet.name)}{get_emoji(pet)}"
-        if count == 3:
+        if count % 4 == 0:
             pet_string += "\n"
 
     return pet_string
+
+def hero_gear(bot, player: MyCustomPlayer):
+    if not player.hero_equipment:
+        return None
+
+    gear_string = ""
+    for count, gear in enumerate([g for g in player.hero_equipment if g.hero is None], 1):
+        color = "blue"
+        if gear.level == gear.max_level:
+            color = "gold"
+        emoji = bot.get_number_emoji(color=color, number=gear.level)
+        gear_string += f"{emojiDictionary(gear.name)}{emoji}"
+        if count % 4 == 0:
+            gear_string += "\n"
+    return gear_string
 
 
 def profileSuperTroops(player):
@@ -443,6 +454,39 @@ def cwl_league_emojis(league: str):
         "Champion League III" : "<:WarChampionIII:1116151617922809947>"
     }
     return cwl_emojis.get(league, "<:Unranked:601618883853680653>")
+
+
+
+def is_cwl():
+    now = datetime.utcnow().replace(tzinfo=utc)
+    current_dayofweek = now.weekday()
+    if (current_dayofweek == 4 and now.hour >= 7) or (current_dayofweek == 5) or (current_dayofweek == 6) or (
+            current_dayofweek == 0 and now.hour < 7):
+        if current_dayofweek == 0:
+            current_dayofweek = 7
+        is_raids = True
+    else:
+        is_raids = False
+    return is_raids
+
+def is_games():
+    is_games = True
+    now = datetime.utcnow().replace(tzinfo=utc)
+    year = now.year
+    month = now.month
+    day = now.day
+    hour = now.hour
+    first = datetime(year, month, 22, hour=8, tzinfo=utc)
+    end = datetime(year, month, 28, hour=8, tzinfo=utc)
+    if (day >= 22 and day <= 28):
+        if (day == 22 and hour < 8) or (day == 28 and hour >= 8):
+            is_games = False
+        else:
+            is_games = True
+    else:
+        is_games = False
+    return is_games
+
 
 
 

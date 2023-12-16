@@ -92,6 +92,9 @@ class Emojis():
         self.wood_swords = EmojiType("<:wood_swords:1109716092647112787>")
         self.red_pin = EmojiType("<:redpin:1130343263698690128>")
         self.wbb_red = EmojiType("<a:wbb_red:1135329514579312640>")
+        self.spells = EmojiType("<:spells:1184426093353127966>")
+        self.heart = EmojiType("<:heart:1184426691704135701>")
+        self.pet_paw = EmojiType("<:pet:1184426579149987852>")
 
 
 

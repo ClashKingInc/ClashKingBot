@@ -6,6 +6,8 @@ ROLE_TREATMENT_TYPES = ["Add", "Remove"]
 
 BOARD_TYPES = ["Overview Board", "Simple Board", "Summary", "Donation", "Received", "Dono Ratio", "Discord Links", "War Preference", "Super Troops", "Clan Games", "Activity", "Last Online", "War Log", "CWL History"]
 TOWNHALL_LEVELS = [x for x in range(1, 17)]
+TOP_TOWNHALL = TOWNHALL_LEVELS[-1]
+
 MAX_NUM_SUPERS = 2
 SHORT_PLAYER_LINK = "https://api.clashking.xyz/p/"
 SHORT_CLAN_LINK = "https://api.clashking.xyz/c/"

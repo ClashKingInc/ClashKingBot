@@ -125,6 +125,7 @@ initial_extensions = [
 
     "Commands.Clan.commands",
     "Commands.Family.commands",
+    "Commands.Player.commands",
     "Commands.Buttons.click"
 ]
 

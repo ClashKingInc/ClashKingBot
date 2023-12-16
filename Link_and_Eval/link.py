@@ -32,7 +32,7 @@ class Linking(commands.Cog):
             return await ctx.edit_original_message(embed=embed)
 
     @commands.slash_command(name="link", description="Link clash of clans accounts to your discord profile")
-    async def link(self,  ctx: disnake.ApplicationCommandInteraction, player_tag, api_token):
+    async def link(self,  ctx: disnake.ApplicationCommandInteraction, player_tag: str, api_token=None):
         """
             Parameters
             ----------
@@ -50,7 +50,7 @@ class Linking(commands.Cog):
                     url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
                 return await ctx.edit_original_message(embed=embed)
 
-            verified = await self.bot.verifyPlayer(player.tag, api_token)
+            verified = await self.bot.coc_client.verify_player_token(player.tag, api_token)
             linked = await self.bot.link_client.get_link(player.tag)
             is_linked = (linked is not None)
 

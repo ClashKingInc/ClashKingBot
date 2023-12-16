@@ -204,8 +204,8 @@ class CustomClient(commands.AutoShardedBot):
         emoji = await guild.create_custom_emoji(name=new_url[-15:].replace("-", ""), image=img)
         return f"<:{emoji.name}:{emoji.id}>"
 
-    def get_number_emoji(self, color: str, number: int):
-        if not self.user.public_flags.verified_bot:
+    def get_number_emoji(self, color: str, number: int) -> EmojiType:
+        if not self.user.id == 808566437199216691 and not self.user.public_flags.verified_bot:
             color = "gold"
         guild = None
         if number <= 50:
@@ -343,115 +343,11 @@ class CustomClient(commands.AutoShardedBot):
             embeds.append(embed)
         return embeds
 
-    def parse_legend_search(self, smart_search):
-        if "|" in smart_search and "#" in smart_search:
-            search = smart_search.split("|")
-            tag = search[-1]
-        else:
-            tag = smart_search
-        return tag
 
-    async def search_results(self, query):
-        tags = []
-        # if search is a player tag, pull stats of the player tag
-        if utils.is_valid_tag(query) is True and len(query) >= 5:
-            t = utils.correct_tag(tag=query)
-            result = await self.player_stats.find_one({"tag": t})
-            if result is not None:
-                tags.append(t)
-            return tags
 
-        is_discord_id = query.isdigit()
-        if is_discord_id:
-            ttt = await self.get_tags(query)
-            for tag in ttt:
-                result = await self.player_stats.find_one({"$and": [
-                    {"league": {"$eq": "Legend League"}},
-                    {"tag": tag}
-                ]})
-                if result is not None:
-                    tags.append(tag)
-            if tags != []:
-                return tags
 
-        query = query.lower()
-        query = re.escape(query)
-        results = self.player_stats.find({
-            "$and": [
-                {"league": {"$eq": "Legend League"}},
-                {
-                    "name": {"$regex": f"^(?i).*{query}.*$"}
-                }
-            ]}
-        ).limit(24)
-        '''results = self.player_stats.find({"$and": [
-            {"league": {"$eq": "Legend League"}},
-            {"name": {"$regex": f"^(?i).*{query}.*$"}}
-        ]})'''
-        for document in await results.to_list(length=24):
-            tags.append(document.get("tag"))
-        return tags
 
-    async def search_name_with_tag(self, query, poster=False):
-        names = []
-        if query == "":
-            pipeline = [
-                {"$match" : {"league" : "Legend League"}},
-                {"$limit": 25}]
-        else:
-            pipeline= [
-                {
-                "$search": {
-                    "index": "player_search",
-                    "autocomplete": {
-                        "query": query,
-                        "path": "name",
-                    },
-                }
-                },
-                {"$match" : {"league" : "Legend League"}},
-                {"$limit": 25}
-            ]
-        results = await self.player_search.aggregate(pipeline=pipeline).to_list(length=None)
-        for document in results:
-            league = document.get("league")
-            if league == "Unknown":
-                league = "Unranked"
-            league = league.replace(" League", "")
-            names.append(f'{create_superscript(document.get("th"))}{document.get("name")} ({league})' + " | " + document.get("tag"))
-        return names
 
-    async def family_names(self, query, guild):
-        clan_tags = await self.clan_db.distinct("tag", filter={"server": guild.id})
-        names = []
-        if query == "":
-            pipeline = [
-                {"$match": {"clan": {"$in" : clan_tags}}},
-                {"$limit": 25}
-            ]
-        else:
-            print("here")
-            pipeline = [
-                {
-                "$search": {
-                    "index": "player_search",
-                    "autocomplete": {
-                        "query": query,
-                        "path": "name",
-                    },
-                }
-                },
-                {"$match": {"clan": {"$in" : clan_tags}}},
-                {"$limit": 25}
-            ]
-        results = await self.player_search.aggregate(pipeline=pipeline).to_list(length=None)
-        for document in results:
-            league = document.get("league")
-            if league == "Unknown":
-                league = "Unranked"
-            league = league.replace(" League", "")
-            names.append(f'{create_superscript(document.get("th"))}{document.get("name")} ({league})' + " | " + document.get("tag"))
-        return names
 
     async def get_reminder_times(self, clan_tag):
         all_reminders = self.reminders.find({"$and": [
@@ -485,21 +381,15 @@ class CustomClient(commands.AutoShardedBot):
         member_tags = get_clan_member_tags(clans=clans)
         return member_tags
 
-    def create_link(self, tag):
-        tag = tag.replace("#", "%23")
-        url = f"https://link.clashofclans.com/en?action=OpenPlayerProfile&tag={tag}"
-        return url
 
     #DISCORD HELPERS
-    def partial_emoji_gen(self, emoji_string, animated=False, state=None):
+    def partial_emoji_gen(self, emoji_string: str):
         emoji = emoji_string.split(":")
-        #emoji = self.get_emoji(int(str(emoji[2])[:-1]))
-        if "<a:" in emoji_string:
-            animated = True
-        emoji = disnake.PartialEmoji(name=emoji[1][1:], id=int(str(emoji[2])[:-1]), animated=animated)
-        return emoji
+        animated = "<a:" in emoji_string
+        return disnake.PartialEmoji(name=emoji[1][1:], id=int(str(emoji[2])[:-1]), animated=animated)
 
-    def fetch_emoji(self, name):
+
+    def fetch_emoji(self, name: str):
         emoji = emojiDictionary(name)
         if emoji is None:
             emoji = legend_emojis(name)
@@ -507,47 +397,6 @@ class CustomClient(commands.AutoShardedBot):
             return None
         return EmojiType(emoji_string=emoji)
 
-    async def pingToMember(self, ctx, ping, no_fetch=False):
-        ping = str(ping)
-        if (ping.startswith('<@') and ping.endswith('>')):
-            ping = ping[2:len(ping) - 1]
-
-        if (ping.startswith('!')):
-            ping = ping[1:len(ping)]
-        if no_fetch:
-            return ping
-        try:
-            guild: disnake.Guild = ctx.guild
-            member = await guild.get_or_fetch_member(int(ping))
-            return member
-        except:
-            return None
-
-    async def pingToRole(self, ctx, ping):
-        ping = str(ping)
-        if (ping.startswith('<@') and ping.endswith('>')):
-            ping = ping[2:len(ping) - 1]
-
-        if (ping.startswith('&')):
-            ping = ping[1:len(ping)]
-
-        try:
-            roles = await ctx.guild.fetch_roles()
-            role = utils.get(roles, id=int(ping))
-            return role
-        except:
-            return None
-
-    async def pingToChannel(self, ctx, ping):
-        ping = str(ping)
-        if (ping.startswith('<#') and ping.endswith('>')):
-            ping = ping[2:len(ping) - 1]
-
-        try:
-            channel = ctx.guild.get_channel(int(ping))
-            return channel
-        except:
-            return None
 
     async def getch_channel(self, channel_id, raise_exception=False):
         channel = self.get_channel(channel_id)
@@ -560,6 +409,7 @@ class CustomClient(commands.AutoShardedBot):
                 raise
             return None
         return channel
+
 
     async def getch_guild(self, guild_id, raise_exception=False):
         guild = None
@@ -577,12 +427,14 @@ class CustomClient(commands.AutoShardedBot):
                 raise e
         return guild
 
+
     async def getch_webhook(self, webhook_id):
         webhook = self.feed_webhooks.get(webhook_id)
         if webhook is None:
             webhook = await self.fetch_webhook(webhook_id)
             self.feed_webhooks[webhook_id] = webhook
         return webhook
+
 
     async def webhook_send(self, webhook: disnake.Webhook, content="", embed=None, file=None, components=None, wait=False, thread=None):
         if thread is None:
@@ -591,63 +443,8 @@ class CustomClient(commands.AutoShardedBot):
             msg = await webhook.send(content=content, embed=embed, file=file, components=components, wait=wait, thread=thread)
         return msg
 
-    async def parse_to_name_icon(self, discord_user: disnake.User = None, clan: coc.Clan = None, server: disnake.Guild = None, as_dict=None):
-        if as_dict:
-            if as_dict.get("user") is not None:
-                discord_user = await self.getch_user(as_dict.get("user"))
-            if as_dict.get("clan") is not None:
-                clan = await self.getClan(clan_tag=as_dict.get("clan")[0])
-            if as_dict.get("family") is not None:
-                server = await self.getch_guild(guild_id=as_dict.get("family"))
-        if discord_user:
-            return (discord_user.display_name, discord_user.avatar.url)
-        if clan:
-            return (clan.name, clan.badge.url)
-        if server:
-            if server.icon is not None:
-                return (server.name, server.icon.url)
-            else:
-                return (server.name, self.user.avatar.url)
-
-
-        return ("Global", self.user.avatar.url)
 
     #CLASH HELPERS
-    async def store_all_cwls(self, clan: coc.Clan):
-        await asyncio.sleep(0.1)
-        from datetime import date
-        diff = ceil((datetime.now().date() - date(2016, 12, 1)).days / 30)
-        dates = self.gen_season_date(seasons_ago=diff, as_text=False)
-        names = await self.cwl_db.distinct("season", filter={"clan_tag" : clan.tag})
-        await self.cwl_db.delete_many({"data.statusCode" : 404})
-        missing = set(dates) - set(names)
-        tasks = []
-        async with aiohttp.ClientSession() as session:
-            tag = clan.tag.replace("#", "")
-            for date in missing:
-                url = f"https://api.clashofstats.com/clans/{tag}/cwl/seasons/{date}"
-                task = asyncio.ensure_future(fetch(url, session, extra=date))
-                tasks.append(task)
-            responses = await asyncio.gather(*tasks)
-            await session.close()
-
-        for response, date in responses:
-            try:
-                if "Not Found" not in str(response) and "'status': 500" not in str(response) and response is not None:
-                    await self.cwl_db.insert_one({"clan_tag": clan.tag, "season": date, "data": response})
-                else:
-                    await self.cwl_db.insert_one({"clan_tag": clan.tag, "season": date, "data": None})
-            except:
-                pass
-
-    async def player_handle(self, ctx, tag):
-        try:
-            clashPlayer = await self.coc_client.get_player(tag)
-        except:
-            embed = disnake.Embed(description=f"{tag} is not a valid player tag.",
-                                  color=disnake.Color.red())
-            return await ctx.send(embed=embed)
-
     async def getPlayer(self, player_tag, custom=False, raise_exceptions=False, cache_data=False):
         if "|" in player_tag:
             player_tag = player_tag.split("|")[-1]
@@ -785,9 +582,6 @@ class CustomClient(commands.AutoShardedBot):
             times[war.clan.tag] = (war, war.end_time)
         return times
 
-    async def verifyPlayer(self, playerTag:str, playerToken:str):
-        verified = await self.coc_client.verify_player_token(playerTag, playerToken)
-        return verified
 
     async def get_clanwar(self, clanTag, next_war = False):
         if not next_war:
@@ -816,6 +610,8 @@ class CustomClient(commands.AutoShardedBot):
                 return None
 
 
+
+
     async def get_clan_wars(self, tags: list):
         tasks = []
         for tag in tags:
@@ -823,6 +619,8 @@ class CustomClient(commands.AutoShardedBot):
             tasks.append(task)
         responses = await asyncio.gather(*tasks)
         return responses
+
+
 
     async def get_player_history(self, player_tag: str):
         url = f"https://api.clashofstats.com/players/{player_tag.replace('#', '')}/history/clans"
@@ -832,18 +630,13 @@ class CustomClient(commands.AutoShardedBot):
                 await session.close()
                 return COSPlayerHistory(data=history)
 
+
     #SERVER HELPERS
-    async def get_guild_members(self, guild_id):
-        clan_tags = await self.clan_db.distinct("tag", filter={"server": guild_id})
-        clans: List[coc.Clan] = await self.get_clans(tags=clan_tags)
-        return get_clan_member_tags(clans=clans)
 
     async def get_guild_clans(self, guild_id):
         clan_tags = await self.clan_db.distinct("tag", filter={"server": guild_id})
         return clan_tags
 
-    async def open_clan_capital_reminders(self):
-        pass
 
     async def white_list_check(self, ctx, command_name):
         if ctx.author.id == 706149153431879760:
@@ -882,86 +675,6 @@ class CustomClient(commands.AutoShardedBot):
 
         return perms
 
-    async def parse_to_embed(self, custom_json: str, clan: coc.Clan=None, guild: disnake.Guild = None):
-        custom_json = custom_json.replace("true", "True")
-
-        custom_json = custom_json.replace("`", '"')
-        new_string = ""
-        inside_string = False
-        last_two = []
-        for character in custom_json:
-            if character == '"':
-                inside_string = not inside_string
-
-            if not inside_string and not character.isspace():
-                new_string += character
-            elif inside_string:
-                new_string += character
-
-        custom_json = new_string
-        embed_json = re.findall('"embeds"(.*?)}]}\);', custom_json)
-        embed_json = embed_json[0]
-
-        embed_json = '{"embeds"' + embed_json + "}]}"
-        if clan is not None:
-            leader = coc.utils.get(clan.members, role=coc.Role.leader)
-            leader_link = await self.link_client.get_link(leader.tag)
-            if leader_link is None:
-                leader_link = ""
-            else:
-                leader_link = f"<@{leader_link}>"
-            clan_badge_emoji = await self.create_new_badge_emoji(url=clan.badge.url)
-            possible_attributes = {"clan.name": clan.name, "clan.badge_url": clan.badge.url, "clan.tag": clan.tag, "clan.badge_emoji" : clan_badge_emoji,
-                                   "clan.level": clan.level, "clan.type" : clan.type, "clan.war_frequency" : clan.war_frequency,
-                                   "clan.member_count" : clan.member_count, "clan.war_league" : clan.war_league,
-                                   "clan.war_league_emoji" : cwl_league_emojis(clan.war_league.name),
-                                   "clan.required_townhall" : clan.required_townhall, "clan.required_townhall_emoji" : self.fetch_emoji(name=clan.required_townhall),
-                                   "clan.leader" : leader.name , "clan.leader_discord" : leader_link,
-                                   "clan.share_link": clan.share_link, "clan.description": clan.description,
-                                   "clan.location": clan.location, "clan.points": clan.points,
-                                   "clan.versus_points": clan.versus_points, "clan.capital_points": clan.capital_points,
-                                   "clan.war_wins": clan.war_wins, "clan.member": clan.members}
-
-            member_attributes = ["name", "trophies", "tag", "role", "exp_level", "league"]
-            for attribute, replace in possible_attributes.items():
-                if "{clan.member[" not in attribute:
-                    embed_json = embed_json.replace(f"{{{attribute}}}", str(replace))
-                elif "{clan.member[" in embed_json:
-                    line_format = re.findall("{clan\.member\[(.*?)]}", embed_json)[0]
-                    all_lines = ""
-                    for member in clan.members:
-                        this_line = line_format
-                        for att in member_attributes:
-                            if f"clan_member.{att}" in this_line:
-                                this_line = this_line.replace(f"{{clan_member.{att}}}", str(getattr(member, att)))
-                        all_lines += f"{this_line}" + r'\n'
-                    embed_json = re.sub("{clan\.member(.*?)]}", all_lines, embed_json)
-
-        if guild is not None:
-            possible_attributes = {"guild.name": guild.name, "guild.icon" : guild.icon.url if guild.icon is not None else "",  "guild.banner" : guild.banner.url if guild.banner is not None else ""}
-            for attribute, replace in possible_attributes.items():
-                embed_json = embed_json.replace(f"{{{attribute}}}", str(replace))
-
-
-        embed_json = ast.literal_eval(embed_json.replace('\r','\\r').replace('\n','\\n').replace("^^","`"))
-
-        embed = disnake.Embed.from_dict(embed_json["embeds"][0])
-        return embed
-
-    async def split_family_buttons(self, button_text: str) -> Tuple[str, int, List[int], disnake.Guild]:
-        split = str(button_text).split("_")
-        season = split[1]
-        limit = int(split[2])
-        guild_id = split[3]
-        townhall = split[4]
-        if townhall != "None":
-            townhall = [int(townhall)]
-        else:
-            townhall = list(range(2, 17))
-        guild = await self.getch_guild(guild_id)
-        if season == "None":
-            season = self.gen_raid_date()
-        return season, limit, townhall, guild
 
     def command_names(self):
         commands = []
@@ -978,44 +691,9 @@ class CustomClient(commands.AutoShardedBot):
                 commands.append(full_name)
         return commands
 
-    def is_cwl(self):
-        now = datetime.utcnow().replace(tzinfo=utc)
-        current_dayofweek = now.weekday()
-        if (current_dayofweek == 4 and now.hour >= 7) or (current_dayofweek == 5) or (current_dayofweek == 6) or (
-                current_dayofweek == 0 and now.hour < 7):
-            if current_dayofweek == 0:
-                current_dayofweek = 7
-            is_raids = True
-        else:
-            is_raids = False
-        return is_raids
-
-    def is_games(self):
-        is_games = True
-        now = datetime.utcnow().replace(tzinfo=utc)
-        year = now.year
-        month = now.month
-        day = now.day
-        hour = now.hour
-        first = datetime(year, month, 22, hour=8, tzinfo=utc)
-        end = datetime(year, month, 28, hour=8, tzinfo=utc)
-        if (day >= 22 and day <= 28):
-            if (day == 22 and hour < 8) or (day == 28 and hour >= 8):
-                is_games = False
-            else:
-                is_games = True
-        else:
-            is_games = False
-        return is_games
 
 
     #OTHER
-    async def get_custom_clans(self, tags: List[str], server = disnake.Guild, add_clan=False):
-        if add_clan:
-            pass
-
-        clan_db_results = await self.clan_db.find({"$and" : [{"tag" : {"$in" : tags}}, {"server" : server.id}]}).to_list(length=None)
-        reminder_results = await self.clan_db.find({"$and" : [{"clan" : {"$in" : tags}}, {"server" : server.id}]})
 
 
     async def get_stat_clan(self, clan_tag: str, clan=None):
@@ -1042,6 +720,7 @@ class CustomClient(commands.AutoShardedBot):
         ]
         results = await self.server_db.aggregate(pipeline).to_list(length=1)
         return DatabaseServer(bot=self, data=results[0])
+
 
     def get_clan_member_tags(self, clans):
         pass

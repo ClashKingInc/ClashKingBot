@@ -34,6 +34,8 @@ def create_superscript(num):
 
     return new_num
 
+
+
 async def calculate_time(type, war: coc.ClanWar= None):
     text = ""
     now = datetime.utcnow().replace(tzinfo=utc)

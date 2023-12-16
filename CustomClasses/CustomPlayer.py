@@ -548,8 +548,8 @@ class MyCustomPlayer(coc.Player):
                 prev_level_max = 0
                 max = 10
             else:
-                if pet in ["L.A.S.S.I", "Mighty Yak", "Electro Owl", "Unicorn"]:
-                    if pet in ["L.A.S.S.I", "Mighty Yak"]:
+                if pet.name in ["L.A.S.S.I", "Mighty Yak", "Electro Owl", "Unicorn"]:
+                    if pet.name in ["L.A.S.S.I", "Mighty Yak"]:
                         max = 15
                     else:
                         max = 10
@@ -578,6 +578,21 @@ class MyCustomPlayer(coc.Player):
         return RushedInfo(player=self, rushed_items=rushed_items, not_max_items=not_max_items,
                           locked_items=locked_items, all_items=all_items)
 
+    @property
+    def hero_equipment(self):
+        equipment_dict = {}
+        equipment = self._raw_data.get("heroEquipment")
+        for e in equipment:
+            equipment_dict[e.get("name")] = e | {"is_active" : False}
+
+        heroes = self._raw_data.get("heroes")
+        for hero in heroes:
+            equiped_gear = hero.get("equipment", [])
+            for gear in equiped_gear:
+                equipment_dict[gear.get("name")]["is_active"] = True
+                equipment_dict[gear.get("name")]["hero_name"] = hero.get("name")
+
+        return (coc.HeroEquipment(data=data, client=self._client) for data in equipment_dict.values())
 
 class RushedInfo():
     def __init__(self, player, rushed_items: List, not_max_items: List, locked_items: List, all_items: List):

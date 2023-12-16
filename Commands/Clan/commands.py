@@ -52,6 +52,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         }
         await self.bot.button_store.insert_one(as_dict)
 
+
+
     @clan.sub_command(name="board", description="Board showing basic clan overview")
     async def clan_board(self, ctx: disnake.ApplicationCommandInteraction,
                           clan: coc.Clan = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan),

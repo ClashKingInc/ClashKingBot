@@ -49,6 +49,7 @@ class Convert(commands.Cog, name="Convert"):
             raise coc.errors.NotFound
         return clan
 
+
     async def multi_clan(self, clans: str):
         clans = clans.split(",")
         new_clan_list = []
@@ -62,8 +63,7 @@ class Convert(commands.Cog, name="Convert"):
         return new_clan_list
 
 
-
-    async def player(self, player_tags: str):
+    async def players(self, player_tags: str):
         player_tags = player_tags.split(",")[:50]
         players = []
         for player_tag in player_tags:
@@ -73,6 +73,12 @@ class Convert(commands.Cog, name="Convert"):
         if not players:
             raise coc.errors.NotFound
         return players
+
+
+    async def player(self, player_tag: str):
+        player = await self.bot.getPlayer(player_tag=player_tag, custom=True, raise_exceptions=True)
+        return player
+
 
 
     def hex_code(self, hex_code: str):
