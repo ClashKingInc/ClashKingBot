@@ -97,9 +97,7 @@ async def get_players(tags: list, use_cache=True):
         player = coc.Player(data=data, client=coc_client)
         players.append(player)
 
-    await coc_client.get_player(list(tag_set)[0])
     tasks = []
-
     for tag in tag_set:
         task = asyncio.ensure_future(coc_client.get_player(tag))
         tasks.append(task)

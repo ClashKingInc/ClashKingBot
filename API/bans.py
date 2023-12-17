@@ -62,9 +62,11 @@ async def ban_list(server_id: int, request: Request, response: Response, api_tok
             continue
         player_clan = player._raw_data.get("clan")
         if player_clan:
+            player_clan = player_clan | {"role" : player.role.in_game_name}
             del player_clan["badgeUrls"]
         results.append(ban | {"name" : player.name, "share_link" : player.share_link, "townhall" : player.town_hall, "clan" : player_clan})
 
+    print(results)
     return BannedResponse(items=results)
 
 
