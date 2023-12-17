@@ -1,8 +1,6 @@
-import time
 from datetime import datetime, timedelta
 
 import ujson
-from coc import utils
 from coc.ext import discordlinks
 from disnake.ext import commands
 from dotenv import load_dotenv
@@ -13,19 +11,16 @@ from CustomClasses.CustomServer import DatabaseServer
 from CustomClasses.DatabaseClasses import StatsClan
 from urllib.request import urlopen
 from collections import defaultdict
-from utils.clash import cwl_league_emojis
 from CustomClasses.PlayerHistory import COSPlayerHistory
 from utils.constants import locations, BADGE_GUILDS
-from typing import Tuple, List
+from typing import  List
 from utils import logins as login
-from utils.general import fetch, get_clan_member_tags, create_superscript
-from math import ceil
+from utils.general import  get_clan_member_tags
 from expiring_dict import ExpiringDict
 from redis import asyncio as redis
 from CustomClasses.ClashKingAPI.Client import ClashKingAPIClient
 
 import dateutil.relativedelta
-import ast
 import coc
 import motor.motor_asyncio
 import disnake

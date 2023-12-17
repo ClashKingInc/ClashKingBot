@@ -1,12 +1,13 @@
 import os
 import re
+
+import coc.errors
 import motor.motor_asyncio
-import uvicorn
 import asyncio
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -15,7 +16,7 @@ from fastapi.openapi.utils import get_openapi
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
-import leagues, player, capital, other, clan, war, utility, ranking, redirect, game_data, bans
+import leagues, player, capital, other, clan, war, utility, ranking, redirect, game_data, bans, stats, list
 from api_analytics.fastapi import Analytics
 from uvicorn import Config, Server
 
@@ -26,19 +27,21 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
 
 
-
 async def catch_exceptions_middleware(request: Request, call_next):
     try:
         return await call_next(request)
-    except Exception:
-        # you probably want some kind of logging here
-        return Response("Not Found", status_code=404)
+    except Exception as e:
+        if isinstance(e, coc.errors.NotFound) or isinstance(e, coc.errors.Maintenance):
+            return JSONResponse({"reason" : e.reason, "message" : e.message}, status_code=e.status)
 
-if not LOCAL:
-    app.middleware('http')(catch_exceptions_middleware)
+
+#if not LOCAL:
+app.middleware("http")(catch_exceptions_middleware)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(Analytics, api_key="9f56d999-b945-4be5-8787-2448ab222ad3")
+
+
 
 routers = [
     bans.router,
@@ -48,6 +51,8 @@ routers = [
     capital.router,
     leagues.router,
     ranking.router,
+    stats.router,
+    list.router,
     redirect.router,
     game_data.router,
     other.router,

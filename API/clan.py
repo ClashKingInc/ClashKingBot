@@ -27,6 +27,9 @@ async def clan_historical(clan_tag: str, request: Request, response: Response):
         del result["_id"]
     return result
 
+'''@router.get("/clan/{clan_tag}/compo/{type}", 
+            name="")'''
+
 
 @router.get("/clan/{clan_tag}/basic",
          name="Basic Clan Object")

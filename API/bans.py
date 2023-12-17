@@ -6,33 +6,49 @@ from fastapi import  Request, Response, HTTPException
 from fastapi import APIRouter
 from fastapi_cache.decorator import cache
 from typing import List
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-from APIUtils.utils import fix_tag, db_client, token_verify, get_players
-from Models.bans import BannedResponse
+from datetime import datetime
+from APIUtils.utils import fix_tag, db_client, token_verify, get_players, limiter, coc_client
+from Models.bans import BannedResponse, BannedUser
 
-limiter = Limiter(key_func=get_remote_address)
+
 router = APIRouter(tags=["Ban Endpoints"])
 
 
 #CLAN ENDPOINTS
-'''@router.post("/ban/{server_id}/add/{player_tag}",
+@router.post("/ban/{server_id}/add/{player_tag}",
          name="Add a user to the server ban list")
-async def ban_add(server_id: int, player_tag: str, api_token: str, request: Request, response: Response):
-    result = await db_client.server_db.find_one({"server" : server_id})
-    if result is None:
-        raise HTTPException(status_code=404, detail="Server Not Found")
-    if
-    clan_tag = fix_tag(clan_tag)
-    result = await clan_stats.find_one({"tag": clan_tag})
-    if result is not None:
-        del result["_id"]
-    return result'''
+@limiter.limit("10/second")
+async def ban_add(server_id: int, player_tag: str, reason: str, added_by: int, api_token: str, request: Request, response: Response) -> BannedUser:
+    await token_verify(server_id=server_id, api_token=api_token)
+    player = await coc_client.get_player(player_tag=player_tag)
+    ban_entry = await db_client.banlist.find_one({"$and": [{"VillageTag": player.tag},{"server": server_id}]})
+    if ban_entry is None:
+        now = datetime.now()
+        dt_string = now.strftime("%Y-%m-%d %H:%M:%S")
+        ban_entry = {
+            "VillageTag": player.tag,
+            "DateCreated": dt_string,
+            "Notes": reason,
+            "server": server_id,
+            "added_by": added_by
+        }
+        await db_client.banlist.insert_one(ban_entry)
+    else:
+        ban_entry = await db_client.banlist.find_one_and_update({"$and": [{"VillageTag": player.tag}, {"server": server_id}]},
+                                                                {'$set': {"Notes": reason, "added_by": added_by}}, upsert=True, return_document=True)
+
+    player_clan = player._raw_data.get("clan")
+    if player_clan:
+        del player_clan["badgeUrls"]
+    ban_entry = ban_entry | {"name" : player.name, "share_link" : player.share_link, "townhall" : player.town_hall, "clan" : player_clan}
+    return ban_entry
+
 
 
 @router.get("/ban/{server_id}/list",
          name="List of banned users on server")
-@limiter.limit("5/second")
+@cache(expire=300)
+@limiter.limit("1/second")
 async def ban_list(server_id: int, request: Request, response: Response, api_token: str = None) -> BannedResponse:
     await token_verify(server_id=server_id, api_token=api_token)
     bans = await db_client.banlist.find({"server": server_id}).to_list(length=None)

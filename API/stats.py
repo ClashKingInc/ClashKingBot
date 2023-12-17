@@ -7,7 +7,7 @@ from fastapi_cache.decorator import cache
 from typing import List, Annotated
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
-from APIUtils.utils import fix_tag, db_client, gen_season_date,gen_games_season
+from APIUtils.utils import fix_tag, db_client, gen_season_date, gen_games_season, gen_raid_date
 from statistics import mean, median
 from datetime import datetime, timedelta
 from pytz import utc
@@ -87,9 +87,9 @@ async def donations(request: Request, response: Response,
             for m in member_list:
                 member_to_clan_tag[m.get("tag")] = c.get("tag")
                 member_to_name[m.get("tag")] = m.get("name")
-        stat_results = await clan_stats.find({"tag": {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
+        stat_results = await db_client.clan_stats.find({"tag": {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
         player_struct = {tag : {"tag" : tag, "name" : member_to_name.get(tag), "rank" : 0, "donations" : 0, "donationsReceived" : 0, "townhall" : 0, "clan_tag" : None} for tag in member_tags}
-        member_data = await player_stats_db.find({"tag" : {"$in" : member_tags}}, {"tag" : 1, "donations" : 1, "townhall" : 1}).to_list(length=None)
+        member_data = await db_client.player_stats_db.find({"tag" : {"$in" : member_tags}}, {"tag" : 1, "donations" : 1, "townhall" : 1}).to_list(length=None)
         for member in member_data:
             if not tied_only:
                 player_struct[member.get("tag")]["donations"] = member.get("donations", {}).get(season, {}).get("donated", 0)
@@ -134,7 +134,7 @@ async def donations(request: Request, response: Response,
     by_clan_totals = []
     if not clan_to_name:
         print("ere")
-        clan_results = await basic_clan.find({"tag": {"$in": list(by_clan.keys())}}).to_list(length=None)
+        clan_results = await db_client.basic_clan.find({"tag": {"$in": list(by_clan.keys())}}).to_list(length=None)
         clan_to_name = {c.get("tag"): c.get("name") for c in clan_results}
     print(clan_to_name)
     for k, v in by_clan.items():
@@ -167,14 +167,14 @@ async def activity(request: Request, response: Response,
     limit = min(limit, 500)
     season = gen_season_date() if season is None else season
     if server:
-        clans = await clans_db.distinct("tag", filter={"server" : server})
+        clans = await db_client.clans_db.distinct("tag", filter={"server" : server})
 
     new_data = []
     clan_to_name = {}
     by_clan = defaultdict(lambda : defaultdict(int))
 
     if players:
-        stat_results = await player_stats_db.find({"tag" : {"$in" : [fix_tag(player) for player in players]}},
+        stat_results = await db_client.player_stats_db.find({"tag" : {"$in" : [fix_tag(player) for player in players]}},
                                                   {"tag" : 1, "name" : 1, "activity" : 1, "townhall" : 1, "last_online" : 1, "clan_tag" : 1}).to_list(length=None)
         player_struct = {m.get("tag") : {"tag" : m.get("tag"), "name" : m.get("name"), "rank" : 0,
                                          "activity" : m.get("activity", {}).get(season, 0),
@@ -184,7 +184,7 @@ async def activity(request: Request, response: Response,
         for data in new_data:
             by_clan[data.get("clan_tag")]["activity"] += data.get("activity")
     elif clans:
-        clan_members = await basic_clan.find({"tag" : {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
+        clan_members = await db_client.basic_clan.find({"tag" : {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
         clan_to_name = {c.get("tag") : c.get("name") for c in clan_members}
         member_tags = []
         member_to_name = {}
@@ -193,9 +193,9 @@ async def activity(request: Request, response: Response,
             member_tags += [m.get("tag") for m in member_list]
             for m in member_list:
                 member_to_name[m.get("tag")] = m.get("name")
-        stat_results = await clan_stats.find({"tag": {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
+        stat_results = await db_client.clan_stats.find({"tag": {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
         player_struct = {tag : {"tag" : tag, "name" : member_to_name.get(tag), "rank" : 0, "activity" : 0, "last_online" : 0, "townhall" : 0} for tag in member_tags}
-        member_data = await player_stats_db.find({"tag" : {"$in" : member_tags}}, {"tag" : 1, "name" : 1, "activity" : 1, "townhall" : 1, "last_online" : 1, "clan_tag" : None}).to_list(length=None)
+        member_data = await db_client.player_stats_db.find({"tag" : {"$in" : member_tags}}, {"tag" : 1, "name" : 1, "activity" : 1, "townhall" : 1, "last_online" : 1, "clan_tag" : None}).to_list(length=None)
         for member in member_data:
             if not tied_only:
                 player_struct[member.get("tag")]["activity"] = member.get("activity", {}).get(season, 0)
@@ -237,7 +237,7 @@ async def activity(request: Request, response: Response,
 
     by_clan_totals = []
     if not clan_to_name:
-        clan_results = await basic_clan.find({"tag": {"$in": list(by_clan.keys())}}).to_list(length=None)
+        clan_results = await db_client.basic_clan.find({"tag": {"$in": list(by_clan.keys())}}).to_list(length=None)
         clan_to_name = {c.get("tag"): c.get("name") for c in clan_results}
     for k, v in by_clan.items():
         if clan_to_name.get(k) is None:
@@ -265,7 +265,7 @@ async def clan_games(request: Request, response: Response,
     limit = min(limit, 500)
     season = gen_games_season() if season is None else season
     if server:
-        clans = await clans_db.distinct("tag", filter={"server" : server})
+        clans = await db_client.clans_db.distinct("tag", filter={"server" : server})
     check_time = int(datetime.now().timestamp())
     current_season = gen_season_date()
     if season != current_season:
@@ -292,11 +292,11 @@ async def clan_games(request: Request, response: Response,
             {"$sort": {"tag": 1, "time": 1}},
             {"$group": {"_id": "$tag", "first": {"$first": "$time"}, "last": {"$last": "$time"}}}
         ]
-        results: List[dict] = await player_history.aggregate(pipeline).to_list(length=None)
+        results: List[dict] = await db_client.player_history.aggregate(pipeline).to_list(length=None)
         member_stat_dict = {}
         for m in results:
             member_stat_dict[m["_id"]] = {"first": m["first"], "last": m["last"]}
-        stat_results = await player_stats_db.find({"tag" : {"$in" : [fix_tag(player) for player in players]}},
+        stat_results = await db_client.player_stats_db.find({"tag" : {"$in" : [fix_tag(player) for player in players]}},
                                                   {"tag" : 1, "name" : 1, "clan_games" : 1, "townhall" : 1, "clan_tag" : 1}).to_list(length=None)
         player_struct = {m.get("tag") : {"tag" : m.get("tag"), "name" : m.get("name"), "rank" : 0,
                                          "points" : m.get("clan_games", {}).get(season, {}).get("points", 0),
@@ -315,7 +315,7 @@ async def clan_games(request: Request, response: Response,
             by_clan[data.get("clan_tag")]["points"] += data.get("points")
 
     elif clans:
-        clan_members = await basic_clan.find({"tag" : {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
+        clan_members = await db_client.basic_clan.find({"tag" : {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
         clan_to_name = {c.get("tag") : c.get("name") for c in clan_members}
         member_tags = []
         member_to_name = {}
@@ -333,13 +333,13 @@ async def clan_games(request: Request, response: Response,
             {"$sort": {"tag": 1, "time": 1}},
             {"$group": {"_id": "$tag", "first": {"$first": "$time"}, "last": {"$last": "$time"}}}
         ]
-        results: List[dict] = await player_history.aggregate(pipeline).to_list(length=None)
+        results: List[dict] = await db_client.player_history.aggregate(pipeline).to_list(length=None)
         member_stat_dict = {}
         for m in results:
             member_stat_dict[m["_id"]] = {"first": m["first"], "last": m["last"]}
-        stat_results = await clan_stats.find({"tag": {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
+        stat_results = await db_client.clan_stats.find({"tag": {"$in" : [fix_tag(clan) for clan in clans]}}).to_list(length=None)
         player_struct = {tag : {"tag" : tag, "name" : member_to_name.get(tag), "rank" : 0, "points" : 0, "time_taken" : 0, "townhall" : 0, "clan_tag": None} for tag in member_tags}
-        member_data = await player_stats_db.find({"tag" : {"$in" : member_tags}}, {"tag" : 1, "name" : 1, "clan_games" : 1, "townhall" : 1}).to_list(length=None)
+        member_data = await db_client.player_stats_db.find({"tag" : {"$in" : member_tags}}, {"tag" : 1, "name" : 1, "clan_games" : 1, "townhall" : 1}).to_list(length=None)
         for member in member_data:
             if not tied_only:
                 player_struct[member.get("tag")]["points"] = member.get("clan_games", {}).get(season, {}).get("points", 0)
@@ -395,7 +395,7 @@ async def clan_games(request: Request, response: Response,
 
     by_clan_totals = []
     if not clan_to_name:
-        clan_results = await basic_clan.find({"tag" : {"$in" : list(by_clan.keys())}}).to_list(length=None)
+        clan_results = await db_client.basic_clan.find({"tag" : {"$in" : list(by_clan.keys())}}).to_list(length=None)
         clan_to_name = {c.get("tag"): c.get("name") for c in clan_results}
     for k, v in by_clan.items():
         if clan_to_name.get(k) is None:
@@ -422,7 +422,7 @@ async def war_stats(request: Request, response: Response,
 
     limit = min(limit, 500)
     if server:
-        clans = await clans_db.distinct("tag", filter={"server" : server})
+        clans = await db_client.clans_db.distinct("tag", filter={"server" : server})
 
     if season_or_timestamp is None:
         season_or_timestamp = gen_season_date()
@@ -441,7 +441,7 @@ async def war_stats(request: Request, response: Response,
     clan_to_name = {}
     by_clan = defaultdict(lambda : defaultdict(int))
     if not tied_only:
-        basic_clans = await basic_clan.find({"tag": {"$in" : clans}}).to_list(length=None)
+        basic_clans = await db_client.basic_clan.find({"tag": {"$in" : clans}}).to_list(length=None)
         players = []
         for b_c in basic_clans:
             players += [m.get("tag") for m in b_c.get("memberList", [])]
@@ -456,7 +456,7 @@ async def war_stats(request: Request, response: Response,
             {"$unset": ["_id"]},
             {"$project": {"data" : "$data"}}
         ]
-        wars = await clan_wars.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
+        wars = await db_client.clan_wars.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
         found_wars = set()
         for war in wars:
             war = war.get("data")
@@ -704,7 +704,7 @@ async def capital_stats(request: Request, response: Response,
 
     limit = min(limit, 500)
     if server:
-        clans = await clans_db.distinct("tag", filter={"server" : server})
+        clans = await db_client.clans_db.distinct("tag", filter={"server" : server})
 
     if weekend_or_timestamp is None:
         weekend_or_timestamp = gen_raid_date()
@@ -736,7 +736,7 @@ async def capital_stats(request: Request, response: Response,
     by_clan = defaultdict(lambda : defaultdict(int))
 
     if not players:
-        basic_clans = await basic_clan.find({"tag": {"$in" : clans}}).to_list(length=None)
+        basic_clans = await db_client.basic_clan.find({"tag": {"$in" : clans}}).to_list(length=None)
         players = []
         for b_c in basic_clans:
             clan_to_name[b_c.get("tag")] = b_c.get("name")
@@ -749,9 +749,9 @@ async def capital_stats(request: Request, response: Response,
             {"$match" : {"$and" : [{"data.members.tag" : {"$in" : players}}, {"data.startTime" : {"$gte" : WEEKEND_START}}, {"data.endTime" : {"$lte" : WEEKEND_END}}]}},
             {"$unset": ["_id"]}
         ]
-        raids = await capital.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
+        raids = await db_client.capital.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
 
-        player_stats = await player_stats_db.find({"tag" : {"$in" : players}}, {"tag" : 1, "capital_gold" : 1}).to_list(length=None)
+        player_stats = await db_client.player_stats_db.find({"tag" : {"$in" : players}}, {"tag" : 1, "capital_gold" : 1}).to_list(length=None)
         donated_capital = {}
         for p in player_stats:
             for date in capital_dates:
@@ -779,7 +779,7 @@ async def capital_stats(request: Request, response: Response,
             {"$match": {"$and": [{"clan_tag": {"$in": clans}}, {"data.startTime": {"$gte": WEEKEND_START}}, {"data.endTime": {"$lte": WEEKEND_END}}]}},
             {"$unset": ["_id"]}
         ]
-        raids = await capital.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
+        raids = await db_client.capital.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
 
         player_tags = set()
         for raid in raids:
@@ -788,7 +788,7 @@ async def capital_stats(request: Request, response: Response,
             for raid_member in raid.members:
                 player_tags.add(raid_member.tag)
 
-        player_stats = await player_stats_db.find({"tag": {"$in": list(player_tags)}}, {"tag": 1, "capital_gold": 1}).to_list(length=None)
+        player_stats = await db_client.player_stats_db.find({"tag": {"$in": list(player_tags)}}, {"tag": 1, "capital_gold": 1}).to_list(length=None)
         donated_capital = {}
         for p in player_stats:
             for date in capital_dates:
@@ -826,7 +826,7 @@ async def capital_stats(request: Request, response: Response,
         data["rank"] = count
 
     if not clan_to_name:
-        basic_clans = await basic_clan.find({"tag": {"$in" : list(by_clan.keys())}}).to_list(length=None)
+        basic_clans = await db_client.basic_clan.find({"tag": {"$in" : list(by_clan.keys())}}).to_list(length=None)
         for b_c in basic_clans:
             clan_to_name[b_c.get("tag")] = b_c.get("name")
 

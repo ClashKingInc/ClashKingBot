@@ -15,6 +15,16 @@ from fastapi import HTTPException
 import ujson
 from base64 import b64decode as base64_b64decode
 from json import loads as json_loads
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+
+limiter = Limiter(key_func=get_remote_address, key_style="endpoint")
+
+def dynamic_limit(key: str):
+    if key in {"::1", "65.108.77.253", "85.10.200.219"}:
+        return "1000/second"
+    return "30/second"
 
 IMAGE_CACHE = ExpiringDict()
 
@@ -148,13 +158,16 @@ def gen_raid_date():
         raidDate = (now + timedelta(forward)).date()
         return str(raidDate)
 
-async def token_verify(server_id: int, api_token: str):
+async def token_verify(server_id: int, api_token: str, only_admin: bool = False):
     if api_token is None:
         raise HTTPException(status_code=403, detail="API Token is required")
+    server_lookup = [1103679645439754335]
+    if not only_admin:
+        server_lookup.append(server_id)
     results = await db_client.server_db.find({"server" : {"$in" : [server_id, 1103679645439754335]}}).to_list(length=None)
     tokens = [r.get("api_token") for r in results]
     if api_token not in tokens:
-        raise HTTPException(status_code=403, detail="Invalid API Token")
+        raise HTTPException(status_code=403, detail="Invalid API token or cannot access this resource")
 
 async def get_keys(emails: list, passwords: list, key_names: str, key_count: int):
     total_keys = []
