@@ -1,20 +1,24 @@
-from pydantic import BaseModel, Field, validator, RootModel
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Dict
 
-class PartialBannedUser(BaseModel):
-    VillageTag: str = Field(alias="tag")
-    DateCreated: str = Field(alias="date")
-    Notes: str = Field(alias="notes")
-    added_by: int = Field(default=824653933347209227)
+class PartialClan(BaseModel):
+    name: str
+    tag: str
+    clanLevel: int
+    role: str
 
-    class Config:
-        populate_by_name = True
+class PartialBannedUser(BaseModel):
+    tag: str = Field(validation_alias="VillageTag", serialization_alias="tag")
+    date: str = Field(validation_alias="DateCreated", serialization_alias="date")
+    notes: str = Field(validation_alias="Notes", serialization_alias="notes")
+    added_by: int | None
+
 
 class BannedUser(PartialBannedUser):
     name: str
     townhall: int
     share_link: str
-    clan: dict | None
+    clan: PartialClan | None
 
 
 class BannedResponse(BaseModel):
