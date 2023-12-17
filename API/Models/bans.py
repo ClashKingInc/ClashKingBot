@@ -11,7 +11,7 @@ class PartialBannedUser(BaseModel):
     tag: str = Field(validation_alias="VillageTag", serialization_alias="tag")
     date: str = Field(validation_alias="DateCreated", serialization_alias="date")
     notes: str = Field(validation_alias="Notes", serialization_alias="notes")
-    added_by: int | None
+    added_by: int | None = Field(default=None)
 
 
 class BannedUser(PartialBannedUser):

@@ -46,10 +46,11 @@ async def ban_add(server_id: int, player_tag: str, reason: str, added_by: int, a
 
 
 @router.get("/ban/{server_id}/list",
-         name="List of banned users on server")
+         name="List of banned users on server",
+         response_model=BannedResponse)
 @cache(expire=300)
 @limiter.limit("3/second")
-async def ban_list(server_id: int, request: Request, response: Response, api_token: str = None) -> BannedResponse:
+async def ban_list(server_id: int, request: Request, response: Response, api_token: str = None):
     await token_verify(server_id=server_id, api_token=api_token)
     bans = await db_client.banlist.find({"server": server_id}).to_list(length=None)
     player_tags = [ban.get("VillageTag") for ban in bans]
@@ -64,11 +65,7 @@ async def ban_list(server_id: int, request: Request, response: Response, api_tok
         if player_clan:
             player_clan = player_clan | {"role" : player.role.in_game_name}
             del player_clan["badgeUrls"]
+
         results.append(ban | {"name" : player.name, "share_link" : player.share_link, "townhall" : player.town_hall, "clan" : player_clan})
 
-    print(results)
-    return BannedResponse(items=results)
-
-
-
-
+    return {"items" : results}
