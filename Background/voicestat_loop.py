@@ -1,6 +1,6 @@
 from disnake.ext import commands, tasks
 import disnake
-from utils.general import calculate_time
+from Utils.general import calculate_time
 from main import scheduler
 import pytz
 utc = pytz.utc

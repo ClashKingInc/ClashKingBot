@@ -163,7 +163,7 @@ async def token_verify(server_id: int, api_token: str, only_admin: bool = False)
     if not only_admin:
         server_lookup.append(server_id)
     results = await db_client.server_db.find({"server" : {"$in" : [server_id, 1103679645439754335]}}).to_list(length=None)
-    tokens = [r.get("api_token") for r in results]
+    tokens = [r.get("ck_api_token") for r in results]
     if api_token not in tokens:
         raise HTTPException(status_code=403, detail="Invalid API token or cannot access this resource")
 

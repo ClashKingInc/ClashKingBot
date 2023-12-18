@@ -8,7 +8,7 @@ from fastapi_cache.decorator import cache
 from typing import List
 from datetime import datetime
 from APIUtils.utils import fix_tag, db_client, token_verify, get_players, limiter, coc_client
-from Models.bans import BannedResponse, BannedUser
+from Models.bans import BannedResponse, BanResponse
 
 
 router = APIRouter(tags=["Ban Endpoints"])
@@ -16,13 +16,16 @@ router = APIRouter(tags=["Ban Endpoints"])
 
 #CLAN ENDPOINTS
 @router.post("/ban/{server_id}/add/{player_tag}",
-         name="Add a user to the server ban list")
+         name="Add a user to the server ban list",
+         response_model=BanResponse)
 @limiter.limit("10/second")
-async def ban_add(server_id: int, player_tag: str, reason: str, added_by: int, api_token: str, request: Request, response: Response) -> BannedUser:
-    await token_verify(server_id=server_id, api_token=api_token)
+async def ban_add(server_id: int, player_tag: str, reason: str, added_by: int, api_token: str, request: Request, response: Response, rollover_days: int = None):
+    await token_verify(server_id=server_id, api_token=api_token, only_admin=True)
     player = await coc_client.get_player(player_tag=player_tag)
     ban_entry = await db_client.banlist.find_one({"$and": [{"VillageTag": player.tag},{"server": server_id}]})
+    new_entry = False
     if ban_entry is None:
+        new_entry = True
         now = datetime.now()
         dt_string = now.strftime("%Y-%m-%d %H:%M:%S")
         ban_entry = {
@@ -30,7 +33,8 @@ async def ban_add(server_id: int, player_tag: str, reason: str, added_by: int, a
             "DateCreated": dt_string,
             "Notes": reason,
             "server": server_id,
-            "added_by": added_by
+            "added_by": added_by,
+            "rollover_days" : rollover_days
         }
         await db_client.banlist.insert_one(ban_entry)
     else:
@@ -40,7 +44,7 @@ async def ban_add(server_id: int, player_tag: str, reason: str, added_by: int, a
     player_clan = player._raw_data.get("clan")
     if player_clan:
         del player_clan["badgeUrls"]
-    ban_entry = ban_entry | {"name" : player.name, "share_link" : player.share_link, "townhall" : player.town_hall, "clan" : player_clan}
+    ban_entry = ban_entry | {"name" : player.name, "share_link" : player.share_link, "townhall" : player.town_hall, "clan" : player_clan, "new_entry" : new_entry}
     return ban_entry
 
 
@@ -50,7 +54,7 @@ async def ban_add(server_id: int, player_tag: str, reason: str, added_by: int, a
          response_model=BannedResponse)
 @cache(expire=300)
 @limiter.limit("3/second")
-async def ban_list(server_id: int, request: Request, response: Response, api_token: str = None):
+async def ban_list(server_id: int, request: Request, response: Response, api_token: str):
     await token_verify(server_id=server_id, api_token=api_token)
     bans = await db_client.banlist.find({"server": server_id}).to_list(length=None)
     player_tags = [ban.get("VillageTag") for ban in bans]

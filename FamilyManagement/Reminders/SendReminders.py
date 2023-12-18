@@ -3,7 +3,7 @@ import coc
 import disnake
 
 from pytz import utc
-from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
+from Utils.Clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.ReminderClass import Reminder
 import sentry_sdk

@@ -5,7 +5,7 @@ from disnake.ext import commands
 import emoji
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.CustomBot import CustomClient
-from utils.components import create_components
+from Utils.components import create_components
 
 
 class Check(commands.Cog):

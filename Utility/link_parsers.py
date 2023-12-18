@@ -1,9 +1,9 @@
 import disnake
 from disnake.ext import commands
 from Assets.thPicDictionary import thDictionary
-from utils.clash import heros, heroPets
+from Utils.clash import heros, heroPets
 from CustomClasses.CustomBot import CustomClient
-from utils.clash import cwl_league_emojis
+from Utils.clash import cwl_league_emojis
 import coc
 from CommandsOlder.Utils import Clan as clan_embeds
 

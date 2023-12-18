@@ -12,7 +12,7 @@ from main import check_commands
 from Exceptions.CustomExceptions import *
 from typing import List
 from collections import defaultdict
-from utils.discord_utils import interaction_handler
+from Utils.discord_utils import interaction_handler
 last_run = {}
 refresh_last_run = {}
 

@@ -9,7 +9,7 @@ import plotly.express as px
 
 
 from collections import defaultdict
-from utils.general import create_superscript
+from Utils.general import create_superscript
 from CustomClasses.CustomBot import CustomClient
 from datetime import datetime, timedelta
 from pytz import utc

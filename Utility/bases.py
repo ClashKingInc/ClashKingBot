@@ -6,10 +6,11 @@ import disnake
 from disnake.ext import commands
 from datetime import datetime
 from CustomClasses.CustomBot import CustomClient
-from utils.constants import TOWNHALL_LEVELS
-from utils.discord_utils import upload_to_cdn, interaction_handler
+from Utils.constants import TOWNHALL_LEVELS
+from Utils.cdn import upload_to_cdn
+from Utils.discord_utils import interaction_handler
 import time
-from utils.components import wbb_components
+from Utils.components import wbb_components
 import pymongo
 from Exceptions.CustomExceptions import MessageException
 

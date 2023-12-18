@@ -4,7 +4,7 @@ import io
 import plotly.graph_objects as go
 
 from collections import defaultdict
-from utils.general import create_superscript
+from Utils.general import create_superscript
 
 def comparison_bar_graph(full_totals: dict, clan_totals: dict):
     keys = list(clan_totals[0].keys())

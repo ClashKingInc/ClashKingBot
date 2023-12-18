@@ -5,14 +5,14 @@ from typing import List, TYPE_CHECKING
 import coc
 from datetime import datetime
 import pandas as pd
-from utils.general import notate_number as B, custom_round
+from Utils.general import notate_number as B, custom_round
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from collections import defaultdict
-from utils.constants import SHORT_PLAYER_LINK, item_to_name, TOWNHALL_LEVELS
-from utils.graphing import graph_creator
+from Utils.constants import SHORT_PLAYER_LINK, item_to_name, TOWNHALL_LEVELS
+from Utils.graphing import graph_creator
 import stringcase
-from utils.general import convert_seconds, download_image
+from Utils.general import convert_seconds, download_image
 import io
 import aiohttp
 import ujson

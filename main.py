@@ -95,7 +95,6 @@ initial_extensions = [
     #"Exceptions.ExceptionHandler",
     "Export.ExportsCog",
     "FamilyManagement.Reminders.Reminders",
-    "FamilyManagement.bans",
     "FamilyManagement.strikes",
     "FamilyManagement.rosters",
     "Legends & Trophies.family_trophy_stats",
@@ -126,6 +125,7 @@ initial_extensions = [
     "Commands.Clan.commands",
     "Commands.Family.commands",
     "Commands.Player.commands",
+    "Commands.Bans.commands",
     "Commands.Buttons.click"
 ]
 

@@ -2,13 +2,13 @@ import coc
 import disnake
 
 from disnake.ext import commands
-from utils.clash import heros
+from Utils.clash import heros
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import DatabaseClan
 from Background.Logs.event_websockets import clan_ee
-from utils.clash import leagueAndTrophies
+from Utils.clash import leagueAndTrophies
 from pymongo import UpdateOne
-from utils.discord_utils import get_webhook_for_channel
+from Utils.discord_utils import get_webhook_for_channel
 from Exceptions.CustomExceptions import MissingWebhookPerms
 
 class Donations(commands.Cog, name="Donations"):

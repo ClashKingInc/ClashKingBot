@@ -9,7 +9,7 @@ from datetime import datetime
 from enum import Enum
 import chat_exporter
 import io
-from utils.discord_utils import upload_html_to_cdn
+from Utils.cdn import upload_html_to_cdn
 
 text_style_conversion = {"Blue": disnake.ButtonStyle.primary,
                          "Grey": disnake.ButtonStyle.secondary,

@@ -7,13 +7,13 @@ from typing import  Union
 from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
 from datetime import datetime
-from utils.discord_utils import permanent_image
+from Utils.cdn import upload_to_cdn
 from main import check_commands
-from utils.discord_utils import interaction_handler
+from Utils.discord_utils import interaction_handler
 from CustomClasses.Ticketing import TicketPanel, OpenTicket, LOG_TYPE
 from Discord.autocomplete import Autocomplete as autocomplete
 from disnake import ButtonStyle
-from utils.constants import TOWNHALL_LEVELS
+from Utils.constants import TOWNHALL_LEVELS
 
 
 
@@ -978,14 +978,14 @@ class TicketCommands(commands.Cog):
                                       value=embed_field["value"], inline=embed_field["inline"])
             elif "image" in attribute:
                 if embed_field != "" and embed_field != "None":
-                    embed_field = await permanent_image(self.bot, embed_field)
+                    embed_field = await upload_to_cdn( embed_field)
                 if embed_field == "None":
                     embed._image = None
                 else:
                     embed.set_image(url=embed_field)
             elif "thumbnail" in attribute:
                 if embed_field != "" and embed_field != "None":
-                    embed_field = await permanent_image(self.bot, embed_field)
+                    embed_field = await upload_to_cdn(embed_field)
                 if embed_field == "None":
                     embed._thumbnail = None
                 else:

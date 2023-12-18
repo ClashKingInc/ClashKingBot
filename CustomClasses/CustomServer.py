@@ -2,7 +2,7 @@ import coc
 import disnake
 
 from typing import Union, List, TYPE_CHECKING
-from utils.constants import ROLE_TREATMENT_TYPES
+from Utils.constants import ROLE_TREATMENT_TYPES, EMBED_COLOR
 if TYPE_CHECKING:
     from CustomClasses.CustomBot import CustomClient
 else:
@@ -37,7 +37,7 @@ class DatabaseServer():
         self.family_label = data.get("family_label", "")
         self.banlist_channel = data.get("banlist")
         self.reddit_feed = data.get("reddit_feed")
-        self.embed_color = disnake.Color(data.get("embed_color", 0x2ECC71))
+        self.embed_color = disnake.Color(data.get("embed_color", EMBED_COLOR))
         self.tied_stats_only = data.get("tied", True)
         self.autoeval_triggers = data.get("autoeval_triggers", [])
 

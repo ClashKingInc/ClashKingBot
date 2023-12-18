@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 
 from collections import defaultdict, Counter
 from typing import List
-from utils.general import create_superscript
+from Utils.general import create_superscript
 from CustomClasses.CustomPlayer import MyCustomPlayer
 
 async def create_clan_donation_graph(bot: CustomClient, clans: List[coc.Clan], townhalls: List[int], season: str, type: str):

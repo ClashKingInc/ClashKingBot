@@ -7,8 +7,8 @@ from Assets.thPicDictionary import thDictionary
 from datetime import datetime, timedelta
 from CustomClasses.emoji_class import EmojiType
 from collections import defaultdict
-from utils.ClanCapital import gen_raid_weekend_datestrings
-from utils.constants import SHORT_PLAYER_LINK, HOME_VILLAGE_HEROES
+from Utils.Clash.capital import gen_raid_weekend_datestrings
+from Utils.constants import SHORT_PLAYER_LINK, HOME_VILLAGE_HEROES
 import emoji
 import re
 from typing import List

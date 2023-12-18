@@ -11,10 +11,10 @@ from DiscordLevelingCard import RankCard, Settings
 from operator import attrgetter
 from datetime import date, timedelta, datetime
 
-from utils.discord_utils import interaction_handler
-from utils.player_pagination import button_pagination
-from utils.components import player_components
-from utils.search import search_results
+from Utils.discord_utils import interaction_handler
+from Utils.player_pagination import button_pagination
+from Utils.components import player_components
+from Utils.search import search_results
 from Discord.converters import Convert as convert
 from Discord.autocomplete import Autocomplete as autocomplete
 from CommandsOlder.Utils.Player import create_profile_troops

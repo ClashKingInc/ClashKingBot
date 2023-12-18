@@ -4,8 +4,8 @@ import calendar
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-from utils.constants import item_to_name
-from utils.ClanCapital import gen_raid_weekend_datestrings
+from Utils.constants import item_to_name
+from Utils.ClanCapital import gen_raid_weekend_datestrings
 
 from BoardCommands.Utils import Shared as shared_embeds
 

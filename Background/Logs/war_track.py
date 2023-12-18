@@ -12,11 +12,11 @@ from datetime import datetime
 tiz = pytz.utc
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 from Background.Logs.event_websockets import war_ee
-from utils.war import create_reminders, schedule_war_boards, war_start_embed, main_war_page, missed_hits, store_war, update_war_message
-from utils.general import create_superscript
+from Utils.war import create_reminders, schedule_war_boards, war_start_embed, main_war_page, missed_hits, store_war, update_war_message
+from Utils.general import create_superscript
 from CustomClasses.CustomServer import DatabaseClan
 from BoardCommands.Utils.War import attacks_embed, defenses_embed
-from utils.discord_utils import get_webhook_for_channel
+from Utils.discord_utils import get_webhook_for_channel
 from Exceptions.CustomExceptions import MissingWebhookPerms
 
 class War_Log(commands.Cog):

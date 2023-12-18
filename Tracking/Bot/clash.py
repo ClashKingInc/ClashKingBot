@@ -2,7 +2,7 @@ import asyncio
 import coc
 import os
 from dotenv import load_dotenv
-from utils.keys import get_keys
+from Utils.keys import get_keys
 
 load_dotenv()
 from coc import Client

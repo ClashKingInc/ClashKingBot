@@ -3,8 +3,8 @@ import coc
 from Assets.emojiDictionary import emojiDictionary
 from Assets.levelEmojis import levelEmojis, maxLevelEmojis
 from collections import defaultdict
-from utils.discord_utils import fetch_emoji
-from utils.constants import DARK_ELIXIR, SUPER_TROOPS
+from Utils.discord_utils import fetch_emoji
+from Utils.constants import DARK_ELIXIR, SUPER_TROOPS
 from pytz import utc
 from CustomClasses.CustomPlayer import MyCustomPlayer
 

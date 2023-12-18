@@ -8,18 +8,15 @@ from Assets.emojiDictionary import emojiDictionary, legend_emojis
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.emoji_class import Emojis, EmojiType
 from CustomClasses.CustomServer import DatabaseServer
-from CustomClasses.DatabaseClasses import StatsClan
 from urllib.request import urlopen
 from collections import defaultdict
 from CustomClasses.PlayerHistory import COSPlayerHistory
-from utils.constants import locations, BADGE_GUILDS
+from Utils.constants import locations, BADGE_GUILDS
 from typing import  List
-from utils import logins as login
-from utils.general import  get_clan_member_tags
+from Utils.general import  get_clan_member_tags
 from expiring_dict import ExpiringDict
 from redis import asyncio as redis
 from CustomClasses.ClashKingAPI.Client import ClashKingAPIClient
-
 import dateutil.relativedelta
 import coc
 import motor.motor_asyncio
@@ -42,7 +39,7 @@ class CustomClient(commands.AutoShardedBot):
     def __init__(self, **options):
         super().__init__(**options)
 
-        self.ck_client = ClashKingAPIClient()
+        self.ck_client: ClashKingAPIClient = None
 
         self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
         self.new_looper = self.looper_db.get_database("new_looper")
@@ -122,7 +119,9 @@ class CustomClient(commands.AutoShardedBot):
         self.autoboard_db: collection_class = self.db_client.usafam.autoboard_db
         self.player_search: collection_class = self.db_client.usafam.player_search
 
-        self.coc_client: coc.Client = login.coc_client
+        self.coc_client: coc.Client = coc.Client(loop=asyncio.get_event_loop_policy().get_event_loop(), key_count=10, key_names="DiscordBot", throttle_limit=500, cache_max_size=1000,
+                                                load_game_data=coc.LoadGameData(always=False), raw_attribute=True, stats_max_size=10000)
+        self._xyz = asyncio.get_event_loop().run_until_complete(self.coc_client.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD")))
 
         self.redis = redis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"), retry_on_timeout=True, max_connections=25, retry_on_error=[redis.ConnectionError])
 
@@ -384,7 +383,7 @@ class CustomClient(commands.AutoShardedBot):
         return disnake.PartialEmoji(name=emoji[1][1:], id=int(str(emoji[2])[:-1]), animated=animated)
 
 
-    def fetch_emoji(self, name: str):
+    def fetch_emoji(self, name: str | int):
         emoji = emojiDictionary(name)
         if emoji is None:
             emoji = legend_emojis(name)
@@ -687,34 +686,6 @@ class CustomClient(commands.AutoShardedBot):
         return commands
 
 
-
-    #OTHER
-
-
-    async def get_stat_clan(self, clan_tag: str, clan=None):
-        results = await self.clan_stats.find_one({"tag" : clan_tag})
-        if clan is None:
-            clan = await self.getClan(clan_tag=clan_tag, raise_exceptions=True)
-        if results is None:
-            results = {}
-        return StatsClan(data=results, clan=clan, bot=self)
-
-    async def get_custom_server(self, guild_id):
-        pipeline = [
-            {"$match": {"server" : guild_id}},
-            {"$lookup": {"from": "legendleagueroles", "localField": "server", "foreignField": "server", "as": "eval.league_roles"}},
-            {"$lookup": {"from": "evalignore", "localField": "server", "foreignField": "server", "as": "eval.ignored_roles"}},
-            {"$lookup": {"from": "generalrole", "localField": "server", "foreignField": "server", "as": "eval.family_roles"}},
-            {"$lookup": {"from": "linkrole", "localField": "server", "foreignField": "server", "as": "eval.not_family_roles"}},
-            {"$lookup": {"from": "townhallroles", "localField": "server", "foreignField": "server", "as": "eval.townhall_roles"}},
-            {"$lookup": {"from": "builderhallroles", "localField": "server", "foreignField": "server", "as": "eval.builderhall_roles"}},
-            {"$lookup": {"from": "achievementroles", "localField": "server", "foreignField": "server", "as": "eval.achievement_roles"}},
-            {"$lookup": {"from": "statusroles", "localField": "server", "foreignField": "server", "as": "eval.status_roles"}},
-            {"$lookup": {"from": "builderleagueroles", "localField": "server", "foreignField": "server", "as": "eval.builder_league_roles"}},
-            {"$lookup": {"from": "clans", "localField": "server", "foreignField": "server", "as": "clans"}},
-        ]
-        results = await self.server_db.aggregate(pipeline).to_list(length=1)
-        return DatabaseServer(bot=self, data=results[0])
 
 
     def get_clan_member_tags(self, clans):

@@ -1,7 +1,7 @@
 import datetime
 import disnake
 
-from utils.discord_utils import permanent_image, interaction_handler
+from Utils.discord_utils import permanent_image, interaction_handler
 from disnake.ext import commands
 from Exceptions.CustomExceptions import *
 from operator import attrgetter

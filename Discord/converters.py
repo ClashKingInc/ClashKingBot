@@ -1,7 +1,7 @@
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from Exceptions.CustomExceptions import InvalidGuildID, MessageException
-from utils.constants import TOWNHALL_LEVELS
+from Utils.constants import TOWNHALL_LEVELS
 import calendar
 import coc
 import re

@@ -6,10 +6,12 @@ from main import scheduler
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from FamilyManagement.Reminders import SendReminders
-from utils.war import create_reminders, send_or_update_war_end, send_or_update_war_start
-from utils.constants import USE_CODE_TEXT
+from Utils.war import create_reminders, send_or_update_war_end, send_or_update_war_start
+from Utils.constants import USE_CODE_TEXT
 has_started = False
 from CustomClasses.Ticketing import OpenTicket, TicketPanel, LOG_TYPE
+from CustomClasses.ClashKingAPI.Client import ClashKingAPIClient
+
 
 class DiscordEvents(commands.Cog):
 
@@ -19,6 +21,9 @@ class DiscordEvents(commands.Cog):
     @commands.Cog.listener()
     async def on_connect(self):
         print("connected")
+        s_result = await self.bot.server_db.find_one({"server" : 1103679645439754335})
+        self.bot.ck_client = ClashKingAPIClient(api_token=s_result.get("ck_api_token"), bot=self.bot)
+
         if self.bot.user.id == 808566437199216691:
             return
         if self.bot.user.public_flags.verified_bot:
@@ -35,10 +40,7 @@ class DiscordEvents(commands.Cog):
             scheduler.add_job(SendReminders.roster_reminder, trigger='interval', args=[self.bot], minutes=2, misfire_grace_time=None)
 
             guild_fetch = await self.bot.server_db.distinct("server")
-            if self.bot.user.public_flags.verified_bot:
-                all_guilds = [str(g) for g in guild_fetch]
-                await self.bot.server_db.update_one({"server": 923764211845312533}, {"$set": {"all_servers": all_guilds}})
-            else:
+            if not self.bot.user.public_flags.verified_bot:
                 guild_fetch = [guild.id for guild in self.bot.guilds if guild.id != 923764211845312533]
             x = guild_fetch
             if self.bot.user.public_flags.verified_bot:

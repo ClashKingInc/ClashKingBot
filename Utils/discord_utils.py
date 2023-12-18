@@ -32,52 +32,9 @@ def fetch_emoji(emoji_name):
     return emoji
 
 
-async def permanent_image(bot, url: str):
-    def request(url):
-        req = Request(url=url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64)'})
-        f = io.BytesIO(urlopen(req).read())
-        file = disnake.File(fp=f, filename="pic.png")
-        return file
-    file = request(url)
-    pic_channel = await bot.getch_channel(884951195406458900)
-    msg = await pic_channel.send(file=file)
-    pic = msg.attachments[0].url
-    return pic
 
 
-async def upload_to_cdn(picture: disnake.Attachment):
-    headers = {
-        "content-type": "application/octet-stream",
-        "AccessKey": os.getenv("BUNNY_ACCESS")
-    }
-    payload = await picture.read()
-    async with aiohttp.ClientSession() as session:
-        async with session.put(url=f"https://ny.storage.bunnycdn.com/clashking/{picture.id}.png", headers=headers, data=payload) as response:
-            r = await response.read()
-            await session.close()
 
-async def general_upload_to_cdn(bytes_, id):
-    headers = {
-        "content-type": "application/octet-stream",
-        "AccessKey": os.getenv("BUNNY_ACCESS")
-    }
-    payload = bytes_
-    async with aiohttp.ClientSession() as session:
-        async with session.put(url=f"https://ny.storage.bunnycdn.com/clashking/{id}.png", headers=headers, data=payload) as response:
-            await session.close()
-    return f"https://cdn.clashking.xyz/{id}.png?{int(datetime.now().timestamp())}"
-
-
-async def upload_html_to_cdn(bytes_, id):
-    headers = {
-        "content-type": "application/octet-stream",
-        "AccessKey": os.getenv("BUNNY_ACCESS")
-    }
-    payload = bytes_
-    async with aiohttp.ClientSession() as session:
-        async with session.put(url=f"https://ny.storage.bunnycdn.com/clashking/{id}.html", headers=headers, data=payload) as response:
-            await session.close()
-    return f"https://cdn.clashking.xyz/{id}.html"
 
 async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteraction, disnake.MessageInteraction], msg:disnake.Message = None,
                               function: Callable = None, no_defer = False, ephemeral= False, any_run=False):

@@ -3,13 +3,13 @@ import disnake
 import calendar
 import pytz
 
-from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
+from Utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
 from typing import List
 from ImageGen import ClanCapitalResult as capital_gen
-from utils.constants import item_to_name, TOWNHALL_LEVELS, BOARD_TYPES
-from utils.components import clan_board_components
+from Utils.constants import item_to_name, TOWNHALL_LEVELS, BOARD_TYPES
+from Utils.components import clan_board_components
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from BoardCommands.Utils import Clan as clan_embeds
 from BoardCommands.Utils import Shared as shared_embeds

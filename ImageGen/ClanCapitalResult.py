@@ -8,7 +8,7 @@ import aiohttp
 from io import BytesIO
 import asyncio
 from coc.raid import RaidLogEntry
-from utils.ClanCapital import calc_raid_medals
+from Utils.Clash.capital import calc_raid_medals
 import concurrent.futures
 
 async def generate_raid_result_image(raid_entry: RaidLogEntry, clan: coc.Clan):

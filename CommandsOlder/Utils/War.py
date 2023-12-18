@@ -7,9 +7,9 @@ from datetime import datetime
 from CustomClasses.CustomBot import CustomClient
 from pytz import utc
 from collections import defaultdict
-from utils.general import create_superscript
-from utils.clash import cwl_league_emojis, leagueAndTrophies
-from utils.constants import war_leagues, leagues, SUPER_SCRIPTS
+from Utils.general import create_superscript
+from Utils.clash import cwl_league_emojis, leagueAndTrophies
+from Utils.constants import war_leagues, leagues, SUPER_SCRIPTS
 from Assets.emojiDictionary import emojiDictionary
 from CustomClasses.Misc import WarPlan
 from typing import List

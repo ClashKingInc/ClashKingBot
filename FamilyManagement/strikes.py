@@ -1,7 +1,7 @@
 from disnake.ext import commands
 import disnake
-from utils.components import create_components, townhall_component, clan_component, role_component
-from utils.discord_utils import interaction_handler
+from Utils.components import create_components, townhall_component, clan_component, role_component
+from Utils.discord_utils import interaction_handler
 from datetime import datetime
 from CustomClasses.CustomBot import CustomClient
 from main import check_commands

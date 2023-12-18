@@ -6,9 +6,9 @@ import asyncio
 from collections import defaultdict
 from typing import List
 from CustomClasses.CustomBot import CustomClient
-from utils.components import create_components
-from utils.constants import DEFAULT_EVAL_ROLE_TYPES, ROLE_TREATMENT_TYPES
-from utils.general import get_clan_member_tags, create_superscript
+from Utils.components import create_components
+from Utils.constants import DEFAULT_EVAL_ROLE_TYPES, ROLE_TREATMENT_TYPES
+from Utils.general import get_clan_member_tags, create_superscript
 from Exceptions.CustomExceptions import ExpiredComponents
 
 

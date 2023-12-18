@@ -6,3 +6,5 @@ class DonationSort(Enum):
     name = "name"
     donationReceived = "donationsReceived"
     townhall = "townhall"
+
+

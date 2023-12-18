@@ -1,5 +1,5 @@
 from CustomClasses.CustomBot import CustomClient
-from utils.general import create_superscript
+from Utils.general import create_superscript
 
 async def search_results(bot: CustomClient, query, use_cache=True):
 

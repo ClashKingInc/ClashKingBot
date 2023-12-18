@@ -5,10 +5,10 @@ import calendar
 import operator
 
 from datetime import date, timedelta, datetime
-from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
-from utils.clash import *
-from utils.general import acronym, create_superscript
-from utils.discord_utils import interaction_handler
+from Utils.Clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
+from Utils.clash import *
+from Utils.general import acronym, create_superscript
+from Utils.discord_utils import interaction_handler
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from numerize import numerize

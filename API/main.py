@@ -16,7 +16,7 @@ from fastapi.openapi.utils import get_openapi
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
-import leagues, player, capital, other, clan, war, utility, ranking, redirect, game_data, bans, stats, list
+import leagues, player, capital, other, clan, war, utility, ranking, redirect, game_data, bans, stats, list, server_info
 from api_analytics.fastapi import Analytics
 from uvicorn import Config, Server
 
@@ -29,16 +29,14 @@ app = FastAPI()
 
 async def catch_exceptions_middleware(request: Request, call_next):
     try:
-        print(request)
-        print(f"{request.items()}")
         return await call_next(request)
     except Exception as e:
         if isinstance(e, coc.errors.NotFound) or isinstance(e, coc.errors.Maintenance) or isinstance(e, coc.errors.Forbidden):
             return JSONResponse({"reason" : e.reason, "message" : e.message}, status_code=e.status)
 
 
-#if not LOCAL:
-#app.middleware("http")(catch_exceptions_middleware)
+if not LOCAL:
+    app.middleware("http")(catch_exceptions_middleware)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(Analytics, api_key="9f56d999-b945-4be5-8787-2448ab222ad3")
@@ -58,7 +56,8 @@ routers = [
     redirect.router,
     game_data.router,
     other.router,
-    utility.router
+    utility.router,
+    server_info.router
 ]
 for router in routers:
     app.include_router(router)

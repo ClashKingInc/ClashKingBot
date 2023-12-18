@@ -30,7 +30,7 @@ POSTER_LIST = {"Edrag" : "edrag",
                "Village Battle" : "villagebattle",
                "Hero Pets" : "heropets"}
 
-from utils.discord_utils import general_upload_to_cdn
+from Utils.cdn import general_upload_to_cdn
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 import io

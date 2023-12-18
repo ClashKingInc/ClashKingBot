@@ -3,17 +3,22 @@ import coc
 import secrets
 import re
 from disnake.ext import commands
-from CustomClasses.CustomBot import CustomClient
-from utils.general import calculate_time
+
 from main import check_commands
 from typing import Union
-from utils.discord_utils import get_webhook_for_channel
 from Exceptions.CustomExceptions import *
-from utils.discord_utils import  interaction_handler, basic_embed_modal
+
 from CustomClasses.CustomServer import DatabaseClan
-from utils.components import clan_component
+from CustomClasses.Enums import LinkParseTypes
+from CustomClasses.CustomBot import CustomClient
+
+from Utils.discord_utils import  interaction_handler, basic_embed_modal, get_webhook_for_channel
+from Utils.general import calculate_time, get_guild_icon
+from Utils.components import clan_component
+
 from Discord.autocomplete import Autocomplete as autocomplete
 from Discord.converters import Convert as convert
+
 
 class SetupCommands(commands.Cog , name="Setup"):
 
@@ -265,6 +270,7 @@ class SetupCommands(commands.Cog , name="Setup"):
             await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"autoeval_log": log.id}})
             log_text = f"and will log in {log.mention}"
         await ctx.edit_original_message(f"**Autoeval is now turned {option} {log_text}**", allowed_mentions=disnake.AllowedMentions.none())
+
 
     @setup.sub_command(name="logs", description="Set a variety of different clan logs for your server!")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -525,24 +531,37 @@ class SetupCommands(commands.Cog , name="Setup"):
         token = secrets.token_urlsafe(20)
         pattern = "[^0-9a-zA-Z\s]+"
         token = re.sub(pattern, "", token)
-        await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"api_token": token}})
+        await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"ck_api_token": token}})
         await ctx.send(token, ephemeral=True)
         await ctx.followup.send(content="Store the above token somewhere safe, token will be regenerated each time command is run", ephemeral=True)
 
 
+    @setup.sub_command(name="link-parse", description="Turn link parsing types on/off")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def link_parse(self, ctx: disnake.ApplicationCommandInteraction,
+                         army_links: str = commands.Param(default=None, choices=["On", "Off"]),
+                         player_links: str = commands.Param(default=None, choices=["On", "Off"]),
+                         clan_links: str = commands.Param(default=None, choices=["On", "Off"])):
+        await ctx.response.defer()
+        if army_links == player_links == clan_links is None:
+            pass
+        ck_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
+        link_types = [LinkParseTypes.army, LinkParseTypes.player, LinkParseTypes.clan]
+        text = ""
+        for link_type, option in zip(link_types,[army_links, player_links, clan_links]):
+            if option is None:
+                continue
+            await ck_server.set_allowed_link_parse(type=link_type, status=(option == "On"))
+            text += f"- {link_type.capitalize()} Link Parse - `{option}`\n"
+        embed = disnake.Embed(title=f"Link Parse Settings Updated", description=text, color=ck_server.embed_color)
+        embed.set_author(name=ctx.guild.name, icon_url=get_guild_icon(ctx.guild))
+        await ctx.send(embed=embed)
 
-    @set_log_add.autocomplete("clan")
-    @voice_setup.autocomplete("clan")
-    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
-        clan_list = []
-        for tClan in await tracked.to_list(length=limit):
-            name = tClan.get("name")
-            tag = tClan.get("tag")
-            if query.lower() in name.lower():
-                clan_list.append(f"{name} | {tag}")
-        return clan_list[0:25]
+
+
+
+
+
 
 
 

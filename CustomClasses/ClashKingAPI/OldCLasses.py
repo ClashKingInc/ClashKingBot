@@ -1,7 +1,7 @@
 from typing import Union, List
 import emoji
 import re
-from utils.constants import SHORT_PLAYER_LINK
+from Utils.constants import SHORT_PLAYER_LINK
 from datetime import datetime
 from CommandsOld.graph import comparison_bar_graph
 

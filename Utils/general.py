@@ -10,8 +10,8 @@ from datetime import datetime
 
 import disnake
 
-from utils.constants import war_leagues, SUPER_SCRIPTS
-from utils.clash import league_to_emoji
+from Utils.constants import war_leagues, SUPER_SCRIPTS
+from Utils.clash import league_to_emoji
 from coc import utils
 from pytz import utc
 from typing import List, Any

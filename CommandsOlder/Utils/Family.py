@@ -6,10 +6,10 @@ from coc.raid import RaidLogEntry
 from datetime import datetime
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer, ClanCapitalWeek
-from utils.general import create_superscript
-from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry, calc_raid_medals
-from utils.constants import item_to_name, SHORT_PLAYER_LINK, leagues
-from utils.clash import cwl_league_emojis
+from Utils.general import create_superscript
+from Utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry, calc_raid_medals
+from Utils.constants import item_to_name, SHORT_PLAYER_LINK, leagues
+from Utils.clash import cwl_league_emojis
 from CustomClasses.Enums import TrophySort
 from collections import defaultdict
 from typing import List

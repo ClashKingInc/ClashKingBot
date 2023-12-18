@@ -1,6 +1,6 @@
 import disnake
 from disnake.ext import commands
-from utils.components import create_components
+from Utils.components import create_components
 
 import emoji as emoji_package
 

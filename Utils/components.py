@@ -3,8 +3,8 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from typing import List
 import coc
-from utils.clash import gen_season_date
-from utils.constants import BOARD_TYPES
+from Utils.clash import gen_season_date
+from Utils.constants import BOARD_TYPES
 from typing import Union
 
 def create_components(current_page, embeds, print=False):

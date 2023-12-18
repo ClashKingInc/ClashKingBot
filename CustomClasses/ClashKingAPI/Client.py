@@ -1,13 +1,20 @@
 import aiohttp
-from typing import List
+from typing import List, TYPE_CHECKING
 from urllib.parse import urlencode
+
+import disnake
 from expiring_dict import ExpiringDict
 from datetime import datetime
-from coc.errors import NotFound, GatewayError, HTTPException
+from coc.errors import NotFound, GatewayError, HTTPException, Forbidden, Maintenance
 import re
 import asyncio
-from .Classes import DonationResponse, ActivityResponse, ClanGamesResponse
+from .Classes.bans import BannedUser, BannedResponse
+from .Classes.settings import DatabaseServer
 
+if TYPE_CHECKING:
+    from CustomClasses.CustomBot import CustomClient
+else:
+    CustomClient = disnake.Client
 
 class HTTPClient():
     def __init__(self):
@@ -39,6 +46,15 @@ class HTTPClient():
                             # gateway error, retry again
                             await asyncio.sleep(tries * 2 + 1)
                             continue
+                        elif response.status == 403:
+                            raise Forbidden(403, data)
+
+                        elif response.status == 404:
+                            raise NotFound(404, data)
+
+                        elif response.status == 503:
+                            raise Maintenance(503, data)
+
                         await session.close()
                         return data
                 except asyncio.TimeoutError:
@@ -57,6 +73,7 @@ class HTTPClient():
 
                     raise GatewayError(response, data)
                 raise HTTPException(response, data)
+
 
 class Route:
     """Helper class to create endpoint URLs."""
@@ -94,10 +111,34 @@ class Route:
 
 
 class ClashKingAPIClient():
-    def __init__(self):
+    def __init__(self, api_token: str, bot: CustomClient):
+        self.bot = bot
         self.__http_client = HTTPClient()
+        self.api_token = api_token
+        self.api_token_query = {"api_token" : self.api_token}
 
-    async def get_donations(self, players: List[str] = [], clans: List[str] = [], townhalls: List[int] = [], server: int = None, sort_field: str = "donations",
+
+    async def get_ban_list(self, server_id: int, **kwargs):
+        kwargs = kwargs | self.api_token_query
+        data = await self.__http_client.request(Route("GET", f"/ban/{server_id}/list", **kwargs))
+        return [BannedUser(data=d, client=self) for d in data.get("items")]
+
+    async def add_ban(self, server_id: int, player_tag: str,  **kwargs):
+        if kwargs.get("rollover_days") is None:
+            del kwargs["rollover_days"]
+        kwargs = kwargs | self.api_token_query
+        data = await self.__http_client.request(Route("POST", f"/ban/{server_id}/add/{player_tag}", json=kwargs))
+        return BannedResponse(data=data, client=self)
+
+
+    async def get_server_settings(self, server_id: int, **kwargs):
+        kwargs = kwargs | self.api_token_query
+        data = await self.__http_client.request(Route("GET", f"/server-settings/{server_id}", **kwargs))
+        return DatabaseServer(bot=self.bot, data=data)
+
+
+
+    '''async def get_donations(self, players: List[str] = [], clans: List[str] = [], townhalls: List[int] = [], server: int = None, sort_field: str = "donations",
                             limit: int =50, tied_only: bool= True, season: str= None, descending: bool = True, as_dict: dict=None):
         if not as_dict:
             our_values = locals()
@@ -134,4 +175,4 @@ class ClashKingAPIClient():
         else:
             our_values = as_dict
         data = await self.__http_client.request(Route("GET", "/clan-games", **our_values))
-        return ClanGamesResponse(data)
+        return ClanGamesResponse(data)'''

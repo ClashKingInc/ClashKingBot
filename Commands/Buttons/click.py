@@ -3,7 +3,7 @@ import disnake
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-from utils.constants import EMBED_COLOR
+from Utils.constants import EMBED_COLOR
 from .converter import get_function
 
 class CommandButtons(commands.Cog):

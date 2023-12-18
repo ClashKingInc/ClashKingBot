@@ -30,10 +30,7 @@ class BackgroundCache(commands.Cog):
     @tasks.loop(seconds=60)
     async def guilds(self):
         guild_fetch = await self.bot.server_db.distinct("server")
-        if self.bot.user.public_flags.verified_bot:
-            all_guilds = [str(g) for g in guild_fetch]
-            await self.bot.server_db.update_one({"server" : 923764211845312533}, {"$set" : {"all_servers" : all_guilds}})
-        else:
+        if not self.bot.user.public_flags.verified_bot:
             guild_fetch = [guild.id for guild in self.bot.guilds if guild.id != 923764211845312533]
         x = guild_fetch
         if self.bot.user.public_flags.verified_bot:

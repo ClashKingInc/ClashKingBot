@@ -5,8 +5,8 @@ from main import check_commands
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer
 from .eval_logic import eval_logic, is_in_family
-from utils.constants import DEFAULT_EVAL_ROLE_TYPES 
-from utils.discord_utils import interaction_handler
+from Utils.constants import DEFAULT_EVAL_ROLE_TYPES
+from Utils.discord_utils import interaction_handler
 from Exceptions.CustomExceptions import MessageException
 
 class eval(commands.Cog, name="Eval"):

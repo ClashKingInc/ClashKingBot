@@ -19,17 +19,17 @@ leagues = ["Champion League I", "Champion League II", "Champion League III",
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 import os
 import coc
-from utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
+from Utils.Clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
 
 from Link_and_Eval.eval_logic import eval_logic
 from CustomClasses.ReminderClass import Reminder
-from utils.ClanCapital import get_raidlog_entry, gen_raid_weekend_datestrings
-from ImageGen.ClanCapitalResult import generate_raid_result_image, calc_raid_medals
+from Utils.Clash.capital import get_raidlog_entry, gen_raid_weekend_datestrings
+from ImageGen.ClanCapitalResult import generate_raid_result_image
 from pymongo import UpdateOne
 from coc.raid import RaidLogEntry, RaidAttack
 from numerize import numerize
 from CustomClasses.CustomServer import DatabaseClan
-from utils.discord_utils import get_webhook_for_channel
+from Utils.discord_utils import get_webhook_for_channel
 from Exceptions.CustomExceptions import MissingWebhookPerms
 from datetime import datetime
 from pytz import utc
@@ -42,10 +42,8 @@ import asyncio
 from collections import deque
 from msgspec.json import decode
 from msgspec import Struct
-from CustomClasses.ClashKingAPI.Client import ClashKingAPIClient
-ck_client = ClashKingAPIClient()
 from collections import defaultdict
-from utils.general import custom_round
+from Utils.general import custom_round
 
 class OwnerCommands(commands.Cog):
 
@@ -114,12 +112,16 @@ class OwnerCommands(commands.Cog):
     @commands.is_owner()
     async def migrate(self, ctx: disnake.ApplicationCommandInteraction):
 
-        cursor = self.bot.welcome.find({})
+        cursor = self.bot.clan_db.find({})
         all_them = await cursor.to_list(length=None)
         print(len(all_them))
         for document in all_them:
-            api_token = document.get("api_token", True)
-            await self.bot.server_db.update_one({"server" : document.get("server")}, {"$set" : {"api_token" : api_token}})
+            content = document.get("greeting", "")
+            data = {"content" : content,
+                    "embeds" : [],
+                    "components" : []
+                    }
+            await self.bot.clan_db.update_one({"$and" : [{"tag" : document.get("tag")}, {"server" : document.get("server")}]}, {"$set" : {"greetings" : data}})
 
 
     async def contribution_history(self, ctx: disnake.ApplicationCommandInteraction):

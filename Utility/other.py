@@ -1,56 +1,19 @@
-import coc
 import disnake
-import ujson
 from disnake.ext import commands
 import time
 from CustomClasses.CustomBot import CustomClient
 import io
 from PIL import Image, ImageDraw, ImageFont
-from utils.components import create_components
-import openai
-import os
-from utils.discord_utils import permanent_image
-import asyncio
-from CommandsOlder.Utils.War import main_war_page
-from CommandsOlder.Utils.Player import to_do_embed
+from Utils.components import create_components
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
-class ChatBot:
-    def __init__(self, system=""):
-        self.system = system
-        self.messages = []
-        if self.system:
-            self.messages.append({"role": "system", "content": system})
-
-    async def execute(self, message):
-        self.messages.append({"role": "user", "content": message})
-
-        loop = asyncio.get_event_loop()
-        def foo():
-            return openai.ChatCompletion.create(model="gpt-3.5-turbo-16k-0613", messages=self.messages)
-        completion = await loop.run_in_executor(None, foo)
-        # Uncomment this to print out token usage each time, e.g.
-        # {"completion_tokens": 86, "prompt_tokens": 26, "total_tokens": 112}
-        # print(completion.usage)
-        self.messages.append({"role": "assistant", "content": completion.choices[0].message.content})
-        return completion.choices[0].message.content
+from Discord.converters import Convert as convert
+from Discord.autocomplete import Autocomplete as autocomplete
 
 class misc(commands.Cog, name="Other"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.up = time.time()
-
-    async def auto_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
-        clan_list = []
-        for tClan in await tracked.to_list(length=limit):
-            name = tClan.get("name")
-            tag = tClan.get("tag")
-            if query.lower() in name.lower():
-                clan_list.append(f"{name} | {tag}")
-        return clan_list[0:25]
 
 
     @commands.slash_command(name="role-users", description="Get a list of users in a role")
@@ -142,64 +105,15 @@ class misc(commands.Cog, name="Other"):
         await ctx.send(embed=embed, components=[buttons])
 
 
-    def ping_embed(self):
-        cocping = self.bot.coc_client.http.stats.get_all_average()
-        ping_text = ""
-        for endpoint, ping in cocping.items():
-            ping_text += f"- `{endpoint} - {round(ping, 2)}ms`\n"
-        return disnake.Embed(title="COC Api Ping by Endpoint", description=ping_text, color=disnake.Color.green())
+    @commands.slash_command(name="debug", description="Debug issues on your server")
+    async def debug(self, ctx: disnake.ApplicationCommandInteraction,
+                    server: disnake.Guild = commands.Param(converter=convert.server, default=None, autocomplete=autocomplete.server)):
+        server = server or ctx.guild
+        pass
 
 
-    @commands.slash_command(name="summary", description="Get a summary of messages in a channel")
-    async def summary(self, ctx: disnake.ApplicationCommandInteraction, num_messages: int = 100):
-        await ctx.response.defer(ephemeral=True)
-        channel: disnake.TextChannel = ctx.channel
-        try:
-            messages = await channel.history(limit=num_messages).flatten()
-        except:
-            messages = []
-        if not messages:
-            return await ctx.edit_original_message(content="I don't have permission to view this channel")
-        text = ""
-        texts = []
-        for count, message in enumerate(reversed(messages), 1):
-            if message.webhook_id is None and message.author.bot:
-                continue
-            if message.content == "":
-                continue
-            if len(text) + len(f"{message.author.display_name} said: {message.content}\n") > 16000:
-                texts.append(text)
-                text = ""
-            text += f"{message.author.display_name} said: {message.content}\n"
-
-        if text != "":
-            texts.append(text)
-        returned_messages = []
-        for t in texts:
-            magicbot = ChatBot()
-            await magicbot.execute(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. ONLY use up to 25 bullet points, do not go over this, no matter what.")
-            message = await magicbot.execute(t)
-            returned_messages.append(message)
-
-        if len(returned_messages) >= 2:
-            magicbot = ChatBot()
-            await magicbot.execute(f"You are a chatbot that helps summarize conversations. Summarize using only bullet points. ONLY use up to 25 bullet points, do not go over this, no matter what.")
-            message = await magicbot.execute("\n".join(returned_messages)[:16000])
-        else:
-            message = returned_messages[0]
-
-        content = f"Summary, {num_messages} messages, #{channel.name}:\n {message}"
-        lines = [content[i:i + 2000] for i in range(0, len(content), 2000)]
-        for line in lines:
-            if line == lines[0]:
-                await ctx.edit_original_message(content=line)
-            else:
-                await ctx.followup.send(content=line, ephemeral=True)
-
-
-    @commands.slash_command(name="pepe",
-                            description="Fun Command. Create a pepe holding a sign w/ text.")
-    async def createPFP(self, ctx, sign_text: str, hidden: str = commands.Param(choices=["Yes", "No"])):
+    @commands.slash_command(name="pepe", description="Fun Command. Create a pepe holding a sign w/ text.")
+    async def create_pepe(self, ctx, sign_text: str, hidden: str = commands.Param(choices=["Yes", "No"])):
         """
             Parameters
             ----------
@@ -239,65 +153,11 @@ class misc(commands.Cog, name="Other"):
         else:
             await ctx.send(file=file)
 
+
     @commands.slash_command(name="faq", description="Frequently Asked Questions")
     async def faq(self, ctx: disnake.ApplicationCommandInteraction, question=None):
-        await ctx.response.defer()
-        q_n_a = await self.parse_faq()
-        if question not in q_n_a:
-            embed = disnake.Embed(description="Question not found",
-                                  color=disnake.Color.red())
-            await ctx.edit_original_message(embed=embed)
-        if question is not None:
-            embed = disnake.Embed(title=f"**{question}**", description=q_n_a[question],
-                                  color=disnake.Color.green())
-            await ctx.edit_original_message(embed=embed)
-        else:
-            embeds = []
-            menu_options = []
-            for spot, (question, answer) in enumerate(q_n_a.items()):
-                embed = disnake.Embed(title=f"**{question}**", description=answer,
-                                      color=disnake.Color.green())
-                embeds.append(embed)
-                menu_options.append(disnake.SelectOption(label=f"{question.replace('`', '')}", value=f"{spot}"))
+        await ctx.send(content=f"The docs [here](<https://docs.clashking.xyz>) explain a lot of basics or feel free to ask in our [support server](<https://discord.gg/clashking>)")
 
-            stat_select = disnake.ui.Select(options=menu_options, placeholder="FAQ's", max_values=1)
-            st = disnake.ui.ActionRow()
-            st.append_item(stat_select)
-            faq_menu = [st]
-
-            await ctx.edit_original_message(embed=embeds[0], components=faq_menu)
-            msg = await ctx.original_message()
-
-            def check(res: disnake.MessageInteraction):
-                return res.message.id == msg.id
-
-            while True:
-                try:
-                    res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
-                except:
-                    try:
-                        await ctx.edit_original_message(components=[])
-                    except:
-                        pass
-                    break
-
-                await res.response.defer()
-                await res.edit_original_message(embed=embeds[int(res.values[0])])
-
-    @commands.slash_command(name="level-card", description="Set custom colors & image for level card")
-    async def level_card(self, ctx: disnake.ApplicationCommandInteraction, background_image: disnake.Attachment = None, reset = commands.Param(default=None, choices=["True"])):
-        await ctx.response.defer(ephemeral=True)
-        custom = await self.bot.level_cards.find_one({"user_id": ctx.author.id})
-        if reset is None:
-            background_image = await permanent_image(bot=self.bot, url=background_image.url)
-        else:
-            background_image = None
-        if custom is not None:
-            await self.bot.level_cards.update_one({"user_id" : ctx.user.id}, {"$set" : {"background_image" : background_image}})
-        else:
-            await self.bot.level_cards.insert_one({"user_id" : ctx.user.id, "background_image" : background_image})
-
-        await ctx.send(content=f"Image set to {background_image}", ephemeral=True)
 
     @commands.Cog.listener()
     async def on_message(self, message: disnake.Message):
@@ -309,199 +169,7 @@ class misc(commands.Cog, name="Other"):
         except:
             pass
 
-    '''@commands.Cog.listener()
-    async def on_message(self, message: disnake.Message):
-        if message.content.startswith("ck "):
-            magicbot = ChatBot()
-            await magicbot.execute(f"you are an assistant for a discord bot, when someone asks for something your job is to match it to the closest fit in the available options. " \
-                                   f'Must be 100% sure it is a match, if there is no match respond with the type "No Match".' \
-                                    "Here are the options: " \
-                                    "- Show my war" \
-                                    "- Show my to-do list" \
-                                    'Return your top option in this format: {"type" : str }')
-            m = await magicbot.execute(message.content.replace("ck ", "", 1))
-            try:
-                type = ujson.loads(m)
-            except Exception:
-                return
-            if type.get("type") == "No Match":
-                return
-            accounts = await self.bot.link_client.get_linked_players(message.author.id)
-            accounts = await self.bot.get_players(tags=accounts, custom=(type.get("type") == "Show my to-do list"))
-            accounts = [a for a in accounts if a.clan is not None]
-            if not accounts:
-                return
-            main_account: coc.Player = sorted(accounts, key=lambda l: l.trophies, reverse=True)[0]
-            if type.get("type") == "Show my war":
-                reply = await message.reply(content=f"<a:loading:884400064313819146> Give me one second, grabbing the current war for {main_account.clan.name}")
-                war = await self.bot.get_clanwar(clanTag=main_account.clan.tag)
-                if war is None:
-                    return await message.reply(content=f"Sorry, {main_account.clan.name} is not in war currently")
-                clan = await main_account.get_detailed_clan()
-                embed = await main_war_page(bot=self.bot, war=war, war_league=str(clan.war_league))
-                await reply.edit(content="", embed=embed)
 
-            elif type.get("type") == "Show my to-do list":
-                reply = await message.reply(content=f"<a:loading:884400064313819146> Give me one second, grabbing your to-do list")
-                embed = await to_do_embed(bot=self.bot, discord_user=message.author, linked_accounts=accounts)
-                await reply.edit(content="", embed=embed)'''
-
-
-    '''@commands.Cog.listener()
-    async def on_connect(self):
-        custom_commands = self.bot.custom_commands.find({})
-        for command in await custom_commands.to_list(length=10000):
-            name = command.get("name")
-            desc = command.get("description")
-            guild = command.get("guild")
-            type = command.get("type")
-            command = disnake.APISlashCommand(name=name, description=desc)
-            command.add_option(name=type, required=True, autocomplete=True)
-            try:
-                await self.bot.create_guild_command(guild_id=guild, application_command=command)
-            except:
-                pass
-
-    @commands.slash_command(name="custom-command", description="Create a custom command")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def custom_command(self, ctx: disnake.ApplicationCommandInteraction, command_name: str, description: str,
-                             custom_embed: str, type=commands.Param(choices=["clan"]), refresh_button = commands.Param(default="False", choices=["True"])):
-        command_name: str = command_name.replace(" ", "-")
-        await ctx.response.defer(ephemeral=True)
-        result = await self.bot.custom_commands.find_one({"$and": [{"guild": ctx.guild.id}, {"name": command_name.lower()}]})
-        if result is not None:
-            return await ctx.send(content="Cannot name command after an already existing command")
-        command_name = command_name.lower()
-        command = disnake.APISlashCommand(name=command_name, description=description)
-        command.add_option(name=type, required=True, autocomplete=True)
-        await self.bot.custom_commands.insert_one({
-            "name": command_name,
-            "description": description,
-            "embed_data": custom_embed,
-            "type": type,
-            "guild": ctx.guild_id,
-            "refresh" : (refresh_button == "True")
-        })
-        command = await self.bot.create_guild_command(guild_id=ctx.guild_id, application_command=command)
-        await ctx.send(f"</{command}:{command.id}> created!")
-
-    @commands.slash_command(name="command-remove", description="Remove a custom command")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def remove_command(self, ctx: disnake.ApplicationCommandInteraction, command_name: str):
-        await ctx.response.defer(ephemeral=True)
-        guild_command = self.bot.get_guild_command_named(guild_id=ctx.guild.id, name=command_name.lower())
-        if guild_command is None:
-            return await ctx.send("Command not found")
-        await self.bot.delete_guild_command(guild_id=ctx.guild_id, command_id=guild_command.id)
-        await self.bot.custom_commands.delete_one({
-            "name": command_name,
-            "guild": ctx.guild_id
-        })
-        await ctx.send(f"Command removed!")
-
-    @commands.Cog.listener()
-    async def on_application_command(self, ctx: disnake.ApplicationCommandInteraction):
-        command = ctx.data.name.split(" ")[0]
-        result = await self.bot.custom_commands.find_one({"$and": [{"guild": ctx.guild.id}, {"name": command}]})
-        if result is not None:
-            await ctx.response.defer()
-            type = result.get("type")
-            query = ctx.filled_options[type]
-            if type == "clan":
-                clan = await self.bot.getClan(query)
-            embed_data = result.get("embed_data")
-            refresh = result.get("refresh")
-            if refresh:
-                buttons = disnake.ui.ActionRow()
-                buttons.append_item(disnake.ui.Button(
-                    label="", emoji=self.bot.emoji.refresh.partial_emoji,
-                    style=disnake.ButtonStyle.grey,
-                    custom_id=f"{command}_{clan.tag}"))
-            else:
-                buttons = []
-            embed = await self.bot.parse_to_embed(custom_json=embed_data, clan=clan)
-            await ctx.edit_original_message(embed=embed, components=buttons)
-
-    @commands.Cog.listener()
-    async def on_application_command_autocomplete(self, ctx: disnake.ApplicationCommandInteraction):
-        command = ctx.data.name
-        result = await self.bot.custom_commands.find_one({"$and": [{"guild": ctx.guild.id}, {"name": command}]})
-        if result is not None:
-            command_type = result.get("type")
-            query = ctx.filled_options[command_type]
-            choices = await self.auto_clan(ctx=ctx, query=query)
-            await ctx.response.autocomplete(choices=choices)'''
-
-
-    '''
-    @commands.slash_command(name="custom-bot", description="Create your custom bot")
-    async def custom_bot(self, ctx: disnake.ApplicationCommandInteraction, bot_token: str, bot_name: str, profile_picture: disnake.Attachment):
-        r = await self.bot.credentials.find_one({"user" : ctx.author.id})
-        if r is not None:
-            return await ctx.send("You have already created a custom bot.")
-        server = await self.bot.fetch_guild(923764211845312533)
-        try:
-            server_member = await server.fetch_member(ctx.author.id)
-        except:
-            if ctx.author.id != self.bot.owner.id:
-                return await ctx.send("Must be a part of the support server")
-            else:
-                server_member = await server.fetch_member(self.bot.owner.id)
-        has_legend = disnake.utils.get(server_member.roles, id=1035067240149684308)
-        has_titan = disnake.utils.get(server_member.roles, id=1035066857109061646)
-
-        if ctx.author.id == self.bot.owner.id:
-            has_legend = True
-        if has_legend is None and has_titan is None:
-            return await ctx.send("Must be a titan or legend tier bot supporter.")
-
-        await ctx.send(content=f"Creating your custom bot!")
-        instance, password = self.bot.linode_client.linode.instance_create(ltype="g6-nanode-1", region="us-central", image="private/18031365")
-        ip = instance.ipv4[0]
-        server_id = ctx.guild.id
-
-        await self.bot.credentials.insert_one({
-            "bot_name" : bot_name,
-            "bot_token" : bot_token,
-            "bot_status" : "",
-            "bot_profile_pic" : profile_picture.url,
-            "ip_address" : ip,
-            "server" : server_id,
-            "user" : ctx.author.id,
-            "password" : password
-        })
-
-        await asyncio.sleep(360)
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((ip, 22))
-
-        session = Session()
-        session.handshake(sock)
-        session.userauth_password('root', password)
-
-        channel = session.open_session()
-        channel.execute('cd MagicBot')
-        channel.execute('pm2 start main.py --interpreter=/usr/bin/python3')
-    '''
-
-    async def parse_faq(self):
-        faq_channel = await self.bot.fetch_channel(self.bot.FAQ_CHANNEL_ID)
-        q_n_a = {}
-        async for message in faq_channel.history(limit=25):
-            split_content = message.content.split("**")
-            for count, content in enumerate(split_content):
-                if "?" in content:
-                    q_n_a[content] = split_content[count+1]
-        return q_n_a
-
-    @faq.autocomplete("question")
-    async def faq_question(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        q_n_a = await self.parse_faq()
-        questions = []
-        for question, answer in q_n_a.items():
-            if query.lower() in question.lower():
-                questions.append(question[0:99])
-        return questions
 
 
 

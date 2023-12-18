@@ -1,7 +1,7 @@
 from disnake.ext import commands
 import disnake
-from utils.search import search_results
-from utils.components import create_components
+from Utils.search import search_results
+from Utils.components import create_components
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import LegendRanking
 import math

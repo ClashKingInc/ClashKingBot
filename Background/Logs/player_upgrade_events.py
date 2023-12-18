@@ -6,9 +6,9 @@ import re
 from CustomClasses.CustomServer import DatabaseClan
 from CustomClasses.CustomBot import CustomClient
 from Background.Logs.event_websockets import player_ee
-from utils.clash import league_emoji
+from Utils.clash import league_emoji
 from pytz import utc
-from utils.discord_utils import get_webhook_for_channel
+from Utils.discord_utils import get_webhook_for_channel
 from Exceptions.CustomExceptions import MissingWebhookPerms
 from BoardCommands.Utils.Player import upgrade_embed
 

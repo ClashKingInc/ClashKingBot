@@ -5,8 +5,8 @@ import calendar
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-from utils.discord_utils import interaction_handler
-from utils.constants import leagues, war_leagues
+from Utils.discord_utils import interaction_handler
+from Utils.constants import leagues, war_leagues
 from coc.miscmodels import Timestamp
 from pymongo import UpdateOne
 from BoardCommands.Utils.War import plan_text, create_components, open_modal, main_war_page, roster_embed, opp_roster_embed, \

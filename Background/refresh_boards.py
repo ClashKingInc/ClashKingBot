@@ -3,7 +3,7 @@ import disnake
 from main import scheduler
 from CustomClasses.CustomBot import CustomClient
 from CommandsOld.buttons import basic_parser
-from utils.discord_utils import get_webhook_for_channel
+from Utils.discord_utils import get_webhook_for_channel
 from Exceptions.CustomExceptions import MissingWebhookPerms
 
 class RefreshBoards(commands.Cog):

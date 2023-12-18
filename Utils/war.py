@@ -10,7 +10,7 @@ from CustomClasses.CustomServer import DatabaseClan
 from CustomClasses.CustomBot import CustomClient
 from CommandsOlder.Utils.War import main_war_page, missed_hits
 from ImageGen.WarEndResult import generate_war_result_image
-from utils.discord_utils import get_webhook_for_channel
+from Utils.discord_utils import get_webhook_for_channel
 from Exceptions.CustomExceptions import MissingWebhookPerms
 
 async def create_reminders(bot: CustomClient, times, clan_tag):

@@ -6,7 +6,7 @@ from CustomClasses.CustomServer import DatabaseClan
 from Background.Logs.event_websockets import player_ee
 from datetime import datetime
 from pytz import utc
-from utils.discord_utils import get_webhook_for_channel
+from Utils.discord_utils import get_webhook_for_channel
 from Exceptions.CustomExceptions import MissingWebhookPerms
 
 class LegendEvents(commands.Cog):

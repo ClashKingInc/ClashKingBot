@@ -15,14 +15,12 @@ from CustomClasses.CustomBot import CustomClient
 from typing import List
 from ballpark import ballpark as B
 from statistics import mean
-from utils.ClanCapital import gen_raid_weekend_datestrings, calc_raid_medals
-from utils.clash import cwl_league_emojis, clan_super_troop_comp, clan_th_comp
-from utils.discord_utils import fetch_emoji
-from utils.general import create_superscript, response_to_line, fetch, get_guild_icon
-from utils.constants import SUPER_SCRIPTS, MAX_NUM_SUPERS, TOWNHALL_LEVELS
+from Utils.Clash.capital import gen_raid_weekend_datestrings, calc_raid_medals
+from Utils.clash import cwl_league_emojis, clan_super_troop_comp, clan_th_comp, league_to_emoji
+from Utils.discord_utils import fetch_emoji
+from Utils.general import create_superscript, response_to_line, fetch, get_guild_icon
+from Utils.constants import SUPER_SCRIPTS, MAX_NUM_SUPERS, TOWNHALL_LEVELS
 from pytz import utc
-from CustomClasses.DatabaseClasses import StatsClan
-from utils.clash import league_to_emoji
 
 
 async def family_composition(bot: CustomClient, server: disnake.Guild, type: str, embed_color: disnake.Color = disnake.Color.green()):
