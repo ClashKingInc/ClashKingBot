@@ -43,6 +43,7 @@ async def ban_add(server_id: int, player_tag: str, reason: str, added_by: int, a
 
     player_clan = player._raw_data.get("clan")
     if player_clan:
+        player_clan = player_clan | {"role": player.role.in_game_name}
         del player_clan["badgeUrls"]
     ban_entry = ban_entry | {"name" : player.name, "share_link" : player.share_link, "townhall" : player.town_hall, "clan" : player_clan, "new_entry" : new_entry}
     return ban_entry
