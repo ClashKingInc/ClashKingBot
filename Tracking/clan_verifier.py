@@ -165,7 +165,23 @@ async def broadcast(keys):
 
     x = 1
     while True:
-        try:
+
+            ranking_pipeline = [{"$unwind": "$memberList"},
+                                {"$match": {"memberList.league": "Legend League"}},
+                                {"$project": {"name": "$memberList.name", "tag": "$memberList.tag",
+                                              "trophies": "$memberList.trophies", "townhall": "$memberList.townhall"}},
+                                {"$unset": ["_id"]},
+                                {"$setWindowFields": {
+                                    "sortBy": {"trophies": -1},
+                                    "output": {
+                                        "rank": {"$rank": {}}
+                                    }
+                                }},
+                                {"$out": {"db": "new_looper", "coll": "legend_rankings"}}
+                                ]
+            await clan_tags.aggregate(ranking_pipeline)
+            print("UPDATED RANKING")
+
             keys = deque(keys)
             if x % 20 == 0:
                 pipeline = [{"$match" : {"$or" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, { "$group" : { "_id" : "$tag" } } ]
@@ -235,23 +251,8 @@ async def broadcast(keys):
                     results = await clan_tags.bulk_write(changes, ordered=False)
                     print(results.bulk_api_result)
 
-            ranking_pipeline = [{"$unwind": "$memberList"},
-             {"$match": {"memberList.league": "Legend League"}},
-             {"$project": {"name": "$memberList.name", "tag": "$memberList.tag",
-                           "trophies": "$memberList.trophies", "townhall": "$memberList.townhall"}},
-             {"$unset": ["_id"]},
-             {"$setWindowFields": {
-                 "sortBy": {"trophies": -1},
-                 "output": {
-                     "rank": {"$rank": {}}
-                 }
-             }},
-             {"$out": {"db": "new_looper", "coll": "legend_rankings"}}
-             ]
-            await clan_tags.aggregate(ranking_pipeline)
-            print("UPDATED RANKING")
-        except Exception:
-            continue
+
+
 
 
 def gen_raid_date():
