@@ -52,6 +52,7 @@ class DBClient():
         self.looper = client.looper
         self.new_looper = client.new_looper
 
+        self.legend_rankings: collection_class = self.new_looper.legend_rankings
         self.war_logs_db: collection_class = self.looper.war_logs
         self.player_stats_db: collection_class = self.new_looper.player_stats
         self.attack_db: collection_class = self.looper.warhits
