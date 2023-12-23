@@ -167,7 +167,7 @@ async def broadcast(keys):
     while True:
         try:
             keys = deque(keys)
-            if x % 10 == 0:
+            if x % 20 == 0:
                 pipeline = [{"$match" : {"$or" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, { "$group" : { "_id" : "$tag" } } ]
             else:
                 pipeline = [{"$match": {"$nor" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, {"$group": {"_id": "$tag"}}]
