@@ -165,7 +165,7 @@ async def broadcast(keys):
 
     x = 1
     while True:
-
+        try:
             ranking_pipeline = [{"$unwind": "$memberList"},
                                 {"$match": {"memberList.league": "Legend League"}},
                                 {"$project": {"name": "$memberList.name", "tag": "$memberList.tag",
@@ -250,6 +250,9 @@ async def broadcast(keys):
                 if changes:
                     results = await clan_tags.bulk_write(changes, ordered=False)
                     print(results.bulk_api_result)
+
+        except Exception:
+            continue
 
 
 
