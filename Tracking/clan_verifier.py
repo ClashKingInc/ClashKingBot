@@ -36,7 +36,7 @@ throttler = Throttler(rate_limit=1000, period=1)
 emails = []
 passwords = []
 #26-29 (30)
-for x in range(23,26):
+for x in [23, 24, 25, 48, 49, 50, 51, 52]:
     emails.append(f"apiclashofclans+test{x}@gmail.com")
     passwords.append(os.getenv("COC_PASSWORD"))
 
@@ -163,7 +163,7 @@ async def fetch(url, session: aiohttp.ClientSession, headers):
 
 async def broadcast(keys):
 
-    x = 0
+    x = 1
     while True:
         try:
             keys = deque(keys)
@@ -174,12 +174,12 @@ async def broadcast(keys):
             x += 1
             all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
             print(f"{len(all_tags)} tags")
-            size_break = 50000
+            size_break = 100000
             all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
 
             for tag_group in all_tags:
                 tasks = []
-                connector = TCPConnector(limit=250, enable_cleanup_closed=True)
+                connector = TCPConnector(limit=500, enable_cleanup_closed=True)
                 timeout = ClientTimeout(total=1800)
                 async with ClientSession(connector=connector, timeout=timeout) as session:
                     for tag in tag_group:
