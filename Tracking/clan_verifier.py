@@ -179,7 +179,7 @@ async def broadcast(keys):
                                 }},
                                 {"$out": {"db": "new_looper", "coll": "legend_rankings"}}
                                 ]
-            await clan_tags.aggregate(ranking_pipeline)
+            await clan_tags.aggregate(ranking_pipeline).to_list(length=None)
             print("UPDATED RANKING")
 
             keys = deque(keys)
