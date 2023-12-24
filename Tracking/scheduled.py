@@ -293,7 +293,7 @@ async def store_cwl():
             await cwl_group.bulk_write(changes)
             print(f"{len(changes)} Changes Updated/Inserted")
 
-@scheduler.scheduled_job("cron", day="24", hour="19", minute=27)
+@scheduler.scheduled_job("cron", day="24", hour="19", minute=50)
 async def store_rounds():
     season = gen_season_date()
     pipeline = [{"$match": {"data.season": season}},
@@ -345,10 +345,9 @@ async def store_rounds():
                 while is_used is not None:
                     custom_id = str(''.join((random.choice(source) for i in range(6)))).upper()
                     is_used = await clan_war.find_one({"custom_id": custom_id})
-                unique_war_id = "-".join(sorted([war.clan.tag, war.opponent.tag])) + f"-{int(war.preparation_start_time.time.timestamp())}"
 
                 add_war.append(UpdateOne(
-                    {"war_id": unique_war_id},
+                    {"war_id": f"{war.clan.tag}-{int(war.preparation_start_time.time.timestamp())}"},
                     {"$set": {
                         "custom_id": custom_id,
                         "data": war._raw_data,
