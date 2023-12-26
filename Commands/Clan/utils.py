@@ -233,6 +233,8 @@ async def clan_composition(bot: CustomClient, clan: coc.Clan, type: str, embed_c
 
     for member in clan.members:
         if type == "Townhall":
+            if member._raw_data.get("townHallLevel") == 0:
+                continue
             bucket[str(member._raw_data.get("townHallLevel"))] += 1
         elif type == "Trophies":
             if member.trophies >= 1000:
@@ -251,7 +253,10 @@ async def clan_composition(bot: CustomClient, clan: coc.Clan, type: str, embed_c
 
     text = ""
     total = 0
-    for key, value in sorted(bucket.items(), key=lambda x:x[1], reverse=True):
+    field_to_sort = 1
+    if type == "Townhall":
+        field_to_sort = 0
+    for key, value in sorted(bucket.items(), key=lambda x:x[field_to_sort], reverse=True):
         icon = ""
         if type == "Townhall":
             icon = bot.fetch_emoji(int(key))
@@ -1197,7 +1202,7 @@ async def create_last_online(bot: CustomClient, clan: coc.Clan):
     return embed
 
 
-async def create_activities(bot: CustomClient, db_clan: StatsClan, season: str):
+async def create_activities(bot: CustomClient, db_clan, season: str):
     season = bot.gen_games_season() if season is None else season
     db_season = await db_clan.get_season(season=season)
     members = sorted(db_season.members, key=lambda x: x.activity, reverse=True)
@@ -1215,7 +1220,7 @@ async def create_activities(bot: CustomClient, db_clan: StatsClan, season: str):
     return embed
 
 
-async def create_clan_games(bot: CustomClient, db_clan: StatsClan, season: str, embed_color: disnake.Color = disnake.Color.green()):
+async def create_clan_games(bot: CustomClient, db_clan, season: str, embed_color: disnake.Color = disnake.Color.green()):
     season = bot.gen_games_season() if season is None else season
     db_season = await db_clan.get_season(season=season)
 

@@ -1,4 +1,5 @@
 import json
+import time
 
 import disnake
 from disnake.ext import commands
@@ -36,7 +37,6 @@ from pytz import utc
 from base64 import b64decode as base64_b64decode
 from json import loads as json_loads
 from datetime import datetime
-from pymongo import InsertOne
 import aiohttp
 import asyncio
 from collections import deque
@@ -44,6 +44,7 @@ from msgspec.json import decode
 from msgspec import Struct
 from collections import defaultdict
 from Utils.general import custom_round
+from CustomClasses.Ticketing import OpenTicket, TicketPanel, LOG_TYPE
 
 class OwnerCommands(commands.Cog):
 
@@ -111,17 +112,11 @@ class OwnerCommands(commands.Cog):
     @commands.slash_command(name="migrate", guild_ids=[1103679645439754335])
     @commands.is_owner()
     async def migrate(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
+        await self.bot.clan_war.delete_many({"data.season" : "2023-12"})
+        await ctx.edit_original_message(content="done")
 
-        cursor = self.bot.clan_db.find({})
-        all_them = await cursor.to_list(length=None)
-        print(len(all_them))
-        for document in all_them:
-            content = document.get("greeting", "")
-            data = {"content" : content,
-                    "embeds" : [],
-                    "components" : []
-                    }
-            await self.bot.clan_db.update_one({"$and" : [{"tag" : document.get("tag")}, {"server" : document.get("server")}]}, {"$set" : {"greetings" : data}})
+
 
 
     async def contribution_history(self, ctx: disnake.ApplicationCommandInteraction):

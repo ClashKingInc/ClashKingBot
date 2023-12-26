@@ -98,7 +98,6 @@ initial_extensions = [
     "FamilyManagement.strikes",
     "FamilyManagement.rosters",
     "Legends & Trophies.family_trophy_stats",
-    "Legends & Trophies.Check.maincheck",
     "Legends & Trophies.leaderboards",
     "Link_and_Eval.link",
     "Link_and_Eval.eval",
@@ -126,7 +125,8 @@ initial_extensions = [
     "Commands.Family.commands",
     "Commands.Player.commands",
     "Commands.Bans.commands",
-    "Commands.Buttons.click"
+    "Commands.Buttons.click",
+    "Commands.Legends.commands"
 ]
 
 

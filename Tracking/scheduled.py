@@ -293,7 +293,8 @@ async def store_cwl():
             await cwl_group.bulk_write(changes)
             print(f"{len(changes)} Changes Updated/Inserted")
 
-@scheduler.scheduled_job("cron", day="24", hour="19", minute=50)
+
+@scheduler.scheduled_job("cron", day="13", hour="5", minute=1)
 async def store_rounds():
     season = gen_season_date()
     pipeline = [{"$match": {"data.season": season}},

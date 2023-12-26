@@ -107,7 +107,7 @@ class BaseTicket():
             embed = disnake.Embed(description=f"**Ticket Closed**\n"
                                               f" - By: {user.mention}\n"
                                               f" - Ticket: {ticket_channel.name}, {ticket_user.mention}({ticket_user})\n"
-                                              f" - Time: {self.bot.timestamper(unix_time=int(datetime.utcnow().timestamp())).cal_date}\n"
+                                              f" - Time: {self.bot.timestamper(unix_time=int(datetime.now().timestamp())).cal_date}\n"
                                               f" - Ticket Creation: {self.bot.timestamper(unix_time=int(creation_time.timestamp())).cal_date}",
                                   color=disnake.Color(2829617))
             embed.set_author(name=user.name, icon_url=user.display_avatar.url)
@@ -132,6 +132,8 @@ class BaseTicket():
         channel = await self.bot.getch_channel(channel)
         if channel is not None:
             await channel.send(embed=embed, components=components)
+
+
 
 class TicketPanel(BaseTicket):
     def __init__(self, bot: CustomClient, panel_settings):

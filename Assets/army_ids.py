@@ -43,7 +43,7 @@ def troop_ids(troop_id):
         95: "Electro Titan",
         97 : "Apprentice Warden",
         98 : "Super Hog Rider",
-
+        110 : "Root Rider",
 
         51: "Wall Wrecker",
         52: "Battle Blimp",
@@ -55,7 +55,7 @@ def troop_ids(troop_id):
 
     }
 
-    troop_name = switcher.get(troop_id, False)
+    troop_name = switcher.get(troop_id, "Barbarian")
     return troop_name
 
 def spell_ids(spell_id):
@@ -75,7 +75,7 @@ def spell_ids(spell_id):
         53: "Recall Spell"
     }
 
-    spell_name = switcher.get(spell_id, False)
+    spell_name = switcher.get(spell_id, "Lightning Spell")
     return spell_name
 
 def size(troop_or_spell):
@@ -120,6 +120,8 @@ def size(troop_or_spell):
         "Super Dragon" : 40,
         "Electro Titan" : 32,
         "Super Miner" : 24,
+        "Super Hog" : 12,
+        "Root Rider" : 20,
 
         "Lightning Spell" : 1,
         "Healing Spell" : 2,

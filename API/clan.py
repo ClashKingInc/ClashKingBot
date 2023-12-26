@@ -115,7 +115,7 @@ async def bulk_clan_cache(clan_tags: List[str], request: Request, response: Resp
 @router.get("/clan/search",
          name="Search Clans by Filtering")
 @cache(expire=300)
-@limiter.limit("30/second")
+@limiter.limit("1/second")
 async def clan_filter(request: Request, response: Response,  limit: int= 100, location_id: int = None, minMembers: int = None, maxMembers: int = None,
                       minLevel: int = None, maxLevel: int = None, openType: str = None,
                           minWarWinStreak: int = None, minWarWins: int = None, minClanTrophies: int = None, maxClanTrophies: int = None, capitalLeague: str= None,

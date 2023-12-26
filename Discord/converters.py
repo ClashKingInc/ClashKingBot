@@ -76,9 +76,8 @@ class Convert(commands.Cog, name="Convert"):
 
 
     async def player(self, player_tag: str):
-        player = await self.bot.getPlayer(player_tag=player_tag, custom=True, raise_exceptions=True)
+        player = await self.bot.getPlayer(player_tag=player_tag, custom=False, raise_exceptions=True)
         return player
-
 
 
     def hex_code(self, hex_code: str):

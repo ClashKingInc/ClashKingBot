@@ -1,22 +1,4 @@
-from datetime import datetime, timedelta
-
 import ujson
-from coc.ext import discordlinks
-from disnake.ext import commands
-from dotenv import load_dotenv
-from Assets.emojiDictionary import emojiDictionary, legend_emojis
-from CustomClasses.CustomPlayer import MyCustomPlayer
-from CustomClasses.emoji_class import Emojis, EmojiType
-from CustomClasses.CustomServer import DatabaseServer
-from urllib.request import urlopen
-from collections import defaultdict
-from CustomClasses.PlayerHistory import COSPlayerHistory
-from Utils.constants import locations, BADGE_GUILDS
-from typing import  List
-from Utils.general import  get_clan_member_tags
-from expiring_dict import ExpiringDict
-from redis import asyncio as redis
-from CustomClasses.ClashKingAPI.Client import ClashKingAPIClient
 import dateutil.relativedelta
 import coc
 import motor.motor_asyncio
@@ -30,6 +12,23 @@ import random
 import calendar
 import aiohttp
 import emoji
+
+from datetime import datetime, timedelta
+from coc.ext import discordlinks
+from disnake.ext import commands
+from dotenv import load_dotenv
+from Assets.emojiDictionary import emojiDictionary, legend_emojis
+from CustomClasses.CustomPlayer import MyCustomPlayer
+from CustomClasses.Emojis import Emojis, EmojiType
+from urllib.request import urlopen
+from collections import defaultdict
+from CustomClasses.PlayerHistory import COSPlayerHistory
+from Utils.constants import locations, BADGE_GUILDS
+from typing import  List
+from Utils.general import  get_clan_member_tags
+from expiring_dict import ExpiringDict
+from redis import asyncio as redis
+from CustomClasses.DatabaseClient.familyclient import FamilyClient
 utc = pytz.utc
 load_dotenv()
 
@@ -39,7 +38,7 @@ class CustomClient(commands.AutoShardedBot):
     def __init__(self, **options):
         super().__init__(**options)
 
-        self.ck_client: ClashKingAPIClient = None
+        self.ck_client: FamilyClient = None
 
         self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
         self.new_looper = self.looper_db.get_database("new_looper")
@@ -74,6 +73,7 @@ class CustomClient(commands.AutoShardedBot):
         self.cwl_groups: collection_class = self.new_looper.cwl_group
         self.basic_clan: collection_class = self.looper_db.looper.clan_tags
         self.button_store: collection_class = self.looper_db.clashking.button_store
+        self.legend_rankings: collection_class = self.new_looper.legend_rankings
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
         self.clan_db: collection_class = self.db_client.usafam.clans
@@ -220,14 +220,7 @@ class CustomClient(commands.AutoShardedBot):
         emoji = disnake.utils.get(all_emojis, name=f"{number}_")
         return EmojiType(emoji_string=f"<:{emoji.name}:{emoji.id}>")
 
-    async def track_players(self, players: list):
-        for player in players:
-            r = await self.player_stats.find_one({"tag" : player.tag})
-            if r is None:
-                await self.player_stats.insert_one({"tag" : player.tag, "name" : player.name})
-            elif r.get("paused") is True:
-                await self.player_stats.update_one({"tag": player.tag}, {"$set" : {"paused" : False}})
-        return "Done"
+
 
     async def track_clans(self, tags: list):
         result = await self.user_db.find_one({"username": self.user_name})
@@ -309,37 +302,6 @@ class CustomClient(commands.AutoShardedBot):
         else:
             date = now.date()
         return str(date)
-
-    def create_embeds(self, line_lists, thumbnail_url=None, title=None, max_lines=25, color=disnake.Color.green(), footer=None):
-        embed_texts = []
-        lines = 0
-        hold_text = ""
-        for line in line_lists:
-            hold_text += f"{line}\n"
-            lines += 1
-            if lines == max_lines:
-                embed_texts.append(hold_text)
-                hold_text = ""
-                lines = 0
-
-        if lines > 0:
-            embed_texts.append(hold_text)
-
-        embeds = []
-        for text in embed_texts:
-            embed = disnake.Embed(title=title,
-                                  description=text
-                                  , color=color)
-            if thumbnail_url is not None:
-                embed.set_thumbnail(url=thumbnail_url)
-            if footer is not None:
-                embed.set_footer(text=footer)
-            embeds.append(embed)
-        return embeds
-
-
-
-
 
 
 
@@ -442,12 +404,15 @@ class CustomClient(commands.AutoShardedBot):
     async def getPlayer(self, player_tag, custom=False, raise_exceptions=False, cache_data=False):
         if "|" in player_tag:
             player_tag = player_tag.split("|")[-1]
-
+        use_cache = cache_data
         player_tag = coc.utils.correct_tag(player_tag)
-        if cache_data:
-            cache_data = await self.player_cache.find_one({"tag": player_tag})
+        if use_cache:
+            cache_data = await self.redis.get(player_tag)
+            if cache_data:
+                cache_data = ujson.loads(cache_data)
         else:
             cache_data = None
+
 
         try:
             if custom is True:
@@ -455,22 +420,15 @@ class CustomClient(commands.AutoShardedBot):
                 if cache_data is None:
                     clashPlayer = await self.coc_client.get_player(player_tag=player_tag, cls=MyCustomPlayer, bot=self,
                                                                    results=results)
+                    await self.redis.set(clashPlayer.tag, ujson.dumps(clashPlayer._raw_data).encode('utf-8'), ex=120)
                 else:
-                    clashPlayer = MyCustomPlayer(data=cache_data.get("data"), client=self.coc_client, bot=self,
-                                                 results=results)
+                    clashPlayer = MyCustomPlayer(data=cache_data, client=self.coc_client, bot=self, results=results)
             else:
                 if cache_data is None:
                     clashPlayer: coc.Player = await self.coc_client.get_player(player_tag)
+                    #await self.redis.set(clashPlayer.tag, ujson.dumps(clashPlayer._raw_data).encode('utf-8'), ex=120)
                 else:
-                    clashPlayer = coc.Player(data=cache_data.get("data"), client=self.coc_client)
-            try:
-                troops = clashPlayer.troops
-            except:
-                if custom is True:
-                    results = await self.player_stats.find_one({"tag": player_tag})
-                    clashPlayer = await self.coc_client.get_player(player_tag=player_tag, cls=MyCustomPlayer,bot=self,results=results)
-                else:
-                    clashPlayer: coc.Player = await self.coc_client.get_player(player_tag)
+                    clashPlayer = coc.Player(data=cache_data, client=self.coc_client)
             return clashPlayer
         except Exception as e:
             if raise_exceptions:

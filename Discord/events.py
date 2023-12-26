@@ -10,7 +10,7 @@ from Utils.war import create_reminders, send_or_update_war_end, send_or_update_w
 from Utils.constants import USE_CODE_TEXT
 has_started = False
 from CustomClasses.Ticketing import OpenTicket, TicketPanel, LOG_TYPE
-from CustomClasses.ClashKingAPI.Client import ClashKingAPIClient
+from CustomClasses.DatabaseClient.familyclient import FamilyClient
 
 
 class DiscordEvents(commands.Cog):
@@ -22,7 +22,7 @@ class DiscordEvents(commands.Cog):
     async def on_connect(self):
         print("connected")
         s_result = await self.bot.server_db.find_one({"server" : 1103679645439754335})
-        self.bot.ck_client = ClashKingAPIClient(api_token=s_result.get("ck_api_token"), bot=self.bot)
+        self.bot.ck_client = FamilyClient(bot=self.bot)
 
         if self.bot.user.id == 808566437199216691:
             return
@@ -202,18 +202,23 @@ class DiscordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_member_remove(self, payload: disnake.RawGuildMemberRemoveEvent):
-        ticket = await self.bot.open_tickets.find_one({"$and" : [{"server" : payload.guild_id}, {"user" : payload.user.id}]})
-        if ticket is None:
+        tickets = await self.bot.open_tickets.find({"$and": [{"server": payload.guild_id}, {"user": payload.user.id}, {"status": {"$ne": "delete"}}]}).to_list(length=None)
+        if not tickets:
             return
-        ticket = OpenTicket(bot=self.bot, open_ticket=ticket)
-        if ticket.status == "delete":
-            return
-        panel_settings = await self.bot.tickets.find_one({"$and": [{"server_id": payload.guild_id}, {"name": ticket.panel_name}]})
-        panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
-        channel = await self.bot.getch_channel(channel_id=ticket.channel)
-        await panel.send_log(log_type=LOG_TYPE.TICKET_CLOSE, user=self.bot.user, ticket_channel=channel, ticket=ticket)
-        await ticket.set_ticket_status(status="delete")
-        await channel.delete(reason=f"{payload.user.name} left the server")
+        for ticket in tickets:
+            ticket = OpenTicket(bot=self.bot, open_ticket=ticket)
+            if ticket.status == "delete":
+                return
+            panel_settings = await self.bot.tickets.find_one({"$and": [{"server_id": payload.guild_id}, {"name": ticket.panel_name}]})
+            panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
+            print(ticket.channel)
+            channel: disnake.TextChannel = await self.bot.getch_channel(channel_id=ticket.channel)
+            if channel is None:
+                continue
+            await panel.send_log(log_type=LOG_TYPE.TICKET_CLOSE, user=self.bot.user, ticket_channel=channel, ticket=ticket)
+            print("here")
+            await ticket.set_ticket_status(status="delete")
+            await channel.delete(reason=f"{payload.user.name} left server")
 
 
 def setup(bot: CustomClient):

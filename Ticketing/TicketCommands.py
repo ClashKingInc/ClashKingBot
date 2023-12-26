@@ -736,7 +736,7 @@ class TicketCommands(commands.Cog):
     @ticket.sub_command(name="logging", description="Loggin Channels for ticket actions")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_logging(self, ctx: disnake.ApplicationCommandInteraction,
-                             panel_name: str,
+                             panel_name: str = commands.Param(autocomplete=autocomplete.ticket_panel),
                              types: str = commands.Param(choices=["All", "Ticket Button Click", "Ticket Close", "Status Change"]),
                              channel: Union[disnake.TextChannel, disnake.Thread]=None):
         """

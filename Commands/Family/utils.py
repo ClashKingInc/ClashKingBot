@@ -30,6 +30,8 @@ async def family_composition(bot: CustomClient, server: disnake.Guild, type: str
 
     def process_member(member: coc.ClanMember, bucket):
         if type == "Townhall":
+            if member._raw_data.get("townHallLevel") == 0:
+                return
             bucket[str(member._raw_data.get("townHallLevel"))] += 1
         elif type == "Trophies":
             bucket[str(int(str(member.trophies)[0]) * 1000 if member.trophies >= 1000 else 100)] += 1
@@ -72,7 +74,10 @@ async def family_composition(bot: CustomClient, server: disnake.Guild, type: str
         return ""
 
     text = ""
-    for key, value in sorted(bucket.items(), key=lambda x: x[1], reverse=True):
+    field_to_sort = 1
+    if type == "Townhall":
+        field_to_sort = 0
+    for key, value in sorted(bucket.items(), key=lambda x: int(x[field_to_sort]), reverse=True):
         icon = get_icon(type, key)
         text += formats[type].format(key=key, value=value, icon=icon)
 

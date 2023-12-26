@@ -1,11 +1,12 @@
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from Utils.Clash.capital import gen_raid_weekend_datestrings
-from Utils.search import family_names
+from Utils.search import family_names, search_name_with_tag
+from Utils.general import create_superscript
 import disnake
 import coc
 import pytz
-
+import re
 
 class Autocomplete(commands.Cog, name="Autocomplete"):
     def __init__(self, bot: CustomClient):
@@ -14,6 +15,7 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
     async def season(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
         return [season for season in seasons if user_input.lower() in season.lower()]
+
 
     async def category(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
@@ -24,6 +26,7 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
             if query.lower() in category.lower() and category not in categories:
                 categories.append(category)
         return categories[:25]
+
 
     async def clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         guild_id = ctx.guild.id
@@ -118,6 +121,30 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
         return names
 
 
+    async def banned_players(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        query = re.escape(query)
+        if query == "":
+            names = await self.bot.banlist.find({"server" : ctx.guild_id}, limit=25).to_list(length=25)
+        else:
+            names = await self.bot.banlist.find({"$and": [
+                {"server" : ctx.guild_id},
+                {"name": {"$regex": f"^(?i).*{query}.*$"}}
+            ]}, limit=25).to_list(length=25)
+        return [f'{n.get("name")} | {n.get("VillageTag")}' for n in names]
+
+
+    async def legend_players(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        query = re.escape(query)
+        results = await search_name_with_tag(bot=self.bot, poster=False, query=query)
+        legend_profile = await self.bot.legend_profile.find_one({'discord_id': ctx.author.id})
+        if legend_profile:
+            profile_tags = legend_profile.get("profile_tags", [])
+            documents = await self.bot.player_stats.find({"$and" : [{"tag" : {"$in": profile_tags}}, {"league" : "Legend League"}]}, {"tag" : 1, "name" : 1, "townhall" : 1}).to_list(length=None)
+            results = [(f'‡{create_superscript(document.get("townhall", 0))}{document.get("name")} (Legend)' + " | " + document.get("tag"))
+                       for document in documents if query.lower() in document.get("name").lower()] + results
+        return results[:25]
+
+
     async def server(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         matches = []
         for guild in self.bot.guilds:
@@ -155,6 +182,7 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
             if query.lower() in alias.lower():
                 alias_list.append(f"{alias}")
         return alias_list[:25]
+
 
     async def multi_ticket_panel(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         aliases = await self.bot.tickets.distinct("name", filter={"server_id": ctx.guild.id})

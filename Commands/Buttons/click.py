@@ -13,7 +13,8 @@ class CommandButtons(commands.Cog):
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
-        if ctx.data.custom_id.startswith("clan_") or ctx.data.custom_id.startswith("family_"):
+        if (ctx.data.custom_id.startswith("clan_") or
+                ctx.data.custom_id.startswith("family_")):
             result = await self.bot.button_store.find_one({"button_id": ctx.data.custom_id})
             if result is None:
                 return await ctx.send(content="**No action tied to this button, try rerunning this command**", ephemeral=True)

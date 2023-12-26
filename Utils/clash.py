@@ -1,7 +1,6 @@
 import coc
 
 from Assets.emojiDictionary import emojiDictionary
-from Assets.levelEmojis import levelEmojis, maxLevelEmojis
 from collections import defaultdict
 from Utils.discord_utils import fetch_emoji
 from Utils.constants import DARK_ELIXIR, SUPER_TROOPS

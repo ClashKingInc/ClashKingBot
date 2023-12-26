@@ -1,14 +1,13 @@
 import coc
 
 from Assets.emojiDictionary import emojiDictionary
-from Assets.levelEmojis import levelEmojis, maxLevelEmojis
 from collections import defaultdict
 from Utils.discord_utils import fetch_emoji
 from Utils.constants import DARK_ELIXIR, SUPER_TROOPS
 from pytz import utc
 from CustomClasses.CustomPlayer import MyCustomPlayer
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def gen_season_date():
@@ -18,6 +17,15 @@ def gen_season_date():
         month = f"0{month}"
     return f"{end.year}-{month}"
 
+
+def gen_legend_date():
+    now = datetime.utcnow()
+    hour = now.hour
+    if hour < 5:
+        date = (now - timedelta(1)).date()
+    else:
+        date = now.date()
+    return str(date)
 
 async def superTroops(player, asArray=False):
     troops = player.troop_cls

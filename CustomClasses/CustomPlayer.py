@@ -5,14 +5,18 @@ from coc import utils
 from Assets.emojiDictionary import emojiDictionary
 from Assets.thPicDictionary import thDictionary
 from datetime import datetime, timedelta
-from CustomClasses.emoji_class import EmojiType
+from CustomClasses.Emojis import EmojiType
 from collections import defaultdict
 from Utils.Clash.capital import gen_raid_weekend_datestrings
 from Utils.constants import SHORT_PLAYER_LINK, HOME_VILLAGE_HEROES
 import emoji
 import re
-from typing import List
+from typing import List, TYPE_CHECKING
 from pytz import utc
+if TYPE_CHECKING:
+    from CustomClasses.CustomBot import CustomClient
+else:
+    from disnake import Client as CustomClient
 
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 
@@ -24,11 +28,11 @@ class MyCustomPlayer(coc.Player):
         self.spell_cls = MyCustomSpells
         self.pet_cls = MyCustomPets
         super().__init__(**kwargs)
-        self.bot = kwargs.pop("bot")
+        self.bot: CustomClient = kwargs.pop("bot")
         self.role_as_string = str(self.role)
         self.league_as_string = str(self.league)
-        self.streak = 0
         self.results = kwargs.pop("results")
+        self.streak = self.results.get("legends", {}).get("streak", 0)
         self.town_hall_cls = CustomTownHall(self.town_hall)
         self.clear_name = self.get_name()
 
@@ -71,6 +75,16 @@ class MyCustomPlayer(coc.Player):
 
     async def ranking(self):
         ranking_result = await self.bot.leaderboard_db.find_one({"tag": self.tag})
+        default = {"country_code": None,
+         "country_name": None,
+         "local_rank": None,
+         "global_rank": None}
+        if ranking_result is None:
+            ranking_result = default
+        if ranking_result.get("global_rank") is None:
+            self_global_ranking = await self.bot.legend_rankings.find_one({"tag" : self.tag})
+            if self_global_ranking:
+                ranking_result["global_rank"] = self_global_ranking.get("rank")
         return LegendRanking(ranking_result)
 
     def legend_day(self, date=None):
@@ -739,6 +753,7 @@ class LegendRanking():
     def __init__(self, ranking_result):
         self.ranking_result = ranking_result
 
+
     @property
     def country_code(self):
         if self.ranking_result is None:
@@ -782,17 +797,47 @@ class LegendDay():
     def attacks(self):
         if self.legend_result is None:
             return []
-        if self.legend_result.get("attacks") is None:
+
+        if self.legend_result.get("attacks") is None and self.legend_result.get("new_attacks") is None:
             return []
-        return self.legend_result.get("attacks")
+
+        new_data = []
+        old_attacks = self.legend_result.get("attacks", [])
+        for attack in old_attacks:
+            new_data.append({
+                "change" : attack,
+                "time" : None,
+                "trophies" : None,
+                "hero_gear" : []
+            })
+        new_format: List = self.legend_result.get("new_attacks", [])
+        if new_format:
+            new_data = new_data[:-len(new_format)]
+        new_data = new_data + new_format
+        return [LegendAttackInfo(data=data) for data in new_data]
 
     @property
     def defenses(self):
         if self.legend_result is None:
             return []
-        if self.legend_result.get("defenses") is None:
+
+        if self.legend_result.get("defenses") is None and self.legend_result.get("new_defenses") is None:
             return []
-        return self.legend_result.get("defenses")
+
+        new_data = []
+        old_attacks = self.legend_result.get("defenses", [])
+        for attack in old_attacks:
+            new_data.append({
+                "change": attack,
+                "time": None,
+                "trophies": None,
+                "hero_gear": []
+            })
+        new_format: List = self.legend_result.get("new_defenses", [])
+        if new_format:
+            new_data = new_data[:-len(new_format)]
+        new_data = new_data + new_format
+        return [LegendAttackInfo(data=data) for data in new_data]
 
     @property
     def num_attacks(self):
@@ -807,12 +852,49 @@ class LegendDay():
         return NumChoice(len(self.defenses))
 
     @property
+    def finished_trophies(self):
+        all_hits = self.attacks + self.defenses
+        all_hits = [hit for hit in all_hits if hit.timestamp is not None]
+        all_hits.sort(key=lambda x : x.timestamp, reverse=True)
+        if all_hits:
+            return all_hits[0].trophies
+        return None
+
+    @property
     def attack_sum(self):
-        return sum(self.attacks)
+        return sum([attack.change for attack in self.attacks])
 
     @property
     def defense_sum(self):
-        return sum(self.defenses)
+        return sum([defense.change for defense in self.defenses])
+
+class LegendAttackInfo():
+    def __init__(self, data):
+        self.data = data
+        self.timestamp: int = data.get("time")
+        self.change: int = data.get("change")
+        self.trophies: int = data.get("trophies")
+
+    @property
+    def hero_gear(self):
+        gears = []
+        for gear in self.data.get("hero_gear", []):
+            if isinstance(gear, str):
+                gears.append({"name" : gear, "level" : 1})
+            else:
+                gears.append(gear)
+        return [LegendHeroGear(data=gear) for gear in gears]
+
+class LegendHeroGear():
+    def __init__(self, data: dict):
+        self.name = data.get("name")
+        self.level = data.get("level")
+
+    def __hash__(self):
+        return (hash(self.name))
+
+    def __eq__(self, other):
+        return (self.name == other.name)
 
 class LegendStats():
     def __init__(self, season_stats):
@@ -852,10 +934,11 @@ class LegendStats():
             if legend_day.num_attacks.integer >= 6:
                 sum_hits += legend_day.attack_sum
                 hit_days_used += 1
+
             for hit in legend_day.attacks:
-                if hit >= 5 and hit <= 15:
+                if 5 <= hit.change <= 15:
                     one_stars += 1
-                elif hit >= 16 and hit <= 32:
+                elif 16 <= hit.change <= 32:
                     two_stars += 1
                 elif hit == 40:
                     three_stars += 1
@@ -864,13 +947,13 @@ class LegendStats():
                 sum_defs += legend_day.defense_sum
                 def_days_used += 1
             for hit in legend_day.defenses:
-                if 0 <= hit <= 4:
+                if 0 <= hit.change <= 4:
                     zero_star_def += 1
-                if 5 <= hit <= 15:
+                if 5 <= hit.change <= 15:
                     one_stars_def += 1
-                elif 16 <= hit <= 32:
+                elif 16 <= hit.change <= 32:
                     two_stars_def += 1
-                elif hit == 40:
+                elif hit.change == 40:
                     three_stars_def += 1
 
 
@@ -932,12 +1015,16 @@ class LegendStats():
 
 class NumChoice():
     def __init__(self, num):
-        self.integer = num
+        self.integer = num if num <= 8 else 8
+
+    def __int__(self):
+        return self.integer
+
+    def __str__(self):
+        return str(self.integer)
 
     @property
     def superscript(self):
-        if self.integer >= 8:
-            return SUPER_SCRIPTS[8]
         return SUPER_SCRIPTS[self.integer]
 
 class MyCustomTroops(coc.Troop):

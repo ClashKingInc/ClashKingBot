@@ -22,13 +22,14 @@ router = APIRouter(tags=["Ban Endpoints"])
 async def ban_add(server_id: int, player_tag: str, reason: str, added_by: int, api_token: str, request: Request, response: Response, rollover_days: int = None):
     await token_verify(server_id=server_id, api_token=api_token, only_admin=True)
     player = await coc_client.get_player(player_tag=player_tag)
-    ban_entry = await db_client.banlist.find_one({"$and": [{"VillageTag": player.tag},{"server": server_id}]})
+    ban_entry = await db_client.banlist.find_one({"$and": [{"VillageTag": player.tag}, {"server": server_id}]})
     new_entry = False
     if ban_entry is None:
         new_entry = True
         now = datetime.now()
         dt_string = now.strftime("%Y-%m-%d %H:%M:%S")
         ban_entry = {
+            "name" : player.name,
             "VillageTag": player.tag,
             "DateCreated": dt_string,
             "Notes": reason,

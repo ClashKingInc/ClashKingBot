@@ -39,10 +39,7 @@ class HTTPClient():
                 try:
                     async with session.request(method, url, **kwargs) as response:
                         data = await response.json()
-                        delta = int(response.headers["Cache-Control"].strip("max-age=").strip("public max-age="))
-                        self.cache.ttl(key=cache_control_key, value=data, ttl=delta)
-
-                        if response.status in (500, 502, 504):
+                        if response.status in (502, 504):
                             # gateway error, retry again
                             await asyncio.sleep(tries * 2 + 1)
                             continue
@@ -55,6 +52,9 @@ class HTTPClient():
                         elif response.status == 503:
                             raise Maintenance(503, data)
 
+                        delta = int(response.headers["Cache-Control"].strip("max-age=").strip("public max-age="))
+                        self.cache.ttl(key=cache_control_key, value=data, ttl=delta)
+
                         await session.close()
                         return data
                 except asyncio.TimeoutError:
@@ -65,7 +65,7 @@ class HTTPClient():
                     continue
             else:
                 await session.close()
-                if response.status in (500, 502, 504):
+                if response.status in (502, 504):
                     if isinstance(data, str):
                         # gateway errors return HTML
                         text = re.compile(r"<[^>]+>").sub(data, "")
@@ -123,11 +123,12 @@ class ClashKingAPIClient():
         data = await self.__http_client.request(Route("GET", f"/ban/{server_id}/list", **kwargs))
         return [BannedUser(data=d, client=self) for d in data.get("items")]
 
+
     async def add_ban(self, server_id: int, player_tag: str,  **kwargs):
         if kwargs.get("rollover_days") is None:
             del kwargs["rollover_days"]
         kwargs = kwargs | self.api_token_query
-        data = await self.__http_client.request(Route("POST", f"/ban/{server_id}/add/{player_tag}", json=kwargs))
+        data = await self.__http_client.request(Route("POST", f"/ban/{server_id}/add/{player_tag}", **kwargs))
         return BannedResponse(data=data, client=self)
 
 

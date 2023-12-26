@@ -24,6 +24,44 @@ item_to_name = {"Player Tag" : "tag", "Role" : "role",
 HOME_VILLAGE_HEROES = ["Barbarian King", "Archer Queen", "Royal Champion", "Grand Warden"]
 EMBED_COLOR = 2829617
 
+HERO_EQUIPMENT = {
+        "Barbarian Puppet" : "Barbarian King",
+        "Rage Vial" : "Barbarian King",
+        "Archer Puppet" :  "Archer Queen",
+        "Invisibility Vial" :  "Archer Queen",
+        "Eternal Tome" : "Grand Warden",
+        "Life Gem" : "Grand Warden",
+        "Seeking Shield" : "Royal Champion",
+        "Royal Gem" : "Royal Champion",
+        "Earthquake Boots" : "Barbarian King",
+        "Vampstache" : "Barbarian King",
+        "Giant Arrow" :  "Archer Queen",
+        "Healer Puppet" :  "Archer Queen",
+        "Rage Gem" : "Grand Warden",
+        "Healing Tome" : "Grand Warden",
+        "Giant Gauntlet" : "Barbarian King"
+    }
+
+POSTER_LIST = {"Edrag" : "edrag",
+               "Hogrider" : "hogrider",
+               "Clash Forest" : "clashforest",
+               "Clan War" : "clanwar",
+               "Loons" : "loons",
+               "Witch" : "witch",
+               "Archers" : "archers",
+               "Bowler" : "bowler",
+               "Barbs" : "barbs",
+               "Barb & Archer" : "barbandarcher",
+               "Big Boy Skelly" : "bigboy",
+               "Wiz Tower" : "wiztower",
+               "Spells" : "spells",
+               "Barb Sunset" : "barbsunset",
+               "Wood Board" : "woodboard",
+               "Clash Sky" : "clashsky",
+               "Super Wizard" : "swiz",
+               "Village Battle" : "villagebattle",
+               "Hero Pets" : "heropets"}
+
 locations = ["global", 32000007, 32000008, 32000009, 32000010, 32000011, 32000012, 32000013, 32000014, 32000015, 32000016,
              32000017,
              32000018, 32000019, 32000020, 32000021, 32000022, 32000023, 32000024, 32000025, 32000026, 32000027,

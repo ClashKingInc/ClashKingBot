@@ -79,7 +79,7 @@ class SetupCommands(commands.Cog , name="Setup"):
                               tied_stats_only: str = commands.Param(default=None, choices=["True", "False"]),
                               embed_color: str = commands.Param(default=None, converter=convert.hex_code)):
         await ctx.response.defer()
-        db_server = await self.bot.get_custom_server(guild_id=ctx.guild_id)
+        db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
         changed_text = ""
         if banlist_channel is not None:
             await db_server.set_banlist_channel(id=banlist_channel.id)
@@ -174,8 +174,17 @@ class SetupCommands(commands.Cog , name="Setup"):
 
     @setup.sub_command(name="user-settings", description="Set bot settings for yourself like main account or timezone")
     async def user_settings(self, ctx: disnake.ApplicationCommandInteraction,
-                            main_account: str, timezone: str):
-        pass
+                            main_account: str = None, timezone: str = None,
+                            private_mode: str = commands.Param(default=None,choices=["True", "False"])):
+        await ctx.response.defer()
+        changed_text = ""
+        if private_mode is not None:
+            changed_text += f"Private mode set to {private_mode}\n"
+            await self.bot.user_settings.update_one({"discord_user" : ctx.user.id}, {"$set" : {"private_mode" : (private_mode == "True")}}, upsert=True)
+
+        embed = disnake.Embed(title=f"{ctx.user.name} Settings Changed", description=changed_text, color=disnake.Color.green())
+        embed.set_thumbnail(url=ctx.user.display_avatar.url)
+        await ctx.send(embed=embed)
 
 
     @setup.sub_command(name="list", description="List of setup & settings")

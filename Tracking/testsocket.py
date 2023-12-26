@@ -230,7 +230,9 @@ async def main(producer: KafkaProducer):
             else:
                 pipeline = [{"$match": {"paused": {"$ne": True}}}, {"$project": {"tag": "$tag"}}, {"$unset": "_id"}]
                 db_tags = [x["tag"] for x in (await player_stats.aggregate(pipeline).to_list(length=None))]
-                all_tags_to_track = list(set(db_tags + CLAN_MEMBERS))
+                missing_tags = await player_stats.find({"$and": [{ "paused": { "$ne": True }}, {"league": None}]}).to_list(length=None)
+                missing_tags = [x["tag"] for x in missing_tags]
+                all_tags_to_track = list(set(db_tags + CLAN_MEMBERS + missing_tags))
                 pipeline = [{"$match": {}}, {"$project" : {"tag" : "$tag"}}, {"$unset" : "_id"}]
                 autocomplete_tags = [x["tag"] for x in (await player_search.aggregate(pipeline).to_list(length=None))]
                 autocomplete_tags = set(autocomplete_tags)
@@ -337,10 +339,10 @@ async def main(producer: KafkaProducer):
 
                                 special_types = {"War League Legend", "warStars", "Aggressive Capitalism", "Nice and Tidy", "Well Seasoned",
                                              "clanCapitalContributions", "Games Champion"}
-                                ws_types = {"clanCapitalContributions", "name", "troops", "heroes", "spells",
+                                ws_types = {"clanCapitalContributions", "name", "troops", "heroes", "spells", "heroEquipment",
                                             "townHallLevel",
                                             "league", "trophies", "Most Valuable Clanmate"}
-                                only_once = {"troops": 0, "heroes": 0, "spells": 0}
+                                only_once = {"troops": 0, "heroes": 0, "spells": 0, "heroEquipment" : 0}
                                 ws_tasks = []
                                 if changes:
                                     for (parent, type_), (old_value, value) in changes.items():
@@ -358,6 +360,7 @@ async def main(producer: KafkaProducer):
                                                 bulk_insert.append(InsertOne(
                                                     {"tag": tag, "type": type_, "p_value": old_value, "value": value,
                                                      "time": int(datetime.now().timestamp()), "clan": clan_tag, "th" : new_response.get("townHallLevel")}))
+
                                         if type_ == "donations":
                                             previous_dono = 0 if (previous_dono := previous_response["donations"]) > (
                                                 current_dono := new_response["donations"]) else previous_dono
@@ -456,7 +459,7 @@ async def main(producer: KafkaProducer):
                                             bulk_db_changes.append(UpdateOne({"tag": tag}, {"$set": {"townhall": value}}, upsert=True))
                                             auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"th": value}}))
 
-                                        elif parent in {"troops", "heroes", "spells"}:
+                                        elif parent in {"troops", "heroes", "spells", "heroEquipment"}:
                                             type_ = parent
                                             if only_once[parent] == 1:
                                                 continue
@@ -478,14 +481,27 @@ async def main(producer: KafkaProducer):
                                 if new_response["trophies"] != previous_response["trophies"] and new_response["trophies"] >= 4900 and league == "Legend League":
                                     diff_trophies = new_response["trophies"] - previous_response["trophies"]
                                     diff_attacks = new_response["attackWins"] - previous_response["attackWins"]
+
                                     if diff_trophies <= - 1:
                                         diff_trophies = abs(diff_trophies)
                                         if diff_trophies <= 100:
                                             bulk_db_changes.append(UpdateOne({"tag": tag},
-                                                                             {"$push": {
-                                                                                 f"legends.{legend_date}.defenses": diff_trophies}},
-                                                                             upsert=True))
+                                                                             {"$push": {f"legends.{legend_date}.defenses": diff_trophies}}, upsert=True))
+
+                                            bulk_db_changes.append(UpdateOne({"tag": tag},
+                                                                             {"$push": {f"legends.{legend_date}.new_defenses": {
+                                                                                        "change" : diff_trophies,
+                                                                                        "time" : int(datetime.now().timestamp()),
+                                                                                        "trophies" : new_response["trophies"]
+                                                                                    }}}, upsert=True))
+
                                     elif diff_trophies >= 1:
+                                        heroes = new_response.get("heroes", [])
+                                        equipment = []
+                                        for hero in heroes:
+                                            for gear in hero.get("equipment", []):
+                                                equipment.append({"name" : gear.get("name"), "level" : gear.get("level")})
+
                                         bulk_db_changes.append(
                                             UpdateOne({"tag": tag},
                                                       {"$inc": {f"legends.{legend_date}.num_attacks": diff_attacks}},
@@ -496,12 +512,21 @@ async def main(producer: KafkaProducer):
                                                                              {"$push": {
                                                                                  f"legends.{legend_date}.attacks": diff_trophies}},
                                                                              upsert=True))
+                                            bulk_db_changes.append(UpdateOne({"tag": tag},
+                                                                             {"$push": {f"legends.{legend_date}.new_attacks": {
+                                                                                 "change": diff_trophies,
+                                                                                 "time": int(datetime.now().timestamp()),
+                                                                                 "trophies": new_response["trophies"],
+                                                                                 "hero_gear": equipment
+                                                                             }}}, upsert=True))
                                             if diff_trophies == 40:
                                                 bulk_db_changes.append(
                                                     UpdateOne({"tag": tag}, {"$inc": {f"legends.streak": 1}}))
+
                                             else:
                                                 bulk_db_changes.append(
                                                     UpdateOne({"tag": tag}, {"$set": {f"legends.streak": 0}}))
+
                                         # if multiple attacks, but divisible by 40
                                         elif int(diff_trophies / 40) == diff_attacks:
                                             for x in range(0, diff_attacks):
@@ -509,6 +534,13 @@ async def main(producer: KafkaProducer):
                                                     UpdateOne({"tag": tag},
                                                               {"$push": {f"legends.{legend_date}.attacks": 40}},
                                                               upsert=True))
+                                                bulk_db_changes.append(UpdateOne({"tag": tag},
+                                                                                 {"$push": {f"legends.{legend_date}.new_attacks": {
+                                                                                     "change": 40,
+                                                                                     "time": int(datetime.now().timestamp()),
+                                                                                     "trophies": new_response["trophies"],
+                                                                                     "hero_gear" : equipment
+                                                                                 }}}, upsert=True))
                                             bulk_db_changes.append(
                                                 UpdateOne({"tag": tag}, {"$inc": {f"legends.streak": diff_attacks}}))
                                         else:
@@ -516,6 +548,14 @@ async def main(producer: KafkaProducer):
                                                                              {"$push": {
                                                                                  f"legends.{legend_date}.attacks": diff_trophies}},
                                                                              upsert=True))
+                                            bulk_db_changes.append(UpdateOne({"tag": tag},
+                                                                             {"$push": {f"legends.{legend_date}.new_attacks": {
+                                                                                 "change": diff_trophies,
+                                                                                 "time": int(datetime.now().timestamp()),
+                                                                                 "trophies": new_response["trophies"],
+                                                                                 "hero_gear": equipment
+                                                                             }}}, upsert=True))
+
                                             bulk_db_changes.append(
                                                 UpdateOne({"tag": tag}, {"$set": {f"legends.streak": 0}}, upsert=True))
 
@@ -525,6 +565,12 @@ async def main(producer: KafkaProducer):
                                             bulk_db_changes.append(
                                                 UpdateOne({"tag": tag}, {"$push": {f"legends.{legend_date}.defenses": 0}},
                                                           upsert=True))
+                                            bulk_db_changes.append(UpdateOne({"tag": tag},
+                                                                             {"$push": {f"legends.{legend_date}.new_defenses": {
+                                                                                 "change": 0,
+                                                                                 "time": int(datetime.now().timestamp()),
+                                                                                 "trophies": new_response["trophies"]
+                                                                             }}}, upsert=True))
 
                                 if BEEN_ONLINE:
                                     _time = int(datetime.now().timestamp())
@@ -571,8 +617,7 @@ async def main(producer: KafkaProducer):
                 print(f"CLAN CHANGES UPDATE: {time.time() - time_inside}")
 
             fix_changes = []
-            not_set_entirely = await player_stats.distinct("tag", filter={"$and": [{"paused": False}, {
-                "$or": [{"name": None}, {"league": None}, {"townhall": None}, {"clan_tag": None}]}]})
+            not_set_entirely = await player_stats.distinct("tag", filter={"$and": [{"paused": {"$ne" : False}}, {"$or": [{"name": None}, {"league": None}, {"townhall": None}, {"clan_tag": None}]}]})
             print(f'{len(not_set_entirely)} tags to fix')
             for tag in not_set_entirely:
                 try:
