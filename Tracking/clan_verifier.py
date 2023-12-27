@@ -174,7 +174,7 @@ async def broadcast(keys):
                                 {"$setWindowFields": {
                                     "sortBy": {"trophies": -1},
                                     "output": {
-                                        "rank": {"$rank": {}}
+                                        "rank": {"$denseRank": {}}
                                     }
                                 }},
                                 {"$out": {"db": "new_looper", "coll": "legend_rankings"}}
