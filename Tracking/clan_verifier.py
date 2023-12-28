@@ -169,8 +169,7 @@ async def broadcast(keys):
             ranking_pipeline = [{"$unwind": "$memberList"},
                                 {"$match": {"memberList.league": "Legend League"}},
                                 {"$project": {"name": "$memberList.name", "tag": "$memberList.tag",
-                                              "trophies": "$memberList.trophies", "townhall": "$memberList.townhall",
-                                            "sort_field" : {"trophies" : "$memberList.trophies", "tag" : "$memberList.tag"}},
+                                              "trophies": "$memberList.trophies", "townhall": "$memberList.townhall", "sort_field" : {"trophies" : "$memberList.trophies", "tag" : "$memberList.tag"}},
                                 {"$unset": ["_id"]},
                                 {"$setWindowFields": {
                                     "sortBy": {"sort_field": -1},
