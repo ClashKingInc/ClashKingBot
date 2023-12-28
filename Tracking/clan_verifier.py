@@ -178,7 +178,6 @@ async def broadcast(keys):
                                         "rank": {"$rank": {}}
                                     }
                                 }},
-                                {"$unset" : ["sort_field"]},
                                 {"$out": {"db": "new_looper", "coll": "legend_rankings"}}
                                 ]
             await clan_tags.aggregate(ranking_pipeline).to_list(length=None)
