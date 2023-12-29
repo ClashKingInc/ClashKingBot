@@ -20,7 +20,7 @@ import leagues, player, capital, other, clan, war, utility, ranking, redirect, g
 from api_analytics.fastapi import Analytics
 from uvicorn import Config, Server
 
-LOCAL = True
+LOCAL = False
 load_dotenv()
 
 limiter = Limiter(key_func=get_remote_address)
