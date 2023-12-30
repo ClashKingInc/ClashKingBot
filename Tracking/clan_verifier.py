@@ -169,14 +169,15 @@ async def broadcast(keys):
             ranking_pipeline = [{"$unwind": "$memberList"},
                                 {"$match": {"memberList.league": "Legend League"}},
                                 {"$project": {"name": "$memberList.name", "tag": "$memberList.tag",
-                                              "trophies": "$memberList.trophies", "townhall": "$memberList.townhall"}},
+                                              "trophies": "$memberList.trophies", "townhall": "$memberList.townhall", "sort_field" : {"trophies" : "$memberList.trophies", "tag" : "$memberList.tag"}}},
                                 {"$unset": ["_id"]},
                                 {"$setWindowFields": {
-                                    "sortBy": {"trophies": -1},
+                                    "sortBy": {"sort_field": -1},
                                     "output": {
-                                        "rank": {"$denseRank": {}}
+                                        "rank": {"$rank": {}}
                                     }
                                 }},
+                                {"$unset" : ["sort_field"]},
                                 {"$out": {"db": "new_looper", "coll": "legend_rankings"}}
                                 ]
             await clan_tags.aggregate(ranking_pipeline).to_list(length=None)
