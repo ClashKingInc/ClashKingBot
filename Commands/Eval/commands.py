@@ -4,7 +4,7 @@ from disnake.ext import commands
 from main import check_commands
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer
-from .eval_logic import eval_logic, is_in_family
+from .utils import eval_logic, is_in_family
 from Utils.constants import DEFAULT_EVAL_ROLE_TYPES
 from Utils.discord_utils import interaction_handler
 from Exceptions.CustomExceptions import MessageException
@@ -225,6 +225,10 @@ class eval(commands.Cog, name="Eval"):
 
     @commands.slash_command(name="achievement-roles")
     async def achievement_roles(self, ctx):
+        pass
+
+    @commands.slash_command(name="status-roles")
+    async def status_roles(self, ctx):
         pass
 
     @eval.sub_command(name="role-list", description="List of eval affiliated roles for this server")
@@ -857,45 +861,16 @@ class eval(commands.Cog, name="Eval"):
         return await ctx.send(embed=embed)
 
 
-    '''@status_roles.sub_command(name="set", description="Includes longevity & max hero (for th) roles")
+    @status_roles.sub_command(name="set", description="Longevity roles")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def status_roles_set(self, ctx: disnake.ApplicationCommandInteraction,
-                           one_month: disnake.Role = None, two_months: disnake.Role = None, three_months: disnake.Role =None,
-                           six_months: disnake.Role = None, nine_months: disnake.Role = None, one_year: disnake.Role = None):
+    async def status_roles_set(self, ctx: disnake.ApplicationCommandInteraction, months: int, role: disnake.Role):
+        await ctx.response.defer()
+        if role.is_default():
+            raise MessageException(f"{role.mention} cannot be used as role.")
 
-        list_roles = [one_month, two_months, three_months, six_months, nine_months, one_year]
+        db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild.id)
+        await db_server.add_status_role(months=months, role_id=role.id)
 
-        if list_roles.count(None) == len(list_roles):
-            return await ctx.send("Please select at least one role to set.")
-
-        spot_to_text = ["one_month", "two_months", "three_months", "six_months", "nine_months", "one_year"]
-        roles_updated = ""
-        for count, role in enumerate(list_roles):
-            if role is None:
-                continue
-            role_text = spot_to_text[count]
-            roles_updated += f"{role_text}: {role.mention}\n"
-            results = await self.bot.statusroles.find_one({"$and": [
-                {"role": role.id},
-                {"type": role_text},
-                {"server": ctx.guild.id}
-            ]})
-
-            if results is None:
-                await self.bot.statusroles.insert_one(
-                    {"role": role.id,
-                     "type": role_text,
-                     "server": ctx.guild.id})
-            else:
-                await self.bot.statusroles.update_one({"$and": [
-                    {"type": role_text},
-                    {"server": ctx.guild.id}
-                ]}, {'$set': {"role": role.id}})
-
-        embed = disnake.Embed(title="**Status Roles that were set:**",
-                              description=roles_updated,
-                              color=disnake.Color.green())
-        return await ctx.send(embed=embed)'''
 
 
     @achievement_roles.sub_command(name="set", description="Set role for top donators/activity & more")
@@ -903,11 +878,13 @@ class eval(commands.Cog, name="Eval"):
     async def achievement_roles_set(self, ctx: disnake.ApplicationCommandInteraction,
                                     type: str = commands.Param(choices=["Donation", "Trophies", "Activity", "Total Looted"]),
                                     amount_or_rank: int = commands.Param(),
-                                    season: str = commands.Param(choices=["Current Season", "Previous Season"])):
+                                    season: str = commands.Param(choices=["Current Season", "Previous Season"]),
+                                    apply_scope: str = commands.Param(default="Family", choices=["Family", "Clan", "Both"])):
         await ctx.response.defer()
-        db_server = await self.bot.get_custom_server(guild_id=ctx.guild.id)
+        db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild.id)
         is_rank = (amount_or_rank <= 100)
-        await db_server.add_achievement_role(type=type.lower().replace(" ", "_"), amount=amount_or_rank, season=season.lower().replace(" ", "_"))
+        await db_server.add_achievement_role(type=type.lower().replace(" ", "_"), amount=amount_or_rank,
+                                             season=season.lower().replace(" ", "_"), scope=apply_scope.lower())
 
 
 

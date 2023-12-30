@@ -28,6 +28,7 @@ class Legends(LegendButtons, commands.Cog):
                            player: coc.Player = commands.Param(autocomplete=autocomplete.legend_players, converter=convert.player)):
         await ctx.send("This command has been renamed to `/legends search` and will be removed in the next 30 days.")
 
+
     @commands.slash_command(name="legends")
     async def legends(self, ctx: disnake.ApplicationCommandInteraction):
         result = await self.bot.user_settings.find_one({"discord_user": ctx.author.id})

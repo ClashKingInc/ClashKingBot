@@ -27,8 +27,11 @@ class DatabaseServer():
         self.not_family_roles = [EvalRole(bot=bot, data=d) for d in data.get("eval", {}).get("not_family_roles", [])]
         self.townhall_roles = [TownhallRole(bot=bot, data=d) for d in data.get("eval", {}).get("townhall_roles", [])]
         self.builderhall_roles = [BuilderHallRole(bot=bot, data=d) for d in data.get("eval", {}).get("builderhall_roles", [])]
-        self.achievement_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get("eval", {}).get("achievement_roles", [])]
-        self.status_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get("eval", {}).get("status_roles", [])]
+
+        self.achievement_roles = [AchievementRole(data=d) for d in data.get("achievement_roles", [])]
+
+        self.status_roles = [StatusRole(data=d) for d in data.get("status_roles", [])]
+
         self.clans = [DatabaseClan(bot=bot, data=d) for d in data.get("clans", [])]
         self.category_roles = data.get("category_roles")
         self.eval_non_members: bool = data.get("eval_non_members", True)
@@ -53,8 +56,10 @@ class DatabaseServer():
     async def set_change_nickname(self, status: bool):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"change_nickname": status}})
 
+
     async def set_nickname_convention(self, rule: str):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"nickname_rule": rule}})
+
 
     async def set_auto_eval_nickname(self, status: bool):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"auto_eval_nickname": status}})
@@ -102,10 +107,14 @@ class DatabaseServer():
         return result
 
 
-    async def add_achievement_role(self, type: str, season: str, amount: int):
+    async def add_achievement_role(self, type: str, season: str, amount: int, scope: str, role_id: int):
+        #scope = both, family, clan
         await self.bot.server_db.update_one({"server": self.server_id},
-                                            {"$push": {f"achievement_roles.{type}": {"season" : season, "amount" : amount}}})
+                                            {"$addToSet": {f"achievement_roles": {"type" : type, "season" : season, "amount" : amount, "scope" : scope, "id" : role_id}}})
 
+    async def add_status_role(self, months: int, role_id: int):
+        await self.bot.server_db.update_one({"server": self.server_id},
+                                            {"$addToSet": {f"status_roles": {"months": months, "id" : role_id}}})
 
     def get_clan(self, clan_tag: str):
         matching_clan = utils.get(self.clans, tag=clan_tag)
@@ -129,6 +138,24 @@ class MultiTypeRole(EvalRole):
     def __init__(self, bot: CustomClient, data):
         super().__init__(bot=bot, data=data)
         self.type: str = data.get("type")
+
+
+class AchievementRole():
+    def __init__(self, data: dict):
+        self.type = data.get("type")
+        self.season = data.get("season")
+        self.amount = data.get("amount")
+        self.scope = data.get("scope")
+        self.id = data.get("id")
+
+    @property
+    def is_rank(self):
+        return (self.amount <= 100)
+
+class StatusRole():
+    def __init__(self, data: dict):
+        self.months = data.get("months")
+        self.id = data.get("id")
 
 class TownhallRole(EvalRole):
     def __init__(self, bot: CustomClient, data):

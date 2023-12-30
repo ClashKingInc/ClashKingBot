@@ -65,6 +65,12 @@ class NoLegendStatsFound(Exception):
 class PlayerNotInLegends(Exception):
     pass
 
+class APITokenRequired(Exception):
+    pass
+
+class InvalidAPIToken(Exception):
+    pass
+
 
 class ThingNotFound(Exception):
     def __init__(self, message):

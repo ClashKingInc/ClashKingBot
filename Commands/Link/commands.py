@@ -1,13 +1,17 @@
+import coc
 from disnake.ext import commands
 import disnake
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer
 from main import check_commands
 from Utils.search import search_results
-from .eval_logic import eval_logic
+from ..Eval.utils import eval_logic
 from CommandsOlder.Utils.Player import to_do_embed
 from Utils.discord_utils import basic_embed_modal
-from Exceptions.CustomExceptions import MessageException
+from Exceptions.CustomExceptions import MessageException, InvalidAPIToken, APITokenRequired
+
+from Discord.autocomplete import Autocomplete as autocomplete
+from Discord.converters import Convert as convert
 
 class Linking(commands.Cog):
 
@@ -31,8 +35,11 @@ class Linking(commands.Cog):
                 description=f"You have no accounts linked.", color=disnake.Color.red())
             return await ctx.edit_original_message(embed=embed)
 
+
     @commands.slash_command(name="link", description="Link clash of clans accounts to your discord profile")
-    async def link(self,  ctx: disnake.ApplicationCommandInteraction, player_tag: str, api_token=None):
+    async def link(self,  ctx: disnake.ApplicationCommandInteraction,
+                   player: coc.Player = commands.Param(autocomplete=autocomplete.all_players, converter=convert.player),
+                   api_token: str =None):
         """
             Parameters
             ----------
@@ -40,74 +47,62 @@ class Linking(commands.Cog):
             api_token: player api-token, use /linkhelp for more info
         """
         await ctx.response.defer()
-        server = CustomServer(guild=ctx.guild, bot=self.bot)
-        change_nickname = await server.nickname_choice
-        try:
-            player = await self.bot.getPlayer(player_tag)
-            if player is None:
-                embed = disnake.Embed(description=f"{player_tag} is not a valid player tag. Use the photo below to help find your player tag.", color=disnake.Color.red())
-                embed.set_image(
-                    url="https://cdn.discordapp.com/attachments/886889518890885141/933932859545247794/bRsLbL1.png")
-                return await ctx.edit_original_message(embed=embed)
+        server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
+        if server.use_api_token and api_token is None:
+            raise APITokenRequired
 
-            verified = await self.bot.coc_client.verify_player_token(player.tag, api_token)
-            linked = await self.bot.link_client.get_link(player.tag)
-            is_linked = (linked is not None)
+        verified = await self.bot.coc_client.verify_player_token(player.tag, api_token)
+        linked = await self.bot.link_client.get_link(player.tag)
+        is_linked = (linked is not None)
+        #if the api token it wrong, but the account is not linked & the server doesnt care about api token, let it go thru
+        if not verified and not is_linked and not server.use_api_token:
+            verified = True
 
-            if verified and is_linked:
-                if linked == ctx.author.id:
-                    embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
-                                                    test=False,
-                                                    change_nick=change_nickname,
-                                                    return_embed=True)
-                    await ctx.edit_original_message(embed=embed)
-                else:
-                    embed = disnake.Embed(
-                        description=f"[{player.name}]({player.share_link}) is already linked to another discord user. Use `/unlink` to remove the link first.", color=disnake.Color.red())
-                    await ctx.edit_original_message(embed=embed)
-
-            elif verified and not is_linked:
-                await self.bot.link_client.add_link(player.tag, ctx.author.id)
+        #overide link if token is correct
+        if verified and is_linked:
+            if linked == ctx.author.id:
                 embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                                 test=False,
                                                 change_nick=change_nickname,
                                                 return_embed=True)
-                embed.title = f"**{player.name} successfully linked to {str(ctx.author)}**"
                 await ctx.edit_original_message(embed=embed)
-                try:
-                    results = await self.bot.clan_db.find_one({"$and": [
-                        {"tag": player.clan.tag},
-                        {"server": ctx.guild.id}
-                    ]})
-                    if results is not None:
-                        greeting = results.get("greeting")
-                        if greeting is None:
-                            badge = await self.bot.create_new_badge_emoji(url=player.clan.badge.url)
-                            greeting = f", welcome to {badge}{player.clan.name}!"
-                        channel = results.get("clanChannel")
-                        channel = self.bot.get_channel(channel)
-                        await channel.send(f"{ctx.author.mention}{greeting}")
-                except:
-                    pass
+            else:
+                embed = disnake.Embed(
+                    description=f"[{player.name}]({player.share_link}) is already linked to another discord user. Use `/unlink` to remove the link first.", color=disnake.Color.red())
+                await ctx.edit_original_message(embed=embed)
 
-            elif not verified and is_linked:
-                if linked == ctx.author.id:
-                    embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
-                                                    test=False,
-                                                    change_nick=change_nickname,
-                                                    return_embed=True)
-                    await ctx.edit_original_message(embed=embed)
-                else:
-                    embed = disnake.Embed(
-                        title="API Token is Incorrect!",
-                        description=f"- Reference below for help finding your api token.\n- Open Clash and navigate to Settings > More Settings - OR use the below link:\nhttps://link.clashofclans.com/?action=OpenMoreSettings" +
-                                    "\n- Scroll down to the bottom and copy the api token.\n- View the picture below for reference.",
-                        color=disnake.Color.red())
-                    embed.set_image(
-                        url="https://cdn.discordapp.com/attachments/843624785560993833/961379232955658270/image0_2.png")
-                    await ctx.edit_original_message(embed=embed)
+        elif verified and not is_linked:
+            await self.bot.link_client.add_link(player.tag, ctx.author.id)
+            embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                                            test=False,
+                                            change_nick=change_nickname,
+                                            return_embed=True)
+            embed.title = f"**{player.name} successfully linked to {str(ctx.author)}**"
+            await ctx.edit_original_message(embed=embed)
+            try:
+                results = await self.bot.clan_db.find_one({"$and": [
+                    {"tag": player.clan.tag},
+                    {"server": ctx.guild.id}
+                ]})
+                if results is not None:
+                    greeting = results.get("greeting")
+                    if greeting is None:
+                        badge = await self.bot.create_new_badge_emoji(url=player.clan.badge.url)
+                        greeting = f", welcome to {badge}{player.clan.name}!"
+                    channel = results.get("clanChannel")
+                    channel = self.bot.get_channel(channel)
+                    await channel.send(f"{ctx.author.mention}{greeting}")
+            except:
+                pass
 
-            elif not verified and not is_linked:
+        elif not verified and is_linked:
+            if linked == ctx.author.id:
+                embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                                                test=False,
+                                                change_nick=change_nickname,
+                                                return_embed=True)
+                await ctx.edit_original_message(embed=embed)
+            else:
                 embed = disnake.Embed(
                     title="API Token is Incorrect!",
                     description=f"- Reference below for help finding your api token.\n- Open Clash and navigate to Settings > More Settings - OR use the below link:\nhttps://link.clashofclans.com/?action=OpenMoreSettings" +
@@ -116,8 +111,16 @@ class Linking(commands.Cog):
                 embed.set_image(
                     url="https://cdn.discordapp.com/attachments/843624785560993833/961379232955658270/image0_2.png")
                 await ctx.edit_original_message(embed=embed)
-        except Exception as e:
-            await ctx.edit_original_message(content=(str(e))[:1000])
+
+        elif not verified and not is_linked:
+            embed = disnake.Embed(
+                title="API Token is Incorrect!",
+                description=f"- Reference below for help finding your api token.\n- Open Clash and navigate to Settings > More Settings - OR use the below link:\nhttps://link.clashofclans.com/?action=OpenMoreSettings" +
+                            "\n- Scroll down to the bottom and copy the api token.\n- View the picture below for reference.",
+                color=disnake.Color.red())
+            embed.set_image(url="https://cdn.clashking.xyz/clash-assets/bot/find_player_tag.png")
+            await ctx.edit_original_message(embed=embed)
+
 
     @commands.slash_command(name="verify", description="Link clash of clans accounts to your discord profile")
     async def verify(self, ctx: disnake.ApplicationCommandInteraction, player_tag):
@@ -180,6 +183,7 @@ class Linking(commands.Cog):
                     pass
         except Exception as e:
             await ctx.send(e[0:1000])
+
 
     @commands.slash_command(name="linkhelp", description="Help & Reference guide for /link command")
     async def linkhelp(self, ctx: disnake.ApplicationCommandInteraction):

@@ -5,6 +5,8 @@ import emoji
 import io
 import disnake
 import asyncio
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from CustomClasses.CustomBot import CustomClient

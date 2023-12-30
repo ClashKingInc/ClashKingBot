@@ -417,10 +417,11 @@ class CustomClient(commands.AutoShardedBot):
         try:
             if custom is True:
                 results = await self.player_stats.find_one({"tag": player_tag})
+                if results is None:
+                    results = {}
                 if cache_data is None:
                     clashPlayer = await self.coc_client.get_player(player_tag=player_tag, cls=MyCustomPlayer, bot=self,
                                                                    results=results)
-                    await self.redis.set(clashPlayer.tag, ujson.dumps(clashPlayer._raw_data).encode('utf-8'), ex=120)
                 else:
                     clashPlayer = MyCustomPlayer(data=cache_data, client=self.coc_client, bot=self, results=results)
             else:

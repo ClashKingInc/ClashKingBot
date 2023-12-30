@@ -84,5 +84,35 @@ async def family_names(bot: CustomClient, query: str, guild):
     return names
 
 
+async def all_names(bot: CustomClient, query: str):
+    names = []
+    if query == "":
+        pipeline = [
+            {"$match": {}},
+            {"$limit": 25}
+        ]
+    else:
+        pipeline = [
+            {
+            "$search": {
+                "index": "player_search",
+                "autocomplete": {
+                    "query": query,
+                    "path": "name",
+                },
+            }
+            },
+            {"$limit": 25}
+        ]
+    results = await bot.player_search.aggregate(pipeline=pipeline).to_list(length=None)
+    for document in results:
+        league = document.get("league")
+        if league == "Unknown":
+            league = "Unranked"
+        league = league.replace(" League", "")
+        names.append(f'{create_superscript(document.get("th"))}{document.get("name")} ({league})' + " | " + document.get("tag"))
+    return names
+
+
 
 

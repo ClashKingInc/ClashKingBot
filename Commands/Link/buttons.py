@@ -4,7 +4,7 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from disnake.ext import commands
 from CustomClasses.CustomServer import CustomServer
-from .eval_logic import eval_logic
+from ..Eval.utils import eval_logic
 
 class LinkWelcomeMessages(commands.Cog):
 

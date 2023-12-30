@@ -23,8 +23,6 @@ class BaseClient():
             {"$lookup": {"from": "linkrole", "localField": "server", "foreignField": "server", "as": "eval.not_family_roles"}},
             {"$lookup": {"from": "townhallroles", "localField": "server", "foreignField": "server", "as": "eval.townhall_roles"}},
             {"$lookup": {"from": "builderhallroles", "localField": "server", "foreignField": "server", "as": "eval.builderhall_roles"}},
-            {"$lookup": {"from": "achievementroles", "localField": "server", "foreignField": "server", "as": "eval.achievement_roles"}},
-            {"$lookup": {"from": "statusroles", "localField": "server", "foreignField": "server", "as": "eval.status_roles"}},
             {"$lookup": {"from": "builderleagueroles", "localField": "server", "foreignField": "server", "as": "eval.builder_league_roles"}},
             {"$lookup": {"from": "clans", "localField": "server", "foreignField": "server", "as": "clans"}},
         ]

@@ -85,10 +85,10 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
         else:
             search_query = str(discord_user.id)
 
-        players = (await search_results(self.bot, search_query))[:25]
-        embed = await create_profile_troops(self.bot, players[0])
+        player = await self.bot.getPlayer(player_tag=player_tag, custom=True, raise_exceptions=True)
+        embed = await create_profile_troops(bot=self.bot, result=player)
         components = []
-        if len(players) > 1:
+        '''if len(players) > 1:
             player_results = []
             for count, player in enumerate(players):
                 player_results.append(
@@ -97,7 +97,7 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
             profile_select = disnake.ui.Select(options=player_results, placeholder="Accounts", max_values=1)
             st2 = disnake.ui.ActionRow()
             st2.append_item(profile_select)
-            components = [st2]
+            components = [st2]'''
         await ctx.send(embeds=embed, components=components)
         msg = await ctx.original_message()
 

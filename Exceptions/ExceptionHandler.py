@@ -39,6 +39,34 @@ class ExceptionHandler(commands.Cog):
         if isinstance(error, disnake.ext.commands.CommandError):
             error = error.original
 
+        if isinstance(error, APITokenRequired):
+            embed = disnake.Embed(
+                title="**API Token is required for this server**",
+                description=f"- Reference below for help finding your api token.\n" \
+                            f"- Open Clash and navigate to Settings > More Settings [in-game link](https://link.clashofclans.com/?action=OpenMoreSettings)\n" \
+                            "- Scroll down to the bottom and copy the api token.\n"
+                            "- View the picture below for reference.",
+                color=disnake.Color.red())
+            embed.set_image(url="https://cdn.clashking.xyz/clash-assets/bot/api_token_help.png")
+            if not ctx.response.is_done():
+                return await ctx.edit_original_message(embed=embed)
+            else:
+                return await ctx.send(embed=embed)
+
+        if isinstance(error, InvalidAPIToken):
+            embed = disnake.Embed(
+                title="**Invalid API Token!**",
+                description=f"- Reference below for help finding your api token.\n" \
+                            f"- Open Clash and navigate to Settings > More Settings [in-game link](https://link.clashofclans.com/?action=OpenMoreSettings)\n" \
+                            "- Scroll down to the bottom and copy the api token.\n"
+                            "- View the picture below for reference.",
+                color=disnake.Color.red())
+            embed.set_image(url="https://cdn.clashking.xyz/clash-assets/bot/api_token_help.png")
+            if not ctx.response.is_done():
+                return await ctx.edit_original_message(embed=embed)
+            else:
+                return await ctx.send(embed=embed)
+
         if isinstance(error, NoLinkedAccounts):
             embed = disnake.Embed(description=f"No Accounts Linked To This User",
                                   color=disnake.Color.red())

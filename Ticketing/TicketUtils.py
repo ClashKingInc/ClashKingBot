@@ -135,7 +135,7 @@ async def message_convertor(bot: CustomClient, ctx: disnake.MessageInteraction, 
 
     coc_account = None
     if ticket.apply_account is not None:
-        coc_account = await bot.getPlayer(player_tag=ticket.apply_account, custom=False, cache_data=False)
+        coc_account = await bot.getPlayer(player_tag=ticket.apply_account, custom=True, cache_data=False)
 
     coc_clan = None
     clan_badge = None

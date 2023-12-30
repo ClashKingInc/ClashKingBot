@@ -1,7 +1,7 @@
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from Utils.Clash.capital import gen_raid_weekend_datestrings
-from Utils.search import family_names, search_name_with_tag
+from Utils.search import family_names, search_name_with_tag, all_names
 from Utils.general import create_superscript
 import disnake
 import coc
@@ -118,6 +118,11 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
 
     async def family_players(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         names = await family_names(bot=self.bot, query=query, guild=ctx.guild)
+        return names
+
+
+    async def all_players(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        names = await all_names(bot=self.bot, query=query)
         return names
 
 

@@ -97,10 +97,7 @@ initial_extensions = [
     "FamilyManagement.Reminders.Reminders",
     "FamilyManagement.strikes",
     "FamilyManagement.rosters",
-    "Legends & Trophies.family_trophy_stats",
     "Legends & Trophies.leaderboards",
-    "Link_and_Eval.link",
-    "Link_and_Eval.eval",
     "Settings.settings",
     "Settings.setup",
     "Settings.autoboard",
@@ -112,7 +109,6 @@ initial_extensions = [
     "Utility.bases",
     "Utility.link_parsers",
     "Utility.help",
-    "poster.poster",
     "Utility.other",
     "Link_and_Eval.link_button",
     "Discord.events",
@@ -126,7 +122,9 @@ initial_extensions = [
     "Commands.Player.commands",
     "Commands.Bans.commands",
     "Commands.Buttons.click",
-    "Commands.Legends.commands"
+    "Commands.Legends.commands",
+    "Commands.Ranked.commands",
+    "Commands.Eval.commands"
 ]
 
 

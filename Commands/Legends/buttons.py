@@ -42,9 +42,9 @@ class LegendButtons(commands.Cog):
                 embed = await legend_history(bot=self.bot, player=legend_player, embed_color=embed_color)
             elif type == "legendquick":
                 results = await self.bot.legend_profile.find_one({'discord_id': ctx.author.id})
-                profile_tags = results.get("profile_tags", [])
+                profile_tags = results.get("profile_tags", []) if results is not None else []
                 if tag in profile_tags:
-                    await self.bot.legend_profile.update_one({'discord_id': ctx.author.id}, {'$pull': {"profile_tags": tag, "feed_tags": tag}})
+                    await self.bot.legend_profile.update_one({'discord_id': ctx.author.id}, {'$pull': {"profile_tags": tag, "feed_tags": tag}}, upsert=True)
                     await ctx.send(content=f"Removed {player.name} from your Quick Check & Daily Report list.", ephemeral=True)
                 elif len(profile_tags) >= 25:
                     await ctx.send(content="Can only have 25 players on your Quick Check & Daily Report list. Please remove one.", ephemeral=True)

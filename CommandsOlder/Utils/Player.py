@@ -193,7 +193,6 @@ async def create_profile_troops(bot: CustomClient, result: MyCustomPlayer, embed
 
     hero_embed = disnake.Embed(description=hero_embed_text, color=embed_color)
 
-    print(len(hero_embed_text) + len(troop_embed_text))
     if hero_embed_text != "":
         hero_embed.timestamp = datetime.now()
         return [troop_embed, hero_embed]

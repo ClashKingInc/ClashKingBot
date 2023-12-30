@@ -11,6 +11,56 @@ from Utils.constants import DEFAULT_EVAL_ROLE_TYPES, ROLE_TREATMENT_TYPES
 from Utils.general import get_clan_member_tags, create_superscript
 from Exceptions.CustomExceptions import ExpiredComponents
 
+class EvalPlayer():
+    def __init__(self):
+        pass
+
+async def logic(bot: CustomClient, guild: disnake.Guild):
+    server = await bot.ck_client.get_server_settings(guild.id)
+    ignored_roles = {r.id for r in server.ignored_roles}
+    family_roles = {r.id for r in server.family_roles}
+    not_family_roles = {r.id for r in server.not_family_roles}
+    clan_member_roles = {c.tag : c.member_role for c in server.clans}
+    clan_leadership_roles = {c.tag : c.leader_role for c in server.clans}
+    townhall_roles = {int(r.townhall.replace("th","")) : r.id for r in server.townhall_roles}
+    builderhall_roles = {int(r.builderhall.replace("bh","")) : r.id for r in server.builderhall_roles}
+    league_roles = {r.type : r.id for r in server.league_roles}
+    builder_league_roles = {r.type : r.id for r in server.builder_league_roles}
+    status_roles = {r.months: r.id for r in server.status_roles}
+
+    achievement_roles = server.achievement_roles
+
+    #clan_category_roles = {c.tag : c.category for}
+    clan_tags = {c.tag for c in server.clans}
+
+    #clan_to_category = {clan.tag: clan.category for clan in db_server.clans}
+
+
+    if not auto_eval:
+        clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
+        clans: List[coc.Clan] = await bot.get_clans(tags=clan_tags)
+        member_tags = get_clan_member_tags(clans=clans)
+        last_season = bot.gen_season_date(1, as_text=False)[-1]
+        this_season = bot.gen_season_date()
+        top_donator_last_season = await bot.player_stats.find({"tag": {"$in": member_tags}}, {"tag": 1}).sort(f"donations.{last_season}.donated", -1).limit(1).to_list(length=1)
+        top_donator_last_season = top_donator_last_season[0] if top_donator_last_season else top_donator_last_season
+
+        top_donator_this_season = await bot.player_stats.find({"tag": {"$in": member_tags}}, {"tag": 1}).sort(f"donations.{this_season}.donated", -1).limit(1).to_list(length=1)
+        top_donator_this_season = top_donator_this_season[0].get("tag") if top_donator_this_season else top_donator_this_season
+
+
+    category_roles = {}
+    category_role_list = []
+    if db_server.category_roles is not None:
+        categories = await bot.clan_db.distinct("category", filter={"server": guild.id})
+        for category in categories:
+            role_id = db_server.category_roles.get(f"{category}")
+            if role_id is None:
+                continue
+            category_roles[category] = role_id
+            category_role_list.append(role_id)
+
+    #add achievement roles
 
 async def eval_logic(bot: CustomClient, role_or_user, members_to_eval: List[disnake.Member], change_nickname: bool,
                      test: bool, nickname_convention: str, ctx: disnake.ApplicationCommandInteraction = None,
