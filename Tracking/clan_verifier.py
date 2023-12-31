@@ -31,6 +31,10 @@ looper = client.looper
 clan_tags = looper.clan_tags
 rankings = client.new_looper.rankings
 deleted_clans = client.new_looper.deleted_clans
+
+db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("STATIC_DB_LOGIN"))
+clan_db = db_client.usafam.clans
+
 throttler = Throttler(rate_limit=1000, period=1)
 
 emails = []
@@ -190,6 +194,9 @@ async def broadcast(keys):
                 pipeline = [{"$match": {"$nor" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, {"$group": {"_id": "$tag"}}]
             x += 1
             all_tags = [x["_id"] for x in (await clan_tags.aggregate(pipeline).to_list(length=None))]
+            bot_clan_tags = await clan_db.distinct("tag")
+            all_tags = list(set(all_tags + bot_clan_tags))
+
             print(f"{len(all_tags)} tags")
             size_break = 100000
             all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
