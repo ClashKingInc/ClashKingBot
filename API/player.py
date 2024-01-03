@@ -1,3 +1,4 @@
+import datetime
 import re
 import ujson
 import coc
@@ -10,7 +11,6 @@ from typing import List
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from APIUtils.utils import fix_tag, redis, db_client
-
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(tags=["Player Endpoints"])
@@ -223,6 +223,7 @@ async def player_wartimer(player_tag: str, request: Request, response: Response)
     if result is None:
         return result
     result["tag"] = result.pop("_id")
+    result["unix_time"] = datetime.datetime.fromisoformat(result["time"]).timestamp()
     return result
 
 
