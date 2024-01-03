@@ -56,6 +56,7 @@ class DBClient():
         self.war_logs_db: collection_class = self.looper.war_logs
         self.player_stats_db: collection_class = self.new_looper.player_stats
         self.attack_db: collection_class = self.looper.warhits
+        self.war_timer: collection_class = self.looper.war_timer
         self.player_leaderboard_db: collection_class = self.new_looper.leaderboard_db
         self.player_history: collection_class = self.new_looper.get_collection("player_history")
 

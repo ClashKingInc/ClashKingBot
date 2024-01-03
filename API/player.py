@@ -212,16 +212,18 @@ async def player_legend_rankings(player_tag: str, request: Request, response: Re
     return results
 
 
-@router.get("/player/{player_tag}/cache",
+@router.get("/player/{player_tag}/wartimer",
          tags=["Player Endpoints"],
-         name="Cached endpoint response")
+         name="Get the war timer for a player")
 @cache(expire=300)
 @limiter.limit("30/second")
-async def player_cache(player_tag: str, request: Request, response: Response):
-    cache_data = None
-    if not cache_data:
-        return {"No Player Found" : player_tag}
-    return cache_data["data"]
+async def player_wartimer(player_tag: str, request: Request, response: Response):
+    player_tag = fix_tag(player_tag)
+    result = await db_client.war_timer.find_one({"_id" : player_tag})
+    if result is None:
+        return result
+    result["tag"] = result.pop("_id")
+    return result
 
 
 @router.get("/player/search/{name}",
