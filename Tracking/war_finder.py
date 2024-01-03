@@ -5,9 +5,10 @@ from datetime import datetime
 from dotenv import dotenv_values, load_dotenv
 from msgspec.json import decode
 from msgspec import Struct
-from pymongo import  InsertOne
+from pymongo import  InsertOne, UpdateOne
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
+from typing import List
 
 import pymongo
 import motor.motor_asyncio
@@ -26,6 +27,7 @@ looper = client.looper
 clan_tags = looper.clan_tags
 clan_wars = looper.clan_war
 warhits = looper.warhits
+war_timer = looper.war_timer
 
 db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("STATIC_DB_LOGIN"))
 clan_db = db_client.usafam.clans
@@ -120,8 +122,13 @@ def create_keys():
             done = False
             print(e)
 
+class Members(Struct):
+    tag: str
+
 class Clan(Struct):
     tag: str
+    members: List[Members]
+
 
 class War(Struct):
     state: str
@@ -189,6 +196,7 @@ async def broadcast(keys):
 
             responses = [r for r in responses if type(r) is tuple]
             changes = []
+            war_timers = []
             for response, tag in responses:
                 # we shouldnt have completely invalid tags, they all existed at some point
                 if response is None or response == 503:
@@ -207,6 +215,8 @@ async def broadcast(keys):
                     in_war.add(tag)
                     in_war.add(opponent_tag)
                     war_unique_id = "-".join(sorted([war.clan.tag, war.opponent.tag])) + f"-{int(war_prep.time.timestamp())}"
+                    for member in war.clan.members + war.opponent.members:
+                        war_timers.append(UpdateOne({"_id" : member.tag}, {"$set" : {"time" : war_end.time}}, upsert=True))
                     changes.append(InsertOne({"war_id" : war_unique_id,
                                               "clans" : [tag, opponent_tag],
                                               "endTime" : int(war_end.time.replace(tzinfo=utc).timestamp())
@@ -223,6 +233,13 @@ async def broadcast(keys):
                     await clan_wars.bulk_write(changes, ordered=False)
                 except Exception:
                     pass
+
+            if war_timers:
+                try:
+                    await war_timer.bulk_write(war_timers, ordered=False)
+                except Exception:
+                    pass
+
         if ones_that_tried_again:
             print(f"{len(ones_that_tried_again)} tried again, examples: {ones_that_tried_again[:5]}")
 
