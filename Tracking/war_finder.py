@@ -216,7 +216,7 @@ async def broadcast(keys):
                     in_war.add(opponent_tag)
                     war_unique_id = "-".join(sorted([war.clan.tag, war.opponent.tag])) + f"-{int(war_prep.time.timestamp())}"
                     for member in war.clan.members + war.opponent.members:
-                        war_timers.append(UpdateOne({"_id" : member.tag}, {"$set" : {"time" : war_end.time}}, upsert=True))
+                        war_timers.append(UpdateOne({"_id" : member.tag}, {"$set" : {"clans" : [war.clan.tag, war.opponent.tag], "time" : war_end.time}}, upsert=True))
                     changes.append(InsertOne({"war_id" : war_unique_id,
                                               "clans" : [tag, opponent_tag],
                                               "endTime" : int(war_end.time.replace(tzinfo=utc).timestamp())
