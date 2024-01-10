@@ -8,13 +8,14 @@ import coc
 import pytz
 import re
 
+
 class Autocomplete(commands.Cog, name="Autocomplete"):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    async def season(self, inter: disnake.ApplicationCommandInteraction, user_input: str):
+    async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
-        return [season for season in seasons if user_input.lower() in season.lower()]
+        return [season for season in seasons if query.lower() in season.lower()]
 
 
     async def category(self, ctx: disnake.ApplicationCommandInteraction, query: str):

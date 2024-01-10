@@ -102,37 +102,36 @@ initial_extensions = [
     "Settings.setup",
     "Settings.autoboard",
     "Settings.addclans",
-    "Ticketing.TicketCog",
-    "Utility.army",
-    "Utility.awards",
-    "Utility.boost",
-    "Utility.bases",
-    "Utility.link_parsers",
-    "Utility.help",
-    "Utility.other",
-    "Link_and_Eval.link_button",
+    #"Utility.awards",
+    #"Utility.boost",
+    #"Utility.bases",
+    #"Utility.link_parsers",
+    #"Utility.help",
+    #"Utility.other",
+    #"Link_and_Eval.link_button",
     "Discord.events",
     "Discord.autocomplete",
     "Discord.converters",
     #"Background.refresh_boards",
     "Graphing.Graphs",
 
-    "Commands.Clan.commands",
-    "Commands.Family.commands",
-    "Commands.Player.commands",
-    "Commands.Bans.commands",
-    "Commands.Buttons.click",
-    "Commands.Legends.commands",
-    "Commands.Ranked.commands",
-    "Commands.Eval.commands"
 ]
 
+disallowed = set()
+if IS_CUSTOM:
+    disallowed.add("Owner")
 
-#let local & main run only
-if not IS_CUSTOM:
-    initial_extensions += [
-        "owner_commands",
-    ]
+def load():
+    for root, _, files in os.walk('./Commands'):
+        for filename in files:
+            if filename.endswith('.py') and filename.split(".")[0] in ["commands", "click"]:
+                path = os.path.join(root, filename)[len("./Commands/"):][:-3].replace(os.path.sep, '.')
+                if path.split(".")[0] in disallowed:
+                    continue
+                bot.load_extension(f'Commands.{path}')
+                bot.EXTENSION_LIST.append(f'Commands.{path}')
+
+
 
 #dont let custom or local run
 if not IS_BETA and not IS_CUSTOM:
@@ -163,13 +162,6 @@ if not IS_TEST:
     ]
 
 
-@bot.command(name="reload")
-@commands.is_owner()
-async def r(ctx):
-    for extension in initial_extensions:
-        bot.reload_extension(extension)
-    #await ctx.message.delete()
-
 def before_send(event, hint):
     try:
         if "unclosed client session" in str(event["logentry"]["message"]).lower() or "unclosed connector" in str(event["logentry"]["message"]).lower():
@@ -190,6 +182,7 @@ if __name__ == "__main__":
         },
         before_send=before_send
     )
+    load()
     for extension in initial_extensions:
         try:
             bot.load_extension(extension)

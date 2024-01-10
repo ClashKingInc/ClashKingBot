@@ -32,6 +32,7 @@ class help(commands.Cog):
         cog_dict = defaultdict(list)
         command_description = {}
         command_mentions = {}
+
         for command in self.bot.slash_commands:
             cog_name = command.cog_name
             base_command = command.name

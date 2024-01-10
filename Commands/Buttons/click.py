@@ -1,10 +1,12 @@
 
 import disnake
+import inspect
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from Utils.constants import EMBED_COLOR
-from .converter import get_function
+from Utils.discord_utils import  registered_functions
+
 
 class CommandButtons(commands.Cog):
 
@@ -29,11 +31,12 @@ class CommandButtons(commands.Cog):
                     field_result = await self.bot.getClan(clan_tag=field_result)
                 elif field == "server":
                     field_result = await self.bot.getch_guild(guild_id=field_result)
+                elif field == "clans":
+                    field_result = await self.bot.get_clans(tags=field_result)
                 hold_kwargs[field] = field_result
 
-            embed = await get_function(name=result.get("command"))(**hold_kwargs)
-
-
+            hold_kwargs = {key : hold_kwargs[key] for key in inspect.getfullargspec(registered_functions.get(result.get("command"))).args}
+            embed = await registered_functions.get(result.get("command"))(**hold_kwargs)
 
             if isinstance(embed, list):
                 await ctx.edit_original_message(embeds=embed)

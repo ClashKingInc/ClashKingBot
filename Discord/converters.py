@@ -86,6 +86,10 @@ class Convert(commands.Cog, name="Convert"):
             return hex_code
         raise MessageException(f"{hex_code} is not a valid hex color.")
 
+    def basic_bool(self, statement: str):
+        if statement in ["Yes", "True"]:
+            return True
+        return False
 
 
 def setup(bot: CustomClient):

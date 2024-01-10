@@ -205,6 +205,7 @@ async def broadcast(keys):
                     war = decode(response, type=War)
                 except:
                     continue
+
                 if war.state != "notInWar":
                     war_end = coc.Timestamp(data=war.endTime)
                     run_time = war_end.time.replace(tzinfo=utc)

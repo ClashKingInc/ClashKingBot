@@ -81,7 +81,7 @@ class misc(commands.Cog, name="Other"):
         num_clans = await self.bot.clan_db.count_documents({})
         num_players = await self.bot.player_stats.count_documents({})
         num_tickets = await self.bot.open_tickets.count_documents({})
-
+        (await self.bot.getch_channel(0)).send()
         inservers = len(self.bot.guilds)
         members = sum(guild.member_count - 1 for guild in self.bot.guilds)
         embed = disnake.Embed(title=f'{self.bot.user.name} Stats',
@@ -94,6 +94,8 @@ class misc(commands.Cog, name="Other"):
                                           f"Tracking {num_players} players\n"
                                           f"{num_tickets} tickets opened\n",
                               color=disnake.Color.green())
+
+
 
         page_buttons = [
             disnake.ui.Button(label="Bot Invite", style=disnake.ButtonStyle.url, url="https://discord.com/api/oauth2/authorize?client_id=824653933347209227&permissions=8&scope=bot%20applications.commands"),
@@ -154,9 +156,9 @@ class misc(commands.Cog, name="Other"):
             await ctx.send(file=file)
 
 
-    @commands.slash_command(name="faq", description="Frequently Asked Questions")
-    async def faq(self, ctx: disnake.ApplicationCommandInteraction, question=None):
-        await ctx.send(content=f"The docs [here](<https://docs.clashking.xyz>) explain a lot of basics or feel free to ask in our [support server](<https://discord.gg/clashking>)")
+    '''@commands.slash_command(name="help", description="Frequently Asked Questions")
+    async def help(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.send(content=f"The docs [here](<https://docs.clashking.xyz>) explain a lot of basics or feel free to ask in our [support server](<https://discord.gg/clashking>)")'''
 
 
     @commands.Cog.listener()

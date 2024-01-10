@@ -75,7 +75,6 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
 
 
 
-
     @player.sub_command(name="upgrades", description="Show upgrades left for an account")
     async def upgrades(self, ctx: disnake.ApplicationCommandInteraction, player_tag: str = None, discord_user: disnake.Member = None):
         if player_tag is None and discord_user is None:

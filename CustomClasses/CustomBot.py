@@ -16,9 +16,10 @@ import emoji
 from datetime import datetime, timedelta
 from coc.ext import discordlinks
 from disnake.ext import commands
+from disnake import Message
 from dotenv import load_dotenv
 from Assets.emojiDictionary import emojiDictionary, legend_emojis
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from CustomClasses.CustomPlayer import MyCustomPlayer, CustomClanClass
 from CustomClasses.Emojis import Emojis, EmojiType
 from urllib.request import urlopen
 from collections import defaultdict
@@ -31,7 +32,7 @@ from redis import asyncio as redis
 from CustomClasses.DatabaseClient.familyclient import FamilyClient
 utc = pytz.utc
 load_dotenv()
-
+from helply import Helply
 
 
 class CustomClient(commands.AutoShardedBot):
@@ -131,11 +132,6 @@ class CustomClient(commands.AutoShardedBot):
         self.MAX_FEED_LEN = 5
         self.FAQ_CHANNEL_ID = 1010727127806648371
 
-        self.global_channels = []
-        self.last_message = defaultdict(int)
-        self.banned_global = [859653218979151892]
-        self.global_webhooks = defaultdict(str)
-
         self.feed_webhooks = {}
         self.clan_list = []
         self.player_cache_dict = {}
@@ -143,6 +139,8 @@ class CustomClient(commands.AutoShardedBot):
 
         self.OUR_GUILDS = set()
         self.badge_guild = []
+        self.EXTENSION_LIST = []
+
 
     def clean_string(self, text: str):
         text = emoji.replace_emoji(text)
@@ -437,7 +435,9 @@ class CustomClient(commands.AutoShardedBot):
             else:
                 return None
 
-    async def get_players(self, tags: list, custom=True, use_cache=True, fake_results=False, found_results=None):
+    async def get_players(self, tags: list, fresh_tags=None, custom=True, use_cache=True, fake_results=False, found_results=None):
+        if fresh_tags is None:
+            fresh_tags = []
         if custom and fake_results is False:
             if found_results is None:
                 results_list = await self.player_stats.find({"tag" : {"$in" : tags}}).to_list(length=2500)
@@ -452,7 +452,7 @@ class CustomClient(commands.AutoShardedBot):
         players = []
         tag_set = set(tags)
         if use_cache:
-            cache_data = await self.redis.mget(keys=list(tag_set))
+            cache_data = await self.redis.mget(keys=[tag for tag in tag_set if tag not in fresh_tags])
         else:
             cache_data = []
 
@@ -477,6 +477,7 @@ class CustomClient(commands.AutoShardedBot):
                 players.append(response)
         return [player for player in players if player is not None]
 
+
     async def get_clans(self, tags: list, use_cache=True):
         tag_set = set(tags)
 
@@ -487,7 +488,7 @@ class CustomClient(commands.AutoShardedBot):
         clans = []
         for data in cache_data:
             tag_set.remove(data.get("tag"))
-            clans.append(coc.Clan(data=data.get("data"), client=self.coc_client))
+            clans.append(CustomClanClass(data=data.get("data"), client=self.coc_client))
 
         tasks = []
         for tag in tag_set:
@@ -509,7 +510,7 @@ class CustomClient(commands.AutoShardedBot):
 
         clan_tag = coc.utils.correct_tag(clan_tag)
         try:
-            clan = await self.coc_client.get_clan(clan_tag)
+            clan = await self.coc_client.get_clan(clan_tag, cls=CustomClanClass)
         except Exception:
             if raise_exceptions:
                 raise
@@ -518,6 +519,7 @@ class CustomClient(commands.AutoShardedBot):
             if clan.member_count == 0:
                 return None
         return clan
+
 
     async def get_current_war_times(self, tags: list):
         tasks = []
@@ -646,9 +648,6 @@ class CustomClient(commands.AutoShardedBot):
 
 
 
-
-    def get_clan_member_tags(self, clans):
-        pass
 
 
 

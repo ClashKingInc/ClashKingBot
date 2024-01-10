@@ -1,12 +1,19 @@
 import json
 
+import disnake
+
 #EVAL CONSTANTS
-DEFAULT_EVAL_ROLE_TYPES = ["family", "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "builder_league", "achievement", "status", "nicknames"]
+DEFAULT_EVAL_ROLE_TYPES = ["family", "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "builder_league", "nicknames"]
+
 ROLE_TREATMENT_TYPES = ["Add", "Remove"]
 
 BOARD_TYPES = ["Overview Board", "Simple Board", "Summary", "Donation", "Received", "Dono Ratio", "Discord Links", "War Preference", "Super Troops", "Clan Games", "Activity", "Last Online", "War Log", "CWL History"]
 TOWNHALL_LEVELS = [x for x in range(1, 17)]
 TOP_TOWNHALL = TOWNHALL_LEVELS[-1]
+
+MAX_ARMY_CAMP = 320
+MAX_NUM_SPELLS = 11
+
 
 MAX_NUM_SUPERS = 2
 SHORT_PLAYER_LINK = "https://api.clashking.xyz/p/"
@@ -23,6 +30,7 @@ item_to_name = {"Player Tag" : "tag", "Role" : "role",
 
 HOME_VILLAGE_HEROES = ["Barbarian King", "Archer Queen", "Royal Champion", "Grand Warden"]
 EMBED_COLOR = 2829617
+EMBED_COLOR_CLASS = disnake.Color(EMBED_COLOR)
 
 HERO_EQUIPMENT = {
         "Barbarian Puppet" : "Barbarian King",

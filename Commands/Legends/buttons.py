@@ -1,18 +1,10 @@
-import coc.utils
-import contextlib
+
 import disnake
 from disnake.ext import commands
-import emoji
-from CustomClasses.CustomPlayer import MyCustomPlayer
+
 from CustomClasses.CustomBot import CustomClient
-from Utils.components import create_components
-from Discord.autocomplete import Autocomplete as autocomplete
-from Discord.converters import Convert as convert
-from Exceptions.CustomExceptions import NoLinkedAccounts, PlayerNotInLegends
 from .utils import legend_day_overview, legend_season_overview, legend_history
-from CustomClasses.DatabaseClient.Classes.player import LegendPlayer
-from typing import List
-import uuid
+
 
 
 class LegendButtons(commands.Cog):

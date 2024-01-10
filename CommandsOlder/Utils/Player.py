@@ -157,8 +157,21 @@ async def history(bot: CustomClient, ctx, player):
     embed.set_footer(text="Data from ClashofStats.com")
     return embed
 
+lookup = {}
+def cache_test(func):
+    async def wrapper(*args, **kwargs):
+        name = func.__name__
+        key = f"{name}-{str(kwargs)}"
+        result = lookup.get(key)
+        if result is None:
+            result = await func(*args, **kwargs)
+            lookup[key] = result
+        return result
+    return wrapper
 
+@cache_test
 async def create_profile_troops(bot: CustomClient, result: MyCustomPlayer, embed_color: disnake.Color = disnake.Color.green()):
+    await asyncio.sleep(5)
     player = result
     hero = heros(bot=bot, player=player)
     pets = heroPets(bot=bot, player=player)

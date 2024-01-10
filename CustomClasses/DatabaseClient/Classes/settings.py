@@ -25,6 +25,8 @@ class DatabaseServer():
         self.ignored_roles = [EvalRole(bot=bot, data=d) for d in data.get("eval", {}).get("ignored_roles", [])]
         self.family_roles = [EvalRole(bot=bot, data=d) for d in data.get("eval", {}).get("family_roles", [])]
         self.not_family_roles = [EvalRole(bot=bot, data=d) for d in data.get("eval", {}).get("not_family_roles", [])]
+        self.only_family_roles = [EvalRole(bot=bot, data=d) for d in data.get("eval", {}).get("only_family_roles", [])]
+
         self.townhall_roles = [TownhallRole(bot=bot, data=d) for d in data.get("eval", {}).get("townhall_roles", [])]
         self.builderhall_roles = [BuilderHallRole(bot=bot, data=d) for d in data.get("eval", {}).get("builderhall_roles", [])]
 
@@ -33,8 +35,7 @@ class DatabaseServer():
         self.status_roles = [StatusRole(data=d) for d in data.get("status_roles", [])]
 
         self.clans = [DatabaseClan(bot=bot, data=d) for d in data.get("clans", [])]
-        self.category_roles = data.get("category_roles")
-        self.eval_non_members: bool = data.get("eval_non_members", True)
+        self.category_roles = data.get("category_roles", {})
         self.blacklisted_roles: List[int] = data.get("blacklisted_roles", [])
         self.role_treatment: List[str] = data.get("role_treatment", ROLE_TREATMENT_TYPES)
         self.auto_eval_nickname: bool = data.get("auto_eval_nickname", False)
@@ -46,7 +47,14 @@ class DatabaseServer():
         self.autoeval_triggers = data.get("autoeval_triggers", [])
 
         self.nickname_convention = data.get("nickname_rule", "{player_name}")
-        self.change_nickname = data.get("change_nickname", False)
+        self.change_nickname = data.get("change_nickname", True)
+        self.flair_non_family: bool = data.get("flair_non_family", True)
+
+
+
+    async def set_flair_non_family(self, option: bool):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"flair_non_family": option}})
+
 
 
     async def set_allowed_link_parse(self, type: str, status: bool):
@@ -107,10 +115,11 @@ class DatabaseServer():
         return result
 
 
-    async def add_achievement_role(self, type: str, season: str, amount: int, scope: str, role_id: int):
+    async def add_achievement_role(self, type: str, season: str, amount: int,  role_id: int):
         #scope = both, family, clan
         await self.bot.server_db.update_one({"server": self.server_id},
-                                            {"$addToSet": {f"achievement_roles": {"type" : type, "season" : season, "amount" : amount, "scope" : scope, "id" : role_id}}})
+                                            {"$addToSet": {f"achievement_roles": {"type" : type, "season" : season, "amount" : amount, "id" : role_id}}})
+
 
     async def add_status_role(self, months: int, role_id: int):
         await self.bot.server_db.update_one({"server": self.server_id},
@@ -145,7 +154,6 @@ class AchievementRole():
         self.type = data.get("type")
         self.season = data.get("season")
         self.amount = data.get("amount")
-        self.scope = data.get("scope")
         self.id = data.get("id")
 
     @property

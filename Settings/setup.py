@@ -174,7 +174,9 @@ class SetupCommands(commands.Cog , name="Setup"):
 
     @setup.sub_command(name="user-settings", description="Set bot settings for yourself like main account or timezone")
     async def user_settings(self, ctx: disnake.ApplicationCommandInteraction,
-                            main_account: str = None, timezone: str = None,
+                            default_main_account: str = None,
+                            server_main_account: str= None,
+                            timezone: str = None,
                             private_mode: str = commands.Param(default=None,choices=["True", "False"])):
         await ctx.response.defer()
         changed_text = ""

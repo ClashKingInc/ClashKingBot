@@ -21,13 +21,13 @@ from ballpark import ballpark as B
 from statistics import mean
 from Utils.Clash.capital import gen_raid_weekend_datestrings, calc_raid_medals
 from Utils.clash import cwl_league_emojis, clan_super_troop_comp, clan_th_comp
-from Utils.discord_utils import fetch_emoji
+from Utils.discord_utils import fetch_emoji, register_button
 from Utils.general import create_superscript, response_to_line, fetch, get_guild_icon
 from Utils.constants import SUPER_SCRIPTS, MAX_NUM_SUPERS
 from pytz import utc
 from Utils.clash import league_to_emoji
 
-
+@register_button("clan board detailed")
 async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake.Guild, embed_color: disnake.Color = disnake.Color.green()):
     db_clan = await bot.clan_db.find_one({"$and": [
         {"tag": clan.tag},
@@ -177,7 +177,7 @@ async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake
     embed.timestamp = datetime.now()
     return embed
 
-
+@register_button("clan board basic")
 async def basic_clan_board(clan: coc.Clan, embed_color: disnake.Color = disnake.Color.green()):
     leader = coc.utils.get(clan.members, role=coc.Role.leader)
 
@@ -220,6 +220,7 @@ async def basic_clan_board(clan: coc.Clan, embed_color: disnake.Color = disnake.
     return embed
 
 
+@register_button("clan compo")
 async def clan_composition(bot: CustomClient, clan: coc.Clan, type: str, embed_color: disnake.Color = disnake.Color.green()):
     bucket = defaultdict(int)
 

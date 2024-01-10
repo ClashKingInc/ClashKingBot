@@ -2,6 +2,8 @@ import os
 
 import coc
 import disnake
+
+import CustomClasses.CustomBot
 from Assets.emojiDictionary import emojiDictionary, legend_emojis
 from typing import Callable, Union
 from Exceptions.CustomExceptions import MissingWebhookPerms
@@ -12,6 +14,8 @@ from datetime import datetime
 from operator import attrgetter
 import aiohttp
 from dotenv import load_dotenv
+from typing import List
+
 
 def partial_emoji_gen(bot, emoji_string, animated=False):
     emoji = ''.join(filter(str.isdigit, emoji_string))
@@ -32,12 +36,8 @@ def fetch_emoji(emoji_name):
     return emoji
 
 
-
-
-
-
 async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteraction, disnake.MessageInteraction], msg:disnake.Message = None,
-                              function: Callable = None, no_defer = False, ephemeral= False, any_run=False):
+                              function: Callable = None, no_defer = False, ephemeral= False, any_run=False, timeout=600):
     if msg is None:
         msg = await ctx.original_message()
 
@@ -53,7 +53,7 @@ async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteract
     valid_value = None
     while valid_value is None:
         try:
-            res: disnake.MessageInteraction = await bot.wait_for("message_interaction", check=check, timeout=600)
+            res: disnake.MessageInteraction = await bot.wait_for("message_interaction", check=check, timeout=timeout)
         except Exception:
             raise ExpiredComponents
 
@@ -148,6 +148,35 @@ async def basic_embed_modal(bot, ctx: disnake.ApplicationCommandInteraction, pre
     await modal_inter.response.defer()
 
     return (modal_inter, embed)
+
+
+def iter_embed_creation(base_embed: disnake.Embed, iter: List, scheme: str, brk: int = 50) -> List[disnake.Embed]:
+
+    embeds = []
+    text = ""
+    for count, x in enumerate(iter, 1):
+        text += scheme.format(**locals())
+        if count % brk == 0:
+            embed = base_embed
+            embed.description = text
+            embeds.append(embed)
+            text = ""
+    if text != "":
+        embed = base_embed
+        embed.description = text
+        embeds.append(embed)
+    return embeds
+
+
+registered_functions = {}
+
+
+def register_button(command_name):
+    def decorator(func):
+        registered_functions[command_name] = func
+        return func
+    return decorator
+
 
 
 async def generate_embed(bot, our_embed: dict, embed=None):

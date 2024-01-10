@@ -7,6 +7,8 @@ from Utils.clash import gen_season_date
 from Utils.constants import BOARD_TYPES
 from typing import Union
 
+bot = CustomClient()
+
 def create_components(current_page, embeds, print=False):
     length = len(embeds)
     if length == 1:

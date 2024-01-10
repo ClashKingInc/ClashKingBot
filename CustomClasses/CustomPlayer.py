@@ -21,6 +21,11 @@ else:
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 
 
+class CustomClanClass(coc.Clan):
+    def __hash__(self):
+        return (hash(self.tag))
+
+
 class MyCustomPlayer(coc.Player):
     def __init__(self, **kwargs):
         self.troop_cls = MyCustomTroops

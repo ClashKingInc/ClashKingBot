@@ -12,8 +12,7 @@ from Utils.constants import EMBED_COLOR
 from Utils.components import clan_board_components
 from CustomClasses.CustomPlayer import MyCustomPlayer
 
-from Discord.converters import Convert as convert
-from Discord.autocomplete import Autocomplete as autocomplete
+from Discord import convert, autocomplete, options
 from .utils import clan_composition, basic_clan_board, detailed_clan_board, hero_progress
 
 
@@ -36,7 +35,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
     @clan.sub_command(name="compo", description="Composition of values in a clan")
     async def clan_compo(self, ctx: disnake.ApplicationCommandInteraction,
-                         clan: coc.Clan = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan),
+                         clan: coc.Clan = options.clan,
                          type_: str = commands.Param(name="type", default="Townhall", choices=["Townhall", "Trophies", "Location", "Role",  "League"])):
         server_result = await self.bot.server_db.find_one({"server" : ctx.guild_id})
         embed = await clan_composition(bot=self.bot, clan=clan, type=type_, embed_color=disnake.Color(server_result.get("embed_color", EMBED_COLOR)))
@@ -56,7 +55,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
     @clan.sub_command(name="board", description="Board showing basic clan overview")
     async def clan_board(self, ctx: disnake.ApplicationCommandInteraction,
-                          clan: coc.Clan = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan),
+                          clan: coc.Clan = options.clan,
                           type: str= commands.Param(default="Detailed", choices=["Basic", "Detailed"])):
 
         server_result = await self.bot.server_db.find_one({"server": ctx.guild_id})
@@ -87,9 +86,9 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
     @clan.sub_command(name="progress", description="Progress by clan ")
     async def progress(self, ctx: disnake.ApplicationCommandInteraction,
-                       clan: coc.Clan = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan),
+                       clan: coc.Clan = options.clan,
                        type=commands.Param(choices=["Heroes & Pets", "Troops, Spells, & Sieges", "Loot"]),
-                       season: str = commands.Param(default=None, converter=convert.season, autocomplete=autocomplete.season),
+                       season: str = options.optional_season,
                        limit: int = commands.Param(default=50, min_value=1, max_value=50)):
         """
             Parameters

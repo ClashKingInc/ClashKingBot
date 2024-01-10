@@ -1,4 +1,5 @@
 import json
+import sys
 import time
 
 import disnake
@@ -22,7 +23,6 @@ import os
 import coc
 from Utils.Clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
 
-from Link_and_Eval.eval_logic import eval_logic
 from CustomClasses.ReminderClass import Reminder
 from Utils.Clash.capital import get_raidlog_entry, gen_raid_weekend_datestrings
 from ImageGen.ClanCapitalResult import generate_raid_result_image
@@ -45,6 +45,104 @@ from msgspec import Struct
 from collections import defaultdict
 from Utils.general import custom_round
 from CustomClasses.Ticketing import OpenTicket, TicketPanel, LOG_TYPE
+import traceback
+import textwrap
+from contextlib import redirect_stdout
+import io
+import re
+from aiohttp import TCPConnector, ClientTimeout, ClientSession
+import ujson
+from typing import Optional, List, Union
+import msgspec
+import orjson
+import cysimdjson
+
+
+class Achievement(Struct, frozen=True):
+    name: str
+    stars: int
+    value: int
+    target: int
+    info: str
+    completionInfo: Union[str, None]
+    village: str
+
+class BadgeUrls(Struct, frozen=True):
+    small: str
+    medium: str
+    large: str
+
+class Clan(Struct, frozen=True):
+    tag: str
+    name: str
+    clanLevel: int
+    badgeUrls: BadgeUrls
+
+class Troop(Struct, frozen=True):
+    name: str
+    level: int
+    maxLevel: int
+    village: str
+
+
+class Player(Struct, frozen=True, dict=True):
+    tag: str
+    name: str
+    townHallLevel: int
+    expLevel: int
+    trophies: int
+    bestTrophies: int
+    warStars: int
+    attackWins: int
+    defenseWins: int
+    builderBaseTrophies: int
+    bestBuilderBaseTrophies: int
+    donations: int
+    donationsReceived: int
+    clanCapitalContributions: int
+    achievements: List[Achievement]
+    heroes: List[Troop]
+    spells: List[Troop]
+    troops: List[Troop]
+    role: Optional[str] = None
+    warPreference: Optional[str] = None
+    clan: Optional[Clan] = None
+    client: coc.Client = None
+
+    @property
+    def donation_total(self):
+        return self.donations + self.donationsReceived
+
+class CocPlayer():
+    def __init__(self, player_struct: Player, client: coc.Client):
+        self.tag: str = player_struct.tag
+        self.name: str = player_struct.name
+        self.townHallLevel: int = player_struct.townHallLevel
+        self.expLevel: int = player_struct.expLevel
+        self.trophies: int = player_struct.trophies
+        self.bestTrophies: int = player_struct.bestTrophies
+        self.warStars: int = player_struct.warStars
+        self.attackWins: int = player_struct.attackWins
+        self.defenseWins: int = player_struct.defenseWins
+        self.builderBaseTrophies: int = player_struct.builderBaseTrophies
+        self.bestBuilderBaseTrophies: int = player_struct.bestBuilderBaseTrophies
+        self.donations: int = player_struct.donations
+        self.donationsReceived: int = player_struct.donationsReceived
+        self.clanCapitalContributions: int = player_struct.clanCapitalContributions
+        self.achievements: List[Achievement] = player_struct.achievements
+        self.heroes: List[Troop] = player_struct.troops
+        self.spells: List[Troop] = player_struct.troops
+        self.troops: List[Troop] = player_struct.troops
+        self.role: Optional[str] = player_struct.role
+        self.warPreference: Optional[str] = player_struct.warPreference
+        self.clan: Optional[Clan] = player_struct.clan
+        self.client: coc.Client = client
+
+    @property
+    def donation_total(self):
+        return self.donations + self.donationsReceived
+
+
 
 class OwnerCommands(commands.Cog):
 
@@ -54,53 +152,6 @@ class OwnerCommands(commands.Cog):
         coc_client: coc.EventsClient = self.bot.coc_client
 
 
-    async def test_war(self, ctx: disnake.ApplicationCommandInteraction):
-        await ctx.response.defer()
-        x = 0
-        to_insert = []
-        wars_found_alr = set()
-        async for war in self.bot.clan_wars.find({"data.clan.tag" : {"$ne" : None}}, {"data" : 1}):
-            war = war.get("data")
-            war = coc.ClanWar(data=war, client=self.bot.coc_client)
-            war_unique_id = "-".join(sorted([war.clan_tag, war.opponent.tag])) + f"-{int(war.preparation_start_time.time.timestamp())}"
-            if war_unique_id in wars_found_alr:
-                continue
-            wars_found_alr.add(war_unique_id)
-            score = [0, 0]
-            winner = "clan"
-            if war.opponent.stars > war.clan.stars:
-                winner = "opponent"
-
-            if war.opponent.stars == war.clan.stars:
-                continue
-
-            for count, attack in enumerate(reversed(war.attacks), 1):
-                if not attack.is_fresh_attack:
-                    if attack != attack.defender.best_opponent_attack:
-                        continue
-                if attack.attacker.clan.tag == war.clan.tag:
-                    score[0] += attack.stars
-                else:
-                    score[1] += attack.stars
-
-                d = {
-                    "clan_score" : score[0],
-                    "opponent_score" : score[1],
-                    "winner" : winner,
-                    "attacks_left" : len(war.attacks) - count
-                }
-                to_insert.append(UpdateOne(d, update={"$inc" : {"count" : 1}}, upsert=True))
-                x += 1
-                if x >= 5000:
-                    await self.bot.new_looper.war_probability.bulk_write(to_insert, ordered=False)
-                    x = 0
-        if x >= 1:
-            await self.bot.new_looper.war_probability.bulk_write(to_insert, ordered=False)
-        await ctx.send("done")
-
-
-
-
     @commands.slash_command(name="restart-customs", guild_ids=[1103679645439754335])
     @commands.is_owner()
     async def restart_custom(self, ctx: disnake.ApplicationCommandInteraction, top: int):
@@ -108,45 +159,211 @@ class OwnerCommands(commands.Cog):
             os.system(f"pm2 restart {x}")
 
 
-
-    @commands.slash_command(name="migrate", guild_ids=[1103679645439754335])
+    @commands.slash_command(name="exec")
     @commands.is_owner()
-    async def migrate(self, ctx: disnake.ApplicationCommandInteraction):
-        await ctx.response.defer()
-        await self.bot.clan_war.delete_many({"data.season" : "2023-12"})
-        await ctx.edit_original_message(content="done")
+    async def exec(self, ctx: disnake.ApplicationCommandInteraction):
+
+        def cleanup_code(content: str) -> str:
+            '''Automatically removes code blocks from the code and reformats linebreaks
+            '''
+
+            # remove ```py\n```
+            if content.startswith('```') and content.endswith('```'):
+                return '\n'.join(content.split('\n')[1:-1])
+
+            return '\n'.join(content.split(';'))
 
 
+        def e_(msg: str) -> str:
+            '''unescape discord markdown characters
+            Parameters
+            ----------
+                msg: string
+                    the text to remove escape characters from
+            Returns
+            -------
+                the message excluding escape characters
+            '''
+
+            return re.sub(r'\\(\*|~|_|\||`)', r'\1', msg)
 
 
-    async def contribution_history(self, ctx: disnake.ApplicationCommandInteraction):
-        await ctx.response.defer()
-        text = ""
-        pipeline = [
-            {"$match": {"$and" : [{"type" : "clanCapitalContributions"}, {"clan" : "#2GYQ02JYP"}]}},
-            {"$sort": {"time": -1}},
-            {"$limit" : 150},
-            {"$lookup": {"from": "player_stats", "localField": "tag", "foreignField": "tag", "as": "name"}},
-            {"$set": {"name": "$name.name"}}
+        components = [
+            disnake.ui.TextInput(
+                label=f"Code",
+                custom_id=f"code",
+                required=False,
+                style=disnake.TextInputStyle.paragraph,
+                max_length=750,
+            )
         ]
-        results = await self.bot.player_history.aggregate(pipeline).to_list(length=None)
-        missing = 0
-        add = 0
-        for result in results:
-            if result.get("p_value") is None:
-                missing += 1
-                continue
-            diff = result.get("value") - result.get("p_value", 0)
-            name = result.get("name")[0]
-            text += f"<t:{result.get('time')}:R> {diff} {name}\n"
-            add += 1
-            if add == 25 or result == results[-1]:
-                embed = disnake.Embed(description=text)
-                await ctx.channel.send(embed=embed)
-                add = 0; text = ""
+        t_ = int(datetime.now().timestamp())
+        await ctx.response.send_modal(
+            title="Code",
+            custom_id=f"basicembed-{t_}",
+            components=components)
+
+        def check(res: disnake.ModalInteraction):
+            return ctx.author.id == res.author.id and res.custom_id == f"basicembed-{t_}"
+
+        try:
+            modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
+                "modal_submit",
+                check=check,
+                timeout=300,
+            )
+        except:
+            return None, None
+
+        code = modal_inter.text_values.get("code")
+
+        embed = disnake.Embed(title="Query", description=f'```py\n{code}```')
+        await modal_inter.send(embed=embed)
+
+        stmts = cleanup_code(e_(code))
+        stdout = io.StringIO()
+
+        to_compile = f'async def func():\n{textwrap.indent(stmts, "  ")}'
+
+        env = {"self" : self, "ctx" : ctx}
+        env.update(globals())
+
+        exec(to_compile, env)
+
+        func = env['func']
+
+        with redirect_stdout(stdout):
+            ret = await func()
+
+        value = stdout.getvalue()
+        values = value.split('\n')
+        buf = f"{len(values)} lines output\n"
+        buffer = []
+        for v in values:
+            if len(v) < 4000:
+                if len(buf) + len(v) < 500:
+                    buf += v + "\n"
+                else:
+                    buffer.append(buf)
+                    buf = v + "\n"
+            else:
+                for x in range(0, len(v), 4000):
+                    if x + 4000 < len(v):
+                        buffer.append(v[x:x + 4000])
+                    else:
+                        buffer.append(v[x:])
+        buffer.append(buf)
+        for i, b in enumerate(buffer):
+            await ctx.followup.send(embed=disnake.Embed(description=f'```py\n{b}```'))
+        if ret is not None:
+            ret = ret.split('\n')
+            buf = f"{len(ret)} lines output\n"
+            buffer = []
+            for v in ret:
+                if len(buf) + len(v) < 500:
+                    buf += v + "\n"
+                else:
+                    buffer.append(buf)
+                    buf = v + "\n"
+            buffer.append(buf)
+            for i, b in enumerate(buffer):
+                await ctx.followup.send(embed=disnake.Embed(description=f'```py\n{b}```'))
 
 
-    @commands.slash_command(name="owner_anniversary", guild_ids=[923764211845312533])
+    @commands.slash_command(name="reload", guild_ids=[1103679645439754335, 923764211845312533])
+    @commands.is_owner()
+    async def reload(self, ctx: disnake.ApplicationCommandInteraction, cog: str):
+        await ctx.response.defer(ephemeral=True)
+        self.bot.reload_extension(cog)
+        await ctx.send(content=f"{cog} reloaded", delete_after=5, ephemeral=True)
+
+
+
+    @commands.slash_command(name="test", guild_ids=[1103679645439754335])
+    @commands.is_owner()
+    async def test(self, ctx: disnake.ApplicationCommandInteraction, num: int):
+        await ctx.response.defer(ephemeral=True)
+        random_tags = await self.bot.player_stats.find({}, limit=num, projection={"tag" : 1}).to_list(length=num)
+        random_tags = [x.get("tag") for x in random_tags]
+
+        async def fetch(url, session: aiohttp.ClientSession, headers):
+            async with session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    return (await response.text())
+                return None
+
+        keys = self.bot.coc_client.http.keys
+        tasks = []
+        connector = TCPConnector(limit=50, enable_cleanup_closed=True)
+        timeout = ClientTimeout(total=1800)
+        async with ClientSession(connector=connector, timeout=timeout) as session:
+            for tag in random_tags:
+                key = next(keys)
+                tasks.append(fetch(f"https://api.clashofclans.com/v1/players/{tag.replace('#', '%23')}", session, {"Authorization": f"Bearer {key}"}))
+            responses = await asyncio.gather(*tasks)
+            await session.close()
+
+        responses = [r for r in responses if r is not None]
+        print(f"{len(responses)} players")
+
+        start_time = time.time()
+        list_of_coc_objects = []
+        for response in responses:
+            data = json.loads(response)
+            list_of_coc_objects.append(coc.Player(data=data, client=self.bot.coc_client))
+        print(f"Builtin-JSON + cocpy: took {time.time() - start_time} sec")
+
+        start_time = time.time()
+        list_of_coc_objects = []
+        for response in responses:
+            data = ujson.loads(response)
+            list_of_coc_objects.append(coc.Player(data=data, client=self.bot.coc_client))
+        print(f"UJSON + cocpy: took {time.time() - start_time} sec")
+
+        start_time = time.time()
+        list_of_coc_objects = []
+        for response in responses:
+            data = orjson.loads(response)
+            list_of_coc_objects.append(coc.Player(data=data, client=self.bot.coc_client))
+        print(f"ORJSON + cocpy: took {time.time() - start_time} sec")
+
+
+        start_time = time.time()
+        list_of_coc_objects = []
+        for response in responses:
+            data: dict = msgspec.json.decode(response)
+            list_of_coc_objects.append(coc.Player(data=data, client=self.bot.coc_client))
+        print(f"MSGSPEC + cocpy: took {time.time() - start_time} sec")
+
+        sdecoder = msgspec.json.Decoder(type=Player)
+
+        start_time = time.time()
+        list_of_coc_structs = []
+        for response in responses:
+            player = sdecoder.decode(response)
+            player.__dict__["client"] = self.bot.coc_client
+            list_of_coc_structs.append(player)
+        print(f"MSGSPEC w/ client: took {time.time() - start_time} sec")
+
+        start_time = time.time()
+        list_of_coc_structs = []
+        for response in responses:
+            player = sdecoder.decode(response)
+            list_of_coc_structs.append(CocPlayer(player_struct=player, client=self.bot.coc_client))
+        print(f"MSGSPEC hybrid: took {time.time() - start_time} sec")
+
+
+    @reload.autocomplete("cog")
+    async def autocomp_cog(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        results = []
+        for cog in self.bot.EXTENSION_LIST:
+            if query == "" or query.lower() in cog.lower():
+                results.append(cog)
+        return results[:25]
+
+
+
+    @commands.slash_command(name="anniversary", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def anniversary(self, ctx: disnake.ApplicationCommandInteraction):
         guild = ctx.guild
@@ -195,6 +412,9 @@ class OwnerCommands(commands.Cog):
                     await member.remove_roles(*[twelve_month, nine_month, six_month])
             x += 1
         await msg.edit(content="Done")
+
+
+
 
     '''
     @commands.slash_command(name="raid-map", description="See the live raid map", guild_ids=[923764211845312533])

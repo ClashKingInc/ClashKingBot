@@ -5,7 +5,7 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer
 from main import check_commands
 from Utils.search import search_results
-from ..Eval.utils import eval_logic
+from ..Eval.utils import logic
 from CommandsOlder.Utils.Player import to_do_embed
 from Utils.discord_utils import basic_embed_modal
 from Exceptions.CustomExceptions import MessageException, InvalidAPIToken, APITokenRequired
@@ -17,23 +17,6 @@ class Linking(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-
-    @commands.slash_command(name="refresh", description="Self evaluate & refresh your server roles")
-    async def refresh(self, ctx: disnake.ApplicationCommandInteraction):
-        await ctx.response.defer()
-        server = CustomServer(guild=ctx.guild, bot=self.bot)
-        change_nickname = await server.nickname_choice
-        tags = await self.bot.get_tags(str(ctx.author.id))
-        if tags != []:
-            embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
-                                              test=False,
-                                              change_nick=change_nickname,
-                                              return_embed=True)
-            return await ctx.edit_original_message(embed=embed)
-        else:
-            embed = disnake.Embed(
-                description=f"You have no accounts linked.", color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
 
 
     @commands.slash_command(name="link", description="Link clash of clans accounts to your discord profile")

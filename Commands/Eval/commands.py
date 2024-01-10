@@ -4,10 +4,14 @@ from disnake.ext import commands
 from main import check_commands
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer
-from .utils import eval_logic, is_in_family
 from Utils.constants import DEFAULT_EVAL_ROLE_TYPES
 from Utils.discord_utils import interaction_handler
 from Exceptions.CustomExceptions import MessageException
+from Utils.components import create_components
+from Discord import convert
+from .utils import logic
+
+
 
 class eval(commands.Cog, name="Eval"):
     """A couple of simple commands."""
@@ -15,31 +19,30 @@ class eval(commands.Cog, name="Eval"):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @commands.slash_command(name="eval")
-    async def eval(self, ctx):
-        pass
+    @commands.slash_command(name="refresh", description="Refresh roles for a user, users in a role, or yourself (no arguments)")
+    async def refresh(self, ctx: disnake.ApplicationCommandInteraction,
+                   role_or_user: disnake.Role | disnake.Member = None,
+                   test: bool = commands.Param(default=False, converter=convert.basic_bool, choices=["Yes", "No"]),
+                   advanced_mode: bool = commands.Param(default=False, converter=convert.basic_bool, choices=["Yes", "No"])
+                   ):
+        """
+            Parameters
+            ----------
+            role_or_user: (optional) role or user to refresh roles for
+            test: (optional) test mode, won't make any changes
+            advanced_mode: (optional) choose what role types to evaluate
+        """
 
-    @commands.slash_command(name="autoeval")
-    async def autoeval(self, ctx):
-        pass
-
-    @eval.sub_command(name="user", description="Evaluate a user's roles")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def eval_user(self, ctx: disnake.ApplicationCommandInteraction, user:disnake.Member, test=commands.Param(default="No", choices=["Yes", "No"])):
         await ctx.response.defer()
-        test = (test != "No")
-        server = CustomServer(guild=ctx.guild, bot=self.bot)
-        change_nick = await server.nickname_choice
-        changes = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[user], role_or_user=user, test=test, change_nick=change_nick)
+        if role_or_user is None:
+            role_or_user = ctx.user
+        else:
+            perms = await self.bot.white_list_check(ctx=ctx, command_name="refresh")
+            if not perms and not ctx.author.guild_permissions.manage_guild:
+                raise MessageException("Missing Manage Server Permissions and/or not whitelisted for this command (`/whitelist add`")
 
-    @eval.sub_command(name="role", description="Evaluate the roles of all members in a specific role")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def eval_role(self, ctx: disnake.ApplicationCommandInteraction, role:disnake.Role, test=commands.Param(default="No", choices=["Yes", "No"]), advanced_mode = commands.Param(default="No", choices=["Yes", "No"])):
-        if role.id == ctx.guild.id:
-            role = ctx.guild.default_role
-        test = (test != "No")
-        await ctx.response.defer()
-        if advanced_mode == "Yes":
+        db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
+        if advanced_mode:
             options = []
             for option in DEFAULT_EVAL_ROLE_TYPES:
                 value = option
@@ -56,62 +59,77 @@ class eval(commands.Cog, name="Eval"):
                 max_values=len(options),  # the maximum number of options a user can select
             )
             dropdown = [disnake.ui.ActionRow(select)]
-            embed =disnake.Embed(description="**Choose which role types you would like to eval:**", color=disnake.Color.green())
+            embed = disnake.Embed(description="**Choose which role types you would like to eval:**", color=db_server.embed_color)
             await ctx.edit_original_message(embed=embed, components=dropdown)
             res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
-            default_eval = res.values
-            await res.edit_original_message(components = [])
+            eval_types = res.values
+            embed = disnake.Embed(description="**<a:loading:948121999526461440>Role Refresh In Progress**", color=db_server.embed_color)
+            await res.edit_original_message(embed=embed, components=[])
         else:
-            default_eval = None
+            eval_types = DEFAULT_EVAL_ROLE_TYPES
 
-        server = await self.bot.get_custom_server(guild_id=ctx.guild_id)
 
-        members = [await ctx.guild.getch_member(member.id) for member in role.members]
-        clans = await self.bot.clan_db.find({"generalRole": role.id}).to_list(length=None)
-        if not clans:
-            result = await self.bot.generalfamroles.find_one({"role" : role.id})
-            if result:
-                clans = await self.bot.clan_db.distinct("tag", {"server" : ctx.guild.id})
-        if clans:
-            clans = await self.bot.get_clans(tags=[clan.get("tag") for clan in clans])
-            embed = disnake.Embed(
-                description="<a:loading:884400064313819146> Adding current clan members to eval...",
-                color=disnake.Color.green())
-            await ctx.edit_original_message(embed=embed)
-            for clan in clans:
-                for player in clan.members:
-                    member = await self.bot.link_client.get_link(player.tag)
-                    member = await self.bot.pingToMember(ctx, str(member))
-                    if (member not in members) and (member is not None):
-                        members.append(member)
 
-        await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=members, role_or_user=role, test=test, change_nickname=server.change_nickname,
-                         role_types_to_eval=default_eval, nickname_convention=server.nickname_convention)
+        if isinstance(role_or_user, disnake.Role):
+            members = await ctx.guild.getch_members([m.id for m in role_or_user.members])
+            clans = await self.bot.clan_db.distinct("tag", filter={"generalRole": role_or_user.id})
+            if not clans:
+                result = await self.bot.generalfamroles.find_one({"role": role_or_user.id})
+                if result:
+                    clans = await self.bot.clan_db.distinct("tag", {"server": ctx.guild.id})
 
-    @eval.sub_command(name="tag", description="Evaluate the role of the user connected to a tag")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def eval_tag(self, ctx: disnake.ApplicationCommandInteraction, player_tag, test=commands.Param(default="No", choices=["Yes", "No"])):
-        await ctx.response.defer()
+            if clans:
+                clans = await self.bot.get_clans(tags=clans)
+                embed = disnake.Embed(
+                    description="<a:loading:884400064313819146> Adding current clan members to refresh...",
+                    color=db_server.embed_color)
+                await ctx.edit_original_message(embed=embed)
+                clan_members = [member.tag for clan in clans for member in clan.members]
+                get_links = await self.bot.link_client.get_links(*clan_members)
+                discord_ids = [_id for tag, _id in get_links]
+                fetched_members = await ctx.guild.getch_members(discord_ids)
+                members = members + [m for m in fetched_members if m not in members]
+        else:
+            members = await ctx.guild.getch_members([role_or_user.id])
 
-        test = (test != "No")
-        player = await self.bot.getPlayer(player_tag)
-        user = await self.bot.link_client.get_link(player.tag)
-        if user is None:
-            embed = disnake.Embed(description="Player is not linked to a discord account",
-                                  color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
-        try:
-            user = await ctx.guild.fetch_member(user)
-        except:
-            user = None
-        if user is None:
-            embed = disnake.Embed(description="Player is linked but not on this server.",
-                                  color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
+        if not members:
+            raise MessageException("No Members Found")
+        elif len(members) > 1000:
+            raise MessageException(f"Max 1000 members can be refreshed at a time ({len(members)} members attempted)")
 
-        server = CustomServer(guild=ctx.guild, bot=self.bot)
-        change_nick = await server.nickname_choice
-        await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[user], role_or_user=user, test=test, change_nick=change_nick)
+        embeds = await logic(bot=self.bot, guild=ctx.guild, db_server=db_server, members=members, role_or_user=role_or_user, eval_types=eval_types, test=test)
+
+        await ctx.edit_original_message(embeds=embeds[:1])
+
+        current_page = 0
+        await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))
+
+
+        while True:
+            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, timeout=3600)
+
+            if res.data.custom_id == "Previous":
+                current_page -= 1
+                await res.edit_original_message(embed=embeds[current_page],
+                                                components=create_components(current_page, embeds, True))
+
+            elif res.data.custom_id == "Next":
+                current_page += 1
+                await res.edit_original_message(embed=embeds[current_page],
+                                                components=create_components(current_page, embeds, True))
+
+            elif res.data.custom_id == "Print":
+                await res.delete_original_message()
+                for embed in embeds:
+                    await ctx.channel.send(embed=embed)
+
+
+
+
+    @commands.slash_command(name="autoeval")
+    async def autoeval(self, ctx):
+        pass
+
 
     @autoeval.sub_command(name="blacklist-roles", description="Set blacklisted roles in autoeval (people with these roles will not be autoevaled)")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -146,6 +164,8 @@ class eval(commands.Cog, name="Eval"):
             await db_server.remove_blacklisted_role(id=remove.id)
             embed = disnake.Embed(description=f"{remove.mention} removed from autoeval blacklisted roles", color=disnake.Color.green())
             return await ctx.edit_original_message(embed=embed)
+
+
 
     @autoeval.sub_command(name="options", description="Set settings for autoeval")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -231,7 +251,7 @@ class eval(commands.Cog, name="Eval"):
     async def status_roles(self, ctx):
         pass
 
-    @eval.sub_command(name="role-list", description="List of eval affiliated roles for this server")
+    '''@eval.sub_command(name="role-list", description="List of eval affiliated roles for this server")
     async def eval_role_list(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
 
@@ -414,7 +434,7 @@ class eval(commands.Cog, name="Eval"):
 
             removed_text += f"{builder_league} eval role removed - <@&{mention}>\n"
 
-        '''if status_roles:
+        if status_roles:
             results = await self.bot.statusroles.find_one({"$and": [
                 {"type": f"{status_roles}"},
                 {"server": ctx.guild.id}
@@ -428,7 +448,7 @@ class eval(commands.Cog, name="Eval"):
                     {"server": ctx.guild.id}
                 ]})
 
-            removed_text += f"{status_roles} eval role removed - <@&{mention}>\n"'''
+            removed_text += f"{status_roles} eval role removed - <@&{mention}>\n"
 
         if achievement_roles:
             results = await self.bot.statusroles.find_one({"$and": [
@@ -447,7 +467,7 @@ class eval(commands.Cog, name="Eval"):
             removed_text += f"{achievement_roles} eval role removed - <@&{mention}>\n"
 
         embed = disnake.Embed(title="Eval Role Removals", description=removed_text, color=disnake.Color.green())
-        await ctx.edit_original_message(embed=embed)
+        await ctx.edit_original_message(embed=embed)'''
 
 
 
@@ -1029,7 +1049,7 @@ class eval(commands.Cog, name="Eval"):
                         ephemeral=True)
 
 
-    @commands.slash_command(name="nickname", description="Change the nickname of a discord user")
+    '''@commands.slash_command(name="nickname", description="Change the nickname of a discord user")
     async def nickname(self, ctx: disnake.ApplicationCommandInteraction, user: disnake.User = None):
         await ctx.response.defer(ephemeral=True)
         if user is None:
@@ -1174,7 +1194,7 @@ class eval(commands.Cog, name="Eval"):
     @eval_tag.autocomplete("player_tag")
     async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         names = await self.bot.family_names(query=query, guild=ctx.guild)
-        return names
+        return names'''
 
 
 

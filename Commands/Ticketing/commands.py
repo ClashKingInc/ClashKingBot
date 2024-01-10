@@ -14,12 +14,13 @@ from CustomClasses.Ticketing import TicketPanel, OpenTicket, LOG_TYPE
 from Discord.autocomplete import Autocomplete as autocomplete
 from disnake import ButtonStyle
 from Utils.constants import TOWNHALL_LEVELS
+from .buttons import TicketClick
 
 
-
-class TicketCommands(commands.Cog):
+class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
 
     def __init__(self, bot: CustomClient):
+        super().__init__(bot)
         self.bot = bot
 
 
@@ -1006,6 +1007,10 @@ class TicketCommands(commands.Cog):
                     setattr(embed, attribute, embed_field)
 
         return embed
+
+
+def setup(bot):
+    bot.add_cog(TicketCommands(bot))
 
 
 
