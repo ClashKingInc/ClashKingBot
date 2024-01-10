@@ -215,7 +215,7 @@ async def render(url: str):
         await session.close()
     return HTMLResponse(content=response, status_code=200)
 
-"""
+
 @router.post("/discord_links",
          name="Get discord links for tags",
          include_in_schema=False)
@@ -224,7 +224,7 @@ async def discord_link(player_tags: List[str], request: Request, response: Respo
     global link_client
     result = await link_client.get_links(*player_tags)
     return dict(result)
-"""
+
 
 @router.get("/v1/{url:path}",
          name="Test a coc api endpoint, very high ratelimit, only for testing without auth",
