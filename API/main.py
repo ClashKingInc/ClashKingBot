@@ -5,6 +5,7 @@ import coc.errors
 import motor.motor_asyncio
 import asyncio
 
+from fastapi.middleware.gzip import GZipMiddleware
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
@@ -25,7 +26,7 @@ load_dotenv()
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
-
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 async def catch_exceptions_middleware(request: Request, call_next):
     try:
