@@ -64,7 +64,7 @@ async def basic_war_info(clan_tag: str, request: Request, response: Response):
 async def cwl_group(clan_tag: str, request: Request, response: Response):
     clan_tag = fix_tag(clan_tag)
     season = gen_season_date()
-    cwl_result = await db_client.cwl_groups.find_one({"$and" : [{"data.clans.tag" : clan_tag}, {"data.season" : season}]}, {"_id":-1})
+    cwl_result = await db_client.cwl_groups.find_one({"$and" : [{"data.clans.tag" : clan_tag}, {"data.season" : season}]}, {"_id":0})
     return cwl_result
 
 @router.get("/cwl/{clan_tag}/{season}",
