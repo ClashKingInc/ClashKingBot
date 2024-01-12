@@ -199,5 +199,15 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
         return alias_list[:25]
 
 
+
+    async def new_categories(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        categories = await self.bot.clan_db.distinct("category", filter={"server": ctx.guild.id})
+        starter_categories = ["General", "Feeder", "War", "Esports"]
+        if query != "":
+            starter_categories.insert(0, query)
+        categories = starter_categories + [c for c in categories if c not in starter_categories]
+        return categories[:25]
+
+
 def setup(bot: CustomClient):
     bot.add_cog(Autocomplete(bot))

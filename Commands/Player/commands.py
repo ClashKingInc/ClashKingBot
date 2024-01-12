@@ -7,7 +7,6 @@ from typing import List
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.CustomBot import CustomClient
 from Exceptions.CustomExceptions import *
-from DiscordLevelingCard import RankCard, Settings
 from operator import attrgetter
 from datetime import date, timedelta, datetime
 
@@ -18,6 +17,7 @@ from Utils.search import search_results
 from Discord.converters import Convert as convert
 from Discord.autocomplete import Autocomplete as autocomplete
 from CommandsOlder.Utils.Player import create_profile_troops
+
 
 class PlayerCommands(commands.Cog, name="Player Commands"):
     def __init__(self, bot: CustomClient):

@@ -74,7 +74,13 @@ class HelpCommands(commands.Cog, name="Help"):
                 text = ""
                 for command in commands:
                     api_command: disnake.APISlashCommand = self.bot.get_global_command_named(name=command.qualified_name.split(" ")[0])
-                    text += f"</{command.qualified_name}:{api_command.id}>\n{command.description}\n\n"
+                    permissions = self.get_command_permissions(command=command)
+                    if permissions:
+                        permissions = f"**({', '.join(permissions)})**".replace("Guild", "Server")
+                    else:
+                        permissions = ""
+
+                    text += f"</{command.qualified_name}:{api_command.id}> {permissions}\n{command.description}\n\n"
                 embed = disnake.Embed(description=text, color=embed_color)
                 embed.set_author(name=f"{self.bot.user.name} {cog} Commands", icon_url=self.bot.user.avatar.url)
                 embeds.append(embed)

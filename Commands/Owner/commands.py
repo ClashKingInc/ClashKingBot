@@ -25,7 +25,7 @@ from Utils.Clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
 
 from CustomClasses.ReminderClass import Reminder
 from Utils.Clash.capital import get_raidlog_entry, gen_raid_weekend_datestrings
-from ImageGen.ClanCapitalResult import generate_raid_result_image
+#from ImageGen.ClanCapitalResult import generate_raid_result_image
 from pymongo import UpdateOne
 from coc.raid import RaidLogEntry, RaidAttack
 from numerize import numerize
@@ -52,7 +52,7 @@ import io
 import re
 from aiohttp import TCPConnector, ClientTimeout, ClientSession
 import ujson
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Tuple
 import msgspec
 import orjson
 import cysimdjson
@@ -142,6 +142,8 @@ class CocPlayer():
     def donation_total(self):
         return self.donations + self.donationsReceived
 
+
+import http3
 
 
 class OwnerCommands(commands.Cog):
@@ -293,9 +295,11 @@ class OwnerCommands(commands.Cog):
                 return None
 
         keys = self.bot.coc_client.http.keys
+
         tasks = []
         connector = TCPConnector(limit=50, enable_cleanup_closed=True)
         timeout = ClientTimeout(total=1800)
+        start_time = time.time()
         async with ClientSession(connector=connector, timeout=timeout) as session:
             for tag in random_tags:
                 key = next(keys)
@@ -303,8 +307,13 @@ class OwnerCommands(commands.Cog):
             responses = await asyncio.gather(*tasks)
             await session.close()
 
+        print(f"AIOHTTP: took {time.time() - start_time} sec")
         responses = [r for r in responses if r is not None]
         print(f"{len(responses)} players")
+
+
+
+
 
         start_time = time.time()
         list_of_coc_objects = []

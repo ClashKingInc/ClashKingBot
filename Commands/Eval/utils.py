@@ -313,5 +313,43 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
 
 
 
+async def family_role_add(database, type: str, role: disnake.Role, guild: disnake.Guild) -> disnake.Embed:
+    results = await database.find_one({"$and": [
+        {"role": role.id},
+        {"server": guild.id}
+    ]})
+    if results is not None:
+        return disnake.Embed(description=f"{role.mention} is already in the {type} list.",
+                             color=disnake.Color.red())
 
+    if role.is_default():
+        return disnake.Embed(description=f"Cannot use the @everyone role for {type}", color=disnake.Color.red())
+
+    await database.insert_one({
+        "server": guild.id,
+        "role": role.id
+    })
+
+    embed = disnake.Embed(
+        description=f"{role.mention} added to the {type} list.",
+        color=disnake.Color.green())
+    return embed
+
+
+
+async def family_role_remove(database, type: str, role: disnake.Role, guild: disnake.Guild) -> disnake.Embed:
+    results = await database.find_one({"$and": [
+        {"role": role.id},
+        {"server": guild.id}
+    ]})
+    if results is None:
+        return disnake.Embed(description=f"{role.mention} is not currently in the {type} list.",
+                             color=disnake.Color.red())
+
+    if role.is_default():
+        return disnake.Embed(description=f"Cannot use the @everyone role for {type}", color=disnake.Color.red())
+
+    await database.find_one_and_delete({"role": role.id})
+
+    return disnake.Embed(description=f"{role.mention} removed from the {type} list.", color=disnake.Color.green())
 

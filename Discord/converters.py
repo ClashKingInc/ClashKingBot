@@ -10,6 +10,7 @@ class Convert(commands.Cog, name="Convert"):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
+
     async def season(self, season: str):
         if season is not None:
             month = list(calendar.month_name).index(season.split(" ")[0])
@@ -22,6 +23,7 @@ class Convert(commands.Cog, name="Convert"):
         else:
             season_date = self.bot.gen_season_date()
         return season_date
+
 
     async def server(self, server: str):
         try:
@@ -47,6 +49,18 @@ class Convert(commands.Cog, name="Convert"):
             return coc.errors.NotFound
         if clan.member_count == 0:
             raise coc.errors.NotFound
+        return clan
+
+
+    async def clan_no_errors(self, clan_tag: str):
+        if "|" in clan_tag:
+            search = clan_tag.split("|")
+            try:
+                clan_tag = search[4]
+            except Exception:
+                clan_tag = search[1]
+
+        clan = await self.bot.coc_client.get_clan(tag=clan_tag)
         return clan
 
 
@@ -87,7 +101,7 @@ class Convert(commands.Cog, name="Convert"):
         raise MessageException(f"{hex_code} is not a valid hex color.")
 
     def basic_bool(self, statement: str):
-        if statement in ["Yes", "True"]:
+        if statement in ["Yes", "True", "Add"]:
             return True
         return False
 

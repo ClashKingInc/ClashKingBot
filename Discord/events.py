@@ -5,7 +5,6 @@ import disnake
 from main import scheduler
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-from FamilyManagement.Reminders import SendReminders
 from Utils.war import create_reminders, send_or_update_war_end, send_or_update_war_start
 from Utils.constants import USE_CODE_TEXT
 has_started = False
@@ -36,8 +35,8 @@ class DiscordEvents(commands.Cog):
             await asyncio.sleep(15)
 
 
-            scheduler.add_job(SendReminders.inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
-            scheduler.add_job(SendReminders.roster_reminder, trigger='interval', args=[self.bot], minutes=2, misfire_grace_time=None)
+            #scheduler.add_job(SendReminders.inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
+            #scheduler.add_job(SendReminders.roster_reminder, trigger='interval', args=[self.bot], minutes=2, misfire_grace_time=None)
 
             guild_fetch = await self.bot.server_db.distinct("server")
             if not self.bot.user.public_flags.verified_bot:

@@ -16,8 +16,7 @@ from Utils.discord_utils import  interaction_handler, basic_embed_modal, get_web
 from Utils.general import calculate_time, get_guild_icon
 from Utils.components import clan_component
 
-from Discord.autocomplete import Autocomplete as autocomplete
-from Discord.converters import Convert as convert
+from Discord import autocomplete, convert, options
 
 
 class SetupCommands(commands.Cog , name="Setup"):
@@ -32,18 +31,13 @@ class SetupCommands(commands.Cog , name="Setup"):
             raise coc.errors.NotFound
         return clan
 
-
-    @commands.slash_command(name="setup")
-    async def setup(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
-
-
     @commands.message_command(name="Refresh Board", dm_permission=False)
     async def refresh_board(self, ctx: disnake.MessageCommandInteraction, message: disnake.Message):
         check = await self.bot.white_list_check(ctx, "setup server-settings")
         await ctx.response.defer(ephemeral=True)
         if not check and not ctx.author.guild_permissions.manage_guild:
-            return await ctx.send(content="You cannot use this command. Missing Permissions. Must have `Manage Server` permissions or be whitelisted for `/setup server-settings`", ephemeral=True)
+            return await ctx.send(content="You cannot use this command. Missing Permissions. Must have `Manage Server` permissions or be whitelisted for `/setup server-settings`",
+                                  ephemeral=True)
         custom_id = None
         if message.components:
             custom_id = message.components[0].children[0].custom_id
@@ -62,16 +56,21 @@ class SetupCommands(commands.Cog , name="Setup"):
         else:
             webhook_message = await webhook.send(embeds=message.embeds, wait=True)
 
-        await self.bot.button_store.update_one({"button_id" : custom_id}, {"$set" : {"webhook_id" : webhook.id, "thread_id" : thread, "message_id" : webhook_message.id}})
+        await self.bot.button_store.update_one({"button_id": custom_id}, {"$set": {"webhook_id": webhook.id, "thread_id": thread, "message_id": webhook_message.id}})
         await message.delete()
         await ctx.send("Refresh Board Created", ephemeral=True)
 
 
+    @commands.slash_command(name="setup")
+    async def setup(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
 
 
-    @setup.sub_command(name="server-settings", description="Set settings for your server")
+
+    @setup.sub_command(name="server", description="Set settings for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def server_settings(self, ctx: disnake.ApplicationCommandInteraction, banlist_channel: Union[disnake.TextChannel, disnake.Thread] = None,
+    async def server_settings(self, ctx: disnake.ApplicationCommandInteraction,
+                              banlist_channel: Union[disnake.TextChannel, disnake.Thread] = None,
                               change_nicknames: str = commands.Param(default=None, choices=["On", "Off"]),
                               nickname_convention: str = commands.Param(default=None),
                               api_token: str = commands.Param(default=None, choices=["Use", "Don't Use"]),
@@ -113,12 +112,14 @@ class SetupCommands(commands.Cog , name="Setup"):
 
 
 
-    @setup.sub_command(name="clan-settings", description="Set settings for a clan")
+    @setup.sub_command(name="clan", description="Set settings for a clan")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def clan_settings(self, ctx: disnake.ApplicationCommandInteraction,
-                            clan: coc.Clan = commands.Param(converter=clan_converter, autocomplete=autocomplete.clan),
+                            clan: coc.Clan = options.clan,
                             member_role: disnake.Role = None,
-                            leadership_role: disnake.Role = None, clan_channel: Union[disnake.TextChannel, disnake.Thread] = None, greeting: str = None,
+                            leadership_role: disnake.Role = None,
+                            clan_channel: Union[disnake.TextChannel, disnake.Thread] = None,
+                            greeting: str = None,
                             category: str = commands.Param(default=None, autocomplete=autocomplete.category),
                             ban_alert_channel: Union[disnake.TextChannel, disnake.Thread] = None,
                             nickname_label: str = None,
@@ -170,6 +171,7 @@ class SetupCommands(commands.Cog , name="Setup"):
         embed = disnake.Embed(title=f"{clan.name} Settings Changed", description=changed_text, color=disnake.Color.green())
         embed.set_thumbnail(url=clan.badge.url)
         await ctx.edit_original_message(embed=embed)
+
 
 
     @setup.sub_command(name="user-settings", description="Set bot settings for yourself like main account or timezone")
@@ -281,6 +283,7 @@ class SetupCommands(commands.Cog , name="Setup"):
             await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"autoeval_log": log.id}})
             log_text = f"and will log in {log.mention}"
         await ctx.edit_original_message(f"**Autoeval is now turned {option} {log_text}**", allowed_mentions=disnake.AllowedMentions.none())
+
 
 
     @setup.sub_command(name="logs", description="Set a variety of different clan logs for your server!")
@@ -571,6 +574,156 @@ class SetupCommands(commands.Cog , name="Setup"):
 
 
 
+    @commands.slash_command(name="addclan", description="Add a clan to the server")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def addClan(self, ctx: disnake.ApplicationCommandInteraction,
+                      clan: coc.Clan = options.clan,
+                      category: str = commands.Param(autocomplete=autocomplete.new_categories),
+                      member_role: disnake.Role = commands.Param(name="member_role"),
+                      clan_channel: disnake.TextChannel = commands.Param(name="clan_channel"),
+                      leadership_role: disnake.Role = None):
+        """
+            Parameters
+            ----------
+            clan_tag: clan to add to server
+            category: choose a category or type your own
+            member_role: role that all members of this clan receive
+            leadership_role: role that co & leaders of this clan would receive
+            clan_channel: channel where ban pings & welcome messages should go
+        """
+        await ctx.response.defer()
+        if member_role.is_bot_managed():
+            embed = disnake.Embed(description=f"Clan Roles cannot be bot roles.",
+                                  color=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+
+        if leadership_role is not None and leadership_role.is_bot_managed():
+            embed = disnake.Embed(description=f"Clan Roles cannot be bot roles.",
+                                  color=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+
+        if member_role.id == ctx.guild.default_role.id:
+            embed = disnake.Embed(description=f"Member Role cannot be {ctx.guild.default_role.mention}.",
+                                  color=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+
+        if leadership_role is not None and leadership_role.id == ctx.guild.default_role.id:
+            embed = disnake.Embed(description=f"Leadership Role cannot be {ctx.guild.default_role.mention}.",
+                                  color=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+
+        if leadership_role is not None and member_role.id == leadership_role.id:
+            embed = disnake.Embed(description="Member Role & Leadership Role cannot be the same.",
+                                  color=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+
+        # check if clan is already linked
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        if results is not None:
+            embed = disnake.Embed(description=f"{clan.name} is already linked to this server.",
+                                  color=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+
+        await self.bot.clan_db.insert_one({
+            "name": clan.name,
+            "tag": clan.tag,
+            "generalRole": member_role.id,
+            "leaderRole": None if leadership_role is None else leadership_role.id,
+            "category": category,
+            "server": ctx.guild.id,
+            "clanChannel": None if clan_channel is None else clan_channel.id
+        })
+
+        embed = disnake.Embed(title=f"{clan.name} successfully added.",
+                              description=f"Clan Tag: {clan.tag}\n"
+                                          f"General Role: {member_role.mention}\n"
+                                          f"Leadership Role: {None if leadership_role is None else leadership_role.mention}\n"
+                                          f"Clan Channel: {None if clan_channel is None else clan_channel.mention}\n"
+                                          f"Category: {category}",
+                              color=disnake.Color.green())
+        embed.set_thumbnail(url=clan.badge.large)
+        await ctx.edit_original_message(embed=embed)
+
+
+
+    @commands.slash_command(name="removeclan", description="Remove a clan from the server")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def removeClan(self, ctx: disnake.ApplicationCommandInteraction,
+                         clan: coc.Clan = commands.Param(converter=convert.clan_no_errors, autocomplete=autocomplete.clan)):
+        """
+            Parameters
+            ----------
+            clan: clan to add to server [clan tag, alias, or autocomplete]
+        """
+        await ctx.response.defer()
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        if results is None:
+            embed = disnake.Embed(description=f"{clan.name} is not currently set-up as a family clan.",
+                                  color=disnake.Color.red())
+            return await ctx.edit_original_message(embed=embed)
+
+        embed = disnake.Embed(description=f"Are you sure you want to remove {clan.name} [{clan.tag}]?",
+                              color=disnake.Color.red())
+        embed.set_thumbnail(url=clan.badge.large)
+
+        page_buttons = [
+            disnake.ui.Button(label="Yes", emoji="✅", style=disnake.ButtonStyle.green,
+                              custom_id="Yes"),
+            disnake.ui.Button(label="No", emoji="❌", style=disnake.ButtonStyle.red,
+                              custom_id="No")
+        ]
+        buttons = disnake.ui.ActionRow()
+        for button in page_buttons:
+            buttons.append_item(button)
+
+        await ctx.edit_original_message(embed=embed, components=[buttons])
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        chose = False
+        while chose is False:
+            try:
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                          timeout=600)
+            except:
+                await msg.edit(components=[])
+                break
+
+            if res.author.id != ctx.author.id:
+                await res.send(content="You must run the command to interact with components.", ephemeral=True)
+                continue
+
+            chose = res.data.custom_id
+
+            if chose == "No":
+                embed = disnake.Embed(description=f"Sorry to hear that. Canceling the command now.",
+                                      color=disnake.Color.green())
+                embed.set_thumbnail(url=clan.badge.large)
+                return await res.response.edit_message(embed=embed,
+                                                       components=[])
+
+        await self.bot.clan_db.find_one_and_delete({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+
+        await self.bot.reminders.delete_many({"$and": [
+            {"clan": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        embed = disnake.Embed(
+            description=f"{clan.name} removed as a family clan.",
+            color=disnake.Color.green())
+        embed.set_thumbnail(url=clan.badge.large)
+        return await msg.edit(embed=embed, components=[])
 
 
 

@@ -32,7 +32,6 @@ from redis import asyncio as redis
 from CustomClasses.DatabaseClient.familyclient import FamilyClient
 utc = pytz.utc
 load_dotenv()
-from helply import Helply
 
 
 class CustomClient(commands.AutoShardedBot):
@@ -499,6 +498,8 @@ class CustomClient(commands.AutoShardedBot):
             for response in responses:
                 clans.append(response)
         return [clan for clan in clans if clan is not None]
+
+
 
     async def getClan(self, clan_tag, raise_exceptions=False):
         if "|" in clan_tag:
