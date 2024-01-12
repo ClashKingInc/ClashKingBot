@@ -32,6 +32,7 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 async def catch_exceptions_middleware(request: Request, call_next):
     try:
