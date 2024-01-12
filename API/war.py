@@ -56,6 +56,17 @@ async def basic_war_info(clan_tag: str, request: Request, response: Response):
         del result["_id"]
     return result
 
+@router.get("/cwl/{clan_tag}/group",
+         tags=["War Endpoints"],
+         name="Cwl group info for a clan for current season")
+@cache(expire=300)
+@limiter.limit("30/second")
+async def cwl_group(clan_tag: str, request: Request, response: Response):
+    clan_tag = fix_tag(clan_tag)
+    season = gen_season_date()
+    cwl_result = await db_client.cwl_groups.find_one({"$and" : [{"data.clans.tag" : clan_tag}, {"data.season" : season}]}, {"_id":-1})
+    return cwl_result
+
 @router.get("/cwl/{clan_tag}/{season}",
          tags=["War Endpoints"],
          name="Cwl Info for a clan in a season (yyyy-mm)")
@@ -80,17 +91,6 @@ async def cwl(clan_tag: str, season: str, request: Request, response: Response):
     cwl_result["clan_rankings"] = ranking_create(data=cwl_result)
     return cwl_result
     
-    
-@router.get("/cwl/{clan_tag}/group",
-         tags=["War Endpoints"],
-         name="Cwl group info for a clan for current season")
-@cache(expire=300)
-@limiter.limit("30/second")
-async def cwl_group(clan_tag: str, request: Request, response: Response):
-    clan_tag = fix_tag(clan_tag)
-    season = gen_season_date()
-    cwl_result = await db_client.cwl_groups.find_one({"$and" : [{"data.clans.tag" : clan_tag}, {"data.season" : season}]}, {"_id":-1})
-    return cwl_result
 
 
 def ranking_create(data: dict):
