@@ -42,7 +42,7 @@ async def catch_exceptions_middleware(request: Request, call_next):
             return JSONResponse({"reason" : e.reason, "message" : e.message}, status_code=e.status)
 
 
-if not LOCAL:
+if LOCAL:
     app.middleware("http")(catch_exceptions_middleware)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
