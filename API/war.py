@@ -9,7 +9,7 @@ from fastapi_cache.decorator import cache
 from typing import List
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
-from APIUtils.utils import fix_tag, db_client
+from APIUtils.utils import fix_tag, db_client, gen_season_date
 from datetime import datetime
 
 limiter = Limiter(key_func=get_remote_address)
@@ -78,6 +78,18 @@ async def cwl(clan_tag: str, season: str, request: Request, response: Response):
     cwl_result = cwl_result["data"]
     cwl_result["rounds"] = rounds
     cwl_result["clan_rankings"] = ranking_create(data=cwl_result)
+    return cwl_result
+    
+    
+@router.get("/cwl/{clan_tag}/group",
+         tags=["War Endpoints"],
+         name="Cwl group info for a clan for current season")
+@cache(expire=300)
+@limiter.limit("30/second")
+async def cwl_group(clan_tag: str, request: Request, response: Response):
+    clan_tag = fix_tag(clan_tag)
+    season = gen_season_date()
+    cwl_result = await db_client.cwl_groups.find_one({"$and" : [{"data.clans.tag" : clan_tag}, {"data.season" : season}]}, {"_id":-1})
     return cwl_result
 
 
