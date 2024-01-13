@@ -11,8 +11,8 @@ import plotly.graph_objects as go
 
 from collections import defaultdict, Counter
 from typing import List, TYPE_CHECKING
-from Discord.autocomplete import Autocomplete as autocomplete
-from Discord.converters import Convert as convert
+from discord.autocomplete import Autocomplete as autocomplete
+from discord.converters import Convert as convert
 from .over_time_graph import capital_stats_monthly_graph
 
 class GraphCreator(commands.Cog):

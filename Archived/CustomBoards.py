@@ -3,7 +3,7 @@ import disnake
 
 from Utils.discord_utils import permanent_image, interaction_handler
 from disnake.ext import commands
-from Exceptions.CustomExceptions import *
+from exceptions.CustomExceptions import *
 from operator import attrgetter
 from CustomClasses.CustomBot import CustomClient
 

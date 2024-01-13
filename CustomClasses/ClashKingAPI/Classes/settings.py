@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from CustomClasses.CustomBot import CustomClient
 else:
     from disnake.ext.commands import AutoShardedBot as CustomClient
-from Exceptions.CustomExceptions import MessageException
+from exceptions.CustomExceptions import MessageException
 from coc import utils
 
 

@@ -4,10 +4,10 @@ import coc
 from disnake.ext import commands
 from typing import List
 from CustomClasses.CustomBot import CustomClient
-from Discord.converters import Convert as convert
-from Discord.autocomplete import Autocomplete as autocomplete
+from discord.converters import Convert as convert
+from discord.autocomplete import Autocomplete as autocomplete
 from datetime import datetime
-from Commands.board_generation import activity_board
+from commands.board_generation import activity_board
 
 class Activity(commands.Cog, name="Activity"):
     def __init__(self, bot: CustomClient):

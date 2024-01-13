@@ -4,7 +4,7 @@ from CustomClasses.CustomBot import CustomClient
 from disnake import Embed, ButtonStyle
 from disnake.ui import Button
 from typing import List
-from Exceptions.CustomExceptions import ButtonNotFound, ButtonAlreadyExists
+from exceptions.CustomExceptions import ButtonNotFound, ButtonAlreadyExists
 from datetime import datetime
 from enum import Enum
 import chat_exporter

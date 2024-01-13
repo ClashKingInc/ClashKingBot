@@ -1,7 +1,7 @@
 
 from .playerclient import PlayerClient
 import coc
-from Exceptions.CustomExceptions import MessageException
+from exceptions.CustomExceptions import MessageException
 
 
 class ClanClient(PlayerClient):

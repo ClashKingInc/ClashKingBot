@@ -6,7 +6,7 @@ from disnake.ext import commands
 from typing import List
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.CustomBot import CustomClient
-from Exceptions.CustomExceptions import *
+from exceptions.CustomExceptions import *
 from DiscordLevelingCard import RankCard, Settings
 from operator import attrgetter
 from datetime import date, timedelta, datetime

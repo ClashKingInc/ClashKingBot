@@ -10,7 +10,7 @@ import argparse
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
-from Background.Logs.event_websockets import kafka_events
+from background.Logs.event_websockets import kafka_events
 
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
@@ -122,7 +122,7 @@ if IS_CUSTOM:
     disallowed.add("Owner")
 
 def load():
-    for root, _, files in os.walk('./Commands'):
+    for root, _, files in os.walk('commands'):
         for filename in files:
             if filename.endswith('.py') and filename.split(".")[0] in ["commands", "click"]:
                 path = os.path.join(root, filename)[len("./Commands/"):][:-3].replace(os.path.sep, '.')

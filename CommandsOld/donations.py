@@ -4,9 +4,9 @@ import coc
 from disnake.ext import commands
 from typing import List
 from CustomClasses.CustomBot import CustomClient
-from Discord.converters import Convert as convert
-from Discord.autocomplete import Autocomplete as autocomplete
-from Commands.board_generation import donation_board
+from discord.converters import Convert as convert
+from discord.autocomplete import Autocomplete as autocomplete
+from commands.board_generation import donation_board
 from datetime import datetime
 
 class Donations(commands.Cog, name="Donations"):

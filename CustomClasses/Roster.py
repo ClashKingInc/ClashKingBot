@@ -9,7 +9,7 @@ from urllib.request import Request, urlopen
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from datetime import datetime, timedelta
-from Exceptions.CustomExceptions import *
+from exceptions.CustomExceptions import *
 from collections import defaultdict
 from Utils.cdn import general_upload_to_cdn
 

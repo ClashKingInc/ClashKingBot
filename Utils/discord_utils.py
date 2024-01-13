@@ -6,10 +6,10 @@ import disnake
 import CustomClasses.CustomBot
 from Assets.emojiDictionary import emojiDictionary, legend_emojis
 from typing import Callable, Union
-from Exceptions.CustomExceptions import MissingWebhookPerms
+from exceptions.CustomExceptions import MissingWebhookPerms
 from urllib.request import Request, urlopen
 import io
-from Exceptions.CustomExceptions import *
+from exceptions.CustomExceptions import *
 from datetime import datetime
 from operator import attrgetter
 import aiohttp

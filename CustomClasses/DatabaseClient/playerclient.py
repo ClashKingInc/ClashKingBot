@@ -2,7 +2,7 @@
 from .client import BaseClient
 import coc
 from .Classes.player import LegendPlayer
-from Exceptions.CustomExceptions import MessageException
+from exceptions.CustomExceptions import MessageException
 
 class PlayerClient(BaseClient):
     def __init__(self, bot):

@@ -1,7 +1,7 @@
 
 from .clanclient import ClanClient
 import coc
-from Exceptions.CustomExceptions import NoLegendStatsFound
+from exceptions.CustomExceptions import NoLegendStatsFound
 
 
 class FamilyClient(ClanClient):
