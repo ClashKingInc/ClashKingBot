@@ -105,7 +105,6 @@ passwords = []
 #14-17 (18)
 for x in range(14,18):
     emails.append(f"apiclashofclans+test{x}@gmail.com")
-    print(os.getenv("COC_PASSWORD"))
     passwords.append(os.getenv("COC_PASSWORD"))
 
 coc_client = coc.Client(key_count=10, throttle_limit=25, cache_max_size=0, raw_attribute=True)
@@ -295,7 +294,7 @@ async def store_cwl():
             print(f"{len(changes)} Changes Updated/Inserted")
 
 
-@scheduler.scheduled_job("cron", day="13", hour="19", minute=33)
+@scheduler.scheduled_job("cron", day="13", hour="19", minute=37)
 async def store_rounds():
     season = gen_season_date()
     pipeline = [{"$match": {"data.season": season}},
