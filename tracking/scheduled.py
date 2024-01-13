@@ -105,6 +105,7 @@ passwords = []
 #14-17 (18)
 for x in range(14,18):
     emails.append(f"apiclashofclans+test{x}@gmail.com")
+    print(os.getenv("COC_PASSWORD"))
     passwords.append(os.getenv("COC_PASSWORD"))
 
 coc_client = coc.Client(key_count=10, throttle_limit=25, cache_max_size=0, raw_attribute=True)
