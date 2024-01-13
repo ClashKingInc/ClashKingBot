@@ -10,10 +10,10 @@ from exceptions.CustomExceptions import *
 from operator import attrgetter
 from datetime import date, timedelta, datetime
 
-from Utils.discord_utils import interaction_handler
-from Utils.player_pagination import button_pagination
-from Utils.components import player_components
-from Utils.search import search_results
+from utility.discord_utils import interaction_handler
+from utility.player_pagination import button_pagination
+from utility.components import player_components
+from utility.search import search_results
 from discord.converters import Convert as convert
 from discord.autocomplete import Autocomplete as autocomplete
 from CommandsOlder.Utils.Player import create_profile_troops

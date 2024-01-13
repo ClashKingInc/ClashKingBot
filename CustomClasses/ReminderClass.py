@@ -1,4 +1,4 @@
-from Utils.constants import ROLES, TOWNHALL_LEVELS
+from utility.constants import ROLES, TOWNHALL_LEVELS
 from CustomClasses.CustomBot import CustomClient
 from typing import List
 from CustomClasses.Roster import Roster

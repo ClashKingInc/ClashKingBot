@@ -3,13 +3,13 @@ import disnake
 import calendar
 import pytz
 import uuid
-from Utils.Clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
+from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
 from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
 from typing import List
 #from ImageGen import ClanCapitalResult as capital_gen
-from Utils.constants import EMBED_COLOR
-from Utils.components import clan_board_components
+from utility.constants import EMBED_COLOR
+from utility.components import clan_board_components
 from CustomClasses.CustomPlayer import MyCustomPlayer
 
 from discord.converters import Convert as convert

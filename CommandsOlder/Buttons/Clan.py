@@ -4,8 +4,8 @@ import disnake
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from BoardCommands.Utils import Clan as clan_embeds
-from Utils.components import clan_board_components
-from Utils.discord_utils import interaction_handler
+from utility.components import clan_board_components
+from utility.discord_utils import interaction_handler
 
 class ClanButtons(commands.Cog):
 

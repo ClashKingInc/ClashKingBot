@@ -4,10 +4,10 @@ from disnake.ext import commands
 from main import check_commands
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomServer import CustomServer
-from Utils.constants import DEFAULT_EVAL_ROLE_TYPES
-from Utils.discord_utils import interaction_handler
+from utility.constants import DEFAULT_EVAL_ROLE_TYPES
+from utility.discord_utils import interaction_handler
 from exceptions.CustomExceptions import MessageException
-from Utils.components import create_components
+from utility.components import create_components
 from discord import convert
 from .utils import logic, family_role_add, family_role_remove
 

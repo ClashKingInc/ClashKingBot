@@ -21,16 +21,16 @@ leagues = ["Champion League I", "Champion League II", "Champion League III",
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 import os
 import coc
-from Utils.Clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
+from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
 
 from CustomClasses.ReminderClass import Reminder
-from Utils.Clash.capital import get_raidlog_entry, gen_raid_weekend_datestrings
+from utility.clash.capital import get_raidlog_entry, gen_raid_weekend_datestrings
 #from ImageGen.ClanCapitalResult import generate_raid_result_image
 from pymongo import UpdateOne
 from coc.raid import RaidLogEntry, RaidAttack
 from numerize import numerize
 from CustomClasses.CustomServer import DatabaseClan
-from Utils.discord_utils import get_webhook_for_channel
+from utility.discord_utils import get_webhook_for_channel
 from exceptions.CustomExceptions import MissingWebhookPerms
 from datetime import datetime
 from pytz import utc
@@ -43,7 +43,7 @@ from collections import deque
 from msgspec.json import decode
 from msgspec import Struct
 from collections import defaultdict
-from Utils.general import custom_round
+from utility.general import custom_round
 from CustomClasses.Ticketing import OpenTicket, TicketPanel, LOG_TYPE
 import traceback
 import textwrap
@@ -142,8 +142,6 @@ class CocPlayer():
     def donation_total(self):
         return self.donations + self.donationsReceived
 
-
-import http3
 
 
 class OwnerCommands(commands.Cog):

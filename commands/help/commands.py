@@ -4,7 +4,7 @@ from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
 from typing import Dict, List
 from collections import defaultdict
-from Utils.discord_utils import interaction_handler
+from utility.discord_utils import interaction_handler
 from exceptions.CustomExceptions import MessageException
 
 

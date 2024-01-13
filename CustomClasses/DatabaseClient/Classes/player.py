@@ -1,6 +1,6 @@
 from .abc import BasePlayer
 from .legends import LegendDay, LegendRanking, LegendStats
-from Utils.Clash.other import gen_legend_date, gen_season_date
+from utility.clash.other import gen_legend_date, gen_season_date
 from coc.utils import get_season_end, get_season_start
 from datetime import timedelta
 

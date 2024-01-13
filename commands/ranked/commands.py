@@ -1,12 +1,12 @@
 from disnake.ext import commands
 import disnake
-from Utils.search import search_results
-from Utils.components import create_components
-from Utils.general import create_superscript
+from utility.search import search_results
+from utility.components import create_components
+from utility.general import create_superscript
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import LegendRanking
 import math
-from Assets.thPicDictionary import thDictionary
+from assets.thPicDictionary import thDictionary
 from exceptions.CustomExceptions import NoLinkedAccounts, ExpiredComponents
 
 class FamilyStats(commands.Cog, name="Family Trophy Stats"):

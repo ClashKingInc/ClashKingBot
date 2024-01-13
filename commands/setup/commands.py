@@ -12,9 +12,9 @@ from CustomClasses.CustomServer import DatabaseClan
 from CustomClasses.Enums import LinkParseTypes
 from CustomClasses.CustomBot import CustomClient
 
-from Utils.discord_utils import  interaction_handler, basic_embed_modal, get_webhook_for_channel
-from Utils.general import calculate_time, get_guild_icon
-from Utils.components import clan_component
+from utility.discord_utils import  interaction_handler, basic_embed_modal, get_webhook_for_channel
+from utility.general import calculate_time, get_guild_icon
+from utility.components import clan_component
 
 from discord import autocomplete, convert, options
 

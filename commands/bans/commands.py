@@ -1,11 +1,11 @@
 import coc
 from disnake.ext import commands
 import disnake
-from Utils.components import create_components
+from utility.components import create_components
 from datetime import datetime
 from CustomClasses.CustomBot import CustomClient
 from main import check_commands
-from Utils.constants import EMBED_COLOR
+from utility.constants import EMBED_COLOR
 from CustomClasses.ClashKingAPI.Classes.bans import BannedUser, BannedResponse
 from typing import List
 from .utils import ban_player_extras, create_embeds

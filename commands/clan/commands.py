@@ -1,24 +1,23 @@
 import coc
 import disnake
-import calendar
-import pytz
 import uuid
-from Utils.Clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
+from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
 from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
 from typing import List
 #from ImageGen import ClanCapitalResult as capital_gen
-from Utils.constants import EMBED_COLOR
-from Utils.components import clan_board_components
+from utility.constants import EMBED_COLOR
+from utility.components import clan_board_components
 from CustomClasses.CustomPlayer import MyCustomPlayer
 
 from discord import convert, autocomplete, options
-from .utils import clan_composition, basic_clan_board, detailed_clan_board, hero_progress
+from .utils import clan_composition, basic_clan_board, detailed_clan_board, clan_hero_progress
+from .buttons import ClanButtons
 
-
-class ClanCommands(commands.Cog, name="Clan Commands"):
+class ClanCommands(ClanButtons, commands.Cog, name="Clan Commands"):
 
     def __init__(self, bot: CustomClient):
+        super().__init__(bot)
         self.bot = bot
 
 
@@ -37,19 +36,13 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     async def clan_compo(self, ctx: disnake.ApplicationCommandInteraction,
                          clan: coc.Clan = options.clan,
                          type_: str = commands.Param(name="type", default="Townhall", choices=["Townhall", "Trophies", "Location", "Role",  "League"])):
-        server_result = await self.bot.server_db.find_one({"server" : ctx.guild_id})
-        embed = await clan_composition(bot=self.bot, clan=clan, type=type_, embed_color=disnake.Color(server_result.get("embed_color", EMBED_COLOR)))
-        custom_id = f"clan_{uuid.uuid4()}"
-        buttons = disnake.ui.ActionRow(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=custom_id))
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+        embed = await clan_composition(bot=self.bot, clan=clan, type=type_, embed_color=embed_color)
+        buttons = disnake.ui.ActionRow(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji,
+                                            style=disnake.ButtonStyle.grey, custom_id=f"clancompo:{clan.tag}:{type_}"))
         await ctx.edit_original_response(embed=embed, components=[buttons])
-        as_dict = {
-            "button_id": custom_id,
-            "command": f"{ctx.application_command.qualified_name}",
-            "clan": clan.tag,
-            "type" : type_,
-            "fields" : ["clan", "type"]
-        }
-        await self.bot.button_store.insert_one(as_dict)
+
+
 
 
 
@@ -102,7 +95,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         server_result = await self.bot.server_db.find_one({"server": ctx.guild_id})
 
         if type == "Heroes & Pets":
-            embeds = await hero_progress(bot=self.bot, server=None, clan=clan, season=season, limit=limit, embed_color=disnake.Color(server_result.get("embed_color", EMBED_COLOR)))
+            embeds = await clan_hero_progress(bot=self.bot, server=None, clan=clan, season=season, limit=limit, embed_color=disnake.Color(server_result.get("embed_color", EMBED_COLOR)))
 
 
         '''elif type == "Troops, Spells, & Sieges":

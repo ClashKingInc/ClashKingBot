@@ -1,4 +1,4 @@
-from Utils.constants import SHORT_PLAYER_LINK
+from utility.constants import SHORT_PLAYER_LINK
 
 
 class BasicPlayer():

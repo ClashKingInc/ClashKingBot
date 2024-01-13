@@ -4,7 +4,7 @@ import coc
 from CustomClasses.ClashKingAPI.Classes.bans import BannedResponse, BannedUser
 from CustomClasses.CustomBot import CustomClient
 from typing import List
-from Utils.general import get_guild_icon
+from utility.general import get_guild_icon
 
 async def ban_player_extras(bot: CustomClient, banned_user: BannedResponse, who: disnake.User):
     if banned_user.new_entry:

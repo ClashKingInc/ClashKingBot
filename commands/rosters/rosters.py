@@ -6,13 +6,13 @@ import pytz
 
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-from Assets.emojiDictionary import emojiDictionary
+from assets.emojiDictionary import emojiDictionary
 from CustomClasses.Roster import Roster
 from main import check_commands
 from exceptions.CustomExceptions import *
 from typing import List
 from collections import defaultdict
-from Utils.discord_utils import interaction_handler
+from utility.discord_utils import interaction_handler
 last_run = {}
 refresh_last_run = {}
 

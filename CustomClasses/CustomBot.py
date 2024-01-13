@@ -18,15 +18,15 @@ from coc.ext import discordlinks
 from disnake.ext import commands
 from disnake import Message
 from dotenv import load_dotenv
-from Assets.emojiDictionary import emojiDictionary, legend_emojis
+from assets.emojiDictionary import emojiDictionary, legend_emojis
 from CustomClasses.CustomPlayer import MyCustomPlayer, CustomClanClass
 from CustomClasses.Emojis import Emojis, EmojiType
 from urllib.request import urlopen
 from collections import defaultdict
 from CustomClasses.PlayerHistory import COSPlayerHistory
-from Utils.constants import locations, BADGE_GUILDS
+from utility.constants import locations, BADGE_GUILDS
 from typing import  List
-from Utils.general import  get_clan_member_tags
+from utility.general import  get_clan_member_tags
 from expiring_dict import ExpiringDict
 from redis import asyncio as redis
 from CustomClasses.DatabaseClient.familyclient import FamilyClient

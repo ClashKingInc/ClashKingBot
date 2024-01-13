@@ -11,11 +11,11 @@ from DiscordLevelingCard import RankCard, Settings
 from operator import attrgetter
 from datetime import date, timedelta, datetime
 
-from Utils.discord_utils import interaction_handler
-from Utils.player_pagination import button_pagination
-from Utils.components import player_components
-from Utils.search import search_results
-from Utils.constants import LEVELS_AND_XP
+from utility.discord_utils import interaction_handler
+from utility.player_pagination import button_pagination
+from utility.components import player_components
+from utility.search import search_results
+from utility.constants import LEVELS_AND_XP
 
 from BoardCommands.Utils import Shared as shared_embeds
 from BoardCommands.Utils import Player as player_embeds

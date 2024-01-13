@@ -8,7 +8,7 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from exceptions.CustomExceptions import ExportTemplateAlreadyExists, NoLinkedAccounts
 from typing import TYPE_CHECKING, List
-from Utils.search import search_results
+from utility.search import search_results
 if TYPE_CHECKING:
     from ExportsCog import ExportCog
     cog_class = ExportCog
@@ -16,7 +16,7 @@ else:
     cog_class = commands.Cog
     
 # McKnight's imports for testing
-from Utils.search import search_results
+from utility.search import search_results
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from exceptions.CustomExceptions import *
 

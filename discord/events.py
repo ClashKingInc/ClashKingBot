@@ -5,8 +5,8 @@ import disnake
 from main import scheduler
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-from Utils.war import create_reminders, send_or_update_war_end, send_or_update_war_start
-from Utils.constants import USE_CODE_TEXT
+from utility.war import create_reminders, send_or_update_war_end, send_or_update_war_start
+from utility.constants import USE_CODE_TEXT
 has_started = False
 from CustomClasses.Ticketing import OpenTicket, TicketPanel, LOG_TYPE
 from CustomClasses.DatabaseClient.familyclient import FamilyClient

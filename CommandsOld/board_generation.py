@@ -3,7 +3,7 @@ import disnake
 from datetime import datetime
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.ClashKingAPI.OldCLasses import ActivityResponse, DonationResponse, ClanGamesResponse
-from Utils.general import create_superscript
+from utility.general import create_superscript
 
 
 def donation_board(bot: CustomClient, result: DonationResponse, title_name: str, footer_icon: str, embed_color: disnake.Color = disnake.Color.green()):

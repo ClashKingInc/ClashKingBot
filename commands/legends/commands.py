@@ -3,7 +3,7 @@ import disnake
 from disnake.ext import commands
 
 from CustomClasses.CustomBot import CustomClient
-from Utils.constants import POSTER_LIST
+from utility.constants import POSTER_LIST
 from discord.autocomplete import Autocomplete as autocomplete
 from discord.converters import Convert as convert
 from exceptions.CustomExceptions import MessageException, PlayerNotInLegends

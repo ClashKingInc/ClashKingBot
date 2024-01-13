@@ -8,7 +8,7 @@ from datetime import datetime
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from CustomClasses.Ticketing import TicketPanel, Ticket_Buttons, OpenTicket, ApproveMessages
 tiz = pytz.utc
-from Utils.clash import heros
+from utility.clash.other import heros
 
 
 

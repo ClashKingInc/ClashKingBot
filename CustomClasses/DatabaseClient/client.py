@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 else:
     CustomClient = disnake.Client
 from .Classes.settings import DatabaseServer
-from Utils.constants import EMBED_COLOR
+from utility.constants import EMBED_COLOR
 
 class BaseClient():
     def __init__(self, bot: CustomClient):

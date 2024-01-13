@@ -19,16 +19,17 @@ from CustomClasses.CustomBot import CustomClient
 from typing import List
 from ballpark import ballpark as B
 from statistics import mean
-from Utils.Clash.capital import gen_raid_weekend_datestrings, calc_raid_medals
-from Utils.clash import cwl_league_emojis, clan_super_troop_comp, clan_th_comp
-from Utils.discord_utils import fetch_emoji, register_button
-from Utils.general import create_superscript, response_to_line, fetch, get_guild_icon
-from Utils.constants import SUPER_SCRIPTS, MAX_NUM_SUPERS
+from utility.clash.capital import gen_raid_weekend_datestrings, calc_raid_medals
+from utility.discord_utils import fetch_emoji, register_button
+from utility.general import create_superscript, response_to_line, fetch, get_guild_icon
+from utility.constants import SUPER_SCRIPTS, MAX_NUM_SUPERS, EMBED_COLOR_CLASS
 from pytz import utc
-from Utils.clash import league_to_emoji
+from utility.clash.other import league_to_emoji, cwl_league_emojis, clan_super_troop_comp, clan_th_comp
 
-@register_button("clan board detailed")
-async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake.Guild, embed_color: disnake.Color = disnake.Color.green()):
+
+
+@register_button("clandetailed", parser="_:clan")
+async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake.Guild, embed_color: disnake.Color):
     db_clan = await bot.clan_db.find_one({"$and": [
         {"tag": clan.tag},
         {"server": server.id}
@@ -177,7 +178,9 @@ async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake
     embed.timestamp = datetime.now()
     return embed
 
-@register_button("clan board basic")
+
+
+@register_button("clanbasic", parser="_:clan")
 async def basic_clan_board(clan: coc.Clan, embed_color: disnake.Color = disnake.Color.green()):
     leader = coc.utils.get(clan.members, role=coc.Role.leader)
 
@@ -220,8 +223,8 @@ async def basic_clan_board(clan: coc.Clan, embed_color: disnake.Color = disnake.
     return embed
 
 
-@register_button("clan compo")
-async def clan_composition(bot: CustomClient, clan: coc.Clan, type: str, embed_color: disnake.Color = disnake.Color.green()):
+@register_button("clancompo", parser="_:clan:type")
+async def clan_composition(bot: CustomClient, clan: coc.Clan, type: str, embed_color: disnake.Color):
     bucket = defaultdict(int)
 
     tag_to_location = {}
@@ -289,14 +292,13 @@ async def clan_composition(bot: CustomClient, clan: coc.Clan, type: str, embed_c
     return embed
 
 
-async def hero_progress(bot: CustomClient, season: str, clan: coc.Clan = None, server: disnake.Guild = None, limit: int = 50, embed_color: disnake.Color = disnake.Color.green()):
+
+@register_button("clanhero", parser="_:clan:season:limit")
+async def clan_hero_progress(bot: CustomClient, season: str, clan: coc.Clan, limit: int = 50, embed_color: disnake.Color = EMBED_COLOR_CLASS):
     if not season:
         season = bot.gen_season_date()
-    if clan:
-        player_tags = [member.tag for member in clan.members]
-    else:
-        server_tags = await bot.get_guild_clans(guild_id=server.id)
-        player_tags = await bot.player_stats.distinct("tag", filter={"$and" : [{"clan_tag": {"$in" : server_tags}}, {"paused" : {"$ne" : True}}]})
+
+    player_tags = [member.tag for member in clan.members]
 
     year = season[:4]
     month = season[-2:]
@@ -338,7 +340,7 @@ async def hero_progress(bot: CustomClient, season: str, clan: coc.Clan = None, s
         for item in all_items:
             text +=  re.sub(r'\b0\b', "-", f"{item.king:<2} {item.queen:<2} {item.warden:<2} {item.rc:<2} {item.pets:<2}", count=6) + f"  {item.name[:13]}\n"
         embed = disnake.Embed(description=f"```{text}```", colour=embed_color)
-    embed.set_author(name=f"{(clan or server).name} Hero & Pet Upgrades", icon_url=(clan.badge.url if not server else get_guild_icon(guild=server)))
+    embed.set_author(name=f"{clan.name} Hero & Pet Upgrades", icon_url=clan.badge.url)
 
 
 

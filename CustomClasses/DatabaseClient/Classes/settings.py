@@ -2,7 +2,7 @@ import coc
 import disnake
 
 from typing import Union, List, TYPE_CHECKING
-from Utils.constants import ROLE_TREATMENT_TYPES
+from utility.constants import ROLE_TREATMENT_TYPES
 if TYPE_CHECKING:
     from CustomClasses.CustomBot import CustomClient
 else:

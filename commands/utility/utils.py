@@ -3,14 +3,14 @@ import re
 import pendulum as pd
 import coc
 
-from Utils.constants import MAX_ARMY_CAMP, MAX_NUM_SPELLS, EMBED_COLOR_CLASS
-from Assets.army_ids import troop_ids, spell_ids, size
-from Utils.discord_utils import iter_embed_creation, register_button
-from Assets.emojiDictionary import emojiDictionary
+from utility.constants import MAX_ARMY_CAMP, MAX_NUM_SPELLS, EMBED_COLOR_CLASS
+from assets.army_ids import troop_ids, spell_ids, size
+from utility.discord_utils import iter_embed_creation, register_button
+from assets.emojiDictionary import emojiDictionary
 from CustomClasses.CustomBot import CustomClient
 from collections import defaultdict
 from exceptions.CustomExceptions import MessageException
-from Assets.emojiDictionary import emojiDictionary
+from assets.emojiDictionary import emojiDictionary
 from typing import List, Dict
 
 
@@ -190,8 +190,6 @@ async def super_troop_embed(bot: CustomClient, clans: List[coc.Clan], super_troo
 
 
 
-
-@register_button("boosts")
 async def clan_boost_embeds(bot: CustomClient, clans: List[coc.Clan], embed_color: disnake.Color = EMBED_COLOR_CLASS) -> List[disnake.Embed]:
     player_tags = [m.tag for clan in clans for m in clan.members]
     players = await bot.get_players(tags=player_tags, custom=False)

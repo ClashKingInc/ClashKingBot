@@ -10,8 +10,8 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.Enums import TrophySort
 from exceptions.CustomExceptions import InvalidGuildID
 from typing import List
-from Utils.general import get_clan_member_tags
-from Utils.ClanCapital import gen_raid_weekend_datestrings
+from utility.general import get_clan_member_tags
+from utility.ClanCapital import gen_raid_weekend_datestrings
 from pytz import utc
 from BoardCommands.Utils import Shared as shared_embeds
 from BoardCommands.Utils import Graphs as graph_creator

@@ -11,7 +11,7 @@ from CustomClasses.CustomPlayer import MyCustomPlayer
 from datetime import datetime, timedelta
 from exceptions.CustomExceptions import *
 from collections import defaultdict
-from Utils.cdn import general_upload_to_cdn
+from utility.cdn import general_upload_to_cdn
 
 class Roster():
     def __init__(self, bot: CustomClient, roster_result=None):

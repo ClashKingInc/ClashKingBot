@@ -10,7 +10,7 @@ import argparse
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
-from background.Logs.event_websockets import kafka_events
+from background.logs.event_websockets import kafka_events
 
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
@@ -85,51 +85,24 @@ def check_commands():
     return commands.check(predicate)
 
 initial_extensions = [
-    #"BoardCommands.Commands.ClanCommands",
-    #"BoardCommands.Commands.TopCommands",
-    #"BoardCommands.Commands.FamilyCommands",
-    #"BoardCommands.Commands.PlayerCommands",
-    #"BoardCommands.Buttons.Buttons",
-    #"BoardCommands.Commands.WarCommands",
-    #"BoardCommands.Buttons.Clan",
-    #"Exceptions.ExceptionHandler",
-    "Export.ExportsCog",
-    "FamilyManagement.Reminders.Reminders",
-    "FamilyManagement.strikes",
-    "FamilyManagement.rosters",
-    "Legends & Trophies.leaderboards",
-    "Settings.settings",
-    "Settings.setup",
-    "Settings.autoboard",
-    "Settings.addclans",
-    #"Utility.awards",
-    #"Utility.boost",
-    #"Utility.bases",
-    #"Utility.link_parsers",
-    #"Utility.help",
-    #"Utility.other",
-    #"Link_and_Eval.link_button",
-    "Discord.events",
-    "Discord.autocomplete",
-    "Discord.converters",
-    #"Background.refresh_boards",
-    "Graphing.Graphs",
-
+    "discord.events",
+    "discord.autocomplete",
+    "discord.converters"
 ]
 
 disallowed = set()
 if IS_CUSTOM:
-    disallowed.add("Owner")
+    disallowed.add("owner")
 
 def load():
     for root, _, files in os.walk('commands'):
         for filename in files:
-            if filename.endswith('.py') and filename.split(".")[0] in ["commands", "click"]:
-                path = os.path.join(root, filename)[len("./Commands/"):][:-3].replace(os.path.sep, '.')
+            if filename.endswith('.py') and filename.split(".")[0] == "commands":
+                path = os.path.join(root, filename)[len("commands/"):][:-3].replace(os.path.sep, '.')
                 if path.split(".")[0] in disallowed:
                     continue
-                bot.load_extension(f'Commands.{path}')
-                bot.EXTENSION_LIST.append(f'Commands.{path}')
+                bot.load_extension(f'commands.{path}')
+                bot.EXTENSION_LIST.append(f'commands.{path}')
 
 
 

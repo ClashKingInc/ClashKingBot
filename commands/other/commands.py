@@ -4,7 +4,7 @@ import time
 from CustomClasses.CustomBot import CustomClient
 import io
 from PIL import Image, ImageDraw, ImageFont
-from Utils.components import create_components
+from utility.components import create_components
 
 from discord.converters import Convert as convert
 from discord.autocomplete import Autocomplete as autocomplete

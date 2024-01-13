@@ -1,8 +1,8 @@
 import disnake
 import coc
 
-from Utils.general import get_clan_member_tags
-from Utils.constants import TOWNHALL_LEVELS
+from utility.general import get_clan_member_tags
+from utility.constants import TOWNHALL_LEVELS
 from typing import List
 from BoardCommands.Utils import Clan as clan_embeds
 from BoardCommands.Utils import Family as family_embeds
@@ -10,10 +10,10 @@ from BoardCommands.Utils import Graphs as graph_creator
 from BoardCommands.Utils import Player as player_embeds
 from BoardCommands.Utils import Shared as shared_embeds
 from CustomClasses.CustomBot import CustomClient
-from Utils.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
+from utility.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry
 from ImageGen import ClanCapitalResult as capital_gen
 from CustomClasses.Enums import TrophySort
-from Utils.search import search_results
+from utility.search import search_results
 
 clan_triggers = {
     "clanoverview",

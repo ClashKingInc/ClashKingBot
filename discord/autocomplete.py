@@ -1,8 +1,8 @@
 from disnake.ext import commands
 from CustomClasses.CustomBot import CustomClient
-from Utils.Clash.capital import gen_raid_weekend_datestrings
-from Utils.search import family_names, search_name_with_tag, all_names
-from Utils.general import create_superscript
+from utility.clash.capital import gen_raid_weekend_datestrings
+from utility.search import family_names, search_name_with_tag, all_names
+from utility.general import create_superscript
 import disnake
 import coc
 import pytz

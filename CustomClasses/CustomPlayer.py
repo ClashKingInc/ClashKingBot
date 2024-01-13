@@ -2,13 +2,13 @@
 import coc
 import pytz
 from coc import utils
-from Assets.emojiDictionary import emojiDictionary
-from Assets.thPicDictionary import thDictionary
+from assets.emojiDictionary import emojiDictionary
+from assets.thPicDictionary import thDictionary
 from datetime import datetime, timedelta
 from CustomClasses.Emojis import EmojiType
 from collections import defaultdict
-from Utils.Clash.capital import gen_raid_weekend_datestrings
-from Utils.constants import SHORT_PLAYER_LINK, HOME_VILLAGE_HEROES
+from utility.clash.capital import gen_raid_weekend_datestrings
+from utility.constants import SHORT_PLAYER_LINK, HOME_VILLAGE_HEROES
 import emoji
 import re
 from typing import List, TYPE_CHECKING

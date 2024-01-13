@@ -1,13 +1,13 @@
 from disnake.ext import commands
 import disnake
 import coc
-from Utils.components import create_components
+from utility.components import create_components
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
-from Utils.components import leaderboard_components
+from utility.components import leaderboard_components
 from CommandsOlder.Utils import Shared as shared_embeds
 from exceptions.CustomExceptions import MessageException
-from Utils.discord_utils import interaction_handler
+from utility.discord_utils import interaction_handler
 
 import math
 import emoji

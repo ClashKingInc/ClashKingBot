@@ -11,10 +11,10 @@ import matplotlib.pyplot as plt
 
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.DatabaseClient.Classes.player import LegendPlayer, LegendDay
-from Utils.general import create_superscript
-from Utils.Clash.other import gen_season_date, gen_legend_date
-from Utils.cdn import general_upload_to_cdn
-from Utils.constants import POSTER_LIST, HERO_EQUIPMENT
+from utility.general import create_superscript
+from utility.clash.other import gen_season_date, gen_legend_date
+from utility.cdn import general_upload_to_cdn
+from utility.constants import POSTER_LIST, HERO_EQUIPMENT
 from PIL import Image, ImageDraw, ImageFont
 from coc import utils, enums, Clan
 from pytz import utc

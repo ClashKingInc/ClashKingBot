@@ -6,8 +6,8 @@ from CustomClasses.CustomServer import CustomServer, ServerClan, DatabaseClan
 from exceptions.CustomExceptions import ThingNotFound
 from main import check_commands
 from typing import Union
-from Utils.general import calculate_time
-from Utils.discord_utils import interaction_handler
+from utility.general import calculate_time
+from utility.discord_utils import interaction_handler
 
 class misc(commands.Cog, name="Settings"):
 

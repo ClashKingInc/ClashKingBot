@@ -11,11 +11,11 @@ from disnake.ext import commands
 from datetime import datetime
 from main import check_commands
 from CustomClasses.CustomPlayer import MyCustomPlayer
-from Utils.discord_utils import interaction_handler
+from utility.discord_utils import interaction_handler
 from CustomClasses.Ticketing import TicketPanel, LOG_TYPE, OpenTicket
 from .utils import ask_questions, open_ticket, message_convertor
 tiz = pytz.utc
-from Utils.player_pagination import button_pagination
+from utility.player_pagination import button_pagination
 
 
 class TicketClick(commands.Cog):
