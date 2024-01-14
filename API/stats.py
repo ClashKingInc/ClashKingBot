@@ -456,7 +456,7 @@ async def war_stats(request: Request, response: Response,
             {"$unset": ["_id"]},
             {"$project": {"data" : "$data"}}
         ]
-        wars = await db_client.clan_wars.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
+        wars = await db_client.clan_wars.aggregate(pipeline, allowDiskUse=True, maxTimeMS=60000).to_list(length=None)
         found_wars = set()
         for war in wars:
             war = war.get("data")
@@ -521,7 +521,7 @@ async def war_stats(request: Request, response: Response,
             {"$unset": ["_id"]},
             {"$project": {"data": "$data"}}
         ]
-        wars: List[dict] = await db_client.clan_wars.aggregate(pipeline, allowDiskUse=True).to_list(length=None)
+        wars: List[dict] = await db_client.clan_wars.aggregate(pipeline, allowDiskUse=True, maxTimeMS=60000).to_list(length=None)
         found_wars = set()
         for war in wars:
             war = war.get("data")
