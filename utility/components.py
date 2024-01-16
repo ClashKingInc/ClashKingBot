@@ -162,6 +162,21 @@ def clan_component(bot: CustomClient, all_clans: List[coc.Clan], clan_page:int =
 
     return disnake.ui.ActionRow(clan_select)
 
+async def basic_clan_dropdown(bot: CustomClient, clans: List[coc.Clan], max_choose=1):
+    clan_options = []
+    clans.sort(key=lambda x : x.member_count)
+    for count, clan in enumerate(clans[:25]):
+        clan_options.append(disnake.SelectOption(label=f"{clan.name} ({clan.tag})", emoji=bot.partial_emoji_gen((await bot.create_new_badge_emoji(url=clan.badge.url))), value=f"{clan.tag}"))
+
+    clan_select = disnake.ui.Select(
+        options=clan_options,
+        placeholder=f"Select Clan(s)",  # the placeholder text to show when no options have been chosen
+        min_values=1,  # the minimum number of options a user must select
+        max_values=max_choose,  # the maximum number of options a user can select
+    )
+
+    return disnake.ui.ActionRow(clan_select)
+
 
 def townhall_component(bot: CustomClient):
     options = []

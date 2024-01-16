@@ -4,14 +4,12 @@ import time
 import aiohttp
 import coc
 import emoji
-import re
 import disnake
-import pandas as pd
 import re
 
 from disnake import Embed, Color
 from disnake.utils import get
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from coc.raid import RaidLogEntry
 from datetime import datetime
 from CustomClasses.CustomPlayer import MyCustomPlayer, LegendRanking, ClanCapitalWeek
@@ -19,14 +17,16 @@ from CustomClasses.CustomBot import CustomClient
 from typing import List
 from ballpark import ballpark as B
 from statistics import mean
-from utility.clash.capital import gen_raid_weekend_datestrings, calc_raid_medals
+from utility.clash.capital import gen_raid_weekend_datestrings, calc_raid_medals, get_raidlog_entry
 from utility.discord_utils import fetch_emoji, register_button
-from utility.general import create_superscript, response_to_line, fetch, get_guild_icon
-from utility.constants import SUPER_SCRIPTS, MAX_NUM_SUPERS, EMBED_COLOR_CLASS
+from utility.general import create_superscript, response_to_line, smart_convert_seconds
+from utility.constants import SUPER_SCRIPTS, MAX_NUM_SUPERS, EMBED_COLOR_CLASS, item_to_name
 from pytz import utc
-from utility.clash.other import league_to_emoji, cwl_league_emojis, clan_super_troop_comp, clan_th_comp
-
-
+from utility.clash.other import league_to_emoji, cwl_league_emojis, clan_super_troop_comp, clan_th_comp, gen_season_date
+from exceptions.CustomExceptions import MessageException
+import pendulum as pd
+from ..graphs.utils import daily_graph
+from utility.imagegen.ClanCapitalResult import generate_raid_result_image
 
 @register_button("clandetailed", parser="_:clan")
 async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake.Guild, embed_color: disnake.Color):
@@ -239,7 +239,7 @@ async def clan_composition(bot: CustomClient, clan: coc.Clan, type: str, embed_c
         if type == "Townhall":
             if member._raw_data.get("townHallLevel") == 0:
                 continue
-            bucket[str(member._raw_data.get("townHallLevel"))] += 1
+            bucket[member._raw_data.get("townHallLevel")] += 1
         elif type == "Trophies":
             if member.trophies >= 1000:
                 bucket[str(int(str(member.trophies)[0]) * 1000)] += 1
@@ -260,7 +260,7 @@ async def clan_composition(bot: CustomClient, clan: coc.Clan, type: str, embed_c
     field_to_sort = 1
     if type == "Townhall":
         field_to_sort = 0
-    for key, value in sorted(bucket.items(), key=lambda x:x[field_to_sort], reverse=True):
+    for key, value in sorted(bucket.items(), key=lambda x: x[field_to_sort], reverse=True):
         icon = ""
         if type == "Townhall":
             icon = bot.fetch_emoji(int(key))
@@ -353,6 +353,7 @@ async def clan_hero_progress(bot: CustomClient, season: str, clan: coc.Clan, lim
                              {"time": {"$lte": season_end.timestamp()}}]}},
         {"$group": {"_id": {"type": "$type"}, "num": {"$sum": 1}}},
         {"$sort": {"num": -1}},
+        {"$limit" : 25}
     ]
     results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
     text = ""
@@ -372,15 +373,12 @@ async def clan_hero_progress(bot: CustomClient, season: str, clan: coc.Clan, lim
     return [embed, totals_embed]
 
 
-
-async def troops_spell_siege_progress(bot: CustomClient, season: str, clan: coc.Clan = None, server: disnake.Guild = None, limit: int = 50, embed_color: disnake.Color = disnake.Color.green()):
+@register_button("clantroops", parser="_:clan:season:limit")
+async def troops_spell_siege_progress(bot: CustomClient, season: str, clan: coc.Clan, limit: int = 50, embed_color: disnake.Color = EMBED_COLOR_CLASS):
     if not season:
         season = bot.gen_season_date()
-    if clan:
-        player_tags = [member.tag for member in clan.members]
-    else:
-        server_tags = await bot.get_guild_clans(guild_id=server.id)
-        player_tags = await bot.player_stats.distinct("tag", filter={"$and" : [{"clan_tag": {"$in" : server_tags}}, {"paused" : {"$ne" : True}}]})
+
+    player_tags = [member.tag for member in clan.members]
 
     year = season[:4]
     month = season[-2:]
@@ -388,20 +386,22 @@ async def troops_spell_siege_progress(bot: CustomClient, season: str, clan: coc.
     season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
 
     pipeline = [
-        {"$match": {"$and": [{"tag": {"$in": player_tags}}, {"type": {"$in" : list(coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER + coc.enums.BUILDER_TROOPS_ORDER)}},
-                             {"time" : {"$gte" : season_start.timestamp()}}, {"time" : {"$lte" : season_end.timestamp()}}]}},
-        {"$group": {"_id": {"tag" : "$tag", "type" : "$type"}, "num": {"$sum": 1}}},
-        {"$group" : {"_id" : "$_id.tag", "counts" : {"$push" : {"name" : "$_id.type", "count" : "$num"}}}},
-        {"$lookup" : {"from" : "player_stats", "localField" : "_id", "foreignField" : "tag", "as" : "name"}},
-        {"$set" : {"name" : "$name.name"} }
+        {"$match": {"$and": [{"tag": {"$in": player_tags}}, {"type": {"$in": list(coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER + coc.enums.BUILDER_TROOPS_ORDER)}},
+                             {"time": {"$gte": season_start.timestamp()}}, {"time": {"$lte": season_end.timestamp()}}]}},
+        {"$group": {"_id": {"tag": "$tag", "type": "$type"}, "num": {"$sum": 1}}},
+        {"$group": {"_id": "$_id.tag", "counts": {"$push": {"name": "$_id.type", "count": "$num"}}}},
+        {"$lookup": {"from": "player_stats", "localField": "_id", "foreignField": "tag", "as": "name"}},
+        {"$set": {"name": "$name.name"}}
     ]
     results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
+
     class ItemHolder():
         def __init__(self, data: dict):
             self.tag = data.get("_id")
             self.name = data.get("name", ["unknown"])[0]
             self.troops = sum(
-                next((item["count"] for item in data["counts"] if item["name"] == troop and troop != "Baby Dragon"), 0) for troop in list(set(coc.enums.HOME_TROOP_ORDER) - set(coc.enums.SIEGE_MACHINE_ORDER))
+                next((item["count"] for item in data["counts"] if item["name"] == troop and troop != "Baby Dragon"), 0) for troop in
+                list(set(coc.enums.HOME_TROOP_ORDER) - set(coc.enums.SIEGE_MACHINE_ORDER))
             )
             self.spells = sum(
                 next((item["count"] for item in data["counts"] if item["name"] == spell), 0) for spell in coc.enums.SPELL_ORDER
@@ -421,89 +421,624 @@ async def troops_spell_siege_progress(bot: CustomClient, season: str, clan: coc.
         )
     all_items = sorted(all_items, key=lambda x: x.total_upgraded, reverse=True)[:min(limit, len(all_items))]
     if not all_items:
-        embed = disnake.Embed(title=(clan or server).name, description="**No Upgrades Yet**",colour=disnake.Color.red())
+        embed = disnake.Embed(description="**No Upgrades Yet**",colour=embed_color)
     else:
         text = f"HT SP SG BT Name          \n"
         for item in all_items:
-            '''if item.total_upgraded == 0:
-                continue'''
             text += f"{item.troops:<2} {item.spells:<2} {item.sieges:<2} {item.builder_troops:<2} {item.name[:13]}\n"
         embed = disnake.Embed(description=f"```{text}```", colour=embed_color)
+    embed.set_author(name=f"{clan.name} Hero & Pet Upgrades", icon_url=clan.badge.url)
 
-    embed.set_author(name=f"{(clan or server).name} Troop/Spell/Siege Upgrades", icon_url=(clan.badge.url if not server else get_guild_icon(guild=server)))
-    embed.set_footer(text=f"HT=Home Troops, SP=Spells, SG=Sieges, BT=Builder Troops | {season}")
-    embed.timestamp = datetime.now()
+
+    enums = coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER + coc.enums.BUILDER_TROOPS_ORDER
+    pipeline = [
+        {"$match": {"$and": [{"tag": {"$in": player_tags}},
+                             {"type": {"$in": enums}},
+                             {"time": {"$gte": season_start.timestamp()}},
+                             {"time": {"$lte": season_end.timestamp()}}]}},
+        {"$group": {"_id": {"type": "$type"}, "num": {"$sum": 1}}},
+        {"$sort": {"num": -1}},
+        {"$limit" : 25},
+    ]
+    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
+    text = ""
+    total_upgrades = 0
+    for result in results:
+        type = result.get("_id").get("type")
+        emoji = bot.fetch_emoji(type)
+        amount = result.get("num")
+        total_upgrades += amount
+        text += f"{emoji}`{type:15} {amount:3}`\n"
+
+    totals_embed = disnake.Embed(description=f"{text}", colour=embed_color)
+    totals_embed.timestamp = datetime.now()
+    totals_embed.set_footer(text=f"{season} | {total_upgrades} Upgrades")
+
+
+    return [embed, totals_embed]
+
+
+@register_button("clansorted", parser="_:clan:sort_by:limit:townhall")
+async def clan_sorted(bot: CustomClient, clan: coc.Clan, sort_by: str, townhall: int = None, limit: int = 50, embed_color: disnake.Color = EMBED_COLOR_CLASS):
+    tags = [m.tag for m in clan.members]
+    if townhall is not None:
+        tags = [m.tag for m in clan.members if m.town_hall == townhall]
+    if not tags:
+        raise MessageException("No players to sort, try a lighter search filter")
+    players: list[coc.Player] = await bot.get_players(tags=tags, custom=False)
+
+    def get_longest(players, attribute):
+        longest = 0
+        for player in players:
+            if "ach_" not in attribute and attribute not in ["season_rank", "heroes"]:
+                spot = len(str(player.__getattribute__(sort_by)))
+            elif "ach_" in sort_by:
+                spot = len(str(player.get_achievement(name=sort_by.split('_')[-1], default_value=0).value))
+            elif sort_by == "season_rank":
+                def sort_func(a_player):
+                    try:
+                        a_rank = a_player.legend_statistics.best_season.rank
+                    except:
+                        return 0
+
+                spot = len(str(sort_func(player))) + 1
+            else:
+                spot = len(str(sum([hero.level for hero in player.heroes if hero.is_home_base])))
+            if spot > longest:
+                longest = spot
+        return longest
+
+    og_sort = sort_by
+    sort_by = item_to_name[sort_by]
+    if "ach_" not in sort_by and sort_by not in ["season_rank", "heroes"]:
+        attr = players[0].__getattribute__(sort_by)
+        if isinstance(attr, str) or isinstance(attr, coc.Role) or isinstance(attr, coc.League):
+            players = sorted(players, key=lambda x: str(x.__getattribute__(sort_by)))
+        else:
+            players = sorted(players, key=lambda x: x.__getattribute__(sort_by), reverse=True)
+    elif "ach_" in sort_by:
+        players = sorted(players, key=lambda x: x.get_achievement(name=sort_by.split('_')[-1], default_value=0).value,
+                         reverse=True)
+    elif sort_by == "season_rank":
+        def sort_func(a_player):
+            try:
+                a_rank = a_player.legend_statistics.best_season.rank
+                return a_rank
+            except:
+                return 10000000
+
+        players = sorted(players, key=sort_func, reverse=False)
+    else:
+        longest = 3
+        def sort_func(a_player):
+            a_rank = sum([hero.level for hero in a_player.heroes if hero.is_home_base])
+            return a_rank
+
+        players = sorted(players, key=sort_func, reverse=True)
+
+    players = players[:limit]
+    longest = get_longest(players=players, attribute=sort_by)
+
+    text = ""
+    for count, player in enumerate(players, 1):
+        if sort_by in ["role", "tag", "heroes", "ach_Friend in Need"]:
+            emoji = bot.fetch_emoji(player.town_hall)
+        elif sort_by in ["versus_trophies", "versus_attack_wins", "ach_Champion Builder"]:
+            emoji = bot.emoji.versus_trophy
+        elif sort_by in ["trophies", "ach_Sweet Victory!"]:
+            emoji = bot.emoji.trophy
+        elif sort_by in ["season_rank"]:
+            emoji = bot.emoji.legends_shield
+        elif sort_by in ["clan_capital_contributions", "ach_Aggressive Capitalism"]:
+            emoji = bot.emoji.capital_gold
+        elif sort_by in ["exp_level"]:
+            emoji = bot.emoji.xp
+        elif sort_by in ["ach_Nice and Tidy"]:
+            emoji = bot.emoji.clock
+        elif sort_by in ["ach_Heroic Heist"]:
+            emoji = bot.emoji.dark_elixir
+        elif sort_by in ["ach_War League Legend", "war_stars"]:
+            emoji = bot.emoji.war_star
+        elif sort_by in ["ach_Conqueror", "attack_wins"]:
+            emoji = bot.emoji.thick_sword
+        elif sort_by in ["ach_Unbreakable"]:
+            emoji = bot.emoji.shield
+        elif sort_by in ["ach_Games Champion"]:
+            emoji = bot.emoji.clan_games
+
+        spot = f"{count}."
+        if "ach_" not in sort_by and sort_by not in ["season_rank", "heroes"]:
+            text += f"`{spot:3}`{emoji}`{player.__getattribute__(sort_by):{longest}} {player.name[:15]}`\n"
+        elif "ach_" in sort_by:
+            text += f"`{spot:3}`{emoji}`{player.get_achievement(name=sort_by.split('_')[-1], default_value=0).value:{longest}} {player.name[:13]}`\n"
+        elif sort_by == "season_rank":
+            try:
+                rank = player.legend_statistics.best_season.rank
+            except:
+                rank = " N/A"
+            text += f"`{spot:3}`{emoji}`#{rank:<{longest}} {player.name[:15]}`\n"
+        else:
+            cum_heroes = sum([hero.level for hero in player.heroes if hero.is_home_base])
+            text += f"`{spot:3}`{emoji}`{cum_heroes:3} {player.name[:15]}`\n"
+
+    embed = disnake.Embed(title=f"{clan.name} sorted by {og_sort}", description=text, color=embed_color)
+
     return embed
 
 
-
-
-
-
-async def donation_board(bot: CustomClient, db_clan, season= None, embed_color: disnake.Color = disnake.Color.green()):
+@register_button("clandonos", parser="_:clan:season:townhall:limit:sort_by:sort_order")
+async def clan_donations(bot: CustomClient, clan: coc.Clan, season: str, sort_by: str, sort_order: str, townhall: int = None, limit: int = 50, embed_color = EMBED_COLOR_CLASS):
     season = bot.gen_season_date() if season is None else season
-    clan_season = await db_clan.get_season(season=season)
-    players = clan_season.members
-    players.sort(key=lambda x: x.donated, reverse=True)
-    players = players[:55]
+    fallback_dict = {m.tag : {"donated" : m.donations, "received" : m.received} for m in clan.members}
+    clan_donations = (await bot.clan_stats.find_one({"tag" : clan.tag}, projection={"_id" : 0, f"{season}" : 1})).get(season, {})
+    tags = list(clan_donations.keys()) + list(fallback_dict.keys())
+
+    players = await bot.get_players(tags=tags, custom=True, use_cache=True, fake_results=True)
+    map_player = {p.tag : p for p in players}
+
+    holder = namedtuple("holder", ["player", "name", "townhall", "donations", "received"])
+    hold_items = []
+    for tag in map_player.keys():
+        player = map_player.get(tag)
+        hold_items.append(holder(player=player,
+                                 name=player.name,
+                                 townhall=player.town_hall,
+                                 donations=max(fallback_dict.get(tag, {}).get("donated", 0), clan_donations.get(tag, {}).get("donated", 0)),
+                                 received=max(fallback_dict.get(tag, {}).get("received", 0), clan_donations.get(tag, {}).get("received", 0))))
+
+    if townhall is not None:
+        hold_items = [h for h in hold_items if h.townhall == townhall]
+
+    hold_items.sort(key=lambda x: x.__getattribute__(sort_by.lower()), reverse=(sort_order.lower() == "descending"))
+    if len(hold_items) == 0:
+        raise MessageException("No players, try a lighter search filter")
+
     text = "` #  DON   REC  NAME        `\n"
     total_donated = 0
     total_received = 0
-    for count, member in enumerate(players, 1):
-        text += f"`{count:2} {member.donated:5} {member.received:5} {member.player.clear_name[:13]:13}`[{create_superscript(member.player.town_hall)}]({member.share_link})\n"
-        total_donated += member.donated
+    for count, member in enumerate(hold_items, 1):
+        if count <= limit:
+            text += f"`{count:2} {member.donations:5} {member.received:5} {member.player.clear_name[:13]:13}`[{create_superscript(member.player.town_hall)}]({member.player.share_link})\n"
+        total_donated += member.donations
         total_received += member.received
 
     embed = disnake.Embed(description=f"{text}", color=embed_color)
-    embed.set_author(name=f"{db_clan.clan.name} Top {len(players)} Donators", icon_url=db_clan.clan.badge.url)
+    embed.set_author(name=f"{clan.name} Top {min(limit, len(hold_items))} Donators", icon_url=clan.badge.url)
     embed.set_footer(icon_url=bot.emoji.clan_castle.partial_emoji.url,
                      text=f"▲{total_donated:,} | ▼{total_received:,} | {season}")
     embed.timestamp = datetime.now()
     return embed
 
 
-async def received_board(bot: CustomClient, db_clan, season= None, embed_color: disnake.Color = disnake.Color.green()):
+@register_button("clanwarpref", parser="_:clan:option")
+async def clan_warpreference(bot: CustomClient, clan: coc.Clan, option: str, embed_color: disnake.Color = EMBED_COLOR_CLASS):
+    in_count = 0
+    out_count = 0
+    thcount = defaultdict(int)
+    out_thcount = defaultdict(int)
+
+    member_tags = [member.tag for member in clan.members]
+    option_convert = {"lastoptchange" : "Last Opt Change", "lastwar" : "Last War", "wartimer" : "War Timer"}
+    if option == "lastoptchange":
+        pipeline = [
+            {"$match" : {"$and" : [{"tag": {"$in": member_tags}}, {"type" : "warPreference"}]}},
+            {"$group" : {"_id": "$tag", "last_change": {"$last": "$time"}}}
+        ]
+        results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
+
+        now = int((pd.now(tz=pd.UTC).timestamp()))
+        member_stats = {result["_id"] : smart_convert_seconds(seconds=(now-result['last_change'])) for result in results}
+    elif option == "lastwar":
+        pipeline = [
+                {"$match": {"$or" : [{"data.clan.members.tag" : {"$in" : member_tags}},
+                                     {"data.opponent.members.tag" : {"$in" : member_tags}}]}},
+                {"$project" : {"members" :
+                        {"$concatArrays" : ["$data.clan.members", "$data.opponent.members"]},
+                               "endTime" : "$data.endTime"}},
+                {"$unwind" : "$members"},
+                {"$match" : {"members.tag" : {"$in" : member_tags}}},
+                {"$sort" : {"endTime" : 1}},
+                {"$group" : {"_id" : "$members.tag", "endTime" : {"$last" : "$endTime"}}},
+        ]
+        results: List[dict] = await bot.clan_wars.aggregate(pipeline).to_list(length=None)
+        member_stats = {result["_id"]: smart_convert_seconds(abs(coc.Timestamp(data=result.get("endTime")).seconds_until)) for result in results}
+
+    elif option == "wartimer":
+        pipeline = [
+                {"$match": {"_id" : {"$in" : member_tags}}},
+                {"$project" : {"_id" : 1, "time" : 1}}
+        ]
+        results: List[dict] = await bot.war_timers.aggregate(pipeline).to_list(length=None)
+        member_stats = {}
+        now = pd.now(tz=pd.UTC)
+        for result in results:
+            time: datetime = result.get("time")
+            time = time.replace(tzinfo=utc)
+            delta = time - now
+            seconds = int(delta.total_seconds())
+            member_stats[result["_id"]] = smart_convert_seconds(seconds=seconds)
+
+    players: List[MyCustomPlayer] = await bot.get_players(tags=member_tags, custom=True, use_cache=True, fake_results=True)
+    players.sort(key=lambda x: (-x.town_hall, x.name), reverse=False)
+
+    opted_in_text = ""
+    opted_out_text = ""
+    for player in players:
+        war_opt_time = member_stats.get(player.tag, "")
+        if player.war_opted_in:
+            opted_in_text += f"{bot.fetch_emoji(player.town_hall)}`{war_opt_time:7} {player.clear_name[:15]:15}`\n"
+            thcount[player.town_hall] += 1
+            in_count += 1
+        else:
+            opted_out_text += f"{bot.fetch_emoji(player.town_hall)}`{war_opt_time:7} {player.clear_name[:15]:15}`\n"
+            out_thcount[player.town_hall] += 1
+            out_count += 1
+
+    if opted_in_text == "":
+        opted_in_text = "None"
+    if opted_out_text == "":
+        opted_out_text = "None"
+
+    in_string = ", ".join(f"Th{index}: {th} " for index, th in sorted(thcount.items(), reverse=True) if th != 0)
+    out_string = ", ".join(f"Th{index}: {th} " for index, th in sorted(out_thcount.items(), reverse=True) if th != 0)
+    legend = f"`{option_convert.get(option)} | Name\n`"
+    opted_in_embed = Embed(description=f"**{bot.emoji.opt_in}Opted In ({in_count} members)**\n{legend}{opted_in_text}\n", color=embed_color)
+    opted_out_embed = Embed(description=f"**{bot.emoji.opt_out}Opted Out ({out_count} members)**\n{legend}{opted_out_text}\n", color=embed_color)
+
+    opted_in_embed.set_author(name=f"{clan.name} War Preferences/{option_convert.get(option)}", icon_url=clan.badge.url)
+    opted_out_embed.set_footer(text=f"In: {in_string}\nOut: {out_string}\n")
+    opted_out_embed.timestamp = pd.now(tz=pd.UTC)
+    return [opted_in_embed, opted_out_embed]
+
+
+@register_button("clanactivity", parser="_:clan:season:townhall:limit:sort_by:sort_order")
+async def clan_activity(bot: CustomClient, clan: coc.Clan, season: str, townhall: int, limit: int, sort_by: str, sort_order: str, embed_color: disnake.Color):
     season = bot.gen_season_date() if season is None else season
-    clan_season = await db_clan.get_season(season=season)
-    players = clan_season.members
-    players.sort(key=lambda x: x.received, reverse=True)
-    players = players[:55]
-    text = "` #  REC   DON  NAME        `\n"
-    total_donated = 0
-    total_received = 0
-    for count, member in enumerate(players, 1):
-        text += f"`{count:2} {member.received:5} {member.donated:5} {member.player.clear_name[:13]:13}`[{create_superscript(member.player.town_hall)}]({member.share_link})\n"
-        total_donated += member.donated
-        total_received += member.received
+    show_last_online = (gen_season_date() == season)
+
+    clan_stats = (await bot.clan_stats.find_one({"tag" : clan.tag}, projection={"_id" : 0, f"{season}" : 1})).get(season, {})
+    tags = list(clan_stats.keys())
+    players = await bot.get_players(tags=tags, custom=True, use_cache=True)
+    map_player = {p.tag: p for p in players}
+
+    holder = namedtuple("holder", ["player", "name", "townhall", "activity", "lastonline"])
+    hold_items = []
+    for tag in map_player.keys():
+        player = map_player.get(tag)
+        hold_items.append(holder(player=player,
+                                 name=player.name,
+                                 townhall=player.town_hall,
+                                 activity=clan_stats.get(tag, {}).get("activity", 0),
+                                 lastonline=player.last_online)
+                          )
+
+    if townhall is not None:
+        hold_items = [h for h in hold_items if h.townhall == townhall]
+
+    hold_items.sort(key=lambda x: x.__getattribute__(sort_by), reverse=(sort_order.lower() == "descending"))
+    if len(hold_items) == 0:
+        raise MessageException("No players, try a lighter search filter")
+
+    if show_last_online:
+        text = "` # ACT   LO    NAME        `\n"
+    else:
+        text = "` #  ACT    NAME        `\n"
+
+    now = int((pd.now(tz=pd.UTC).timestamp()))
+    total_activity = 0
+    for count, member in enumerate(hold_items, 1):
+        if count <= limit:
+            if show_last_online:
+                time_text = smart_convert_seconds(seconds=(now-member.player.last_online))
+                text += f"`{count:2} {member.activity:3} {time_text:7} {member.player.clear_name[:13]:13}`[{create_superscript(member.player.town_hall)}]({member.player.share_link})\n"
+            else:
+                text += f"`{count:2} {member.activity:4} {member.player.clear_name[:13]:13}`[{create_superscript(member.player.town_hall)}]({member.player.share_link})\n"
+        total_activity += member.activity
 
     embed = disnake.Embed(description=f"{text}", color=embed_color)
-    embed.set_author(name=f"{db_clan.clan.name} Top {len(players)} Received", icon_url=db_clan.clan.badge.url)
-    embed.set_footer(icon_url=bot.emoji.clan_castle.partial_emoji.url,
-                     text=f"▲{total_donated:,} | ▼{total_received:,} | {season}")
-    embed.timestamp = datetime.now()
+    embed.set_author(name=f"{clan.name} Top {min(limit, len(hold_items))} Activity", icon_url=clan.badge.url)
+    embed.set_footer(icon_url=bot.emoji.clock.partial_emoji.url,
+                     text=f"Total Activity: {total_activity} | {season}")
+    month = bot.gen_season_date(seasons_ago=24, as_text=False).index(season)
+    graph, _ = await daily_graph(bot=bot, clans=[clan], attribute="activity", months=month + 1)
+    embed.set_image(file=graph)
+    embed.timestamp = pd.now(tz=pd.UTC)
     return embed
 
 
-async def ratio_donations(bot: CustomClient, db_clan, season= None, embed_color: disnake.Color = disnake.Color.green()):
-    season = bot.gen_season_date() if season is None else season
-    clan_season = await db_clan.get_season(season=season)
-    players = clan_season.members
-    players.sort(key=lambda x: x.dono_ratio, reverse=True)
-    players = players[:55]
-    text = "` #  RATIO  NAME        `\n"
-    total_donated = 0
-    total_received = 0
-    for count, member in enumerate(players, 1):
-        text += f"`{count:2} {member.dono_ratio:5} {member.player.clear_name[:13]:13}`[{create_superscript(member.player.town_hall)}]({member.share_link})\n"
-        total_donated += member.donated
-        total_received += member.received
+@register_button("clancapoverview", parser="_:clan:weekend")
+async def clan_capital_overview(bot: CustomClient, clan: coc.Clan, weekend: str, embed_color: disnake.Color):
+    if weekend is None:
+        weekend = gen_raid_weekend_datestrings(number_of_weeks=1)[0]
+    raid_log_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=bot, limit=1)
+    if raid_log_entry is None:
+        return Embed(description="No Raid Weekend Entry Found. Donation info may be available.", color=embed_color)
+    attack_count = 0
+    for member in raid_log_entry.members:
+        attack_count += member.attack_count
+    embed = disnake.Embed(title=f"{clan.name} Raid Weekend Overview", color=embed_color)
+    embed.set_footer(
+        text=f"{str(raid_log_entry.start_time.time.date()).replace('-', '/')}-{str(raid_log_entry.end_time.time.date()).replace('-', '/')}", icon_url=clan.badge.url)
+    embed.add_field(name="Overview",
+                    value=f"- {bot.emoji.capital_gold}{'{:,}'.format(raid_log_entry.total_loot)} Looted\n"
+                          f"- {bot.fetch_emoji('District_Hall5')}{raid_log_entry.destroyed_district_count} Districts Destroyed\n"
+                          f"- {bot.emoji.thick_sword}{attack_count}/300 Attacks Complete\n"
+                          f"- {bot.emoji.person}{len(raid_log_entry.members)}/50 Participants\n"
+                          f"- Start {bot.timestamper(raid_log_entry.start_time.time.timestamp()).relative}, End {bot.timestamper(raid_log_entry.end_time.time.timestamp()).relative}\n",
+                    inline=False)
+    atk_stats_by_district = defaultdict(list)
+    for clan in raid_log_entry.attack_log:
+        for district in clan.districts:
+            atk_stats_by_district[district.name].append(len(district.attacks))
 
-    embed = disnake.Embed(description=f"{text}", color=embed_color)
-    embed.set_author(name=f"{db_clan.clan.name} Top {len(players)} Dono Ratio", icon_url=db_clan.clan.badge.url)
-    embed.set_footer(icon_url=bot.emoji.clan_castle.partial_emoji.url,
-                     text=f"▲{total_donated:,} | ▼{total_received:,} | {season}")
-    embed.timestamp = datetime.now()
+    offense_district_stats = "```"
+    for district, list_atks in atk_stats_by_district.items():
+        offense_district_stats += f"{round(mean(list_atks), 2):4} {district}\n"
+    offense_district_stats += "```"
+
+    def_stats_by_district = defaultdict(list)
+    for clan in raid_log_entry.defense_log:
+        for district in clan.districts:
+            def_stats_by_district[district.name].append(len(district.attacks))
+
+    def_district_stats = "```"
+    for district, list_atks in def_stats_by_district.items():
+        def_district_stats += f"{round(mean(list_atks), 2):4} {district}\n"
+    def_district_stats += "```"
+
+    embed.add_field("Detailed Stats (Offense)",
+                    value=f"- Avg Loot/Raid : {B(int(raid_log_entry.total_loot / len(raid_log_entry.attack_log)))}\n"
+                          f"- Avg Loot/Player: {B(int(raid_log_entry.total_loot / len(raid_log_entry.members)))}\n"
+                          f"- Avg Hits/Clan: {round(raid_log_entry.attack_count / len(raid_log_entry.attack_log), 2)}\n",
+                    inline=False)
+    embed.add_field(name="(Avg Atks By District, Off)", value=offense_district_stats)
+    embed.add_field(name="(Avg Atks By District, Def)", value=def_district_stats)
+
+    attack_summary_text = f"```a=atks, d=districts, l=loot\n"
+    for clan in raid_log_entry.attack_log:
+        # badge = await self.bot.create_new_badge_emoji(url=clan.badge.url)
+        attack_summary_text += f"- {clan.name[:12]:12} {clan.attack_count:2}a {clan.destroyed_district_count:1}d {B(sum([d.looted for d in clan.districts])):3}l\n"
+
+    defense_summary_text = "```"
+    for clan in raid_log_entry.defense_log:
+        # badge = await self.bot.create_new_badge_emoji(url=clan.badge.url)
+        defense_summary_text += f"- {clan.name[:12]:12} {clan.attack_count:2}a {clan.destroyed_district_count:1}d {B(sum([d.looted for d in clan.districts])):3}l\n"
+
+    attack_summary_text += "```"
+    defense_summary_text += "```"
+    embed.add_field(name=f"Attack Summary", value=attack_summary_text, inline=False)
+    embed.add_field(name="Defense Summary", value=defense_summary_text, inline=False)
+
+    members = sorted(list(raid_log_entry.members), key=lambda x: x.capital_resources_looted, reverse=True)
+    top_text = ""
+    for count, member in enumerate(members[:3], 1):
+        member: coc.raid.RaidMember
+        count_conv = {1: "gold",
+                      2: "white",
+                      3: "blue"}
+        top_text += f"{bot.get_number_emoji(color=count_conv[count], number=count)}{bot.clean_string(member.name)} {bot.emoji.capital_gold}{member.capital_resources_looted}{create_superscript(member.attack_count)}\n"
+    embed.add_field(name="Top 3 Raiders", value=top_text, inline=False)
+    file = await generate_raid_result_image(raid_entry=raid_log_entry, clan=clan)
+    embed.set_image(file=file)
     return embed
+
+
+
+@register_button("clancapdonos", parser="_:clan:weekend")
+async def clan_raid_weekend_donation_stats(bot: CustomClient, clan: coc.Clan, weekend: str, embed_color: disnake.Color):
+    if weekend is None:
+        weekend = gen_raid_weekend_datestrings(number_of_weeks=1)[0]
+    member_tags = [member.tag for member in clan.members]
+    capital_raiders = await bot.player_stats.distinct("tag", filter={
+        "$or": [{f"capital_gold.{weekend}.raided_clan": clan.tag}, {"tag": {"$in": member_tags}}]})
+    players = await bot.get_players(tags=capital_raiders)
+
+    donated_data = {}
+    number_donated_data = {}
+    donation_text = ""
+
+    players.sort(key=lambda x: sum(x.clan_capital_stats(week=weekend).donated), reverse=True)
+    for player in players[:60]:  # type: MyCustomPlayer
+        sum_donated = 0
+        len_donated = 0
+        cc_stats = player.clan_capital_stats(week=weekend)
+        sum_donated += sum(cc_stats.donated)
+        len_donated += len(cc_stats.donated)
+
+        donated_data[player.tag] = sum_donated
+        number_donated_data[player.tag] = len_donated
+
+        if player.tag in member_tags:
+            donation_text += f"{bot.emoji.capital_gold}`{sum_donated:6} {player.clear_name[:15]:15}`\n"
+        else:
+            donation_text += f"{bot.emoji.deny_mark}`{sum_donated:6} {player.clear_name[:15]:15}`\n"
+
+    donation_embed = Embed(
+        title=f"**{clan.name} Donation Totals**",
+        description=donation_text[:4075], color=embed_color)
+
+    donation_embed.set_footer(text=f"Donated: {'{:,}'.format(sum(donated_data.values()))} | Week: {weekend}")
+    donation_embed.set_image(None)
+    return donation_embed
+
+
+@register_button("clancapraids", parser="_:clan:weekend")
+async def clan_raid_weekend_raid_stats(bot: CustomClient, clan: coc.Clan, weekend: str, embed_color: disnake.Color):
+    if weekend is None:
+        weekend = gen_raid_weekend_datestrings(number_of_weeks=1)[0]
+    raid_log_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=bot, limit=1)
+
+    if raid_log_entry is None:
+        embed = Embed(
+            title=f"**{clan.name} Raid Totals**",
+            description="No raid found! Donation info may be available.", color=embed_color)
+        return embed
+
+    total_medals = 0
+    total_attacks = defaultdict(int)
+    total_looted = defaultdict(int)
+    attack_limit = defaultdict(int)
+    name_list = {}
+    member_tags = [member.tag for member in clan.members]
+    members_not_looted = member_tags.copy()
+
+    for member in raid_log_entry.members:
+        name_list[member.tag] = member.name
+        total_attacks[member.tag] += member.attack_count
+        total_looted[member.tag] += member.capital_resources_looted
+        attack_limit[member.tag] += (
+                member.attack_limit +
+                member.bonus_attack_limit)
+        try:
+            members_not_looted.remove(member.tag)
+        except:
+            pass
+
+    attacks_done = sum(list(total_attacks.values()))
+    attacks_done = max(1, attacks_done)
+
+    total_medals = calc_raid_medals(raid_log_entry.attack_log)
+
+    raid_text = []
+    for tag, amount in total_looted.items():
+        name = name_list[tag]
+        name = bot.clean_string(name)[:13]
+        if tag in member_tags:
+            raid_text.append([
+                f"\u200e{bot.emoji.capital_gold}`"
+                f"{total_attacks[tag]}/{attack_limit[tag]} "
+                f"{amount:5} {name[:15]:15}`", amount])
+        else:
+            raid_text.append([
+                f"\u200e{bot.emoji.deny_mark}`"
+                f"{total_attacks[tag]}/{attack_limit[tag]} "
+                f"{amount} {name[:15]:15}`", amount])
+
+    more_to_show = 55 - len(total_attacks.values())
+    for member in members_not_looted[:more_to_show]:
+        member = coc.utils.get(clan.members, tag=member)
+        name = bot.clean_string(member.name)
+        raid_text.append([
+            f"{bot.emoji.capital_gold}`{0}"
+            f"/{6} {0:5} {name[:15]:15}`",
+            0])
+
+    raid_text = sorted(raid_text, key=lambda l: l[1], reverse=True)
+    raid_text = [line[0] for line in raid_text]
+    raid_text = "\n".join(raid_text)
+
+    raid_embed = Embed(
+        title=f"**{clan.name} Raid Totals**",
+        description=raid_text,
+        color=embed_color)
+
+    raid_embed.set_footer(text=(
+        f"Spots: {len(total_attacks.values())}/50 | "
+        f"Attacks: {sum(total_attacks.values())}/300 | "
+        f"Looted: {'{:,}'.format(sum(total_looted.values()))} | {raid_log_entry.start_time.time.date()}"))
+    file = await generate_raid_result_image(raid_entry=raid_log_entry, clan=clan)
+    raid_embed.set_image(file=file)
+    return raid_embed
+
+
+@register_button("clanwarlog", parser="_:clan:limit")
+async def war_log(bot: CustomClient, clan: coc.Clan, limit=25, embed_color: disnake.Color = EMBED_COLOR_CLASS):
+    embed_description = ""
+    wars_counted = 0
+    try:
+        war_log = await bot.coc_client.get_warlog(clan.tag, limit=limit)
+    except coc.errors.PrivateWarLog:
+        return disnake.Embed(description=f"{clan.name} has a private war log", color=disnake.Color.red())
+    for war in war_log:
+        if war.is_league_entry:
+            continue
+        clan_attack_count = war.clan.attacks_used
+
+        if war.result == "win":
+            status = "<:warwon:932212939899949176>"
+            op_status = "Win"
+
+        elif ((war.opponent.stars == war.clan.stars) and
+              (war.clan.destruction == war.opponent.destruction)):
+            status = "<:dash:933150462818021437>"
+            op_status = "Draw"
+
+        else:
+            status = "<:warlost:932212154164183081>"
+            op_status = "Loss"
+
+        time = f"<t:{int(war.end_time.time.replace(tzinfo=utc).timestamp())}:R>"
+        war: coc.ClanWarLogEntry
+
+        try:
+            total = war.team_size * war.attacks_per_member
+            num_hit = SUPER_SCRIPTS[war.attacks_per_member]
+        except:
+            total = war.team_size
+            num_hit = SUPER_SCRIPTS[1]
+
+        embed_description += (
+            f"{status}**{op_status} vs "
+            f"\u200e{war.opponent.name}**\n"
+            f"({war.team_size} vs {war.team_size}){num_hit} | {time}\n"
+            f"{war.clan.stars} <:star:825571962699907152> {war.opponent.stars} | "
+            f"{clan_attack_count}/{total} | {round(war.clan.destruction, 1)}% | "
+            f"+{war.clan.exp_earned}xp\n")
+
+        wars_counted += 1
+
+    if wars_counted == 0:
+        embed_description = "Empty War Log"
+
+    embed = Embed(
+        description=embed_description,
+        color=embed_color)
+    embed.set_author(icon_url=clan.badge.large, name=f"{clan.name} WarLog (last {wars_counted})")
+    embed.timestamp = pd.now(tz=pd.UTC)
+    return embed
+
+
+@register_button("clancwlperf", parser="_:clan")
+async def cwl_performance(bot: CustomClient, clan: coc.Clan, embed_color: disnake.Color):
+    asyncio.create_task(bot.store_all_cwls(clan=clan))
+    responses = await bot.cwl_db.find({"$and" : [{"clan_tag": clan.tag}, {"data" : {"$ne" : None}}]}).sort("season", -1).limit(50).to_list(length=None)
+    embed = Embed(
+        title=f"**{clan.name} CWL History**",
+        color=embed_color)
+
+    embed.set_thumbnail(url=clan.badge.large)
+
+    old_year = "2015"
+    year_text = ""
+    not_empty = False
+    for response in responses:
+        text, year = response_to_line(response.get("data"), clan)
+        if year != old_year:
+            if year_text != "":
+                not_empty = True
+                embed.add_field(
+                    name=old_year,
+                    value=year_text,
+                    inline=False)
+
+                year_text = ""
+            old_year = year
+        year_text += text
+
+    if year_text != "":
+        not_empty = True
+        embed.add_field(
+            name=f"**{old_year}**",
+            value=year_text,
+            inline=False)
+
+    if not not_empty:
+        embed.description = "No prior cwl data"
+    embed.timestamp = pd.now(tz=pd.UTC)
+    return embed
+
+
+
 
 
 async def clan_summary(bot: CustomClient, clan: coc.Clan, season: str):
@@ -780,447 +1315,19 @@ async def clan_summary(bot: CustomClient, clan: coc.Clan, season: str):
     return [embed, embed2]
 
 
-async def linked_players(bot: CustomClient, clan: coc.Clan, guild: disnake.Guild):
-    player_links = await bot.link_client.get_links(*[member.tag for member in clan.members])
-    embeds = []
-    embed_description = f"{bot.emoji.discord}`Name           ` **Discord**\n"
 
-    db_clan = await bot.clan_db.find_one({"$and": [
-        {"tag": clan.tag},
-        {"server": guild.id}
-    ]})
 
-    player_link_count = 0
-    player_link_dict = dict(player_links)
-    for player in clan.members:
-        player_link = player_link_dict[f"{player.tag}"]
-        # user not linked to player
-        if player_link is None:
-            continue
 
-        name = bot.clean_string(player.name)[:14]
-        if len(name) <= 2:
-            name = player.name
 
-        player_link_count += 1
-        member = await guild.getch_member(player_link)
-        # member not found in server
-        if member is None:
-            member = ""
 
-        embed_description += f'\u200e{bot.emoji.green_tick}`{name:14}` \u200e{member}\n'
 
-    # no players were linked
-    if player_link_count == 0:
-        embed_description = "No players linked."
 
-    embed = Embed(
-        description=embed_description, color=Color.green())
-    embed.set_author(name=f"{clan.name} (Un)Linked Players", icon_url=clan.badge.url)
-    embeds.append(embed)
 
-    embed_description = f"{bot.emoji.discord}`Name           ` **Player Tag**\n"
-    unlinked_player_count = 0
-    player_link_dict = dict(player_links)
-    for player in clan.members:
-        player_link = player_link_dict[f"{player.tag}"]
-        # linked player found
-        if player_link is not None:
-            continue
-        name = bot.clean_string(player.name)[:14]
-        if len(name) <= 2:
-            name = player.name
-        unlinked_player_count += 1
-        embed_description += f'\u200e{bot.emoji.red_tick}`{name:14}` \u200e{player.tag}\n'
 
-    if unlinked_player_count == 0:
-        embed_description = "No players unlinked."
 
-    embed = Embed(
-        description=embed_description,
-        color=Color.green())
-    embed.set_footer(text=f"{player_link_count}✓ | {unlinked_player_count}✘")
-    embed.timestamp = datetime.now()
-    embeds.append(embed)
 
-    return embeds
 
 
-async def opt_status(bot: CustomClient, clan: coc.Clan, embed_color: disnake.Color = disnake.Color.green()):
-    in_count = 0
-    out_count = 0
-    thcount = defaultdict(int)
-    out_thcount = defaultdict(int)
-    pipeline = [
-        {"$match" : {"$and" : [{"tag": {"$in": [member.tag for member in clan.members]}}, {"type" : "warPreference"}]}},
-        {"$group" : {"_id": "$tag", "last_change": {"$last": "$time"}}}
-    ]
-    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
-    member_stats = {result["_id"] : f"`<t:{result['last_change']}:R>" for result in results}
-
-    players: List[MyCustomPlayer] = await bot.get_players(tags=[member.tag for member in clan.members], custom=True, use_cache=False, fake_results=True)
-    players.sort(key=lambda x: (-x.town_hall, x.name), reverse=False)
-    opted_in_text = ""
-    opted_out_text = ""
-    for player in players:
-        war_opt_time = member_stats.get(player.tag, "N/A`")
-        if player.war_opted_in:
-            opted_in_text += f"<:opt_in:944905885367537685>{player.town_hall_cls.emoji}\u200e`{emoji.replace_emoji(player.name)[:15]:15}{war_opt_time}\n"
-            thcount[player.town_hall] += 1
-            in_count += 1
-        else:
-            opted_out_text += f"<:opt_out:944905931265810432>{player.town_hall_cls.emoji}\u200e`{emoji.replace_emoji(player.name)[:15]:15}{war_opt_time}\n"
-            out_thcount[player.town_hall] += 1
-            out_count += 1
-
-    if opted_in_text == "":
-        opted_in_text = "None"
-    if opted_out_text == "":
-        opted_out_text = "None"
-
-    in_string = ", ".join(f"Th{index}: {th} " for index, th in sorted(thcount.items(), reverse=True) if th != 0)
-    out_string = ", ".join(f"Th{index}: {th} " for index, th in sorted(out_thcount.items(), reverse=True) if th != 0)
-
-    embed = Embed(description=f"**Opted In - {in_count}:**\n{opted_in_text}\n", color=embed_color)
-
-    embed2 = Embed(description=f"**Opted Out - {out_count}:**\n{opted_out_text}\n", color=embed_color)
-
-    embed.set_author(name=f"{clan.name} War Preferences", icon_url=clan.badge.url)
-    embed2.set_footer(text=f"In: {in_string}\nOut: {out_string}")
-    embed2.timestamp = datetime.now()
-    return [embed, embed2]
-
-
-async def war_log(bot: CustomClient, clan: coc.Clan, limit=25):
-    embed_description = ""
-    wars_counted = 0
-    try:
-        war_log = await bot.coc_client.get_warlog(clan.tag, limit=limit)
-    except coc.errors.PrivateWarLog:
-        return disnake.Embed(description=f"{clan.name} has a private war log", color=disnake.Color.red())
-    for war in war_log:
-        if war.is_league_entry:
-            continue
-        clan_attack_count = war.clan.attacks_used
-
-        if war.result == "win":
-            status = "<:warwon:932212939899949176>"
-            op_status = "Win"
-
-        elif ((war.opponent.stars == war.clan.stars) and
-              (war.clan.destruction == war.opponent.destruction)):
-            status = "<:dash:933150462818021437>"
-            op_status = "Draw"
-
-        else:
-            status = "<:warlost:932212154164183081>"
-            op_status = "Loss"
-
-        time = f"<t:{int(war.end_time.time.replace(tzinfo=utc).timestamp())}:R>"
-        war: coc.ClanWarLogEntry
-
-        try:
-            total = war.team_size * war.attacks_per_member
-            num_hit = SUPER_SCRIPTS[war.attacks_per_member]
-        except:
-            total = war.team_size
-            num_hit = SUPER_SCRIPTS[1]
-
-        embed_description += (
-            f"{status}**{op_status} vs "
-            f"\u200e{war.opponent.name}**\n"
-            f"({war.team_size} vs {war.team_size}){num_hit} | {time}\n"
-            f"{war.clan.stars} <:star:825571962699907152> {war.opponent.stars} | "
-            f"{clan_attack_count}/{total} | {round(war.clan.destruction, 1)}% | "
-            f"+{war.clan.exp_earned}xp\n")
-
-        wars_counted += 1
-
-    if wars_counted == 0:
-        embed_description = "Empty War Log"
-
-    embed = Embed(
-        description=embed_description,
-        color=Color.green())
-    embed.set_author(icon_url=clan.badge.large, name=f"{clan.name} WarLog (last {wars_counted})")
-    return embed
-
-
-async def super_troop_list(bot: CustomClient, clan: coc.Clan):
-    boosted = ""
-    none_boosted = ""
-
-    async for player in clan.get_detailed_members():
-        text = ""
-        if player.town_hall < 11:
-            continue
-
-        num_super_troops = 0
-        for troop in player.troops:
-            if troop.is_active:
-                text = f"{fetch_emoji(troop.name)} {text}"
-                num_super_troops += 1
-            if num_super_troops == MAX_NUM_SUPERS:
-                break
-
-        if num_super_troops == 1:
-            text = f"{bot.emoji.blank} {text}"
-
-        if text == "":
-            none_boosted += f"{player.name}\n"
-        else:
-            boosted += f"{text} {player.name}\n"
-
-    if boosted == "":
-        boosted = "None"
-
-    embed = Embed(
-        description=f"\n**Boosting:**\n{boosted}",
-        color=Color.green())
-
-    if none_boosted == "":
-        none_boosted = "None"
-
-    embed.set_author(name=f"{clan.name} Super Troops", icon_url=clan.badge.url)
-    embed.add_field(name="Not Boosting:", value=none_boosted)
-    embed.set_footer(text="Last Refreshed")
-    embed.timestamp = datetime.now()
-    return embed
-
-
-async def clan_capital_overview(bot: CustomClient, clan: coc.Clan, raid_log_entry: RaidLogEntry):
-    if raid_log_entry is None:
-        return Embed(description="No Raid Weekend Entry Found. Donation info may be available.", color=disnake.Color.green())
-    attack_count = 0
-    for member in raid_log_entry.members:
-        attack_count += member.attack_count
-    embed = disnake.Embed(title=f"{clan.name} Raid Weekend Overview", color=disnake.Color.green())
-    embed.set_footer(
-        text=f"{str(raid_log_entry.start_time.time.date()).replace('-', '/')}-{str(raid_log_entry.end_time.time.date()).replace('-', '/')}", icon_url=clan.badge.url)
-    embed.add_field(name="Overview",
-                    value=f"- {bot.emoji.capital_gold}{'{:,}'.format(raid_log_entry.total_loot)} Looted\n"
-                          f"- {bot.fetch_emoji('District_Hall5')}{raid_log_entry.destroyed_district_count} Districts Destroyed\n"
-                          f"- {bot.emoji.thick_sword}{attack_count}/300 Attacks Complete\n"
-                          f"- {bot.emoji.person}{len(raid_log_entry.members)}/50 Participants\n"
-                          f"- Start {bot.timestamper(raid_log_entry.start_time.time.timestamp()).relative}, End {bot.timestamper(raid_log_entry.end_time.time.timestamp()).relative}\n",
-                    inline=False)
-    atk_stats_by_district = defaultdict(list)
-    for clan in raid_log_entry.attack_log:
-        for district in clan.districts:
-            atk_stats_by_district[district.name].append(len(district.attacks))
-
-    offense_district_stats = "```"
-    for district, list_atks in atk_stats_by_district.items():
-        offense_district_stats += f"{round(mean(list_atks), 2):4} {district}\n"
-    offense_district_stats += "```"
-
-    def_stats_by_district = defaultdict(list)
-    for clan in raid_log_entry.defense_log:
-        for district in clan.districts:
-            def_stats_by_district[district.name].append(len(district.attacks))
-
-    def_district_stats = "```"
-    for district, list_atks in def_stats_by_district.items():
-        def_district_stats += f"{round(mean(list_atks), 2):4} {district}\n"
-    def_district_stats += "```"
-
-    embed.add_field("Detailed Stats (Offense)",
-                    value=f"- Avg Loot/Raid : {B(int(raid_log_entry.total_loot / len(raid_log_entry.attack_log)))}\n"
-                          f"- Avg Loot/Player: {B(int(raid_log_entry.total_loot / len(raid_log_entry.members)))}\n"
-                          f"- Avg Hits/Clan: {round(raid_log_entry.attack_count / len(raid_log_entry.attack_log), 2)}\n",
-                    inline=False)
-    embed.add_field(name="(Avg Atks By District, Off)", value=offense_district_stats)
-    embed.add_field(name="(Avg Atks By District, Def)", value=def_district_stats)
-
-    attack_summary_text = f"```a=atks, d=districts, l=loot\n"
-    for clan in raid_log_entry.attack_log:
-        # badge = await self.bot.create_new_badge_emoji(url=clan.badge.url)
-        attack_summary_text += f"- {clan.name[:12]:12} {clan.attack_count:2}a {clan.destroyed_district_count:1}d {B(sum([d.looted for d in clan.districts])):3}l\n"
-
-    defense_summary_text = "```"
-    for clan in raid_log_entry.defense_log:
-        # badge = await self.bot.create_new_badge_emoji(url=clan.badge.url)
-        defense_summary_text += f"- {clan.name[:12]:12} {clan.attack_count:2}a {clan.destroyed_district_count:1}d {B(sum([d.looted for d in clan.districts])):3}l\n"
-
-    attack_summary_text += "```"
-    defense_summary_text += "```"
-    embed.add_field(name=f"Attack Summary", value=attack_summary_text, inline=False)
-    embed.add_field(name="Defense Summary", value=defense_summary_text, inline=False)
-
-    members = sorted(list(raid_log_entry.members), key=lambda x: x.capital_resources_looted, reverse=True)
-    top_text = ""
-    for count, member in enumerate(members[:3], 1):
-        member: coc.raid.RaidMember
-        count_conv = {1: "gold",
-                      2: "white",
-                      3: "blue"}
-        top_text += f"{bot.get_number_emoji(color=count_conv[count], number=count)}{bot.clean_string(member.name)} {bot.emoji.capital_gold}{member.capital_resources_looted}{create_superscript(member.attack_count)}\n"
-    embed.add_field(name="Top 3 Raiders", value=top_text, inline=False)
-    return embed
-
-
-async def clan_raid_weekend_donation_stats(bot: CustomClient, clan: coc.Clan, weekend: str):
-    member_tags = [member.tag for member in clan.members]
-    capital_raiders = await bot.player_stats.distinct("tag", filter={
-        "$or": [{f"capital_gold.{weekend}.raided_clan": clan.tag}, {"tag": {"$in": member_tags}}]})
-    players = await bot.get_players(tags=capital_raiders)
-
-    donated_data = {}
-    number_donated_data = {}
-    donation_text = ""
-
-    players.sort(key=lambda x: sum(x.clan_capital_stats(week=weekend).donated), reverse=True)
-    for player in players[:60]:  # type: MyCustomPlayer
-        sum_donated = 0
-        len_donated = 0
-        cc_stats = player.clan_capital_stats(week=weekend)
-        sum_donated += sum(cc_stats.donated)
-        len_donated += len(cc_stats.donated)
-
-        donated_data[player.tag] = sum_donated
-        number_donated_data[player.tag] = len_donated
-
-        if player.tag in member_tags:
-            donation_text += f"{bot.emoji.capital_gold}`{sum_donated:6} {player.clear_name[:15]:15}`\n"
-        else:
-            donation_text += f"{bot.emoji.deny_mark}`{sum_donated:6} {player.clear_name[:15]:15}`\n"
-
-    donation_embed = Embed(
-        title=f"**{clan.name} Donation Totals**",
-        description=donation_text[:4075], color=Color.green())
-
-    donation_embed.set_footer(text=f"Donated: {'{:,}'.format(sum(donated_data.values()))} | Week: {weekend}")
-    return donation_embed
-
-
-async def clan_raid_weekend_raid_stats(bot: CustomClient, clan: coc.Clan, raid_log_entry: RaidLogEntry):
-    if raid_log_entry is None:
-        embed = Embed(
-            title=f"**{clan.name} Raid Totals**",
-            description="No raid found! Donation info may be available.", color=Color.green())
-        return embed
-
-    total_medals = 0
-    total_attacks = defaultdict(int)
-    total_looted = defaultdict(int)
-    attack_limit = defaultdict(int)
-    name_list = {}
-    member_tags = [member.tag for member in clan.members]
-    members_not_looted = member_tags.copy()
-
-    for member in raid_log_entry.members:
-        name_list[member.tag] = member.name
-        total_attacks[member.tag] += member.attack_count
-        total_looted[member.tag] += member.capital_resources_looted
-        attack_limit[member.tag] += (
-                member.attack_limit +
-                member.bonus_attack_limit)
-        try:
-            members_not_looted.remove(member.tag)
-        except:
-            pass
-
-    attacks_done = sum(list(total_attacks.values()))
-    attacks_done = max(1, attacks_done)
-
-    total_medals = calc_raid_medals(raid_log_entry.attack_log)
-
-    raid_text = []
-    for tag, amount in total_looted.items():
-        name = name_list[tag]
-        name = bot.clean_string(name)[:13]
-        if tag in member_tags:
-            raid_text.append([
-                f"\u200e{bot.emoji.capital_gold}`"
-                f"{total_attacks[tag]}/{attack_limit[tag]} "
-                f"{amount:5} {name[:15]:15}`", amount])
-        else:
-            raid_text.append([
-                f"\u200e{bot.emoji.deny_mark}`"
-                f"{total_attacks[tag]}/{attack_limit[tag]} "
-                f"{amount} {name[:15]:15}`", amount])
-
-    more_to_show = 55 - len(total_attacks.values())
-    for member in members_not_looted[:more_to_show]:
-        member = coc.utils.get(clan.members, tag=member)
-        name = bot.clean_string(member.name)
-        raid_text.append([
-            f"{bot.emoji.capital_gold}`{0}"
-            f"/{6} {0:5} {name[:15]:15}`",
-            0])
-
-    raid_text = sorted(raid_text, key=lambda l: l[1], reverse=True)
-    raid_text = [line[0] for line in raid_text]
-    raid_text = "\n".join(raid_text)
-
-    raid_embed = Embed(
-        title=f"**{clan.name} Raid Totals**",
-        description=raid_text,
-        color=Color.green())
-
-    raid_embed.set_footer(text=(
-        f"Spots: {len(total_attacks.values())}/50 | "
-        f"Attacks: {sum(total_attacks.values())}/300 | "
-        f"Looted: {'{:,}'.format(sum(total_looted.values()))} | {raid_log_entry.start_time.time.date()}"))
-
-    return raid_embed
-
-
-async def create_last_online(bot: CustomClient, clan: coc.Clan):
-    players = await bot.get_players(tags=[member.tag for member in clan.members])
-    embed_description_list = []
-    last_online_sum = 0
-    last_online_count = 0
-    for member in players:
-        if member.last_online is None:
-            last_online_sort = 0
-            embed_description_list.append([
-                f"Not Seen `{member.name}`",
-                last_online_sort])
-
-        else:
-            last_online_sort = member.last_online
-            last_online_count += 1
-            last_online_sum += member.last_online
-
-            embed_description_list.append([
-                f"<t:{member.last_online}:R> `{member.name}`",
-                last_online_sort])
-
-    embed_description = sorted(
-        embed_description_list, key=lambda l: l[1], reverse=True)
-    embed_description = [line[0] for line in embed_description]
-    embed_description = "\n".join(embed_description)
-
-    if last_online_sum != 0:
-        avg_last_online = last_online_sum / last_online_count
-        embed_description += (
-            f"\n\n**Median:** <t:{int(avg_last_online)}:R>")
-
-    embed = Embed(
-        description=embed_description,
-        color=Color.green())
-    embed.set_author(name=f"{clan.name} Last Online", icon_url=clan.badge.url)
-    embed.timestamp = datetime.now()
-    return embed
-
-
-async def create_activities(bot: CustomClient, db_clan, season: str):
-    season = bot.gen_games_season() if season is None else season
-    db_season = await db_clan.get_season(season=season)
-    members = sorted(db_season.members, key=lambda x: x.activity, reverse=True)
-    text = "`  #  ACT NAME      `\n"
-    total_activities = 0
-    for count, member in enumerate(members, 1):
-        if count <= 55:
-            text += f"`{count:2} {member.activity:4} {member.player.clear_name[:15]:15}`[{create_superscript(member.player.town_hall)}]({member.share_link})\n"
-        total_activities += member.activity
-
-    embed = disnake.Embed(description=f"{text}")
-    embed.set_author(name=f"{db_clan.clan.name} Top {len(members)} Activities", icon_url=db_clan.clan.badge.url)
-    embed.set_footer(icon_url=bot.emoji.clock.partial_emoji.url, text=f"Activities: {total_activities:,} | {season}")
-    embed.timestamp = datetime.now()
-    return embed
 
 
 async def create_clan_games(bot: CustomClient, db_clan, season: str, embed_color: disnake.Color = disnake.Color.green()):
@@ -1498,41 +1605,6 @@ async def create_stars_leaderboard(bot: CustomClient,   clan: coc.Clan, players,
     return embed
 
 
-async def cwl_performance(bot: CustomClient, clan: coc.Clan):
-    responses = await bot.cwl_db.find({"$and" : [{"clan_tag": clan.tag}, {"data" : {"$ne" : None}}]}).sort("season", -1).to_list(length=None)
-    embed = Embed(
-        title=f"**{clan.name} CWL History**",
-        color=Color.green())
 
-    embed.set_thumbnail(url=clan.badge.large)
-
-    old_year = "2015"
-    year_text = ""
-    not_empty = False
-    for response in responses:
-        text, year = response_to_line(response.get("data"), clan)
-        if year != old_year:
-            if year_text != "":
-                not_empty = True
-                embed.add_field(
-                    name=old_year,
-                    value=year_text,
-                    inline=False)
-
-                year_text = ""
-            old_year = year
-        year_text += text
-
-    if year_text != "":
-        not_empty = True
-        embed.add_field(
-            name=f"**{old_year}**",
-            value=year_text,
-            inline=False)
-
-    if not not_empty:
-        embed.description = "No prior cwl data"
-
-    return embed
 
 

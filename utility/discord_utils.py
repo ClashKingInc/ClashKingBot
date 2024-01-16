@@ -50,6 +50,7 @@ async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteract
     def check(res: disnake.MessageInteraction):
         return res.message.id == msg.id
 
+
     valid_value = None
     while valid_value is None:
         try:
@@ -171,9 +172,9 @@ def iter_embed_creation(base_embed: disnake.Embed, iter: List, scheme: str, brk:
 registered_functions = {}
 
 
-def register_button(command_name: str, parser: str):
+def register_button(command_name: str, parser: str, ephemeral: bool = False, no_embed: bool = False):
     def decorator(func):
-        registered_functions[command_name] = (func, parser)
+        registered_functions[command_name] = (func, parser, ephemeral, no_embed)
         return func
     return decorator
 

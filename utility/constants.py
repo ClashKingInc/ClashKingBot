@@ -20,13 +20,13 @@ SHORT_PLAYER_LINK = "https://api.clashking.xyz/p/"
 SHORT_CLAN_LINK = "https://api.clashking.xyz/c/"
 
 item_to_name = {"Player Tag" : "tag", "Role" : "role",
-                "Versus Trophies" : "versus-trophies", "Trophies" : "trophies",
-                "Clan Capital Contributions" : "clan-capital-contributions", "Clan Capital Raided" : "ach-Aggressive Capitalism",
-                "XP Level" : "exp-level", "Combined Heroes" : "heroes", "Obstacles Removed" : "ach-Nice and Tidy", "War Stars" : "war-stars",
-                "DE Looted" : "ach-Heroic Heist", "CWL Stars" : "ach-War League Legend", "Attacks Won (all time)" : "ach-Conqueror",
-                "Attacks Won (season)" : "attack-wins", "Defenses Won (season)" : "defense-wins", "Defenses Won (all time)" : "ach-Unbreakable", "Total Donated" : "ach-Friend in Need",
-                "Versus Trophy Record" : "ach-Champion Builder", "Trophy Record" : "ach-Sweet Victory!",
-                "Clan Games Points" : "ach-Games Champion", "Versus Battles Won" : "versus-attack-wins", "Best Season Rank" : "legendStatistics.bestSeason.rank", "Townhall Level" : "townHallLevel"}
+                "Versus Trophies" : "versus_trophies", "Trophies" : "trophies",
+                "Clan Capital Contributions" : "clan_capital_contributions", "Clan Capital Raided" : "ach_Aggressive Capitalism",
+                "XP Level" : "exp_level", "Combined Heroes" : "heroes", "Obstacles Removed" : "ach_Nice and Tidy", "War Stars" : "war_stars",
+                "DE Looted" : "ach_Heroic Heist", "CWL Stars" : "ach_War League Legend", "Attacks Won (all time)" : "ach_Conqueror",
+                "Attacks Won (season)" : "attack_wins", "Defenses Won (season)" : "defense_wins", "Defenses Won (all time)" : "ach_Unbreakable", "Total Donated" : "ach_Friend in Need",
+                "Versus Trophy Record" : "ach_Champion Builder", "Trophy Record" : "ach_Sweet Victory!",
+                "Clan Games Points" : "ach_Games Champion", "Versus Battles Won" : "versus_attack_wins", "Best Season Rank" : "legendStatistics.bestSeason.rank", "Townhall Level" : "townHallLevel"}
 
 HOME_VILLAGE_HEROES = ["Barbarian King", "Archer Queen", "Royal Champion", "Grand Warden"]
 EMBED_COLOR = 2829617

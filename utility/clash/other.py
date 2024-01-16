@@ -1,5 +1,6 @@
 import coc
-
+import re
+import emoji
 from assets.emojiDictionary import emojiDictionary
 from collections import defaultdict
 from utility.discord_utils import fetch_emoji
@@ -142,7 +143,10 @@ def troops(player, bot=None):
 
     return troopList
 
-
+def clean_name(name: str):
+    name = emoji.replace_emoji(name)
+    name = re.sub('[*_`~/]', '', name)
+    return f"\u200e{name}"
 
 def siegeMachines(player, bot=None):
     sieges = player.siege_machines

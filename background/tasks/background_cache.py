@@ -12,20 +12,9 @@ class BackgroundCache(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        #bot.loop.run_until_complete(self.player_cache())
         self.guilds.start()
 
-    async def player_cache(self):
-        print("here cache")
-        while True:
-            r = time.time()
-            spot = 0
-            async for document in await self.bot.player_cache.find({}).to_list(length=None):
-                del document["_id"]
-                self.bot.player_cache_dict[document["tag"]] = document
-                if spot % 25000:
-                    print(f"{25000 * spot} docs")
-            print(f"done cache, {time.time() - r} sec")
+
 
     @tasks.loop(seconds=60)
     async def guilds(self):

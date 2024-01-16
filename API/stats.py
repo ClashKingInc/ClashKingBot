@@ -405,6 +405,7 @@ async def clan_games(request: Request, response: Response,
             "metadata" : {"sort_order" : ("descending" if descending else "ascending"), "sort_field" : sort_field, "season" : season}}
 
 
+
 @router.get("/war-stats",
          name="War Stats")
 @cache(expire=300)

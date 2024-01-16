@@ -4,7 +4,7 @@ from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from disnake.ext import commands
 from CustomClasses.CustomServer import CustomServer
-from ..eval.utils import eval_logic
+from ..eval.utils import logic
 
 class LinkWelcomeMessages(commands.Cog):
 
@@ -184,6 +184,7 @@ class LinkWelcomeMessages(commands.Cog):
             embed2.set_image(
                 url="https://cdn.discordapp.com/attachments/843624785560993833/961379232955658270/image0_2.png")
             await ctx.send(embeds=[embed, embed2], ephemeral=True)
+
 
 def setup(bot: CustomClient):
     bot.add_cog(LinkWelcomeMessages(bot))

@@ -422,36 +422,6 @@ async def th_hitrate(bot: CustomClient, player_tags: List[str], title: str, thum
 
 
 
-async def activity_graph(bot: CustomClient, players: List[MyCustomPlayer], season: str, title: str, granularity: str, time_zone: str, tier: str, no_html:bool = False) -> (disnake.File, disnake.ActionRow):
-    s = season
-    if season is None:
-        season = bot.gen_season_date()
-    list_ = []
-    days = defaultdict(int)
-    for player in players:
-        all_lo = player.season_last_online(season_date=season)
-        for time in all_lo:
-            if granularity == "day":
-                time = datetime.fromtimestamp(time).replace(hour=0, minute=0, second=0)
-            elif granularity == "hour":
-                time = datetime.fromtimestamp(time).replace(minute=0, second=0)
-            elif granularity == "quarterday":
-                time = datetime.fromtimestamp(time)
-                time = time.replace(hour=(time.hour // 6) * 6, minute=0, second=0)
-            if player.clan is None:
-                continue
-            days[f"{int(time.timestamp())}_{player.clan.name}"] += 1
-    for date_time, amount in days.items():
-        list_.append([pd.to_datetime(int(date_time.split("_")[0]), unit="s", utc=True).tz_convert(time_zone), amount, date_time.split("_")[1]])
-    df = pd.DataFrame(list_, columns=["Date", "Total Activity", "Clan"])
-    df.sort_values(by="Date", inplace=True)
-    file, buttons = (await graph_creator(bot=bot, df=df, x="Date", y="Total Activity", title=title, footer="Choose Granularity Below", no_html=no_html))
-    if buttons:
-        buttons.append_item(disnake.ui.Button(label="1d", style=disnake.ButtonStyle.grey, custom_id=f"{tier}_day_{s}_{time_zone}"))
-        buttons.append_item(disnake.ui.Button(label="6h", style=disnake.ButtonStyle.grey, custom_id=f"{tier}_quarterday_{s}_{time_zone}"))
-        buttons.append_item(disnake.ui.Button(label="1h", style=disnake.ButtonStyle.grey, custom_id=f"{tier}_hour_{s}_{time_zone}"))
-    return file, buttons
-
 
 
 async def capital_donation_board(bot: CustomClient, players: List[MyCustomPlayer], week: str, title_name: str, limit: int = 60,

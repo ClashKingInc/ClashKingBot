@@ -36,19 +36,21 @@ class HelpCommands(commands.Cog, name="Help"):
             name = check.__qualname__.split(".")[0]
             if "bot" in name or not check.__closure__:
                 continue
+            try:
+                closure = check.__closure__[0]
 
-            closure = check.__closure__[0]
-
-            for c in closure.cell_contents:
-                if c.__closure__ is not None:
-                    try:
-                        permissions.extend(
-                            [p.replace("_", " ").title() for p, v in closure.cell_contents.items() if v]
-                        )
-                    except:
-                        permissions.extend(
-                            [p.replace("_", " ").title() for p, v in closure.cell_contents[0].__closure__[0].cell_contents.__closure__[0].cell_contents.items() if v]
-                        )
+                for c in closure.cell_contents:
+                    if c.__closure__ is not None:
+                        try:
+                            permissions.extend(
+                                [p.replace("_", " ").title() for p, v in closure.cell_contents.items() if v]
+                            )
+                        except:
+                            permissions.extend(
+                                [p.replace("_", " ").title() for p, v in closure.cell_contents[0].__closure__[0].cell_contents.__closure__[0].cell_contents.items() if v]
+                            )
+            except AttributeError:
+                return []
         return permissions
 
 

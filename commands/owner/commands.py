@@ -289,7 +289,7 @@ class OwnerCommands(commands.Cog):
         async def fetch(url, session: aiohttp.ClientSession, headers):
             async with session.get(url, headers=headers) as response:
                 if response.status == 200:
-                    return (await response.text())
+                    return (await response.json())
                 return None
 
         keys = self.bot.coc_client.http.keys

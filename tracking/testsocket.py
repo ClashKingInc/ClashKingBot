@@ -138,7 +138,7 @@ async def main(producer: KafkaProducer):
     player_search = db_client.usafam.player_search
 
 
-    cache = redis.Redis(host='localhost', port=6379, db=0, password=os.getenv("REDIS_PW"), decode_responses=False)
+    cache = redis.Redis(host='localhost', port=6379, db=0, password=os.getenv("REDIS_PW"), decode_responses=False, max_connections=2500)
 
 
 
@@ -217,22 +217,21 @@ async def main(producer: KafkaProducer):
                     pass
 
             #people only become unpaused by joining a clan again or being tracked in legends again
-            gone_for_a_month = int(datetime.now().timestamp()) - 2592000
-            await player_stats.update_many({"last_online" : {"$lte" : gone_for_a_month}}, {"$set" : {"paused" : True}})
-            await player_stats.update_many({"tag": {"$in": CLAN_MEMBERS}}, {"$set" : {"paused" : False}})
-
-
-            #9/10 loops, only track legend members & clan members
-            if loop_spot % 10 != 0:
+            gone_for_a_month = int(datetime.now().timestamp()) - 2_592_000
+            #1/15 loops, only track legend members & clan members
+            if loop_spot % 15 != 0 and loop_spot % 150 != 0:
                 db_tags = await player_stats.distinct("tag", filter= {"league": "Legend League"})
                 all_tags_to_track = list(set(db_tags + CLAN_MEMBERS))
-            #1/10 loops, track anyone not paused + clan members
             else:
-                pipeline = [{"$match": {"paused": {"$ne": True}}}, {"$project": {"tag": "$tag"}}, {"$unset": "_id"}]
+                # every 150 loops track those that have been gone for a month, every 15th loop we check those that have been gone for less (active)
+                if loop_spot % 150 == 0:
+                    pipeline = [{"$match": {"last_online" : {"$lte" : gone_for_a_month}}}, {"$project": {"tag": "$tag"}}, {"$unset": "_id"}]
+                else:
+                    pipeline = [{"$match": {"last_online" : {"$gte" : gone_for_a_month}}}, {"$project": {"tag": "$tag"}}, {"$unset": "_id"}]
                 db_tags = [x["tag"] for x in (await player_stats.aggregate(pipeline).to_list(length=None))]
-                missing_tags = await player_stats.find({"$and": [{ "paused": { "$ne": True }}, {"league": None}]}).to_list(length=None)
-                missing_tags = [x["tag"] for x in missing_tags]
-                all_tags_to_track = list(set(db_tags + CLAN_MEMBERS + missing_tags))
+                all_tags_to_track = list(set(db_tags + CLAN_MEMBERS))
+
+                #add any new additions to the autocomplete
                 pipeline = [{"$match": {}}, {"$project" : {"tag" : "$tag"}}, {"$unset" : "_id"}]
                 autocomplete_tags = [x["tag"] for x in (await player_search.aggregate(pipeline).to_list(length=None))]
                 autocomplete_tags = set(autocomplete_tags)
@@ -252,11 +251,6 @@ async def main(producer: KafkaProducer):
                 if auto_changes:
                     await player_search.bulk_write(auto_changes)
 
-
-
-            if BETA:
-                all_tags_to_track = all_tags_to_track[:5000]
-
             print(f"{len(all_tags_to_track)} tags")
 
             time_inside = time.time()
@@ -268,8 +262,6 @@ async def main(producer: KafkaProducer):
             bulk_insert = []
             bulk_clan_changes = []
             auto_complete = []
-
-
 
             season = gen_season_date()
             raid_date = gen_raid_date()
@@ -302,16 +294,16 @@ async def main(producer: KafkaProducer):
                             new_response = await new_response.read()
 
                             obj = decode(new_response, type=Player)
-
                             previous_response = await cache.get(obj.tag)
                             players_tracked.add(obj.tag)
+
                             if new_response != previous_response:
-                                await cache.set(obj.tag, new_response, ex=7776000)
+                                await cache.set(obj.tag, new_response, ex=2_592_000)
                                 if previous_response is None:
                                     return None
                                 BEEN_ONLINE = False
-                                previous_response = ujson.loads(previous_response)
                                 new_response = ujson.loads(new_response)
+                                previous_response = ujson.loads(previous_response)
 
                                 tag = obj.tag
                                 clan_tag = new_response.get("clan", {}).get("tag", "Unknown")
@@ -591,6 +583,7 @@ async def main(producer: KafkaProducer):
                 await asyncio.gather(*tasks, return_exceptions=True)
                 await session3.close()
 
+
             print(f"{time.time() - time_inside} seconds inside")
             print(f"{len(players_tracked)} players tracked")
 
@@ -677,6 +670,7 @@ def gen_games_season():
     if month <= 9:
         month = f"0{month}"
     return f"{now.year}-{month}"
+
 
 
 if __name__ == '__main__':

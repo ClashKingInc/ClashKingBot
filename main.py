@@ -97,7 +97,7 @@ if IS_CUSTOM:
 def load():
     for root, _, files in os.walk('commands'):
         for filename in files:
-            if filename.endswith('.py') and filename.split(".")[0] == "commands":
+            if filename.endswith('.py') and filename.split(".")[0] in ["commands", "buttons"]:
                 path = os.path.join(root, filename)[len("commands/"):][:-3].replace(os.path.sep, '.')
                 if path.split(".")[0] in disallowed:
                     continue

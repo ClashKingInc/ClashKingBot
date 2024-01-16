@@ -21,7 +21,7 @@ import leagues, player, capital, other, clan, war, utility, ranking, redirect, g
 from api_analytics.fastapi import Analytics
 
 
-LOCAL = False
+LOCAL = True
 load_dotenv()
 
 limiter = Limiter(key_func=get_remote_address)
@@ -37,7 +37,7 @@ async def catch_exceptions_middleware(request: Request, call_next):
             return JSONResponse({"reason" : e.reason, "message" : e.message}, status_code=e.status)
 
 
-if LOCAL:
+if not LOCAL:
     app.middleware("http")(catch_exceptions_middleware)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

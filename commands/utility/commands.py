@@ -11,7 +11,7 @@ from utility.constants import  SUPER_TROOPS
 from utility.cdn import upload_to_cdn
 from discord import options
 
-from .buttons import UtilityButtons
+from .bbuttons import UtilityButtons
 
 class UtilityCommands(UtilityButtons, commands.Cog, name="Utility"):
 

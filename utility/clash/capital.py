@@ -1,3 +1,4 @@
+import time
 from datetime import datetime
 from datetime import timedelta
 import datetime as dt
@@ -54,20 +55,21 @@ def weekend_to_cocpy_timestamp(weekend: str, end=False) -> coc.Timestamp:
     return Timestamp(data=weekend_to_iso.strftime('%Y%m%dT%H%M%S.000Z'))
 
 async def get_raidlog_entry(clan: coc.Clan, weekend: str, bot, limit=0):
+    t = time.time()
     raidlog = await bot.coc_client.get_raidlog(clan.tag, limit=limit)
     weekend_timestamp = weekend_to_cocpy_timestamp(weekend)
     weekend_raid: RaidLogEntry = coc.utils.get(raidlog, start_time=weekend_timestamp)
     if weekend_raid is not None and sum(member.capital_resources_looted for member in weekend_raid.members) != 0:
         return weekend_raid
     else:
-        raid_data = await bot.raid_weekend_db.find_one({"clan_tag" : clan.tag, "data.startTime" : f"{weekend_timestamp.time.strftime('%Y%m%dT%H%M%S.000Z')}"})
+        raid_data = await bot.raid_weekend_db.find_one({"$and" : [{"clan_tag" : clan.tag}, {"data.startTime" : f"{weekend_timestamp.time.strftime('%Y%m%dT%H%M%S.000Z')}"}]})
         if raid_data is not None:
             entry: RaidLogEntry = RaidLogEntry(data=raid_data.get("data"), client=bot.coc_client, clan_tag=clan.tag)
             return entry
 
-    raid_data = await player_results_to_json(clan=clan, weekend=weekend, player_stats=bot.player_stats)
+    '''raid_data = await player_results_to_json(clan=clan, weekend=weekend, player_stats=bot.player_stats)
     if raid_data is not None:
-        return RaidLogEntry(data=raid_data, client=bot.coc_client, clan_tag=clan.tag)
+        return RaidLogEntry(data=raid_data, client=bot.coc_client, clan_tag=clan.tag)'''
     return None
 
 async def player_results_to_json(clan: coc.Clan, weekend: str, player_stats):

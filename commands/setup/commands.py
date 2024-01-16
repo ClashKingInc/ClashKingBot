@@ -75,7 +75,6 @@ class SetupCommands(commands.Cog , name="Setup"):
                               nickname_convention: str = commands.Param(default=None),
                               api_token: str = commands.Param(default=None, choices=["Use", "Don't Use"]),
                               leadership_eval: str = commands.Param(default=None, choices=["True", "False"]),
-                              tied_stats_only: str = commands.Param(default=None, choices=["True", "False"]),
                               embed_color: str = commands.Param(default=None, converter=convert.hex_code)):
         await ctx.response.defer()
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
@@ -89,9 +88,6 @@ class SetupCommands(commands.Cog , name="Setup"):
         if leadership_eval is not None:
             await db_server.set_leadership_eval(status=(leadership_eval == "True"))
             changed_text += f"- **Leadership Eval:** `{leadership_eval}`\n"
-        if tied_stats_only is not None:
-            await db_server.set_tied_stats(state=(tied_stats_only == "True"))
-            changed_text += f"- **Tied Stats Only:** `{tied_stats_only}`\n"
         if embed_color is not None:
             await db_server.set_hex_code(hex_code=embed_color)
             changed_text += f"- **Embed Color:** `{embed_color}`\n"

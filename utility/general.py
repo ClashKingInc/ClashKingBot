@@ -308,6 +308,7 @@ def custom_round(number: int, add_percent=None):
         return f"{number}%"
     return number
 
+
 def convert_seconds(seconds):
     if seconds is None:
         return "N/A"
@@ -316,8 +317,28 @@ def convert_seconds(seconds):
     seconds %= 3600
     minutes = seconds // 60
     seconds %= 60
-
     return "%d:%02d:%02d" % (hour, minutes, seconds)
+
+
+def smart_convert_seconds(seconds, granularity=2):
+    intervals = (
+        ('w', 604800),  # 60 * 60 * 24 * 7
+        ('d', 86400),  # 60 * 60 * 24
+        ('h', 3600),  # 60 * 60
+        ('m', 60),
+    )
+
+    result = []
+
+    for name, count in intervals:
+        value = seconds // count
+        if value:
+            seconds -= value * count
+            if value == 1:
+                name = name.rstrip('s')
+            result.append("{}{}".format(value, name))
+    return ' '.join(result[:granularity])
+
 
 async def download_image(url: str):
     cached = IMAGE_CACHE.get(url)

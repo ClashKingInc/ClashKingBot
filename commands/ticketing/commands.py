@@ -14,7 +14,7 @@ from CustomClasses.Ticketing import TicketPanel, OpenTicket, LOG_TYPE
 from discord.autocomplete import Autocomplete as autocomplete
 from disnake import ButtonStyle
 from utility.constants import TOWNHALL_LEVELS
-from .buttons import TicketClick
+from .tbuttons import TicketClick
 
 
 class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):

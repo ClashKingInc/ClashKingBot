@@ -11,7 +11,7 @@ from .utils import legend_day_overview, legend_clan, legend_history, legend_post
 from CustomClasses.DatabaseClient.Classes.player import LegendPlayer
 from typing import List
 
-from .buttons import LegendButtons
+from .lbuttons import LegendButtons
 
 
 class Legends(LegendButtons, commands.Cog):

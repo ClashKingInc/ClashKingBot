@@ -12,21 +12,21 @@ import random
 import calendar
 import aiohttp
 import emoji
+import expiring_dict
 
+from math import ceil
 from datetime import datetime, timedelta
 from coc.ext import discordlinks
 from disnake.ext import commands
-from disnake import Message
 from dotenv import load_dotenv
 from assets.emojiDictionary import emojiDictionary, legend_emojis
 from CustomClasses.CustomPlayer import MyCustomPlayer, CustomClanClass
 from CustomClasses.Emojis import Emojis, EmojiType
 from urllib.request import urlopen
-from collections import defaultdict
 from CustomClasses.PlayerHistory import COSPlayerHistory
 from utility.constants import locations, BADGE_GUILDS
 from typing import  List
-from utility.general import  get_clan_member_tags
+from utility.general import  get_clan_member_tags, fetch
 from expiring_dict import ExpiringDict
 from redis import asyncio as redis
 from CustomClasses.DatabaseClient.familyclient import FamilyClient
@@ -65,6 +65,7 @@ class CustomClient(commands.AutoShardedBot):
         self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
         self.bot_stats: collection_class = self.looper_db.clashking.bot_stats
         self.clan_stats: collection_class = self.new_looper.clan_stats
+
         self.raid_weekend_db: collection_class = self.looper_db.looper.raid_weekends
         self.clan_join_leave: collection_class = self.new_looper.clan_join_leave
         self.base_stats: collection_class = self.looper_db.looper.base_stats
@@ -74,6 +75,8 @@ class CustomClient(commands.AutoShardedBot):
         self.basic_clan: collection_class = self.looper_db.looper.clan_tags
         self.button_store: collection_class = self.looper_db.clashking.button_store
         self.legend_rankings: collection_class = self.new_looper.legend_rankings
+        self.war_timers: collection_class = self.looper_db.looper.war_timer
+
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
         self.clan_db: collection_class = self.db_client.usafam.clans
@@ -123,7 +126,7 @@ class CustomClient(commands.AutoShardedBot):
                                                 load_game_data=coc.LoadGameData(always=False), raw_attribute=True, stats_max_size=10000)
         self._xyz = asyncio.get_event_loop().run_until_complete(self.coc_client.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD")))
 
-        self.redis = redis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"), retry_on_timeout=True, max_connections=25, retry_on_error=[redis.ConnectionError])
+        self.redis = redis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"), retry_on_timeout=True, max_connections=100, retry_on_error=[redis.ConnectionError])
 
         self.emoji = Emojis()
         self.locations = locations
@@ -133,7 +136,7 @@ class CustomClient(commands.AutoShardedBot):
 
         self.feed_webhooks = {}
         self.clan_list = []
-        self.player_cache_dict = {}
+        self.player_cache_dict = expiring_dict.ExpiringDict(ttl=60)
         self.IMAGE_CACHE = ExpiringDict()
 
         self.OUR_GUILDS = set()
@@ -171,9 +174,12 @@ class CustomClient(commands.AutoShardedBot):
         elif not self.badge_guild:
             self.badge_guild = BADGE_GUILDS
 
+        solid_badge_guild = [self.get_guild(id) for id in self.badge_guild if self.get_guild(id) is not None]
+        emoji_list = [emoji for guild in solid_badge_guild for emoji in guild.emojis]
+
         new_url = url.replace(".png", "")
-        all_emojis = self.emojis
-        get_emoji = disnake.utils.get(all_emojis, name=new_url[-15:].replace("-", ""))
+        #all_emojis = self.emojis
+        get_emoji = disnake.utils.get(emoji_list, name=new_url[-15:].replace("-", ""))
         if get_emoji is not None:
             return f"<:{get_emoji.name}:{get_emoji.id}>"
 
@@ -257,6 +263,7 @@ class CustomClient(commands.AutoShardedBot):
             raidDate = (now + timedelta(forward)).date()
             return str(raidDate)
 
+
     def gen_season_date(self, seasons_ago = None, as_text=True):
         if seasons_ago is None:
             end = coc.utils.get_season_end().replace(tzinfo=utc).date()
@@ -276,6 +283,7 @@ class CustomClient(commands.AutoShardedBot):
                         month = f"0{month}"
                     dates.append(f"{end.year}-{month}")
             return dates
+
 
     def gen_games_season(self):
         now = datetime.utcnow()
@@ -434,7 +442,8 @@ class CustomClient(commands.AutoShardedBot):
             else:
                 return None
 
-    async def get_players(self, tags: list, fresh_tags=None, custom=True, use_cache=True, fake_results=False, found_results=None):
+
+    async def get_players(self, tags: list, fresh_tags=None, custom=True, use_cache=True, fake_results=False, found_results=None, max_age=86400):
         if fresh_tags is None:
             fresh_tags = []
         if custom and fake_results is False:
@@ -450,30 +459,57 @@ class CustomClient(commands.AutoShardedBot):
 
         players = []
         tag_set = set(tags)
+        cache_data = []
+        for tag in tag_set.copy():
+            local_data = self.player_cache_dict.get(tag)
+            if local_data is not None:
+                cache_data.append(local_data)
+                tag_set.remove(local_data.get("tag"))
+
         if use_cache:
-            cache_data = await self.redis.mget(keys=[tag for tag in tag_set if tag not in fresh_tags])
-        else:
-            cache_data = []
+            redis_cache_data = await self.redis.mget(keys=[tag for tag in tag_set if tag not in fresh_tags])
+            for data in redis_cache_data:
+                if data is None:
+                    continue
+                data = ujson.loads(data)
+                self.player_cache_dict[data.get("tag")] = data
+                tag_set.remove(data.get("tag"))
+                cache_data.append(data)
 
         for data in cache_data:
-            if data is None:
-                continue
-            data = ujson.loads(data)
-            tag_set.remove(data.get("tag"))
             if not custom:
                 player = coc.Player(data=data, client=self.coc_client)
             else:
                 player = MyCustomPlayer(data=data, client=self.coc_client, bot=self, results=results_dict.get(data["tag"]))
             players.append(player)
 
+        keys = self.coc_client.http.keys
+
         tasks = []
-        for tag in tag_set:
-            task = asyncio.ensure_future(self.getPlayer(player_tag=tag, custom=custom))
-            tasks.append(task)
-        if tasks:
-            responses = await asyncio.gather(*tasks, return_exceptions=True)
-            for response in responses:
-                players.append(response)
+        async def fetch(url, session: aiohttp.ClientSession, headers):
+            async with session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    return (await response.read())
+                return None
+
+        async with aiohttp.ClientSession() as session:
+            for tag in tag_set:
+                key = next(keys)
+                tasks.append(fetch(f"https://api.clashofclans.com/v1/players/{tag.replace('#', '%23')}", session, {"Authorization": f"Bearer {key}"}))
+            responses = await asyncio.gather(*tasks)
+            await session.close()
+
+        for data in responses:
+            if data is None:
+                continue
+            data = ujson.loads(data)
+            self.player_cache_dict[data.get("tag")] = data
+            if not custom:
+                player = coc.Player(data=data, client=self.coc_client)
+            else:
+                player = MyCustomPlayer(data=data, client=self.coc_client, bot=self, results=results_dict.get(data["tag"]))
+            players.append(player)
+
         return [player for player in players if player is not None]
 
 
@@ -576,6 +612,34 @@ class CustomClient(commands.AutoShardedBot):
         responses = await asyncio.gather(*tasks)
         return responses
 
+
+    async def store_all_cwls(self, clan: coc.Clan):
+        await asyncio.sleep(0.1)
+        from datetime import date
+        diff = ceil((datetime.now().date() - date(2016, 12, 1)).days / 30)
+        dates = self.gen_season_date(seasons_ago=diff, as_text=False)
+        names = await self.cwl_db.distinct("season", filter={"clan_tag": clan.tag})
+        await self.cwl_db.delete_many({"data.statusCode": 404})
+        await self.cwl_db.delete_many({"data" : None})
+        missing = set(dates) - set(names)
+        tasks = []
+        async with aiohttp.ClientSession() as session:
+            tag = clan.tag.replace("#", "")
+            for date in missing:
+                url = f"https://api.clashofstats.com/clans/{tag}/cwl/seasons/{date}"
+                task = asyncio.ensure_future(fetch(url, session, extra=date))
+                tasks.append(task)
+            responses = await asyncio.gather(*tasks)
+            await session.close()
+
+        for response, date in responses:
+            try:
+                if "Not Found" not in str(response) and "'status': 500" not in str(response) and response is not None:
+                    await self.cwl_db.insert_one({"clan_tag": clan.tag, "season": date, "data": response})
+                else:
+                    await self.cwl_db.insert_one({"clan_tag": clan.tag, "season": date, "data": None})
+            except:
+                pass
 
 
     async def get_player_history(self, player_tag: str):
