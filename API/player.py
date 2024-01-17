@@ -13,7 +13,7 @@ from typing import List
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from APIUtils.utils import fix_tag, redis, db_client
-from dateutil import parser
+from datetime import timedelta
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(tags=["Player Endpoints"])
@@ -74,36 +74,49 @@ async def player_stat(player_tag: str, request: Request, response: Response):
          name="Legend stats for a player")
 @cache(expire=300)
 @limiter.limit("30/second")
-async def player_legend(player_tag: str, request: Request, response: Response):
-    player_tag = player_tag and "#" + re.sub(r"[^A-Z0-9]+", "", player_tag.upper()).replace("O", "0")
-    result = await db_client.player_stats_db.find_one({"tag": player_tag})
-    lb_spot = await db_client.player_leaderboard_db.find_one({"tag": player_tag})
+async def player_legend(player_tag: str, request: Request, response: Response, season: str = None):
+    player_tag = fix_tag(player_tag)
 
+    result = await db_client.player_stats_db.find_one({"tag": player_tag})
     if result is None:
         raise HTTPException(status_code=404, detail=f"No player found")
+
+    ranking_data = await db_client.leaderboard_db.find_one({"tag": player_tag})
+    default = {"country_code": None,
+               "country_name": None,
+               "local_rank": None,
+               "global_rank": None}
+    if ranking_data is None:
+        ranking_data = default
+    if ranking_data.get("global_rank") is None:
+        self_global_ranking = await db_client.legend_rankings.find_one({"tag": player_tag})
+        if self_global_ranking:
+            ranking_data["global_rank"] = self_global_ranking.get("rank")
+
+    legend_data = result.get('legends', {})
+    if season and legend_data != {}:
+        year, month = season.split("-")
+        season_start = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
+        season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
+        delta = season_end - season_start
+        days = [season_start + timedelta(days=i) for i in range(delta.days)]
+        days = [day.strftime("%Y-%m-%d") for day in days]
+
+        _holder = {}
+        for day in days:
+            _holder[day] = legend_data.get(day)
+        legend_data = _holder
 
     result = {
         "name" : result.get("name"),
         "townhall" : result.get("townhall"),
-        "legends" : result.get("legends", {})
+        "legends" : legend_data,
+        "rankings" : ranking_data
     }
-    try:
-        del result["legends"]["global_rank"]
-        del result["legends"]["local_rank"]
-    except:
-        pass
-    if lb_spot is not None:
-        try:
-            result["legends"]["global_rank"] = lb_spot["global_rank"]
-            result["legends"]["local_rank"] = lb_spot["local_rank"]
-        except:
-            pass
-        try:
-            result["location"] = lb_spot["country_name"]
-        except:
-            pass
-
-    return dict(result)
+    result["legends"].pop("global_rank")
+    result["legends"].pop("local_rank")
+    result["streak"] = result["legends"].pop("streak", 0)
+    return result
 
 
 @router.get("/player/{player_tag}/historical/{season}",
