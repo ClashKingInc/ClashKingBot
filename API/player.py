@@ -81,7 +81,7 @@ async def player_legend(player_tag: str, request: Request, response: Response, s
     if result is None:
         raise HTTPException(status_code=404, detail=f"No player found")
 
-    ranking_data = await db_client.leaderboard_db.find_one({"tag": player_tag})
+    ranking_data = await db_client.player_leaderboard_db.find_one({"tag": player_tag})
     default = {"country_code": None,
                "country_name": None,
                "local_rank": None,
