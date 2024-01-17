@@ -27,8 +27,6 @@ async def clan_historical(clan_tag: str, request: Request, response: Response):
         del result["_id"]
     return result
 
-'''@router.get("/clan/{clan_tag}/compo/{type}", 
-            name="")'''
 
 
 @router.get("/clan/{clan_tag}/basic",
@@ -42,30 +40,6 @@ async def clan_basic(clan_tag: str, request: Request, response: Response):
         del result["_id"]
     return result
 
-
-
-@router.get("/clan/{clan_tag}/historical/{season}",
-         name="Historical data for clan events")
-@cache(expire=300)
-@limiter.limit("5/second")
-async def clan_historical(clan_tag: str, season: str, request: Request, response: Response):
-    clan_tag = fix_tag(clan_tag)
-    year = season[:4]
-    month = season[-2:]
-    season_start = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
-    season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
-    historical_data = await db_client.clan_history.find({"$and": [{"tag": fix_tag(clan_tag)},
-                                                          {"time": {"$gte": season_start.timestamp()}},
-                                                          {"time": {"$lte": season_end.timestamp()}}]}).sort("time", 1).to_list(length=None)
-    breakdown = defaultdict(list)
-    for data in historical_data:
-        del data["_id"]
-        breakdown[data["type"]].append(data)
-
-    result = {}
-    for key, item in breakdown.items():
-        result[key] = item
-    return dict(result)
 
 
 @router.get("/clan/{clan_tag}/join-leave/{season}",
@@ -87,28 +61,6 @@ async def clan_join_leave(clan_tag: str, season: str, request: Request, response
     return dict(result)
 
 
-@router.get("/clan/{clan_tag}/cache",
-         name="Cached endpoint response")
-@cache(expire=300)
-@limiter.limit("30/second")
-async def clan_cache(clan_tag: str, request: Request, response: Response):
-    cache_data = await db_client.clan_cache_db.find_one({"tag": fix_tag(clan_tag)})
-    if not cache_data:
-        return {"No Clan Found": clan_tag}
-    del cache_data["data"]["_response_retry"]
-    return cache_data["data"]
-
-
-@router.post("/clan/bulk",
-         name="Cached endpoint response (bulk fetch)")
-@limiter.limit("5/second")
-async def bulk_clan_cache(clan_tags: List[str], request: Request, response: Response):
-    cache_data = await db_client.clan_cache_db.find({"tag": {"$in": [fix_tag(tag) for tag in clan_tags]}}).to_list(length=500)
-    modified_result = []
-    for data in cache_data:
-        del data["data"]["_response_retry"]
-        modified_result.append(data["data"])
-    return modified_result
 
 
 

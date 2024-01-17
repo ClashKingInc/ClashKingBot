@@ -21,7 +21,7 @@ import leagues, player, capital, other, clan, war, utility, ranking, redirect, g
 from api_analytics.fastapi import Analytics
 
 
-LOCAL = True
+LOCAL = False
 load_dotenv()
 
 limiter = Limiter(key_func=get_remote_address)
@@ -46,7 +46,6 @@ app.add_middleware(Analytics, api_key="9f56d999-b945-4be5-8787-2448ab222ad3")
 
 
 routers = [
-    bans.router,
     player.router,
     clan.router,
     war.router,
@@ -59,7 +58,6 @@ routers = [
     game_data.router,
     other.router,
     utility.router,
-    server_info.router
 ]
 for router in routers:
     app.include_router(router)
