@@ -1,5 +1,6 @@
 import datetime
 import re
+import time
 
 import pytz
 import ujson
@@ -76,12 +77,12 @@ async def player_stat(player_tag: str, request: Request, response: Response):
 @limiter.limit("30/second")
 async def player_legend(player_tag: str, request: Request, response: Response, season: str = None):
     player_tag = fix_tag(player_tag)
-
-    result = await db_client.player_stats_db.find_one({"tag": player_tag})
+    c_time = time.time()
+    result = await db_client.player_stats_db.find_one({"tag": player_tag}, projection={"name" : 1, "townhall" : 1, "legends" : 1, "tag" : 1})
     if result is None:
         raise HTTPException(status_code=404, detail=f"No player found")
-
     ranking_data = await db_client.player_leaderboard_db.find_one({"tag": player_tag}, projection={"_id" : 0})
+
     default = {"country_code": None,
                "country_name": None,
                "local_rank": None,
@@ -104,19 +105,21 @@ async def player_legend(player_tag: str, request: Request, response: Response, s
 
         _holder = {}
         for day in days:
-            _holder[day] = legend_data.get(day)
+            _holder[day] = legend_data.get(day, {})
         legend_data = _holder
 
     result = {
         "name" : result.get("name"),
+        "tag" : result.get("tag"),
         "townhall" : result.get("townhall"),
         "legends" : legend_data,
         "rankings" : ranking_data
     }
-    result["legends"].pop("global_rank")
-    result["legends"].pop("local_rank")
+
+    result["legends"].pop("global_rank", None)
+    result["legends"].pop("local_rank", None)
     result["streak"] = result["legends"].pop("streak", 0)
-    return result
+    return dict(result)
 
 
 @router.get("/player/{player_tag}/historical/{season}",
