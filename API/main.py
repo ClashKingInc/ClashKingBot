@@ -29,8 +29,6 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
-app = FastAPI()
-
 async def catch_exceptions_middleware(request: Request, call_next):
     try:
         return await call_next(request)
