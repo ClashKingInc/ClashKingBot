@@ -19,7 +19,7 @@ from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 import leagues, player, capital, other, clan, war, utility, ranking, redirect, game_data, bans, stats, list, server_info
 from api_analytics.fastapi import Analytics
-from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.cors import CORSMiddleware
 
 
 LOCAL = False
@@ -30,13 +30,6 @@ app = FastAPI()
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
 app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 
 async def catch_exceptions_middleware(request: Request, call_next):
     try:
@@ -51,7 +44,12 @@ if not LOCAL:
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(Analytics, api_key="9f56d999-b945-4be5-8787-2448ab222ad3")
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 routers = [
