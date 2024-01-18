@@ -19,6 +19,7 @@ from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 import leagues, player, capital, other, clan, war, utility, ranking, redirect, game_data, bans, stats, list, server_info
 from api_analytics.fastapi import Analytics
+from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 
 
@@ -26,22 +27,26 @@ LOCAL = False
 load_dotenv()
 
 limiter = Limiter(key_func=get_remote_address)
-app = FastAPI()
-app.add_middleware(GZipMiddleware, minimum_size=500)
+middleware = [
+    Middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    ),
+    Middleware(
+        Analytics,
+        api_key="9f56d999-b945-4be5-8787-2448ab222ad3"
+    ),
+    Middleware(
+        GZipMiddleware,
+        minimum_size=500
+    )
+]
 
-async def catch_exceptions_middleware(request: Request, call_next):
-    try:
-        return await call_next(request)
-    except Exception as e:
-        if isinstance(e, coc.errors.NotFound) or isinstance(e, coc.errors.Maintenance) or isinstance(e, coc.errors.Forbidden):
-            return JSONResponse({"reason" : e.reason, "message" : e.message}, status_code=e.status)
-
-
-if not LOCAL:
-    app.middleware("http")(catch_exceptions_middleware)
+app = FastAPI(middleware=middleware)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-app.add_middleware(Analytics, api_key="9f56d999-b945-4be5-8787-2448ab222ad3")
 
 
 routers = [
@@ -60,13 +65,6 @@ routers = [
 ]
 for router in routers:
     app.include_router(router)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
 other_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
