@@ -19,6 +19,7 @@ from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 import leagues, player, capital, other, clan, war, utility, ranking, redirect, game_data, bans, stats, list, server_info
 from api_analytics.fastapi import Analytics
+from fastapi.middleware.cors import CORSMiddleware
 
 
 LOCAL = False
@@ -27,6 +28,14 @@ load_dotenv()
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
 app.add_middleware(GZipMiddleware, minimum_size=500)
+
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 async def catch_exceptions_middleware(request: Request, call_next):
