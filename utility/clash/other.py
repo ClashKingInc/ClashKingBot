@@ -500,6 +500,34 @@ def is_games():
     return is_games
 
 
+def gen_season_start_end_as_iso(season: str):
+    year = season[:4]
+    month = season[-2:]
+    SEASON_START = coc.utils.get_season_start(month=(int(month) - 1 if int(month) != 1 else month == 12), year=int(year) if int(month) != 1 else int(year) - 1).timestamp()
+    SEASON_END = coc.utils.get_season_end(month=(int(month) - 1 if int(month) != 1 else month == 12), year=int(year) if int(month) != 1 else int(year) - 1).timestamp()
+    SEASON_START = datetime.fromtimestamp(SEASON_START, tz=utc).strftime('%Y%m%dT%H%M%S.000Z')
+    SEASON_END = datetime.fromtimestamp(SEASON_END, tz=utc).strftime('%Y%m%dT%H%M%S.000Z')
+    return (SEASON_START, SEASON_END)
+
+def gen_season_start_end_as_timestamp(season: str):
+    year = season[:4]
+    month = season[-2:]
+    SEASON_START = coc.utils.get_season_start(month=(int(month) - 1 if int(month) != 1 else month == 12), year=int(year) if int(month) != 1 else int(year) - 1).timestamp()
+    SEASON_END = coc.utils.get_season_end(month=(int(month) - 1 if int(month) != 1 else month == 12), year=int(year) if int(month) != 1 else int(year) - 1).timestamp()
+    return (SEASON_START, SEASON_END)
+
+def games_season_start_end_as_timestamp(season: str):
+    year = int(season[:4])
+    month = int(season[-2:])
+    next_month = month + 1
+    next_year = year
+    if month == 12:
+        next_month = 1
+        next_year += 1
+    start = datetime(year, month, 1)
+    end = datetime(next_year, next_month, 1)
+    return (start.timestamp(), end.timestamp())
+
 
 
 

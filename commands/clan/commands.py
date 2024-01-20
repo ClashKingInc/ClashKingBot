@@ -1,13 +1,5 @@
-import coc
-import disnake
-import uuid
-
-from CustomClasses.CustomBot import CustomClient
 from disnake.ext import commands
-from typing import List
-
-from discord import convert, autocomplete, options
-from utility.constants import item_to_name
+from discord import autocomplete, options
 from .utils import *
 
 
@@ -43,7 +35,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
     @clan.sub_command(name="overview", description="Board showing basic clan overview")
     async def overview(self, ctx: disnake.ApplicationCommandInteraction,
                           clan: coc.Clan = options.clan,
-                          type: str= commands.Param(default="Detailed", choices=["Basic", "Detailed"])):
+                          type: str= commands.Param(default="Detailed", choices=["Minimalistic", "Basic", "Detailed"])):
         """
             Parameters
             ----------
@@ -57,6 +49,9 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
         elif type == "Basic":
             custom_id = f"clanbasic:{clan.tag}"
             embed = await basic_clan_board(clan=clan, embed_color=embed_color)
+        elif type == "Minimalistic":
+            custom_id = f"clanmini:{clan.tag}"
+            embed = await minimalistic_clan_board(bot=self.bot, clan=clan, server=ctx.guild, embed_color=embed_color)
 
         buttons = disnake.ui.ActionRow(
             disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=custom_id),
@@ -96,9 +91,6 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=custom_id),
         )
         await ctx.edit_original_message(embeds=embeds, components=[buttons])
-
-
-
 
 
 
@@ -171,16 +163,25 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
+
     @clan.sub_command(name="games", description="Clan Games stats for a clan")
     async def games(self, ctx: disnake.ApplicationCommandInteraction,
                           clan: coc.Clan = options.clan,
                           season: str = options.optional_season,
                           townhall: int = None,
                           limit: int = commands.Param(default=50, min_value=1, max_value=50),
-                          sort_by: str = commands.Param(default="Donations", choices=["Name", "Points", "Time"]),
+                          sort_by: str = commands.Param(default="Points", choices=["Name", "Points", "Time"]),
                           sort_order: str = commands.Param(default="Descending", choices=["Ascending", "Descending"])
                           ):
-        pass
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+        buttons = disnake.ui.ActionRow()
+        embed = await clan_games(bot=self.bot, clan=clan, season=season, sort_by=sort_by.lower(), sort_order=sort_order.lower(), limit=limit, townhall=townhall, embed_color=embed_color)
+        buttons.append_item(disnake.ui.Button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey,
+            custom_id=f"clangames:{clan.tag}:{season}:{sort_by.lower()}:{sort_order.lower()}:{limit}:{townhall}"))
+        await ctx.edit_original_message(embed=embed, components=[buttons])
+
 
 
     @clan.sub_command(name="war-preference", description="War preference, last opted, last war, & war timer data")
@@ -249,6 +250,25 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             buttons.append_item(button)
 
         return await ctx.edit_original_message(embed=embed, components=[buttons])
+
+
+
+    @clan.sub_command(name="summary", description="Summary of stats for a clan")
+    async def summary(self, ctx: disnake.ApplicationCommandInteraction,
+                      clan: coc.Clan = options.clan,
+                      season: str = options.optional_season,
+                      limit: int = commands.Param(default=5, min_value=1, max_value=15)
+                      ):
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+        embeds = await clan_summary(bot=self.bot, clan=clan, limit=limit, season=season, embed_color=embed_color)
+        buttons = disnake.ui.ActionRow()
+        buttons.add_button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey,
+            custom_id=f"clansummary:{clan.tag}:{season}:{limit}")
+        await ctx.edit_original_message(embeds=embeds, components=[buttons])
+
+
 
 
 def setup(bot):

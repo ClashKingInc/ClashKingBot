@@ -1,9 +1,8 @@
 
 import coc
-
 import disnake
-
 import pendulum as pd
+
 from CustomClasses.CustomBot import CustomClient
 from exceptions.CustomExceptions import MessageException
 from utility.discord_utils import register_button, interaction_handler
@@ -79,7 +78,7 @@ async def linked_players(bot: CustomClient, clan: coc.Clan, server: disnake.Guil
 async def discord_link_clan_choose(bot: CustomClient, ctx: disnake.MessageInteraction, embed_color: disnake.Color):
     clans = await bot.get_guild_clans(guild_id=ctx.guild_id)
     clans = await bot.get_clans(tags=clans)
-    dropdown = await basic_clan_dropdown(bot=bot, clans=clans, max_choose=1)
+    dropdown = await basic_clan_dropdown(clans=clans, max_choose=1)
     og_message = await ctx.original_message()
     msg = await ctx.followup.send(components=[dropdown], ephemeral=True)
 
@@ -95,6 +94,6 @@ async def discord_link_clan_choose(bot: CustomClient, ctx: disnake.MessageIntera
     buttons.add_button(
         label="", emoji=bot.emoji.gear.partial_emoji,
         style=disnake.ButtonStyle.grey,
-        custom_id=f"discordlinkschoose:{ctx.guild_id}")
+        custom_id=f"discordlinkschoose:ctx")
     await og_message.edit(embeds=embeds, components=[buttons])
     await res.delete_original_message()

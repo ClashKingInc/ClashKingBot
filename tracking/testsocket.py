@@ -429,7 +429,7 @@ async def main(producer: KafkaProducer):
                                             if clan_tag != "Unknown":
                                                 bulk_clan_changes.append(
                                                     UpdateOne({"tag": clan_tag},
-                                                              {"$inc": {f"{season}.{tag}.clan_games": diff}},
+                                                              {"$inc": {f"{games_season}.{tag}.clan_games": diff}},
                                                               upsert=True))
                                         elif type_ == "attackWins":  # remove in a future version, use cache instead
                                             bulk_db_changes.append(
@@ -440,6 +440,16 @@ async def main(producer: KafkaProducer):
                                                     UpdateOne({"tag": clan_tag},
                                                               {"$set": {f"{season}.{tag}.attack_wins": value}},
                                                               upsert=True))
+
+                                        elif type_ == "trophies":  # remove in a future version, use cache instead
+                                            bulk_db_changes.append(
+                                                UpdateOne({"tag": tag}, {"$set": {f"season_trophies.{season}": value}},upsert=True))
+                                            if clan_tag != "Unknown":
+                                                bulk_clan_changes.append(
+                                                    UpdateOne({"tag": clan_tag},
+                                                              {"$set": {f"{season}.{tag}.trophies": value}},
+                                                              upsert=True))
+
                                         elif type_ == "name":
                                             bulk_db_changes.append(UpdateOne({"tag": tag}, {"$set": {"name": value}}, upsert=True))
                                             auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"name": value}}))

@@ -12,7 +12,7 @@ from CustomClasses.CustomServer import DatabaseClan
 from CustomClasses.Enums import LinkParseTypes
 from CustomClasses.CustomBot import CustomClient
 
-from utility.discord_utils import  interaction_handler, basic_embed_modal, get_webhook_for_channel
+from utility.discord_utils import  interaction_handler, basic_embed_modal, get_webhook_for_channel, registered_functions
 from utility.general import calculate_time, get_guild_icon
 from utility.components import clan_component
 
@@ -41,22 +41,24 @@ class SetupCommands(commands.Cog , name="Setup"):
         custom_id = None
         if message.components:
             custom_id = message.components[0].children[0].custom_id
-        result = await self.bot.button_store.find_one({"button_id": custom_id})
-        if result is None:
-            raise MessageException("Error Occurred")
+        name = custom_id.split(":")[0]
+        if "ctx" in custom_id or registered_functions.get(name) is None:
+            raise MessageException("Cannot auto-refresh this command")
         webhook = await get_webhook_for_channel(channel=message.channel, bot=self.bot)
         thread = None
         if isinstance(message.channel, disnake.Thread):
             await message.channel.add_user(self.bot.user)
             thread = message.channel.id
 
-        if thread:
+        if thread is not None:
             thread = await self.bot.getch_channel(thread)
             webhook_message = await webhook.send(embeds=message.embeds, thread=thread, wait=True)
+            thread = thread.id
         else:
             webhook_message = await webhook.send(embeds=message.embeds, wait=True)
 
-        await self.bot.button_store.update_one({"button_id": custom_id}, {"$set": {"webhook_id": webhook.id, "thread_id": thread, "message_id": webhook_message.id}})
+        await self.bot.button_store.update_one({"$and" : [{"button_id": custom_id}, {"server" : ctx.guild_id}]},
+                                                {"$set": {"webhook_id": webhook.id, "thread_id": thread, "message_id": webhook_message.id}}, upsert=True)
         await message.delete()
         await ctx.send("Refresh Board Created", ephemeral=True)
 

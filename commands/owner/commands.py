@@ -281,83 +281,23 @@ class OwnerCommands(commands.Cog):
 
     @commands.slash_command(name="test", guild_ids=[1103679645439754335])
     @commands.is_owner()
-    async def test(self, ctx: disnake.ApplicationCommandInteraction, num: int):
-        await ctx.response.defer(ephemeral=True)
-        random_tags = await self.bot.player_stats.find({}, limit=num, projection={"tag" : 1}).to_list(length=num)
-        random_tags = [x.get("tag") for x in random_tags]
+    async def test(self, ctx: disnake.ApplicationCommandInteraction):
+        updates = []
+        print("starting")
+        all_documents = await self.bot.clan_stats.find({}, projection={"tag" : 1, "2024-01" : 1}).to_list(length=None)
+        print("got docs")
+        for doc in all_documents:
+            set_dict = {}
+            for tag, data in doc.get("2024-01", {}).items():
+                if data.get("clan_games") is None:
+                    continue
+                set_dict[f"2024-01.{tag}.clan_games"] = None
+            if set_dict:
+                updates.append(UpdateOne({"tag" : doc.get("tag")}, {"$set" : set_dict}))
+        print(f"{len(updates)} updates")
+        await self.bot.clan_stats.bulk_write(updates, ordered=False)
+        print("done")
 
-        async def fetch(url, session: aiohttp.ClientSession, headers):
-            async with session.get(url, headers=headers) as response:
-                if response.status == 200:
-                    return (await response.json())
-                return None
-
-        keys = self.bot.coc_client.http.keys
-
-        tasks = []
-        connector = TCPConnector(limit=50, enable_cleanup_closed=True)
-        timeout = ClientTimeout(total=1800)
-        start_time = time.time()
-        async with ClientSession(connector=connector, timeout=timeout) as session:
-            for tag in random_tags:
-                key = next(keys)
-                tasks.append(fetch(f"https://api.clashofclans.com/v1/players/{tag.replace('#', '%23')}", session, {"Authorization": f"Bearer {key}"}))
-            responses = await asyncio.gather(*tasks)
-            await session.close()
-
-        print(f"AIOHTTP: took {time.time() - start_time} sec")
-        responses = [r for r in responses if r is not None]
-        print(f"{len(responses)} players")
-
-
-
-
-
-        start_time = time.time()
-        list_of_coc_objects = []
-        for response in responses:
-            data = json.loads(response)
-            list_of_coc_objects.append(coc.Player(data=data, client=self.bot.coc_client))
-        print(f"Builtin-JSON + cocpy: took {time.time() - start_time} sec")
-
-        start_time = time.time()
-        list_of_coc_objects = []
-        for response in responses:
-            data = ujson.loads(response)
-            list_of_coc_objects.append(coc.Player(data=data, client=self.bot.coc_client))
-        print(f"UJSON + cocpy: took {time.time() - start_time} sec")
-
-        start_time = time.time()
-        list_of_coc_objects = []
-        for response in responses:
-            data = orjson.loads(response)
-            list_of_coc_objects.append(coc.Player(data=data, client=self.bot.coc_client))
-        print(f"ORJSON + cocpy: took {time.time() - start_time} sec")
-
-
-        start_time = time.time()
-        list_of_coc_objects = []
-        for response in responses:
-            data: dict = msgspec.json.decode(response)
-            list_of_coc_objects.append(coc.Player(data=data, client=self.bot.coc_client))
-        print(f"MSGSPEC + cocpy: took {time.time() - start_time} sec")
-
-        sdecoder = msgspec.json.Decoder(type=Player)
-
-        start_time = time.time()
-        list_of_coc_structs = []
-        for response in responses:
-            player = sdecoder.decode(response)
-            player.__dict__["client"] = self.bot.coc_client
-            list_of_coc_structs.append(player)
-        print(f"MSGSPEC w/ client: took {time.time() - start_time} sec")
-
-        start_time = time.time()
-        list_of_coc_structs = []
-        for response in responses:
-            player = sdecoder.decode(response)
-            list_of_coc_structs.append(CocPlayer(player_struct=player, client=self.bot.coc_client))
-        print(f"MSGSPEC hybrid: took {time.time() - start_time} sec")
 
 
     @reload.autocomplete("cog")

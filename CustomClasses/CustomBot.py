@@ -338,9 +338,9 @@ class CustomClient(commands.AutoShardedBot):
 
     async def get_family_member_tags(self, guild_id):
         clan_tags = await self.clan_db.distinct("tag", filter={"server": guild_id})
-        clans: List[coc.Clan] = await self.get_clans(tags=clan_tags)
-        member_tags = get_clan_member_tags(clans=clans)
+        member_tags = await self.basic_clan.distinct("memberList.tag", filter={"tag" : {"$in" : clan_tags}})
         return member_tags
+
 
 
     #DISCORD HELPERS
@@ -480,7 +480,7 @@ class CustomClient(commands.AutoShardedBot):
             if not custom:
                 player = coc.Player(data=data, client=self.coc_client)
             else:
-                player = MyCustomPlayer(data=data, client=self.coc_client, bot=self, results=results_dict.get(data["tag"]))
+                player = MyCustomPlayer(data=data, client=self.coc_client, bot=self, results=results_dict.get(data["tag"], {}))
             players.append(player)
 
         keys = self.coc_client.http.keys
@@ -507,7 +507,7 @@ class CustomClient(commands.AutoShardedBot):
             if not custom:
                 player = coc.Player(data=data, client=self.coc_client)
             else:
-                player = MyCustomPlayer(data=data, client=self.coc_client, bot=self, results=results_dict.get(data["tag"]))
+                player = MyCustomPlayer(data=data, client=self.coc_client, bot=self, results=results_dict.get(data["tag"], {}))
             players.append(player)
 
         return [player for player in players if player is not None]

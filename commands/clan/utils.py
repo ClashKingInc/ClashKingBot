@@ -1,32 +1,24 @@
 import asyncio
-import time
-
-import aiohttp
-import coc
-import emoji
 import disnake
-import re
 
-from disnake import Embed, Color
+from disnake import Embed
 from disnake.utils import get
-from collections import defaultdict, namedtuple
-from coc.raid import RaidLogEntry
-from datetime import datetime
+from collections import  namedtuple
 from CustomClasses.CustomPlayer import MyCustomPlayer, LegendRanking, ClanCapitalWeek
 from CustomClasses.CustomBot import CustomClient
 from typing import List
 from ballpark import ballpark as B
 from statistics import mean
-from utility.clash.capital import gen_raid_weekend_datestrings, calc_raid_medals, get_raidlog_entry
-from utility.discord_utils import fetch_emoji, register_button
+from utility.clash.capital import gen_raid_weekend_datestrings, calc_raid_medals, get_raidlog_entry, get_season_raid_weeks
+from utility.discord_utils import register_button
 from utility.general import create_superscript, response_to_line, smart_convert_seconds
-from utility.constants import SUPER_SCRIPTS, MAX_NUM_SUPERS, EMBED_COLOR_CLASS, item_to_name
-from pytz import utc
-from utility.clash.other import league_to_emoji, cwl_league_emojis, clan_super_troop_comp, clan_th_comp, gen_season_date
+from utility.constants import SUPER_SCRIPTS, EMBED_COLOR_CLASS, item_to_name
+from utility.clash.other import *
 from exceptions.CustomExceptions import MessageException
-import pendulum as pd
+import pendulum as pend
 from ..graphs.utils import daily_graph
 from utility.imagegen.ClanCapitalResult import generate_raid_result_image
+
 
 @register_button("clandetailed", parser="_:clan")
 async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake.Guild, embed_color: disnake.Color):
@@ -123,7 +115,10 @@ async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake
     if clan_stats:
         for s in [season, previous_season]:
             for tag, data in clan_stats.get(s, {}).items():
-                clan_games_points += data.get("clan_games", 0)
+                cg_points = data.get("clan_games", 0)
+                if cg_points is None:
+                    cg_points = 0
+                clan_games_points += cg_points
             if clan_games_points != 0:
                 break
 
@@ -219,6 +214,21 @@ async def basic_clan_board(clan: coc.Clan, embed_color: disnake.Color = disnake.
                                       f"Description: {clan.description}",
                           color=embed_color)
 
+    embed.set_thumbnail(url=clan.badge.large)
+    return embed
+
+
+
+@register_button("clanmini", parser="_:clan")
+async def minimalistic_clan_board(bot: CustomClient, server: disnake.Guild, clan: coc.Clan, embed_color: disnake.Color = disnake.Color.green()):
+    db_clan = await bot.clan_db.find_one({"$and": [
+        {"tag": clan.tag},
+        {"server": server.id}
+    ]})
+    ctg = db_clan.get("category", "Other")
+    category = f"{ctg} Clan"
+
+    embed = disnake.Embed(description=f"**[{clan.name}]({clan.share_link})**\n{category} ({clan.member_count}/50)\n{clan.war_league.name}",color=embed_color)
     embed.set_thumbnail(url=clan.badge.large)
     return embed
 
@@ -521,7 +531,7 @@ async def clan_sorted(bot: CustomClient, clan: coc.Clan, sort_by: str, townhall:
 
     text = ""
     for count, player in enumerate(players, 1):
-        if sort_by in ["role", "tag", "heroes", "ach_Friend in Need"]:
+        if sort_by in ["role", "tag", "heroes", "ach_Friend in Need", "town_hall"]:
             emoji = bot.fetch_emoji(player.town_hall)
         elif sort_by in ["versus_trophies", "versus_attack_wins", "ach_Champion Builder"]:
             emoji = bot.emoji.versus_trophy
@@ -571,7 +581,7 @@ async def clan_donations(bot: CustomClient, clan: coc.Clan, season: str, sort_by
     season = bot.gen_season_date() if season is None else season
     fallback_dict = {m.tag : {"donated" : m.donations, "received" : m.received} for m in clan.members}
     clan_donations = (await bot.clan_stats.find_one({"tag" : clan.tag}, projection={"_id" : 0, f"{season}" : 1})).get(season, {})
-    tags = list(clan_donations.keys()) + list(fallback_dict.keys())
+    tags = [tag for tag, data in clan_donations.items() if data.get("received") is not None or data.get("donated") is not None] + list(fallback_dict.keys())
 
     players = await bot.get_players(tags=tags, custom=True, use_cache=True, fake_results=True)
     map_player = {p.tag : p for p in players}
@@ -626,7 +636,7 @@ async def clan_warpreference(bot: CustomClient, clan: coc.Clan, option: str, emb
         ]
         results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
 
-        now = int((pd.now(tz=pd.UTC).timestamp()))
+        now = int((pend.now(tz=pend.UTC).timestamp()))
         member_stats = {result["_id"] : smart_convert_seconds(seconds=(now-result['last_change'])) for result in results}
     elif option == "lastwar":
         pipeline = [
@@ -650,7 +660,7 @@ async def clan_warpreference(bot: CustomClient, clan: coc.Clan, option: str, emb
         ]
         results: List[dict] = await bot.war_timers.aggregate(pipeline).to_list(length=None)
         member_stats = {}
-        now = pd.now(tz=pd.UTC)
+        now = pend.now(tz=pend.UTC)
         for result in results:
             time: datetime = result.get("time")
             time = time.replace(tzinfo=utc)
@@ -687,7 +697,7 @@ async def clan_warpreference(bot: CustomClient, clan: coc.Clan, option: str, emb
 
     opted_in_embed.set_author(name=f"{clan.name} War Preferences/{option_convert.get(option)}", icon_url=clan.badge.url)
     opted_out_embed.set_footer(text=f"In: {in_string}\nOut: {out_string}\n")
-    opted_out_embed.timestamp = pd.now(tz=pd.UTC)
+    opted_out_embed.timestamp = pend.now(tz=pend.UTC)
     return [opted_in_embed, opted_out_embed]
 
 
@@ -724,7 +734,7 @@ async def clan_activity(bot: CustomClient, clan: coc.Clan, season: str, townhall
     else:
         text = "` #  ACT    NAME        `\n"
 
-    now = int((pd.now(tz=pd.UTC).timestamp()))
+    now = int((pend.now(tz=pend.UTC).timestamp()))
     total_activity = 0
     for count, member in enumerate(hold_items, 1):
         if count <= limit:
@@ -742,7 +752,7 @@ async def clan_activity(bot: CustomClient, clan: coc.Clan, season: str, townhall
     month = bot.gen_season_date(seasons_ago=24, as_text=False).index(season)
     graph, _ = await daily_graph(bot=bot, clans=[clan], attribute="activity", months=month + 1)
     embed.set_image(file=graph)
-    embed.timestamp = pd.now(tz=pd.UTC)
+    embed.timestamp = pend.now(tz=pend.UTC)
     return embed
 
 
@@ -821,7 +831,6 @@ async def clan_capital_overview(bot: CustomClient, clan: coc.Clan, weekend: str,
     file = await generate_raid_result_image(raid_entry=raid_log_entry, clan=clan)
     embed.set_image(file=file)
     return embed
-
 
 
 @register_button("clancapdonos", parser="_:clan:weekend")
@@ -994,7 +1003,7 @@ async def war_log(bot: CustomClient, clan: coc.Clan, limit=25, embed_color: disn
         description=embed_description,
         color=embed_color)
     embed.set_author(icon_url=clan.badge.large, name=f"{clan.name} WarLog (last {wars_counted})")
-    embed.timestamp = pd.now(tz=pd.UTC)
+    embed.timestamp = pend.now(tz=pend.UTC)
     return embed
 
 
@@ -1034,365 +1043,220 @@ async def cwl_performance(bot: CustomClient, clan: coc.Clan, embed_color: disnak
 
     if not not_empty:
         embed.description = "No prior cwl data"
-    embed.timestamp = pd.now(tz=pd.UTC)
+    embed.timestamp = pend.now(tz=pend.UTC)
     return embed
 
 
-
-
-
-async def clan_summary(bot: CustomClient, clan: coc.Clan, season: str):
+@register_button("clansummary", parser="_:clan:season:limit")
+async def clan_summary(bot: CustomClient, clan: coc.Clan, season: str, limit: int, embed_color: disnake.Color):
     season = bot.gen_season_date() if season is None else season
-    date = season
+    member_tags = [member.tag for member in clan.members]
+    #we dont want results w/ no name
+    results = await bot.player_stats.find({"$and" : [
+                                            {"tag" : {"$in": member_tags}},
+                                            {"name" : {"$ne" : None}}]}
+                                          ).to_list(length=None)
 
-    results = await bot.player_stats.find({"tag": {"$in": [member.tag for member in clan.members]}}).to_list(length=None)
-
-    def gold(elem):
-        g = elem.get("gold_looted")
-        if g is None:
-            return 0
-        g = g.get(date)
-        if g is None:
-            return 0
-        return sum(g)
-
-    top_gold = sorted(results, key=gold, reverse=True)[:10]
-
-    text = f"**{bot.emoji.gold} Gold Looted\n**"
-    for count, result in enumerate(top_gold, 1):
-        try:
-            looted_gold = sum(result['gold_looted'][date])
-        except:
-            looted_gold = 0
-        try:
-            result['name']
-        except:
+    text = ""
+    for option, emoji in zip(["gold", "elixir", "dark_elixir"], [bot.emoji.gold, bot.emoji.elixir, bot.emoji.dark_elixir]):
+        top_results = sorted(results, key=lambda x: x.get(option, {}).get(season, 0), reverse=True)[:limit]
+        if top_results[0] == 0:
             continue
-        text += f"{bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(looted_gold):11} \u200e{result['name']}`\n"
+        for count, result in enumerate(top_results, 1):
+            looted = result.get(option, {}).get(season, 0)
+            if looted == 0:
+                continue
+            if count == 1:
+                text += f"**{emoji} {option.replace('_', ' ').title()}\n**"
+            text += f"`{count:<2} {'{:,}'.format(looted):11} \u200e{result['name']}`\n"
+        text += "\n"
 
-    def elixir(elem):
-        g = elem.get("elixir_looted")
-        if g is None:
-            return 0
-        g = g.get(date)
-        if g is None:
-            return 0
-        return sum(g)
 
-    top_elixir = sorted(results, key=elixir, reverse=True)[:10]
-
-    text += f"**{bot.emoji.elixir} Elixir Looted\n**"
-    for count, result in enumerate(top_elixir, 1):
-        try:
-            looted_elixir = sum(result['elixir_looted'][date])
-        except:
-            looted_elixir = 0
-        try:
-            result['name']
-        except:
+    for option, emoji in zip(["activity", "attack_wins", "season_trophies"], [bot.emoji.clock, bot.emoji.wood_swords, bot.emoji.trophy]):
+        top_results = sorted(results, key=lambda x: x.get(option, {}).get(season, 0), reverse=True)[:limit]
+        if top_results[0] == 0:
             continue
-        text += f"{bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(looted_elixir):11} \u200e{result['name']}`\n"
+        for count, result in enumerate(top_results, 1):
+            looted = result.get(option, {}).get(season, 0)
+            if looted == 0:
+                continue
+            if count == 1:
+                text += f"**{emoji} {option.replace('_', ' ').title()}\n**"
+            text += f"`{count:<2} {'{:,}'.format(looted):4} \u200e{result['name']}`\n"
+        text += "\n"
 
-    def dark_elixir(elem):
-        g = elem.get("dark_elixir_looted")
-        if g is None:
-            return 0
-        g = g.get(date)
-        if g is None:
-            return 0
-        return sum(g)
+    first_embed = disnake.Embed(description=text, color=embed_color)
+    first_embed.set_author(name=f"{clan.name} Season Summary ({season})", icon_url=clan.badge.url)
+    text = ""
 
-    top_dark_elixir = sorted(results, key=dark_elixir, reverse=True)[:10]
+    top_results = sorted(results, key=lambda x: x.get("donations", {}).get(season, {}).get("donated", 0), reverse=True)[:limit]
+    text += f"**{bot.emoji.up_green_arrow} Donations\n**"
+    for count, result in enumerate(top_results, 1):
+        looted = result.get("donations", {}).get(season, {}).get("donated", 0)
+        text += f"`{count:<2} {'{:,}'.format(looted):7} \u200e{result['name']}`\n"
+    text += "\n"
 
-    text += f"**{bot.emoji.dark_elixir} Dark Elixir Looted\n**"
-    for count, result in enumerate(top_dark_elixir, 1):
-        try:
-            looted_dark_elixir = sum(result['dark_elixir_looted'][date])
-        except:
-            looted_dark_elixir = 0
-        try:
-            result['name']
-        except:
-            continue
-        text += f"{bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(looted_dark_elixir):11} \u200e{result['name']}`\n"
+    top_results = sorted(results, key=lambda x: x.get("donations", {}).get(season, {}).get("received", 0), reverse=True)[:limit]
+    text += f"**{bot.emoji.down_red_arrow} Received\n**"
+    for count, result in enumerate(top_results, 1):
+        looted = result.get("donations", {}).get(season, {}).get("received", 0)
+        text += f"`{count:<2} {'{:,}'.format(looted):7} \u200e{result['name']}`\n"
+    text += "\n"
 
-    def activity_count(elem):
-        g = elem.get("last_online_times")
-        if g is None:
-            return 0
-        g = g.get(date)
-        if g is None:
-            return 0
-        return len(g)
-
-    top_activity = sorted(results, key=activity_count, reverse=True)[:10]
-
-    text += f"**{bot.emoji.clock} Top Activity\n**"
-    for count, result in enumerate(top_activity, 1):
-        try:
-            activity = activity_count(result)
-        except:
-            activity = 0
-        try:
-            result['name']
-        except:
-            continue
-        text += f"{bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(activity):5} \u200e{result['name']}`\n"
-
-    def donations(elem):
-        g = elem.get("donations")
-        if g is None:
-            return 0
-        g = g.get(date)
-        if g is None:
-            return 0
-        g = g.get("donated")
-        if g is None:
-            return 0
-        return g
-
-    top_donations = sorted(results, key=donations, reverse=True)[:10]
-
-    second_text = f"**{bot.emoji.up_green_arrow} Donations\n**"
-    for count, result in enumerate(top_donations, 1):
-        try:
-            donated = result['donations'][date]['donated']
-        except:
-            donated = 0
-        try:
-            result['name']
-        except:
-            continue
-        second_text += f"{bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(donated):7} \u200e{result['name']}`\n"
-
-    def received(elem):
-        g = elem.get("donations")
-        if g is None:
-            return 0
-        g = g.get(date)
-        if g is None:
-            return 0
-        g = g.get("received")
-        if g is None:
-            return 0
-        return g
-
-    top_received = sorted(results, key=received, reverse=True)[:10]
-
-    second_text += f"**{bot.emoji.down_red_arrow} Received\n**"
-    for count, result in enumerate(top_received, 1):
-        try:
-            received = result['donations'][date]['received']
-        except:
-            received = 0
-        try:
-            result['name']
-        except:
-            continue
-        second_text += f"{bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(received):7} \u200e{result['name']}`\n"
-
-    def attacks(elem):
-        g = elem.get("attack_wins")
-        if g is None:
-            return 0
-        g = g.get(date)
-        if g is None:
-            return 0
-        return g
-
-    top_attacks = sorted(results, key=attacks, reverse=True)[:10]
-
-    second_text += f"**{bot.emoji.sword_clash} Attack Wins\n**"
-    for count, result in enumerate(top_attacks, 1):
-        try:
-            attack_num = result['attack_wins'][date]
-        except:
-            attack_num = 0
-        try:
-            result['name']
-        except:
-            continue
-        second_text += f"{bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(attack_num):7} \u200e{result['name']}`\n"
-
+    season_raid_weeks = get_season_raid_weeks(season=season)
     def capital_gold_donated(elem):
-        weeks = gen_raid_weekend_datestrings(4)
-        weeks = weeks[0:4]
         cc_results = []
-        for week in weeks:
-            if elem is None:
-                cc_results.append(ClanCapitalWeek(None))
-                continue
-            clan_capital_result = elem.get("capital_gold")
-            if clan_capital_result is None:
-                cc_results.append(ClanCapitalWeek(None))
-                continue
-            week_result = clan_capital_result.get(week)
-            if week_result is None:
-                cc_results.append(ClanCapitalWeek(None))
-                continue
+        for week in season_raid_weeks:
+            week_result = elem.get("capital_gold", {}).get(week)
             cc_results.append(ClanCapitalWeek(week_result))
         return sum([sum(cap.donated) for cap in cc_results])
-
-    top_cg_donos = sorted(results, key=capital_gold_donated, reverse=True)[:10]
-
-    second_text += f"**{bot.emoji.capital_gold} CG Donated (last 4 weeks)\n**"
-    for count, result in enumerate(top_cg_donos, 1):
-        try:
-            cg_donated = capital_gold_donated(result)
-        except:
-            cg_donated = 0
-        try:
-            result['name']
-        except:
-            continue
-        second_text += f"{bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(cg_donated):7} \u200e{result['name']}`\n"
+    top_capital_donos = sorted(results, key=capital_gold_donated, reverse=True)[:limit]
+    text += f"**{bot.emoji.capital_gold} CG Donated\n**"
+    for count, result in enumerate(top_capital_donos, 1):
+        cg_donated = capital_gold_donated(result)
+        text += f"`{count:<2} {'{:,}'.format(cg_donated):7} \u200e{result['name']}`\n"
+    text += "\n"
 
     def capital_gold_raided(elem):
-        weeks = gen_raid_weekend_datestrings(4)
-        weeks = weeks[0:4]
         cc_results = []
-        for week in weeks:
-            if elem is None:
-                cc_results.append(ClanCapitalWeek(None))
-                continue
-            clan_capital_result = elem.get("capital_gold")
-            if clan_capital_result is None:
-                cc_results.append(ClanCapitalWeek(None))
-                continue
-            week_result = clan_capital_result.get(week)
-            if week_result is None:
-                cc_results.append(ClanCapitalWeek(None))
-                continue
+        for week in season_raid_weeks:
+            week_result = elem.get("capital_gold", {}).get(week)
             cc_results.append(ClanCapitalWeek(week_result))
         return sum([sum(cap.raided) for cap in cc_results])
+    top_capital_raided = sorted(results, key=capital_gold_raided, reverse=True)[:limit]
+    text += f"**{bot.emoji.capital_gold} CG Raided\n**"
+    for count, result in enumerate(top_capital_raided, 1):
+        cg_raided = capital_gold_raided(result)
+        text += f"`{count:<2} {'{:,}'.format(cg_raided):7} \u200e{result['name']}`\n"
+    text += "\n"
 
-    top_cg_raided = sorted(results, key=capital_gold_raided, reverse=True)[:10]
-
-    second_text += f"**{bot.emoji.capital_gold} CG Raided (last 4 weeks)\n**"
-    for count, result in enumerate(top_cg_raided, 1):
-        try:
-            cg_raided = capital_gold_raided(result)
-        except:
-            cg_raided = 0
-        try:
-            result['name']
-        except:
-            continue
-        second_text += f"{bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(cg_raided):7} \u200e{result['name']}`\n"
-
-    tags = [result.get("tag") for result in results]
-    start = int(coc.utils.get_season_start().timestamp())
-    now = (datetime.now().timestamp())
-    hits = await bot.warhits.find(
-        {"$and": [
-            {"tag": {"$in": tags}},
-            {"_time": {"$gte": start}},
-            {"_time": {"$lte": now}}
-        ]}).to_list(length=100000)
-
-    names = {}
-    group_hits = defaultdict(int)
-    for hit in hits:
-        if hit["war_type"] == "friendly":
-            continue
-        group_hits[hit["tag"]] += hit["stars"]
-        names[hit["tag"]] = hit['name']
-
-    top_war_stars = sorted(group_hits.items(), key=lambda x: x[1], reverse=True)[:10]
-
-    second_text += f"**{bot.emoji.war_star} War Stars\n**"
-    for count, result in enumerate(top_war_stars, 1):
-        tag, war_star = result
-        try:
-            name = names[tag]
-        except:
-            continue
-        second_text += f"{bot.get_number_emoji(color='blue', number=count)} `{'{:,}'.format(war_star):3} \u200e{name}`\n"
-
-    embed = disnake.Embed(title=f"{clan.name} Season Summary", description=text)
-    embed2 = disnake.Embed(description=second_text)
-    print(len(embed.description) + len(embed2.description))
-    return [embed, embed2]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-async def create_clan_games(bot: CustomClient, db_clan, season: str, embed_color: disnake.Color = disnake.Color.green()):
-    season = bot.gen_games_season() if season is None else season
-    db_season = await db_clan.get_season(season=season)
-
-    year = int(season[:4])
-    month = int(season[-2:])
-
-    next_month = month + 1
-    if month == 12:
-        next_month = 1
-        year += 1
-
-    start = datetime(year, month, 1)
-    end = datetime(year, next_month, 1)
-
+    SEASON_START, SEASON_END = gen_season_start_end_as_iso(season=season)
     pipeline = [
-        {"$match": {"$and": [{"tag": {"$in": [member.tag for member in db_season.members]}}, {"type": "Games Champion"},
-                             {"time": {"$gte": start.timestamp()}},
-                             {"time": {"$lte": end.timestamp()}}]}},
+        {'$match': {
+            "$and" : [
+                {'$or': [{'data.clan.members.tag': {'$in': member_tags}},
+                        {'data.opponent.members.tag': {'$in': member_tags}}]},
+                {"data.preparationStartTime": {"$gte": SEASON_START}}, {"data.preparationStartTime": {"$lte": SEASON_END}},
+                {"type" : {"$ne" : "friendly"}}
+                ]
+            }
+        },
+        {'$project': {'_id': 0,'uniqueKey': {'$concat': [
+                        {'$cond': {
+                            'if': {'$lt': ['$data.clan.tag', '$data.opponent.tag']},
+                            'then': '$data.clan.tag',
+                            'else': '$data.opponent.tag'}},
+                        {'$cond': {
+                            'if': {'$lt': ['$data.opponent.tag', '$data.clan.tag']},
+                            'then': '$data.opponent.tag',
+                            'else': '$data.clan.tag'}},
+                        '$data.preparationStartTime']},
+                      'data': 1}},
+        {'$group': {'_id': '$uniqueKey', 'data': {'$first': '$data'}}},
+        {'$project': {'members': {'$concatArrays': ['$data.clan.members', '$data.opponent.members']}}},
+        {'$unwind': '$members'},
+        {"$match" : {"members.tag" : {"$in" : member_tags}}},
+        {'$project': {
+            '_id': 0,
+            'tag': '$members.tag',
+            "name" : "$members.name",
+            'stars': {
+                '$sum': '$members.attacks.stars'}
+            }
+        },
+        {'$group': {
+            '_id': '$tag',
+            "name" : {"$last" : "$name"},
+            'totalStars': {
+                '$sum': '$stars'}
+            }
+        },
+        {"$sort" : {"totalStars" : -1}},
+        {"$limit" : limit}
+    ]
+    war_star_results = await bot.clan_war.aggregate(pipeline=pipeline).to_list(length=None)
+
+    if war_star_results:
+        text += f"**{bot.emoji.war_star} War Stars\n**"
+        for count, result in enumerate(war_star_results, 1):
+            text += f"`{count:<2} {'{:,}'.format(result.get('totalStars')):3} \u200e{result.get('name')}`\n"
+
+    second_embed = disnake.Embed(description=text, color=embed_color)
+    second_embed.timestamp = pend.now(tz=pend.UTC)
+    return [first_embed, second_embed]
+
+
+@register_button("clangames", parser="_:clan:season:sort_by:sort_order:limit:townhall")
+async def clan_games(bot: CustomClient, clan: coc.Clan, season: str, sort_by: str, sort_order: str, limit: int, townhall: int, embed_color: disnake.Color = EMBED_COLOR_CLASS):
+    season = bot.gen_games_season() if season is None else season
+    clan_stats = await bot.clan_stats.find_one({"tag" : clan.tag}, projection={f"{season}": 1})
+    if clan_stats is None:
+        raise MessageException("No stats tracked for this clan")
+    games_season_stats = clan_stats.get(season, {})
+    #get the members in the stats that have done clan games, add the current members so that we get 0's, dont worry about duplicates, get_players handles it
+    tags = [tag for tag, data in games_season_stats.items() if data.get("clan_games") is not None]
+    if season == bot.gen_games_season():
+        tags += [m.tag for m in clan.members]
+    players = await bot.get_players(tags=tags, custom=True, use_cache=True, fake_results=True)
+    if townhall is not None:
+        players = [p for p in players if p.townhall == townhall]
+    map_player = {p.tag: p for p in players}
+
+    SEASON_START, SEASON_END = games_season_start_end_as_timestamp(season=season)
+    pipeline = [
+        {"$match": {"$and": [{"tag": {"$in": list(map_player.keys())}}, {"type": "Games Champion"},
+                             {"time": {"$gte": SEASON_START}},
+                             {"time": {"$lte": SEASON_END}}]}},
         {"$sort": {"tag": 1, "time": 1}},
         {"$group": {"_id": "$tag", "first": {"$first": "$time"}, "last": {"$last": "$time"}}}
     ]
     results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
+    #map to a dict
+    member_time_dict = {m["_id"] : {"first": m["first"], "last": m["last"]} for m in results}
 
-    member_stat_dict = {}
-    for m in results:
-        member_stat_dict[m["_id"]] = {"first" : m["first"], "last" : m["last"]}
+    holder = namedtuple("holder", ["player", "name", "townhall", "points", "time"])
+    hold_items = []
+    for tag in map_player.keys():
+        player = map_player.get(tag)
+        points = games_season_stats.get(tag, {}).get("clan_games", 0)
+        if points is None:
+            points = 0
+        time_stats = member_time_dict.get(tag)
 
-    total_points = sum(member.clan_games for member in db_season.members)
-    player_list = sorted(db_season.members, key=lambda l: l.clan_games, reverse=True)
-
-    point_text_list = []
-    for player in player_list:
-        name = player.player.name
-        name = re.sub('[*_`~/]', '', name)
-        points = player.clan_games
-        time = ""
-        stats = member_stat_dict.get(player.tag)
-        if stats is not None:
-            if points < 4000 and bot.is_games():
-                stats["last"] = int(datetime.now().timestamp())
-            first_time = datetime.fromtimestamp(stats["first"])
-            last_time = datetime.fromtimestamp(stats["last"])
-            diff = (last_time - first_time)
-            m, s = divmod(diff.total_seconds(), 60)
-            h, m = divmod(m, 60)
-            time = f"{int(h)}h {int(m)}m"
-
-        if player.player.clan is not None and player.player.clan.tag == db_clan.clan.tag:
-            point_text_list.append([f"{bot.emoji.clan_games}`{str(points).rjust(4)} {time:7}` {name}"])
-        else:
-            point_text_list.append([f"{bot.emoji.deny_mark}`{str(points).rjust(4)} {time:7}` {name}"])
+        seconds_taken = 9999999999
+        if time_stats:
+            if points < 4000 and is_games():
+                time_stats["last"] = int(pend.now(tz=pend.UTC).timestamp())
+            first_time = pend.from_timestamp(time_stats["first"], tz=pend.UTC)
+            last_time = pend.from_timestamp(time_stats["last"], tz=pend.UTC)
+            seconds_taken = (last_time - first_time).total_seconds()
+        hold_items.append(holder(player=player,
+                                 name=player.name,
+                                 townhall=player.town_hall,
+                                 points=points,
+                                 time=seconds_taken))
 
 
-    point_text = [line[0] for line in point_text_list]
-    point_text = "\n".join(point_text)
+    hold_items.sort(key=lambda x: x.__getattribute__(sort_by.lower()), reverse=(sort_order.lower() == "descending"))
+    if len(hold_items) == 0:
+        raise MessageException("No players, try a lighter search filter")
 
-    if point_text == "":
-        point_text = "No Stats Found"
-    cg_point_embed = disnake.Embed(description=point_text, color=embed_color)
-    cg_point_embed.set_author(name=f"{db_clan.clan.name} Clan Games", icon_url=db_clan.clan.badge.url)
-    cg_point_embed.set_footer(text=f"Total Points: {'{:,}'.format(total_points)} | {season}", icon_url=bot.emoji.clan_games.partial_emoji.url)
-    return cg_point_embed
+    text = "` #      TIME    NAME       `\n"
+    total_points = 0
+    for count, member in enumerate(hold_items, 1):
+        if count <= limit:
+            time_text = ""
+            if member.time != 9999999999:
+                time_text = smart_convert_seconds(seconds=member.time, granularity=2)
+            text += f"`{count:2} {member.points:4} {time_text:7} {member.player.clear_name[:13]:13}`[{create_superscript(member.player.town_hall)}]({member.player.share_link})\n"
+        total_points += member.points
+
+    embed = disnake.Embed(description=f"{text}", color=embed_color)
+    embed.set_author(name=f"{clan.name} {min(limit, len(hold_items))} Clan Games", icon_url=clan.badge.url)
+    embed.set_footer(text=f"Total: {total_points:,} | {season}")
+    embed.timestamp = pend.now(tz=pend.UTC)
+    return embed
+
 
 
 def stat_components(bot: CustomClient):

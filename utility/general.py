@@ -336,7 +336,7 @@ def smart_convert_seconds(seconds, granularity=2):
             seconds -= value * count
             if value == 1:
                 name = name.rstrip('s')
-            result.append("{}{}".format(value, name))
+            result.append("{}{}".format(int(value), name))
     return ' '.join(result[:granularity])
 
 

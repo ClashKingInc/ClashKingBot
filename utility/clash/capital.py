@@ -145,3 +145,18 @@ def calc_raid_medals(attack_log: List[RaidClan]):
     if total_medals != 0:
         total_medals = math.ceil(total_medals / attacks_done) * 6
     return total_medals
+
+
+def get_season_raid_weeks(season: str):
+    year = season[:4]
+    month = season[-2:]
+    SEASON_START = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
+    SEASON_END = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
+    weeks = []
+    SEASON_START = SEASON_START - timedelta(3)
+    for i in range(0, 7):
+        week = SEASON_START + timedelta(i * 7)
+        if week > SEASON_END:
+            break
+        weeks.append(str(week.date()))
+    return weeks

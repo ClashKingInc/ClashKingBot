@@ -87,7 +87,8 @@ def check_commands():
 initial_extensions = [
     "discord.events",
     "discord.autocomplete",
-    "discord.converters"
+    "discord.converters",
+    "background.features.refresh_boards"
 ]
 
 disallowed = set()

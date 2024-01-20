@@ -26,7 +26,7 @@ item_to_name = {"Player Tag" : "tag", "Role" : "role",
                 "DE Looted" : "ach_Heroic Heist", "CWL Stars" : "ach_War League Legend", "Attacks Won (all time)" : "ach_Conqueror",
                 "Attacks Won (season)" : "attack_wins", "Defenses Won (season)" : "defense_wins", "Defenses Won (all time)" : "ach_Unbreakable", "Total Donated" : "ach_Friend in Need",
                 "Versus Trophy Record" : "ach_Champion Builder", "Trophy Record" : "ach_Sweet Victory!",
-                "Clan Games Points" : "ach_Games Champion", "Versus Battles Won" : "versus_attack_wins", "Best Season Rank" : "legendStatistics.bestSeason.rank", "Townhall Level" : "townHallLevel"}
+                "Clan Games Points" : "ach_Games Champion", "Versus Battles Won" : "versus_attack_wins", "Best Season Rank" : "legendStatistics.bestSeason.rank", "Townhall Level" : "town_hall"}
 
 HOME_VILLAGE_HEROES = ["Barbarian King", "Archer Queen", "Royal Champion", "Grand Warden"]
 EMBED_COLOR = 2829617

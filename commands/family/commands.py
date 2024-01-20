@@ -12,9 +12,9 @@ from utility.constants import EMBED_COLOR
 from utility.components import clan_board_components
 from CustomClasses.CustomPlayer import MyCustomPlayer
 
-from discord.converters import Convert as convert
-from discord.autocomplete import Autocomplete as autocomplete
-from .utils import family_composition
+from discord import convert, autocomplete, options
+from .utils import family_composition, family_summary
+
 
 class FamilyCommands(commands.Cog, name="Family Commands"):
 
@@ -51,6 +51,24 @@ class FamilyCommands(commands.Cog, name="Family Commands"):
             "fields" : ["type", "server"]
         }
         await self.bot.button_store.insert_one(as_dict)
+
+
+    @family.sub_command(name="summary", description="Summary of stats for a family")
+    async def summary(self, ctx: disnake.ApplicationCommandInteraction,
+                      season: str = options.optional_season,
+                      limit: int = commands.Param(default=5, min_value=1, max_value=15),
+                      server: disnake.Guild = commands.Param(converter=convert.server, default=None, autocomplete=autocomplete.server)
+                      ):
+
+        server = server or ctx.guild
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=server.id)
+        embeds = await family_summary(bot=self.bot, server=server, limit=limit, season=season, embed_color=embed_color)
+        buttons = disnake.ui.ActionRow()
+        buttons.add_button(
+            label="", emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey,
+            custom_id=f"familysummary:{server.id}:{season}:{limit}")
+        await ctx.edit_original_message(embeds=embeds, components=[buttons])
 
 
 def setup(bot):

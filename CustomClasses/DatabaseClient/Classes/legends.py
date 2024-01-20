@@ -51,42 +51,16 @@ class LegendDay():
 
     @property
     def attacks(self):
-        if self.legend_result.get("attacks") is None and self.legend_result.get("new_attacks") is None:
+        if self.legend_result.get("new_attacks") is None:
             return []
-
-        new_data = []
-        old_attacks = self.legend_result.get("attacks", [])
-        for attack in old_attacks:
-            new_data.append({
-                "change" : attack,
-                "time" : None,
-                "trophies" : None,
-                "hero_gear" : []
-            })
-        new_format: List = self.legend_result.get("new_attacks", [])
-        if new_format:
-            new_data = new_data[:-len(new_format)]
-        new_data = new_data + new_format
+        new_data: List = self.legend_result.get("new_attacks", [])
         return [LegendAttackInfo(data=data) for data in new_data]
 
     @property
     def defenses(self):
-        if self.legend_result.get("defenses") is None and self.legend_result.get("new_defenses") is None:
+        if self.legend_result.get("new_defenses") is None:
             return []
-
-        new_data = []
-        old_attacks = self.legend_result.get("defenses", [])
-        for attack in old_attacks:
-            new_data.append({
-                "change": attack,
-                "time": None,
-                "trophies": None,
-                "hero_gear": []
-            })
-        new_format: List = self.legend_result.get("new_defenses", [])
-        if new_format:
-            new_data = new_data[:-len(new_format)]
-        new_data = new_data + new_format
+        new_data: List = self.legend_result.get("new_defenses", [])
         return [LegendAttackInfo(data=data) for data in new_data]
 
     @property
@@ -184,6 +158,7 @@ class LegendStats():
             legend_day: LegendDay
             if date == self._today():
                 break
+
             if legend_day.num_attacks.integer >= 6:
                 sum_hits += legend_day.attack_sum
                 hit_days_used += 1
@@ -193,7 +168,7 @@ class LegendStats():
                     one_stars += 1
                 elif 16 <= hit.change <= 32:
                     two_stars += 1
-                elif hit == 40:
+                elif hit.change == 40:
                     three_stars += 1
 
             if legend_day.num_defenses.integer >= 6:

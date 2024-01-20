@@ -2,16 +2,19 @@ import aiohttp
 import motor.motor_asyncio
 import coc
 import os
-client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://root:matthewanderson3607@65.108.77.253:27017/admin?readPreference=primary&directConnection=true&ssl=false&authMechanism=DEFAULT&authSource=admin")
-looper = client.looper
-legend_history = looper.legend_history
+
 from pymongo import InsertOne
 import asyncio
+import dotenv
+dotenv.load_dotenv()
+db_log = os.getenv("LOOPER_DB_LOGIN")
+print(db_log)
+client = motor.motor_asyncio.AsyncIOMotorClient(db_log)
+looper = client.looper
+legend_history = looper.legend_history
 
 async def update_legends():
     key = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImFkY2JjOWFiLTJkODEtNDY4Mi1hNDg0LTU4YzUzOGZkZWI5YyIsImlhdCI6MTY4MDI4OTYzNiwic3ViIjoiZGV2ZWxvcGVyL2FlYjc2MDZhLTYxZTEtNDdiOC1kMGFlLWZhN2ViZGFiZjM0NCIsInNjb3BlcyI6WyJjbGFzaCJdLCJsaW1pdHMiOlt7InRpZXIiOiJkZXZlbG9wZXIvc2lsdmVyIiwidHlwZSI6InRocm90dGxpbmcifSx7ImNpZHJzIjpbIjQ1Ljc5LjIxOC43OSJdLCJ0eXBlIjoiY2xpZW50In1dfQ.ssgMlQWq25bKIncyhfrASbmi-vlE_L4TuzAxeja-z83l2Tq63MJ2YnD_X--aNEYMV5Qwv2lqwDfHeTHM8v322w"
-
-    #await legend_history.delete_many({"season" : "2022-09"})
 
     headers = {
         "Accept": "application/json",
