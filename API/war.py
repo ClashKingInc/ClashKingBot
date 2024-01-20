@@ -81,7 +81,7 @@ async def cwl(clan_tag: str, season: str, request: Request, response: Response):
     for round in rounds:
         for tag in round.get("warTags"):
             war_tags.append(tag)
-    matching_wars = await db_client.clan_wars.find({"data.tag" : {"$in" : war_tags}}).to_list(length=None)
+    matching_wars = await db_client.clan_wars.find({"$and" : [{"data.tag" : {"$in" : war_tags}}, {"data.season" : season}]}).to_list(length=None)
     matching_wars = {w.get("data").get("tag") : w.get("data") for w in matching_wars}
     for r_count, round in enumerate(rounds):
         for count, tag in enumerate(round.get("warTags")):
