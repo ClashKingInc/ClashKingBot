@@ -23,7 +23,7 @@ from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 
 
-LOCAL = True
+LOCAL = False
 load_dotenv()
 
 limiter = Limiter(key_func=get_remote_address)
