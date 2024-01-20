@@ -336,6 +336,7 @@ class CustomClient(commands.AutoShardedBot):
                 accepted_times.append([time ,reminder_time])
         return accepted_times
 
+
     async def get_family_member_tags(self, guild_id):
         clan_tags = await self.clan_db.distinct("tag", filter={"server": guild_id})
         member_tags = await self.basic_clan.distinct("memberList.tag", filter={"tag" : {"$in" : clan_tags}})
