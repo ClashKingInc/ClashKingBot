@@ -25,8 +25,7 @@ from CustomClasses.Emojis import Emojis, EmojiType
 from urllib.request import urlopen
 from CustomClasses.PlayerHistory import COSPlayerHistory
 from utility.constants import locations, BADGE_GUILDS
-from typing import  List
-from utility.general import  get_clan_member_tags, fetch
+from utility.general import fetch
 from expiring_dict import ExpiringDict
 from redis import asyncio as redis
 from CustomClasses.DatabaseClient.familyclient import FamilyClient
@@ -71,7 +70,7 @@ class CustomClient(commands.AutoShardedBot):
         self.base_stats: collection_class = self.looper_db.looper.base_stats
         self.autoboards: collection_class = self.looper_db.clashking.autoboards
         self.clan_war: collection_class = self.looper_db.looper.clan_war
-        self.cwl_groups: collection_class = self.new_looper.cwl_group
+        self.cwl_groups: collection_class = self.looper_db.looper.cwl_group
         self.basic_clan: collection_class = self.looper_db.looper.clan_tags
         self.button_store: collection_class = self.looper_db.clashking.button_store
         self.legend_rankings: collection_class = self.new_looper.legend_rankings
@@ -222,7 +221,6 @@ class CustomClient(commands.AutoShardedBot):
         all_emojis = guild.emojis
         emoji = disnake.utils.get(all_emojis, name=f"{number}_")
         return EmojiType(emoji_string=f"<:{emoji.name}:{emoji.id}>")
-
 
 
     async def track_clans(self, tags: list):
@@ -603,8 +601,6 @@ class CustomClient(commands.AutoShardedBot):
                 return None
 
 
-
-
     async def get_clan_wars(self, tags: list):
         tasks = []
         for tag in tags:
@@ -653,7 +649,6 @@ class CustomClient(commands.AutoShardedBot):
 
 
     #SERVER HELPERS
-
     async def get_guild_clans(self, guild_id):
         clan_tags = await self.clan_db.distinct("tag", filter={"server": guild_id})
         return clan_tags

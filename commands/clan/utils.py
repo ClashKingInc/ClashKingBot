@@ -233,6 +233,7 @@ async def minimalistic_clan_board(bot: CustomClient, server: disnake.Guild, clan
     return embed
 
 
+
 @register_button("clancompo", parser="_:clan:type")
 async def clan_composition(bot: CustomClient, clan: coc.Clan, type: str, embed_color: disnake.Color):
     bucket = defaultdict(int)
@@ -383,6 +384,7 @@ async def clan_hero_progress(bot: CustomClient, season: str, clan: coc.Clan, lim
     return [embed, totals_embed]
 
 
+
 @register_button("clantroops", parser="_:clan:season:limit")
 async def troops_spell_siege_progress(bot: CustomClient, season: str, clan: coc.Clan, limit: int = 50, embed_color: disnake.Color = EMBED_COLOR_CLASS):
     if not season:
@@ -466,6 +468,7 @@ async def troops_spell_siege_progress(bot: CustomClient, season: str, clan: coc.
 
 
     return [embed, totals_embed]
+
 
 
 @register_button("clansorted", parser="_:clan:sort_by:limit:townhall")
@@ -576,6 +579,7 @@ async def clan_sorted(bot: CustomClient, clan: coc.Clan, sort_by: str, townhall:
     return embed
 
 
+
 @register_button("clandonos", parser="_:clan:season:townhall:limit:sort_by:sort_order")
 async def clan_donations(bot: CustomClient, clan: coc.Clan, season: str, sort_by: str, sort_order: str, townhall: int = None, limit: int = 50, embed_color = EMBED_COLOR_CLASS):
     season = bot.gen_season_date() if season is None else season
@@ -618,6 +622,7 @@ async def clan_donations(bot: CustomClient, clan: coc.Clan, season: str, sort_by
                      text=f"▲{total_donated:,} | ▼{total_received:,} | {season}")
     embed.timestamp = datetime.now()
     return embed
+
 
 
 @register_button("clanwarpref", parser="_:clan:option")
@@ -701,6 +706,7 @@ async def clan_warpreference(bot: CustomClient, clan: coc.Clan, option: str, emb
     return [opted_in_embed, opted_out_embed]
 
 
+
 @register_button("clanactivity", parser="_:clan:season:townhall:limit:sort_by:sort_order")
 async def clan_activity(bot: CustomClient, clan: coc.Clan, season: str, townhall: int, limit: int, sort_by: str, sort_order: str, embed_color: disnake.Color):
     season = bot.gen_season_date() if season is None else season
@@ -754,6 +760,7 @@ async def clan_activity(bot: CustomClient, clan: coc.Clan, season: str, townhall
     embed.set_image(file=graph)
     embed.timestamp = pend.now(tz=pend.UTC)
     return embed
+
 
 
 @register_button("clancapoverview", parser="_:clan:weekend")
@@ -833,6 +840,7 @@ async def clan_capital_overview(bot: CustomClient, clan: coc.Clan, weekend: str,
     return embed
 
 
+
 @register_button("clancapdonos", parser="_:clan:weekend")
 async def clan_raid_weekend_donation_stats(bot: CustomClient, clan: coc.Clan, weekend: str, embed_color: disnake.Color):
     if weekend is None:
@@ -869,6 +877,7 @@ async def clan_raid_weekend_donation_stats(bot: CustomClient, clan: coc.Clan, we
     donation_embed.set_footer(text=f"Donated: {'{:,}'.format(sum(donated_data.values()))} | Week: {weekend}")
     donation_embed.set_image(None)
     return donation_embed
+
 
 
 @register_button("clancapraids", parser="_:clan:weekend")
@@ -950,6 +959,7 @@ async def clan_raid_weekend_raid_stats(bot: CustomClient, clan: coc.Clan, weeken
     return raid_embed
 
 
+
 @register_button("clanwarlog", parser="_:clan:limit")
 async def war_log(bot: CustomClient, clan: coc.Clan, limit=25, embed_color: disnake.Color = EMBED_COLOR_CLASS):
     embed_description = ""
@@ -1007,6 +1017,7 @@ async def war_log(bot: CustomClient, clan: coc.Clan, limit=25, embed_color: disn
     return embed
 
 
+
 @register_button("clancwlperf", parser="_:clan")
 async def cwl_performance(bot: CustomClient, clan: coc.Clan, embed_color: disnake.Color):
     asyncio.create_task(bot.store_all_cwls(clan=clan))
@@ -1045,6 +1056,7 @@ async def cwl_performance(bot: CustomClient, clan: coc.Clan, embed_color: disnak
         embed.description = "No prior cwl data"
     embed.timestamp = pend.now(tz=pend.UTC)
     return embed
+
 
 
 @register_button("clansummary", parser="_:clan:season:limit")
@@ -1186,6 +1198,7 @@ async def clan_summary(bot: CustomClient, clan: coc.Clan, season: str, limit: in
     return [first_embed, second_embed]
 
 
+
 @register_button("clangames", parser="_:clan:season:sort_by:sort_order:limit:townhall")
 async def clan_games(bot: CustomClient, clan: coc.Clan, season: str, sort_by: str, sort_order: str, limit: int, townhall: int, embed_color: disnake.Color = EMBED_COLOR_CLASS):
     season = bot.gen_games_season() if season is None else season
@@ -1256,6 +1269,7 @@ async def clan_games(bot: CustomClient, clan: coc.Clan, season: str, sort_by: st
     embed.set_footer(text=f"Total: {total_points:,} | {season}")
     embed.timestamp = pend.now(tz=pend.UTC)
     return embed
+
 
 
 

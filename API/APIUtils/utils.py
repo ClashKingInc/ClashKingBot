@@ -67,7 +67,7 @@ class DBClient():
         self.capital: collection_class = self.looper.raid_weekends
         self.clan_stats: collection_class = self.new_looper.clan_stats
         self.rankings: collection_class = self.new_looper.rankings
-        self.cwl_groups: collection_class = self.new_looper.cwl_group
+        self.cwl_groups: collection_class = self.looper.cwl_group
 
         self.clan_history: collection_class = self.new_looper.clan_history
         self.clan_join_leave: collection_class = self.new_looper.clan_join_leave

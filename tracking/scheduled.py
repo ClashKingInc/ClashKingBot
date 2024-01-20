@@ -81,7 +81,7 @@ collection_class = clan_tags.__class__
 
 player_history: collection_class = client.new_looper.player_history
 new_history: collection_class = client.new_looper.new_player_history
-cwl_group: collection_class = client.new_looper.cwl_group
+cwl_group: collection_class = client.looper.cwl_group
 clan_war: collection_class = client.looper.clan_war
 attack_db: collection_class = client.looper.warhits
 
