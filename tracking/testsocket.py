@@ -394,7 +394,7 @@ async def main(producer: KafkaProducer):
                                             if clan_tag != "Unknown":
                                                 bulk_clan_changes.append(
                                                     UpdateOne({"tag": clan_tag},
-                                                              {"$inc": {f"{season}.{tag}.gold_looted": value}},
+                                                              {"$inc": {f"{season}.{tag}.gold_looted": diff}},
                                                               upsert=True))
                                         elif type_ == "Elixir Escapade":
                                             diff = value - old_value
@@ -403,7 +403,7 @@ async def main(producer: KafkaProducer):
                                             if clan_tag != "Unknown":
                                                 bulk_clan_changes.append(
                                                     UpdateOne({"tag": clan_tag},
-                                                              {"$inc": {f"{season}.{tag}.elixir_looted": value}},
+                                                              {"$inc": {f"{season}.{tag}.elixir_looted": diff}},
                                                               upsert=True))
                                         elif type_ == "Heroic Heist":
                                             diff = value - old_value
@@ -412,7 +412,7 @@ async def main(producer: KafkaProducer):
                                                           upsert=True))
                                             if clan_tag != "Unknown":
                                                 bulk_clan_changes.append(UpdateOne({"tag": clan_tag}, {
-                                                    "$inc": {f"{season}.{tag}.dark_elixir_looted": value}}, upsert=True))
+                                                    "$inc": {f"{season}.{tag}.dark_elixir_looted": diff}}, upsert=True))
                                         elif type_ == "Well Seasoned":
                                             diff = value - old_value
                                             bulk_db_changes.append(

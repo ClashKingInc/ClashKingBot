@@ -8,3 +8,5 @@ clan = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan, de
 optional_season = commands.Param(default=None, converter=convert.season, autocomplete=autocomplete.season)
 season = commands.Param(converter=convert.season, autocomplete=autocomplete.season)
 
+optional_family = commands.Param(converter=convert.server, default=None, autocomplete=autocomplete.server)
+

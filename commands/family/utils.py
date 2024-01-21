@@ -19,11 +19,13 @@ from utility.clash.capital import gen_raid_weekend_datestrings, calc_raid_medals
 from utility.clash.other import cwl_league_emojis, clan_super_troop_comp, clan_th_comp, league_to_emoji, gen_season_start_end_as_iso
 from utility.discord_utils import register_button
 from utility.general import create_superscript, response_to_line, fetch, get_guild_icon
-from utility.constants import SUPER_SCRIPTS, MAX_NUM_SUPERS, TOWNHALL_LEVELS
+from utility.constants import leagues
 from pytz import utc
 import pendulum as pend
+import countryflag
 
 
+@register_button("familycompo", parser="_:server:type")
 async def family_composition(bot: CustomClient, server: disnake.Guild, type: str, embed_color: disnake.Color = disnake.Color.green()):
     bucket = defaultdict(int)
     clan_tags = await bot.get_guild_clans(guild_id=server.id)
@@ -91,90 +93,6 @@ async def family_composition(bot: CustomClient, server: disnake.Guild, type: str
     embed.set_footer(text=footer_text)
     embed.timestamp = datetime.now()
     return embed
-
-
-
-
-@register_button("clanhero", parser="_:clan:season:")
-async def clan_hero_progress(bot: CustomClient, season: str, clan: coc.Clan = None, server: disnake.Guild = None, limit: int = 50, embed_color: disnake.Color = disnake.Color.green()):
-    if not season:
-        season = bot.gen_season_date()
-    if clan:
-        player_tags = [member.tag for member in clan.members]
-    else:
-        server_tags = await bot.get_guild_clans(guild_id=server.id)
-        player_tags = await bot.player_stats.distinct("tag", filter={"$and" : [{"clan_tag": {"$in" : server_tags}}, {"paused" : {"$ne" : True}}]})
-
-    year = season[:4]
-    month = season[-2:]
-    season_start = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
-    season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
-
-    pipeline = [
-        {"$match": {"$and": [{"tag": {"$in": player_tags}}, {"type": {"$in" : list(coc.enums.HERO_ORDER + coc.enums.PETS_ORDER)}},
-                             {"time" : {"$gte" : season_start.timestamp()}}, {"time" : {"$lte" : season_end.timestamp()}}]}},
-        {"$group": {"_id": {"tag" : "$tag", "type" : "$type"}, "num": {"$sum": 1}}},
-        {"$group" : {"_id" : "$_id.tag", "hero_counts" : {"$push" : {"hero_name" : "$_id.type", "count" : "$num"}}}},
-        {"$lookup" : {"from" : "player_stats", "localField" : "_id", "foreignField" : "tag", "as" : "name"}},
-        {"$set" : {"name" : "$name.name"} }
-    ]
-    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
-
-    class ItemHolder():
-        def __init__(self, data: dict):
-            self.tag = data.get("_id")
-            self.name = data.get("name")[0] if data.get("name") else "unknown"
-            self.king = next((item["count"] for item in data["hero_counts"] if item["hero_name"] == "Barbarian King"), 0)
-            self.queen = next((item["count"] for item in data["hero_counts"] if item["hero_name"] == "Archer Queen"), 0)
-            self.warden = next((item["count"] for item in data["hero_counts"] if item["hero_name"] == "Grand Warden"), 0)
-            self.rc = next((item["count"] for item in data["hero_counts"] if item["hero_name"] == "Royal Champion"), 0)
-            self.pets = sum(next((item["count"] for item in data["hero_counts"] if item["hero_name"] == pet), 0) for pet in coc.enums.PETS_ORDER
-            )
-            self.total_upgraded = self.king + self.queen + self.warden + self.rc + self.pets
-
-    all_items = []
-    for result in results:
-        all_items.append(
-            ItemHolder(data=result)
-        )
-    all_items = sorted(all_items, key=lambda x: x.total_upgraded, reverse=True)[:min(limit, len(all_items))]
-    if not all_items:
-        embed = disnake.Embed(description="**No Upgrades Yet**",colour=disnake.Color.red())
-    else:
-        text = f"BK AQ WD RC Pet Name          \n"
-        for item in all_items:
-            text +=  re.sub(r'\b0\b', "-", f"{item.king:<2} {item.queen:<2} {item.warden:<2} {item.rc:<2} {item.pets:<2}", count=6) + f"  {item.name[:13]}\n"
-        embed = disnake.Embed(description=f"```{text}```", colour=embed_color)
-    embed.set_author(name=f"{(clan or server).name} Hero & Pet Upgrades", icon_url=(clan.badge.url if not server else get_guild_icon(guild=server)))
-
-
-
-    enums = coc.enums.HERO_ORDER + coc.enums.PETS_ORDER
-    #enums = coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER
-    pipeline = [
-        {"$match": {"$and": [{"tag": {"$in": player_tags}},
-                             {"type": {"$in": enums}},
-                             {"time": {"$gte": season_start.timestamp()}},
-                             {"time": {"$lte": season_end.timestamp()}}]}},
-        {"$group": {"_id": {"type": "$type"}, "num": {"$sum": 1}}},
-        {"$sort": {"num": -1}},
-    ]
-    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
-    text = ""
-    total_upgrades = 0
-    for result in results:
-        type = result.get("_id").get("type")
-        emoji = bot.fetch_emoji(type)
-        amount = result.get("num")
-        total_upgrades += amount
-        text += f"{emoji}`{type:15} {amount:3}`\n"
-
-    totals_embed = disnake.Embed(description=f"{text}", colour=embed_color)
-    totals_embed.timestamp = datetime.now()
-    totals_embed.set_footer(text=f"{season} | {total_upgrades} Upgrades")
-
-
-    return [embed, totals_embed]
 
 
 
@@ -314,3 +232,94 @@ async def family_summary(bot: CustomClient, server: disnake.Guild, season: str, 
     second_embed = disnake.Embed(description=text, color=embed_color)
     second_embed.timestamp = pend.now(tz=pend.UTC)
     return [first_embed, second_embed]
+
+
+@register_button("familyoverview", parser="_:server")
+async def family_overview(bot: CustomClient, server: disnake.Guild, embed_color: disnake.Color):
+    season = bot.gen_season_date()
+    clan_tags = await bot.clan_db.distinct("tag", filter={"server": server.id})
+    basic_clans = await bot.basic_clan.find({"tag": {"$in": clan_tags}}).to_list(length=None)
+
+    member_count = sum([c.get("members", 0) for c in basic_clans])
+    member_tags = [m.get("tag") for clan in basic_clans for m in clan.get("memberList", [])]
+    sixty_mins = pend.now(tz=pend.UTC).subtract(minutes=60)
+    last_online_sixty_mins = await bot.player_stats.count_documents({"$and" : [{"tag" : {"$in" : member_tags}}, {"last_online" : {"$gte" : int(sixty_mins.timestamp())}}]})
+    description_text = (f"- {server.member_count} Members\n"
+                        f"- {len(basic_clans)} Clans, {member_count} Members\n"
+                        f"- {last_online_sixty_mins} Online (last hour)\n"
+                        f"- Created: {bot.timestamper(unix_time=int(server.created_at.timestamp())).text_date}\n"
+                        f"- Owner: {server.owner.display_name}")
+    first_embed = disnake.Embed(description=description_text, color=embed_color)
+    first_embed.set_author(name=f"{server.name} Overview", icon_url=get_guild_icon(server))
+
+    th_compo_bucket = defaultdict(int)
+    total_trophies = 0
+    legend_player_count = 0
+    for clan in basic_clans:
+        for member in clan.get("memberList"):
+            if member.get('townhall') != 0:
+                th_compo_bucket[member.get("townhall")] += 1
+            total_trophies += member.get("trophies")
+            if member.get("league") == "Legend League":
+                legend_player_count += 1
+
+    clan_stats = await bot.clan_stats.find({"tag" : {"$in" : clan_tags}}, projection={"_id" : 0, "tag" : 1, f"{season}" : 1}).to_list(length=None)
+    total_donations = 0
+    total_received = 0
+    total_de_looted = 0
+    total_gold_looted = 0
+    total_elix_looted = 0
+    total_attack_wins = 0
+    total_activity = 0
+    for c_stat in clan_stats:
+        season_stats = c_stat.get(season, {})
+        for _, value in season_stats.items():
+            total_donations += value.get("donated", 0)
+            total_received += value.get("received", 0)
+            total_de_looted += value.get("dark_elixir_looted", 0)
+            total_gold_looted += value.get("gold_looted", 0)
+            total_elix_looted += value.get("elixir_looted", 0)
+            total_attack_wins += value.get("attack_wins", 0)
+            total_activity += value.get("activity", 0)
+
+    SEASON_START, SEASON_END = gen_season_start_end_as_iso(season=season)
+    wars = await bot.clan_wars.find({"$and" : [
+                {'$or': [{'data.clan.tag': {'$in': clan_tags}},
+                        {'data.opponent.tag': {'$in': clan_tags}}]},
+                {"data.preparationStartTime": {"$gte": SEASON_START}}, {"data.preparationStartTime": {"$lte": SEASON_END}},
+                {"type" : {"$ne" : "friendly"}}
+                ]
+            }, projection={"data.clan.tag" : 1, "data.clan.stars" : 1, "data.opponent.stars" : 1, "data.opponent.tag" : 1}).to_list(length=None)
+    total_war_stars = 0
+    for war in wars:
+        if war.get("data").get("clan").get("tag") in clan_tags:
+            total_war_stars += war.get("data").get("clan").get("stars")
+        else:
+            total_war_stars += war.get("data").get("opponent").get("stars")
+
+    stats_text = (f"```Donations: {total_donations:,}\n"
+                  f"Received : {total_received:,}\n"
+                  f"War Stars: {total_war_stars:,}\n"
+                  #f"Gold: {total_gold_looted:,}\n"
+                  #f"Elixir: {total_elix_looted:,}\n"
+                  #f"Dark Elixir: {total_de_looted:,}\n"
+                  f"Activity: {total_activity:,}\n"
+                  f"Attack Wins: {total_attack_wins:,}\n```")
+    first_embed.add_field(name="Season Stats", value=stats_text, inline=False)
+
+    top_ten_clans = sorted(basic_clans, key=lambda x: leagues.index(x.get("warLeague", "Unranked")))[:10]
+    clan_text = ""
+    for clan in top_ten_clans:
+        clan_text += f'{cwl_league_emojis(clan.get("warLeague", "Unranked"))}`{clan.get("name"):<15} ({clan.get("members")}/50)`\n'
+    first_embed.add_field(name="Top 10 Clans", value=clan_text, inline=False)
+
+    th_comp_string = ""
+    count = 0
+    for th_level, th_count in sorted(th_compo_bucket.items(), reverse=True):
+        th_emoji = bot.fetch_emoji(th_level)
+        th_comp_string += f"{th_emoji}`{th_count}` "
+        count += 1
+        if count % 5 == 0:
+            th_comp_string += "\n"
+    first_embed.add_field(name="Townhall Compo", value=th_comp_string, inline=False)
+    return first_embed

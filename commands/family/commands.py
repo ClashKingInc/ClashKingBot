@@ -13,7 +13,7 @@ from utility.components import clan_board_components
 from CustomClasses.CustomPlayer import MyCustomPlayer
 
 from discord import convert, autocomplete, options
-from .utils import family_composition, family_summary
+from .utils import family_composition, family_summary, family_overview
 
 
 class FamilyCommands(commands.Cog, name="Family Commands"):
@@ -34,23 +34,26 @@ class FamilyCommands(commands.Cog, name="Family Commands"):
 
 
     @family.sub_command(name="compo", description="Composition of values in a family")
-    async def family_compo(self, ctx: disnake.ApplicationCommandInteraction,
+    async def compo(self, ctx: disnake.ApplicationCommandInteraction,
                          type_: str = commands.Param(name="type", default="Townhall", choices=["Townhall", "Trophies", "Location", "Role",  "League"]),
-                         server: disnake.Guild = commands.Param(converter=convert.server, default=None, autocomplete=autocomplete.server)):
+                         server: disnake.Guild = options.optional_family):
         server = server or ctx.guild
-        server_result = await self.bot.server_db.find_one({"server" : server.id})
-        embed = await family_composition(bot=self.bot, server=server, type=type_, embed_color=disnake.Color(server_result.get("embed_color", EMBED_COLOR)))
-        custom_id = f"family_{uuid.uuid4()}"
-        buttons = disnake.ui.ActionRow(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=custom_id))
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=server.id)
+        embed = await family_composition(bot=self.bot, server=server, type=type_, embed_color=embed_color)
+        buttons = disnake.ui.ActionRow(disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=f"familycompo:{server.id}:{type_}"))
         await ctx.edit_original_response(embed=embed, components=[buttons])
-        as_dict = {
-            "button_id": custom_id,
-            "command": "family compo",
-            "server": server.id,
-            "type" : type_,
-            "fields" : ["type", "server"]
-        }
-        await self.bot.button_store.insert_one(as_dict)
+
+
+    @family.sub_command(name="overview", description="Board showing a family stats overview")
+    async def overview(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = options.optional_family):
+        server = server or ctx.guild
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=server.id)
+        embed = await family_overview(bot=self.bot, server=server, embed_color=embed_color)
+        buttons = disnake.ui.ActionRow(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=f"familyoverview:{server.id}"))
+        await ctx.edit_original_response(embed=embed, components=[buttons])
+
+
 
 
     @family.sub_command(name="summary", description="Summary of stats for a family")
