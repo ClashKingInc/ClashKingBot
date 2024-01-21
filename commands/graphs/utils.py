@@ -200,7 +200,6 @@ async def season_line_graph(bot: CustomClient, clan_tags: List[str], attribute: 
 
     if not data:
         raise MessageException("No data found")
-    print(data)
     data_list = []
     if countable:
         count_each_has = defaultdict(int)

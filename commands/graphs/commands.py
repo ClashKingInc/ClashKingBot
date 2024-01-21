@@ -17,6 +17,7 @@ class GraphCreator(commands.Cog, name="Graph Commands"):
     async def graph(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
 
+
     @graph.sub_command(name="over-time", description="Details for a clan(s)/family over time")
     async def graph_over_time(self, ctx: disnake.ApplicationCommandInteraction,
                               attribute: str = commands.Param(choices=["Activity", "Clan Games", "Attack Wins", "Donations", "Received",
