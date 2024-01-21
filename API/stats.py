@@ -133,12 +133,10 @@ async def donations(request: Request, response: Response,
     print()
     by_clan_totals = []
     if not clan_to_name:
-        print("ere")
         clan_results = await db_client.basic_clan.find({"tag": {"$in": list(by_clan.keys())}}).to_list(length=None)
         clan_to_name = {c.get("tag"): c.get("name") for c in clan_results}
     print(clan_to_name)
     for k, v in by_clan.items():
-        print("here")
         if clan_to_name.get(k) is None:
             continue
         by_clan_totals.append({"tag": k, "name": clan_to_name.get(k), field_to_use: v.get(field_to_use)})

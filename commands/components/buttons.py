@@ -36,8 +36,7 @@ async def button_logic(button_data: str, bot: CustomClient, guild: disnake.Guild
             data = await bot.getPlayer(player_tag=data)
         hold_kwargs[name] = data
 
-    server = hold_kwargs.get("server")
-    embed_color = await bot.ck_client.get_server_embed_color(server_id=server.id)
+    embed_color = await bot.ck_client.get_server_embed_color(server_id=guild.id)
     hold_kwargs["embed_color"] = embed_color
     hold_kwargs = {key: hold_kwargs[key] for key in inspect.getfullargspec(function).args}
     embed = await function(**hold_kwargs)

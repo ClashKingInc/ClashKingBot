@@ -210,12 +210,10 @@ class DiscordEvents(commands.Cog):
                 return
             panel_settings = await self.bot.tickets.find_one({"$and": [{"server_id": payload.guild_id}, {"name": ticket.panel_name}]})
             panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
-            print(ticket.channel)
             channel: disnake.TextChannel = await self.bot.getch_channel(channel_id=ticket.channel)
             if channel is None:
                 continue
             await panel.send_log(log_type=LOG_TYPE.TICKET_CLOSE, user=self.bot.user, ticket_channel=channel, ticket=ticket)
-            print("here")
             await ticket.set_ticket_status(status="delete")
             await channel.delete(reason=f"{payload.user.name} left server")
 

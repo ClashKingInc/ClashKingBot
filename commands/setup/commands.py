@@ -42,6 +42,9 @@ class SetupCommands(commands.Cog , name="Setup"):
         if message.components:
             custom_id = message.components[0].children[0].custom_id
         name = custom_id.split(":")[0]
+        unallowed_refreshes = {"familygames", "familyheroprogress", "familytroopprogress", 'familysorted', "familydonos", "familyactivity"}
+        if name in unallowed_refreshes:
+            raise MessageException("This command does not support auto refreshing currently")
         if "ctx" in custom_id or registered_functions.get(name) is None:
             raise MessageException("Cannot auto-refresh this command")
         webhook = await get_webhook_for_channel(channel=message.channel, bot=self.bot)

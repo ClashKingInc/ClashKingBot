@@ -18,14 +18,16 @@ from math import ceil
 from datetime import datetime, timedelta
 from coc.ext import discordlinks
 from disnake.ext import commands
+from collections import defaultdict
 from dotenv import load_dotenv
+from typing import Dict, List
 from assets.emojiDictionary import emojiDictionary, legend_emojis
 from CustomClasses.CustomPlayer import MyCustomPlayer, CustomClanClass
 from CustomClasses.Emojis import Emojis, EmojiType
 from urllib.request import urlopen
 from CustomClasses.PlayerHistory import COSPlayerHistory
 from utility.constants import locations, BADGE_GUILDS
-from utility.general import fetch
+from utility.general import fetch, create_superscript
 from expiring_dict import ExpiringDict
 from redis import asyncio as redis
 from CustomClasses.DatabaseClient.familyclient import FamilyClient
@@ -335,11 +337,48 @@ class CustomClient(commands.AutoShardedBot):
         return accepted_times
 
 
-    async def get_family_member_tags(self, guild_id):
+    async def get_family_member_tags(self, guild_id, th_filter: int = None):
         clan_tags = await self.clan_db.distinct("tag", filter={"server": guild_id})
+        if th_filter is None:
+            member_tags = await self.basic_clan.distinct("memberList.tag", filter={"tag" : {"$in" : clan_tags}})
+        else:
+            basic_clans = await self.basic_clan.find({"tag" : {"$in" : clan_tags}}, projection={"memberList" : 1}).to_list(length=None)
+            member_tags = [m.get("tag") for clan in basic_clans for m in clan.get("memberList", []) if m.get("townhall") == th_filter]
+        return member_tags
+
+
+    async def get_clan_member_tags(self, clan_tags: list[str]):
         member_tags = await self.basic_clan.distinct("memberList.tag", filter={"tag" : {"$in" : clan_tags}})
         return member_tags
 
+
+    async def get_mapped_clan_member_tags(self, clan_tags: List[str]) -> Dict[str, str]:
+        basic_clans = await self.basic_clan.find({"tag": {"$in": clan_tags}}, projection={"tag" : 1, "memberList": 1, "_id" : 0}).to_list(length=None)
+        mapped = {}
+        for c in basic_clans:
+            for m in c.get("memberList", []):
+                mapped[m.get("tag")] = c.get("tag")
+        return mapped
+
+
+    async def get_guild_clans(self, guild_id):
+        clan_tags = await self.clan_db.distinct("tag", filter={"server": guild_id})
+        return clan_tags
+
+    async def get_clan_name_mapping(self, clans: list[str]):
+        basic_clans = await self.basic_clan.find({"tag" : {"$in" : clans}}, projection={"tag" : 1, "_id" : 0, "name" : 1}).to_list(length=None)
+        names = {}
+        mapping = {}
+        for c in basic_clans:
+            name = c.get("name")
+            if names.get(name) is not None:
+                num_found = names.get(name, 0)
+                names[name] += 1
+                name = name + create_superscript(num_found + 1)
+            else:
+                names[name] = 0
+            mapping[c.get("tag")] = name
+        return mapping
 
 
     #DISCORD HELPERS
@@ -649,9 +688,6 @@ class CustomClient(commands.AutoShardedBot):
 
 
     #SERVER HELPERS
-    async def get_guild_clans(self, guild_id):
-        clan_tags = await self.clan_db.distinct("tag", filter={"server": guild_id})
-        return clan_tags
 
 
     async def white_list_check(self, ctx, command_name):

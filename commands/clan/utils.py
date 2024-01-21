@@ -756,7 +756,7 @@ async def clan_activity(bot: CustomClient, clan: coc.Clan, season: str, townhall
     embed.set_footer(icon_url=bot.emoji.clock.partial_emoji.url,
                      text=f"Total Activity: {total_activity} | {season}")
     month = bot.gen_season_date(seasons_ago=24, as_text=False).index(season)
-    graph, _ = await daily_graph(bot=bot, clans=[clan], attribute="activity", months=month + 1)
+    graph, _ = await daily_graph(bot=bot, clan_tags=[clan.tag], attribute="activity", months=month + 1)
     embed.set_image(file=graph)
     embed.timestamp = pend.now(tz=pend.UTC)
     return embed
