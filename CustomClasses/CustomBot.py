@@ -1,3 +1,5 @@
+import time
+
 import ujson
 import dateutil.relativedelta
 import coc
@@ -127,7 +129,7 @@ class CustomClient(commands.AutoShardedBot):
                                                 load_game_data=coc.LoadGameData(always=False), raw_attribute=True, stats_max_size=10000)
         self._xyz = asyncio.get_event_loop().run_until_complete(self.coc_client.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD")))
 
-        self.redis = redis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"), retry_on_timeout=True, max_connections=100, retry_on_error=[redis.ConnectionError])
+        self.redis = redis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"), retry_on_timeout=True, max_connections=250, retry_on_error=[redis.ConnectionError])
 
         self.emoji = Emojis()
         self.locations = locations
@@ -347,8 +349,12 @@ class CustomClient(commands.AutoShardedBot):
         return member_tags
 
 
-    async def get_clan_member_tags(self, clan_tags: list[str]):
-        member_tags = await self.basic_clan.distinct("memberList.tag", filter={"tag" : {"$in" : clan_tags}})
+    async def get_clan_member_tags(self, clan_tags: list[str], legends_only=False):
+        if not legends_only:
+            member_tags = await self.basic_clan.distinct("memberList.tag", filter={"tag" : {"$in" : clan_tags}})
+        else:
+            basic_clans = await self.basic_clan.find({"tag": {"$in": clan_tags}}, projection={"memberList": 1}).to_list(length=None)
+            member_tags = [m.get("tag") for clan in basic_clans for m in clan.get("memberList", []) if m.get("league") == "Legend League"]
         return member_tags
 
 
@@ -486,7 +492,7 @@ class CustomClient(commands.AutoShardedBot):
             fresh_tags = []
         if custom and fake_results is False:
             if found_results is None:
-                results_list = await self.player_stats.find({"tag" : {"$in" : tags}}).to_list(length=2500)
+                results_list = await self.player_stats.find({"tag" : {"$in" : tags}}).to_list(length=None)
             else:
                 results_list = found_results
             results_dict = {}

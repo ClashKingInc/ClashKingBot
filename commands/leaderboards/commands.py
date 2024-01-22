@@ -5,12 +5,13 @@ from utility.components import create_components
 from CustomClasses.CustomBot import CustomClient
 from CustomClasses.CustomPlayer import MyCustomPlayer
 from utility.components import leaderboard_components
-from CommandsOlder.Utils import Shared as shared_embeds
 from exceptions.CustomExceptions import MessageException
 from utility.discord_utils import interaction_handler
-
+from typing import List
+from discord import options
 import math
 import emoji
+from .utils import image_board
 
 class Leaderboards(commands.Cog, name="Leaderboards"):
 
@@ -131,33 +132,22 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                 return
 
 
-    @leaderboard.sub_command(name="clan", description="Image Board")
-    async def board(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter),
-                    board: str = commands.Param(choices=["Activity", "Legends", "Trophies"]), limit: int = 30):
-
-        players: List[MyCustomPlayer] = await self.bot.get_players(tags=[member.tag for member in clan.members], custom=True)
-        if board == "Activity":
-            players.sort(key=lambda x: x.donos().donated, reverse=True)
-            file = await shared_embeds.image_board(bot=self.bot, players=players[:limit], logo_url=clan.badge.url, title=f'{clan.name} Activity/Donation Board',
-                                                   season=self.bot.gen_season_date(), type="activities")
-            board_type = "clanboardact"
-        elif board == "Legends":
-            players = [player for player in players if player.is_legends()]
-            players.sort(key=lambda x: x.trophies, reverse=True)
-            file = await shared_embeds.image_board(bot=self.bot, players=players[:limit], logo_url=clan.badge.url, title=f'{clan.name} Legend Board', type="legend")
+    @leaderboard.sub_command(name="image", description="Image Board")
+    async def image(self, ctx: disnake.ApplicationCommandInteraction,
+                    clan: coc.Clan = options.optional_clan,
+                    server: disnake.Guild = options.optional_family,
+                    board: str = commands.Param(choices=["Activity", "Legends", "Trophies", "War Stars"]),
+                    limit: int = commands.Param(default=30, min_value=5, max_value=50)):
+        await ctx.response.defer(ephemeral=True)
+        if clan is None:
+            server = server or ctx.guild
+        if board == "Legends":
+            file = await image_board(bot=self.bot, clan=clan, server=server, type="legend", limit=limit)
             board_type = "clanboardlegend"
-        elif board == "Trophies":
-            players.sort(key=lambda x: x.trophies, reverse=True)
-            file = await shared_embeds.image_board(bot=self.bot, players=players[:limit], logo_url=clan.badge.url, title=f'{clan.name} Trophy Board', type="trophies")
-            board_type = "clanboardtrophies"
 
         await ctx.edit_original_message(content="Image Board Created!")
 
-        buttons = disnake.ui.ActionRow()
-        buttons.append_item(disnake.ui.Button(
-            label="", emoji=self.bot.emoji.refresh.partial_emoji,
-            style=disnake.ButtonStyle.grey, custom_id=f"{board_type}_{clan.tag}_{limit}"))
-        await ctx.channel.send(content=file, components=[buttons])
+        await ctx.channel.send(content=file, components=[])
 
 
 

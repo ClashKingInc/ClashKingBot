@@ -3,11 +3,11 @@ from CustomClasses.CustomBot import CustomClient
 from utility.clash.capital import gen_raid_weekend_datestrings
 from utility.search import family_names, search_name_with_tag, all_names
 from utility.general import create_superscript
+from utility.constants import TH_FILTER_OPTIONS, TOWNHALL_LEVELS
 import disnake
 import coc
 import pytz
 import re
-
 
 class Autocomplete(commands.Cog, name="Autocomplete"):
     def __init__(self, bot: CustomClient):
@@ -207,6 +207,13 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
             starter_categories.insert(0, query)
         categories = starter_categories + [c for c in categories if c not in starter_categories]
         return categories[:25]
+
+
+    async def th_filters(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        always = ["Equal Th Only"] + [str(t) for t in TOWNHALL_LEVELS] + TH_FILTER_OPTIONS
+        if query != "":
+            always = [a for a in always if query.lower() in a.lower()]
+        return always[:25]
 
 
 def setup(bot: CustomClient):

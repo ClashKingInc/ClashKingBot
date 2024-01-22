@@ -8,7 +8,7 @@ from datetime import datetime
 from CustomClasses.CustomPlayer import ClanCapitalWeek
 from CustomClasses.CustomBot import CustomClient
 from typing import List
-from utility.clash.capital import gen_raid_weekend_datestrings, calc_raid_medals, get_season_raid_weeks
+from utility.clash.capital import get_season_raid_weeks
 from utility.clash.other import cwl_league_emojis, is_games, league_to_emoji, gen_season_start_end_as_iso, gen_season_start_end_as_timestamp, games_season_start_end_as_timestamp
 from utility.discord_utils import register_button
 from utility.general import create_superscript, get_guild_icon, smart_convert_seconds

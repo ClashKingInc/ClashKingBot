@@ -21,7 +21,7 @@ class GraphCreator(commands.Cog, name="Graph Commands"):
     @graph.sub_command(name="over-time", description="Details for a clan(s)/family over time")
     async def graph_over_time(self, ctx: disnake.ApplicationCommandInteraction,
                               attribute: str = commands.Param(choices=["Activity", "Clan Games", "Attack Wins", "Donations", "Received",
-                                                                       "CWL Leagues", "Capital Leagues"]),
+                                                                       "CWL Leagues", "Capital Leagues", "Capital Trophies"]),
                               months: int = 4,
                               limit: int = commands.Param(default=15, min_value=1, max_value=50),
                               family: disnake.Guild = options.optional_family,
@@ -44,9 +44,8 @@ class GraphCreator(commands.Cog, name="Graph Commands"):
                                                                        "Donations", "Received", "Attack Wins", "Activity",
                                                                        "Capital Gold Donated", "Capital Gold Raided", "Average Raid Participants",
                                                                        "Troops Upgraded", "Heroes Upgraded", "War Stars", "Wars Won", "Wars Spun"]), #15 room for 10 more
-                              season: str = commands.Param(default=None, autocomplete=autocomplete.season),
+                              season: str = options.optional_season,
                               server: disnake.Guild = options.optional_family):
-
         season = season or gen_season_date()
         server = server or ctx.guild
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": server.id})

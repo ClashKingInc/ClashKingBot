@@ -196,7 +196,20 @@ async def season_line_graph(bot: CustomClient, clan_tags: List[str], attribute: 
         ticktext=reversed_leagues,
         title=None,  # Optional Y-axis title
         )
-
+    elif attribute == "capital_trophies":
+        countable = False
+        basic_clan = await bot.basic_clan.find({"tag": {"$in": clan_tags}}, projection={"_id" : 0, "tag" : 1, "changes.clanCapital" : 1}).sort("members", -1).limit(limit).to_list(length=None)
+        data = defaultdict(lambda : defaultdict(int))
+        raid_weeks = []
+        for season in seasons:
+            raid_weeks += get_season_raid_weeks(season=season)
+        if raid_weeks.count("2023-11-10") == 1:
+            raid_weeks.remove("2023-11-10")
+        for clan in basic_clan:
+            cwl_data = clan.get("changes", {}).get("clanCapital", {})
+            clan_name = clan_name_map.get(clan.get("tag"))
+            for week in raid_weeks:
+                data[clan_name][week] = cwl_data.get(week, {}).get("trophies", 0)
 
     if not data:
         raise MessageException("No data found")
@@ -355,7 +368,7 @@ async def monthly_bar_graph(bot: CustomClient, clan_tags: List[str], attribute: 
                 if coc_war.status == "won":
                     data[clan_name] += 1
             else:
-                if str(coc_war.type)  != "cwl":
+                if str(coc_war.type) != "cwl":
                     data[clan_name] += 1
 
 
@@ -378,7 +391,7 @@ async def monthly_bar_graph(bot: CustomClient, clan_tags: List[str], attribute: 
         y=clans,
         orientation="h",
         text=bar_text,  # Display attribute value on the bar
-        labels={"x": f"{attribute.replace('_', ' ').title()}"},
+        labels={"x": f"{attribute.replace('_', ' ').title()} ({season})"},
     )
 
     fig.update_layout(

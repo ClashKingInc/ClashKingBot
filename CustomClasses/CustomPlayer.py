@@ -613,6 +613,9 @@ class MyCustomPlayer(coc.Player):
 
         return (coc.HeroEquipment(data=data, client=self._client) for data in equipment_dict.values())
 
+
+
+
 class RushedInfo():
     def __init__(self, player, rushed_items: List, not_max_items: List, locked_items: List, all_items: List):
         self.player: coc.Player = player

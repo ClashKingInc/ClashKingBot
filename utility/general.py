@@ -380,8 +380,11 @@ placeholders = [
     "https://clashking.b-cdn.net/placeholders/LeagueBK_Pose06_NoShadow.png"
 
 ]
-def get_guild_icon(guild: disnake.Guild):
-    icon = guild.icon
+def get_guild_icon(guild: disnake.Guild | None):
+    if guild is None:
+        icon = None
+    else:
+        icon = guild.icon
     if icon is None:
         return random.choice(placeholders)
     return icon.url
