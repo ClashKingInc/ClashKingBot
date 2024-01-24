@@ -6,8 +6,8 @@ import coc
 import calendar
 
 from disnake.ext import commands
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.Enums import TrophySort
+from classes.bot import CustomClient
+from classes.enum import TrophySort
 from exceptions.CustomExceptions import InvalidGuildID
 from typing import List
 from utility.general import get_clan_member_tags

@@ -3,7 +3,7 @@ import os
 import coc
 import disnake
 
-import CustomClasses.CustomBot
+import classes.bot
 from assets.emojiDictionary import emojiDictionary, legend_emojis
 from typing import Callable, Union
 from exceptions.CustomExceptions import MissingWebhookPerms

@@ -2,7 +2,7 @@ import coc.utils
 import disnake
 from disnake.ext import commands
 
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from utility.constants import POSTER_LIST
 from discord import autocomplete, convert, options
 from exceptions.CustomExceptions import PlayerNotInLegends

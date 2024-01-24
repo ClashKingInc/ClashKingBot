@@ -3,8 +3,8 @@ import disnake
 
 from disnake.ext import commands
 from utility.clash import heros
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomServer import DatabaseClan
+from classes.bot import CustomClient
+from classes.server import DatabaseClan
 from background.logs.event_websockets import clan_ee
 from utility.clash import leagueAndTrophies
 from pymongo import UpdateOne

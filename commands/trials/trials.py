@@ -2,7 +2,7 @@ import coc
 from disnake.ext import commands
 import disnake
 from datetime import datetime, timedelta
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from main import check_commands
 from pytz import utc
 from exceptions.CustomExceptions import MessageException

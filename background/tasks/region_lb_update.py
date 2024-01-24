@@ -2,7 +2,7 @@ from disnake.ext import commands
 import coc
 import asyncio
 from main import scheduler
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from pymongo import UpdateOne
 
 class lb_updater(commands.Cog):

@@ -1,7 +1,7 @@
 import disnake
 from disnake.ext import commands
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from classes.bot import CustomClient
+from classes.player import MyCustomPlayer
 from datetime import datetime
 
 class erikuh(commands.Cog):

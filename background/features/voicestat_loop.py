@@ -5,8 +5,8 @@ from main import scheduler
 import pytz
 utc = pytz.utc
 
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomServer import DatabaseClan
+from classes.bot import CustomClient
+from classes.server import DatabaseClan
 from exceptions.CustomExceptions import MissingWebhookPerms
 
 class VoiceStatCron(commands.Cog):

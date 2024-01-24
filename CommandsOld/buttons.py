@@ -1,7 +1,7 @@
 import disnake
 
 from disnake.ext import commands
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from CommandsOld.board_generation import donation_board, activity_board, games_board
 
 

@@ -3,10 +3,10 @@ from disnake.ext import commands
 import disnake
 from utility.components import create_components
 from datetime import datetime
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from main import check_commands
 from utility.constants import EMBED_COLOR
-from CustomClasses.ClashKingAPI.Classes.bans import BannedUser, BannedResponse
+from classes.ClashKingAPI.Classes.bans import BannedUser, BannedResponse
 from typing import List
 from .utils import ban_player_extras, create_embeds
 from discord.autocomplete import Autocomplete as autocomplete

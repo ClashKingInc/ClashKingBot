@@ -8,9 +8,9 @@ from main import check_commands
 from typing import Union
 from exceptions.CustomExceptions import *
 
-from CustomClasses.CustomServer import DatabaseClan
-from CustomClasses.Enums import LinkParseTypes
-from CustomClasses.CustomBot import CustomClient
+from classes.server import DatabaseClan
+from classes.enum import LinkParseTypes
+from classes.bot import CustomClient
 
 from utility.discord_utils import  interaction_handler, basic_embed_modal, get_webhook_for_channel, registered_functions
 from utility.general import calculate_time, get_guild_icon

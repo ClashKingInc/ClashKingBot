@@ -1,5 +1,5 @@
 from typing import List
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from utility.clash.other import gen_season_start_end_as_iso
 from utility.general import get_guild_icon, create_superscript
 from collections import defaultdict, namedtuple
@@ -117,7 +117,8 @@ async def war_hitrate(bot: CustomClient, clan: coc.Clan | None, server: disnake.
 
     embed = disnake.Embed(description=text, color=embed_color)
     embed.set_author(name=f"{(clan or server).name} Top {limit} Hitrate", icon_url=get_guild_icon(server) if clan is None else clan.badge.url)
-    if season:
+    if num_wars is None and num_days is None:
+        season = season or bot.gen_season_date()
         f_text = f"{season} | {len(clan_wars)} wars"
     elif num_wars:
         f_text = f"{len(clan_wars)} wars"

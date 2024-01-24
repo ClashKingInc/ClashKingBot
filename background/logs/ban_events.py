@@ -2,8 +2,8 @@ import disnake
 import coc
 
 from disnake.ext import commands
-from CustomClasses.CustomServer import DatabaseClan
-from CustomClasses.CustomBot import CustomClient
+from classes.server import DatabaseClan
+from classes.bot import CustomClient
 from background.logs.event_websockets import clan_ee
 
 class BanEvents(commands.Cog):

@@ -5,9 +5,9 @@ import coc
 import pytz
 
 from disnake.ext import commands
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from assets.emojiDictionary import emojiDictionary
-from CustomClasses.Roster import Roster
+from classes.roster import Roster
 from main import check_commands
 from exceptions.CustomExceptions import *
 from typing import List

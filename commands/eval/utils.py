@@ -5,11 +5,11 @@ import asyncio
 
 from collections import defaultdict, namedtuple
 from typing import List
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from utility.constants import DEFAULT_EVAL_ROLE_TYPES, ROLE_TREATMENT_TYPES
 from utility.general import get_clan_member_tags, create_superscript
 from exceptions.CustomExceptions import ExpiredComponents, MessageException
-from CustomClasses.DatabaseClient.Classes.settings import DatabaseServer
+from classes.DatabaseClient.Classes.settings import DatabaseServer
 from utility.general import get_guild_icon
 
 

@@ -4,8 +4,8 @@ import calendar
 # import excel2img
 
 from disnake.ext import commands
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from classes.bot import CustomClient
+from classes.player import MyCustomPlayer
 from exceptions.CustomExceptions import ExportTemplateAlreadyExists, NoLinkedAccounts
 from typing import TYPE_CHECKING, List
 from utility.search import search_results
@@ -17,7 +17,7 @@ else:
     
 # McKnight's imports for testing
 from utility.search import search_results
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from classes.player import MyCustomPlayer
 from exceptions.CustomExceptions import *
 
 class ExportCommands(cog_class):

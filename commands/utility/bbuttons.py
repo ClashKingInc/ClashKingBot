@@ -1,6 +1,6 @@
 import disnake
 from disnake.ext import commands
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 
 class UtilityButtons(commands.Cog):
     def __init__(self, bot: CustomClient):

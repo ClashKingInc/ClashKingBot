@@ -4,8 +4,8 @@ import disnake
 
 from pytz import utc
 from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.ReminderClass import Reminder
+from classes.bot import CustomClient
+from classes.reminders import Reminder
 import sentry_sdk
 
 async def war_reminder(bot: CustomClient, clan_tag, reminder_time):

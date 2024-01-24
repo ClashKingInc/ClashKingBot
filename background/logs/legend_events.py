@@ -1,8 +1,8 @@
 import coc
 import disnake
 from disnake.ext import commands
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomServer import DatabaseClan
+from classes.bot import CustomClient
+from classes.server import DatabaseClan
 from background.logs.event_websockets import player_ee
 from datetime import datetime
 from pytz import utc

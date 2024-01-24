@@ -1,7 +1,7 @@
 from disnake.ext import commands
 import disnake
 from main import scheduler
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from utility.discord_utils import get_webhook_for_channel
 from exceptions.CustomExceptions import MissingWebhookPerms
 from commands.components.buttons import button_logic

@@ -6,8 +6,8 @@ import random
 
 from main import scheduler
 #from FamilyManagement.Reminders import SendReminders
-from CustomClasses.CustomServer import DatabaseClan
-from CustomClasses.CustomBot import CustomClient
+from classes.server import DatabaseClan
+from classes.bot import CustomClient
 from CommandsOlder.Utils.War import main_war_page, missed_hits
 #from ImageGen.WarEndResult import generate_war_result_image
 from utility.discord_utils import get_webhook_for_channel

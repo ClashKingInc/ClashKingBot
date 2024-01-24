@@ -6,8 +6,8 @@ import random
 import string
 
 from urllib.request import Request, urlopen
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from classes.bot import CustomClient
+from classes.player import MyCustomPlayer
 from datetime import datetime, timedelta
 from exceptions.CustomExceptions import *
 from collections import defaultdict

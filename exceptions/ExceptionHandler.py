@@ -2,7 +2,7 @@ import disnake
 import coc
 from disnake.ext import commands
 from exceptions.CustomExceptions import *
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 import sentry_sdk
 
 class ExceptionHandler(commands.Cog):

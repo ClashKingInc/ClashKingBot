@@ -1,7 +1,7 @@
 import disnake
 
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from classes.bot import CustomClient
+from classes.player import MyCustomPlayer
 from CommandsOlder.Utils.Player import create_profile_stats, create_profile_troops, upgrade_embed, history
 
 

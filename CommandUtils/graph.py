@@ -1,5 +1,5 @@
 import disnake
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 import coc
 import plotly.express as px
 import plotly.io as pio
@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 from collections import defaultdict, Counter
 from typing import List
 from utils.general import create_superscript
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from classes.player import MyCustomPlayer
 
 
 async def create_clan_donation_graph(bot: CustomClient, clans: List[coc.Clan], townhalls: List[int], season: str, type: str):

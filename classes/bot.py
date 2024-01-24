@@ -24,15 +24,15 @@ from collections import defaultdict
 from dotenv import load_dotenv
 from typing import Dict, List
 from assets.emojiDictionary import emojiDictionary, legend_emojis
-from CustomClasses.CustomPlayer import MyCustomPlayer, CustomClanClass
-from CustomClasses.Emojis import Emojis, EmojiType
+from classes.player import MyCustomPlayer, CustomClanClass
+from classes.emoji import Emojis, EmojiType
 from urllib.request import urlopen
-from CustomClasses.PlayerHistory import COSPlayerHistory
+from classes.clashofstats import COSPlayerHistory
 from utility.constants import locations, BADGE_GUILDS
 from utility.general import fetch, create_superscript
 from expiring_dict import ExpiringDict
 from redis import asyncio as redis
-from CustomClasses.DatabaseClient.familyclient import FamilyClient
+from classes.DatabaseClient.familyclient import FamilyClient
 utc = pytz.utc
 load_dotenv()
 

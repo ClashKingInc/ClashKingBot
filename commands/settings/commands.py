@@ -1,8 +1,8 @@
 import disnake
 import coc
 from disnake.ext import commands
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomServer import CustomServer, ServerClan, DatabaseClan
+from classes.bot import CustomClient
+from classes.server import CustomServer, ServerClan, DatabaseClan
 from exceptions.CustomExceptions import ThingNotFound
 from main import check_commands
 from typing import Union

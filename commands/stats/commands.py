@@ -2,7 +2,7 @@ import coc
 import disnake
 from disnake.ext import commands
 from discord import convert, autocomplete, options
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from exceptions.CustomExceptions import MessageException
 from .utils import war_hitrate, war_hitcount
 

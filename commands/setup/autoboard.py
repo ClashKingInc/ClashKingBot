@@ -1,7 +1,7 @@
 from disnake.ext import commands
 import disnake
 
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 
 class autoB(commands.Cog, name="Board Setup"):
 

@@ -3,7 +3,7 @@ import disnake
 from utility.components import create_components, townhall_component, clan_component, role_component
 from utility.discord_utils import interaction_handler
 from datetime import datetime
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from main import check_commands
 from datetime import timedelta
 import pytz

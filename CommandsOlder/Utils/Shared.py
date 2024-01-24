@@ -6,8 +6,8 @@ import coc
 from datetime import datetime
 import pandas as pd
 from utility.general import notate_number as B, custom_round
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from classes.bot import CustomClient
+from classes.player import MyCustomPlayer
 from collections import defaultdict
 from utility.constants import SHORT_PLAYER_LINK, item_to_name, TOWNHALL_LEVELS
 from utility.graphing import graph_creator

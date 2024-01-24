@@ -3,7 +3,7 @@
 from typing import List, TYPE_CHECKING
 import disnake
 if TYPE_CHECKING:
-    from CustomClasses.CustomBot import CustomClient
+    from classes.bot import CustomClient
 else:
     CustomClient = disnake.Client
 from .Classes.settings import DatabaseServer

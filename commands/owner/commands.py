@@ -8,7 +8,7 @@ clan_tags = ["#2P0JJQGUJ"]
 known_streak = []
 count = 0
 list_size = 0
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 
 war_leagues = json.load(open(f"Assets/war_leagues.json"))
 
@@ -23,13 +23,13 @@ import os
 import coc
 from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
 
-from CustomClasses.ReminderClass import Reminder
+from classes.reminders import Reminder
 from utility.clash.capital import get_raidlog_entry, gen_raid_weekend_datestrings
 #from ImageGen.ClanCapitalResult import generate_raid_result_image
 from pymongo import UpdateOne
 from coc.raid import RaidLogEntry, RaidAttack
 from numerize import numerize
-from CustomClasses.CustomServer import DatabaseClan
+from classes.server import DatabaseClan
 from utility.discord_utils import get_webhook_for_channel
 from exceptions.CustomExceptions import MissingWebhookPerms
 from datetime import datetime
@@ -44,7 +44,7 @@ from msgspec.json import decode
 from msgspec import Struct
 from collections import defaultdict
 from utility.general import custom_round
-from CustomClasses.Ticketing import OpenTicket, TicketPanel, LOG_TYPE
+from classes.tickets import OpenTicket, TicketPanel, LOG_TYPE
 import traceback
 import textwrap
 from contextlib import redirect_stdout

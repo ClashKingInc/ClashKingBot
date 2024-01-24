@@ -5,8 +5,8 @@ import io
 import calendar
 from datetime import datetime, timedelta
 from disnake.ext import commands
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer, LegendDay
+from classes.bot import CustomClient
+from classes.player import MyCustomPlayer, LegendDay
 from typing import Dict, List
 from coc import utils
 from openpyxl import load_workbook, Workbook

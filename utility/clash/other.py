@@ -6,7 +6,7 @@ from collections import defaultdict
 from utility.discord_utils import fetch_emoji
 from utility.constants import DARK_ELIXIR, SUPER_TROOPS
 from pytz import utc
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from classes.player import MyCustomPlayer
 
 from datetime import datetime, timedelta
 

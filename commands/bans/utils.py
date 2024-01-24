@@ -1,8 +1,8 @@
 import disnake
 from datetime import datetime
 import coc
-from CustomClasses.ClashKingAPI.Classes.bans import BannedResponse, BannedUser
-from CustomClasses.CustomBot import CustomClient
+from classes.ClashKingAPI.Classes.bans import BannedResponse, BannedUser
+from classes.bot import CustomClient
 from typing import List
 from utility.general import get_guild_icon
 

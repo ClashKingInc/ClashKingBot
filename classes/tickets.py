@@ -1,6 +1,6 @@
 import disnake
 
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from disnake import Embed, ButtonStyle
 from disnake.ui import Button
 from typing import List

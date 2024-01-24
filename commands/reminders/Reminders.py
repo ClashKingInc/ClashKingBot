@@ -5,7 +5,7 @@ from main import check_commands
 from disnake.ext import commands
 from typing import Union, List
 from FamilyManagement.Reminders import ReminderUtils
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from exceptions.CustomExceptions import NotValidReminderTime
 
 class ReminderCreation(commands.Cog, name="Reminders"):

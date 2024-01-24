@@ -2,8 +2,8 @@ from disnake.ext import commands
 import disnake
 import coc
 from utility.components import create_components
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from classes.bot import CustomClient
+from classes.player import MyCustomPlayer
 from utility.components import leaderboard_components
 from exceptions.CustomExceptions import MessageException
 from utility.discord_utils import interaction_handler

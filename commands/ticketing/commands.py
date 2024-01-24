@@ -4,13 +4,13 @@ import disnake
 from operator import attrgetter
 from exceptions.CustomExceptions import *
 from typing import  Union
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from disnake.ext import commands
 from datetime import datetime
 from utility.cdn import upload_to_cdn
 from main import check_commands
 from utility.discord_utils import interaction_handler
-from CustomClasses.Ticketing import TicketPanel, OpenTicket, LOG_TYPE
+from classes.tickets import TicketPanel, OpenTicket, LOG_TYPE
 from discord.autocomplete import Autocomplete as autocomplete
 from disnake import ButtonStyle
 from utility.constants import TOWNHALL_LEVELS

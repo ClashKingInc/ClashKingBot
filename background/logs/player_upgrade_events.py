@@ -3,8 +3,8 @@ import disnake
 import coc
 import re
 
-from CustomClasses.CustomServer import DatabaseClan
-from CustomClasses.CustomBot import CustomClient
+from classes.server import DatabaseClan
+from classes.bot import CustomClient
 from background.logs.event_websockets import player_ee
 from utility.clash import league_emoji
 from pytz import utc

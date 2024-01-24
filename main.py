@@ -3,7 +3,7 @@ import disnake
 import traceback
 import motor.motor_asyncio
 import sentry_sdk
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from disnake import Client
 from disnake.ext import commands
 import argparse

@@ -3,7 +3,7 @@ import coc
 import calendar
 
 from disnake.ext import commands
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from utility.constants import item_to_name
 from utility.ClanCapital import gen_raid_weekend_datestrings
 

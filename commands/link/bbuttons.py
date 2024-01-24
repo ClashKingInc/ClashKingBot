@@ -1,9 +1,9 @@
 import disnake
 
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from classes.bot import CustomClient
+from classes.player import MyCustomPlayer
 from disnake.ext import commands
-from CustomClasses.CustomServer import CustomServer
+from classes.server import CustomServer
 from ..eval.utils import logic
 
 class LinkWelcomeMessages(commands.Cog):

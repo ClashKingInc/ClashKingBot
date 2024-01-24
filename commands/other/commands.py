@@ -1,7 +1,7 @@
 import disnake
 from disnake.ext import commands
 import time
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 import io
 from PIL import Image, ImageDraw, ImageFont
 from utility.components import create_components

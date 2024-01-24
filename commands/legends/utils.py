@@ -11,8 +11,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pendulum as pend
 
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.DatabaseClient.Classes.player import LegendPlayer, LegendDay
+from classes.bot import CustomClient
+from classes.DatabaseClient.Classes.player import LegendPlayer, LegendDay
 from utility.discord_utils import register_button
 from utility.general import create_superscript
 from utility.clash.other import gen_season_date, gen_legend_date

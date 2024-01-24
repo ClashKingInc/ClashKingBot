@@ -3,7 +3,7 @@ import coc
 
 from disnake.ext import commands
 from typing import List
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from discord.converters import Convert as convert
 from discord.autocomplete import Autocomplete as autocomplete
 from datetime import datetime

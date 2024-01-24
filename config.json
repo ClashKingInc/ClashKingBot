@@ -1,0 +1,71 @@
+
+{
+  "mode" : {
+    "beta" : false,
+    "prod" : false,
+    "test" : false,
+    "custom" : false
+  },
+  "clash_api" : {
+    "email" : null,
+    "password" : null,
+    "key_count" : 10,
+    "throttle_limit" : 500,
+    "cache_max_size" : 1000,
+    "load_game_data" : true,
+    "raw_attribute" : true,
+    "stats_max_size" : 10000,
+    "key_name" : "DiscordBot"
+  },
+  "kafka" : {
+    "holder" : null
+  },
+  "mongodb_1" : {
+    "nickname" : "Looper",
+    "connection_string" : null,
+    "access" : null
+  },
+  "mongodb_2" : {
+    "nickname" : "Static",
+    "connection_string" : null,
+    "in_use" : null,
+  },
+  "redis" : {
+    "db" : 0,
+    "host" : null,
+    "password" : null,
+    "max_connections" : 250,
+    "in_use" : null
+  },
+  "bot" : {
+    "token" : null,
+    "faq_channel_id" : null,
+    "prefix" : "??",
+    "default_embed_color" : null,
+    "badge_emoji_servers" : []
+  },
+  "link_api" : {
+    "username" : null,
+    "password" : null,
+    "in_use" : null
+  },
+  "reddit" : {
+    "secret" : null,
+    "username" : null,
+    "password" : null
+  },
+  "sentry" : {
+    "DSN" : null,
+    "sample_rate" : 1.0,
+    "in_use" : null
+  },
+  "openai_api" : {
+    "token" : null,
+    "in_use" : null
+  },
+  "cdn" : {
+    "post_url" : null,
+    "access_url" : null,
+    "token" : null
+  }
+}

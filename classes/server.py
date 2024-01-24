@@ -2,14 +2,13 @@ import coc
 import disnake
 
 from typing import Union, List, TYPE_CHECKING
-from utility.constants import ROLE_TREATMENT_TYPES
+from utility.constants import ROLE_TREATMENT_TYPES, EMBED_COLOR
 if TYPE_CHECKING:
-    from CustomClasses.CustomBot import CustomClient
+    from classes.bot import CustomClient
 else:
     from disnake.ext.commands import AutoShardedBot as CustomClient
 from exceptions.CustomExceptions import MessageException
 from coc import utils
-
 
 class DatabaseServer():
     def __init__(self, bot: CustomClient, data):
@@ -25,87 +24,64 @@ class DatabaseServer():
         self.ignored_roles = [EvalRole(bot=bot, data=d) for d in data.get("eval", {}).get("ignored_roles", [])]
         self.family_roles = [EvalRole(bot=bot, data=d) for d in data.get("eval", {}).get("family_roles", [])]
         self.not_family_roles = [EvalRole(bot=bot, data=d) for d in data.get("eval", {}).get("not_family_roles", [])]
-        self.only_family_roles = [EvalRole(bot=bot, data=d) for d in data.get("eval", {}).get("only_family_roles", [])]
-
         self.townhall_roles = [TownhallRole(bot=bot, data=d) for d in data.get("eval", {}).get("townhall_roles", [])]
         self.builderhall_roles = [BuilderHallRole(bot=bot, data=d) for d in data.get("eval", {}).get("builderhall_roles", [])]
-
-        self.achievement_roles = [AchievementRole(data=d) for d in data.get("achievement_roles", [])]
-
-        self.status_roles = [StatusRole(data=d) for d in data.get("status_roles", [])]
-
+        self.achievement_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get("eval", {}).get("achievement_roles", [])]
+        self.status_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get("eval", {}).get("status_roles", [])]
         self.clans = [DatabaseClan(bot=bot, data=d) for d in data.get("clans", [])]
-        self.category_roles = data.get("category_roles", {})
+        self.category_roles = data.get("category_roles")
+        self.eval_non_members: bool = data.get("eval_non_members", True)
         self.blacklisted_roles: List[int] = data.get("blacklisted_roles", [])
         self.role_treatment: List[str] = data.get("role_treatment", ROLE_TREATMENT_TYPES)
         self.auto_eval_nickname: bool = data.get("auto_eval_nickname", False)
         self.family_label = data.get("family_label", "")
         self.banlist_channel = data.get("banlist")
         self.reddit_feed = data.get("reddit_feed")
-        self.embed_color = disnake.Color(data.get("embed_color", 0x2ECC71))
+        self.embed_color = disnake.Color(data.get("embed_color", EMBED_COLOR))
         self.tied_stats_only = data.get("tied", True)
         self.autoeval_triggers = data.get("autoeval_triggers", [])
 
         self.nickname_convention = data.get("nickname_rule", "{player_name}")
-        self.change_nickname = data.get("change_nickname", True)
-        self.flair_non_family: bool = data.get("flair_non_family", True)
-
-
-
-    async def set_flair_non_family(self, option: bool):
-        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"flair_non_family": option}})
-
-
-
-    async def set_allowed_link_parse(self, type: str, status: bool):
-        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {f"link_parse.{type}": status}})
+        self.change_nickname = data.get("change_nickname", False)
 
 
     async def set_change_nickname(self, status: bool):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"change_nickname": status}})
 
-
     async def set_nickname_convention(self, rule: str):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"nickname_rule": rule}})
-
-
-    async def set_auto_eval_nickname(self, status: bool):
-        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"auto_eval_nickname": status}})
-
 
     async def set_banlist_channel(self, id: Union[int, None]):
         await self.bot.server_db.update_one({"server": self.server_id}, {'$set': {"banlist": id}})
 
+    async def set_family_label(self, label: str):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"family_label": label}})
 
     async def set_api_token(self, status: bool):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"api_token": status}})
 
-
     async def set_leadership_eval(self, status: bool):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"leadership_eval": status}})
-
 
     async def add_blacklisted_role(self, id: int):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$push": {"blacklisted_roles": id}})
 
-
     async def remove_blacklisted_role(self, id: int):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$pull": {"blacklisted_roles": id}})
-
 
     async def set_role_treatment(self, treatment: List[str]):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"role_treatment": treatment}})
 
+    async def set_auto_eval_nickname(self, status: bool):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"auto_eval_nickname": status}})
 
     async def set_tied_stats(self, state: bool):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"tied": state}})
-
 
     async def set_hex_code(self, hex_code: str):
         hex_code = hex_code.replace("#", "")
         hex_code = int(hex_code, 16)
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"embed_color": hex_code}})
-
 
     async def get_achievement_role_by_type(self, type: str, award_type: str = None):
 
@@ -114,16 +90,9 @@ class DatabaseServer():
             result = filter(lambda x : x.get("amount") > 100 if award_type == "amount" else x.get("amount") <= 100, result)
         return result
 
-
-    async def add_achievement_role(self, type: str, season: str, amount: int,  role_id: int):
-        #scope = both, family, clan
+    async def add_achievement_role(self, type: str, season: str, amount: int):
         await self.bot.server_db.update_one({"server": self.server_id},
-                                            {"$addToSet": {f"achievement_roles": {"type" : type, "season" : season, "amount" : amount, "id" : role_id}}})
-
-
-    async def add_status_role(self, months: int, role_id: int):
-        await self.bot.server_db.update_one({"server": self.server_id},
-                                            {"$addToSet": {f"status_roles": {"months": months, "id" : role_id}}})
+                                            {"$push": {f"achievement_roles.{type}": {"season" : season, "amount" : amount}}})
 
     def get_clan(self, clan_tag: str):
         matching_clan = utils.get(self.clans, tag=clan_tag)
@@ -147,23 +116,6 @@ class MultiTypeRole(EvalRole):
     def __init__(self, bot: CustomClient, data):
         super().__init__(bot=bot, data=data)
         self.type: str = data.get("type")
-
-
-class AchievementRole():
-    def __init__(self, data: dict):
-        self.type = data.get("type")
-        self.season = data.get("season")
-        self.amount = data.get("amount")
-        self.id = data.get("id")
-
-    @property
-    def is_rank(self):
-        return (self.amount <= 100)
-
-class StatusRole():
-    def __init__(self, data: dict):
-        self.months = data.get("months")
-        self.id = data.get("id")
 
 class TownhallRole(EvalRole):
     def __init__(self, bot: CustomClient, data):

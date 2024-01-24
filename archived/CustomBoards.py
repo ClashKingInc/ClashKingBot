@@ -5,7 +5,7 @@ from utility.discord_utils import permanent_image, interaction_handler
 from disnake.ext import commands
 from exceptions.CustomExceptions import *
 from operator import attrgetter
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 
 class CustomBoards(commands.Cog):
     def __init__(self, bot: CustomClient):

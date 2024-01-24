@@ -4,7 +4,7 @@ import asyncio
 import calendar
 
 from disnake.ext import commands
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from utility.discord_utils import interaction_handler
 from utility.constants import leagues, war_leagues
 from coc.miscmodels import Timestamp

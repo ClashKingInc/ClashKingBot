@@ -1,7 +1,7 @@
 import datetime
 import disnake
 from disnake.ext import commands
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from main import check_commands
 from urlextract import URLExtract
 extractor = URLExtract()

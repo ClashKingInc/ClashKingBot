@@ -1,8 +1,8 @@
 import coc
 from disnake.ext import commands
 import disnake
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomServer import CustomServer
+from classes.bot import CustomClient
+from classes.server import CustomServer
 from main import check_commands
 from utility.search import search_results
 from ..eval.utils import logic

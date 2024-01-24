@@ -1,5 +1,5 @@
 from disnake.ext import commands
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from utility.player_pagination import button_pagination
 from datetime import datetime
 

@@ -12,7 +12,7 @@ from utility.constants import leagues
 from utility.clash.capital import get_season_raid_weeks
 from utility.clash.other import gen_season_start_end_as_timestamp, gen_season_start_end_as_iso
 from utility.cdn import upload_html_to_cdn
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 import statistics
 import pendulum as pend
 

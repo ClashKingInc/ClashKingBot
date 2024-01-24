@@ -5,7 +5,7 @@ from coc import utils
 from assets.emojiDictionary import emojiDictionary
 from assets.thPicDictionary import thDictionary
 from datetime import datetime, timedelta
-from CustomClasses.Emojis import EmojiType
+from classes.emoji import EmojiType
 from collections import defaultdict
 from utility.clash.capital import gen_raid_weekend_datestrings
 from utility.constants import SHORT_PLAYER_LINK, HOME_VILLAGE_HEROES
@@ -14,7 +14,7 @@ import re
 from typing import List, TYPE_CHECKING
 from pytz import utc
 if TYPE_CHECKING:
-    from CustomClasses.CustomBot import CustomClient
+    from classes.bot import CustomClient
 else:
     from disnake import Client as CustomClient
 

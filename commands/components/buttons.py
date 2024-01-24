@@ -3,7 +3,7 @@ import disnake
 import inspect
 
 from disnake.ext import commands
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from utility.discord_utils import registered_functions
 
 

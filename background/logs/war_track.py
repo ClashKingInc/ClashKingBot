@@ -6,7 +6,7 @@ import pytz
 from ImageGen import WarEndResult as war_gen
 from disnake.ext import commands
 from assets.emojiDictionary import emojiDictionary
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from datetime import datetime
 
 tiz = pytz.utc
@@ -14,7 +14,7 @@ SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 from background.logs.event_websockets import war_ee
 from utility.war import create_reminders, schedule_war_boards, war_start_embed, main_war_page, missed_hits, store_war, update_war_message
 from utility.general import create_superscript
-from CustomClasses.CustomServer import DatabaseClan
+from classes.server import DatabaseClan
 from BoardCommands.Utils.War import attacks_embed, defenses_embed
 from utility.discord_utils import get_webhook_for_channel
 from exceptions.CustomExceptions import MissingWebhookPerms

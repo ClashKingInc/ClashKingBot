@@ -3,7 +3,7 @@ import coc
 import disnake
 import math
 from main import scheduler
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from pymongo import InsertOne
 
 class AutoEvalBackground(commands.Cog):

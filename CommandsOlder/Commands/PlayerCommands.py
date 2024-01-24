@@ -4,8 +4,8 @@ import coc
 
 from disnake.ext import commands
 from typing import List
-from CustomClasses.CustomPlayer import MyCustomPlayer
-from CustomClasses.CustomBot import CustomClient
+from classes.player import MyCustomPlayer
+from classes.bot import CustomClient
 from exceptions.CustomExceptions import *
 from DiscordLevelingCard import RankCard, Settings
 from operator import attrgetter

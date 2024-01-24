@@ -6,13 +6,13 @@ import pytz
 
 
 from typing import List
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from disnake.ext import commands
 from datetime import datetime
 from main import check_commands
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from classes.player import MyCustomPlayer
 from utility.discord_utils import interaction_handler
-from CustomClasses.Ticketing import TicketPanel, LOG_TYPE, OpenTicket
+from classes.tickets import TicketPanel, LOG_TYPE, OpenTicket
 from .utils import ask_questions, open_ticket, message_convertor
 tiz = pytz.utc
 from utility.player_pagination import button_pagination

@@ -4,13 +4,13 @@ import asyncio
 
 from coc.raid import RaidLogEntry
 from datetime import datetime
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer, ClanCapitalWeek
+from classes.bot import CustomClient
+from classes.player import MyCustomPlayer, ClanCapitalWeek
 from utility.general import create_superscript
 from utility.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry, calc_raid_medals
 from utility.constants import item_to_name, SHORT_PLAYER_LINK, leagues
 from utility.clash import cwl_league_emojis
-from CustomClasses.Enums import TrophySort
+from classes.enum import TrophySort
 from collections import defaultdict
 from typing import List
 from pytz import utc

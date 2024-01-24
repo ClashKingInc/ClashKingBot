@@ -4,7 +4,7 @@ from utility.components import create_components
 
 import emoji as emoji_package
 
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 
 class Awards(commands.Cog):
 

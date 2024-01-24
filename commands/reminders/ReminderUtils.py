@@ -1,13 +1,13 @@
 import disnake
 import coc
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.ReminderClass import Reminder
+from classes.bot import CustomClient
+from classes.reminders import Reminder
 from utility.discord_utils import interaction_handler
 from exceptions.CustomExceptions import ExpiredComponents, ThingNotFound
 from typing import List
 from utility.components import clan_component
 from utility.constants import TOWNHALL_LEVELS, ROLES
-from CustomClasses.Roster import Roster
+from classes.roster import Roster
 from datetime import datetime
 from pytz import utc
 

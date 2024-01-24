@@ -1,7 +1,7 @@
 import pytz
 import os
 import time
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from disnake.ext import commands, tasks
 
 utc = pytz.utc

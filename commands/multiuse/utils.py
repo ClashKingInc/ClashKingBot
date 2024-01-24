@@ -3,7 +3,7 @@ import coc
 import disnake
 import pendulum as pd
 
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from exceptions.CustomExceptions import MessageException
 from utility.discord_utils import register_button, interaction_handler
 

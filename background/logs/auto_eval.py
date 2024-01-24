@@ -3,8 +3,8 @@ import disnake
 import coc
 
 from disnake.ext import commands
-from CustomClasses.CustomServer import DatabaseServer
-from CustomClasses.CustomBot import CustomClient
+from classes.server import DatabaseServer
+from classes.bot import CustomClient
 from background.logs.event_websockets import clan_ee
 from Link_and_Eval.eval_logic import eval_logic
 

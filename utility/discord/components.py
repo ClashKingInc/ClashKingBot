@@ -1,6 +1,6 @@
 import disnake
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from classes.bot import CustomClient
+from classes.player import MyCustomPlayer
 from typing import List
 import coc
 from utility.constants import BOARD_TYPES

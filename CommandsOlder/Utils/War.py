@@ -4,14 +4,14 @@ import operator
 import re
 
 from datetime import datetime
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from pytz import utc
 from collections import defaultdict
 from utility.general import create_superscript
 from utility.clash.other import cwl_league_emojis, leagueAndTrophies
 from utility.constants import war_leagues, leagues, SUPER_SCRIPTS
 from assets.emojiDictionary import emojiDictionary
-from CustomClasses.Misc import WarPlan
+from classes.misc import WarPlan
 from typing import List
 
 async def main_war_page(bot: CustomClient, war: coc.ClanWar, war_league=None):

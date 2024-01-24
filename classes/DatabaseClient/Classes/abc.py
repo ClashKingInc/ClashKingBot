@@ -1,6 +1,6 @@
 import coc
 from utility.constants import SUPER_SCRIPTS, SHORT_CLAN_LINK, SHORT_PLAYER_LINK
-from CustomClasses.Emojis import EmojiType
+from classes.emoji import EmojiType
 from assets.emojiDictionary import emojiDictionary
 from assets.thPicDictionary import thDictionary
 import emoji

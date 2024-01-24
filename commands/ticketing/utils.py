@@ -3,10 +3,10 @@ import re
 import pytz
 import coc
 from typing import List
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from datetime import datetime
-from CustomClasses.CustomPlayer import MyCustomPlayer
-from CustomClasses.Ticketing import TicketPanel, Ticket_Buttons, OpenTicket, ApproveMessages
+from classes.player import MyCustomPlayer
+from classes.tickets import TicketPanel, Ticket_Buttons, OpenTicket, ApproveMessages
 tiz = pytz.utc
 from utility.clash.other import heros
 

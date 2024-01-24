@@ -3,8 +3,8 @@ import disnake
 from utility.search import search_results
 from utility.components import create_components
 from utility.general import create_superscript
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import LegendRanking
+from classes.bot import CustomClient
+from classes.player import LegendRanking
 import math
 from assets.thPicDictionary import thDictionary
 from exceptions.CustomExceptions import NoLinkedAccounts, ExpiredComponents

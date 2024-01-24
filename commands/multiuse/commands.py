@@ -4,7 +4,7 @@ import coc
 import disnake
 import uuid
 from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from disnake.ext import commands
 from typing import List
 

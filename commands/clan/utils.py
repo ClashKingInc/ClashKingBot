@@ -4,8 +4,8 @@ import disnake
 from disnake import Embed
 from disnake.utils import get
 from collections import  namedtuple
-from CustomClasses.CustomPlayer import MyCustomPlayer, LegendRanking, ClanCapitalWeek
-from CustomClasses.CustomBot import CustomClient
+from classes.player import MyCustomPlayer, LegendRanking, ClanCapitalWeek
+from classes.bot import CustomClient
 from typing import List
 from ballpark import ballpark as B
 from statistics import mean

@@ -1,7 +1,7 @@
 from utility.constants import ROLES, TOWNHALL_LEVELS
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from typing import List
-from CustomClasses.Roster import Roster
+from classes.roster import Roster
 
 class Reminder:
     def __init__(self, bot: CustomClient, data):

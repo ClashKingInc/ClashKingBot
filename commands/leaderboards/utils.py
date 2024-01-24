@@ -3,12 +3,12 @@ import time
 import coc
 import disnake
 
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from typing import List
 from exceptions.CustomExceptions import MessageException
 import pendulum as pend
 import re
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from classes.player import MyCustomPlayer
 import aiohttp
 import ujson
 from utility.general import get_guild_icon

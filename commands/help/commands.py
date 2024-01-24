@@ -1,7 +1,7 @@
 import disnake
 
 from disnake.ext import commands
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from typing import Dict, List
 from collections import defaultdict
 from utility.discord_utils import interaction_handler

@@ -5,13 +5,13 @@ import disnake
 from disnake.ext import commands
 
 from main import scheduler
-from CustomClasses.CustomBot import CustomClient
+from classes.bot import CustomClient
 from utility.clash.capital import get_raidlog_entry, gen_raid_weekend_datestrings
 from BoardCommands.Utils.Clan import clan_raid_weekend_raid_stats, clan_raid_weekend_donation_stats
 from ImageGen.ClanCapitalResult import generate_raid_result_image
 from pymongo import UpdateOne
 from coc.raid import RaidLogEntry
-from CustomClasses.CustomServer import DatabaseClan
+from classes.server import DatabaseClan
 from utility.discord_utils import get_webhook_for_channel
 from exceptions.CustomExceptions import MissingWebhookPerms
 

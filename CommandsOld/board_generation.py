@@ -1,8 +1,8 @@
 
 import disnake
 from datetime import datetime
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.ClashKingAPI.OldCLasses import ActivityResponse, DonationResponse, ClanGamesResponse
+from classes.bot import CustomClient
+from classes.ClashKingAPI.OldCLasses import ActivityResponse, DonationResponse, ClanGamesResponse
 from utility.general import create_superscript
 
 

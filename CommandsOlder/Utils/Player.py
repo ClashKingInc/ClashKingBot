@@ -9,10 +9,10 @@ from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entr
 from utility.clash import *
 from utility.general import acronym, create_superscript
 from utility.discord_utils import interaction_handler
-from CustomClasses.CustomBot import CustomClient
-from CustomClasses.CustomPlayer import MyCustomPlayer
+from classes.bot import CustomClient
+from classes.player import MyCustomPlayer
 from numerize import numerize
-from CustomClasses.PlayerHistory import StayType
+from classes.clashofstats import StayType
 from typing import List
 from pytz import utc
 from coc.raid import RaidMember, RaidLogEntry
