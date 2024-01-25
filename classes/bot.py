@@ -1,5 +1,3 @@
-import time
-
 import ujson
 import dateutil.relativedelta
 import coc
@@ -20,7 +18,6 @@ from math import ceil
 from datetime import datetime, timedelta
 from coc.ext import discordlinks
 from disnake.ext import commands
-from collections import defaultdict
 from dotenv import load_dotenv
 from typing import Dict, List
 from assets.emojiDictionary import emojiDictionary, legend_emojis
@@ -37,10 +34,12 @@ utc = pytz.utc
 load_dotenv()
 
 
+
 class CustomClient(commands.AutoShardedBot):
     def __init__(self, **options):
         super().__init__(**options)
 
+        self.__config: dict = options.pop("config")
         self.ck_client: FamilyClient = None
 
         self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))

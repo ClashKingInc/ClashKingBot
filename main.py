@@ -7,6 +7,12 @@ from classes.bot import CustomClient
 from disnake import Client
 from disnake.ext import commands
 import argparse
+import json
+from types import SimpleNamespace
+data = json.load(open(f"hidden_config.json"))
+
+# Parse JSON into an object with attributes corresponding to dict keys.
+x = json.loads(data, object_hook=lambda d: SimpleNamespace(**d))
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
@@ -14,6 +20,7 @@ from background.logs.event_websockets import kafka_events
 
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
+
 
 parser = argparse.ArgumentParser(description="Just an example", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-c", "--custom", action="store_true", help="custom mode")
