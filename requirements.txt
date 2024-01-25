@@ -1,33 +1,33 @@
-git+https://github.com/MagicTheDev/coc.py.git
 aiofiles==0.6.0
 APScheduler==3.9.1
 asyncpraw==7.5.0
-ballpark==1.4.0
+ballpark @ git+https://github.com/Mee6/python-ballpark.git@5ab86393ba8cb2f306187f393aca8ec5b3bbbbae
 beautifulsoup4==4.10.0
 bs4==0.0.1
 chat-exporter @ git+https://github.com/MagicTheDev/DiscordChatExporterPy@42ff2ae12628e62ace81e7f69205729c115a5ba6
+coc.py @ git+https://github.com/MagicTheDev/coc.py.git@49ff1a26d98e8fd8efa6d1d9175a0bb029bba4fb
 datawrapper==0.5
-DiscordLevelingCard @ git+https://github.com/MagicTheDev/DiscordLevelingCard.git#egg=DiscordLEvelingCard
 disnake==2.7.0
 dnspython==2.1.0
 emoji==1.6.3
 expiring-dict==1.1.0
 ipython==8.13.0
+kafka-python==2.0.2
 matplotlib==3.7.1
-motor==3.1.2
+motor==3.3.2
 msgspec==0.15.1
 numerize==0.12
 openai==0.27.8
 openpyxl==3.1.2
 orjson==3.9.0
 pandas==1.5.0
+pendulum==2.1.2
 plotly==5.14.1
 pymitter==0.4.0
 python-dateutil==2.8.2
 python-dotenv==0.19.2
 pytz==2021.3
 redis==4.6.0
-scipy==1.9.3
 sentry_sdk==1.25.0
 stringcase==1.2.0
 Wand==0.6.7
