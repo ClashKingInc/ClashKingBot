@@ -22,12 +22,11 @@
   "mongodb_1" : {
     "nickname" : "Looper",
     "connection_string" : null,
-    "access" : null
   },
   "mongodb_2" : {
     "nickname" : "Static",
     "connection_string" : null,
-    "in_use" : null,
+    "in_use" : null
   },
   "redis" : {
     "db" : 0,
