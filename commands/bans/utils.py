@@ -1,12 +1,12 @@
 import disnake
 from datetime import datetime
 import coc
-from classes.ClashKingAPI.Classes.bans import BannedResponse, BannedUser
+#from classes.ClashKingAPI.Classes.bans import BannedResponse, BannedUser
 from classes.bot import CustomClient
 from typing import List
 from utility.general import get_guild_icon
 
-async def ban_player_extras(bot: CustomClient, banned_user: BannedResponse, who: disnake.User):
+async def ban_player_extras(bot: CustomClient, banned_user, who: disnake.User):
     if banned_user.new_entry:
         pass
     else:
@@ -43,7 +43,7 @@ async def ban_player_extras(bot: CustomClient, banned_user: BannedResponse, who:
 
 
 
-async def create_embeds(bot: CustomClient, bans: List[BannedUser], guild: disnake.Guild, embed_color: disnake.Color):
+async def create_embeds(bot: CustomClient, bans: list, guild: disnake.Guild, embed_color: disnake.Color):
     embeds = []
 
     hold = ""

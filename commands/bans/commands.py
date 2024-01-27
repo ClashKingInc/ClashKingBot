@@ -6,7 +6,7 @@ from datetime import datetime
 from classes.bot import CustomClient
 from main import check_commands
 from utility.constants import EMBED_COLOR
-from classes.ClashKingAPI.Classes.bans import BannedUser, BannedResponse
+#from classes.ClashKingAPI.Classes.bans import BannedUser, BannedResponse
 from typing import List
 from .utils import ban_player_extras, create_embeds
 from discord.autocomplete import Autocomplete as autocomplete

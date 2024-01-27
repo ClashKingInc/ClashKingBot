@@ -9,10 +9,10 @@ from disnake.ext import commands
 import argparse
 import json
 from types import SimpleNamespace
-data = json.load(open(f"hidden_config.json"))
+#data = json.load(open(f"hidden_config.json"))
 
 # Parse JSON into an object with attributes corresponding to dict keys.
-x = json.loads(data, object_hook=lambda d: SimpleNamespace(**d))
+#x = json.loads(data, object_hook=lambda d: SimpleNamespace(**d))
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc

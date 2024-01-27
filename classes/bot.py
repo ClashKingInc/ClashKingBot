@@ -39,7 +39,7 @@ class CustomClient(commands.AutoShardedBot):
     def __init__(self, **options):
         super().__init__(**options)
 
-        self.__config: dict = options.pop("config")
+        self.__config: dict = options.pop("config", None)
         self.ck_client: FamilyClient = None
 
         self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))

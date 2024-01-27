@@ -16,7 +16,7 @@ from utility.components import player_components
 from utility.search import search_results
 from discord.converters import Convert as convert
 from discord.autocomplete import Autocomplete as autocomplete
-from CommandsOlder.Utils.Player import create_profile_troops
+#from CommandsOlder.Utils.Player import create_profile_troops
 
 
 class PlayerCommands(commands.Cog, name="Player Commands"):
