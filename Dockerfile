@@ -1,9 +1,8 @@
 FROM python:3.11-bookworm
 
-WORKDIR /usr/app/src
-
-COPY ./requirements.txt /usr/app/src/requirements.txt
-
+COPY requirements.txt /app/
+WORKDIR /app
 RUN pip install -r requirements.txt
+COPY ..
 
-CMD ["python", "main.py"]
+CMD ["python3", "main.py"]
