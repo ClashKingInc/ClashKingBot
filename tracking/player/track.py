@@ -9,7 +9,7 @@ import snappy
 
 from msgspec.msgpack import decode
 from loguru import logger
-from .utils import Player, get_player_changes, gen_legend_date, gen_season_date, gen_raid_date, gen_games_season
+from tracking.player.utils import Player, get_player_changes, gen_legend_date, gen_season_date, gen_raid_date, gen_games_season
 
 from pymongo import InsertOne, UpdateOne
 
