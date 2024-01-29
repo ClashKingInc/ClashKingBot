@@ -10,8 +10,8 @@ import snappy
 from msgspec.json import decode
 from loguru import logger
 from tracking.player.utils import Player, get_player_changes, gen_legend_date, gen_season_date, gen_raid_date, gen_games_season
-
 from pymongo import InsertOne, UpdateOne
+
 
 
 async def get_clan_member_tags(clan_db, keys: deque):
@@ -114,13 +114,13 @@ async def get_player_responses(keys: deque, tags: list[str], cache: redis.Redis,
     return results
 
 
-async def player_response_handler(new_response: bytes, cache: redis.Redis, bulk_db_changes: list, auto_complete: list, set_clan_tags: set, bulk_insert: list, bulk_clan_changes: list):
+async def player_response_handler(new_response: bytes, cache, previous_compressed_response: bytes, bulk_db_changes: list, auto_complete: list,
+                                  set_clan_tags: set, bulk_insert: list, bulk_clan_changes: list):
     obj = decode(new_response, type=Player)
     compressed_new_response = snappy.compress(new_response)
-    previous_compressed_response = await cache.get(obj.tag)
 
     if compressed_new_response != previous_compressed_response:
-        await cache.set(obj.tag, compressed_new_response, ex=2_592_000)
+        cache.set(obj.tag, compressed_new_response, ex=2_592_000)
         if previous_compressed_response is None:
             return None
 
@@ -402,7 +402,7 @@ async def main(keys: deque, cache: redis.Redis, stats_mongo_client, static_mongo
     player_search = static_mongo_client.usafam.player_search
 
 
-    loop_spot = -1
+    loop_spot = 0
     while True:
         try:
             loop_spot += 1
@@ -423,12 +423,13 @@ async def main(keys: deque, cache: redis.Redis, stats_mongo_client, static_mongo
             for count, tag_group in enumerate(split_tags, 1):
                 group_time_inside = time.time()
                 responses = await get_player_responses(keys=keys, tags=tag_group, cache=cache, player_stats=player_stats, player_search=player_search)
-                for response in responses:
-                    if not isinstance(response, bytes):
-                        continue
-                    await player_response_handler(new_response=response, cache=cache, bulk_db_changes=bulk_db_changes,
+                cache_results = await cache.mget(keys=tag_group)
+                pipe = cache.pipeline()
+                response_tasks = [player_response_handler(new_response=response, cache=pipe, previous_compressed_response=cache_results[count], bulk_db_changes=bulk_db_changes,
                                                   bulk_insert=bulk_insert, bulk_clan_changes=bulk_clan_changes, auto_complete=auto_complete,
-                                                  set_clan_tags=clan_tag_set)
+                                                  set_clan_tags=clan_tag_set) for count, response in enumerate(responses) if isinstance(response, bytes)]
+                await asyncio.gather(*response_tasks)
+                await pipe.execute()
                 logger.info(f"GROUP {count} | {len(tag_group)} tags: {time.time() - group_time_inside} sec inside")
 
 
