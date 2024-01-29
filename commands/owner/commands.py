@@ -53,95 +53,8 @@ import re
 from aiohttp import TCPConnector, ClientTimeout, ClientSession
 import ujson
 from typing import Optional, List, Union, Tuple
-import msgspec
-import orjson
-import cysimdjson
 
-
-class Achievement(Struct, frozen=True):
-    name: str
-    stars: int
-    value: int
-    target: int
-    info: str
-    completionInfo: Union[str, None]
-    village: str
-
-class BadgeUrls(Struct, frozen=True):
-    small: str
-    medium: str
-    large: str
-
-class Clan(Struct, frozen=True):
-    tag: str
-    name: str
-    clanLevel: int
-    badgeUrls: BadgeUrls
-
-class Troop(Struct, frozen=True):
-    name: str
-    level: int
-    maxLevel: int
-    village: str
-
-
-class Player(Struct, frozen=True, dict=True):
-    tag: str
-    name: str
-    townHallLevel: int
-    expLevel: int
-    trophies: int
-    bestTrophies: int
-    warStars: int
-    attackWins: int
-    defenseWins: int
-    builderBaseTrophies: int
-    bestBuilderBaseTrophies: int
-    donations: int
-    donationsReceived: int
-    clanCapitalContributions: int
-    achievements: List[Achievement]
-    heroes: List[Troop]
-    spells: List[Troop]
-    troops: List[Troop]
-    role: Optional[str] = None
-    warPreference: Optional[str] = None
-    clan: Optional[Clan] = None
-    client: coc.Client = None
-
-    @property
-    def donation_total(self):
-        return self.donations + self.donationsReceived
-
-class CocPlayer():
-    def __init__(self, player_struct: Player, client: coc.Client):
-        self.tag: str = player_struct.tag
-        self.name: str = player_struct.name
-        self.townHallLevel: int = player_struct.townHallLevel
-        self.expLevel: int = player_struct.expLevel
-        self.trophies: int = player_struct.trophies
-        self.bestTrophies: int = player_struct.bestTrophies
-        self.warStars: int = player_struct.warStars
-        self.attackWins: int = player_struct.attackWins
-        self.defenseWins: int = player_struct.defenseWins
-        self.builderBaseTrophies: int = player_struct.builderBaseTrophies
-        self.bestBuilderBaseTrophies: int = player_struct.bestBuilderBaseTrophies
-        self.donations: int = player_struct.donations
-        self.donationsReceived: int = player_struct.donationsReceived
-        self.clanCapitalContributions: int = player_struct.clanCapitalContributions
-        self.achievements: List[Achievement] = player_struct.achievements
-        self.heroes: List[Troop] = player_struct.troops
-        self.spells: List[Troop] = player_struct.troops
-        self.troops: List[Troop] = player_struct.troops
-        self.role: Optional[str] = player_struct.role
-        self.warPreference: Optional[str] = player_struct.warPreference
-        self.clan: Optional[Clan] = player_struct.clan
-        self.client: coc.Client = client
-
-    @property
-    def donation_total(self):
-        return self.donations + self.donationsReceived
-
+from testing.migrations import migrate_clan_db_simple_schema
 
 
 class OwnerCommands(commands.Cog):
@@ -152,11 +65,6 @@ class OwnerCommands(commands.Cog):
         coc_client: coc.EventsClient = self.bot.coc_client
 
 
-    @commands.slash_command(name="restart-customs", guild_ids=[1103679645439754335])
-    @commands.is_owner()
-    async def restart_custom(self, ctx: disnake.ApplicationCommandInteraction, top: int):
-        for x in range(4, top+1):
-            os.system(f"pm2 restart {x}")
 
 
     @commands.slash_command(name="exec")
@@ -282,21 +190,7 @@ class OwnerCommands(commands.Cog):
     @commands.slash_command(name="test", guild_ids=[1103679645439754335])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
-        updates = []
-        print("starting")
-        all_documents = await self.bot.clan_stats.find({}, projection={"tag" : 1, "2024-01" : 1}).to_list(length=None)
-        print("got docs")
-        for doc in all_documents:
-            set_dict = {}
-            for tag, data in doc.get("2024-01", {}).items():
-                if data.get("clan_games") is None:
-                    continue
-                set_dict[f"2024-01.{tag}.clan_games"] = None
-            if set_dict:
-                updates.append(UpdateOne({"tag" : doc.get("tag")}, {"$set" : set_dict}))
-        print(f"{len(updates)} updates")
-        await self.bot.clan_stats.bulk_write(updates, ordered=False)
-        print("done")
+        await migrate_clan_db_simple_schema(bot=self.bot)
 
 
 
