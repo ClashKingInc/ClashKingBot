@@ -3,7 +3,6 @@ from classes.bot import CustomClient
 from classes.player import MyCustomPlayer
 from typing import List
 import coc
-from utility.clash.other import gen_season_date
 from utility.constants import BOARD_TYPES
 from typing import Union
 
