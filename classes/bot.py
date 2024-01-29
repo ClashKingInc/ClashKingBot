@@ -1,3 +1,4 @@
+import snappy
 import ujson
 import dateutil.relativedelta
 import coc
@@ -485,7 +486,7 @@ class CustomClient(commands.AutoShardedBot):
                 return None
 
 
-    async def get_players(self, tags: list, fresh_tags=None, custom=True, use_cache=True, fake_results=False, found_results=None, max_age=86400):
+    async def get_players(self, tags: list, fresh_tags=None, custom=True, use_cache=True, fake_results=False, found_results=None):
         if fresh_tags is None:
             fresh_tags = []
         if custom and fake_results is False:
@@ -513,6 +514,7 @@ class CustomClient(commands.AutoShardedBot):
             for data in redis_cache_data:
                 if data is None:
                     continue
+                data = snappy.uncompress(data)
                 data = ujson.loads(data)
                 self.player_cache_dict[data.get("tag")] = data
                 tag_set.remove(data.get("tag"))
