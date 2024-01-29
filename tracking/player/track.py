@@ -403,7 +403,7 @@ async def main(keys: deque, cache: redis.Redis, stats_mongo_client, static_mongo
 
     loop_spot = 0
     while True:
-        #try:
+        try:
             loop_spot += 1
             CLAN_MEMBERS, clan_tag_set = await get_clan_member_tags(clan_db=clan_db, keys=keys)
             all_tags = await get_tags_to_track(CLAN_MEMBERS=CLAN_MEMBERS, loop_spot=loop_spot, player_stats=player_stats)
@@ -471,8 +471,8 @@ async def main(keys: deque, cache: redis.Redis, stats_mongo_client, static_mongo
                 results = await player_stats.bulk_write(fix_changes)
                 logger.info(results.bulk_api_result)
                 logger.info(f"FIX CHANGES: {time.time() - time_inside}")
-        #except Exception:
-            #continue
+        except Exception:
+            continue
 
 
 
