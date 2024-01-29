@@ -7,7 +7,7 @@ import ujson
 import time
 import snappy
 
-from msgspec.msgpack import decode
+from msgspec.json import decode
 from loguru import logger
 from tracking.player.utils import Player, get_player_changes, gen_legend_date, gen_season_date, gen_raid_date, gen_games_season
 
@@ -107,10 +107,9 @@ async def get_player_responses(keys: deque, tags: list[str], cache: redis.Redis,
                         return None
                     new_response = await new_response.read()
                     return new_response
-
             tasks.append(fetch(url=f'https://api.clashofclans.com/v1/players/{tag.replace("#", "%23")}', session=session, headers={"Authorization": f"Bearer {keys[0]}"}))
-
-    results = await asyncio.gather(*tasks)
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        await session.close()
     return results
 
 
@@ -403,31 +402,33 @@ async def main(keys: deque, cache: redis.Redis, stats_mongo_client, static_mongo
 
     loop_spot = 0
     while True:
-        try:
+        #try:
             loop_spot += 1
             CLAN_MEMBERS, clan_tag_set = await get_clan_member_tags(clan_db=clan_db, keys=keys)
             all_tags = await get_tags_to_track(CLAN_MEMBERS=CLAN_MEMBERS, loop_spot=loop_spot, player_stats=player_stats)
             await add_new_autocomplete_additions(cache=cache, all_tags=all_tags, player_search=player_search)
 
             logger.info(f"{len(all_tags)} tags")
-            time_inside = time.time()
-
+            all_tags = all_tags[:100]
             split_tags = [all_tags[i:i + config.max_tag_split] for i in range(0, len(all_tags), config.max_tag_split)]
+            logger.info(f"{len(split_tags)} tag groups created")
 
+            time_inside = time.time()
             bulk_db_changes = []
             bulk_insert = []
             bulk_clan_changes = []
             auto_complete = []
 
             for count, tag_group in enumerate(split_tags, 1):
+                group_time_inside = time.time()
                 responses = await get_player_responses(keys=keys, tags=tag_group, cache=cache, player_stats=player_stats, player_search=player_search)
                 for response in responses:
-                    if response is None:
+                    if not isinstance(response, bytes):
                         continue
                     await player_response_handler(new_response=response, cache=cache, bulk_db_changes=bulk_db_changes,
                                                   bulk_insert=bulk_insert, bulk_clan_changes=bulk_clan_changes, auto_complete=auto_complete,
                                                   set_clan_tags=clan_tag_set)
-                logger.info(f"GROUP {count}: {time.time() - time_inside} seconds inside")
+                logger.info(f"GROUP {count} | {len(tag_group)} tags: {time.time() - group_time_inside} sec inside")
 
 
             logger.info(f"{len(bulk_db_changes)} db changes")
@@ -470,8 +471,8 @@ async def main(keys: deque, cache: redis.Redis, stats_mongo_client, static_mongo
                 results = await player_stats.bulk_write(fix_changes)
                 logger.info(results.bulk_api_result)
                 logger.info(f"FIX CHANGES: {time.time() - time_inside}")
-        except Exception:
-            continue
+        #except Exception:
+            #continue
 
 
 
