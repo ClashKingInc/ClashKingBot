@@ -12,7 +12,6 @@ from loguru import logger
 from .utils import Player, get_player_changes, gen_legend_date, gen_season_date, gen_raid_date, gen_games_season
 
 from pymongo import InsertOne, UpdateOne
-from .config import Config
 
 
 async def get_clan_member_tags(clan_db, keys: deque):
@@ -394,7 +393,7 @@ async def player_response_handler(new_response: bytes, cache: redis.Redis, bulk_
         await asyncio.gather(*ws_tasks)
 
 
-async def main(keys: deque, cache: redis.Redis, stats_mongo_client, static_mongo_client, config: Config):
+async def main(keys: deque, cache: redis.Redis, stats_mongo_client, static_mongo_client, config):
     player_stats = stats_mongo_client.new_looper.player_stats
     clan_stats = stats_mongo_client.new_looper.clan_stats
 
