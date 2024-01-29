@@ -18,5 +18,5 @@ if __name__ == '__main__':
     redis_host = redis.Redis(host=config.redis_ip, port=6379, db=0, password=config.redis_pw, decode_responses=False, max_connections=2500)
     keys = create_keys([f"apiclashofclans+test{x}@gmail.com" for x in range(config.min_coc_email, config.max_coc_email + 1)], [config.coc_password] * config.max_coc_email)
     keys = deque(keys)
-    loop.create_task(main(keys=keys, cache=redis_host, stats_mongo_client=stats_mongo_client, static_mongo_client=static_mongo_client))
+    loop.create_task(main(keys=keys, cache=redis_host, stats_mongo_client=stats_mongo_client, static_mongo_client=static_mongo_client, config=config))
     loop.run_forever()
