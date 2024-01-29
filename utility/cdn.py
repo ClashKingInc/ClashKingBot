@@ -1,14 +1,13 @@
 import disnake
 import aiohttp
-import os
-from dotenv import load_dotenv
 from datetime import datetime
-load_dotenv()
+from classes.config import Config
+config = Config()
 
 async def upload_to_cdn(picture: disnake.Attachment):
     headers = {
         "content-type": "application/octet-stream",
-        "AccessKey": os.getenv("BUNNY_ACCESS")
+        "AccessKey": config.bunny_api_token
     }
     payload = await picture.read()
     async with aiohttp.ClientSession() as session:
@@ -20,7 +19,7 @@ async def upload_to_cdn(picture: disnake.Attachment):
 async def general_upload_to_cdn(bytes_, id):
     headers = {
         "content-type": "application/octet-stream",
-        "AccessKey": os.getenv("BUNNY_ACCESS")
+        "AccessKey": config.bunny_api_token
     }
     payload = bytes_
     async with aiohttp.ClientSession() as session:
@@ -32,7 +31,7 @@ async def general_upload_to_cdn(bytes_, id):
 async def upload_html_to_cdn(bytes_, id):
     headers = {
         "content-type": "application/octet-stream",
-        "AccessKey": os.getenv("BUNNY_ACCESS")
+        "AccessKey": config.bunny_api_token
     }
     payload = bytes_
     async with aiohttp.ClientSession() as session:
