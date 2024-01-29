@@ -93,7 +93,6 @@ async def get_keys(emails: list, passwords: list, key_names: str, key_count: int
         for key in (k for k in keys if ip not in k["cidrRanges"]):
             await session.post("https://developer.clashofclans.com/api/apikey/revoke", json={"id": key["id"]})
 
-        print(len(_keys))
         while len(_keys) < key_count:
             data = {
                 "name": key_names,
@@ -123,7 +122,6 @@ async def get_keys(emails: list, passwords: list, key_names: str, key_count: int
         for k in _keys:
             total_keys.append(k)
 
-    print(len(total_keys))
     return (total_keys)
 
 
