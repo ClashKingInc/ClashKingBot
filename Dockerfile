@@ -1,5 +1,6 @@
 FROM python:3.11-bookworm
 
+RUN apt-get update
 RUN apt-get install libsnappy-dev
 
 COPY requirements.txt /app/
