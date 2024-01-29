@@ -78,11 +78,12 @@ async def add_new_autocomplete_additions(cache: redis.Redis, all_tags: list, pla
             r = await cache.get(tag)
             if r is None:
                 continue
+            r = snappy.decompress(r)
             r = ujson.loads(r)
             clan_tag = r.get("clan", {}).get("tag", "Unknown")
             league = r.get("league", {}).get("name", "Unranked")
             auto_changes.append(InsertOne({"name": r.get("name"), "clan": clan_tag, "league": league, "tag": r.get("tag"), "th": r.get("townHallLevel")}))
-        except:
+        except Exception:
             continue
     if auto_changes:
         await player_search.bulk_write(auto_changes)
@@ -453,18 +454,19 @@ async def main(keys: deque, cache: redis.Redis, stats_mongo_client, static_mongo
                 logger.info(f"CLAN CHANGES UPDATE: {time.time() - time_inside}")
 
             fix_changes = []
-            not_set_entirely = await player_stats.distinct("tag", filter={"$and": [{"paused": {"$ne" : False}}, {"$or": [{"name": None}, {"league": None}, {"townhall": None}, {"clan_tag": None}]}]})
+            not_set_entirely = await player_stats.distinct("tag", filter={"$or": [{"name": None}, {"league": None}, {"townhall": None}, {"clan_tag": None}]})
             logger.info(f'{len(not_set_entirely)} tags to fix')
             for tag in not_set_entirely:
                 try:
                     response = await cache.get(tag)
+                    response = snappy.decompress(response)
                     response = ujson.loads(response)
                     clan_tag = response.get("clan", {}).get("tag", "Unknown")
                     league = response.get("league", {}).get("name", "Unranked")
                     fix_changes.append(UpdateOne({"tag": tag}, {
                         "$set": {"name": response.get('name'), "townhall": response.get('townHallLevel'), "league": league,
                                  "clan_tag": clan_tag}}))
-                except:
+                except Exception:
                     continue
 
             if fix_changes != []:
