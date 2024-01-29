@@ -184,24 +184,24 @@ async def legend_poster(bot: CustomClient, player: coc.Player | LegendPlayer, ba
 
 
     plt.ylabel('Trophies', color="yellow", fontsize=14)
-    fig.savefig("Assets/poster_graph.png", transparent=True)
+    fig.savefig("assets/poster_graph.png", transparent=True)
     plt.close(fig)
 
-    graph = Image.open("Assets/poster_graph.png")
+    graph = Image.open("assets/poster_graph.png")
     if background is None:
-        poster = Image.open(f"Assets/backgrounds/{random.choice(list(POSTER_LIST.values()))}.png")
+        poster = Image.open(f"assets/backgrounds/{random.choice(list(POSTER_LIST.values()))}.png")
     else:
-        poster = Image.open(f"Assets/backgrounds/{random.choice(list(POSTER_LIST.get(background)))}.png")
+        poster = Image.open(f"assets/backgrounds/{random.choice(list(POSTER_LIST.get(background)))}.png")
 
 
     poster.paste(graph, (1175, 475), graph.convert("RGBA"))
 
-    font = ImageFont.truetype("Assets/fonts/code.ttf", 80)
-    font2 = ImageFont.truetype("Assets/fonts/blogger.ttf", 35)
-    font3 = ImageFont.truetype("Assets/fonts/blogger.ttf", 60)
-    font4 = ImageFont.truetype("Assets/fonts/blogger.ttf", 37)
-    font5 = ImageFont.truetype("Assets/fonts/blogger.ttf", 20)
-    font6 = ImageFont.truetype("Assets/fonts/blogger.ttf", 40)
+    font = ImageFont.truetype("assets/fonts/code.ttf", 80)
+    font2 = ImageFont.truetype("assets/fonts/blogger.ttf", 35)
+    font3 = ImageFont.truetype("assets/fonts/blogger.ttf", 60)
+    font4 = ImageFont.truetype("assets/fonts/blogger.ttf", 37)
+    font5 = ImageFont.truetype("assets/fonts/blogger.ttf", 20)
+    font6 = ImageFont.truetype("assets/fonts/blogger.ttf", 40)
 
     # add clan badge & text
     if player._.clan is not None:
@@ -251,25 +251,25 @@ async def legend_poster(bot: CustomClient, player: coc.Player | LegendPlayer, ba
 
     if isinstance(player.ranking.global_ranking, int):
         try:
-            globe = Image.open("Assets/country_flags/globe2.png")
+            globe = Image.open("assets/country_flags/globe2.png")
         except Exception:
-            globe = Image.open("Assets/country_flags/globe.png")
+            globe = Image.open("assets/country_flags/globe.png")
             size = 75, 75
             globe.thumbnail(size, Image.ANTIALIAS)
-            globe.save("Assets/country_flags/globe2.png", "PNG")
-            globe = Image.open("Assets/country_flags/globe2.png")
+            globe.save("assets/country_flags/globe2.png", "PNG")
+            globe = Image.open("assets/country_flags/globe2.png")
         poster.paste(globe, (90, 340), globe.convert("RGBA"))
         draw.text((165, 360), f"#{player.ranking.global_ranking}", fill=(255, 255, 255), font=font6)
 
     if player.ranking.country_code is not None:
         try:
-            globe = Image.open(f"Assets/country_flags/{player.ranking.country_code.lower()}2.png")
+            globe = Image.open(f"assets/country_flags/{player.ranking.country_code.lower()}2.png")
         except Exception:
-            globe = Image.open(f"Assets/country_flags/{player.ranking.country_code.lower()}.png")
+            globe = Image.open(f"assets/country_flags/{player.ranking.country_code.lower()}.png")
             size = 80, 80
             globe.thumbnail(size, Image.ANTIALIAS)
-            globe.save(f"Assets/country_flags/{player.ranking.country_code.lower()}2.png", "PNG")
-            globe = Image.open(f"Assets/country_flags/{player.ranking.country_code.lower()}2.png")
+            globe.save(f"assets/country_flags/{player.ranking.country_code.lower()}2.png", "PNG")
+            globe = Image.open(f"assets/country_flags/{player.ranking.country_code.lower()}2.png")
 
         poster.paste(globe, (770, 350), globe.convert("RGBA"))
         if isinstance(player.ranking.local_ranking, int):
