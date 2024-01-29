@@ -241,7 +241,7 @@ leagues = ["Legend League", "Titan League I" , "Titan League II" , "Titan League
 
 ROLES = ["Member", "Elder", "Co-Leader", "Leader"]
 
-war_leagues = json.load(open(f"Assets/war_leagues.json"))
+war_leagues = json.load(open(f"assets/war_leagues.json"))
 
 USE_CODE_TEXT = [
     "Hey :) Consider supporting me in-game with code [ClashKing](<https://link.clashofclans.com/en?action=SupportCreator&id=clashking>)!",
