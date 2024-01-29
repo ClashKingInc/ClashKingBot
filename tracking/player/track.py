@@ -166,8 +166,8 @@ async def player_response_handler(new_response: bytes, cache: redis.Redis, bulk_
         only_once = {"troops": 0, "heroes": 0, "spells": 0, "heroEquipment": 0}
         ws_tasks = []
         if changes:
-            player_level_changes = []
-            clan_level_changes = []
+            player_level_changes = {}
+            clan_level_changes = {}
             for (parent, type_), (old_value, value) in changes.items():
                 if type_ in special_types:
                     bulk_db_changes.append(UpdateOne({"tag": tag},
@@ -187,65 +187,65 @@ async def player_response_handler(new_response: bytes, cache: redis.Redis, bulk_
 
                 if type_ == "donations":
                     previous_dono = 0 if (previous_dono := previous_response["donations"]) > (current_dono := new_response["donations"]) else previous_dono
-                    player_level_changes.append({"$inc": {f"donations.{season}.donated": (current_dono - previous_dono)}})
-                    clan_level_changes.append({"$inc": {f"{season}.{tag}.donations": (current_dono - previous_dono)}})
+                    player_level_changes.update({"$inc": {f"donations.{season}.donated": (current_dono - previous_dono)}})
+                    clan_level_changes.update({"$inc": {f"{season}.{tag}.donations": (current_dono - previous_dono)}})
 
                 elif type_ == "donationsReceived":
                     previous_dono = 0 if (previous_dono := previous_response["donationsReceived"]) > (current_dono := new_response["donationsReceived"]) else previous_dono
-                    player_level_changes.append({"$inc": {f"donations.{season}.received": (current_dono - previous_dono)}})
-                    clan_level_changes.append({"$inc": {f"{season}.{tag}.received": (current_dono - previous_dono)}})
+                    player_level_changes.update({"$inc": {f"donations.{season}.received": (current_dono - previous_dono)}})
+                    clan_level_changes.update({"$inc": {f"{season}.{tag}.received": (current_dono - previous_dono)}})
 
                 elif type_ == "clanCapitalContributions":
-                    player_level_changes.append({"$push": {f"capital_gold.{raid_date}.donate": (new_response["clanCapitalContributions"] -previous_response["clanCapitalContributions"])}})
-                    clan_level_changes.append({"$inc": {f"{season}.{tag}.capital_gold_dono": (new_response["clanCapitalContributions"] - previous_response["clanCapitalContributions"])}})
+                    player_level_changes.update({"$push": {f"capital_gold.{raid_date}.donate": (new_response["clanCapitalContributions"] -previous_response["clanCapitalContributions"])}})
+                    clan_level_changes.update({"$inc": {f"{season}.{tag}.capital_gold_dono": (new_response["clanCapitalContributions"] - previous_response["clanCapitalContributions"])}})
                     type_ = "Most Valuable Clanmate"  # temporary
 
                 elif type_ == "Gold Grab":
                     diff = value - old_value
-                    player_level_changes.append({"$inc": {f"gold.{season}": diff}})
-                    clan_level_changes.append({"$inc": {f"{season}.{tag}.gold_looted": diff}})
+                    player_level_changes.update({"$inc": {f"gold.{season}": diff}})
+                    clan_level_changes.update({"$inc": {f"{season}.{tag}.gold_looted": diff}})
 
                 elif type_ == "Elixir Escapade":
                     diff = value - old_value
-                    player_level_changes.append({"$inc": {f"elixir.{season}": diff}})
-                    clan_level_changes.append({"$inc": {f"{season}.{tag}.elixir_looted": diff}})
+                    player_level_changes.update({"$inc": {f"elixir.{season}": diff}})
+                    clan_level_changes.update({"$inc": {f"{season}.{tag}.elixir_looted": diff}})
 
                 elif type_ == "Heroic Heist":
                     diff = value - old_value
-                    player_level_changes.append({"$inc": {f"dark_elixir.{season}": diff}})
-                    clan_level_changes.append({"$inc": {f"{season}.{tag}.dark_elixir_looted": diff}})
+                    player_level_changes.update({"$inc": {f"dark_elixir.{season}": diff}})
+                    clan_level_changes.update({"$inc": {f"{season}.{tag}.dark_elixir_looted": diff}})
 
                 elif type_ == "Well Seasoned":
                     diff = value - old_value
-                    player_level_changes.append({"$inc": {f"season_pass.{games_season}": diff}})
+                    player_level_changes.update({"$inc": {f"season_pass.{games_season}": diff}})
 
                 elif type_ == "Games Champion":
                     diff = value - old_value
-                    player_level_changes.append({"$inc": {f"clan_games.{games_season}.points": diff},
+                    player_level_changes.update({"$inc": {f"clan_games.{games_season}.points": diff},
                                                 "$set": {f"clan_games.{games_season}.clan": clan_tag}})
-                    clan_level_changes.append({"$inc": {f"{games_season}.{tag}.clan_games": diff}})
+                    clan_level_changes.update({"$inc": {f"{games_season}.{tag}.clan_games": diff}})
 
 
                 elif type_ == "attackWins":
-                    player_level_changes.append({"$set": {f"attack_wins.{season}": value}})
-                    clan_level_changes.append({"$set": {f"{season}.{tag}.attack_wins": value}})
+                    player_level_changes.update({"$set": {f"attack_wins.{season}": value}})
+                    clan_level_changes.update({"$set": {f"{season}.{tag}.attack_wins": value}})
 
 
                 elif type_ == "trophies":
-                    player_level_changes.append({"$set": {f"season_trophies.{season}": value}})
-                    clan_level_changes.append({"$set": {f"{season}.{tag}.trophies": value}})
+                    player_level_changes.update({"$set": {f"season_trophies.{season}": value}})
+                    clan_level_changes.update({"$set": {f"{season}.{tag}.trophies": value}})
 
 
                 elif type_ == "name":
-                    player_level_changes.append({"$set": {f"name": value}})
+                    player_level_changes.update({"$set": {f"name": value}})
                     auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"name": value}}))
 
                 elif type_ == "clan":
-                    player_level_changes.append({"$set": {f"clan_tag": clan_tag}})
+                    player_level_changes.update({"$set": {f"clan_tag": clan_tag}})
                     auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"clan": clan_tag}}))
 
                 elif type_ == "townHallLevel":
-                    player_level_changes.append({"$set": {f"townhall": value}})
+                    player_level_changes.update({"$set": {f"townhall": value}})
                     auto_complete.append(UpdateOne({"tag": tag}, {"$set": {"th": value}}))
 
                 elif parent in {"troops", "heroes", "spells", "heroEquipment"}:
@@ -273,7 +273,8 @@ async def player_response_handler(new_response: bytes, cache: redis.Redis, bulk_
                 ))
 
             if clan_level_changes and is_clan_member:
-                clan_level_changes.append({f"{season}.{tag}.name": new_response.get("name"), f"{season}.{tag}.townhall" : new_response.get("townHallLevel")})
+                clan_level_changes.update({"$set" : {f"{season}.{tag}.name": new_response.get("name")}})
+                clan_level_changes.update({"$set" : {f"{season}.{tag}.townhall" : new_response.get("townHallLevel")}})
                 bulk_clan_changes.append(UpdateOne(
                     {"tag": clan_tag},
                     clan_level_changes,
