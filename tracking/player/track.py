@@ -409,7 +409,6 @@ async def main(keys: deque, cache: redis.Redis, stats_mongo_client, static_mongo
             await add_new_autocomplete_additions(cache=cache, all_tags=all_tags, player_search=player_search)
 
             logger.info(f"{len(all_tags)} tags")
-            all_tags = all_tags[:100]
             split_tags = [all_tags[i:i + config.max_tag_split] for i in range(0, len(all_tags), config.max_tag_split)]
             logger.info(f"{len(split_tags)} tag groups created")
 
