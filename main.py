@@ -4,15 +4,8 @@ import traceback
 import motor.motor_asyncio
 import sentry_sdk
 from classes.bot import CustomClient
-from disnake import Client
 from disnake.ext import commands
-import argparse
-import json
-from types import SimpleNamespace
-#data = json.load(open(f"hidden_config.json"))
-
-# Parse JSON into an object with attributes corresponding to dict keys.
-#x = json.loads(data, object_hook=lambda d: SimpleNamespace(**d))
+from classes.config import Config
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
@@ -21,30 +14,16 @@ from background.logs.event_websockets import kafka_events
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
 
+config = Config()
+intents = disnake.Intents(
+    guilds=True,
+    members=True,
+    emojis=True,
+    messages=True,
+    message_content=True
+)
 
-parser = argparse.ArgumentParser(description="Just an example", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("-c", "--custom", action="store_true", help="custom mode")
-parser.add_argument("-b", "--beta", action="store_true", help="beta mode")
-parser.add_argument("-k", "--test", action="store_true", help="test mode")
-parser.add_argument("-t", "--token", help="token")
-
-args = parser.parse_args()
-config = vars(args)
-
-IS_BETA = config.get("beta", False)
-IS_CUSTOM = config.get("custom", False)
-IS_TEST = config.get("test", False)
-TOKEN = config.get("token")
-
-discClient = Client()
-intents = disnake.Intents().none()
-intents.guilds = True
-intents.members = True
-intents.emojis = True
-intents.messages = True
-intents.message_content = True
-
-bot = CustomClient(command_prefix="??",help_command=None, intents=intents)
+bot = CustomClient(command_prefix="??", help_command=None, intents=intents, scheduler=scheduler, config=config)
 
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
@@ -99,7 +78,8 @@ initial_extensions = [
 ]
 
 disallowed = set()
-if IS_CUSTOM:
+
+if config.is_custom:
     disallowed.add("owner")
 
 def load():
@@ -115,7 +95,7 @@ def load():
 
 
 #dont let custom or local run
-if not IS_BETA and not IS_CUSTOM:
+if not config.is_beta and not config.is_custom:
     initial_extensions += [
         "Background.reddit_recruit_feed",
         "Background.region_lb_update"
@@ -127,7 +107,7 @@ if not IS_BETA and not IS_CUSTOM:
     ]
 
 #only the local version can not run
-if not IS_TEST:
+if not config.is_beta:
     initial_extensions += [
         "Background.voicestat_loop",
         "Background.Logs.auto_eval",
@@ -164,13 +144,14 @@ if __name__ == "__main__":
         before_send=before_send
     )
     load()
+    print(initial_extensions)
     for extension in initial_extensions:
         try:
             bot.load_extension(extension)
         except Exception as extension:
             traceback.print_exc()
 
-    if not IS_BETA:
+    if not config.is_beta:
         bot.loop.create_task(kafka_events())
 
-    bot.run(TOKEN)
+    bot.run(config.bot_token)

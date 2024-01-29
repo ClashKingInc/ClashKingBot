@@ -7,7 +7,6 @@ from utility.clash.other import gen_season_date
 from utility.constants import BOARD_TYPES
 from typing import Union
 
-bot = CustomClient()
 
 def create_components(current_page, embeds, print=False):
     length = len(embeds)

@@ -3,7 +3,6 @@ import dateutil.relativedelta
 import coc
 import motor.motor_asyncio
 import disnake
-import pytz
 import os
 import re
 import asyncio
@@ -13,12 +12,12 @@ import calendar
 import aiohttp
 import emoji
 import expiring_dict
+import pendulum as pend
 
 from math import ceil
 from datetime import datetime, timedelta
 from coc.ext import discordlinks
 from disnake.ext import commands
-from dotenv import load_dotenv
 from typing import Dict, List
 from assets.emojiDictionary import emojiDictionary, legend_emojis
 from classes.player import MyCustomPlayer, CustomClanClass
@@ -30,16 +29,16 @@ from utility.general import fetch, create_superscript
 from expiring_dict import ExpiringDict
 from redis import asyncio as redis
 from classes.DatabaseClient.familyclient import FamilyClient
-utc = pytz.utc
-load_dotenv()
-
+from classes.config import Config
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 
 class CustomClient(commands.AutoShardedBot):
-    def __init__(self, **options):
-        super().__init__(**options)
+    def __init__(self, config: Config, command_prefix: str, help_command, intents: disnake.Intents, scheduler: AsyncIOScheduler):
+        super().__init__(command_prefix=command_prefix, help_command=help_command, intents=intents)
 
-        self.__config: dict = options.pop("config", None)
+        self._config = config
+        self.scheduler = scheduler
         self.ck_client: FamilyClient = None
 
         self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
@@ -250,7 +249,7 @@ class CustomClient(commands.AutoShardedBot):
         return tags
 
     def gen_raid_date(self):
-        now = datetime.utcnow().replace(tzinfo=utc)
+        now = datetime.utcnow().replace(tzinfo=pend.UTC)
         current_dayofweek = now.weekday()
         if (current_dayofweek == 4 and now.hour >= 7) or (current_dayofweek == 5) or (current_dayofweek == 6) or (
                 current_dayofweek == 0 and now.hour < 7):
@@ -267,7 +266,7 @@ class CustomClient(commands.AutoShardedBot):
 
     def gen_season_date(self, seasons_ago = None, as_text=True):
         if seasons_ago is None:
-            end = coc.utils.get_season_end().replace(tzinfo=utc).date()
+            end = coc.utils.get_season_end().replace(tzinfo=pend.UTC).date()
             month = end.month
             if end.month <= 9:
                 month = f"0{month}"
@@ -275,7 +274,7 @@ class CustomClient(commands.AutoShardedBot):
         else:
             dates = []
             for x in range(0, seasons_ago + 1):
-                end = coc.utils.get_season_end().replace(tzinfo=utc) - dateutil.relativedelta.relativedelta(months=x)
+                end = coc.utils.get_season_end().replace(tzinfo=pend.UTC) - dateutil.relativedelta.relativedelta(months=x)
                 if as_text:
                     dates.append(f"{calendar.month_name[end.date().month]} {end.date().year}")
                 else:
@@ -294,7 +293,7 @@ class CustomClient(commands.AutoShardedBot):
         return f"{now.year}-{month}"
 
     def gen_previous_season_date(self):
-        end = coc.utils.get_season_start().replace(tzinfo=utc).date()
+        end = coc.utils.get_season_start().replace(tzinfo=pend.UTC).date()
         month = end.month
         if end.month <= 9:
             month = f"0{month}"
