@@ -41,7 +41,7 @@ class CustomClient(commands.AutoShardedBot):
         self.scheduler = scheduler
         self.ck_client: FamilyClient = None
 
-        self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
+        self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(self._config.stats_mongodb)
         self.new_looper = self.looper_db.get_database("new_looper")
         self.user_db = self.new_looper.get_collection("user_db")
         collection_class = self.user_db.__class__
@@ -63,7 +63,7 @@ class CustomClient(commands.AutoShardedBot):
         self.clan_cache: collection_class = self.new_looper.clan_cache
         self.excel_templates: collection_class = self.looper_db.clashking.excel_templates
         self.lineups: collection_class = self.looper_db.clashking.lineups
-        self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(discordlinks.login(os.getenv("LINK_API_USER"), os.getenv("LINK_API_PW")))
+        self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(discordlinks.login(self._config.link_api_username, self._config.link_api_password))
         self.bot_stats: collection_class = self.looper_db.clashking.bot_stats
         self.clan_stats: collection_class = self.new_looper.clan_stats
 
@@ -79,7 +79,7 @@ class CustomClient(commands.AutoShardedBot):
         self.war_timers: collection_class = self.looper_db.looper.war_timer
 
 
-        self.db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
+        self.db_client = motor.motor_asyncio.AsyncIOMotorClient(self._config.static_mongodb)
         self.clan_db: collection_class = self.db_client.usafam.clans
         self.banlist: collection_class = self.db_client.usafam.banlist
         self.server_db: collection_class = self.db_client.usafam.server
@@ -125,9 +125,9 @@ class CustomClient(commands.AutoShardedBot):
 
         self.coc_client: coc.Client = coc.Client(loop=asyncio.get_event_loop_policy().get_event_loop(), key_count=10, key_names="DiscordBot", throttle_limit=500, cache_max_size=1000,
                                                 load_game_data=coc.LoadGameData(always=False), raw_attribute=True, stats_max_size=10000)
-        self._xyz = asyncio.get_event_loop().run_until_complete(self.coc_client.login(os.getenv("COC_EMAIL"), os.getenv("COC_PASSWORD")))
+        self._xyz = asyncio.get_event_loop().run_until_complete(self.coc_client.login(self._config.coc_email, self._config.coc_password))
 
-        self.redis = redis.Redis(host='85.10.200.219', port=6379, db=0, password=os.getenv("REDIS_PW"), retry_on_timeout=True, max_connections=250, retry_on_error=[redis.ConnectionError])
+        self.redis = redis.Redis(host=self._config.redis_ip, port=6379, db=0, password=self._config.redis_pw, retry_on_timeout=True, max_connections=250, retry_on_error=[redis.ConnectionError])
 
         self.emoji = Emojis()
         self.locations = locations
