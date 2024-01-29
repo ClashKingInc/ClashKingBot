@@ -218,7 +218,7 @@ async def legend_poster(bot: CustomClient, player: coc.Player | LegendPlayer, ba
             await session.close()
         badge = Image.open(responses[0])
         size = 275, 275
-        badge.thumbnail(size, Image.ANTIALIAS)
+        badge.thumbnail(size, Image.LANCZOS)
         A = badge.getchannel('A')
         newA = A.point(lambda i: 128 if i > 0 else 0)
         badge.putalpha(newA)
@@ -255,7 +255,7 @@ async def legend_poster(bot: CustomClient, player: coc.Player | LegendPlayer, ba
         except Exception:
             globe = Image.open("assets/country_flags/globe.png")
             size = 75, 75
-            globe.thumbnail(size, Image.ANTIALIAS)
+            globe.thumbnail(size, Image.LANCZOS)
             globe.save("assets/country_flags/globe2.png", "PNG")
             globe = Image.open("assets/country_flags/globe2.png")
         poster.paste(globe, (90, 340), globe.convert("RGBA"))
@@ -267,7 +267,7 @@ async def legend_poster(bot: CustomClient, player: coc.Player | LegendPlayer, ba
         except Exception:
             globe = Image.open(f"assets/country_flags/{player.ranking.country_code.lower()}.png")
             size = 80, 80
-            globe.thumbnail(size, Image.ANTIALIAS)
+            globe.thumbnail(size, Image.LANCZOS)
             globe.save(f"assets/country_flags/{player.ranking.country_code.lower()}2.png", "PNG")
             globe = Image.open(f"assets/country_flags/{player.ranking.country_code.lower()}2.png")
 
