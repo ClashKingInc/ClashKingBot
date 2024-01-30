@@ -52,7 +52,10 @@ An Open Source Clash of Clans Discord Bot pushing the boundaries of what is poss
   
   
 <!-- GETTING STARTED -->  
-  
+### Sister Repositories
+* [ClashKing API](https://github.com/MagicTheDev/ClashKingAPI)
+* [ClashKing Tracking](https://github.com/MagicTheDev/ClashKingTracking)
+* [ClashKing Docs](https://github.com/MagicTheDev/ClashKingDocs)
   
 <!-- CONTRIBUTING -->  
 ## Contributing  
