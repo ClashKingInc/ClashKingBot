@@ -2,7 +2,7 @@ import disnake
 
 from classes.bot import CustomClient
 from classes.player import MyCustomPlayer
-#from CommandsOlder.Utils.Player import create_profile_stats, create_profile_troops, upgrade_embed, history
+from archived.commands.CommandsOlder.Utils.Player import create_profile_stats, create_profile_troops, upgrade_embed, history
 
 
 async def button_pagination(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, msg, results):
