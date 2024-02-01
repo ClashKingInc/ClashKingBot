@@ -20,7 +20,7 @@ from coc.raid import RaidMember, RaidLogEntry
 async def create_profile_stats(bot: CustomClient, ctx, player: MyCustomPlayer):
 
     discord_id = await bot.link_client.get_link(player.tag)
-    member = await bot.pingToMember(ctx, str(discord_id))
+    member = await bot.getch_user(discord_id)
     super_troop_text = profileSuperTroops(player)
 
     clan = f"{player.clan.name}, " if player.clan is not None else "None"
