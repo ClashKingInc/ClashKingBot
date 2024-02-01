@@ -6,7 +6,7 @@ import operator
 
 from datetime import date, timedelta, datetime
 from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
-from utility.clash import *
+from utility.clash.other import *
 from utility.general import acronym, create_superscript
 from utility.discord_utils import interaction_handler
 from classes.bot import CustomClient
