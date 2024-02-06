@@ -1,11 +1,15 @@
 import disnake
 import coc
 
-from main import check_commands
+from utility.discord_utils import check_commands
 from disnake.ext import commands
 from typing import Union, List
 from FamilyManagement.Reminders import ReminderUtils
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from exceptions.CustomExceptions import NotValidReminderTime
 
 class ReminderCreation(commands.Cog, name="Reminders"):

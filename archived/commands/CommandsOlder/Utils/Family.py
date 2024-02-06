@@ -4,7 +4,11 @@ import asyncio
 
 from coc.raid import RaidLogEntry
 from datetime import datetime
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from classes.player import MyCustomPlayer, ClanCapitalWeek
 from utility.general import create_superscript
 from utility.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry, calc_raid_medals
@@ -208,8 +212,8 @@ async def create_trophies(bot: CustomClient, guild: disnake.Guild, sort_type: Tr
         clan_text = [f"{bot.emoji.trophy}`{clan.points:5} {clan.name}`{create_superscript(clan.member_count)}" for clan in clans]
     elif sort_type is TrophySort.versus:
         point_type = "Versus Trophies"
-        clans = sorted(clans, key=lambda l: l.versus_points, reverse=True)
-        clan_text = [f"{bot.emoji.versus_trophy}`{clan.versus_points:5} {clan.name}`" for clan in clans]
+        clans = sorted(clans, key=lambda l: l.builder_base_points, reverse=True)
+        clan_text = [f"{bot.emoji.versus_trophy}`{clan.builder_base_points:5} {clan.name}`" for clan in clans]
     elif sort_type is TrophySort.capital:
         point_type = "Capital Trophies"
         clans = sorted(clans, key=lambda l: l.capital_points, reverse=True)

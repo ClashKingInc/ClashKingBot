@@ -2,7 +2,7 @@ import os
 
 import coc
 import disnake
-
+from disnake.ext import commands
 import classes.bot
 from assets.emojiDictionary import emojiDictionary, legend_emojis
 from typing import Callable, Union
@@ -15,6 +15,52 @@ from operator import attrgetter
 import aiohttp
 from dotenv import load_dotenv
 from typing import List
+import motor.motor_asyncio
+
+def check_commands():
+    async def predicate(ctx: disnake.ApplicationCommandInteraction):
+        if ctx.author.id == 706149153431879760:
+            return True
+        roles = (await ctx.guild.getch_member(member_id=ctx.author.id)).roles
+        if disnake.utils.get(roles, name="ClashKing Perms") != None:
+            return True
+        db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
+        whitelist = db_client.usafam.whitelist
+        member = ctx.author
+
+        commandd = ctx.application_command.qualified_name
+        if commandd == "unlink":
+            return True
+        guild = ctx.guild.id
+
+        results =  whitelist.find({"$and" : [
+                {"command": commandd},
+                {"server" : guild}
+            ]})
+
+        if results is None:
+            return False
+
+        limit = await whitelist.count_documents(filter={"$and" : [
+                {"command": commandd},
+                {"server" : guild}
+            ]})
+
+        perms = False
+        for role in await results.to_list(length=limit):
+            role_ = role.get("role_user")
+            is_role = role.get("is_role")
+            if is_role:
+                role_ = ctx.guild.get_role(role_)
+                if member in role_.members:
+                    return True
+            else:
+                if member.id == role_:
+                    return True
+
+        return perms
+
+    return commands.check(predicate)
 
 
 def partial_emoji_gen(bot, emoji_string, animated=False):

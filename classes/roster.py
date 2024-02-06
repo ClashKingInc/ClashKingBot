@@ -6,7 +6,11 @@ import random
 import string
 
 from urllib.request import Request, urlopen
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from classes.player import MyCustomPlayer
 from datetime import datetime, timedelta
 from exceptions.CustomExceptions import *

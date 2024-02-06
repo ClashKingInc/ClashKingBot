@@ -1,7 +1,12 @@
 from disnake.ext import commands
 import disnake
-from main import scheduler
-from classes.bot import CustomClient
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
+
 from utility.discord_utils import get_webhook_for_channel
 from exceptions.CustomExceptions import MissingWebhookPerms
 from commands.components.buttons import button_logic
@@ -10,7 +15,7 @@ class RefreshBoards(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.refresh, 'interval', minutes=5)
+        self.bot.scheduler.add_job(self.refresh, 'interval', minutes=5)
 
     async def refresh(self):
         all_refresh_boards = await self.bot.button_store.find({"webhook_id" : {"$ne" : None}}).to_list(length=None)

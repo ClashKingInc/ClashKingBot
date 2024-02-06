@@ -5,10 +5,14 @@ import coc
 import pytz
 
 from disnake.ext import commands
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from assets.emojiDictionary import emojiDictionary
 from classes.roster import Roster
-from main import check_commands
+from utility.discord_utils import check_commands
 from exceptions.CustomExceptions import *
 from typing import List
 from collections import defaultdict

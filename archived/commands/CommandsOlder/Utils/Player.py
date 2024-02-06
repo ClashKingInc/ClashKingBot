@@ -9,7 +9,11 @@ from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entr
 from utility.clash import *
 from utility.general import acronym, create_superscript
 from utility.discord_utils import interaction_handler
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from classes.player import MyCustomPlayer
 from numerize import numerize
 from classes.clashofstats import StayType
@@ -72,7 +76,7 @@ async def create_profile_stats(bot: CustomClient, ctx, player: MyCustomPlayer):
         f"- {bot.emoji.clan_games}Clan Games: {'{:,}'.format(player.clan_games())}\n" \
         f"{super_troop_text}" \
         f"\n**All Time Stats:**\n" \
-        f"Best Trophies: {bot.emoji.trophy}{player.best_trophies} | {bot.emoji.versus_trophy}{player.best_versus_trophies}\n" \
+        f"Best Trophies: {bot.emoji.trophy}{player.best_trophies} | {bot.emoji.versus_trophy}{player.best_builder_base_trophies}\n" \
         f"War Stars: {bot.emoji.war_star}{player.war_stars}\n" \
         f"CWL Stars: {bot.emoji.war_star} {player.get_achievement('War League Legend').value}\n" \
         f"{bot.emoji.troop}Donations: {'{:,}'.format(player.get_achievement('Friend in Need').value)}\n" \

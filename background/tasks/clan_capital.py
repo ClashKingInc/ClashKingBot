@@ -4,8 +4,12 @@ import disnake
 
 from disnake.ext import commands
 
-from main import scheduler
-from classes.bot import CustomClient
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from utility.clash.capital import get_raidlog_entry, gen_raid_weekend_datestrings
 from BoardCommands.Utils.Clan import clan_raid_weekend_raid_stats, clan_raid_weekend_donation_stats
 from ImageGen.ClanCapitalResult import generate_raid_result_image
@@ -19,8 +23,8 @@ class StoreClanCapital(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.store_cc, "cron", day_of_week="mon", hour=7, minute=45, misfire_grace_time=None)
-        scheduler.add_job(self.send_boards, "cron", day_of_week="mon", hour=11, minute=30, misfire_grace_time=None)
+        self.bot.scheduler.add_job(self.store_cc, "cron", day_of_week="mon", hour=7, minute=45, misfire_grace_time=None)
+        self.bot.scheduler.add_job(self.send_boards, "cron", day_of_week="mon", hour=11, minute=30, misfire_grace_time=None)
 
 
     async def send_boards(self):

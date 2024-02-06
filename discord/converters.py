@@ -1,5 +1,9 @@
 from disnake.ext import commands
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from exceptions.CustomExceptions import InvalidGuildID, MessageException
 from utility.constants import TOWNHALL_LEVELS
 import calendar

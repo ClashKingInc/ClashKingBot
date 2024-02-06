@@ -6,7 +6,11 @@ import pendulum as pend
 from collections import defaultdict, namedtuple
 from datetime import datetime
 from classes.player import ClanCapitalWeek
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from typing import List
 from utility.clash.capital import get_season_raid_weeks
 from utility.clash.other import cwl_league_emojis, is_games, league_to_emoji, gen_season_start_end_as_iso, gen_season_start_end_as_timestamp, games_season_start_end_as_timestamp
@@ -16,8 +20,10 @@ from utility.constants import leagues, item_to_name
 from exceptions.CustomExceptions import MessageException
 from ..graphs.utils import monthly_bar_graph, daily_graph
 
+
 @register_button("familycompo", parser="_:server:type")
-async def family_composition(bot: CustomClient, server: disnake.Guild, type: str, embed_color: disnake.Color = disnake.Color.green()):
+async def family_composition(bot: CustomClient, server: disnake.Guild, type: str, embed_color: disnake.Color):
+
     bucket = defaultdict(int)
     clan_tags = await bot.get_guild_clans(guild_id=server.id)
     clans = await bot.get_clans(tags=clan_tags)
@@ -77,7 +83,7 @@ async def family_composition(bot: CustomClient, server: disnake.Guild, type: str
 
     if type == "Townhall":
         total = sum(int(key) * value for key, value in bucket.items())
-        footer_text += f" | Avg Townhall: {round((total / total_count), 2)}"
+        footer_text += f' | Avg Townhall: {round((total / total_count), 2)}'
 
     embed = disnake.Embed(description=text, color=embed_color)
     embed.set_author(name=f"{server.name} {type} Compo", icon_url=get_guild_icon(guild=server))

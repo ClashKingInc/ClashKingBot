@@ -2,9 +2,15 @@ import asyncio
 import datetime
 import random
 import disnake
-from main import scheduler
+
 from disnake.ext import commands
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
+
 from utility.war import create_reminders, send_or_update_war_end, send_or_update_war_start
 from utility.constants import USE_CODE_TEXT
 has_started = False
@@ -20,6 +26,8 @@ class DiscordEvents(commands.Cog):
     @commands.Cog.listener()
     async def on_connect(self):
         print("connected")
+
+
         s_result = await self.bot.server_db.find_one({"server" : 1103679645439754335})
         self.bot.ck_client = FamilyClient(bot=self.bot)
 
@@ -35,8 +43,8 @@ class DiscordEvents(commands.Cog):
             await asyncio.sleep(15)
 
 
-            #scheduler.add_job(SendReminders.inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
-            #scheduler.add_job(SendReminders.roster_reminder, trigger='interval', args=[self.bot], minutes=2, misfire_grace_time=None)
+            #self.bot.scheduler.add_job(SendReminders.inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
+            #self.bot.scheduler.add_job(SendReminders.roster_reminder, trigger='interval', args=[self.bot], minutes=2, misfire_grace_time=None)
 
             guild_fetch = await self.bot.server_db.distinct("server")
             if not self.bot.user.public_flags.verified_bot:
@@ -60,11 +68,11 @@ class DiscordEvents(commands.Cog):
                 new_war, war_end_time = current_war_times[tag]
                 try:
                     if new_war.state == "preparation":
-                        scheduler.add_job(send_or_update_war_start, 'date', run_date=new_war.start_time.time,
+                        self.bot.scheduler.add_job(send_or_update_war_start, 'date', run_date=new_war.start_time.time,
                                           args=[self.bot, new_war.clan.tag], id=f"war_start_{new_war.clan.tag}",
                                           name=f"{new_war.clan.tag}_war_start", misfire_grace_time=None)
                     if new_war.end_time.seconds_until >= 0:
-                        scheduler.add_job(send_or_update_war_end, 'date', run_date=new_war.end_time.time,
+                        self.bot.scheduler.add_job(send_or_update_war_end, 'date', run_date=new_war.end_time.time,
                                           args=[self.bot, new_war.clan.tag, int(new_war.preparation_start_time.time.timestamp())], id=f"war_end_{new_war.clan.tag}",
                                           name=f"{new_war.clan.tag}_war_end", misfire_grace_time=None)
                 except:
@@ -167,7 +175,8 @@ class DiscordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_application_command(self, ctx: disnake.ApplicationCommandInteraction):
-        try:
+        pass
+        '''try:
             msg = await ctx.original_message()
             if not msg.flags.ephemeral and (ctx.locale == disnake.Locale.en_US or ctx.locale == disnake.Locale.en_GB):
                 last_run = await self.bot.command_stats.find_one(filter={"user" : ctx.author.id}, sort=[("time", -1)])
@@ -196,7 +205,7 @@ class DiscordEvents(commands.Cog):
             "len_mutual" : len(ctx.user.mutual_guilds),
             "is_bot_dev" : ctx.user.public_flags.verified_bot_developer,
             "bot" : ctx.bot.user.id
-        })
+        })'''
 
 
     @commands.Cog.listener()

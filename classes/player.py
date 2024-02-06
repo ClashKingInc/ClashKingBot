@@ -12,11 +12,13 @@ from utility.constants import SHORT_PLAYER_LINK, HOME_VILLAGE_HEROES
 import emoji
 import re
 from typing import List, TYPE_CHECKING
-from pytz import utc
+
+
 if TYPE_CHECKING:
     from classes.bot import CustomClient
 else:
-    from disnake import Client as CustomClient
+    from disnake.ext.commands import AutoShardedBot as CustomClient
+
 
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 

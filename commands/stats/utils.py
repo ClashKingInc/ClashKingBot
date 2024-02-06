@@ -1,5 +1,9 @@
 from typing import List
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from utility.clash.other import gen_season_start_end_as_iso
 from utility.general import get_guild_icon, create_superscript
 from collections import defaultdict, namedtuple

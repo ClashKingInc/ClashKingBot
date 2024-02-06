@@ -5,7 +5,8 @@ import uuid
 from .utils import army_embed, super_troop_embed, clan_boost_embeds
 from disnake.ext import commands
 from classes.bot import CustomClient
-from utility.discord_utils import  interaction_handler
+
+from utility.discord_utils import interaction_handler
 from utility.components import create_components
 from utility.constants import  SUPER_TROOPS
 from utility.cdn import upload_to_cdn

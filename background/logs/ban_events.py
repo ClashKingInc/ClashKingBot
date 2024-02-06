@@ -3,8 +3,12 @@ import coc
 
 from disnake.ext import commands
 from classes.server import DatabaseClan
-from classes.bot import CustomClient
-from background.logs.event_websockets import clan_ee
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
+from background.logs.events import clan_ee
 
 class BanEvents(commands.Cog):
 

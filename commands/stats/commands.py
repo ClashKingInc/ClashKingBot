@@ -2,7 +2,11 @@ import coc
 import disnake
 from disnake.ext import commands
 from discord import convert, autocomplete, options
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from exceptions.CustomExceptions import MessageException
 from .utils import war_hitrate, war_hitcount
 

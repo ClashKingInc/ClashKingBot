@@ -4,7 +4,6 @@ import dateutil.relativedelta
 import coc
 import motor.motor_asyncio
 import disnake
-import os
 import re
 import asyncio
 import collections
@@ -32,7 +31,7 @@ from redis import asyncio as redis
 from classes.DatabaseClient.familyclient import FamilyClient
 from classes.config import Config
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
+from utility.login import coc_login
 
 class CustomClient(commands.AutoShardedBot):
     def __init__(self, config: Config, command_prefix: str, help_command, intents: disnake.Intents, scheduler: AsyncIOScheduler):
@@ -42,7 +41,7 @@ class CustomClient(commands.AutoShardedBot):
         self.scheduler = scheduler
         self.ck_client: FamilyClient = None
 
-        self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(self._config.stats_mongodb)
+        self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(self._config.stats_mongodb, compressors="snappy")
         self.new_looper = self.looper_db.get_database("new_looper")
         self.user_db = self.new_looper.get_collection("user_db")
         collection_class = self.user_db.__class__
@@ -124,9 +123,7 @@ class CustomClient(commands.AutoShardedBot):
         self.autoboard_db: collection_class = self.db_client.usafam.autoboard_db
         self.player_search: collection_class = self.db_client.usafam.player_search
 
-        self.coc_client: coc.Client = coc.Client(loop=asyncio.get_event_loop_policy().get_event_loop(), key_count=10, key_names="DiscordBot", throttle_limit=500, cache_max_size=1000,
-                                                load_game_data=coc.LoadGameData(always=False), raw_attribute=True, stats_max_size=10000)
-        self._xyz = asyncio.get_event_loop().run_until_complete(self.coc_client.login(self._config.coc_email, self._config.coc_password))
+        self.coc_client: coc.Client = asyncio.get_event_loop().run_until_complete(coc_login())
 
         self.redis = redis.Redis(host=self._config.redis_ip, port=6379, db=0, password=self._config.redis_pw, retry_on_timeout=True, max_connections=250, retry_on_error=[redis.ConnectionError])
 
@@ -138,7 +135,6 @@ class CustomClient(commands.AutoShardedBot):
 
         self.feed_webhooks = {}
         self.clan_list = []
-        self.player_cache_dict = expiring_dict.ExpiringDict(ttl=60)
         self.IMAGE_CACHE = ExpiringDict()
 
         self.OUR_GUILDS = set()
@@ -486,75 +482,49 @@ class CustomClient(commands.AutoShardedBot):
                 return None
 
 
+
     async def get_players(self, tags: list, fresh_tags=None, custom=True, use_cache=True, fake_results=False, found_results=None):
-        if fresh_tags is None:
-            fresh_tags = []
-        if custom and fake_results is False:
-            if found_results is None:
-                results_list = await self.player_stats.find({"tag" : {"$in" : tags}}).to_list(length=None)
-            else:
-                results_list = found_results
-            results_dict = {}
-            for item in results_list:
-                results_dict[item["tag"]] = item
+        fresh_tags = fresh_tags or []
+
+        results_dict = {}
+        results_list = found_results if found_results else []
+        if custom and not fake_results:
+            results_list = await self.player_stats.find({"tag": {"$in": tags}}).to_list(length=None)
         elif custom and fake_results:
             results_dict = {tag: {} for tag in tags}
+        results_dict.update({item["tag"]: item for item in results_list})
 
         players = []
         tag_set = set(tags)
         cache_data = []
-        for tag in tag_set.copy():
-            local_data = self.player_cache_dict.get(tag)
-            if local_data is not None:
-                cache_data.append(local_data)
-                tag_set.remove(local_data.get("tag"))
 
         if use_cache:
             redis_cache_data = await self.redis.mget(keys=[tag for tag in tag_set if tag not in fresh_tags])
-            for data in redis_cache_data:
-                if data is None:
-                    continue
-                data = snappy.uncompress(data)
-                data = ujson.loads(data)
-                self.player_cache_dict[data.get("tag")] = data
-                tag_set.remove(data.get("tag"))
+            for data in (ujson.loads(snappy.uncompress(data)) for data in redis_cache_data if data is not None):
+                tag_set.discard(data.get("tag"))
                 cache_data.append(data)
 
-        for data in cache_data:
-            if not custom:
-                player = coc.Player(data=data, client=self.coc_client)
-            else:
-                player = MyCustomPlayer(data=data, client=self.coc_client, bot=self, results=results_dict.get(data["tag"], {}))
-            players.append(player)
-
-        keys = self.coc_client.http.keys
-
-        tasks = []
-        async def fetch(url, session: aiohttp.ClientSession, headers):
-            async with session.get(url, headers=headers) as response:
-                if response.status == 200:
-                    return (await response.read())
-                return None
-
+        players.extend(
+            (coc.Player if not custom else MyCustomPlayer)
+            (data=data, client=self.coc_client, bot=self, results=results_dict.get(data["tag"], {})
+             )for data in cache_data
+        )
+        headers = {
+            'Authorization': 'Bearer test',
+            'Content-Type': 'application/json',
+            "Accept-Encoding" : "gzip"
+        }
+        data = [f"players/{t.replace('#', '%23')}" for t in tag_set]
         async with aiohttp.ClientSession() as session:
-            for tag in tag_set:
-                key = next(keys)
-                tasks.append(fetch(f"https://api.clashofclans.com/v1/players/{tag.replace('#', '%23')}", session, {"Authorization": f"Bearer {key}"}))
-            responses = await asyncio.gather(*tasks)
-            await session.close()
-
-        for data in responses:
-            if data is None:
-                continue
-            data = ujson.loads(data)
-            self.player_cache_dict[data.get("tag")] = data
-            if not custom:
-                player = coc.Player(data=data, client=self.coc_client)
-            else:
-                player = MyCustomPlayer(data=data, client=self.coc_client, bot=self, results=results_dict.get(data["tag"], {}))
-            players.append(player)
-
-        return [player for player in players if player is not None]
+            async with session.post("https://api.clashking.xyz/ck/bulk", json=data, headers=headers) as response:
+                data = await response.read()
+        player_data: dict = ujson.loads(data)
+        players.extend(
+            (coc.Player if not custom else MyCustomPlayer)
+            (data=data, client=self.coc_client, bot=self, results=results_dict.get(data["tag"], {})
+             ) for data in player_data
+        )
+        return players
 
 
     async def get_clans(self, tags: list, use_cache=True):

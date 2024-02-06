@@ -4,11 +4,15 @@ import disnake
 from operator import attrgetter
 from exceptions.CustomExceptions import *
 from typing import  Union
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from disnake.ext import commands
 from datetime import datetime
 from utility.cdn import upload_to_cdn
-from main import check_commands
+from utility.discord_utils import check_commands
 from utility.discord_utils import interaction_handler
 from classes.tickets import TicketPanel, OpenTicket, LOG_TYPE
 from discord.autocomplete import Autocomplete as autocomplete

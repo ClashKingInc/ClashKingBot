@@ -7,6 +7,10 @@ load_dotenv()
 class Config:
     coc_email = getenv("COC_EMAIL")
     coc_password = getenv("COC_PASSWORD")
+
+    min_coc_email = 48
+    max_coc_email = 48
+
     static_mongodb = getenv("STATIC_MONGODB")
     stats_mongodb = getenv("STATS_MONGODB")
     link_api_username = getenv("LINK_API_USER")

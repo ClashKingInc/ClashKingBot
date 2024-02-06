@@ -4,7 +4,11 @@ import operator
 import re
 
 from datetime import datetime
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from pytz import utc
 from collections import defaultdict
 from utility.general import create_superscript
@@ -266,7 +270,7 @@ async def opp_overview(bot: CustomClient, war: coc.ClanWar):
     else:
         flag = f":flag_{clan.location.country_code.lower()}:"
     embed = disnake.Embed(title=f"**War Opponent: {clan.name}**", description=f"Tag: [{clan.tag}]({clan.share_link})\n"
-                                                                              f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.versus_points}\n"
+                                                                              f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.builder_base_points}\n"
                                                                               f"Required Trophies: <:trophy:825563829705637889> {clan.required_trophies}\n"
                                                                               f"Location: {flag} {clan.location}\n\n"
                                                                               f"Leader: {leader.name}\n"

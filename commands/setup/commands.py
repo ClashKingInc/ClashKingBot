@@ -4,13 +4,17 @@ import secrets
 import re
 from disnake.ext import commands
 
-from main import check_commands
+from utility.discord_utils import check_commands
 from typing import Union
 from exceptions.CustomExceptions import *
 
 from classes.server import DatabaseClan
 from classes.enum import LinkParseTypes
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 
 from utility.discord_utils import  interaction_handler, basic_embed_modal, get_webhook_for_channel, registered_functions
 from utility.general import calculate_time, get_guild_icon

@@ -3,8 +3,12 @@ import disnake
 from utility.components import create_components, townhall_component, clan_component, role_component
 from utility.discord_utils import interaction_handler
 from datetime import datetime
-from classes.bot import CustomClient
-from main import check_commands
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
+from utility.discord_utils import check_commands
 from datetime import timedelta
 import pytz
 
@@ -12,7 +16,7 @@ utc = pytz.utc
 import coc
 import random
 import string
-from main import scheduler
+
 from typing import List
 
 

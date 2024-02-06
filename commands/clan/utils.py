@@ -5,7 +5,11 @@ from disnake import Embed
 from disnake.utils import get
 from collections import  namedtuple
 from classes.player import MyCustomPlayer, LegendRanking, ClanCapitalWeek
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from typing import List
 from ballpark import ballpark as B
 from statistics import mean
@@ -88,7 +92,7 @@ async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake
         description=(
             f"Tag: [{clan.tag}]({clan.share_link})\n"
             f"Trophies: <:trophy:825563829705637889> {clan.points} | "
-            f"<:vstrophy:944839518824058880> {clan.versus_points}\n"
+            f"<:vstrophy:944839518824058880> {clan.builder_base_points}\n"
             f"Requirements: <:trophy:825563829705637889>{clan.required_trophies} | {fetch_emoji(clan.required_townhall)}{clan.required_townhall}\n"
             f"Type: {clan_type_converter[clan.type]}\n"
             f"Location: {flag} {location_name}\n"
@@ -202,7 +206,7 @@ async def basic_clan_board(clan: coc.Clan, embed_color: disnake.Color = disnake.
 
     embed = disnake.Embed(title=f"**{clan.name}**",
                           description=f"Tag: [{clan.tag}]({clan.share_link})\n"
-                                      f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.versus_points}\n"
+                                      f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.builder_base_points}\n"
                                       f"Required Trophies: <:trophy:825563829705637889> {clan.required_trophies}\n"
                                       f"Location: {flag} {clan.location}\n\n"
                                       f"Leader: {leader.name}\n"
@@ -536,7 +540,7 @@ async def clan_sorted(bot: CustomClient, clan: coc.Clan, sort_by: str, townhall:
     for count, player in enumerate(players, 1):
         if sort_by in ["role", "tag", "heroes", "ach_Friend in Need", "town_hall"]:
             emoji = bot.fetch_emoji(player.town_hall)
-        elif sort_by in ["versus_trophies", "versus_attack_wins", "ach_Champion Builder"]:
+        elif sort_by in ["builder_base_trophies", "ach_Champion Builder"]:
             emoji = bot.emoji.versus_trophy
         elif sort_by in ["trophies", "ach_Sweet Victory!"]:
             emoji = bot.emoji.trophy

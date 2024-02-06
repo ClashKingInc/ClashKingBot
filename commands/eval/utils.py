@@ -5,7 +5,11 @@ import asyncio
 
 from collections import defaultdict, namedtuple
 from typing import List
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from utility.constants import DEFAULT_EVAL_ROLE_TYPES, ROLE_TREATMENT_TYPES
 from utility.general import get_clan_member_tags, create_superscript
 from exceptions.CustomExceptions import ExpiredComponents, MessageException

@@ -4,10 +4,14 @@ import asyncio
 import string
 import random
 
-from main import scheduler
+
 #from FamilyManagement.Reminders import SendReminders
 from classes.server import DatabaseClan
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 #from CommandsOlder.Utils.War import main_war_page, missed_hits
 #from ImageGen.WarEndResult import generate_war_result_image
 from utility.discord_utils import get_webhook_for_channel
@@ -20,7 +24,7 @@ async def create_reminders(bot: CustomClient, times, clan_tag):
             if reminder_time.is_integer():
                 reminder_time = int(reminder_time)
             send_time = time[1]
-            scheduler.add_job(SendReminders.war_reminder, 'date', run_date=send_time, args=[bot, clan_tag, reminder_time],id=f"{reminder_time}_{clan_tag}", name=f"{clan_tag}", misfire_grace_time=None)
+            self.bot.scheduler.add_job(SendReminders.war_reminder, 'date', run_date=send_time, args=[bot, clan_tag, reminder_time],id=f"{reminder_time}_{clan_tag}", name=f"{clan_tag}", misfire_grace_time=None)
         except:
             pass
 
@@ -29,13 +33,13 @@ async def schedule_war_boards(bot:CustomClient, war: coc.ClanWar):
     if war.state == "preparation" or war.state == "inWar":
         if war.state == "preparation":
             try:
-                scheduler.add_job(send_or_update_war_start, 'date', run_date=war.start_time.time,
+                self.bot.scheduler.add_job(send_or_update_war_start, 'date', run_date=war.start_time.time,
                                        args=[bot, war.clan.tag], id=f"war_start_{war.clan.tag}",
                                        name=f"{war.clan.tag}_war_start", misfire_grace_time=None)
             except:
                 pass
         try:
-            scheduler.add_job(send_or_update_war_end, 'date', run_date=war.end_time.time,
+            self.bot.scheduler.add_job(send_or_update_war_end, 'date', run_date=war.end_time.time,
                                        args=[bot, war.clan.tag, int(war.preparation_start_time.time.timestamp())],
                                        id=f"war_end_{war.clan.tag}",
                                        name=f"{war.clan.tag}_war_end", misfire_grace_time=None)

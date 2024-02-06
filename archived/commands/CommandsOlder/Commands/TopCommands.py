@@ -3,7 +3,11 @@ import coc
 import calendar
 
 from disnake.ext import commands
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from utility.constants import item_to_name
 from utility.ClanCapital import gen_raid_weekend_datestrings
 

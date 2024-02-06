@@ -6,10 +6,14 @@ import pytz
 
 
 from typing import List
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from disnake.ext import commands
 from datetime import datetime
-from main import check_commands
+from utility.discord_utils import check_commands
 from classes.player import MyCustomPlayer
 from utility.discord_utils import interaction_handler
 from classes.tickets import TicketPanel, LOG_TYPE, OpenTicket

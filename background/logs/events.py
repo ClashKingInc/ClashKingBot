@@ -1,29 +1,15 @@
-import websockets
 import orjson
-import os
-
-from dotenv import load_dotenv
+from classes.config import Config
 from pymitter import EventEmitter
-from pymongo import InsertOne
-from datetime import datetime
-load_dotenv()
 
+config = Config()
 player_ee = EventEmitter()
 clan_ee = EventEmitter()
 war_ee = EventEmitter()
 raid_ee = EventEmitter()
 
-WEBSOCKET_IP = os.getenv("WEBSOCKET_IP")
-NEW_WEBSOCKET_IP = os.getenv("NEW_WEBSOCKET_IP")
-WEBSOCKET_USER = os.getenv("WEBSOCKET_USER")
-WEBSOCKET_PW = os.getenv("WEBSOCKET_PW")
-import os
-import pytz
-import motor.motor_asyncio
-looper_db = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("LOOPER_DB_LOGIN"))
-new_looper = looper_db.get_database("new_looper")
-bot_stats= looper_db.clashking.bot_stats
-import asyncio
+
+
 from aiokafka import AIOKafkaConsumer
 
 

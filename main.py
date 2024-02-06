@@ -1,15 +1,15 @@
 import os
 import disnake
 import traceback
-import motor.motor_asyncio
 import sentry_sdk
+
 from classes.bot import CustomClient
-from disnake.ext import commands
+
 from classes.config import Config
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
-from background.logs.event_websockets import kafka_events
+from background.logs.events import kafka_events
 
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
@@ -25,51 +25,6 @@ intents = disnake.Intents(
 
 bot = CustomClient(command_prefix="??", help_command=None, intents=intents, scheduler=scheduler, config=config)
 
-def check_commands():
-    async def predicate(ctx: disnake.ApplicationCommandInteraction):
-        if ctx.author.id == 706149153431879760:
-            return True
-        roles = (await ctx.guild.getch_member(member_id=ctx.author.id)).roles
-        if disnake.utils.get(roles, name="ClashKing Perms") != None:
-            return True
-        db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
-        whitelist = db_client.usafam.whitelist
-        member = ctx.author
-
-        commandd = ctx.application_command.qualified_name
-        if commandd == "unlink":
-            return True
-        guild = ctx.guild.id
-
-        results =  whitelist.find({"$and" : [
-                {"command": commandd},
-                {"server" : guild}
-            ]})
-
-        if results is None:
-            return False
-
-        limit = await whitelist.count_documents(filter={"$and" : [
-                {"command": commandd},
-                {"server" : guild}
-            ]})
-
-        perms = False
-        for role in await results.to_list(length=limit):
-            role_ = role.get("role_user")
-            is_role = role.get("is_role")
-            if is_role:
-                role_ = ctx.guild.get_role(role_)
-                if member in role_.members:
-                    return True
-            else:
-                if member.id == role_:
-                    return True
-
-        return perms
-
-    return commands.check(predicate)
-
 initial_extensions = [
     "discord.events",
     "discord.autocomplete",
@@ -83,15 +38,15 @@ if config.is_custom:
     disallowed.add("owner")
 
 def load():
+    file_list = []
     for root, _, files in os.walk('commands'):
         for filename in files:
             if filename.endswith('.py') and filename.split(".")[0] in ["commands", "buttons"]:
                 path = os.path.join(root, filename)[len("commands/"):][:-3].replace(os.path.sep, '.')
                 if path.split(".")[0] in disallowed:
                     continue
-                bot.load_extension(f'commands.{path}')
-                bot.EXTENSION_LIST.append(f'commands.{path}')
-
+                file_list.append(f'commands.{path}')
+    return file_list
 
 
 #dont let custom or local run
@@ -143,14 +98,13 @@ if __name__ == "__main__":
         },
         before_send=before_send
     )
-    load()
-    print(initial_extensions)
-    for extension in initial_extensions:
+    initial_extensions += load()
+    for count, extension in enumerate(initial_extensions):
         try:
             bot.load_extension(extension)
         except Exception as extension:
             traceback.print_exc()
-
+    bot.EXTENSION_LIST.extend(initial_extensions)
     if not config.is_beta:
         bot.loop.create_task(kafka_events())
 

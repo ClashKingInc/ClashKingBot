@@ -1,12 +1,16 @@
 import datetime
 import disnake
 from disnake.ext import commands
-from classes.bot import CustomClient
-from main import check_commands
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
+from utility.discord_utils import check_commands
 from urlextract import URLExtract
 extractor = URLExtract()
 import asyncio
-from main import scheduler
+
 from collections import defaultdict
 last_ping = defaultdict(int)
 staff_webhook = 0
@@ -17,7 +21,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.send_rules, 'interval', minutes=240)
+        self.bot.scheduler.add_job(self.send_rules, 'interval', minutes=240)
         self.bot.global_channels = [1060857976505761792, 863133347601842226]
 
 

@@ -3,8 +3,12 @@ import disnake
 import coc
 
 from classes.server import DatabaseClan
-from classes.bot import CustomClient
-from background.logs.event_websockets import player_ee, raid_ee
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
+from background.logs.events import player_ee, raid_ee
 from datetime import datetime
 from pytz import utc
 from coc.raid import RaidLogEntry, RaidAttack, RaidMember

@@ -3,7 +3,11 @@ import re
 import pytz
 import coc
 from typing import List
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from datetime import datetime
 from classes.player import MyCustomPlayer
 from classes.tickets import TicketPanel, Ticket_Buttons, OpenTicket, ApproveMessages

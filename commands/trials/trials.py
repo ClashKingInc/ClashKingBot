@@ -2,8 +2,12 @@ import coc
 from disnake.ext import commands
 import disnake
 from datetime import datetime, timedelta
-from classes.bot import CustomClient
-from main import check_commands
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
+from utility.discord_utils import check_commands
 from pytz import utc
 from exceptions.CustomExceptions import MessageException
 

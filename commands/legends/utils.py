@@ -11,7 +11,11 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pendulum as pend
 
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from classes.DatabaseClient.Classes.player import LegendPlayer, LegendDay
 from utility.discord_utils import register_button
 from utility.general import create_superscript

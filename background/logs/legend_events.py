@@ -1,9 +1,13 @@
 import coc
 import disnake
 from disnake.ext import commands
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from classes.server import DatabaseClan
-from background.logs.event_websockets import player_ee
+from background.logs.events import player_ee
 from datetime import datetime
 from pytz import utc
 from utility.discord_utils import get_webhook_for_channel

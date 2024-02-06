@@ -3,6 +3,7 @@ import disnake
 
 from typing import Union, List, TYPE_CHECKING
 from utility.constants import ROLE_TREATMENT_TYPES, EMBED_COLOR
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from classes.bot import CustomClient
 else:

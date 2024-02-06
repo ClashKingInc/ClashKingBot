@@ -3,7 +3,11 @@ import coc
 
 from disnake.ext import commands
 from typing import List
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from discord.converters import Convert as convert
 from discord.autocomplete import Autocomplete as autocomplete
 from datetime import datetime

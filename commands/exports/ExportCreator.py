@@ -5,7 +5,11 @@ import io
 import calendar
 from datetime import datetime, timedelta
 from disnake.ext import commands
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from classes.player import MyCustomPlayer, LegendDay
 from typing import Dict, List
 from coc import utils

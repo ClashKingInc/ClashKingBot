@@ -2,15 +2,19 @@ from disnake.ext import commands
 import coc
 import disnake
 import math
-from main import scheduler
-from classes.bot import CustomClient
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from pymongo import InsertOne
 
 class board_loop(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.autoboard_cron, "cron", hour=4, minute=56)
+        self.bot.scheduler.add_job(self.autoboard_cron, "cron", hour=4, minute=56)
 
     async def autoboard_cron(self):
         hour = 4

@@ -1,11 +1,15 @@
 from disnake.ext import commands, tasks
 import disnake
 from utility.general import calculate_time
-from main import scheduler
+
 import pytz
 utc = pytz.utc
 
-from classes.bot import CustomClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
+else:
+    from disnake.ext.commands import AutoShardedBot as CustomClient
 from classes.server import DatabaseClan
 from exceptions.CustomExceptions import MissingWebhookPerms
 
@@ -13,7 +17,7 @@ class VoiceStatCron(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        scheduler.add_job(self.voice_update, 'interval', minutes=10)
+        self.bot.self.bot.scheduler.add_job(self.voice_update, 'interval', minutes=10)
 
     async def voice_update(self):
         results = self.bot.server_db.find()
