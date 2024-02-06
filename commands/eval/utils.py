@@ -145,7 +145,7 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
                     ROLES_TO_ADD.add(league_roles.get(lookup))
 
             if "builder_league" in eval_types and do_eval:
-                league = player.builder_league.name.split(" ")[0].lower()
+                league = player.builder_base_league.name.split(" ")[0].lower()
                 ROLES_TO_ADD.add(builder_league_roles.get(f"{league}_league"))
 
             if player.clan is not None and "clan" in eval_types:
