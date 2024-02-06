@@ -13,7 +13,7 @@ from utility.discord_utils import interaction_handler
 from exceptions.CustomExceptions import MessageException
 from utility.components import create_components
 from discord import convert
-from .utils import logic, family_role_add, family_role_remove
+from .utils import logic
 
 
 
@@ -75,7 +75,7 @@ class eval(commands.Cog, name="Eval"):
 
 
         if isinstance(role_or_user, disnake.Role):
-            members = await ctx.guild.getch_members([m.id for m in role_or_user.members])
+            members = role_or_user.members
             clans = await self.bot.clan_db.distinct("tag", filter={"generalRole": role_or_user.id})
             if not clans:
                 result = await self.bot.generalfamroles.find_one({"role": role_or_user.id})

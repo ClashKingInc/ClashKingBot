@@ -68,7 +68,7 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
             for x in pertinent_roles:
                 ignored_roles.add(x)
 
-    ALL_CLASH_ROLES = {inner for outer in type_to_roles.values() for inner in outer}
+    ALL_CLASH_ROLES = {inner for type, outer in type_to_roles.items() for inner in outer if type != "leadership"}
     bot_member = await guild.getch_member(bot.user.id)
 
     if not bot_member.guild_permissions.manage_roles:
@@ -85,6 +85,7 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
         if role > bot_member.top_role:
             raise MessageException(f"{role.mention} is higher than {bot_member.mention}'s top role ({bot_member.top_role}), cannot assign that role to users.")
 
+    print(eval_types, db_server.leadership_eval)
     if "leadership" in eval_types and db_server.leadership_eval:
         ALL_CLASH_ROLES = ALL_CLASH_ROLES | set(type_to_roles.get("leadership", []))
 
@@ -92,7 +93,7 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
     if auto_eval_tag is not None:
         fresh_tags = [auto_eval_tag]
         all_tags.remove(auto_eval_tag)
-    all_players = await bot.get_players(tags=list(all_tags), fresh_tags=fresh_tags, use_cache=(len(all_tags) >= 10), custom=False)
+    all_players = await bot.get_players(tags=list(all_tags), fresh_tags=fresh_tags, use_cache=False, custom=False)
 
     player_dict = {p.tag : p for p in all_players}
 

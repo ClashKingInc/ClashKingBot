@@ -86,7 +86,7 @@ class DiscordEvents(commands.Cog):
                 acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times, war_end_time=war_end_time)
                 await create_reminders(bot=self.bot, times=acceptable_times, clan_tag=tag)
 
-            scheduler.print_jobs()
+            self.bot.scheduler.print_jobs()
 
             if self.bot.user.public_flags.verified_bot:
                 for g in self.bot.guilds:
