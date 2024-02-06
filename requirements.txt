@@ -6,7 +6,7 @@ ballpark @ git+https://github.com/Mee6/python-ballpark.git@5ab86393ba8cb2f306187
 beautifulsoup4==4.10.0
 bs4==0.0.1
 chat-exporter @ git+https://github.com/MagicTheDev/DiscordChatExporterPy@42ff2ae12628e62ace81e7f69205729c115a5ba6
-coc.py @ git+https://github.com/MagicTheDev/coc.py.git
+coc.py==3.2.1
 disnake @ git+https://github.com/MagicTheDev/disnake.git@9cc68bd3ab3e9ecba420634f7d1cdac213fe50d1
 dnspython==2.1.0
 emoji==1.6.3
