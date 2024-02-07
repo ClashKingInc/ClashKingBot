@@ -85,7 +85,6 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
         if role > bot_member.top_role:
             raise MessageException(f"{role.mention} is higher than {bot_member.mention}'s top role ({bot_member.top_role}), cannot assign that role to users.")
 
-    print(eval_types, db_server.leadership_eval)
     if "leadership" in eval_types and db_server.leadership_eval:
         ALL_CLASH_ROLES = ALL_CLASH_ROLES | set(type_to_roles.get("leadership", []))
 
@@ -96,7 +95,6 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
     all_players = await bot.get_players(tags=list(all_tags), fresh_tags=fresh_tags, use_cache=False, custom=False)
 
     player_dict = {p.tag : p for p in all_players}
-
 
 
     user_settings = await bot.user_settings.find({"discord_user": {"$in": [m.id for m in members]}}).to_list(length=None)

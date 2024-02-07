@@ -26,11 +26,11 @@ class Linking(commands.Cog):
     @commands.slash_command(name="link", description="Link clash of clans accounts to your discord profile")
     async def link(self,  ctx: disnake.ApplicationCommandInteraction,
                    player: coc.Player = commands.Param(autocomplete=autocomplete.all_players, converter=convert.player),
-                   api_token: str =None):
+                   api_token: str = None, help: str = commands.Param(default=None, choices=["True"])):
         """
             Parameters
             ----------
-            player_tag: player_tag as found in-game
+            player: player_tag as found in-game
             api_token: player api-token, use /linkhelp for more info
         """
         await ctx.response.defer()
@@ -48,7 +48,7 @@ class Linking(commands.Cog):
         #overide link if token is correct
         if verified and is_linked:
             if linked == ctx.author.id:
-                embed = await eval_logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
+                embed = await logic(bot=self.bot, ctx=ctx, members_to_eval=[ctx.author], role_or_user=ctx.author,
                                                 test=False,
                                                 change_nick=change_nickname,
                                                 return_embed=True)
@@ -435,6 +435,8 @@ class Linking(commands.Cog):
                 content = ""
             await ctx.send(content=content, embed=embed, components=[buttons])
 
+
+
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
 
@@ -479,13 +481,6 @@ class Linking(commands.Cog):
             embed = disnake.Embed(title=f"Rosters for {roster_type_text}", description=text,
                                   color=disnake.Color.green())
             await ctx.send(embed=embed, ephemeral=True)
-
-    @modlink.autocomplete("player_tag")
-    @unlink.autocomplete("player_tag")
-    @verify.autocomplete("player_tag")
-    async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        names = await self.bot.family_names(query=query, guild=ctx.guild)
-        return names
 
 
 
