@@ -42,7 +42,7 @@ class DatabaseServer():
         self.tied_stats_only = data.get("tied", True)
         self.autoeval_triggers = data.get("autoeval_triggers", [])
 
-        self.nickname_convention = data.get("nickname_rule", "{player_name}")
+        self.nickname_convention = data.get("nickname_rule", "{discord_display_name}")
         self.change_nickname = data.get("change_nickname", False)
 
 
