@@ -234,7 +234,10 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
                         else:
                             main_account = sorted(member_accounts, key=lambda l: l.trophies, reverse=True)[0]
 
-                    types = {"{player_name}": main_account.name,
+                    types = {
+                             "{discord_name}": member.global_name,
+                             "{discord_display_name}": member.display_name,
+                             "{player_name}": main_account.name,
                              "{player_tag}": main_account.tag,
                              "{player_townhall}": main_account.town_hall,
                              "{player_townhall_small}": create_superscript(main_account.town_hall),
