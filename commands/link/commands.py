@@ -261,7 +261,7 @@ class Linking(commands.Cog):
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
-        await ctx.response.defer(ephemeral=True)
+        #await ctx.response.defer(ephemeral=True)
 
         if ctx.data.custom_id == "Refresh Roles":
             server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
