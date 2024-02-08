@@ -2,7 +2,7 @@ import json
 import disnake
 
 #EVAL CONSTANTS
-DEFAULT_EVAL_ROLE_TYPES = ["family", "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "builder_league", "nicknames"]
+DEFAULT_EVAL_ROLE_TYPES = ["family", "only_family", "not_family", "clan", "leadership", "townhall", "builderhall", "category", "league", "builder_league", "nicknames"]
 
 ROLE_TREATMENT_TYPES = ["Add", "Remove"]
 

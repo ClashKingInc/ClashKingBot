@@ -13,7 +13,7 @@ from utility.discord_utils import interaction_handler
 from exceptions.CustomExceptions import MessageException
 from utility.components import create_components
 from discord import convert
-from .utils import logic
+from .utils import logic, family_role_add, family_role_remove
 
 
 
@@ -71,8 +71,6 @@ class eval(commands.Cog, name="Eval"):
             await res.edit_original_message(embed=embed, components=[])
         else:
             eval_types = DEFAULT_EVAL_ROLE_TYPES
-
-
 
         if isinstance(role_or_user, disnake.Role):
             members = role_or_user.members
@@ -195,6 +193,7 @@ class eval(commands.Cog, name="Eval"):
         await ctx.response.defer()
 
 
+
     #SETTINGS
     @roles.sub_command(name="family", description="Add/Remove Family Based Eval Roles")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -224,7 +223,7 @@ class eval(commands.Cog, name="Eval"):
         if add is not None:
             embed = await self.family_role_add(database=database, role=add, guild=ctx.guild, type=type)
         elif remove is not None:
-            embed = await self.family_roles_remove(database=database, role=add, guild=ctx.guild, type=type)
+            embed = await self.family_role_remove(database=database, role=add, guild=ctx.guild, type=type)
         await ctx.edit_original_message(embed=embed)
 
 
@@ -391,11 +390,12 @@ class eval(commands.Cog, name="Eval"):
         #SWITCH THIS COMMAND TO USE THIS OBJECT EVENTUALLY
 
         family_roles = await self.bot.generalfamroles.find({"server": ctx.guild.id}).to_list(length=100)
+        only_family_roles = await self.bot.familyexclusiveroles.find({"server": ctx.guild.id}).to_list(length=100)
         not_family_roles = await self.bot.notfamroles.find({"server": ctx.guild.id}).to_list(length=100)
         ignored_roles = await self.bot.ignoredroles.find({"server": ctx.guild.id}).to_list(length=100)
 
-        list_roles = [family_roles, not_family_roles, ignored_roles]
-        role_names = ["Only-Family Roles", "Not-Family Roles", "Ignored Roles"]
+        list_roles = [family_roles, only_family_roles, not_family_roles, ignored_roles]
+        role_names = ["Family Roles", "Only-Family Roles", "Not-Family Roles", "Ignored Roles"]
 
         embed = disnake.Embed(title=f"{ctx.guild.name} Family Role List", color=db_server.embed_color)
         for role_list, role_name in zip(list_roles, role_names):
@@ -570,10 +570,9 @@ class eval(commands.Cog, name="Eval"):
         embed = disnake.Embed(title="Eval Role Removals", description=removed_text, color=disnake.Color.green())
         await ctx.edit_original_message(embed=embed)
 
-        
 
 
-    @commands.user_command(name="Nickname", description="Change nickname of a user")
+    '''@commands.user_command(name="Nickname", description="Change nickname of a user")
     async def auto_nick(self, ctx: disnake.ApplicationCommandInteraction, user: disnake.User):
         await ctx.response.defer(ephemeral=True)
         perms = ctx.author.guild_permissions.manage_nicknames
@@ -708,7 +707,7 @@ class eval(commands.Cog, name="Eval"):
                 except:
                     await res.send(
                         content=f"Could not edit {member.mention} name. Permissions error or user is above or equal to the bot's highest role.",
-                        ephemeral=True)
+                        ephemeral=True)'''
 
 
     '''@commands.slash_command(name="nickname", description="Change the nickname of a discord user")

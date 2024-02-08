@@ -56,7 +56,7 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
 
 
 
-    type_to_roles = {"family": list(family_roles), "not_family": list(not_family_roles),
+    type_to_roles = {"family": list(family_roles), "not_family": list(not_family_roles), "only_family" : list(only_family_roles),
                      "clan": list(clan_member_roles.values()), "leadership": [r for r in clan_leadership_roles.values() if r is not None],
                      "townhall": list(townhall_roles.values()), "builderhall": list(builderhall_roles.values()),
                      "league": list(league_roles.values()), "category": [r for r in clan_category_roles.values() if r is not None],
@@ -64,9 +64,7 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
 
     for eval_type in DEFAULT_EVAL_ROLE_TYPES:
         if eval_type not in eval_types:
-            pertinent_roles = type_to_roles.get(eval_type)
-            for x in pertinent_roles:
-                ignored_roles.add(x)
+            type_to_roles.pop(eval_type, None)
 
     ALL_CLASH_ROLES = {inner for type, outer in type_to_roles.items() for inner in outer if type != "leadership"}
     bot_member = await guild.getch_member(bot.user.id)
@@ -220,19 +218,22 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
         new_name = None
         if db_server.change_nickname and "nicknames" in eval_types:
             #if they have a family account or the server allows non family to change nickname, then change it
-            if has_family_account or db_server.flair_non_family:
+            if has_family_account:
                 if member.top_role > bot_member.top_role:
                     new_name = "`Cannot Change`"
                 else:
-                    local_nickname_convention = db_server.nickname_convention
+                    if has_family_account:
+                        local_nickname_convention = db_server.family_nickname_convention
+                    else:
+                        local_nickname_convention = db_server.non_family_nickname_convention
                     main_account = main_account_lookup.get(member.id)
                     if main_account is not None:
                         main_account = coc.utils.get(member_accounts, tag=main_account)
                     if main_account is None:
                         if len(family_accounts) >= 1:
-                            main_account = sorted(family_accounts, key=lambda l: l.trophies, reverse=True)[0]
+                            main_account = sorted(family_accounts, key=lambda l: (l.town_hall, l.trophies), reverse=True)[0]
                         else:
-                            main_account = sorted(member_accounts, key=lambda l: l.trophies, reverse=True)[0]
+                            main_account = sorted(member_accounts, key=lambda l: (l.town_hall, l.trophies), reverse=True)[0]
 
                     types = {
                              "{discord_name}": member.global_name,
@@ -261,7 +262,10 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
 
         if not test:
             try:
-                await member.edit(nick=new_name if new_name != "None" else member.display_name, roles=FINAL_ROLES)
+                if new_name != "`Cannot Change`":
+                    await member.edit(nick=new_name if new_name != "None" else member.display_name, roles=FINAL_ROLES)
+                else:
+                    await member.edit(roles=FINAL_ROLES)
             except Exception as e:
                 if new_name is not None:
                     new_name = "Error"

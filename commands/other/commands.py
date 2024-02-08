@@ -1,17 +1,14 @@
 import disnake
-from disnake.ext import commands
 import time
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
 import io
+import aiohttp
+
+from urllib.parse import urlencode
+from disnake.ext import commands
+from classes.bot import CustomClient
 from PIL import Image, ImageDraw, ImageFont
 from utility.components import create_components
-
-from discord.converters import Convert as convert
-from discord.autocomplete import Autocomplete as autocomplete
+from discord import convert, autocomplete
 
 class misc(commands.Cog, name="Other"):
 
@@ -160,20 +157,32 @@ class misc(commands.Cog, name="Other"):
             await ctx.send(file=file)
 
 
-    '''@commands.slash_command(name="help", description="Frequently Asked Questions")
-    async def help(self, ctx: disnake.ApplicationCommandInteraction):
-        await ctx.send(content=f"The docs [here](<https://docs.clashking.xyz>) explain a lot of basics or feel free to ask in our [support server](<https://discord.gg/clashking>)")'''
-
 
     @commands.Cog.listener()
     async def on_message(self, message: disnake.Message):
-        try:
-            if message.content[:2] == "-/" and self.bot.user.public_flags.verified_bot:
+        if message.content[:2] == "-/" and self.bot.user.public_flags.verified_bot:
+            try:
                 command = self.bot.get_global_command_named(name=message.content.replace("-/", "").split(" ")[0])
                 await message.channel.send(f"</{message.content.replace('-/', '')}:{command.id}>")
+            except Exception:
+                pass
+        elif message.channel.id == 1204977978438848522 and self.bot.user.mention in message.content:
+            query = message.content.replace(self.bot.user.mention, "")
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f'https://api.gitbook.com/v1/spaces/iSJhS5UxZkjOhR5eSxhS/search/ask?{urlencode({"query": query})}') as response:
+                    if response.status == 200:
+                        answer = await response.json()
+                    else:
+                        answer = None
+            if answer is not None:
+                try:
+                    await message.reply(content=answer.get("answer").get("text"))
+                except Exception:
+                    await message.reply(content="I dont have the answer to that yet, but you can take a look at my docs <https://docs.clashking.xyz>")
 
-        except:
-            pass
+
+
+
 
 
 

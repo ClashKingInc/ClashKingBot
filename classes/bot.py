@@ -107,7 +107,7 @@ class CustomClient(commands.AutoShardedBot):
         self.global_chat_db: collection_class = self.db_client.usafam.global_chats
         self.global_reports: collection_class = self.db_client.usafam.reports
         self.strikelist: collection_class = self.db_client.usafam.strikes
-
+        self.custom_bots: collection_class = self.db_client.usafam.custom_bots
 
         self.tickets: collection_class = self.db_client.usafam.tickets
         self.open_tickets: collection_class = self.db_client.usafam.open_tickets

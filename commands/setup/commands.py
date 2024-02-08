@@ -2,25 +2,19 @@ import disnake
 import coc
 import secrets
 import re
-from disnake.ext import commands
+import aiohttp
 
-from utility.discord_utils import check_commands
+from disnake.ext import commands
 from typing import Union
 from exceptions.CustomExceptions import *
-
 from classes.server import DatabaseClan
 from classes.enum import LinkParseTypes
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
-
-from utility.discord_utils import  interaction_handler, basic_embed_modal, get_webhook_for_channel, registered_functions
+from classes.bot import CustomClient
+from utility.discord_utils import  interaction_handler, basic_embed_modal, get_webhook_for_channel, registered_functions, check_commands
 from utility.general import calculate_time, get_guild_icon
 from utility.components import clan_component
-
 from discord import autocomplete, convert, options
+from aiohttp import TCPConnector
 
 
 class SetupCommands(commands.Cog , name="Setup"):
@@ -81,7 +75,9 @@ class SetupCommands(commands.Cog , name="Setup"):
     async def server_settings(self, ctx: disnake.ApplicationCommandInteraction,
                               banlist_channel: Union[disnake.TextChannel, disnake.Thread] = None,
                               change_nicknames: str = commands.Param(default=None, choices=["On", "Off"]),
-                              nickname_convention: str = commands.Param(default=None),
+                              family_nickname_convention: str = commands.Param(default=None),
+                              non_family_nickname_convention: str = commands.Param(default=None),
+                              flair_non_family: str = commands.Param(default=None, choices=["True", "False"]),
                               api_token: str = commands.Param(default=None, choices=["Use", "Don't Use"]),
                               leadership_eval: str = commands.Param(default=None, choices=["True", "False"]),
                               embed_color: str = commands.Param(default=None, converter=convert.hex_code)):
@@ -103,9 +99,15 @@ class SetupCommands(commands.Cog , name="Setup"):
         if change_nicknames is not None:
             await db_server.set_change_nickname(status=(change_nicknames == "On"))
             changed_text += f"- **Change Nicknames:** `{change_nicknames}`\n"
-        if nickname_convention is not None:
-            await db_server.set_nickname_convention(rule=nickname_convention)
-            changed_text += f"- **Nickname Convention:** `{nickname_convention}`\n"
+        if family_nickname_convention is not None:
+            await db_server.set_family_nickname_convention(rule=family_nickname_convention)
+            changed_text += f"- **Family Nickname Convention:** `{family_nickname_convention}`\n"
+        if non_family_nickname_convention is not None:
+            await db_server.set_non_family_nickname_convention(rule=non_family_nickname_convention)
+            changed_text += f"- **Non Family Nickname Convention:** `{non_family_nickname_convention}`\n"
+        if flair_non_family is not None:
+            await db_server.set_flair_non_family(option=(flair_non_family == "True"))
+            changed_text += f"- **Assign Flair Roles to Non-Family:** `{flair_non_family}`\n"
 
 
         if changed_text == "":
@@ -180,17 +182,24 @@ class SetupCommands(commands.Cog , name="Setup"):
 
 
     @setup.sub_command(name="user-settings", description="Set bot settings for yourself like main account or timezone")
-    async def user_settings(self, ctx: disnake.ApplicationCommandInteraction,
-                            default_main_account: str = None,
-                            server_main_account: str= None,
-                            timezone: str = None,
+    async def user_settings(self, ctx: disnake.ApplicationCommandInteraction, user: disnake.Member,
+                            default_main_account: coc.Player = commands.Param(default=None, converter=convert.player, autocomplete=autocomplete.user_accounts),
+                            server_main_account: coc.Player = commands.Param(default=None, converter=convert.player, autocomplete=autocomplete.user_accounts),
                             private_mode: str = commands.Param(default=None,choices=["True", "False"])):
         await ctx.response.defer()
-        changed_text = ""
-        if private_mode is not None:
-            changed_text += f"Private mode set to {private_mode}\n"
-            await self.bot.user_settings.update_one({"discord_user" : ctx.user.id}, {"$set" : {"private_mode" : (private_mode == "True")}}, upsert=True)
+        if user.id != ctx.user.id and not (ctx.user.guild_permissions.manage_guild or self.bot.white_list_check(ctx=ctx, command_name="setup user-settings")):
+            raise MessageException("Missing permissions to run this command. Must have `Manage Server` Perms or be whitelisted `/whitelist add`")
 
+        changed_text = ""
+        if private_mode is not None and ctx.user.id == user.id:
+            changed_text += f"Private mode set to `{private_mode}`\n"
+            await self.bot.user_settings.update_one({"discord_user" : user.id}, {"$set" : {"private_mode" : (private_mode == "True")}}, upsert=True)
+        if default_main_account is not None and ctx.user.id == user.id:
+            changed_text += f"Default Main Account set to `{default_main_account.name} ({default_main_account.tag})`\n"
+            await self.bot.user_settings.update_one({"discord_user": user.id}, {"$set": {"main_account": default_main_account.tag}}, upsert=True)
+        if server_main_account is not None:
+            changed_text += f"Server Main Account set to `{server_main_account.name} ({server_main_account.tag})`\n"
+            await self.bot.user_settings.update_one({"discord_user": user.id}, {"$set": {f"server_main_account.{ctx.guild.id}": server_main_account.tag}}, upsert=True)
         embed = disnake.Embed(title=f"{ctx.user.name} Settings Changed", description=changed_text, color=disnake.Color.green())
         embed.set_thumbnail(url=ctx.user.display_avatar.url)
         await ctx.send(embed=embed)
@@ -273,6 +282,81 @@ class SetupCommands(commands.Cog , name="Setup"):
             spot = tag_to_spot.get(clan_tag)
             await res.edit_original_message(embed=embeds[spot])
 
+
+    @setup.sub_command(name="custom-bot", description="Set up a custom bot on your server")
+    @commands.check_any(commands.has_permissions(manage_guild=True))
+    async def custom_bot(self, ctx: disnake.ApplicationCommandInteraction, name: str, bot_token: str):
+        if not self.bot.user.public_flags.verified_bot:
+            raise MessageException("This command can only be run on the main ClashKing bot")
+        name = re.sub(r'[^a-zA-Z]', '', name)
+        name = name.replace(" ", "")
+        if name == "":
+            raise MessageException("Name cannot be empty")
+        await ctx.response.defer(ephemeral=True)
+        #make sure they have only created one before and that the name is not taken and check that they themselves or this server dont have one already
+        result = await self.bot.custom_bots.find_one({"name" : name})
+        if result is not None:
+            raise MessageException("This name is already taken")
+
+        result = await self.bot.custom_bots.find_one({"user" : ctx.user.id})
+        if result is not None:
+            raise MessageException("You have a custom bot created already")
+
+        connector = TCPConnector(ssl=False)
+        async with aiohttp.ClientSession(connector=connector) as session:
+            async with session.post("https://85.10.200.219:9443/api/auth",
+                                    json={"Username": self.bot._config.portainer_user, "Password": self.bot._config.portainer_pw},
+                                    headers={"Content-Type": "application/json"}) as response:
+                token_ = await response.json()
+        jwt = token_.get("jwt")
+        body = {"AttachStderr": False, "AttachStdin": False, "AttachStdout": False, "Cmd": ["python3", "main.py"],
+                "Domainname": "", "Entrypoint": "",
+                "Env": [f"COC_EMAIL={self.bot._config.coc_email}",
+                 f"COC_PASSWORD={self.bot._config.coc_password}",
+                 f"STATIC_MONGODB={self.bot._config.static_mongodb}",
+                 f"STATS_MONGODB={self.bot._config.stats_mongodb}",
+                 f"LINK_API_USER={self.bot._config.link_api_username}",
+                 f"LINK_API_PW={self.bot._config.link_api_password}",
+                 f"BOT_TOKEN={bot_token}",
+                 "IS_BETA=TRUE",
+                 "IS_CUSTOM=TRUE",
+                 f"SENTRY_DSN={self.bot._config.sentry_dsn}",
+                 f"REDIS_IP={self.bot._config.redis_ip}",
+                 f"REDIS_PW={self.bot._config.redis_pw}",
+                 f"BUNNY_ACCESS_KEY={self.bot._config.bunny_api_token}",
+                 f"PORTAINER_IP={self.bot._config.portainer_ip}",
+                 f"PORTAINER_API_TOKEN={self.bot._config.portainer_api_token}",
+                 f"REDDIT_SECRET={self.bot._config.reddit_user_secret}",
+                 f"REDDIT_PW={self.bot._config.reddit_user_password}",
+                 f"OPENAI_API_KEY={self.bot._config.open_ai_api_token}",
+                 "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                 "LANG=C.UTF-8",
+                 "GPG_KEY=A035C8C19219BA821ECEA86B64E628F8D684696D",
+                 "PYTHON_VERSION=3.11.7",
+                 "PYTHON_PIP_VERSION=23.2.1",
+                 "PYTHON_SETUPTOOLS_VERSION=65.5.1",
+                 "PYTHON_GET_PIP_URL=https://github.com/pypa/get-pip/raw/049c52c665e8c5fd1751f942316e0a5c777d304f/public/get-pip.py",
+                 "PYTHON_GET_PIP_SHA256=7cfd4bdc4d475ea971f1c0710a5953bcc704d171f83c797b9529d9974502fcc6"],
+                "Image": "docker.io/matthewvanderson/clashking:latest"}
+        connector = TCPConnector(ssl=False)
+        async with aiohttp.ClientSession(connector=connector) as session2:
+            async with session2.post(f"https://85.10.200.219:9443/api/endpoints/2/docker/containers/create?name={name}",
+                                    json=body,
+                                    headers={"Content-Type": "application/json", "Authorization" : f"Bearer {jwt}"}) as response:
+                create_response = await response.json()
+
+        id = create_response.get("Id")
+        connector = TCPConnector(ssl=False)
+        async with aiohttp.ClientSession(connector=connector) as session3:
+            async with session3.post(f"https://85.10.200.219:9443/api/endpoints/2/docker/containers/{id}/start",
+                                    headers={"Content-Type": "application/json", "Authorization" : f"Bearer {jwt}"}) as response:
+                await response.read()
+
+        await ctx.edit_original_message(content="Bot created, will be online shortly")
+        my_server = await self.bot.getch_guild(923764211845312533)
+        premium_users = my_server.get_role(1018316361241477212)
+        find = disnake.utils.get(premium_users.members, id=ctx.user.id)
+        await self.bot.custom_bots.update_one({"user" : ctx.user.id}, {"$set" : {"token" : bot_token, "premium" : (find is not None), "name" : name}}, upsert=True)
 
 
     @setup.sub_command(name="autoeval", description="Turn autoeval on/off")

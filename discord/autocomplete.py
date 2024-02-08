@@ -1,17 +1,17 @@
-from disnake.ext import commands
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
-from utility.clash.capital import gen_raid_weekend_datestrings
-from utility.search import family_names, search_name_with_tag, all_names
-from utility.general import create_superscript
-from utility.constants import TH_FILTER_OPTIONS, TOWNHALL_LEVELS
 import disnake
 import coc
 import pytz
 import re
+
+from disnake.ext import commands
+from classes.bot import CustomClient
+from utility.clash.capital import gen_raid_weekend_datestrings
+from utility.search import family_names, search_name_with_tag, all_names
+from utility.general import create_superscript
+from utility.constants import TH_FILTER_OPTIONS, TOWNHALL_LEVELS
+from expiring_dict import ExpiringDict
+
+USER_ACCOUNT_CACHE = ExpiringDict()
 
 class Autocomplete(commands.Cog, name="Autocomplete"):
     def __init__(self, bot: CustomClient):
@@ -218,6 +218,21 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
         if query != "":
             always = [a for a in always if query.lower() in a.lower()]
         return always[:25]
+
+
+    async def user_accounts(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        user_option = ctx.filled_options.get("user", ctx.user.id)
+        cached_accounts = USER_ACCOUNT_CACHE.get(user_option)
+        if cached_accounts is None:
+            accounts = await self.bot.link_client.get_linked_players(user_option)
+            if accounts:
+                accounts = await self.bot.get_players(tags=accounts, custom=False, use_cache=True)
+                accounts.sort(key=lambda x: (x.town_hall, x.trophies), reverse=True)
+                accounts = [f"{a.name} | {a.tag}" for a in accounts]
+                USER_ACCOUNT_CACHE.ttl(ctx.user.id, accounts, ttl=120)
+        else:
+            accounts = cached_accounts
+        return [a for a in accounts if query.lower() in a.lower()][:25]
 
 
 def setup(bot: CustomClient):

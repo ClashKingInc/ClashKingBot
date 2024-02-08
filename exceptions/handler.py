@@ -1,13 +1,10 @@
 import disnake
 import coc
+import sentry_sdk
+
 from disnake.ext import commands
 from exceptions.CustomExceptions import *
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
-import sentry_sdk
+from classes.bot import CustomClient
 
 class ExceptionHandler(commands.Cog):
 

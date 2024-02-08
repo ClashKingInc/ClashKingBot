@@ -8,8 +8,8 @@ class Config:
     coc_email = getenv("COC_EMAIL")
     coc_password = getenv("COC_PASSWORD")
 
-    min_coc_email = 48
-    max_coc_email = 48
+    min_coc_email = 49
+    max_coc_email = 49
 
     static_mongodb = getenv("STATIC_MONGODB")
     stats_mongodb = getenv("STATS_MONGODB")
@@ -27,3 +27,6 @@ class Config:
     open_ai_api_token = getenv("OPENAI_API_KEY")
     is_beta = (getenv("IS_BETA") == "TRUE")
     is_custom = (getenv("IS_CUSTOM") == "TRUE")
+
+    portainer_user = getenv("PORTAINER_USER")
+    portainer_pw = getenv("PORTAINER_PASSWORD")

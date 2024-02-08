@@ -48,7 +48,8 @@ class DatabaseServer():
         self.tied_stats_only = data.get("tied", True)
         self.autoeval_triggers = data.get("autoeval_triggers", [])
 
-        self.nickname_convention = data.get("nickname_rule", "{player_name}")
+        self.family_nickname_convention = data.get("nickname_rule", "{discord_display_name}")
+        self.non_family_nickname_convention = data.get("non_family_nickname_rule", "{discord_display_name}")
         self.change_nickname = data.get("change_nickname", True)
         self.flair_non_family: bool = data.get("flair_non_family", True)
 
@@ -67,8 +68,12 @@ class DatabaseServer():
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"change_nickname": status}})
 
 
-    async def set_nickname_convention(self, rule: str):
+    async def set_family_nickname_convention(self, rule: str):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"nickname_rule": rule}})
+
+
+    async def set_non_family_nickname_convention(self, rule: str):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"non_family_nickname_rule": rule}})
 
 
     async def set_auto_eval_nickname(self, status: bool):
