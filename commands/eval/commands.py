@@ -223,7 +223,7 @@ class eval(commands.Cog, name="Eval"):
         if add is not None:
             embed = await family_role_add(database=database, role=add, guild=ctx.guild, type=type)
         elif remove is not None:
-            embed = await family_role_remove(database=database, role=add, guild=ctx.guild, type=type)
+            embed = await family_role_remove(database=database, role=remove, guild=ctx.guild, type=type)
         await ctx.edit_original_message(embed=embed)
 
 
