@@ -131,9 +131,12 @@ class BaseTicket():
             buttons.append_item(disnake.ui.Button(label=f"Channel Transcript", url=link))
             components = [buttons]
 
-        channel = await self.bot.getch_channel(channel)
-        if channel is not None:
-            await channel.send(embed=embed, components=components)
+        try:
+            channel = await self.bot.getch_channel(channel)
+            if channel is not None:
+                await channel.send(embed=embed, components=components)
+        except Exception:
+            pass
 
 
 
@@ -169,9 +172,9 @@ class TicketPanel(BaseTicket):
         button = Button(label=label, emoji=emoji, style=text_style_conversion[color], custom_id=button_id)
 
         await self.bot.tickets.update_one({"$and": [{"server_id": self.panel_server.id}, {"name": self.panel_name}]},
-                                          {
-                                              {"$push": {"components": button.to_component_dict()}},
-                                              {"$set": {f"{button_id}_settings": {
+
+                                              {"$push": {"components": button.to_component_dict()},
+                                              "$set": {f"{button_id}_settings": {
                                                   "message": None,
                                                   "questions": None,
                                                   "mod_role": None,
@@ -183,7 +186,7 @@ class TicketPanel(BaseTicket):
                                                   "player_info": False
                                                 }}
                                               }
-                                          })
+                                          )
 
 
     async def edit_button(self, button: str, new_text: str, new_color: str, new_emoji: str = None):
