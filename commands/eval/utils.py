@@ -219,39 +219,38 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
         new_name = None
         if db_server.change_nickname and "nicknames" in eval_types:
             #if they have a family account or the server allows non family to change nickname, then change it
-            if has_family_account:
-                if member.top_role > bot_member.top_role:
-                    new_name = "`Cannot Change`"
+            if member.top_role > bot_member.top_role:
+                new_name = "`Cannot Change`"
+            else:
+                if has_family_account:
+                    local_nickname_convention = db_server.family_nickname_convention
                 else:
-                    if has_family_account:
-                        local_nickname_convention = db_server.family_nickname_convention
+                    local_nickname_convention = db_server.non_family_nickname_convention
+                main_account = main_account_lookup.get(member.id)
+                if main_account is not None:
+                    main_account = coc.utils.get(member_accounts, tag=main_account)
+                if main_account is None:
+                    if len(family_accounts) >= 1:
+                        main_account = sorted(family_accounts, key=lambda l: (l.town_hall, l.trophies), reverse=True)[0]
                     else:
-                        local_nickname_convention = db_server.non_family_nickname_convention
-                    main_account = main_account_lookup.get(member.id)
-                    if main_account is not None:
-                        main_account = coc.utils.get(member_accounts, tag=main_account)
-                    if main_account is None:
-                        if len(family_accounts) >= 1:
-                            main_account = sorted(family_accounts, key=lambda l: (l.town_hall, l.trophies), reverse=True)[0]
-                        else:
-                            main_account = sorted(member_accounts, key=lambda l: (l.town_hall, l.trophies), reverse=True)[0]
+                        main_account = sorted(member_accounts, key=lambda l: (l.town_hall, l.trophies), reverse=True)[0]
 
-                    types = {
-                             "{discord_name}": member.global_name,
-                             "{discord_display_name}": member.display_name,
-                             "{player_name}": main_account.name,
-                             "{player_tag}": main_account.tag,
-                             "{player_townhall}": main_account.town_hall,
-                             "{player_townhall_small}": create_superscript(main_account.town_hall),
-                             "{player_warstars}": main_account.war_stars,
-                             "{player_role}": main_account.role if main_account.role is not None else "",
-                             "{player_clan}": main_account.clan.name if main_account.clan is not None else "",
-                             "{player_clan_abbreviation}" : clan_abbreviations.get(main_account.clan.tag) if main_account.clan is not None else "",
-                             "{player_league}": main_account.league.name,
-                             }
-                    for type, replace in types.items():
-                        local_nickname_convention = local_nickname_convention.replace(type, str(replace))
-                    new_name = local_nickname_convention
+                types = {
+                         "{discord_name}": member.global_name,
+                         "{discord_display_name}": member.display_name,
+                         "{player_name}": main_account.name,
+                         "{player_tag}": main_account.tag,
+                         "{player_townhall}": main_account.town_hall,
+                         "{player_townhall_small}": create_superscript(main_account.town_hall),
+                         "{player_warstars}": main_account.war_stars,
+                         "{player_role}": main_account.role if main_account.role is not None else "",
+                         "{player_clan}": main_account.clan.name if main_account.clan is not None else "",
+                         "{player_clan_abbreviation}" : clan_abbreviations.get(main_account.clan.tag) if main_account.clan is not None else "",
+                         "{player_league}": main_account.league.name,
+                         }
+                for type, replace in types.items():
+                    local_nickname_convention = local_nickname_convention.replace(type, str(replace))
+                new_name = local_nickname_convention
 
         FINAL_ROLES = FINAL_CLASH_ROLES + NON_CLASH_ROLES
 

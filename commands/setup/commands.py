@@ -207,8 +207,8 @@ class SetupCommands(commands.Cog , name="Setup"):
         if server_main_account is not None:
             changed_text += f"Server Main Account set to `{server_main_account.name} ({server_main_account.tag})`\n"
             await self.bot.user_settings.update_one({"discord_user": user.id}, {"$set": {f"server_main_account.{ctx.guild.id}": server_main_account.tag}}, upsert=True)
-        embed = disnake.Embed(title=f"{ctx.user.name} Settings Changed", description=changed_text, color=disnake.Color.green())
-        embed.set_thumbnail(url=ctx.user.display_avatar.url)
+        embed = disnake.Embed(title=f"{user.name} Settings Changed", description=changed_text, color=disnake.Color.green())
+        embed.set_thumbnail(url=user.display_avatar.url)
         await ctx.send(embed=embed)
 
 

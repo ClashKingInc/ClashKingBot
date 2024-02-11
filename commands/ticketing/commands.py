@@ -140,7 +140,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
             panel_name: name of panel
             embed: embed to use, can be created with /embed create
         """
-
+        await ctx.response.defer()
         result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:
             raise PanelNotFound

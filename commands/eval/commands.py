@@ -249,7 +249,7 @@ class eval(commands.Cog, name="Eval"):
                 continue
             role_text = spot_to_text[count]
             roles_updated += f"{role_text.upper()}: {role.mention}\n"
-            await self.bot.builderhallroles.update_one({"$and": [
+            await self.bot.townhallroles.update_one({"$and": [
                 {"th": f"{role_text}"},
                 {"server": ctx.guild.id}
             ]}, {'$set': {"role": role.id}}, upsert=True)
