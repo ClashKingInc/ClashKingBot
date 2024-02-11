@@ -39,6 +39,7 @@ disallowed = set()
 
 if config.is_custom:
     disallowed.add("owner")
+    pass
 
 def load():
     file_list = []
