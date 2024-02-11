@@ -38,6 +38,7 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
     league_roles = {r.type: r.id for r in db_server.league_roles}
     builder_league_roles = {r.type: r.id for r in db_server.builder_league_roles}
     clan_category_roles = {c.tag: db_server.category_roles.get(c.category) for c in db_server.clans}
+    clan_abbreviations = {c.tag : c.abbreviation for c in db_server.clans}
 
     '''
     How to find roles:
@@ -245,6 +246,7 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
                              "{player_warstars}": main_account.war_stars,
                              "{player_role}": main_account.role if main_account.role is not None else "",
                              "{player_clan}": main_account.clan.name if main_account.clan is not None else "",
+                             "{player_clan_abbreviation}" : clan_abbreviations.get(main_account.clan.tag) if main_account.clan is not None else "",
                              "{player_league}": main_account.league.name,
                              }
                     for type, replace in types.items():
@@ -259,11 +261,10 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
             added = "None"
         if not removed:
             removed = "None"
-
         if not test:
             try:
-                if new_name != "`Cannot Change`":
-                    await member.edit(nick=new_name if new_name != "None" else member.display_name, roles=FINAL_ROLES)
+                if new_name != "`Cannot Change`" and new_name != "None":
+                    await member.edit(nick=new_name[:32], roles=FINAL_ROLES)
                 else:
                     await member.edit(roles=FINAL_ROLES)
             except Exception as e:

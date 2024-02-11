@@ -96,8 +96,8 @@ class eval(commands.Cog, name="Eval"):
 
         if not members:
             raise MessageException("No Members Found")
-        elif len(members) > 1000:
-            raise MessageException(f"Max 1000 members can be refreshed at a time ({len(members)} members attempted)")
+        elif len(members) > 3000:
+            raise MessageException(f"Max 3000 members can be refreshed at a time ({len(members)} members attempted)")
 
         embeds = await logic(bot=self.bot, guild=ctx.guild, db_server=db_server, members=members, role_or_user=role_or_user, eval_types=eval_types, test=test)
 

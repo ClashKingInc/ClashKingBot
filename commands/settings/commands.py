@@ -1,11 +1,7 @@
 import disnake
 import coc
 from disnake.ext import commands
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from classes.server import CustomServer, ServerClan, DatabaseClan
 from exceptions.CustomExceptions import ThingNotFound
 from utility.discord_utils import check_commands

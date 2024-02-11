@@ -203,7 +203,6 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
         return alias_list[:25]
 
 
-
     async def new_categories(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         categories = await self.bot.clan_db.distinct("category", filter={"server": ctx.guild.id})
         starter_categories = ["General", "Feeder", "War", "Esports"]
@@ -233,6 +232,23 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
         else:
             accounts = cached_accounts
         return [a for a in accounts if query.lower() in a.lower()][:25]
+
+
+    async def embeds(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        server_embeds = await self.bot.custom_embeds.find({"server" : ctx.guild_id}, {"name" : 1}).to_list(length=None)
+        return [e.get("name") for e in server_embeds if query.lower() in e.get("name").lower()][:25]
+
+
+    async def ticket_buttons(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        panel_name = ctx.filled_options["panel_name"]
+        if panel_name == "":
+            return []
+        aliases = await self.bot.tickets.distinct("components.label", filter={"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
+        alias_list = []
+        for alias in aliases:
+            if query.lower() in alias.lower():
+                alias_list.append(f"{alias}")
+        return alias_list[:25]
 
 
 def setup(bot: CustomClient):

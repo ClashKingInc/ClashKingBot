@@ -8,13 +8,8 @@ clan_tags = ["#2P0JJQGUJ"]
 known_streak = []
 count = 0
 list_size = 0
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 
-war_leagues = json.load(open(f"Assets/war_leagues.json"))
 
 leagues = ["Champion League I", "Champion League II", "Champion League III",
                    "Master League I", "Master League II", "Master League III",
@@ -25,8 +20,10 @@ leagues = ["Champion League I", "Champion League II", "Champion League III",
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 import os
 import coc
+import base64
+import json
 from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
-
+from urllib.parse import quote, unquote
 from classes.reminders import Reminder
 from utility.clash.capital import get_raidlog_entry, gen_raid_weekend_datestrings
 #from ImageGen.ClanCapitalResult import generate_raid_result_image
@@ -57,9 +54,9 @@ import re
 from aiohttp import TCPConnector, ClientTimeout, ClientSession
 import ujson
 from typing import Optional, List, Union, Tuple
-
+from utility.constants import EMBED_COLOR_CLASS
 from testing.migrations import migrate_clan_db_simple_schema
-
+from ..family.utils import family_composition
 
 class OwnerCommands(commands.Cog):
 
@@ -182,29 +179,25 @@ class OwnerCommands(commands.Cog):
                 await ctx.followup.send(embed=disnake.Embed(description=f'```py\n{b}```'))
 
 
-    @commands.slash_command(name="reload", guild_ids=[1103679645439754335, 923764211845312533])
-    @commands.is_owner()
-    async def reload(self, ctx: disnake.ApplicationCommandInteraction, cog: str):
-        await ctx.response.defer(ephemeral=True)
-        self.bot.reload_extension(cog)
-        await ctx.send(content=f"{cog} reloaded", delete_after=5, ephemeral=True)
-
 
 
     @commands.slash_command(name="test", guild_ids=[1103679645439754335])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
-        await migrate_clan_db_simple_schema(bot=self.bot)
-
-
-
-    @reload.autocomplete("cog")
-    async def autocomp_cog(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        results = []
-        for cog in self.bot.EXTENSION_LIST:
-            if query == "" or query.lower() in cog.lower():
-                results.append(cog)
-        return results[:25]
+        await ctx.response.defer()
+        all_tickets = await self.bot.tickets.find().to_list(length=None)
+        for tick in all_tickets:
+            embed = tick.get("embed")
+            name = tick.get("name")
+            server = tick.get("server_id")
+            new_data = {"content" : "", "embeds" : [embed]}
+            await self.bot.tickets.update_one({"$and" : [{"server_id" : server}, {"name" : name}]}, {"$set" : {"embed_name" : f"{name} Panel"}})
+            await self.bot.custom_embeds.insert_one({
+                "server" : server,
+                "name" : f"{name} Panel",
+                "data" : new_data
+            })
+        await ctx.edit_original_message("Done")
 
 
 

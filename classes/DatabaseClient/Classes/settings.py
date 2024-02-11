@@ -190,7 +190,7 @@ class DatabaseClan():
         self.category = data.get("category")
         self.member_role = data.get("generalRole")
         self.leader_role = data.get("leaderRole")
-        self.abbreviation = data.get("abbreviation")
+        self.abbreviation = data.get("abbreviation", "")
         self.clan_channel = data.get("clanChannel")
         self.join_log = Join_Log(parent=self, type="join_log")
         self.leave_log = Join_Log(parent=self, type="leave_log")

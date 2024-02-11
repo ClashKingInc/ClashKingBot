@@ -3,11 +3,7 @@ import re
 import pytz
 import coc
 from typing import List
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from datetime import datetime
 from classes.player import MyCustomPlayer
 from classes.tickets import TicketPanel, Ticket_Buttons, OpenTicket, ApproveMessages
@@ -53,6 +49,8 @@ async def ask_questions(bot: CustomClient, ctx: disnake.MessageInteraction, ques
 
     embed = disnake.Embed(title="**Questionnaire**", description=description, color=disnake.Color(2829617))
     return (message, embed)
+
+
 
 async def open_ticket(bot: CustomClient, ticket_panel: TicketPanel, button: Ticket_Buttons, ctx: disnake.MessageInteraction, coc_account: MyCustomPlayer = None):
     overwrite = disnake.PermissionOverwrite()
@@ -102,7 +100,7 @@ async def open_ticket(bot: CustomClient, ticket_panel: TicketPanel, button: Tick
     channel = await ctx.guild.create_text_channel(name=channel_name, reason=channel_name, overwrites=overwrite_dict, category=category)
 
 
-    text = " ".join([role.mention for role in ping_roles if role is not None])
+    text = " ".join([role.mention for role in ping_roles if role is not None]) + member.mention
     if text.replace(" ", "") != "":
         await channel.send(content=text)
 
@@ -116,6 +114,8 @@ async def open_ticket(bot: CustomClient, ticket_panel: TicketPanel, button: Tick
         channels.append(thread)
 
     return channels
+
+
 
 async def naming_convention_convertor(bot: CustomClient, guild: disnake.Guild, user: disnake.User, naming_convention: str, number: int = None, status: str = "open", coc_account: MyCustomPlayer = None):
     if number is None:
@@ -146,7 +146,12 @@ async def message_convertor(bot: CustomClient, ctx: disnake.MessageInteraction, 
     if ticket.clan is not None:
         coc_clan = await bot.getClan(clan_tag=ticket.clan)
         clan_badge = await bot.create_new_badge_emoji(url=coc_clan.badge.url)
-
+    clm = ""
+    if coc_clan is not None:
+        leader_tag = coc.utils.get(coc_clan.members, role=coc.Role.leader).tag
+        leader_mention = await bot.link_client.get_link(leader_tag)
+        if leader_mention is not None:
+            clm = f"<@{leader_mention}>"
     types = {"{ticket_count}": ticket.number,
              "{ticket_status}" : ticket.status,
              "{ticket_emoji_status}" : status_emoji[ticket.status],
@@ -165,6 +170,7 @@ async def message_convertor(bot: CustomClient, ctx: disnake.MessageInteraction, 
              "{clan_location}" : coc_clan.location if coc_clan is not None else "",
              "{clan_member_count}" : coc_clan.member_count if coc_clan is not None else "",
              "{clan_leader}" : coc.utils.get(coc_clan.members, role=coc.Role.leader).name if coc_clan is not None else "",
+             "{clan_leader_mention}": clm,
              "{clan_tag}" : coc_clan.tag if coc_clan is not None else "",
              "{clan_war_league}" : coc_clan.war_league if coc_clan is not None else "",
              "{clan_capital_league}" : coc_clan.capital_league if coc_clan is not None else ""

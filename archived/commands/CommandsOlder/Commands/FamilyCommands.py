@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from classes.bot import CustomClient
 else:
     from disnake.ext.commands import AutoShardedBot as CustomClient
-from classes.enum import TrophySort
+from classes.enums import TrophySort
 from exceptions.CustomExceptions import InvalidGuildID
 from typing import List
 from utility.general import get_clan_member_tags

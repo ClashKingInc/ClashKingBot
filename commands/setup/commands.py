@@ -1,3 +1,5 @@
+import asyncio
+
 import disnake
 import coc
 import secrets
@@ -8,7 +10,7 @@ from disnake.ext import commands
 from typing import Union
 from exceptions.CustomExceptions import *
 from classes.server import DatabaseClan
-from classes.enum import LinkParseTypes
+from classes.enums import LinkParseTypes
 from classes.bot import CustomClient
 from utility.discord_utils import  interaction_handler, basic_embed_modal, get_webhook_for_channel, registered_functions, check_commands
 from utility.general import calculate_time, get_guild_icon
@@ -129,10 +131,15 @@ class SetupCommands(commands.Cog , name="Setup"):
                             greeting: str = None,
                             category: str = commands.Param(default=None, autocomplete=autocomplete.category),
                             ban_alert_channel: Union[disnake.TextChannel, disnake.Thread] = None,
-                            nickname_label: str = None,
+                            clan_abbreviation: str = None,
                             strike_button=commands.Param(default=None, choices=["True", "False"]),
                             ban_button=commands.Param(default=None, choices=["True", "False"]),
                             profile_button=commands.Param(default=None, choices=["True", "False"])):
+        """
+            Parameters
+            ----------
+            clan_abbreviation: used in nickname conventions
+        """
 
         await ctx.response.defer()
         results = await self.bot.clan_db.find_one({"$and": [
@@ -161,9 +168,9 @@ class SetupCommands(commands.Cog , name="Setup"):
         if ban_alert_channel is not None:
             await db_clan.set_ban_alert_channel(id=ban_alert_channel.id)
             changed_text += f"- **Ban Alert Channel:** {ban_alert_channel.mention}\n"
-        if nickname_label is not None:
-            await db_clan.set_nickname_label(abbreviation=nickname_label[:16])
-            changed_text += f"- **Nickname Label:** `{nickname_label[:16]}`\n"
+        if clan_abbreviation is not None:
+            await db_clan.set_nickname_label(abbreviation=clan_abbreviation[:16])
+            changed_text += f"- **Clan Abbreviation:** `{clan_abbreviation[:16]}`\n"
         if strike_button is not None:
             await db_clan.set_strike_button(set=(strike_button == "True"))
             changed_text += f"- **Strike Button:** `{strike_button}`\n"
@@ -286,22 +293,70 @@ class SetupCommands(commands.Cog , name="Setup"):
     @setup.sub_command(name="custom-bot", description="Set up a custom bot on your server")
     @commands.check_any(commands.has_permissions(manage_guild=True))
     async def custom_bot(self, ctx: disnake.ApplicationCommandInteraction, name: str, bot_token: str):
+        """
+            Parameters
+            ----------
+            name: this purely an identifier, is not the name the bot will actually have
+            bot_token: token as found on the discord developer website
+        """
+
         if not self.bot.user.public_flags.verified_bot:
             raise MessageException("This command can only be run on the main ClashKing bot")
         name = re.sub(r'[^a-zA-Z]', '', name)
-        name = name.replace(" ", "")
+        name = name.replace(" ", "").lower()
         if name == "":
             raise MessageException("Name cannot be empty")
+
+        if name in ["clashking", "clashking_beta", "portainer", "watchtower"]:
+            raise MessageException("Name is not allowed, reserved names.")
+
         await ctx.response.defer(ephemeral=True)
         #make sure they have only created one before and that the name is not taken and check that they themselves or this server dont have one already
-        result = await self.bot.custom_bots.find_one({"name" : name})
+        result = await self.bot.custom_bots.find_one({"$and" : [{"name" : name}, {"user" : {"$ne" : ctx.user.id}}]})
         if result is not None:
             raise MessageException("This name is already taken")
 
-        result = await self.bot.custom_bots.find_one({"user" : ctx.user.id})
-        if result is not None:
-            raise MessageException("You have a custom bot created already")
 
+        result = await self.bot.custom_bots.find_one({"user" : ctx.user.id})
+        #if they have created a bot before, find their container (if one), then delete it
+        if result is not None:
+            #if they have done this before, we need to remove any dead bots they might have
+            connector = TCPConnector(ssl=False)
+            async with aiohttp.ClientSession(connector=connector) as session:
+                async with session.post("https://85.10.200.219:9443/api/auth",
+                                        json={"Username": self.bot._config.portainer_user, "Password": self.bot._config.portainer_pw},
+                                        headers={"Content-Type": "application/json"}) as response:
+                    token_ = await response.json()
+            jwt = token_.get("jwt")
+
+            async def get_container(n: str, jwt: str):
+                connector = TCPConnector(ssl=False)
+                async with aiohttp.ClientSession(connector=connector) as session:
+                    headers = {'Authorization': f'Bearer {jwt}'}
+                    containers_url = f"https://85.10.200.219:9443/api/endpoints/2/docker/containers/json"
+                    async with session.get(containers_url, headers=headers) as response:
+                        if response.status == 200:
+                            containers = await response.json()
+                            for container in containers:
+                                # Container names in Docker API are prefixed with "/", remove it with [1:]
+                                if n in [x[1:] for x in container.get('Names', [])]:
+                                    return container  # Or just return container['Id'] if you need the ID
+                        else:
+                            return None
+
+            their_container = await get_container(n=name, jwt=jwt)
+
+            if their_container is not None:
+                their_id = their_container.get("Id")
+                connector = TCPConnector(ssl=False)
+                async with aiohttp.ClientSession(connector=connector) as session:
+                    headers = {'Authorization': f'Bearer {jwt}'}
+                    # The force=true query parameter forces the removal of a running container
+                    delete_url = f"https://85.10.200.219:9443/api/endpoints/2/docker/containers/{their_id}?force=true"
+                    async with session.delete(delete_url, headers=headers) as response:
+                        await response.text()
+
+        await asyncio.sleep(10)
         connector = TCPConnector(ssl=False)
         async with aiohttp.ClientSession(connector=connector) as session:
             async with session.post("https://85.10.200.219:9443/api/auth",

@@ -1,10 +1,7 @@
 import disnake
+import asyncio
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from disnake import Embed, ButtonStyle
 from disnake.ui import Button
 from typing import List
@@ -75,12 +72,13 @@ class BaseTicket():
     def __init__(self, bot: CustomClient, panel_settings):
         self.bot = bot
         self.panel_settings = panel_settings
-        self.panel_embed: Embed = Embed.from_dict(data=self.panel_settings.get("embed"))
         self.panel_name = panel_settings.get("name")
         self.panel_server: disnake.Guild = bot.get_guild(self.panel_settings.get("server_id"))
         self.status_change_log = self.panel_settings.get("status_change_log")
         self.ticket_button_click_log = self.panel_settings.get("ticket_button_click_log")
         self.ticket_close_log = self.panel_settings.get("ticket_close_log")
+        #self._embed_data = asyncio.get_running_loop().run_until_complete(bot.custom_embeds.find_one({"$and": [{"server": self.panel_server.id}, {"name": self.panel_settings.get("embed_name")}]}))
+
 
 
     async def send_log(self, log_type: LOG_TYPE, user: disnake.User, ticket: OpenTicket = None, ticket_channel: disnake.TextChannel = None):
@@ -206,6 +204,7 @@ class TicketPanel(BaseTicket):
             button = next((button for button in self.buttons if button.custom_id == custom_id), None)
         return button
 
+
 class TownhallRequirements():
     def __init__(self, data):
         self.townhall = data.get("TH", 0)
@@ -214,6 +213,7 @@ class TownhallRequirements():
         self.grand_warden = data.get("GW", 0)
         self.royal_champ = data.get("RC", 0)
         self.war_stars = data.get("WARST", 0)
+
 
 class Ticket_Buttons(BaseTicket):
     def __init__(self, bot: CustomClient, panel_settings, button_data):

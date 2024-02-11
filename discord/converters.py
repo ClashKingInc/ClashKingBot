@@ -1,14 +1,11 @@
-from disnake.ext import commands
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
-from exceptions.CustomExceptions import InvalidGuildID, MessageException
-from utility.constants import TOWNHALL_LEVELS
 import calendar
 import coc
 import re
+
+from disnake.ext import commands
+from classes.bot import CustomClient
+from exceptions.CustomExceptions import InvalidGuildID, MessageException
+from utility.constants import TOWNHALL_LEVELS
 
 class Convert(commands.Cog, name="Convert"):
     def __init__(self, bot: CustomClient):
@@ -104,10 +101,12 @@ class Convert(commands.Cog, name="Convert"):
             return hex_code
         raise MessageException(f"{hex_code} is not a valid hex color.")
 
+
     def basic_bool(self, statement: str):
         if statement in ["Yes", "True", "Add"]:
             return True
         return False
+
 
 
 def setup(bot: CustomClient):

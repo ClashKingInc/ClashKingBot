@@ -108,6 +108,8 @@ class CustomClient(commands.AutoShardedBot):
         self.global_reports: collection_class = self.db_client.usafam.reports
         self.strikelist: collection_class = self.db_client.usafam.strikes
         self.custom_bots: collection_class = self.db_client.usafam.custom_bots
+        self.suggestions: collection_class = self.db_client.usafam.suggestions
+
 
         self.tickets: collection_class = self.db_client.usafam.tickets
         self.open_tickets: collection_class = self.db_client.usafam.open_tickets

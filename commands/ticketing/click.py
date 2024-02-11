@@ -63,8 +63,9 @@ class TicketClick(commands.Cog):
             ticket = OpenTicket(bot=self.bot, open_ticket=result)
             if ticket.status == "closed":
                 return await ctx.send(content="Ticket already closed", ephemeral=True)
-            '''if ctx.user.id == ticket.user:
-                return await ctx.send(content="You don't have permissions to do this", ephemeral=True)'''
+
+            if ctx.user.id == ticket.user:
+                return await ctx.send(content="You don't have permissions to do this", ephemeral=True)
 
             panel_settings = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": ticket.panel_name}]})
             panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
@@ -123,7 +124,7 @@ class TicketClick(commands.Cog):
                 for field, response in modal_inter.text_values.items():
                     custom[str(field)] = response
                 message, left_over = await message_convertor(bot=self.bot, ctx=ctx, message=message, ticket=ticket, custom_field=custom)
-                await modal_inter.send(content="Done")
+                await modal_inter.edit_original_response(content="Done")
 
             await ctx.channel.send(content=message)
 
@@ -135,8 +136,8 @@ class TicketClick(commands.Cog):
             ticket = OpenTicket(bot=self.bot, open_ticket=result)
             if ticket.status == "closed":
                 return await ctx.send(content="Ticket already closed", ephemeral=True)
-            '''if ctx.user.id == ticket.user:
-                return await ctx.send(content="You don't have permissions to do this", ephemeral=True)'''
+            if ctx.user.id == ticket.user:
+                return await ctx.send(content="You don't have permissions to do this", ephemeral=True)
 
             clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
 
@@ -215,7 +216,7 @@ class TicketClick(commands.Cog):
                     return await ctx.send(content="No accounts linked to you. Click the button below to link. " \
                                                   "**Once you are done, please open a ticket again.**", components=buttons, ephemeral=True)
 
-                accounts: List[MyCustomPlayer] = await self.bot.get_players(tags=linked_accounts, custom=False)
+                accounts: List[MyCustomPlayer] = await self.bot.get_players(tags=linked_accounts, custom=True)
                 accounts.sort(key=lambda x: x.town_hall, reverse=True)
                 options = []
                 failed_accounts = False
@@ -263,7 +264,10 @@ class TicketClick(commands.Cog):
                 ctx = res
                 players = [coc.utils.get(accounts, tag=tag) for tag in res.values]
                 if not button.questions:
-                    await res.response.send_message(content="Done!", components=[])
+                    if res.response.is_done():
+                        await res.edit_original_response(content="Done!", components=[])
+                    else:
+                        await res.response.send_message(content="Done!", components=[], ephemeral=True)
 
 
             if button.questions:
@@ -272,10 +276,10 @@ class TicketClick(commands.Cog):
                 (message, questionaire_embed) = await ask_questions(bot=self.bot, ctx=ctx, questions=button.questions)
                 embeds.append(questionaire_embed)
 
-            channels = await open_ticket(bot=self.bot, ticket_panel=panel, button=button, ctx=ctx)
+            channels = await open_ticket(bot=self.bot, ticket_panel=panel, button=button, ctx=ctx, coc_account=players[0])
 
             if message is None:
-                await ctx.edit_original_message(f"Ticket opened -> {channels[0].mention}")
+                await ctx.send(f"Ticket opened -> {channels[0].mention}", ephemeral=True)
             else:
                 await message.edit(f"Ticket opened -> {channels[0].mention}", components=[])
 
@@ -305,9 +309,10 @@ class TicketClick(commands.Cog):
 
             for channel in channels:
                 if channel.type == disnake.ChannelType.text:
-                    await channel.send(embeds=embeds, components=dropdown + [next_action_row])
+                    m = await channel.send(embeds=embeds, components=dropdown + [next_action_row])
                 else:
-                    await channel.send(embeds=embeds[1:], components=dropdown)
+                    m = await channel.send(embeds=embeds[1:], components=dropdown)
+                await m.pin()
 
 
             try:
@@ -334,7 +339,7 @@ class TicketClick(commands.Cog):
                 "thread": channels[-1].id if len(channels) >= 2 else None,
                 "status": "open",
                 "number": max(all_ticket_nums) + 1,
-                "apply_account": players[0].tag if players is not None else None,
+                "apply_account": players[0].tag if players else None,
                 "naming": button.naming_convention,
                 "panel": panel.panel_name,
                 "server": ctx.guild.id

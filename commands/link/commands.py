@@ -65,11 +65,14 @@ class Linking(commands.Cog):
         # - made sure relinks dont happen
         # - made sure we dont override an alr linked account (again unless its a modlink)
         # - if it is an override, need api token (again unless its a modlink)
-        #by this point we have a correct api token or they dont care about one and the account isnt linked to anyone
+        # - by this point we have a correct api token or they dont care about one and the account isnt linked to anyone
         server_member = await ctx.guild.getch_member(user.id)
         linked_embed = disnake.Embed(title="Link Complete", description=f"[{player.name}]({player.share_link}) linked to {user.mention} and roles updated.", color=server.embed_color)
         await self.bot.link_client.add_link(player_tag=player.tag, discord_id=user.id)
-        await logic(bot=self.bot, guild=ctx.guild, db_server=server, members=[server_member], role_or_user=user)
+        try:
+            await logic(bot=self.bot, guild=ctx.guild, db_server=server, members=[server_member], role_or_user=user)
+        except Exception:
+            linked_embed.description = f"[{player.name}]({player.share_link}) linked to {user.mention} but could not update roles."
         await ctx.edit_original_message(embed=linked_embed)
         try:
             results = await self.bot.clan_db.find_one({"$and": [
@@ -83,7 +86,7 @@ class Linking(commands.Cog):
                     greeting = f", welcome to {badge}{player.clan.name}!"
                 channel = results.get("clanChannel")
                 channel = self.bot.get_channel(channel)
-                await channel.send(f"{ctx.author.mention}{greeting}")
+                await channel.send(f"{user.mention}{greeting}")
         except Exception:
             pass
 
