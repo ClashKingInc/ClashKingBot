@@ -25,9 +25,6 @@ class DiscordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_connect(self):
-        print("connected")
-
-
         s_result = await self.bot.server_db.find_one({"server" : 1103679645439754335})
         self.bot.ck_client = FamilyClient(bot=self.bot)
 
@@ -46,23 +43,26 @@ class DiscordEvents(commands.Cog):
             #self.bot.scheduler.add_job(SendReminders.inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
             #self.bot.scheduler.add_job(SendReminders.roster_reminder, trigger='interval', args=[self.bot], minutes=2, misfire_grace_time=None)
 
-            guild_fetch = await self.bot.server_db.distinct("server")
-            if not self.bot.user.public_flags.verified_bot:
-                guild_fetch = [guild.id for guild in self.bot.guilds if guild.id != 923764211845312533]
-            x = guild_fetch
-            if self.bot.user.public_flags.verified_bot:
-                active_custom_bots = await self.bot.credentials.distinct("server")
-                for bot in active_custom_bots:
-                    try:
-                        x.remove(bot)
-                    except:
-                        pass
-            self.bot.OUR_GUILDS = set(x)
+            bot_guilds: list = [guild.id for guild in self.bot.guilds]
+            database_guilds = await self.bot.server_db.distinct("server")
+            database_guilds: set = set(database_guilds)
+            missing_guilds = [guild_id for guild_id in bot_guilds if guild_id not in database_guilds]
+            for guild in missing_guilds:
+                await self.bot.server_db.insert_one({
+                    "server": guild,
+                    "banlist": None,
+                    "greeting": None,
+                    "cwlcount": None,
+                    "topboardchannel": None,
+                    "tophour": None,
+                    "lbboardChannel": None,
+                    "lbhour": None,
+                })
 
             tags = await self.bot.clan_db.distinct("tag", filter={"server" : {"$in" : list(self.bot.OUR_GUILDS)}})
             self.bot.clan_list = tags
 
-            reminder_tags = await self.bot.reminders.distinct("clan", filter={"$and" : [{"type" : "War"}, {"server" : {"$in" : list(self.bot.OUR_GUILDS)}}]})
+            '''reminder_tags = await self.bot.reminders.distinct("clan", filter={"$and" : [{"type" : "War"}, {"server" : {"$in" : list(self.bot.OUR_GUILDS)}}]})
             current_war_times = await self.bot.get_current_war_times(tags=reminder_tags)
             for tag in current_war_times.keys():
                 new_war, war_end_time = current_war_times[tag]
@@ -86,23 +86,7 @@ class DiscordEvents(commands.Cog):
                 acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times, war_end_time=war_end_time)
                 await create_reminders(bot=self.bot, times=acceptable_times, clan_tag=tag)
 
-            self.bot.scheduler.print_jobs()
-
-            if self.bot.user.public_flags.verified_bot:
-                for g in self.bot.guilds:
-                    results = await self.bot.server_db.find_one({"server": g.id})
-                    if results is None:
-                        await self.bot.server_db.insert_one({
-                            "server": g.id,
-                            "prefix": ".",
-                            "banlist": None,
-                            "greeting": None,
-                            "cwlcount": None,
-                            "topboardchannel": None,
-                            "tophour": None,
-                            "lbboardChannel": None,
-                            "lbhour": None
-                        })
+            self.bot.scheduler.print_jobs()'''
 
             print('We have logged in')
 
@@ -175,7 +159,6 @@ class DiscordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_application_command(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
         '''try:
             msg = await ctx.original_message()
             if not msg.flags.ephemeral and (ctx.locale == disnake.Locale.en_US or ctx.locale == disnake.Locale.en_GB):
@@ -191,7 +174,7 @@ class DiscordEvents(commands.Cog):
                     if tries != 10:
                         await ctx.followup.send(f"{random.choice(USE_CODE_TEXT)}\n", ephemeral=True)
         except Exception:
-            pass
+            pass'''
 
         await self.bot.command_stats.insert_one({
             "user": ctx.author.id,
@@ -205,7 +188,7 @@ class DiscordEvents(commands.Cog):
             "len_mutual" : len(ctx.user.mutual_guilds),
             "is_bot_dev" : ctx.user.public_flags.verified_bot_developer,
             "bot" : ctx.bot.user.id
-        })'''
+        })
 
 
     @commands.Cog.listener()
