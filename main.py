@@ -29,7 +29,7 @@ initial_extensions = [
     "discord.events",
     "discord.autocomplete",
     "discord.converters",
-    "background.features.refresh_boards",
+    #"background.features.refresh_boards",
     "exceptions.handler"
 ]
 

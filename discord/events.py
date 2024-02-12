@@ -14,6 +14,7 @@ else:
 from utility.war import create_reminders, send_or_update_war_end, send_or_update_war_start
 from utility.constants import USE_CODE_TEXT
 has_started = False
+has_readied = False
 from classes.tickets import OpenTicket, TicketPanel, LOG_TYPE
 from classes.DatabaseClient.familyclient import FamilyClient
 
@@ -30,10 +31,7 @@ class DiscordEvents(commands.Cog):
 
         if self.bot.user.id == 808566437199216691:
             return
-        if self.bot.user.public_flags.verified_bot:
-            len_g = len(self.bot.guilds)
-            for count, shard in self.bot.shards.items():
-                await self.bot.change_presence(activity=disnake.CustomActivity(state="Use Code ClashKing 👀",name="Custom Status"), shard_id=shard.id)
+
         global has_started
         if not has_started:
             has_started = True
@@ -41,22 +39,7 @@ class DiscordEvents(commands.Cog):
             #self.bot.scheduler.add_job(SendReminders.inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
             #self.bot.scheduler.add_job(SendReminders.roster_reminder, trigger='interval', args=[self.bot], minutes=2, misfire_grace_time=None)
 
-            bot_guilds = await self.bot.fetch_guilds(limit=10000).flatten()
-            database_guilds = await self.bot.server_db.distinct("server")
-            database_guilds: set = set(database_guilds)
 
-            missing_guilds = [guild.id for guild in bot_guilds if guild.id not in database_guilds]
-            for guild in missing_guilds:
-                await self.bot.server_db.insert_one({
-                    "server": guild,
-                    "banlist": None,
-                    "greeting": None,
-                    "cwlcount": None,
-                    "topboardchannel": None,
-                    "tophour": None,
-                    "lbboardChannel": None,
-                    "lbhour": None,
-                })
 
             tags = await self.bot.clan_db.distinct("tag", filter={"server" : {"$in" : list(self.bot.OUR_GUILDS)}})
             self.bot.clan_list = tags
@@ -89,6 +72,29 @@ class DiscordEvents(commands.Cog):
 
             print('We have logged in')
 
+    @commands.Cog.listener()
+    async def on_ready(self):
+        global has_readied
+        if not has_readied:
+            if self.bot.user.public_flags.verified_bot:
+                len_g = len(self.bot.guilds)
+                for count, shard in self.bot.shards.items():
+                    await self.bot.change_presence(activity=disnake.CustomActivity(state="Use Code ClashKing 👀", name="Custom Status"), shard_id=shard.id)
+            has_readied = True
+            database_guilds = await self.bot.server_db.distinct("server")
+            database_guilds: set = set(database_guilds)
+            missing_guilds = [guild.id for guild in self.bot.guilds if guild.id not in database_guilds]
+            for guild in missing_guilds:
+                await self.bot.server_db.insert_one({
+                    "server": guild,
+                    "banlist": None,
+                    "greeting": None,
+                    "cwlcount": None,
+                    "topboardchannel": None,
+                    "tophour": None,
+                    "lbboardChannel": None,
+                    "lbhour": None,
+                })
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild:disnake.Guild):
