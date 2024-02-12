@@ -112,9 +112,9 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
         EvalResult = namedtuple("EvalResult", ["is_family", "roles_to_add"])
 
         member_accounts = discord_link_dict.get(member.id, [])
+        member_accounts = [player_dict.get(tag) for tag in member_accounts if player_dict.get(tag) is not None]
         if not member_accounts:
             continue
-        member_accounts = [player_dict.get(tag) for tag in member_accounts if player_dict.get(tag) is not None]
 
         def mini_eval(player: coc.Player) -> EvalResult:
             is_family = False
