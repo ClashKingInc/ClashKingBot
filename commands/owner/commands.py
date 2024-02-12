@@ -184,21 +184,7 @@ class OwnerCommands(commands.Cog):
     @commands.slash_command(name="test", guild_ids=[1103679645439754335])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
-        await ctx.response.defer()
-        all_tickets = await self.bot.tickets.find().to_list(length=None)
-        for tick in all_tickets:
-            embed = tick.get("embed")
-            name = tick.get("name")
-            server = tick.get("server_id")
-            new_data = {"content" : "", "embeds" : [embed]}
-            await self.bot.tickets.update_one({"$and" : [{"server_id" : server}, {"name" : name}]}, {"$set" : {"embed_name" : f"{name} Panel"}})
-            await self.bot.custom_embeds.insert_one({
-                "server" : server,
-                "name" : f"{name} Panel",
-                "data" : new_data
-            })
-        await ctx.edit_original_message("Done")
-
+        pass
 
 
     @commands.slash_command(name="anniversary", guild_ids=[923764211845312533])

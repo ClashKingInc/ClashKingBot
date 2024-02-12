@@ -31,40 +31,6 @@ class SetupCommands(commands.Cog , name="Setup"):
             raise coc.errors.NotFound
         return clan
 
-    @commands.message_command(name="Refresh Board", dm_permission=False)
-    async def refresh_board(self, ctx: disnake.MessageCommandInteraction, message: disnake.Message):
-        check = await self.bot.white_list_check(ctx, "setup server-settings")
-        await ctx.response.defer(ephemeral=True)
-        if not check and not ctx.author.guild_permissions.manage_guild:
-            return await ctx.send(content="You cannot use this command. Missing Permissions. Must have `Manage Server` permissions or be whitelisted for `/setup server-settings`",
-                                  ephemeral=True)
-        custom_id = None
-        if message.components:
-            custom_id = message.components[0].children[0].custom_id
-        name = custom_id.split(":")[0]
-        unallowed_refreshes = {"familygames", "familyheroprogress", "familytroopprogress", 'familysorted', "familydonos", "familyactivity"}
-        if name in unallowed_refreshes:
-            raise MessageException("This command does not support auto refreshing currently")
-        if "ctx" in custom_id or registered_functions.get(name) is None:
-            raise MessageException("Cannot auto-refresh this command")
-        webhook = await get_webhook_for_channel(channel=message.channel, bot=self.bot)
-        thread = None
-        if isinstance(message.channel, disnake.Thread):
-            await message.channel.add_user(self.bot.user)
-            thread = message.channel.id
-
-        if thread is not None:
-            thread = await self.bot.getch_channel(thread)
-            webhook_message = await webhook.send(embeds=message.embeds, thread=thread, wait=True)
-            thread = thread.id
-        else:
-            webhook_message = await webhook.send(embeds=message.embeds, wait=True)
-
-        await self.bot.button_store.update_one({"$and" : [{"button_id": custom_id}, {"server" : ctx.guild_id}]},
-                                                {"$set": {"webhook_id": webhook.id, "thread_id": thread, "message_id": webhook_message.id}}, upsert=True)
-        await message.delete()
-        await ctx.send("Refresh Board Created", ephemeral=True)
-
 
     @commands.slash_command(name="setup")
     async def setup(self, ctx: disnake.ApplicationCommandInteraction):

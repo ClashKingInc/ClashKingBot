@@ -1,13 +1,13 @@
 import time
-from datetime import datetime
-from datetime import timedelta
-import datetime as dt
-from coc.miscmodels import Timestamp
-from coc.raid import RaidLogEntry, RaidClan
-from typing import List
 import coc
 import pytz
 import math
+
+from datetime import datetime
+from datetime import timedelta
+from coc.miscmodels import Timestamp
+from coc.raid import RaidLogEntry, RaidClan
+from typing import List
 
 utc = pytz.utc
 
@@ -55,8 +55,7 @@ def weekend_to_cocpy_timestamp(weekend: str, end=False) -> coc.Timestamp:
     return Timestamp(data=weekend_to_iso.strftime('%Y%m%dT%H%M%S.000Z'))
 
 async def get_raidlog_entry(clan: coc.Clan, weekend: str, bot, limit=0):
-    t = time.time()
-    raidlog = await bot.coc_client.get_raidlog(clan.tag, limit=limit)
+    raidlog = await bot.coc_client.get_raid_log(clan_tag=clan.tag, limit=limit)
     weekend_timestamp = weekend_to_cocpy_timestamp(weekend)
     weekend_raid: RaidLogEntry = coc.utils.get(raidlog, start_time=weekend_timestamp)
     if weekend_raid is not None and sum(member.capital_resources_looted for member in weekend_raid.members) != 0:

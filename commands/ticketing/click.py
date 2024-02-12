@@ -276,7 +276,7 @@ class TicketClick(commands.Cog):
                 (message, questionaire_embed) = await ask_questions(bot=self.bot, ctx=ctx, questions=button.questions)
                 embeds.append(questionaire_embed)
 
-            channels = await open_ticket(bot=self.bot, ticket_panel=panel, button=button, ctx=ctx, coc_account=players[0])
+            channels = await open_ticket(bot=self.bot, ticket_panel=panel, button=button, ctx=ctx, coc_account=players[0] if players else None)
 
             if message is None:
                 await ctx.send(f"Ticket opened -> {channels[0].mention}", ephemeral=True)

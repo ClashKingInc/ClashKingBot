@@ -3,17 +3,14 @@ import disnake
 import inspect
 
 from disnake.ext import commands
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from utility.discord_utils import registered_functions
 
 
 async def button_logic(button_data: str, bot: CustomClient, guild: disnake.Guild, ctx: disnake.MessageInteraction = None):
     split_data = button_data.split(":")
     lookup_name = button_data.split(":")[0]
+    #print(registered_functions.keys())
     function, parser, ephemeral, no_embed = registered_functions.get(lookup_name)
     if function is None:
         return None #maybe change this
