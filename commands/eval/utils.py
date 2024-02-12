@@ -97,8 +97,8 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
 
 
     user_settings = await bot.user_settings.find({"discord_user": {"$in": [m.id for m in members]}}).to_list(length=None)
-    main_account_lookup = {settings.get("discord_user"): settings.get("server_main_account", {}).get(guild.id)
-                            if settings.get("server_main_account", {}).get(guild.id) is not None else settings.get("main_account")
+    main_account_lookup = {settings.get("discord_user"): settings.get("server_main_account", {}).get(str(guild.id))
+                            if settings.get("server_main_account", {}).get(str(guild.id)) is not None else settings.get("main_account")
                             for settings in user_settings}
 
     changed = 0
