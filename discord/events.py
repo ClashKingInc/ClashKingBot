@@ -38,8 +38,6 @@ class DiscordEvents(commands.Cog):
         if not has_started:
             has_started = True
             await asyncio.sleep(15)
-
-
             #self.bot.scheduler.add_job(SendReminders.inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
             #self.bot.scheduler.add_job(SendReminders.roster_reminder, trigger='interval', args=[self.bot], minutes=2, misfire_grace_time=None)
 
@@ -47,7 +45,7 @@ class DiscordEvents(commands.Cog):
             database_guilds = await self.bot.server_db.distinct("server")
             database_guilds: set = set(database_guilds)
 
-            missing_guilds = [guild_id for guild_id in bot_guilds if guild_id not in database_guilds]
+            missing_guilds = [guild.id for guild in bot_guilds if guild.id not in database_guilds]
             for guild in missing_guilds:
                 await self.bot.server_db.insert_one({
                     "server": guild,
