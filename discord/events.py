@@ -43,9 +43,10 @@ class DiscordEvents(commands.Cog):
             #self.bot.scheduler.add_job(SendReminders.inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
             #self.bot.scheduler.add_job(SendReminders.roster_reminder, trigger='interval', args=[self.bot], minutes=2, misfire_grace_time=None)
 
-            bot_guilds: list = [guild.id for guild in self.bot.guilds]
+            bot_guilds = await self.bot.fetch_guilds(limit=10000).flatten()
             database_guilds = await self.bot.server_db.distinct("server")
             database_guilds: set = set(database_guilds)
+
             missing_guilds = [guild_id for guild_id in bot_guilds if guild_id not in database_guilds]
             for guild in missing_guilds:
                 await self.bot.server_db.insert_one({
