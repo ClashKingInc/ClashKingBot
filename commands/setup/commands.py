@@ -181,7 +181,7 @@ class SetupCommands(commands.Cog , name="Setup"):
     @setup.sub_command(name="list", description="List of setup & settings")
     async def settings_list(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
-        db_server = await self.bot.get_custom_server(guild_id=ctx.guild_id)
+        db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
 
         clans = await self.bot.get_clans(tags=(await self.bot.get_guild_clans(guild_id=ctx.guild.id)))
 
