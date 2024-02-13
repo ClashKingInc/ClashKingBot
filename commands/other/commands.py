@@ -75,12 +75,12 @@ class misc(commands.Cog, name="Other"):
 
     @commands.slash_command(name="bot-stats", description="Stats about bots uptime & ping")
     async def stat(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
         uptime = time.time() - self.up
         uptime = time.strftime("%H hours %M minutes %S seconds", time.gmtime(uptime))
         me = self.bot.user.mention
 
         num_clans = await self.bot.clan_db.count_documents({})
-        num_players = await self.bot.player_stats.count_documents({})
         num_tickets = await self.bot.open_tickets.count_documents({})
         inservers = len(self.bot.guilds)
         members = sum(guild.member_count - 1 for guild in self.bot.guilds)
@@ -93,7 +93,6 @@ class misc(commands.Cog, name="Other"):
                                           f"<a:num:863149480819949568> Watching {members} users\n" +
                                           f"🕐 Uptime: {uptime}\n"
                                           f"Tracking {num_clans} clans\n"
-                                          f"Tracking {num_players} players\n"
                                           f"{num_tickets} tickets opened\n",
                               color=disnake.Color.green())
 
@@ -106,7 +105,7 @@ class misc(commands.Cog, name="Other"):
         buttons = disnake.ui.ActionRow()
         for button in page_buttons:
             buttons.append_item(button)
-        await ctx.send(embed=embed, components=[buttons])
+        await ctx.edit_original_message(embed=embed, components=[buttons])
 
 
     @commands.slash_command(name="debug", description="Debug issues on your server")
