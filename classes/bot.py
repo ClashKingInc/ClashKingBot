@@ -34,8 +34,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from utility.login import coc_login
 
 class CustomClient(commands.AutoShardedBot):
-    def __init__(self, config: Config, command_prefix: str, help_command, intents: disnake.Intents, scheduler: AsyncIOScheduler):
-        super().__init__(command_prefix=command_prefix, help_command=help_command, intents=intents)
+    def __init__(self, config: Config, command_prefix: str, help_command, intents: disnake.Intents, scheduler: AsyncIOScheduler, shard_count: int, chunk_guilds_at_startup: bool):
+        super().__init__(command_prefix=command_prefix, help_command=help_command, intents=intents, shard_count=shard_count, chunk_guilds_at_startup=chunk_guilds_at_startup)
 
         self._config = config
         self.scheduler = scheduler

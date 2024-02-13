@@ -193,7 +193,7 @@ class SetupCommands(commands.Cog , name="Setup"):
         embed.add_field(name="Reddit Feed:", value=reddit_feed, inline=True)
         embed.add_field(name="Leadership Eval:", value=f"{db_server.leadership_eval}", inline=True)
         embed.add_field(name="Use API Token:", value=f"{db_server.use_api_token}", inline=True)
-        embed.add_field(name="Nickname Setting:", value=f"{db_server.auto_nickname}", inline=True)
+        embed.add_field(name="Nickname Setting:", value=f"{db_server.change_nickname}", inline=True)
 
         dropdown = [clan_component(bot=self.bot, all_clans=clans, clan_page=0, max_choose=1)]
 

@@ -73,6 +73,12 @@ class eval(commands.Cog, name="Eval"):
             eval_types = DEFAULT_EVAL_ROLE_TYPES
 
         if isinstance(role_or_user, disnake.Role):
+            if not ctx.guild.chunked:
+                embed = disnake.Embed(
+                    description="The bot is pulling your member info from the discord API, please try again in a few minutes.",
+                    color=db_server.embed_color)
+                await ctx.edit_original_message(embed=embed)
+                return
             members = role_or_user.members
             clans = await self.bot.clan_db.distinct("tag", filter={"generalRole": role_or_user.id})
             if not clans:

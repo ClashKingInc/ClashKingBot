@@ -1,6 +1,7 @@
 import disnake
 import coc
 import sentry_sdk
+import traceback
 
 from disnake.ext import commands
 from exceptions.CustomExceptions import *
@@ -176,12 +177,21 @@ class ExceptionHandler(commands.Cog):
         if isinstance(error, ExpiredComponents):
             return await ctx.edit_original_message(components=[])
 
-        embed = disnake.Embed(description=f"{str(error)[:2500]}", color=disnake.Color.red())
+        event_id = sentry_sdk.capture_exception(error)
+        embed = disnake.Embed(description=f"An internal error occurred. Please report to our [support server](https://discord.gg/clashking)", color=disnake.Color.red())
+
+        if self.bot.user.public_flags.verified_bot:
+            buttons = disnake.ui.ActionRow(
+                disnake.ui.Button(label="Sentry", url=f"https://matthew-anderson.sentry.io/issues/{event_id}/?project=4504206148829184", style=disnake.ButtonStyle.url)
+            )
+            channel = await self.bot.getch_channel(1206771175259246642)
+            error_embed = disnake.Embed(description=f"{str(traceback.format_exc())[:2500]}", color=disnake.Color.red())
+            await channel.send(embed=error_embed, components=[buttons])
+
         if not ctx.response.is_done():
             await ctx.edit_original_message(embed=embed)
         else:
             await ctx.send(embed=embed)
-        sentry_sdk.capture_exception(error)
 
 
 def setup(bot: CustomClient):

@@ -232,6 +232,7 @@ async def family_summary(bot: CustomClient, server: disnake.Guild, season: str, 
 
 @register_button("familyoverview", parser="_:server")
 async def family_overview(bot: CustomClient, server: disnake.Guild, embed_color: disnake.Color):
+    server = await bot.getch_guild(server.id)
     season = bot.gen_season_date()
     clan_tags = await bot.clan_db.distinct("tag", filter={"server": server.id})
     basic_clans = await bot.basic_clan.find({"tag": {"$in": clan_tags}}).to_list(length=None)

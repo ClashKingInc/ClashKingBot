@@ -25,8 +25,10 @@ class Config:
     reddit_user_secret = getenv("REDDIT_SECRET")
     reddit_user_password = getenv("REDDIT_PW")
     open_ai_api_token = getenv("OPENAI_API_KEY")
+
     is_beta = (getenv("IS_BETA") == "TRUE")
     is_custom = (getenv("IS_CUSTOM") == "TRUE")
+    is_main = (getenv("IS_MAIN") == "TRUE")
 
     portainer_user = getenv("PORTAINER_USER")
     portainer_pw = getenv("PORTAINER_PASSWORD")
