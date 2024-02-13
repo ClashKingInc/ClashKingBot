@@ -22,7 +22,7 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
                 eval_types: List = DEFAULT_EVAL_ROLE_TYPES, test: bool = False,**kwargs):
     time_start = time.time()
     if not guild.chunked:
-        if guild.id not in self.bot.STARTED_CHUNK:
+        if guild.id not in bot.STARTED_CHUNK:
             await guild.chunk(cache=True)
         else:
             self.bot.STARTED_CHUNK.add(guild.id)
