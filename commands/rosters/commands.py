@@ -856,6 +856,16 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_role_refresh(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
         await ctx.response.defer()
+        if not ctx.guild.chunked:
+            embed = disnake.Embed(
+                description=f"The bot is pulling your member info from the discord API, please try again in a few minutes.",
+                color=disnake.Color.green())
+            await ctx.edit_original_message(embed=embed)
+            if ctx.guild.id not in self.bot.STARTED_CHUNK:
+                await ctx.guild.chunk(cache=True)
+            else:
+                self.bot.STARTED_CHUNK.add(ctx.guild.id)
+            return
         if roster != "REFRESH ALL":
             _roster = Roster(bot=self.bot)
             await _roster.find_roster(guild=ctx.guild, alias=roster)

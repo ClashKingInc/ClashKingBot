@@ -1,28 +1,21 @@
 import os
 
-import coc
 import disnake
 from disnake.ext import commands
-import classes.bot
 from assets.emojiDictionary import emojiDictionary, legend_emojis
 from typing import Callable, Union
-from exceptions.CustomExceptions import MissingWebhookPerms
-from urllib.request import Request, urlopen
-import io
 from exceptions.CustomExceptions import *
-from datetime import datetime
-from operator import attrgetter
-import aiohttp
-from dotenv import load_dotenv
 from typing import List
 import motor.motor_asyncio
+
 
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
         if ctx.author.id == 706149153431879760:
             return True
-        roles = (await ctx.guild.getch_member(member_id=ctx.author.id)).roles
-        if disnake.utils.get(roles, name="ClashKing Perms") != None:
+
+        member = await ctx.guild.getch_member(member_id=ctx.author.id)
+        if disnake.utils.get(member.roles, name="ClashKing Perms") != None:
             return True
         db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
         whitelist = db_client.usafam.whitelist
@@ -41,18 +34,12 @@ def check_commands():
         if results is None:
             return False
 
-        limit = await whitelist.count_documents(filter={"$and" : [
-                {"command": commandd},
-                {"server" : guild}
-            ]})
-
         perms = False
-        for role in await results.to_list(length=limit):
+        for role in await results.to_list(length=None):
             role_ = role.get("role_user")
             is_role = role.get("is_role")
             if is_role:
-                role_ = ctx.guild.get_role(role_)
-                if member in role_.members:
+                if disnake.utils.get(member.roles, id=int(role_)) is not None:
                     return True
             else:
                 if member.id == role_:
@@ -119,7 +106,7 @@ async def interaction_handler(bot, ctx: Union[disnake.ApplicationCommandInteract
     return valid_value
 
 
-async def basic_embed_modal(bot, ctx: disnake.ApplicationCommandInteraction, previous_embed=None):
+'''async def basic_embed_modal(bot, ctx: disnake.ApplicationCommandInteraction, previous_embed=None):
     components = [
         disnake.ui.TextInput(
             label=f"Embed Title",
@@ -194,7 +181,7 @@ async def basic_embed_modal(bot, ctx: disnake.ApplicationCommandInteraction, pre
     embed = await generate_embed(bot=bot, our_embed=our_embed, embed=previous_embed)
     await modal_inter.response.defer()
 
-    return (modal_inter, embed)
+    return (modal_inter, embed)'''
 
 
 def iter_embed_creation(base_embed: disnake.Embed, iter: List, scheme: str, brk: int = 50) -> List[disnake.Embed]:
@@ -223,51 +210,6 @@ def register_button(command_name: str, parser: str, ephemeral: bool = False, no_
         registered_functions[command_name] = (func, parser, ephemeral, no_embed)
         return func
     return decorator
-
-
-
-async def generate_embed(bot, our_embed: dict, embed=None):
-    if embed is None:
-        embed = disnake.Embed()
-    for attribute, embed_field in our_embed.items():
-        if embed_field is None or embed_field == "":
-            continue
-        attribute: str
-        if "field" in attribute:
-            if embed_field["name"] is None or embed_field == "":
-                continue
-            embed.insert_field_at(index=int(attribute.split("_")[1]) - 1, name=embed_field["name"],
-                                  value=embed_field["value"], inline=embed_field["inline"])
-        elif "image" in attribute:
-            if embed_field != "" and embed_field != "None":
-                embed_field = await permanent_image(bot, embed_field)
-            if embed_field == "None":
-                embed._image = None
-            else:
-                embed.set_image(url=embed_field)
-        elif "thumbnail" in attribute:
-            if embed_field != "" and embed_field != "None":
-                embed_field = await permanent_image(bot, embed_field)
-            if embed_field == "None":
-                embed._thumbnail = None
-            else:
-                embed.set_thumbnail(url=embed_field)
-        elif "footer" in attribute:
-            if embed_field["text"] is None:
-                continue
-            embed.set_footer(icon_url=embed_field["icon"], text=embed_field["text"])
-        elif "author" in attribute:
-            if embed_field["text"] is None:
-                continue
-            embed.set_author(icon_url=embed_field["icon"], name=embed_field["text"])
-        else:
-            if len(attribute.split(".")) == 2:
-                obj = attrgetter(attribute.split(".")[0])(embed)
-                setattr(obj, attribute.split(".")[1], embed_field)
-            else:
-                setattr(embed, attribute, embed_field)
-
-    return embed
 
 
 async def get_webhook_for_channel(bot, channel: Union[disnake.TextChannel, disnake.Thread]) -> disnake.Webhook:

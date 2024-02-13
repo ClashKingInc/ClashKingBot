@@ -23,7 +23,7 @@ intents = disnake.Intents(
     message_content=True
 )
 
-bot = CustomClient(command_prefix="??", help_command=None, intents=intents, scheduler=scheduler, config=config, shard_count=None, chunk_guilds_at_startup=True)
+bot = CustomClient(command_prefix="??", help_command=None, intents=intents, scheduler=scheduler, config=config, shard_count=None, chunk_guilds_at_startup=False)
 
 
 initial_extensions = [

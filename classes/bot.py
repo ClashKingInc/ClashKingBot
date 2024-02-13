@@ -33,6 +33,7 @@ from classes.config import Config
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from utility.login import coc_login
 
+
 class CustomClient(commands.AutoShardedBot):
     def __init__(self, config: Config, command_prefix: str, help_command, intents: disnake.Intents, scheduler: AsyncIOScheduler, shard_count: int | None, chunk_guilds_at_startup: bool):
         super().__init__(command_prefix=command_prefix, help_command=help_command, intents=intents, shard_count=shard_count, chunk_guilds_at_startup=chunk_guilds_at_startup)
@@ -142,6 +143,7 @@ class CustomClient(commands.AutoShardedBot):
         self.OUR_GUILDS = set()
         self.badge_guild = []
         self.EXTENSION_LIST = []
+        self.STARTED_CHUNK = set()
 
 
     def clean_string(self, text: str):
@@ -671,39 +673,33 @@ class CustomClient(commands.AutoShardedBot):
     async def white_list_check(self, ctx, command_name):
         if ctx.author.id == 706149153431879760:
             return True
-        member = ctx.author
-        roles = (await ctx.guild.getch_member(member_id=ctx.author.id)).roles
-        if disnake.utils.get(roles, name="ClashKing Perms") != None:
+
+        member = await ctx.guild.getch_member(member_id=ctx.author.id)
+        if disnake.utils.get(member.roles, name="ClashKing Perms") is not None:
             return True
 
-        commandd = command_name
         guild = ctx.guild.id
-        results =  self.whitelist.find({"$and" : [
-                {"command": commandd},
+        results = self.whitelist.find({"$and" : [
+                {"command": command_name},
                 {"server" : guild}
             ]})
 
         if results is None:
             return False
 
-        limit = await self.whitelist.count_documents(filter={"$and" : [
-                {"command": commandd},
-                {"server" : guild}
-            ]})
-
         perms = False
-        for role in await results.to_list(length=limit):
+        for role in await results.to_list(length=None):
             role_ = role.get("role_user")
             is_role = role.get("is_role")
             if is_role:
-                role_ = ctx.guild.get_role(role_)
-                if member in role_.members:
+                if disnake.utils.get(member.roles, id=int(role_)) is not None:
                     return True
             else:
                 if member.id == role_:
                     return True
 
         return perms
+
 
 
     def command_names(self):

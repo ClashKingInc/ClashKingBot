@@ -90,7 +90,7 @@ class erikuh(commands.Cog):
                 discord_id = r.get("discord_id")
                 member = self.bot.get_user(discord_id)
                 text += f"{player.name} | {player.tag} | {member.name}#{member.discriminator}\n"
-            except:
+            except Exception:
                 pass
 
         if text == "":

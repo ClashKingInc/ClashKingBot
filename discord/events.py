@@ -108,7 +108,7 @@ class DiscordEvents(commands.Cog):
               "One last thing to note - the bot is still under heavy development & is relatively young, so please reach out with any issues & if you end up enjoying what is here, consider using Creator Code ClashKing " \
               "in-game to help support the project"
         results = await self.bot.server_db.find_one({"server": guild.id})
-        botAdmin = guild.get_member(self.bot.user.id).guild_permissions.administrator
+        botAdmin = (await guild.getch_member(self.bot.user.id)).guild_permissions.administrator
         if results is None:
             await self.bot.server_db.insert_one({
                 "server": guild.id,
