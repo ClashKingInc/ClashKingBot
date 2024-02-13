@@ -42,8 +42,6 @@ class DiscordEvents(commands.Cog):
                 for count, shard in self.bot.shards.items():
                     await self.bot.change_presence(activity=disnake.CustomActivity(state="↻ Bot starting up", name="Custom Status"), shard_id=shard.id)
 
-
-
             tags = await self.bot.clan_db.distinct("tag", filter={"server" : {"$in" : list(self.bot.OUR_GUILDS)}})
             self.bot.clan_list = tags
 

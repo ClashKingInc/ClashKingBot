@@ -7,7 +7,6 @@ from utility.discord_utils import check_commands
 from utility.search import search_results
 from ..eval.utils import logic
 from archived.commands.CommandsOlder.Utils.Player import to_do_embed
-from utility.discord_utils import basic_embed_modal
 from exceptions.CustomExceptions import MessageException, InvalidAPIToken, APITokenRequired
 from discord import convert, autocomplete
 
@@ -153,7 +152,7 @@ class Linking(commands.Cog):
 
 
 
-    @commands.slash_command(name="buttons", description="Create a message that has buttons for easy eval/link/refresh actions.")
+    '''@commands.slash_command(name="buttons", description="Create a message that has buttons for easy eval/link/refresh actions.")
     async def buttons(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Link Button", "Refresh Button", "To-Do Button", "Roster Button"]), ping: disnake.User = None,
                       custom_embed = commands.Param(default="False", choices=["True", "False"]), embed_link: str = None):
 
@@ -258,7 +257,7 @@ class Linking(commands.Cog):
                 content = ping.mention
             else:
                 content = ""
-            await ctx.send(content=content, embed=embed, components=[buttons])
+            await ctx.send(content=content, embed=embed, components=[buttons])'''
 
 
 

@@ -232,11 +232,11 @@ async def family_summary(bot: CustomClient, server: disnake.Guild, season: str, 
 
 @register_button("familyoverview", parser="_:server")
 async def family_overview(bot: CustomClient, server: disnake.Guild, embed_color: disnake.Color):
-    server = await bot.getch_guild(server.id)
     season = bot.gen_season_date()
     clan_tags = await bot.clan_db.distinct("tag", filter={"server": server.id})
     basic_clans = await bot.basic_clan.find({"tag": {"$in": clan_tags}}).to_list(length=None)
 
+    owner = await server.getch_member(server.owner_id)
     member_count = sum([c.get("members", 0) for c in basic_clans])
     member_tags = [m.get("tag") for clan in basic_clans for m in clan.get("memberList", [])]
     sixty_mins = pend.now(tz=pend.UTC).subtract(minutes=60)
@@ -245,7 +245,7 @@ async def family_overview(bot: CustomClient, server: disnake.Guild, embed_color:
                         f"- {len(basic_clans)} Clans, {member_count} Members\n"
                         f"- {last_online_sixty_mins} Online (last hour)\n"
                         f"- Created: {bot.timestamper(unix_time=int(server.created_at.timestamp())).text_date}\n"
-                        f"- Owner: {server.owner.display_name}")
+                        f"- Owner: {owner.display_name}")
     first_embed = disnake.Embed(description=description_text, color=embed_color)
     first_embed.set_author(name=f"{server.name} Overview", icon_url=get_guild_icon(server))
 

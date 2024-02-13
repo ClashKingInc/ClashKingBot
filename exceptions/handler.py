@@ -97,6 +97,10 @@ class ExceptionHandler(commands.Cog):
             embed = disnake.Embed(description="Not a valid reminder time, please use options from the autocomplete.", color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
+        if isinstance(error, PlayerNotInLegends):
+            embed = disnake.Embed(description=f"Player is not in legends.",
+                                  color=disnake.Color.red())
+            return await ctx.send(embed=embed)
 
         if isinstance(error, ThingNotFound):
             embed = disnake.Embed(description=f"{str(error)}", color=disnake.Color.red())
@@ -178,7 +182,7 @@ class ExceptionHandler(commands.Cog):
             return await ctx.edit_original_message(components=[])
 
         event_id = sentry_sdk.capture_exception(error)
-        embed = disnake.Embed(description=f"An internal error occurred. Please report to our [support server](https://discord.gg/clashking)", color=disnake.Color.red())
+        embed = disnake.Embed(description=f"An internal error occurred, it has been reported to the developer. You can follow updates & bug fixes in the [support server](https://discord.gg/clashking)", color=disnake.Color.red())
 
         if self.bot.user.public_flags.verified_bot:
             buttons = disnake.ui.ActionRow(

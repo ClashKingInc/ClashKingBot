@@ -152,7 +152,7 @@ class eval(commands.Cog, name="Eval"):
                                 blacklist_role_add: disnake.Role = None,
                                 blacklist_role_remove: disnake.Role = None):
         await ctx.response.defer()
-        if blacklist_role_add.id == blacklist_role_remove.id:
+        if blacklist_role_add == blacklist_role_remove and isinstance(blacklist_role_add, disnake.Role):
             raise MessageException("Cannot both remove and add the same role to/from blacklist at the same time")
 
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
