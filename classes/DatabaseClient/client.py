@@ -60,6 +60,18 @@ class BaseClient():
 
     async def get_server_embed_color(self, server_id: int) -> disnake.Color:
         server_data = await self.bot.server_db.find_one({"server" : server_id}, {"server" : 1, "embed_color" : 1})
+        if server_data is None:
+            await self.bot.server_db.insert_one({
+                "server": server_id,
+                "banlist": None,
+                "greeting": None,
+                "cwlcount": None,
+                "topboardchannel": None,
+                "tophour": None,
+                "lbboardChannel": None,
+                "lbhour": None,
+            })
+            server_data = await self.bot.server_db.find_one({"server": server_id}, {"server": 1, "embed_color": 1})
         return disnake.Color(server_data.get("embed_color", EMBED_COLOR))
 
 

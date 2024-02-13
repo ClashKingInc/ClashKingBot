@@ -182,10 +182,15 @@ class ExceptionHandler(commands.Cog):
 
         if self.bot.user.public_flags.verified_bot:
             buttons = disnake.ui.ActionRow(
-                disnake.ui.Button(label="Sentry", url=f"https://matthew-anderson.sentry.io/issues/{event_id}/?project=4504206148829184", style=disnake.ButtonStyle.url)
+                disnake.ui.Button(label="Sentry", url=f"https://matthew-anderson.sentry.io/4504206148829184/?query={event_id}", style=disnake.ButtonStyle.url)
             )
             channel = await self.bot.getch_channel(1206771175259246642)
-            error_embed = disnake.Embed(description=f"{str(traceback.format_exc())[:2500]}", color=disnake.Color.red())
+            error_embed = disnake.Embed(title="Error",description=f"{str(error)[:1000]}", color=disnake.Color.red())
+            error_embed.add_field(name="User", value=f"{ctx.user.global_name} | {ctx.user.mention}", inline=False)
+            error_embed.add_field(name="Server", value=f"{ctx.guild.name} | {ctx.guild.id}", inline=False)
+            error_embed.add_field(name="Command", value=f"{ctx.application_command.qualified_name}", inline=False)
+            error_embed.add_field(name="Bot", value=f"{ctx.bot.user.global_name} | {ctx.bot.user.mention}", inline=False)
+            error_embed.add_field(name="Options", value=f"{str(ctx.filled_options)[:1020]}", inline=False)
             await channel.send(embed=error_embed, components=[buttons])
 
         if not ctx.response.is_done():

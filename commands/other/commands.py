@@ -74,7 +74,7 @@ class misc(commands.Cog, name="Other"):
 
 
     @commands.slash_command(name="bot-stats", description="Stats about bots uptime & ping")
-    async def stat(self, ctx):
+    async def stat(self, ctx: disnake.ApplicationCommandInteraction):
         uptime = time.time() - self.up
         uptime = time.strftime("%H hours %M minutes %S seconds", time.gmtime(uptime))
         me = self.bot.user.mention
@@ -82,13 +82,14 @@ class misc(commands.Cog, name="Other"):
         num_clans = await self.bot.clan_db.count_documents({})
         num_players = await self.bot.player_stats.count_documents({})
         num_tickets = await self.bot.open_tickets.count_documents({})
-        (await self.bot.getch_channel(0)).send()
         inservers = len(self.bot.guilds)
         members = sum(guild.member_count - 1 for guild in self.bot.guilds)
         embed = disnake.Embed(title=f'{self.bot.user.name} Stats',
                               description=f"<:bot:862911608140333086> Bot: {me}\n" +
                                           f"<:discord:840749695466864650> Discord Api Ping: {round(self.bot.latency * 1000, 2)} ms\n" +
                                           f"<:server:863148364006031422> In {str(inservers)} servers\n" +
+                                          f"<:server:863148364006031422> Shard Count: {self.bot.shard_count}\n" +
+                                          f"<:server:863148364006031422> You are on shard {ctx.guild.shard_id}\n" +
                                           f"<a:num:863149480819949568> Watching {members} users\n" +
                                           f"🕐 Uptime: {uptime}\n"
                                           f"Tracking {num_clans} clans\n"

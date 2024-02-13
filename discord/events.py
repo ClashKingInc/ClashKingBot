@@ -38,6 +38,9 @@ class DiscordEvents(commands.Cog):
             await asyncio.sleep(15)
             #self.bot.scheduler.add_job(SendReminders.inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
             #self.bot.scheduler.add_job(SendReminders.roster_reminder, trigger='interval', args=[self.bot], minutes=2, misfire_grace_time=None)
+            if self.bot.user.public_flags.verified_bot:
+                for count, shard in self.bot.shards.items():
+                    await self.bot.change_presence(activity=disnake.CustomActivity(state="↻ Bot starting up", name="Custom Status"), shard_id=shard.id)
 
 
 
@@ -77,7 +80,6 @@ class DiscordEvents(commands.Cog):
         global has_readied
         if not has_readied:
             if self.bot.user.public_flags.verified_bot:
-                len_g = len(self.bot.guilds)
                 for count, shard in self.bot.shards.items():
                     await self.bot.change_presence(activity=disnake.CustomActivity(state="Use Code ClashKing 👀", name="Custom Status"), shard_id=shard.id)
             has_readied = True
