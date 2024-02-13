@@ -12,7 +12,7 @@ from exceptions.CustomExceptions import *
 from classes.server import DatabaseClan
 from classes.enums import LinkParseTypes
 from classes.bot import CustomClient
-from utility.discord_utils import  interaction_handler, basic_embed_modal, get_webhook_for_channel, registered_functions, check_commands
+from utility.discord_utils import  interaction_handler, get_webhook_for_channel, registered_functions, check_commands
 from utility.general import calculate_time, get_guild_icon
 from utility.components import clan_component
 from discord import autocomplete, convert, options
@@ -593,7 +593,7 @@ class SetupCommands(commands.Cog , name="Setup"):
 
 
 
-    @setup.sub_command(name="welcome-link", description="Create a custom welcome message that can include linking buttons")
+    '''@setup.sub_command(name="welcome-link", description="Create a custom welcome message that can include linking buttons")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def welcome_message(self, ctx: disnake.ApplicationCommandInteraction, channel: Union[disnake.TextChannel, disnake.Thread], custom_embed = commands.Param(default="False", choices=["True", "False"]),
                               embed_link: str = None, remove = commands.Param(default="No", choices=["Yes"])):
@@ -646,7 +646,7 @@ class SetupCommands(commands.Cog , name="Setup"):
             if ctx.guild.icon is not None:
                 embed.set_thumbnail(url=ctx.guild.icon.url)
         await ctx.edit_original_message(content=f"Welcome Message Set in {channel.mention}\n||(buttons for demo & will work on the live version)||", embed=embed, components=stat_buttons)
-
+'''
 
     @setup.sub_command(name="api-token", description="Create an api token for use in the clashking api to access server resources")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
