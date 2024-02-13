@@ -45,17 +45,7 @@ class eval(commands.Cog, name="Eval"):
                 raise MessageException("Missing Manage Server Permissions and/or not whitelisted for this command (`/whitelist add`")
 
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
-        if not ctx.guild.chunked:
-            embed = disnake.Embed(
-                description=f"The bot is pulling your member info from the discord API, please try again in a few minutes.",
-                color=db_server.embed_color)
-            await ctx.edit_original_message(embed=embed)
-            if ctx.guild.id not in self.bot.STARTED_CHUNK:
-                await ctx.guild.chunk(cache=True)
-            else:
-                self.bot.STARTED_CHUNK.add(ctx.guild.id)
-            return
-
+        
         if advanced_mode:
             options = []
             for option in DEFAULT_EVAL_ROLE_TYPES:
