@@ -189,7 +189,7 @@ class ExceptionHandler(commands.Cog):
             error_embed.add_field(name="User", value=f"{ctx.user.global_name} | {ctx.user.mention}", inline=False)
             error_embed.add_field(name="Server", value=f"{ctx.guild.name} | {ctx.guild.id}", inline=False)
             error_embed.add_field(name="Command", value=f"{ctx.application_command.qualified_name}", inline=False)
-            error_embed.add_field(name="Bot", value=f"{ctx.bot.user.global_name} | {ctx.bot.user.mention}", inline=False)
+            error_embed.add_field(name="Bot", value=f"{ctx.bot.user.name} | {ctx.bot.user.mention}", inline=False)
             error_embed.add_field(name="Options", value=f"{str(ctx.filled_options)[:1020]}", inline=False)
             await channel.send(embed=error_embed, components=[buttons])
 
