@@ -17,7 +17,7 @@ def check_commands():
         member = await ctx.guild.getch_member(member_id=ctx.author.id)
         if disnake.utils.get(member.roles, name="ClashKing Perms") != None:
             return True
-        db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("DB_LOGIN"))
+        db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("STATIC_MONGODB"))
         whitelist = db_client.usafam.whitelist
         member = ctx.author
 
