@@ -232,7 +232,7 @@ class TicketClick(commands.Cog):
                         text += f"{hero.name} | {hero.level},"
                         if hero.is_builder_base:
                             continue
-                        if hero.level <= name_to_req.get(hero.name):
+                        if hero.level < name_to_req.get(hero.name):
                             meet_hero_req = False
                             break
                     if account.town_hall >= button.townhall_minimum and meet_hero_req and account.war_stars >= data_requirements.war_stars:
