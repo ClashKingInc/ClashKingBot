@@ -3,10 +3,7 @@ import disnake
 from disnake.ext import commands
 from utility.discord_utils import check_commands
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from classes.server import CustomServer
 from utility.constants import DEFAULT_EVAL_ROLE_TYPES
 from utility.discord_utils import interaction_handler

@@ -6,10 +6,7 @@ import asyncio
 from collections import defaultdict, namedtuple
 from typing import List
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from utility.constants import DEFAULT_EVAL_ROLE_TYPES, ROLE_TREATMENT_TYPES
 from utility.general import get_clan_member_tags, create_superscript
 from exceptions.CustomExceptions import ExpiredComponents, MessageException
@@ -25,7 +22,7 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
         if guild.id not in bot.STARTED_CHUNK:
             await guild.chunk(cache=True)
         else:
-            self.bot.STARTED_CHUNK.add(guild.id)
+            bot.STARTED_CHUNK.add(guild.id)
             
     IS_AUTOEVAL = kwargs.pop("auto_eval", False)
     auto_eval_tag = kwargs.pop("auto_eval_tag", None)

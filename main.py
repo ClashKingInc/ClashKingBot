@@ -19,8 +19,8 @@ intents = disnake.Intents(
     guilds=True,
     members=True,
     emojis=True,
-    messages=True,
-    message_content=True
+    messages=(not config.is_main),
+    message_content=(not config.is_main)
 )
 
 bot = CustomClient(command_prefix="??", help_command=None, intents=intents, scheduler=scheduler, config=config, shard_count=None, chunk_guilds_at_startup=(not config.is_main))

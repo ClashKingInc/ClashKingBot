@@ -3,10 +3,7 @@ from disnake.ext import commands
 from assets.thPicDictionary import thDictionary
 from utility.clash import heros, heroPets
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from utility.clash import cwl_league_emojis
 import coc
 from CommandsOlder.Utils import Clan as clan_embeds

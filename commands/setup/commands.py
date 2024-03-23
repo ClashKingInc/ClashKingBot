@@ -268,6 +268,20 @@ class SetupCommands(commands.Cog , name="Setup"):
 
         if not self.bot.user.public_flags.verified_bot:
             raise MessageException("This command can only be run on the main ClashKing bot")
+
+        my_server = await self.bot.getch_guild(923764211845312533)
+        if not my_server.chunked:
+            await my_server.chunk(cache=True)
+        premium_users = my_server.get_role(1018316361241477212)
+        find = disnake.utils.get(premium_users.members, id=ctx.user.id)
+
+        if ctx.guild.member_count < 250 and find is None:
+            raise MessageException("Server must have 250 or more members for free custom bots")
+
+        server_clans = await self.bot.get_guild_clans(guild_id=ctx.guild.id)
+        if len(server_clans) < 2:
+            raise MessageException("Server must have 2 or more clans linked for free custom bots")
+
         name = re.sub(r'[^a-zA-Z]', '', name)
         name = name.replace(" ", "").lower()
         if name == "":

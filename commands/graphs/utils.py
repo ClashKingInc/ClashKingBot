@@ -13,10 +13,7 @@ from utility.clash.capital import get_season_raid_weeks
 from utility.clash.other import gen_season_start_end_as_timestamp, gen_season_start_end_as_iso
 from utility.cdn import upload_html_to_cdn
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 import statistics
 import pendulum as pend
 

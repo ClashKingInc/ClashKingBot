@@ -1,8 +1,4 @@
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from pymongo import InsertOne
 
 
@@ -54,3 +50,65 @@ async def migrate_clan_db_simple_schema(bot: CustomClient):
     print(len(bulk_insert), "documents")
     await bot.new_looper.get_collection("new_clan_stats").bulk_write(bulk_insert)
     print("done")
+
+
+
+
+async def migrate_legends(bot: CustomClient):
+    print("starting")
+
+    legend_stats_insertions = []
+    count = 0
+    async for player_stats in bot.player_stats.find({"legends" : {"$ne" : None}}):
+        count += 1
+        if count % 5000 == 0:
+            try:
+                await bot.legends_stats.bulk_write(legend_stats_insertions, ordered=False)
+            except Exception as e:
+                print(e)
+            print(f"{count} players done, {len(legend_stats_insertions)} days accounted")
+            legend_stats_insertions = []
+
+        player_tag = player_stats.get("tag")
+        legends: dict = player_stats.get("legends")
+        if legends:
+            for day, data in legends.items():
+                if not isinstance(data, dict):
+                    continue
+                attacks = data.get("attacks", [])
+                defenses = data.get("defenses", [])
+                offense = sum(attacks)
+                defense = sum(defenses)
+                ending_trophies = 0
+
+                if data.get("new_attacks"):
+                    attacks = data.get("new_attacks", [])
+                    offense = sum([x.get("change") for x in attacks])
+
+                if data.get("new_defenses"):
+                    defenses = data.get("new_defenses", [])
+                    defense = sum([x.get("change") for x in defenses])
+
+                if data.get("new_attacks") or data.get("new_defenses"):
+                    all_attacks = data.get("new_attacks", []) + data.get("new_defenses", [])
+                    all_attacks.sort(key=lambda x: x.get("time"), reverse=True)
+                    if all_attacks:
+                        ending_trophies = all_attacks[-1].get("trophies")
+
+                legend_stats_insertions.append(
+                    InsertOne(
+                        {
+                            "tag" : player_tag,
+                            "day" : day,
+                            "attacks" : attacks,
+                            "defenses" : defenses,
+                            "offense" : offense,
+                            "defense" : defense,
+                            "ending_trophies" : ending_trophies
+                        }
+                    )
+                )
+
+    print(f"{len(legend_stats_insertions)} legend days to insert")
+    if legend_stats_insertions:
+        await bot.legends_stats.bulk_write(legend_stats_insertions, ordered=False)

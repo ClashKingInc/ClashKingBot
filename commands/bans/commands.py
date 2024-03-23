@@ -4,10 +4,7 @@ import disnake
 from utility.components import create_components
 from datetime import datetime
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from utility.discord_utils import check_commands
 
 from utility.constants import EMBED_COLOR

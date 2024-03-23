@@ -2,7 +2,7 @@ import os
 
 import disnake
 from disnake.ext import commands
-from assets.emojiDictionary import emojiDictionary, legend_emojis
+from assets.emojiDictionary import emojiDictionary
 from typing import Callable, Union
 from exceptions.CustomExceptions import *
 from typing import List
@@ -15,7 +15,7 @@ def check_commands():
             return True
 
         member = await ctx.guild.getch_member(member_id=ctx.author.id)
-        if disnake.utils.get(member.roles, name="ClashKing Perms") != None:
+        if disnake.utils.get(member.roles, name="ClashKing Perms") is not None:
             return True
         db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("STATIC_MONGODB"))
         whitelist = db_client.usafam.whitelist

@@ -1,8 +1,5 @@
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from utility.general import create_superscript
 
 async def search_results(bot: CustomClient, query, use_cache=True):
@@ -47,11 +44,7 @@ async def search_name_with_tag(bot: CustomClient, query: str, poster=False):
         ]
     results = await bot.player_search.aggregate(pipeline=pipeline).to_list(length=None)
     for document in results:
-        league = document.get("league")
-        if league == "Unknown":
-            league = "Unranked"
-        league = league.replace(" League", "")
-        names.append(f'{create_superscript(document.get("th"))}{document.get("name")} ({league})' + " | " + document.get("tag"))
+        names.append(f'{create_superscript(document.get("th"))}{document.get("name")} ({document.get("clan_name")})' + " | " + document.get("tag"))
     return names
 
 

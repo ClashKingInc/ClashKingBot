@@ -150,7 +150,7 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
         if legend_profile:
             profile_tags = legend_profile.get("profile_tags", [])
             documents = await self.bot.player_stats.find({"$and" : [{"tag" : {"$in": profile_tags}}, {"league" : "Legend League"}]}, {"tag" : 1, "name" : 1, "townhall" : 1}).to_list(length=None)
-            results = [(f'‡{create_superscript(document.get("townhall", 0))}{document.get("name")} (Legend)' + " | " + document.get("tag"))
+            results = [(f'‡{create_superscript(document.get("townhall", 0))}{document.get("name")}' + " | " + document.get("tag"))
                        for document in documents if query.lower() in document.get("name").lower()] + results
         return results[:25]
 

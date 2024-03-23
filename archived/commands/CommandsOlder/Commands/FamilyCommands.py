@@ -7,10 +7,7 @@ import calendar
 
 from disnake.ext import commands
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from classes.enums import TrophySort
 from exceptions.CustomExceptions import InvalidGuildID
 from typing import List

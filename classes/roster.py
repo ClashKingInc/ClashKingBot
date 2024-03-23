@@ -7,10 +7,7 @@ import string
 
 from urllib.request import Request, urlopen
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from classes.player import MyCustomPlayer
 from datetime import datetime, timedelta
 from exceptions.CustomExceptions import *
@@ -577,12 +574,28 @@ class Roster():
         aliases.remove(self.roster_result.get("alias"))
         return aliases
 
-    async def mode_components(self, mode: str, player_page: 0):
+    async def mode_components(self, mode: str, player_page: int, roster_page: int, other_roster_page: int):
+
+        dropdown = []
         other_rosters = await self.other_rosters()
+        if other_rosters:
+            length = 24
+            if player_page >= 1:
+                length = length - 1
+            players = self.players[(length * player_page):(length * player_page) + length]
+            if player_page >= 1:
+                player_options.append(disnake.SelectOption(label=f"Previous 25 Players", emoji=self.bot.emoji.back.partial_emoji, value=f"players_{player_page - 1}"))
+            for count, player in enumerate(players):
+                player_options.append(disnake.SelectOption(label=f"{player.get('name')}",
+                                                           emoji=self.bot.fetch_emoji(name=player.get('townhall')).partial_emoji,
+                                                           value=f"edit_{player.get('tag')}"))
+            if len(players) == length and (len(self.players) > (length * player_page) + length):
+                player_options.append(disnake.SelectOption(label=f"Next 25 Players", emoji=self.bot.emoji.forward.partial_emoji, value=f"players_{player_page + 1}"))
+
         roster_options = []
         for roster in other_rosters:
             roster_options.append(disnake.SelectOption(label=f"{roster}", emoji=self.bot.emoji.troop.partial_emoji, value=f"roster_{roster}"))
-        if roster_options != []:
+        if roster_options:
             roster_select = disnake.ui.Select(
                 options=roster_options,
                 placeholder="Roster to Edit",  # the placeholder text to show when no options have been chosen

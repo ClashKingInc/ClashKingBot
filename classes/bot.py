@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 from coc.ext import discordlinks
 from disnake.ext import commands
 from typing import Dict, List
-from assets.emojiDictionary import emojiDictionary, legend_emojis
+from assets.emojiDictionary import emojiDictionary
 from classes.player import MyCustomPlayer, CustomClanClass
 from classes.emoji import Emojis, EmojiType
 from urllib.request import urlopen
@@ -44,8 +44,17 @@ class CustomClient(commands.AutoShardedBot):
 
         self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(self._config.stats_mongodb, compressors="snappy")
         self.new_looper = self.looper_db.get_database("new_looper")
+        self.stats = self.looper_db.get_database(name="stats")
+
         self.user_db = self.new_looper.get_collection("user_db")
         collection_class = self.user_db.__class__
+
+        #NEW STATS
+        self.base_player: collection_class = self.stats.base_player
+        self.legends_stats: collection_class = self.stats.legends_stats
+        self.season_stats: collection_class = self.stats.season_stats
+
+
 
         self.player_stats: collection_class = self.new_looper.player_stats
         self.leaderboard_db: collection_class = self.new_looper.leaderboard_db
@@ -327,6 +336,7 @@ class CustomClient(commands.AutoShardedBot):
         times = list(times)
         return times
 
+
     def get_times_in_range(self, reminder_times, war_end_time: coc.Timestamp):
         accepted_times = []
         for time in reminder_times:
@@ -395,8 +405,6 @@ class CustomClient(commands.AutoShardedBot):
 
     def fetch_emoji(self, name: str | int):
         emoji = emojiDictionary(name)
-        if emoji is None:
-            emoji = legend_emojis(name)
         if emoji is None:
             return None
         return EmojiType(emoji_string=emoji)

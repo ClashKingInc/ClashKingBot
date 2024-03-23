@@ -2,10 +2,7 @@ import coc
 import disnake
 from disnake.ext import commands
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from classes.server import DatabaseClan
 from background.logs.events import player_ee
 from datetime import datetime

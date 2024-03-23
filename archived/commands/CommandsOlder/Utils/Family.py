@@ -5,10 +5,7 @@ import asyncio
 from coc.raid import RaidLogEntry
 from datetime import datetime
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from classes.player import MyCustomPlayer, ClanCapitalWeek
 from utility.general import create_superscript
 from utility.ClanCapital import gen_raid_weekend_datestrings, get_raidlog_entry, calc_raid_medals

@@ -8,10 +8,7 @@ import random
 #from FamilyManagement.Reminders import SendReminders
 from classes.server import DatabaseClan
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 #from CommandsOlder.Utils.War import main_war_page, missed_hits
 #from ImageGen.WarEndResult import generate_war_result_image
 from utility.discord_utils import get_webhook_for_channel

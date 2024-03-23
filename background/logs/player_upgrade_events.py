@@ -5,10 +5,7 @@ import re
 
 from classes.server import DatabaseClan
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from background.logs.events import player_ee
 from utility.clash import league_emoji
 from pytz import utc

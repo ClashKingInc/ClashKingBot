@@ -4,10 +4,7 @@ import disnake
 import pendulum as pd
 
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from exceptions.CustomExceptions import MessageException
 from utility.discord_utils import register_button, interaction_handler
 

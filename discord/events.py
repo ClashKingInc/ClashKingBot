@@ -4,19 +4,14 @@ import random
 import disnake
 
 from disnake.ext import commands
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
-
+from classes.bot import CustomClient
 from utility.war import create_reminders, send_or_update_war_end, send_or_update_war_start
 from utility.constants import USE_CODE_TEXT
 has_started = False
 has_readied = False
 from classes.tickets import OpenTicket, TicketPanel, LOG_TYPE
 from classes.DatabaseClient.familyclient import FamilyClient
+from assets.emojiDictionary import switcher, emoji_class_dict
 
 
 class DiscordEvents(commands.Cog):
@@ -95,6 +90,22 @@ class DiscordEvents(commands.Cog):
                     "lbboardChannel": None,
                     "lbhour": None,
                 })
+            if not self.bot.user.public_flags.verified_bot and self.bot.user.id != 808566437199216691:
+                largest_server = sorted(self.bot.guilds, key=lambda x: x.member_count, reverse=True)[0]
+                for server in self.bot.guilds:
+                    if server.id != largest_server.id:
+                        if server.owner_id != self.bot.user.id:
+                            await server.leave()
+                        else:
+                            await server.delete()
+                #create_emojis
+                bot_settings = await self.bot.custom_bots.find_one({"token" : self.bot._config.bot_token})
+                our_emoji = bot_settings.get("emojis")
+                emojis_we_should_have = switcher | emoji_class_dict
+                for emoji_name, emoji_text in emojis_we_should_have.items():
+                    if our_emoji.get(emoji_name):
+                        pass #download emoji
+
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild:disnake.Guild):

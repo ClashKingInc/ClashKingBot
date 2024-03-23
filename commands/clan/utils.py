@@ -6,10 +6,7 @@ from disnake.utils import get
 from collections import  namedtuple
 from classes.player import MyCustomPlayer, LegendRanking, ClanCapitalWeek
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from typing import List
 from ballpark import ballpark as B
 from statistics import mean

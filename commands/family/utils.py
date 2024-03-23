@@ -7,10 +7,7 @@ from collections import defaultdict, namedtuple
 from datetime import datetime
 from classes.player import ClanCapitalWeek
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from typing import List
 from utility.clash.capital import get_season_raid_weeks
 from utility.clash.other import cwl_league_emojis, is_games, league_to_emoji, gen_season_start_end_as_iso, gen_season_start_end_as_timestamp, games_season_start_end_as_timestamp

@@ -10,10 +10,7 @@ from utility.clash.other import *
 from utility.general import acronym, create_superscript
 from utility.discord_utils import interaction_handler
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from classes.player import MyCustomPlayer
 from numerize import numerize
 from classes.clashofstats import StayType

@@ -6,10 +6,7 @@ from disnake.ext import commands
 from typing import Union, List
 from FamilyManagement.Reminders import ReminderUtils
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from exceptions.CustomExceptions import NotValidReminderTime
 
 class ReminderCreation(commands.Cog, name="Reminders"):

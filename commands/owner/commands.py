@@ -1,6 +1,3 @@
-import json
-import sys
-import time
 
 import disnake
 from disnake.ext import commands
@@ -10,7 +7,6 @@ count = 0
 list_size = 0
 from classes.bot import CustomClient
 
-
 leagues = ["Champion League I", "Champion League II", "Champion League III",
                    "Master League I", "Master League II", "Master League III",
                    "Crystal League I","Crystal League II", "Crystal League III",
@@ -18,45 +14,14 @@ leagues = ["Champion League I", "Champion League II", "Champion League III",
                    "Silver League I","Silver League II","Silver League III",
                    "Bronze League I", "Bronze League II", "Bronze League III", "Unranked"]
 SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
-import os
 import coc
-import base64
-import json
-from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
-from urllib.parse import quote, unquote
-from classes.reminders import Reminder
-from utility.clash.capital import get_raidlog_entry, gen_raid_weekend_datestrings
-#from ImageGen.ClanCapitalResult import generate_raid_result_image
-from pymongo import UpdateOne
-from coc.raid import RaidLogEntry, RaidAttack
-from numerize import numerize
-from classes.server import DatabaseClan
-from utility.discord_utils import get_webhook_for_channel
-from exceptions.CustomExceptions import MissingWebhookPerms
+
 from datetime import datetime
-from pytz import utc
-from base64 import b64decode as base64_b64decode
-from json import loads as json_loads
-from datetime import datetime
-import aiohttp
-import asyncio
-from collections import deque
-from msgspec.json import decode
-from msgspec import Struct
-from collections import defaultdict
-from utility.general import custom_round
-from classes.tickets import OpenTicket, TicketPanel, LOG_TYPE
-import traceback
 import textwrap
 from contextlib import redirect_stdout
 import io
 import re
-from aiohttp import TCPConnector, ClientTimeout, ClientSession
-import ujson
-from typing import Optional, List, Union, Tuple
-from utility.constants import EMBED_COLOR_CLASS
-from testing.migrations import migrate_clan_db_simple_schema
-from ..family.utils import family_composition
+from assets.emojiDictionary import switcher, emoji_class_dict
 
 class OwnerCommands(commands.Cog):
 
@@ -185,6 +150,7 @@ class OwnerCommands(commands.Cog):
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
         pass
+
 
 
     @commands.slash_command(name="anniversary", guild_ids=[923764211845312533])

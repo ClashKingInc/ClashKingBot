@@ -7,10 +7,7 @@ from ImageGen import WarEndResult as war_gen
 from disnake.ext import commands
 from assets.emojiDictionary import emojiDictionary
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from datetime import datetime
 
 tiz = pytz.utc

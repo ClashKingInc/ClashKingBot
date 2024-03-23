@@ -6,10 +6,7 @@ from disnake.ext import commands
 
 
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.bot import CustomClient
-else:
-    from disnake.ext.commands import AutoShardedBot as CustomClient
+from classes.bot import CustomClient
 from utility.clash.capital import get_raidlog_entry, gen_raid_weekend_datestrings
 from BoardCommands.Utils.Clan import clan_raid_weekend_raid_stats, clan_raid_weekend_donation_stats
 from ImageGen.ClanCapitalResult import generate_raid_result_image
