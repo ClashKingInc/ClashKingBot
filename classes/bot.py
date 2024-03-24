@@ -87,6 +87,7 @@ class CustomClient(commands.AutoShardedBot):
         self.button_store: collection_class = self.looper_db.clashking.button_store
         self.legend_rankings: collection_class = self.new_looper.legend_rankings
         self.war_timers: collection_class = self.looper_db.looper.war_timer
+        self.number_emojis: collection_class = self.looper_db.clashking.number_emojis
 
 
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(self._config.static_mongodb)
@@ -120,7 +121,6 @@ class CustomClient(commands.AutoShardedBot):
         self.custom_bots: collection_class = self.db_client.usafam.custom_bots
         self.suggestions: collection_class = self.db_client.usafam.suggestions
 
-
         self.tickets: collection_class = self.db_client.usafam.tickets
         self.open_tickets: collection_class = self.db_client.usafam.open_tickets
         self.custom_embeds: collection_class = self.db_client.usafam.custom_embeds
@@ -153,6 +153,8 @@ class CustomClient(commands.AutoShardedBot):
         self.badge_guild = []
         self.EXTENSION_LIST = []
         self.STARTED_CHUNK = set()
+
+        self.number_emoji_map = {}
 
 
     def clean_string(self, text: str):
@@ -215,24 +217,8 @@ class CustomClient(commands.AutoShardedBot):
     def get_number_emoji(self, color: str, number: int) -> EmojiType:
         if not self.user.id == 808566437199216691 and not self.user.public_flags.verified_bot:
             color = "gold"
-        guild = None
-        if number <= 50:
-            if color == "white":
-                guild = self.get_guild(1042301258167484426)
-            elif color == "blue":
-                guild = self.get_guild(1042222078302109779)
-            elif color == "gold":
-                guild = self.get_guild(1042301195240357958)
-        elif number >= 51:
-            if color == "white":
-                guild = self.get_guild(1042635651562086430)
-            elif color == "blue":
-                guild = self.get_guild(1042635521890992158)
-            elif color == "gold":
-                guild = self.get_guild(1042635608088125491)
-        all_emojis = guild.emojis
-        emoji = disnake.utils.get(all_emojis, name=f"{number}_")
-        return EmojiType(emoji_string=f"<:{emoji.name}:{emoji.id}>")
+        emoji = self.number_emoji_map.get(color).get(number)
+        return EmojiType(emoji_string=emoji)
 
 
     async def track_clans(self, tags: list):

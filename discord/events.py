@@ -11,7 +11,7 @@ has_started = False
 from classes.tickets import OpenTicket, TicketPanel, LOG_TYPE
 from classes.DatabaseClient.familyclient import FamilyClient
 from assets.emojiDictionary import switcher, emoji_class_dict
-
+from pymongo import UpdateOne
 
 class DiscordEvents(commands.Cog):
 
@@ -25,8 +25,8 @@ class DiscordEvents(commands.Cog):
             return
         global has_started
         if not has_started:
+            await asyncio.sleep(5)
             has_started = True
-            await asyncio.sleep(15)
             if self.bot.user.public_flags.verified_bot:
                 for count, shard in self.bot.shards.items():
                     await self.bot.change_presence(activity=disnake.CustomActivity(state="Use Code ClashKing 👀", name="Custom Status"), shard_id=shard.id)
@@ -44,6 +44,15 @@ class DiscordEvents(commands.Cog):
                     "lbboardChannel": None,
                     "lbhour": None,
                 })
+
+            number_emojis = await self.bot.number_emojis.find().to_list(length=None)
+            number_emojis_map = {"blue" : {}, "gold" : {}, "white" : {}}
+            for emoji in number_emojis:
+                number_emojis_map[emoji.get("color")][emoji.get("count")] = emoji.get("emoji_id")
+            self.bot.number_emoji_map = number_emojis_map
+
+
+
             '''if not self.bot.user.public_flags.verified_bot and self.bot.user.id != 808566437199216691:
                 largest_server = sorted(self.bot.guilds, key=lambda x: x.member_count, reverse=True)[0]
                 for server in self.bot.guilds:
