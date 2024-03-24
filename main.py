@@ -19,11 +19,35 @@ intents = disnake.Intents(
     guilds=True,
     members=True,
     emojis=True,
-    messages=(not config.is_main),
-    message_content=(not config.is_main)
+    messages=True,
+    message_content=True
 )
 
-bot = CustomClient(command_prefix="??", help_command=None, intents=intents, scheduler=scheduler, config=config, shard_count=None, chunk_guilds_at_startup=(not config.is_main))
+cluster_id = 0
+total_shards = 1
+cluster_kwargs = {"shard_count" : None}
+if config.is_main:
+    total_shards = 6
+    cluster_id = int(config.cluster_id)
+    offset = cluster_id - 1  # As we start at 1
+    number_of_shards_per_cluster = 2
+    # Calculate the shard id's this cluster should handle
+    # For example on cluster 1 this would be equal to
+    # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    shard_ids = [
+        i
+        for i in range(
+            offset * number_of_shards_per_cluster,
+            (offset * number_of_shards_per_cluster) + number_of_shards_per_cluster,
+        )
+        if i < total_shards
+    ]
+    cluster_kwargs = {
+        "shard_ids": shard_ids,
+        "shard_count": total_shards,
+    }
+
+bot = CustomClient(command_prefix="??", help_command=None, intents=intents, scheduler=scheduler, config=config, chunk_guilds_at_startup=(not config.is_main), **cluster_kwargs)
 
 
 initial_extensions = [

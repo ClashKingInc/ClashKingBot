@@ -22,6 +22,9 @@ from contextlib import redirect_stdout
 import io
 import re
 from assets.emojiDictionary import switcher, emoji_class_dict
+import asyncio
+import aiohttp
+
 
 class OwnerCommands(commands.Cog):
 
@@ -143,13 +146,80 @@ class OwnerCommands(commands.Cog):
             for i, b in enumerate(buffer):
                 await ctx.followup.send(embed=disnake.Embed(description=f'```py\n{b}```'))
 
+    async def get_keys(self, emails: list, passwords: list, key_names: str, key_count: int, ip: str):
+        total_keys = []
+        for count, email in enumerate(emails):
+            await asyncio.sleep(1.5)
+            _keys = []
+            async with aiohttp.ClientSession() as session:
+                password = passwords[count]
+                body = {"email": email, "password": password}
+                resp = await session.post("https://developer.clashofclans.com/api/login", json=body)
+                resp_paylaod = await resp.json()
+
+                resp = await session.post("https://developer.clashofclans.com/api/apikey/list")
+                keys = (await resp.json()).get("keys", [])
+                _keys.extend(key["key"] for key in keys if key["name"] == key_names and ip in key["cidrRanges"])
+
+                for key in (k for k in keys if ip not in k["cidrRanges"]):
+                    await session.post("https://developer.clashofclans.com/api/apikey/revoke", json={"id": key["id"]})
+
+                print(len(_keys))
+                while len(_keys) < key_count:
+                    data = {
+                        "name": key_names,
+                        "description": "Created on {}".format(datetime.now().strftime("%c")),
+                        "cidrRanges": [ip],
+                        "scopes": ["clash"],
+                    }
+                    hold = True
+                    tries = 1
+                    while hold:
+                        try:
+                            resp = await session.post("https://developer.clashofclans.com/api/apikey/create", json=data)
+                            key = await resp.json()
+                        except Exception:
+                            key = {}
+                        if key.get("key") is None:
+                            await asyncio.sleep(tries * 0.5)
+                            tries += 1
+                            if tries > 2:
+                                print(tries - 1, "tries")
+                        else:
+                            hold = False
+
+                    _keys.append(key["key"]["key"])
+
+                await session.close()
+                for k in _keys:
+                    total_keys.append(k)
+
+        print(len(total_keys), "total keys")
+        return (total_keys)
+
+    async def create_keys(self, emails: list, passwords: list, ip: str):
+        keys = await self.get_keys(emails=emails, passwords=passwords, key_names="test", key_count=10, ip=ip)
+        return keys
 
 
 
-    @commands.slash_command(name="test", guild_ids=[1103679645439754335])
+    @commands.slash_command(name="test", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
+        config = self.bot._config
+        emails = [config.coc_email.format(x=x) for x in range(1, 2 + 1)]
+        passwords = [config.coc_password] * (2 + 1 - 1)
+        keys = await self.create_keys(emails=emails, passwords=passwords, ip="85.10.200.219")
+        print(len(keys))
+        to_insert = []
+        for k in keys:
+            to_insert.append({
+                "token" : k
+            })
+        await self.bot.new_looper.get_collection("api_tokens").insert_many(documents=to_insert)
+
+
+
 
 
 

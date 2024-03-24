@@ -29,6 +29,7 @@ class Config:
     is_beta = (getenv("IS_BETA") == "TRUE")
     is_custom = (getenv("IS_CUSTOM") == "TRUE")
     is_main = (getenv("IS_MAIN") == "TRUE")
+    cluster_id = 0
 
     portainer_user = getenv("PORTAINER_USER")
     portainer_pw = getenv("PORTAINER_PASSWORD")
