@@ -21,51 +21,16 @@ class DiscordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_connect(self):
-        s_result = await self.bot.server_db.find_one({"server" : 1103679645439754335})
         self.bot.ck_client = FamilyClient(bot=self.bot)
-
         if self.bot.user.id == 808566437199216691:
             return
-
         global has_started
         if not has_started:
             has_started = True
             await asyncio.sleep(15)
-            #self.bot.scheduler.add_job(SendReminders.inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
-            #self.bot.scheduler.add_job(SendReminders.roster_reminder, trigger='interval', args=[self.bot], minutes=2, misfire_grace_time=None)
             if self.bot.user.public_flags.verified_bot:
                 for count, shard in self.bot.shards.items():
                     await self.bot.change_presence(activity=disnake.CustomActivity(state="↻ Bot starting up", name="Custom Status"), shard_id=shard.id)
-
-            tags = await self.bot.clan_db.distinct("tag", filter={"server" : {"$in" : list(self.bot.OUR_GUILDS)}})
-            self.bot.clan_list = tags
-
-            '''reminder_tags = await self.bot.reminders.distinct("clan", filter={"$and" : [{"type" : "War"}, {"server" : {"$in" : list(self.bot.OUR_GUILDS)}}]})
-            current_war_times = await self.bot.get_current_war_times(tags=reminder_tags)
-            for tag in current_war_times.keys():
-                new_war, war_end_time = current_war_times[tag]
-                try:
-                    if new_war.state == "preparation":
-                        self.bot.scheduler.add_job(send_or_update_war_start, 'date', run_date=new_war.start_time.time,
-                                          args=[self.bot, new_war.clan.tag], id=f"war_start_{new_war.clan.tag}",
-                                          name=f"{new_war.clan.tag}_war_start", misfire_grace_time=None)
-                    if new_war.end_time.seconds_until >= 0:
-                        self.bot.scheduler.add_job(send_or_update_war_end, 'date', run_date=new_war.end_time.time,
-                                          args=[self.bot, new_war.clan.tag, int(new_war.preparation_start_time.time.timestamp())], id=f"war_end_{new_war.clan.tag}",
-                                          name=f"{new_war.clan.tag}_war_end", misfire_grace_time=None)
-                except:
-                    pass
-
-                reminder_times = await self.bot.get_reminder_times(clan_tag=tag)
-                try:
-                    await self.bot.war_client.register_war(clan_tag=tag)
-                except:
-                    pass
-                acceptable_times = self.bot.get_times_in_range(reminder_times=reminder_times, war_end_time=war_end_time)
-                await create_reminders(bot=self.bot, times=acceptable_times, clan_tag=tag)
-
-            self.bot.scheduler.print_jobs()'''
-
             print('We have logged in')
 
     @commands.Cog.listener()
@@ -90,7 +55,7 @@ class DiscordEvents(commands.Cog):
                     "lbboardChannel": None,
                     "lbhour": None,
                 })
-            if not self.bot.user.public_flags.verified_bot and self.bot.user.id != 808566437199216691:
+            '''if not self.bot.user.public_flags.verified_bot and self.bot.user.id != 808566437199216691:
                 largest_server = sorted(self.bot.guilds, key=lambda x: x.member_count, reverse=True)[0]
                 for server in self.bot.guilds:
                     if server.id != largest_server.id:
@@ -104,7 +69,7 @@ class DiscordEvents(commands.Cog):
                 emojis_we_should_have = switcher | emoji_class_dict
                 for emoji_name, emoji_text in emojis_we_should_have.items():
                     if our_emoji.get(emoji_name):
-                        pass #download emoji
+                        pass #download emoji'''
 
 
     @commands.Cog.listener()
