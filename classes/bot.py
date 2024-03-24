@@ -35,8 +35,8 @@ from utility.login import coc_login
 
 
 class CustomClient(commands.AutoShardedBot):
-    def __init__(self, config: Config, command_prefix: str, help_command, intents: disnake.Intents, scheduler: AsyncIOScheduler, shard_count: int | None, chunk_guilds_at_startup: bool):
-        super().__init__(command_prefix=command_prefix, help_command=help_command, intents=intents, shard_count=shard_count, chunk_guilds_at_startup=chunk_guilds_at_startup)
+    def __init__(self, config: Config, command_prefix: str, help_command, intents: disnake.Intents, scheduler: AsyncIOScheduler, shard_count: int | None, chunk_guilds_at_startup: bool, **kwargs):
+        super().__init__(command_prefix=command_prefix, help_command=help_command, intents=intents, shard_count=shard_count, chunk_guilds_at_startup=chunk_guilds_at_startup, **kwargs)
 
         self._config = config
         self.scheduler = scheduler
