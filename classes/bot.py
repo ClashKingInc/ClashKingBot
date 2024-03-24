@@ -187,7 +187,11 @@ class CustomClient(commands.AutoShardedBot):
         elif not self.badge_guild:
             self.badge_guild = BADGE_GUILDS
 
-        solid_badge_guild = [self.get_guild(id) for id in self.badge_guild if self.get_guild(id) is not None]
+        solid_badge_guild = []
+        for guild in self.badge_guild:
+            guild = await self.getch_guild(guild)
+            if guild is not None:
+                solid_badge_guild.append(guild)
         emoji_list = [emoji for guild in solid_badge_guild for emoji in guild.emojis]
 
         new_url = url.replace(".png", "")
@@ -201,7 +205,7 @@ class CustomClient(commands.AutoShardedBot):
         guild_ids.rotate(1)
         self.badge_guild = list(guild_ids)
 
-        guild = self.get_guild(self.badge_guild[0])
+        guild = await self.getch_guild(self.badge_guild[0])
         while len(guild.emojis) >= 47:
             num_to_delete = random.randint(1, 5)
             for emoji in guild.emojis[:num_to_delete]:
@@ -213,6 +217,7 @@ class CustomClient(commands.AutoShardedBot):
 
         emoji = await guild.create_custom_emoji(name=new_url[-15:].replace("-", ""), image=img)
         return f"<:{emoji.name}:{emoji.id}>"
+
 
     def get_number_emoji(self, color: str, number: int) -> EmojiType:
         if not self.user.id == 808566437199216691 and not self.user.public_flags.verified_bot:
