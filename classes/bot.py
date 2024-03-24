@@ -150,11 +150,11 @@ class CustomClient(commands.AutoShardedBot):
         self.IMAGE_CACHE = ExpiringDict()
 
         self.OUR_GUILDS = set()
-        self.badge_guild = []
         self.EXTENSION_LIST = []
         self.STARTED_CHUNK = set()
 
         self.number_emoji_map = {}
+        self.clan_badge_emoji_map = {}
 
 
     def clean_string(self, text: str):
@@ -173,48 +173,18 @@ class CustomClient(commands.AutoShardedBot):
         return TimeStamp(unix_time)
 
     async def create_new_badge_emoji(self, url:str):
-        if not self.user.public_flags.verified_bot and self.user.id != 808566437199216691 and self.badge_guild == []:
-            guilds = await self.fetch_guilds().flatten()
-            have_created_guilds = disnake.utils.get(guilds, name="Badge Guild 1")
-            if have_created_guilds is None:
-                for x in range(1,4):
-                    guild = await self.create_guild(name=f"Badge Guild {x}", icon=self.user.avatar)
-                    self.badge_guild.append(guild.id)
-            else:
-                for x in range(1, 4):
-                    guild = disnake.utils.get(self.guilds, name=f"Badge Guild {x}")
-                    self.badge_guild.append(guild.id)
-        elif not self.badge_guild:
-            self.badge_guild = BADGE_GUILDS
-
-        solid_badge_guild = []
-        for guild in self.badge_guild:
-            guild = await self.getch_guild(guild)
-            if guild is not None:
-                solid_badge_guild.append(guild)
-        emoji_list = [emoji for guild in solid_badge_guild for emoji in guild.emojis]
+        if not self.user.public_flags.verified_bot and self.user.id != 808566437199216691:
+            return self.emoji.blank.emoji_string
 
         new_url = url.replace(".png", "")
-        #all_emojis = self.emojis
-        get_emoji = disnake.utils.get(emoji_list, name=new_url[-15:].replace("-", ""))
-        if get_emoji is not None:
-            return f"<:{get_emoji.name}:{get_emoji.id}>"
+
+        found_emoji = self.clan_badge_emoji_map.get(new_url[-15:].replace("-", ""))
+        if found_emoji is not None:
+            return self.clan_badge_emoji_map.get(new_url[-15:].replace("-", ""))
 
         img = urlopen(url).read()
-        guild_ids = collections.deque(self.badge_guild)
-        guild_ids.rotate(1)
-        self.badge_guild = list(guild_ids)
-
-        guild = await self.getch_guild(self.badge_guild[0])
-        while len(guild.emojis) >= 47:
-            num_to_delete = random.randint(1, 5)
-            for emoji in guild.emojis[:num_to_delete]:
-                await guild.delete_emoji(emoji=emoji)
-            guild_ids = collections.deque(self.badge_guild)
-            guild_ids.rotate(1)
-            self.badge_guild = list(guild_ids)
-            guild = self.get_guild(self.badge_guild[0])
-
+        BADGE_GUILDS.rotate(1)
+        guild = await self.getch_guild(BADGE_GUILDS[0])
         emoji = await guild.create_custom_emoji(name=new_url[-15:].replace("-", ""), image=img)
         return f"<:{emoji.name}:{emoji.id}>"
 

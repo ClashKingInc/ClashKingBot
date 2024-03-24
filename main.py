@@ -55,7 +55,8 @@ initial_extensions = [
     "discord.autocomplete",
     "discord.converters",
     #"background.features.refresh_boards",
-    "exceptions.handler"
+    "exceptions.handler",
+    "background.tasks.emoji_refresh"
 ]
 
 
