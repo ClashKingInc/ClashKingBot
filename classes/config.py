@@ -8,8 +8,8 @@ class Config:
     coc_email = getenv("COC_EMAIL")
     coc_password = getenv("COC_PASSWORD")
 
-    min_coc_email = 49
-    max_coc_email = 49
+    min_coc_email = 1
+    max_coc_email = 2
 
     static_mongodb = getenv("STATIC_MONGODB")
     stats_mongodb = getenv("STATS_MONGODB")
@@ -29,7 +29,7 @@ class Config:
     is_beta = (getenv("IS_BETA") == "TRUE")
     is_custom = (getenv("IS_CUSTOM") == "TRUE")
     is_main = (getenv("IS_MAIN") == "TRUE")
-    cluster_id = 0
+    cluster_id = getenv("CLUSTER_ID")
 
     portainer_user = getenv("PORTAINER_USER")
     portainer_pw = getenv("PORTAINER_PASSWORD")
