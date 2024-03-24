@@ -135,7 +135,7 @@ class CustomClient(commands.AutoShardedBot):
         self.autoboard_db: collection_class = self.db_client.usafam.autoboard_db
         self.player_search: collection_class = self.db_client.usafam.player_search
 
-        self.coc_client: coc.Client = asyncio.get_event_loop().run_until_complete(coc_login())
+        self.coc_client: coc.Client = asyncio.get_event_loop().run_until_complete(coc_login(bot=self))
 
         self.redis = redis.Redis(host=self._config.redis_ip, port=6379, db=0, password=self._config.redis_pw, retry_on_timeout=True, max_connections=250, retry_on_error=[redis.ConnectionError])
 
