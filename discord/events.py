@@ -8,7 +8,6 @@ from classes.bot import CustomClient
 from utility.war import create_reminders, send_or_update_war_end, send_or_update_war_start
 from utility.constants import USE_CODE_TEXT
 has_started = False
-has_readied = False
 from classes.tickets import OpenTicket, TicketPanel, LOG_TYPE
 from classes.DatabaseClient.familyclient import FamilyClient
 from assets.emojiDictionary import switcher, emoji_class_dict
@@ -30,17 +29,7 @@ class DiscordEvents(commands.Cog):
             await asyncio.sleep(15)
             if self.bot.user.public_flags.verified_bot:
                 for count, shard in self.bot.shards.items():
-                    await self.bot.change_presence(activity=disnake.CustomActivity(state="↻ Bot starting up", name="Custom Status"), shard_id=shard.id)
-            print('We have logged in')
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        global has_readied
-        if not has_readied:
-            if self.bot.user.public_flags.verified_bot:
-                for count, shard in self.bot.shards.items():
                     await self.bot.change_presence(activity=disnake.CustomActivity(state="Use Code ClashKing 👀", name="Custom Status"), shard_id=shard.id)
-            has_readied = True
             database_guilds = await self.bot.server_db.distinct("server")
             database_guilds: set = set(database_guilds)
             missing_guilds = [guild.id for guild in self.bot.guilds if guild.id not in database_guilds]
@@ -70,6 +59,8 @@ class DiscordEvents(commands.Cog):
                 for emoji_name, emoji_text in emojis_we_should_have.items():
                     if our_emoji.get(emoji_name):
                         pass #download emoji'''
+
+            print('We have logged in')
 
 
     @commands.Cog.listener()

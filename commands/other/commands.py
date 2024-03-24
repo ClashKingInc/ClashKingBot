@@ -85,10 +85,16 @@ class misc(commands.Cog, name="Other"):
         inservers = len(self.bot.guilds)
         chunked_guilds = len([g for g in self.bot.guilds if g.chunked])
         members = sum(guild.member_count - 1 for guild in self.bot.guilds)
+        if ctx.guild.shard_id in [1, 2]:
+            cluster_id = 1
+        elif ctx.guild.shard_id in [3, 4]:
+            cluster_id = 2
+        else:
+            cluster_id = 3
         embed = disnake.Embed(title=f'{self.bot.user.name} Stats',
                               description=f"<:bot:862911608140333086> Bot: {me}\n" +
                                           f"<:discord:840749695466864650> Discord Api Ping: {round(self.bot.latency * 1000, 2)} ms\n" +
-                                          f"<:server:863148364006031422> In {str(inservers)} servers\n" +
+                                          f"<:server:863148364006031422> In {str(inservers)} servers (Cluster {cluster_id})\n" +
                                           f"<:server:863148364006031422> {str(chunked_guilds)} servers loaded\n" +
                                           f"<:server:863148364006031422> Shard Count: {self.bot.shard_count}\n" +
                                           f"<:server:863148364006031422> You are on shard {ctx.guild.shard_id}\n" +
