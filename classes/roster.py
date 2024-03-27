@@ -399,6 +399,7 @@ class Roster():
                     except:
                         pass
 
+
     async def add_member(self, player: coc.Player, sub=False, group="No Group"):
         roster_members = self.roster_result.get("members")
         roster_member_tags = [member.get("tag") for member in roster_members]
@@ -574,34 +575,35 @@ class Roster():
         aliases.remove(self.roster_result.get("alias"))
         return aliases
 
+
     async def mode_components(self, mode: str, player_page: int, roster_page: int, other_roster_page: int):
 
-        dropdown = []
-        other_rosters = await self.other_rosters()
-        if other_rosters:
-            length = 24
-            if player_page >= 1:
-                length = length - 1
-            players = self.players[(length * player_page):(length * player_page) + length]
-            if player_page >= 1:
-                player_options.append(disnake.SelectOption(label=f"Previous 25 Players", emoji=self.bot.emoji.back.partial_emoji, value=f"players_{player_page - 1}"))
-            for count, player in enumerate(players):
-                player_options.append(disnake.SelectOption(label=f"{player.get('name')}",
-                                                           emoji=self.bot.fetch_emoji(name=player.get('townhall')).partial_emoji,
-                                                           value=f"edit_{player.get('tag')}"))
-            if len(players) == length and (len(self.players) > (length * player_page) + length):
-                player_options.append(disnake.SelectOption(label=f"Next 25 Players", emoji=self.bot.emoji.forward.partial_emoji, value=f"players_{player_page + 1}"))
+        dropdowns = []
 
-        roster_options = []
-        for roster in other_rosters:
-            roster_options.append(disnake.SelectOption(label=f"{roster}", emoji=self.bot.emoji.troop.partial_emoji, value=f"roster_{roster}"))
-        if roster_options:
+        #both modes let u select which roster you are editing and which player(s) you are editing
+        other_rosters = await self.other_rosters()
+
+        edit_roster_options = []
+        length = 24
+        if roster_page >= 1:
+            length = length - 1
+        edit_rosters = other_rosters[(length * roster_page):(length * roster_page) + length]
+        if roster_page >= 1:
+            edit_roster_options.append(disnake.SelectOption(label=f"Previous 25 Rosters", emoji=self.bot.emoji.back.partial_emoji, value=f"editrosters_{roster_page - 1}"))
+        for count, roster in enumerate(edit_rosters):
+            edit_roster_options.append(disnake.SelectOption(label=f"{roster}", emoji=self.bot.emoji.troop.partial_emoji, value=f"roster_{roster}"))
+        if len(edit_rosters) == length and (len(other_rosters) > (length * roster_page) + length):
+            edit_roster_options.append(disnake.SelectOption(label=f"Next 25 Rosters", emoji=self.bot.emoji.forward.partial_emoji, value=f"editrosters_{roster_page + 1}"))
+
+        if edit_roster_options:
             roster_select = disnake.ui.Select(
-                options=roster_options,
+                options=edit_roster_options,
                 placeholder="Roster to Edit",  # the placeholder text to show when no options have been chosen
                 min_values=1,  # the minimum number of options a user must select
                 max_values=1,  # the maximum number of options a user can select
             )
+            dropdowns.append(roster_select)
+
         if mode == "move":
             button_text = "Remove Player Mode"
             mode_text = "mode_remove"
@@ -611,20 +613,13 @@ class Roster():
             mode_text = "mode_move"
             color = disnake.ButtonStyle.green
 
-        mode_buttons = [
-            disnake.ui.Button(label=button_text, emoji=self.bot.emoji.gear.partial_emoji,
-                              style=color,
-                              custom_id=mode_text)
-        ]
-        buttons = disnake.ui.ActionRow()
-        for button in mode_buttons:
-            buttons.append_item(button)
+        buttons = disnake.ui.ActionRow(disnake.ui.Button(label=button_text, emoji=self.bot.emoji.gear.partial_emoji,style=color,custom_id=mode_text))
 
         player_options = []
         length = 24
         if player_page >= 1:
             length = length - 1
-        players = self.players[(length*player_page):(length*player_page) + length]
+        players = self.players[(length * player_page):(length * player_page) + length]
         if player_page >= 1:
             player_options.append(disnake.SelectOption(label=f"Previous 25 Players", emoji=self.bot.emoji.back.partial_emoji, value=f"players_{player_page - 1}"))
         for count, player in enumerate(players):
@@ -634,37 +629,43 @@ class Roster():
         if len(players) == length and (len(self.players) > (length * player_page) + length):
             player_options.append(disnake.SelectOption(label=f"Next 25 Players", emoji=self.bot.emoji.forward.partial_emoji, value=f"players_{player_page + 1}"))
 
-        player_select = disnake.ui.Select(
-            options=player_options,
-            placeholder=f"Select Player(s) to {mode}",  # the placeholder text to show when no options have been chosen
-            min_values=1,  # the minimum number of options a user must select
-            max_values=len(players),  # the maximum number of options a user can select
-        )
-
-        if len(roster_options) > 0:
-            dropdown = [disnake.ui.ActionRow(roster_select), disnake.ui.ActionRow(player_select)]
-        else:
-            dropdown = [disnake.ui.ActionRow(player_select)]
+        if player_options:
+            player_select = disnake.ui.Select(
+                options=player_options,
+                placeholder=f"Select Player(s) to {mode}",  # the placeholder text to show when no options have been chosen
+                min_values=1,  # the minimum number of options a user must select
+                max_values=len(players),  # the maximum number of options a user can select
+            )
+            dropdowns.append(player_select)
 
         if mode == "move":
-            roster_options = []
-            other_rosters += [self.roster_result.get("alias")]
-            for roster in other_rosters:
-                roster_options.append(disnake.SelectOption(label=f"{roster}", emoji=self.bot.emoji.troop.partial_emoji,
-                                                           value=f"rostermove_{roster}"))
+            move_roster_options = []
 
-            roster_select = disnake.ui.Select(
-                options=roster_options,
-                placeholder="Select Roster To Move To",  # the placeholder text to show when no options have been chosen
-                min_values=1,  # the minimum number of options a user must select
-                max_values=1,  # the maximum number of options a user can select
-            )
-            dropdown.append(disnake.ui.ActionRow(roster_select))
+            other_rosters += [self.roster_result.get("alias")]
+            length = 24
+            if other_roster_page >= 1:
+                length = length - 1
+            move_rosters = other_rosters[(length * other_roster_page):(length * other_roster_page) + length]
+            if other_roster_page >= 1:
+                move_roster_options.append(disnake.SelectOption(label=f"Previous 25 Rosters", emoji=self.bot.emoji.back.partial_emoji, value=f"moverosters_{other_roster_page - 1}"))
+            for count, roster in enumerate(move_rosters):
+                move_roster_options.append(disnake.SelectOption(label=f"{roster}", emoji=self.bot.emoji.troop.partial_emoji, value=f"rostermove_{roster}"))
+            if len(move_rosters) == length and (len(other_rosters) > (length * other_roster_page) + length):
+                move_roster_options.append(disnake.SelectOption(label=f"Next 25 Rosters", emoji=self.bot.emoji.forward.partial_emoji, value=f"moverosters_{other_roster_page + 1}"))
+
+            if move_roster_options:
+                move_roster_select = disnake.ui.Select(
+                    options=move_roster_options,
+                    placeholder="Select Roster To Move To",  # the placeholder text to show when no options have been chosen
+                    min_values=1,  # the minimum number of options a user must select
+                    max_values=1,  # the maximum number of options a user can select
+                )
+                dropdowns.append(move_roster_select)
+
 
             grouping_options = []
             for group in await self.grouping:
-                grouping_options.append(disnake.SelectOption(label=f"{group}", emoji=self.bot.emoji.pin.partial_emoji,
-                                                           value=f"rostergroup_{group}"))
+                grouping_options.append(disnake.SelectOption(label=f"{group}", emoji=self.bot.emoji.pin.partial_emoji, value=f"rostergroup_{group}"))
 
             group_select = disnake.ui.Select(
                 options=grouping_options,
@@ -672,12 +673,11 @@ class Roster():
                 min_values=1,  # the minimum number of options a user must select
                 max_values=1,  # the maximum number of options a user can select
             )
-            dropdown.append(disnake.ui.ActionRow(group_select))
+            dropdowns.append(disnake.ui.ActionRow(group_select))
 
-        dropdown.append(buttons)
-        if not self.players:
-            dropdown = [dropdown[0], dropdown[-1]]
-        return dropdown
+        dropdowns.append(buttons)
+        return dropdowns
+
 
     async def export(self):
         roster_id = self.roster_result.get("roster_id")

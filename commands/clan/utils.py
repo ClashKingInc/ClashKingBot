@@ -726,7 +726,7 @@ async def clan_activity(bot: CustomClient, clan: coc.Clan, season: str, townhall
                                  name=player.name,
                                  townhall=player.town_hall,
                                  activity=clan_stats.get(tag, {}).get("activity", 0),
-                                 lastonline=player.last_online)
+                                 lastonline=player.last_online if player.last_online else 0)
                           )
 
     if townhall is not None:
@@ -746,7 +746,10 @@ async def clan_activity(bot: CustomClient, clan: coc.Clan, season: str, townhall
     for count, member in enumerate(hold_items, 1):
         if count <= limit:
             if show_last_online:
-                time_text = smart_convert_seconds(seconds=(now-member.player.last_online))
+                if member.player.last_online is not None:
+                    time_text = smart_convert_seconds(seconds=(now-member.player.last_online))
+                else:
+                    time_text = "N/A"
                 text += f"`{count:2} {member.activity:3} {time_text:7} {member.player.clear_name[:13]:13}`[{create_superscript(member.player.town_hall)}]({member.player.share_link})\n"
             else:
                 text += f"`{count:2} {member.activity:4} {member.player.clear_name[:13]:13}`[{create_superscript(member.player.town_hall)}]({member.player.share_link})\n"

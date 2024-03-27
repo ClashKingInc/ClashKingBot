@@ -105,7 +105,9 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="add-player", description="Add a player to a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_add(self, ctx: disnake.ApplicationCommandInteraction, roster: str, players: List[coc.Player] = commands.Param(converter=player_convertor), sub = commands.Param(name="sub", default=False, choices=["Yes"])):
+    async def roster_add(self, ctx: disnake.ApplicationCommandInteraction,
+                         roster: str, players: List[coc.Player] = commands.Param(converter=player_convertor),
+                         sub = commands.Param(name="sub", default=False, choices=["Yes"])):
         await ctx.response.defer(ephemeral=True)
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -126,14 +128,14 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         await ctx.send(embed=embed, ephemeral=True)
 
 
-    @roster.sub_command(name="remove-player", description="Remove a player from a roster")
+    @roster.sub_command(name="move-player", description="(re)Move a player from one roster to/from another")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_remove(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+    async def roster_move(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
         await ctx.response.defer()
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
-        embed = await _roster.embed(move_text="Mode: remove")
-        components = await _roster.mode_components(mode="remove", player_page=0)
+        embed = await _roster.embed(move_text="Mode: move")
+        components = await _roster.mode_components(mode="move", player_page=0, roster_page=0, other_roster_page=0)
         await ctx.edit_original_message(embed=embed, components=components)
         msg = await ctx.original_message()
 
@@ -143,37 +145,40 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         _new_roster = Roster(bot=self.bot)
         await _new_roster.find_roster(guild=ctx.guild, alias=roster)
         new_roster = roster
-        mode = "remove"
+        mode = "move"
+        group = "No Group"
+
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
-                                                                          timeout=600)
-            except:
-                await msg.edit(components=[])
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
+            except Exception:
                 break
 
             if res.author.id != ctx.author.id:
                 await res.send(content="Must run the command to interact with components.", ephemeral=True)
                 continue
             await res.response.defer()
+
+            PLAYER_PAGE = 0
+            EDIT_ROSTER_PAGE = 0
+            MOVE_ROSTER_PAGE = 0
             try:
                 if "button" in str(res.data.component_type):
                     button_value = res.data.custom_id
                     button_value = button_value.split("_")[1]
                     mode = button_value
                     if button_value == "move":
-                        embed = await _roster.embed(
-                            move_text=f"Mode: {button_value} | Moving to {new_roster}\nGroup Mode: {group}")
+                        embed = await _roster.embed(move_text=f"Mode: {button_value} | Moving to {new_roster}\nGroup Mode: {group}")
                     else:
                         embed = await _roster.embed(move_text=f"Mode: {button_value}")
-                    components = await _roster.mode_components(mode=button_value, player_page=0)
+                    components = await _roster.mode_components(mode=button_value, player_page=0, roster_page=0, other_roster_page=0)
                     await res.edit_original_message(embed=embed, components=components)
                 else:
                     if "players_1" in res.values or "players_2" in res.values or "players_0" in res.values:
                         for value in res.values:
                             if "players" in value:
-                                page = value.split("_")[1]
-                                components = await _roster.mode_components(mode=mode, player_page=int(page))
+                                PLAYER_PAGE = int(value.split("_")[1])
+                                components = await _roster.mode_components(mode=mode, player_page=PLAYER_PAGE, roster_page=EDIT_ROSTER_PAGE, other_roster_page=MOVE_ROSTER_PAGE)
                                 await res.edit_original_message(embed=embed, components=components)
                                 break
                     elif any("edit_" in value for value in res.values):
@@ -193,12 +198,13 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                         await _new_roster.find_roster(guild=ctx.guild, alias=_new_roster.roster_result.get("alias"))
                         await _roster.find_roster(guild=ctx.guild, alias=_roster.roster_result.get("alias"))
                         if mode == "move":
-                            embed = await _roster.embed(
-                                move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
+                            embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
                         else:
                             embed = await _roster.embed(move_text=f"Mode: {mode}")
-                        components = await _roster.mode_components(mode=mode, player_page=0)
+                        PLAYER_PAGE = 0
+                        components = await _roster.mode_components(mode=mode, player_page=PLAYER_PAGE, roster_page=EDIT_ROSTER_PAGE, other_roster_page=MOVE_ROSTER_PAGE)
                         await res.edit_original_message(embed=embed, components=components)
+
                     elif "roster_" in res.values[0]:
                         alias = res.values[0].split("_")[1]
                         await _roster.find_roster(guild=ctx.guild, alias=alias)
@@ -207,137 +213,38 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                                 move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
                         else:
                             embed = await _roster.embed(move_text=f"Mode: {mode}")
-                        components = await _roster.mode_components(mode=mode, player_page=0)
-                        await res.edit_original_message(embed=embed, components=components)
-                    elif "rostermove_" in res.values[0]:
-                        alias = res.values[0].split("_")[1]
-                        new_roster = alias
-                        await _new_roster.find_roster(guild=ctx.guild, alias=new_roster)
-                        embed = await _roster.embed(
-                            move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
-                        await res.edit_original_message(embed=embed)
-                    elif "rostergroup_" in res.values[0]:
-                        group = res.values[0].split("_")[-1]
-                        embed = await _roster.embed(
-                            move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
-                        components = await _roster.mode_components(mode=mode, player_page=0)
+                        PLAYER_PAGE = 0
+                        EDIT_ROSTER_PAGE = 0
+                        MOVE_ROSTER_PAGE = 0
+                        components = await _roster.mode_components(mode=mode, player_page=PLAYER_PAGE, roster_page=EDIT_ROSTER_PAGE, other_roster_page=MOVE_ROSTER_PAGE)
                         await res.edit_original_message(embed=embed, components=components)
 
-            except Exception as error:
-                if isinstance(error, RosterAliasAlreadyExists):
-                    embed = disnake.Embed(description=f"Roster with this alias already exists.",
-                                          color=disnake.Color.red())
-                    await res.send(embed=embed, ephemeral=True)
-
-                if isinstance(error, RosterDoesNotExist):
-                    embed = disnake.Embed(description=f"Roster with this alias does not exist. Use `/roster create`",
-                                          color=disnake.Color.red())
-                    await res.send(embed=embed, ephemeral=True)
-
-                if isinstance(error, PlayerAlreadyInRoster):
-                    embed = disnake.Embed(description=f"Player has already been added to this roster.",
-                                          color=disnake.Color.red())
-                    await res.send(embed=embed, ephemeral=True)
-
-                if isinstance(error, PlayerNotInRoster):
-                    embed = disnake.Embed(description=f"Player not found in this roster.",
-                                          color=disnake.Color.red())
-                    await res.send(embed=embed, ephemeral=True)
-
-
-    @roster.sub_command(name="move-player", description="Move a player from one roster to another")
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_move(self, ctx: disnake.ApplicationCommandInteraction, roster: str, new_roster: str = commands.Param(name="new_roster")):
-
-        await ctx.response.defer()
-        _roster = Roster(bot=self.bot)
-        await _roster.find_roster(guild=ctx.guild, alias=roster)
-        embed = await _roster.embed(move_text=f"Mode: Move | Moving to {new_roster}\nGroup Mode: No Group")
-        components = await _roster.mode_components(mode="move", player_page=0)
-        await ctx.edit_original_message(embed=embed, components=components)
-        msg = await ctx.original_message()
-
-        def check(res: disnake.MessageInteraction):
-            return res.message.id == msg.id
-
-        _new_roster = Roster(bot=self.bot)
-        await _new_roster.find_roster(guild=ctx.guild, alias=new_roster)
-        mode = "move"
-        group = "No Group"
-        while True:
-            try:
-                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
-            except:
-                await msg.edit(components=[])
-                break
-
-            if res.author.id != ctx.author.id:
-                await res.send(content="Must run the command to interact with components.", ephemeral=True)
-                continue
-            await res.response.defer()
-            try:
-                if "button" in str(res.data.component_type):
-                    button_value = res.data.custom_id
-                    button_value = button_value.split("_")[1]
-                    mode = button_value
-                    if button_value == "move":
-                        embed = await _roster.embed(move_text=f"Mode: {button_value} | Moving to {new_roster}\nGroup Mode: {group}")
-                    else:
-                        embed = await _roster.embed(move_text=f"Mode: {button_value}")
-                    components = await _roster.mode_components(mode=button_value, player_page=0)
-                    await res.edit_original_message(embed=embed, components=components)
-                else:
-                    if "players_1" in res.values or "players_2" in res.values or "players_0" in res.values:
-                        for value in res.values:
-                            if "players" in value:
-                                page = value.split("_")[1]
-                                components = await _roster.mode_components(mode=mode, player_page=int(page))
-                                await res.edit_original_message(embed=embed, components=components)
-                                break
-                    elif any("edit_" in value for value in res.values):
-                        players = await self.bot.get_players(tags = [value.split("_")[1] for value in res.values])
-                        for player in players:
-                            if isinstance(player, coc.errors.NotFound):
-                                continue
-                            if mode == "move":
-                                await _roster.move_member(player=player, new_roster=_new_roster, group=group)
-                            else:
-                                await _roster.remove_member(player=player)
-                        #embed = disnake.Embed(
-                            #description=f"{', '.join([player.name for player in players if not isinstance(player, coc.errors.NotFound)])} moved from **{_roster.roster_result.get('alias')}** to **{_new_roster.roster_result.get('alias')}** roster",
-                            #color=disnake.Color.green())
-                        #embed.set_thumbnail(url=_new_roster.roster_result.get("clan_badge"))
-                        #await res.followup.send(embed=embed, ephemeral=True)
-                        await _new_roster.find_roster(guild=ctx.guild, alias=_new_roster.roster_result.get("alias"))
-                        await _roster.find_roster(guild=ctx.guild, alias=_roster.roster_result.get("alias"))
-                        if mode == "move":
-                            embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
-                        else:
-                            embed = await _roster.embed(move_text=f"Mode: {mode}")
-                        components = await _roster.mode_components(mode=mode, player_page=0)
+                    elif "editrosters_" in res.values[0]:
+                        EDIT_ROSTER_PAGE = int(res.values[0].split("_")[1])
+                        components = await _roster.mode_components(mode=mode, player_page=PLAYER_PAGE, roster_page=EDIT_ROSTER_PAGE, other_roster_page=MOVE_ROSTER_PAGE)
                         await res.edit_original_message(embed=embed, components=components)
-                    elif "roster_" in res.values[0]:
-                        alias = res.values[0].split("_")[1]
-                        await _roster.find_roster(guild=ctx.guild, alias=alias)
-                        if mode == "move":
-                            embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
-                        else:
-                            embed = await _roster.embed(move_text=f"Mode: {mode}")
-                        components = await _roster.mode_components(mode=mode, player_page=0)
+
+                    elif "moverosters_" in res.values[0]:
+                        MOVE_ROSTER_PAGE = int(res.values[0].split("_")[1])
+                        components = await _roster.mode_components(mode=mode, player_page=PLAYER_PAGE, roster_page=EDIT_ROSTER_PAGE, other_roster_page=MOVE_ROSTER_PAGE)
                         await res.edit_original_message(embed=embed, components=components)
+
                     elif "rostermove_" in res.values[0]:
                         alias = res.values[0].split("_")[1]
                         new_roster = alias
                         await _new_roster.find_roster(guild=ctx.guild, alias=new_roster)
                         embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
-                        await res.edit_original_message(embed=embed)
-                    elif "rostergroup_" in res.values[0]:
-                        group = res.values[0].split("_")[-1]
-                        embed = await _roster.embed(
-                            move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
-                        components = await _roster.mode_components(mode=mode, player_page=0)
+                        PLAYER_PAGE = 0
+                        EDIT_ROSTER_PAGE = 0
+                        MOVE_ROSTER_PAGE = 0
+                        components = await _roster.mode_components(mode=mode, player_page=PLAYER_PAGE, roster_page=EDIT_ROSTER_PAGE, other_roster_page=MOVE_ROSTER_PAGE)
                         await res.edit_original_message(embed=embed, components=components)
 
+                    elif "rostergroup_" in res.values[0]:
+                        group = res.values[0].split("_")[-1]
+                        embed = await _roster.embed(move_text=f"Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}")
+                        components = await _roster.mode_components(mode=mode, player_page=PLAYER_PAGE, roster_page=EDIT_ROSTER_PAGE, other_roster_page=MOVE_ROSTER_PAGE)
+                        await res.edit_original_message(embed=embed, components=components)
 
             except Exception as error:
                 if isinstance(error, RosterAliasAlreadyExists):
@@ -359,6 +266,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                     embed = disnake.Embed(description=f"Player not found in this roster.",
                                           color=disnake.Color.red())
                     await res.send(embed=embed, ephemeral=True)
+
 
 
     @roster.sub_command(name="groups", description="create/remove a group players can be placed in")
@@ -992,9 +900,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster_refresh.autocomplete("roster_")
     @roster_missing.autocomplete("roster")
     @roster_add.autocomplete("roster")
-    @roster_remove.autocomplete("roster")
     @roster_move.autocomplete("roster")
-    @roster_move.autocomplete("new_roster")
     @roster_restrict.autocomplete("roster")
     @roster_edit_layout.autocomplete("roster")
     @roster_change_link.autocomplete("roster")
