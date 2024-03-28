@@ -20,6 +20,11 @@ class misc(commands.Cog, name="Other"):
     @commands.slash_command(name="role-users", description="Get a list of users in a role")
     async def roleusers(self, ctx: disnake.ApplicationCommandInteraction, role: disnake.Role):
         await ctx.response.defer()
+        if not ctx.guild.chunked:
+            if ctx.guild.id not in self.bot.STARTED_CHUNK:
+                await ctx.guild.chunk(cache=True)
+            else:
+                self.bot.STARTED_CHUNK.add(ctx.guild.id)
         embeds = []
         text = ""
         num = 0
