@@ -36,11 +36,8 @@ class DiscordEvents(commands.Cog):
 
         global has_started
         if not has_started:
-            await asyncio.sleep(5)
+            await asyncio.sleep(60)
             has_started = True
-            if self.bot.user.public_flags.verified_bot:
-                for count, shard in self.bot.shards.items():
-                    await self.bot.change_presence(activity=disnake.CustomActivity(state="Use Code ClashKing 👀", name="Custom Status"), shard_id=shard.id)
             database_guilds = await self.bot.server_db.distinct("server")
             database_guilds: set = set(database_guilds)
             missing_guilds = [guild.id for guild in self.bot.guilds if guild.id not in database_guilds]
@@ -88,11 +85,15 @@ class DiscordEvents(commands.Cog):
     async def on_ready(self):
         global has_started
         if not has_started:
-            await asyncio.sleep(5)
+            await asyncio.sleep(15)
             has_started = True
         else:
             return
-        await asyncio.sleep(5)
+
+        if self.bot.user.public_flags.verified_bot:
+            for count, shard in self.bot.shards.items():
+                await self.bot.change_presence(activity=disnake.CustomActivity(state="Use Code ClashKing 👀", name="Custom Status"), shard_id=shard.id)
+
         logger.info("ready")
         #will remove later, if is a custom bot, remove ourselves from every server but one
         if not self.bot.user.public_flags.verified_bot and self.bot.user.id != 808566437199216691:
@@ -110,15 +111,14 @@ class DiscordEvents(commands.Cog):
                     SharedEmojis.all_emojis[f"{number}_"] = emoji_id
 
             logger.info(f"{len(SharedEmojis.all_emojis)} emojis that we have")
+            our_emoji_servers = []
             if not self.bot.user.public_flags.verified_bot:
-                our_emoji_servers = [server for server in self.bot.guilds if server.owner_id == self.bot.user.id and server.name != "ckcustombotbadges"]
-                if len(our_emoji_servers) < 8:
-                    for x in range(0, (8 - len(our_emoji_servers))):
-                        if x != 8:
-                            guild = await self.bot.create_guild(name=f"ckemojiserver{x}")
-                            our_emoji_servers.append(guild)
-                        else:
-                            guild = await self.bot.create_guild(name="ckcustombotbadges")
+                for x in range(0, 9):
+                    if x != 8:
+                        guild = await self.bot.create_guild(name=f"ckemojiserver{x}")
+                        our_emoji_servers.append(guild)
+                    else:
+                        guild = await self.bot.create_guild(name="ckcustombotbadges")
 
                 logger.info(", ".join([g.name for g in self.bot.guilds]))
                 logger.info(", ".join([str(len(g.emojis)) for g in self.bot.guilds]))
