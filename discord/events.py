@@ -109,7 +109,7 @@ class DiscordEvents(commands.Cog):
                 if number <= 50:
                     SharedEmojis.all_emojis[f"{number}_"] = emoji_id
 
-            logger.info(len(SharedEmojis.all_emojis), "emojis that we have")
+            logger.info(f"{len(SharedEmojis.all_emojis)} emojis that we have")
             if not self.bot.user.public_flags.verified_bot:
                 our_emoji_servers = [server for server in self.bot.guilds if server.owner_id == self.bot.user.id and server.name != "ckcustombotbadges"]
                 if len(our_emoji_servers) < 8:
@@ -122,9 +122,9 @@ class DiscordEvents(commands.Cog):
 
                 logger.info(", ".join([g.name for g in self.bot.guilds]))
                 logger.info(", ".join([str(len(g.emojis)) for g in self.bot.guilds]))
-                logger.info(sum([(len(g.emojis)) for g in self.bot.guilds]) - 254, "emojis installed")
+                logger.info(f"{sum([(len(g.emojis)) for g in self.bot.guilds]) - 254} emojis installed")
 
-                logger.info(len(our_emoji_servers), "servers")
+                logger.info(f"{len(our_emoji_servers)} servers")
                 our_emoji_servers = deque(our_emoji_servers)
 
                 id_to_lookup_name_map = {}
@@ -146,7 +146,7 @@ class DiscordEvents(commands.Cog):
                             continue
                         all_our_emojis[lookup_name] = f"<:{emoji.name}:{emoji.id}>"
 
-                logger.info(deleted, "emojis deleted")
+                logger.info(f"{deleted} emojis deleted")
 
                 to_create = 0
                 for emoji_name, emoji_string in SharedEmojis.all_emojis.items():
