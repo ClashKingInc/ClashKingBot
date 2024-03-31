@@ -1,20 +1,21 @@
 import asyncio
 import datetime
-import random
-import io
 import aiohttp
 import disnake
 
+from loguru import logger
 from disnake.ext import commands
 from classes.bot import CustomClient
-from utility.war import create_reminders, send_or_update_war_end, send_or_update_war_start
 from utility.constants import USE_CODE_TEXT
-has_started = False
+
 from classes.tickets import OpenTicket, TicketPanel, LOG_TYPE
 from classes.DatabaseClient.familyclient import FamilyClient
 from assets.emojis import SharedEmojis
 from collections import deque
 from commands.reminders.send_reminders import clan_games_reminder, clan_capital_reminder, inactivity_reminder, roster_reminder
+
+has_started = False
+has_readied = False
 
 class DiscordEvents(commands.Cog):
 
@@ -80,13 +81,19 @@ class DiscordEvents(commands.Cog):
             self.bot.scheduler.add_job(inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
             self.bot.scheduler.add_job(roster_reminder, trigger='interval', args=[self.bot], minutes=2, misfire_grace_time=None)
 
-            print('We have connected')
+            logger.info('We have connected')
 
 
     @commands.Cog.listener()
     async def on_ready(self):
+        global has_started
+        if not has_started:
+            await asyncio.sleep(5)
+            has_started = True
+        else:
+            return
         await asyncio.sleep(5)
-        print("ready")
+        logger.info("ready")
         #will remove later, if is a custom bot, remove ourselves from every server but one
         if not self.bot.user.public_flags.verified_bot and self.bot.user.id != 808566437199216691:
             if self.bot.guilds:
@@ -102,7 +109,7 @@ class DiscordEvents(commands.Cog):
                 if number <= 50:
                     SharedEmojis.all_emojis[f"{number}_"] = emoji_id
 
-            print(len(SharedEmojis.all_emojis), "emojis that we have")
+            logger.info(len(SharedEmojis.all_emojis), "emojis that we have")
             if not self.bot.user.public_flags.verified_bot:
                 our_emoji_servers = [server for server in self.bot.guilds if server.owner_id == self.bot.user.id and server.name != "ckcustombotbadges"]
                 if len(our_emoji_servers) < 8:
@@ -113,11 +120,11 @@ class DiscordEvents(commands.Cog):
                         else:
                             guild = await self.bot.create_guild(name="ckcustombotbadges")
 
-                print(", ".join([g.name for g in self.bot.guilds]))
-                print(", ".join([str(len(g.emojis)) for g in self.bot.guilds]))
-                print(sum([(len(g.emojis)) for g in self.bot.guilds]) - 254, "emojis installed")
+                logger.info(", ".join([g.name for g in self.bot.guilds]))
+                logger.info(", ".join([str(len(g.emojis)) for g in self.bot.guilds]))
+                logger.info(sum([(len(g.emojis)) for g in self.bot.guilds]) - 254, "emojis installed")
 
-                print(len(our_emoji_servers), "servers")
+                logger.info(len(our_emoji_servers), "servers")
                 our_emoji_servers = deque(our_emoji_servers)
 
                 id_to_lookup_name_map = {}
@@ -139,14 +146,14 @@ class DiscordEvents(commands.Cog):
                             continue
                         all_our_emojis[lookup_name] = f"<:{emoji.name}:{emoji.id}>"
 
-                print(deleted, "emojis deleted")
+                logger.info(deleted, "emojis deleted")
 
                 to_create = 0
                 for emoji_name, emoji_string in SharedEmojis.all_emojis.items():
                     if emoji_name not in all_our_emojis:
                         to_create += 1
 
-                print(f"{to_create} emojis to create")
+                logger.info(f"{to_create} emojis to create")
                 for emoji_name, emoji_string in SharedEmojis.all_emojis.items():
                     if emoji_name not in all_our_emojis:
                         server = our_emoji_servers[0]
@@ -165,14 +172,14 @@ class DiscordEvents(commands.Cog):
                         await session.close()
                         emoji = await server.create_custom_emoji(name=str(main_bot_emoji.id), image=bytes_image)
                         lookup_name = id_to_lookup_name_map.get(emoji.name)
-                        print(f"created {lookup_name}")
+                        logger.info(f"created {lookup_name}")
                         all_our_emojis[lookup_name] = f"<:{emoji.name}:{emoji.id}>"
                         our_emoji_servers.rotate(1)
 
                 for emoji_name, emoji_string in all_our_emojis.items():
                     SharedEmojis.all_emojis[emoji_name] = emoji_string
 
-                print("done with emoji creation")
+                logger.info("done with emoji creation")
 
 
     @commands.Cog.listener()
