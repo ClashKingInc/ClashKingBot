@@ -2,7 +2,7 @@ import os
 
 import disnake
 from disnake.ext import commands
-from assets.emojiDictionary import emojiDictionary
+from assets.emojis import SharedEmojis
 from typing import Callable, Union
 from exceptions.CustomExceptions import *
 from typing import List
@@ -52,7 +52,7 @@ def check_commands():
 
 def partial_emoji_gen(bot, emoji_string, animated=False):
     emoji = ''.join(filter(str.isdigit, emoji_string))
-    emoji = bot.get_emoji(int(emoji))
+    emoji = bot.emoji_holder.all_emojis.get(int(emoji))
     emoji = disnake.PartialEmoji(
         name=emoji.name, id=emoji.id, animated=animated)
     return emoji
@@ -63,9 +63,7 @@ def embed_parse(string):
 
 
 def fetch_emoji(emoji_name):
-    emoji = emojiDictionary(emoji_name)
-    if emoji is None:
-        emoji = legend_emojis(emoji_name)
+    emoji = SharedEmojis.all_emojis.get(emoji_name)
     return emoji
 
 

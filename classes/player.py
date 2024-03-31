@@ -2,7 +2,7 @@
 import coc
 import pytz
 from coc import utils
-from assets.emojiDictionary import emojiDictionary
+from assets.emojis import SharedEmojis
 from assets.thPicDictionary import thDictionary
 from datetime import datetime, timedelta
 from classes.emoji import EmojiType
@@ -1039,22 +1039,22 @@ class NumChoice():
 class MyCustomTroops(coc.Troop):
     @property
     def emoji(self):
-        return EmojiType(emojiDictionary(self.name))
+        return EmojiType(SharedEmojis.all_emojis.get(self.name))
 
 class MyCustomHeros(coc.Hero):
     @property
     def emoji(self):
-        return EmojiType(emojiDictionary(self.name))
+        return EmojiType(SharedEmojis.all_emojis.get(self.name))
 
 class MyCustomSpells(coc.Spell):
     @property
     def emoji(self):
-        return EmojiType(emojiDictionary(self.name))
+        return EmojiType(SharedEmojis.all_emojis.get(self.name))
 
 class MyCustomPets(coc.Pet):
     @property
     def emoji(self):
-        return EmojiType(emojiDictionary(self.name))
+        return EmojiType(SharedEmojis.all_emojis.get(self.name))
 
 class CustomTownHall():
     def __init__(self, th_level):
@@ -1062,7 +1062,7 @@ class CustomTownHall():
         self.str_level = str(th_level)
     @property
     def emoji(self):
-        return EmojiType(emojiDictionary(self.level))
+        return EmojiType(SharedEmojis.all_emojis.get(self.level))
 
     @property
     def image_url(self):

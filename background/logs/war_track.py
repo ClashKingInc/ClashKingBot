@@ -3,10 +3,9 @@ import asyncio
 import coc
 import disnake
 import pytz
-from ImageGen import WarEndResult as war_gen
+from utility.imagegen import WarEndResult as war_gen
 from disnake.ext import commands
-from assets.emojiDictionary import emojiDictionary
-from typing import TYPE_CHECKING
+from assets.emojis import emoji_holder
 from classes.bot import CustomClient
 from datetime import datetime
 

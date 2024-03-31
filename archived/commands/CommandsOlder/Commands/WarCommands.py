@@ -76,33 +76,33 @@ class War(commands.Cog):
 
         disc = "<:map:944913638500761600>"
         emoji = ''.join(filter(str.isdigit, disc))
-        emoji = self.bot.get_emoji(int(emoji))
+        emoji = self.bot.emoji_holder.all_emojis.get(int(emoji))
         emoji = disnake.PartialEmoji(name=emoji.name, id=emoji.id)
 
 
         troop = "<:troop:861797310224400434>"
         troop = ''.join(filter(str.isdigit, troop))
-        troop = self.bot.get_emoji(int(troop))
+        troop = self.bot.emoji_holder.all_emojis.get(int(troop))
         troop = disnake.PartialEmoji(name=troop.name, id=troop.id)
 
         swords = "<a:swords:944894455633297418>"
         swords = ''.join(filter(str.isdigit, swords))
-        swords = self.bot.get_emoji(int(swords))
+        swords = self.bot.emoji_holder.all_emojis.get(int(swords))
         swords = disnake.PartialEmoji(name=swords.name, id=swords.id, animated=True)
 
         shield = "<:clash:877681427129458739>"
         shield = ''.join(filter(str.isdigit, shield))
-        shield = self.bot.get_emoji(int(shield))
+        shield = self.bot.emoji_holder.all_emojis.get(int(shield))
         shield = disnake.PartialEmoji(name=shield.name, id=shield.id)
 
         magnify = "<:magnify:944914253171810384>"
         magnify = ''.join(filter(str.isdigit, magnify))
-        magnify = self.bot.get_emoji(int(magnify))
+        magnify = self.bot.emoji_holder.all_emojis.get(int(magnify))
         magnify = disnake.PartialEmoji(name=magnify.name, id=magnify.id)
 
         surr = "<:surrender:947978096034869249>"
         surr = ''.join(filter(str.isdigit, surr))
-        surr = self.bot.get_emoji(int(surr))
+        surr = self.bot.emoji_holder.all_emojis.get(int(surr))
         surr = disnake.PartialEmoji(name=surr.name, id=surr.id)
 
         embed = await main_war_page(bot=self.bot, war=war, war_league=str(clan.war_league))

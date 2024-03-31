@@ -149,11 +149,11 @@ class misc(commands.Cog, name="Other"):
         if len(sign_text) > 19:
             size = 16
 
-        back = Image.open("Other/pepesign.png")
+        back = Image.open("other/pepesign.png")
 
         width = 250
         height = 250
-        font = ImageFont.truetype("Other/pepefont.ttf", size)
+        font = ImageFont.truetype("other/pepefont.ttf", size)
         draw = ImageDraw.Draw(back)
 
         draw.text(((width / 2) - 5, 55), sign_text, anchor="mm", fill=(0, 0, 0), font=font)

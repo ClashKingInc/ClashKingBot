@@ -4,8 +4,7 @@ import coc
 from utility.discord_utils import check_commands
 from disnake.ext import commands
 from typing import Union, List
-from FamilyManagement.Reminders import ReminderUtils
-from typing import TYPE_CHECKING
+from .utils import create_war_reminder, create_games_reminder, create_roster_reminder, create_capital_reminder, create_inactivity_reminder
 from classes.bot import CustomClient
 from exceptions.CustomExceptions import NotValidReminderTime
 
@@ -96,6 +95,15 @@ class ReminderCreation(commands.Cog, name="Reminders"):
         type_to_type = {"War & CWL" : "War", "Clan Capital" : "Clan Capital", "Inactivity" : "inactivity", "Clan Games" : "Clan Games", "Roster" : "roster"}
         r_type = type_to_type[type]
         await ReminderUtils.edit_reminder(bot=self.bot, clan=clan, ctx=ctx, type=r_type)
+
+
+    @reminders.sub_command(name="manual", description="send a manual reminder")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def manual_reminders(self, ctx: disnake.ApplicationCommandInteraction,
+                             clan: coc.Clan = commands.Param(converter=clan_converter),
+                             type=commands.Param(choices=["War & CWL"])):
+        await ctx.response.defer()
+        pass
 
 
     @reminders.sub_command(name="list", description="Get the list of reminders set up on the server")

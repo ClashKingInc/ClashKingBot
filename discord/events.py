@@ -1,6 +1,8 @@
 import asyncio
 import datetime
 import random
+import io
+import aiohttp
 import disnake
 
 from disnake.ext import commands
@@ -10,8 +12,9 @@ from utility.constants import USE_CODE_TEXT
 has_started = False
 from classes.tickets import OpenTicket, TicketPanel, LOG_TYPE
 from classes.DatabaseClient.familyclient import FamilyClient
-from assets.emojiDictionary import switcher, emoji_class_dict
-from pymongo import UpdateOne
+from assets.emojis import SharedEmojis
+from collections import deque
+from commands.reminders.send_reminders import clan_games_reminder, clan_capital_reminder, inactivity_reminder, roster_reminder
 
 class DiscordEvents(commands.Cog):
 
@@ -21,8 +24,15 @@ class DiscordEvents(commands.Cog):
     @commands.Cog.listener()
     async def on_connect(self):
         self.bot.ck_client = FamilyClient(bot=self.bot)
+        number_emojis = await self.bot.number_emojis.find().to_list(length=None)
+        number_emojis_map = {"blue": {}, "gold": {}, "white": {}}
+        for emoji in number_emojis:
+            number_emojis_map[emoji.get("color")][emoji.get("count")] = emoji.get("emoji_id")
+        self.bot.number_emoji_map = number_emojis_map
+
         if self.bot.user.id == 808566437199216691:
             return
+
         global has_started
         if not has_started:
             await asyncio.sleep(5)
@@ -45,15 +55,41 @@ class DiscordEvents(commands.Cog):
                     "lbhour": None,
                 })
 
-            number_emojis = await self.bot.number_emojis.find().to_list(length=None)
-            number_emojis_map = {"blue" : {}, "gold" : {}, "white" : {}}
-            for emoji in number_emojis:
-                number_emojis_map[emoji.get("color")][emoji.get("count")] = emoji.get("emoji_id")
-            self.bot.number_emoji_map = number_emojis_map
+            self.bot.scheduler.add_job(clan_capital_reminder, trigger="cron", args=[self.bot, "1 hr"], day_of_week="mon", hour=6, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_capital_reminder, trigger="cron", args=[self.bot, "2 hr"], day_of_week="mon", hour=5, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_capital_reminder, trigger="cron", args=[self.bot, "4 hr"], day_of_week="mon", hour=3, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_capital_reminder, trigger="cron", args=[self.bot, "6 hr"], day_of_week="mon", hour=1, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_capital_reminder, trigger="cron", args=[self.bot, "8 hr"], day_of_week="sun", hour=23, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_capital_reminder, trigger="cron", args=[self.bot, "12 hr"], day_of_week="sun", hour=19, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_capital_reminder, trigger="cron", args=[self.bot, "16 hr"], day_of_week="sun", hour=15, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_capital_reminder, trigger="cron", args=[self.bot, "24 hr"], day_of_week="sun", hour=7, misfire_grace_time=None)
+
+            self.bot.scheduler.add_job(clan_games_reminder, trigger="cron", args=[self.bot, "144 hr"], day=22, hour=8, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_games_reminder, trigger="cron", args=[self.bot, "120 hr"], day=23, hour=8, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_games_reminder, trigger="cron", args=[self.bot, "96 hr"], day=24, hour=8, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_games_reminder, trigger="cron", args=[self.bot, "72 hr"], day=25, hour=8, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_games_reminder, trigger="cron", args=[self.bot, "48 hr"], day=26, hour=8, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_games_reminder, trigger="cron", args=[self.bot, "36 hr"], day=26, hour=20, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_games_reminder, trigger="cron", args=[self.bot, "24 hr"], day=27, hour=8, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_games_reminder, trigger="cron", args=[self.bot, "12 hr"], day=27, hour=20, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_games_reminder, trigger="cron", args=[self.bot, "6 hr"], day=28, hour=2, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_games_reminder, trigger="cron", args=[self.bot, "4 hr"], day=28, hour=4, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_games_reminder, trigger="cron", args=[self.bot, "2 hr"], day=28, hour=6, misfire_grace_time=None)
+            self.bot.scheduler.add_job(clan_games_reminder, trigger="cron", args=[self.bot, "1 hr"], day=28, hour=7, misfire_grace_time=None)
+
+            self.bot.scheduler.add_job(inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
+            self.bot.scheduler.add_job(roster_reminder, trigger='interval', args=[self.bot], minutes=2, misfire_grace_time=None)
+
+            print('We have connected')
 
 
-
-            '''if not self.bot.user.public_flags.verified_bot and self.bot.user.id != 808566437199216691:
+    @commands.Cog.listener()
+    async def on_ready(self):
+        await asyncio.sleep(5)
+        print("ready")
+        #will remove later, if is a custom bot, remove ourselves from every server but one
+        if not self.bot.user.public_flags.verified_bot and self.bot.user.id != 808566437199216691:
+            if self.bot.guilds:
                 largest_server = sorted(self.bot.guilds, key=lambda x: x.member_count, reverse=True)[0]
                 for server in self.bot.guilds:
                     if server.id != largest_server.id:
@@ -61,15 +97,82 @@ class DiscordEvents(commands.Cog):
                             await server.leave()
                         else:
                             await server.delete()
-                #create_emojis
-                bot_settings = await self.bot.custom_bots.find_one({"token" : self.bot._config.bot_token})
-                our_emoji = bot_settings.get("emojis")
-                emojis_we_should_have = switcher | emoji_class_dict
-                for emoji_name, emoji_text in emojis_we_should_have.items():
-                    if our_emoji.get(emoji_name):
-                        pass #download emoji'''
 
-            print('We have logged in')
+            for number, emoji_id in self.bot.number_emoji_map.get("gold").items():
+                if number <= 50:
+                    SharedEmojis.all_emojis[f"{number}_"] = emoji_id
+
+            print(len(SharedEmojis.all_emojis), "emojis that we have")
+            if not self.bot.user.public_flags.verified_bot:
+                our_emoji_servers = [server for server in self.bot.guilds if server.owner_id == self.bot.user.id and server.name != "ckcustombotbadges"]
+                if len(our_emoji_servers) < 8:
+                    for x in range(0, (8 - len(our_emoji_servers))):
+                        if x != 8:
+                            guild = await self.bot.create_guild(name=f"ckemojiserver{x}")
+                            our_emoji_servers.append(guild)
+                        else:
+                            guild = await self.bot.create_guild(name="ckcustombotbadges")
+
+                print(", ".join([g.name for g in self.bot.guilds]))
+                print(", ".join([str(len(g.emojis)) for g in self.bot.guilds]))
+                print(sum([(len(g.emojis)) for g in self.bot.guilds]) - 254, "emojis installed")
+
+                print(len(our_emoji_servers), "servers")
+                our_emoji_servers = deque(our_emoji_servers)
+
+                id_to_lookup_name_map = {}
+                for emoji_name, emoji_string in SharedEmojis.all_emojis.items():
+                    emoji_split = emoji_string.split(":")
+                    animated = "<a:" in emoji_string
+                    emoji = disnake.PartialEmoji(name=emoji_split[1][1:], id=int(str(emoji_split[2])[:-1]), animated=animated)
+                    id_to_lookup_name_map[str(emoji.id)] = emoji_name
+
+
+                all_our_emojis = {}
+                deleted = 0
+                for server in our_emoji_servers:
+                    for emoji in server.emojis:
+                        lookup_name = id_to_lookup_name_map.get(emoji.name)
+                        if lookup_name is None:
+                            deleted += 1
+                            await emoji.delete()
+                            continue
+                        all_our_emojis[lookup_name] = f"<:{emoji.name}:{emoji.id}>"
+
+                print(deleted, "emojis deleted")
+
+                to_create = 0
+                for emoji_name, emoji_string in SharedEmojis.all_emojis.items():
+                    if emoji_name not in all_our_emojis:
+                        to_create += 1
+
+                print(f"{to_create} emojis to create")
+                for emoji_name, emoji_string in SharedEmojis.all_emojis.items():
+                    if emoji_name not in all_our_emojis:
+                        server = our_emoji_servers[0]
+                        while len(server.emojis) == server.emoji_limit:
+                            our_emoji_servers.rotate(1)
+                            server = our_emoji_servers[0]
+                        emoji_split = emoji_string.split(":")
+                        animated = "<a:" in emoji_string
+
+                        bytes_image: bytes = None
+                        session = aiohttp.ClientSession()
+                        main_bot_emoji = disnake.PartialEmoji(name=emoji_split[1][1:], id=int(str(emoji_split[2])[:-1]), animated=animated)
+                        async with session.get(url=main_bot_emoji.url) as resp:
+                            if resp.status == 200:
+                                bytes_image = (await resp.read())
+                        await session.close()
+                        emoji = await server.create_custom_emoji(name=str(main_bot_emoji.id), image=bytes_image)
+                        lookup_name = id_to_lookup_name_map.get(emoji.name)
+                        print(f"created {lookup_name}")
+                        all_our_emojis[lookup_name] = f"<:{emoji.name}:{emoji.id}>"
+                        our_emoji_servers.rotate(1)
+
+                for emoji_name, emoji_string in all_our_emojis.items():
+                    SharedEmojis.all_emojis[emoji_name] = emoji_string
+
+                print("done with emoji creation")
 
 
     @commands.Cog.listener()
@@ -124,6 +227,8 @@ class DiscordEvents(commands.Cog):
         embed.set_footer(text="Admin permissions are recommended for full functionality & easier set up, thank you!") if not botAdmin else None
         await firstChannel.send(components=buttons, embed=embed) if results is None else None
         
+
+
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):

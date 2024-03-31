@@ -1,17 +1,16 @@
-from disnake.ext import commands
 import disnake
 import coc
 
+from disnake.ext import commands
 from classes.server import DatabaseClan
-from typing import TYPE_CHECKING
 from classes.bot import CustomClient
 from background.logs.events import player_ee, raid_ee
 from datetime import datetime
 from pytz import utc
 from coc.raid import RaidLogEntry, RaidAttack, RaidMember
 from numerize import numerize
-from ImageGen.ClanCapitalResult import calc_raid_medals
-from BoardCommands.Utils import Clan as clan_embeds
+#from ImageGen.ClanCapitalResult import calc_raid_medals
+#from BoardCommands.Utils import Clan as clan_embeds
 from exceptions.CustomExceptions import MissingWebhookPerms
 
 class clan_capital_events(commands.Cog, name="Clan Capital Events"):

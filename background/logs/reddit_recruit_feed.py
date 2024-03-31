@@ -1,14 +1,14 @@
-from disnake.ext import commands
-from typing import TYPE_CHECKING
-from classes.bot import CustomClient
-from utility.player_pagination import button_pagination
-from datetime import datetime
-
 import asyncpraw
 import os
 import disnake
 import re
 import coc
+
+from disnake.ext import commands
+from classes.bot import CustomClient
+from utility.player_pagination import button_pagination
+from datetime import datetime
+
 
 subreddit = "ClashOfClansRecruit"
 secret = os.getenv("SECRET")

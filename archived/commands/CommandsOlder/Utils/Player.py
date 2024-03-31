@@ -9,7 +9,6 @@ from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entr
 from utility.clash.other import *
 from utility.general import acronym, create_superscript
 from utility.discord_utils import interaction_handler
-from typing import TYPE_CHECKING
 from classes.bot import CustomClient
 from classes.player import MyCustomPlayer
 from numerize import numerize
@@ -55,7 +54,7 @@ async def create_profile_stats(bot: CustomClient, ctx, player: MyCustomPlayer):
         f"[Clash Of Stats Profile](https://www.clashofstats.com/players/{player.tag.strip('#')})\n\n" \
         f"**Season Stats:**\n" \
         f"__Attacks__\n" \
-        f"- {league_emoji(player)}Trophies: {player.trophies}\n" \
+        f"- {fetch_emoji(player.league.name)}Trophies: {player.trophies}\n" \
         f"- {bot.emoji.thick_sword}Attack Wins: {player.attack_wins}\n" \
         f"- {bot.emoji.brown_shield}Defense Wins: {player.defense_wins}\n" \
         f"{loot_text}" \
@@ -64,9 +63,9 @@ async def create_profile_stats(bot: CustomClient, ctx, player: MyCustomPlayer):
         f"- {bot.emoji.avg_stars}Avg Stars: `{round(hitrate.average_stars, 2)}`\n" \
         f"- {bot.emoji.war_stars}Total Stars: `{hitrate.total_stars}, {hitrate.num_attacks} atks`\n" \
         f"__Donations__\n" \
-        f"- <:warwon:932212939899949176>Donated: {player.donos().donated}\n" \
-        f"- <:warlost:932212154164183081>Received: {player.donos().received}\n" \
-        f"- <:winrate:932212939908337705>Donation Ratio: {player.donation_ratio()}\n" \
+        f"- {bot.emoji.up_green_arrow}Donated: {player.donos().donated}\n" \
+        f"- {bot.emoji.down_red_arrow}Received: {player.donos().received}\n" \
+        f"- {bot.emoji.ratio}Donation Ratio: {player.donation_ratio()}\n" \
         f"__Event Stats__\n" \
         f"- {bot.emoji.capital_gold}CG Donated: {'{:,}'.format(sum([sum(cap.donated) for cap in capital_stats]))}\n" \
         f"- {bot.emoji.thick_sword}CG Raided: {'{:,}'.format(sum([sum(cap.raided) for cap in capital_stats]))}\n" \

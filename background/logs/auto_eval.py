@@ -7,7 +7,7 @@ from classes.server import DatabaseServer
 from typing import TYPE_CHECKING
 from classes.bot import CustomClient
 from background.logs.events import clan_ee
-from Link_and_Eval.eval_logic import eval_logic
+from commands.eval.utils import logic
 
 
 class AutoEval(commands.Cog):

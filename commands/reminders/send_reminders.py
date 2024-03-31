@@ -1,26 +1,28 @@
 import datetime
 import coc
 import disnake
+import sentry_sdk
 
 from pytz import utc
 from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
-from typing import TYPE_CHECKING
 from classes.bot import CustomClient
 from classes.reminders import Reminder
-import sentry_sdk
 
-async def war_reminder(bot: CustomClient, clan_tag, reminder_time):
-    war: coc.ClanWar = await bot.get_clanwar(clanTag=clan_tag)
-    if war is None:
-        return
-    missing = {}; names = {}; ths = {}
+
+async def war_reminder(bot: CustomClient, event: dict):
+    reminder_time = event.get("time")
+    clan_tag = event.get("clan_tag")
+    war: coc.ClanWar = coc.ClanWar(data=event.get("data"), client=None, clan_tag=clan_tag)
+    missing = {}
+    names = {}
+    ths = {}
     for player in war.clan.members:
         if len(player.attacks) < war.attacks_per_member:
             missing[player.tag] = war.attacks_per_member - len(player.attacks)
             names[player.tag] = player.name
             ths[player.tag] = player.town_hall
 
-    tags= list(missing.keys())
+    tags = list(missing.keys())
     if not missing:
         return
     links = await bot.link_client.get_links(*tags)
@@ -88,8 +90,7 @@ async def war_reminder(bot: CustomClient, clan_tag, reminder_time):
                 pass
 
 
-async def clan_capital_reminder(bot:CustomClient, reminder_time):
-
+async def clan_capital_reminder(bot: CustomClient, reminder_time):
     for reminder in await bot.reminders.find({"$and": [{"type": "Clan Capital"}, {"time": reminder_time}]}).to_list(length=None):
         try:
             reminder = Reminder(bot=bot, data=reminder)
@@ -115,8 +116,8 @@ async def clan_capital_reminder(bot:CustomClient, reminder_time):
                 continue
 
             missing = {}
-            clan_members = {member.tag : member for member in clan.members}
-            for member in raid_log_entry.members: #type: coc.RaidMember
+            clan_members = {member.tag: member for member in clan.members}
+            for member in raid_log_entry.members:  # type: coc.RaidMember
                 try:
                     del clan_members[member.tag]
                 except:
@@ -167,6 +168,7 @@ async def clan_capital_reminder(bot:CustomClient, reminder_time):
             sentry_sdk.capture_exception(e)
 
 
+
 async def clan_games_reminder(bot: CustomClient, reminder_time):
     for reminder in await bot.reminders.find({"$and": [{"type": "Clan Games"}, {"time": reminder_time}]}).to_list(length=None):
         reminder = Reminder(bot=bot, data=reminder)
@@ -195,7 +197,6 @@ async def clan_games_reminder(bot: CustomClient, reminder_time):
                 missing[stat.get("tag")] = coc.utils.get(clan.members, tag=stat.get("tag"))
                 member_points[stat.get("tag")] = points
 
-
         if not missing:
             continue
         links = await bot.link_client.get_links(*list(missing.keys()))
@@ -221,7 +222,6 @@ async def clan_games_reminder(bot: CustomClient, reminder_time):
 
 
 async def inactivity_reminder(bot: CustomClient):
-
     for reminder in await bot.reminders.find({"type": "inactivity"}).to_list(length=None):
         reminder = Reminder(bot=bot, data=reminder)
         if reminder.server_id not in bot.OUR_GUILDS:
@@ -241,10 +241,10 @@ async def inactivity_reminder(bot: CustomClient):
             continue
 
         seconds_inactive = int(str(reminder.time).replace("hr", "")) * 60 * 60
-        max_diff = 30 * 60 #time in seconds between runs
+        max_diff = 30 * 60  # time in seconds between runs
         now = datetime.datetime.now(tz=utc)
         clan_members = [member.tag for member in clan.members]
-        clan_members_stats = await bot.player_stats.find({f"tag": {"$in" : clan_members}}).to_list(length=None)
+        clan_members_stats = await bot.player_stats.find({f"tag": {"$in": clan_members}}).to_list(length=None)
         inactive_tags = []
         names = {}
         for stat in clan_members_stats:
@@ -312,12 +312,12 @@ async def roster_reminder(bot: CustomClient):
         now = datetime.datetime.now(tz=utc)
         roster_time = datetime.datetime.fromtimestamp(float(reminder.roster.time), tz=utc)
         time_until_time = (roster_time - now).total_seconds()
-        #goes negative if now >= time
-        #gets smaller as we get closer
+        # goes negative if now >= time
+        # gets smaller as we get closer
 
-        #we want to ping when we are closer to the time than further, so when seconds_before
-        #larger - smaller >= 0
-        #smaller - larger <= 0
+        # we want to ping when we are closer to the time than further, so when seconds_before
+        # larger - smaller >= 0
+        # smaller - larger <= 0
         if seconds_before_to_ping - time_until_time >= 0 and seconds_before_to_ping - time_until_time <= max_diff:
             members = []
             if reminder.ping_type == "All Roster Members":
@@ -354,10 +354,9 @@ async def roster_reminder(bot: CustomClient):
                 if text == missing_text_list[-1]:
                     reminder_text += f"\n{reminder.custom_text}"
                     button = disnake.ui.Button(label="Clan Link", emoji="🔗", style=disnake.ButtonStyle.url,
-                                      url=f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{reminder.roster.roster_result.get('clan_tag').strip('#')}")
+                                               url=f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{reminder.roster.roster_result.get('clan_tag').strip('#')}")
                     buttons = [disnake.ui.ActionRow(button)]
                 try:
                     await channel.send(content=reminder_text, components=buttons)
                 except:
                     pass
-

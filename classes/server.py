@@ -143,6 +143,11 @@ class DatabaseClan():
         self.capital_weekly_summary = ClanLog(parent=self, type="capital_weekly_summary")
         self.raid_panel = CapitalPanel(parent=self, type="new_raid_panel")
         self.donation_log = ClanLog(parent=self, type="donation_log")
+        self.clan_achievement_log = ClanLog(parent=self, type="clan_achievement_log")
+        self.clan_requirements_log = ClanLog(parent=self, type="clan_requirements_log")
+        self.clan_description_log = ClanLog(parent=self, type="clan_description_log")
+        self.cwl_lineup_change_log = ClanLog(parent=self, type="cwl_lineup_change")
+
         self.super_troop_boost_log = ClanLog(parent=self, type="super_troop_boost")
         self.role_change = ClanLog(parent=self, type="role_change")
         self.troop_upgrade = ClanLog(parent=self, type="troop_upgrade")
@@ -150,6 +155,8 @@ class DatabaseClan():
         self.league_change = ClanLog(parent=self, type="league_change")
         self.spell_upgrade = ClanLog(parent=self, type="spell_upgrade")
         self.hero_upgrade = ClanLog(parent=self, type="hero_upgrade")
+        self.hero_equipment_upgrade = ClanLog(parent=self, type="hero_equipment_upgrade")
+
         self.name_change = ClanLog(parent=self, type="name_change")
         self.ban_alert_channel = data.get("ban_alert_channel")
         self.war_log = ClanLog(parent=self, type="war_log")

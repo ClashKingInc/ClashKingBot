@@ -6,12 +6,9 @@ import motor.motor_asyncio
 import disnake
 import re
 import asyncio
-import collections
-import random
 import calendar
 import aiohttp
 import emoji
-import expiring_dict
 import pendulum as pend
 
 from math import ceil
@@ -19,7 +16,7 @@ from datetime import datetime, timedelta
 from coc.ext import discordlinks
 from disnake.ext import commands
 from typing import Dict, List
-from assets.emojiDictionary import emojiDictionary
+from assets.emojis import SharedEmojis
 from classes.player import MyCustomPlayer, CustomClanClass
 from classes.emoji import Emojis, EmojiType
 from urllib.request import urlopen
@@ -76,6 +73,7 @@ class CustomClient(commands.AutoShardedBot):
         self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(discordlinks.login(self._config.link_api_username, self._config.link_api_password))
         self.bot_stats: collection_class = self.looper_db.clashking.bot_stats
         self.clan_stats: collection_class = self.new_looper.clan_stats
+        self.war_elo: collection_class = self.looper_db.looper.war_elo
 
         self.raid_weekend_db: collection_class = self.looper_db.looper.raid_weekends
         self.clan_join_leave: collection_class = self.new_looper.clan_join_leave
@@ -139,7 +137,6 @@ class CustomClient(commands.AutoShardedBot):
 
         self.redis = redis.Redis(host=self._config.redis_ip, port=6379, db=0, password=self._config.redis_pw, retry_on_timeout=True, max_connections=250, retry_on_error=[redis.ConnectionError])
 
-        self.emoji = Emojis()
         self.locations = locations
 
         self.MAX_FEED_LEN = 5
@@ -155,6 +152,11 @@ class CustomClient(commands.AutoShardedBot):
 
         self.number_emoji_map = {}
         self.clan_badge_emoji_map = {}
+        self.BADGE_GUILDS = BADGE_GUILDS
+
+    @property
+    def emoji(self):
+        return Emojis()
 
 
     def clean_string(self, text: str):
@@ -183,16 +185,17 @@ class CustomClient(commands.AutoShardedBot):
             return self.clan_badge_emoji_map.get(new_url[-15:].replace("-", ""))
 
         img = urlopen(url).read()
-        BADGE_GUILDS.rotate(1)
-        guild = await self.getch_guild(BADGE_GUILDS[0])
+        self.BADGE_GUILDS.rotate(1)
+        guild = await self.getch_guild(self.BADGE_GUILDS[0])
         emoji = await guild.create_custom_emoji(name=new_url[-15:].replace("-", ""), image=img)
         return f"<:{emoji.name}:{emoji.id}>"
 
 
     def get_number_emoji(self, color: str, number: int) -> EmojiType:
         if not self.user.id == 808566437199216691 and not self.user.public_flags.verified_bot:
-            color = "gold"
-        emoji = self.number_emoji_map.get(color).get(number)
+            emoji = SharedEmojis.all_emojis.get(f"{number}_")
+        else:
+            emoji = self.number_emoji_map.get(color).get(number)
         return EmojiType(emoji_string=emoji)
 
 
@@ -365,7 +368,7 @@ class CustomClient(commands.AutoShardedBot):
 
 
     def fetch_emoji(self, name: str | int):
-        emoji = emojiDictionary(name)
+        emoji = SharedEmojis.all_emojis.get(name)
         if emoji is None:
             return None
         return EmojiType(emoji_string=emoji)

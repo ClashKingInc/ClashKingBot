@@ -56,7 +56,10 @@ initial_extensions = [
     "discord.converters",
     #"background.features.refresh_boards",
     "exceptions.handler",
-    "background.tasks.emoji_refresh"
+    "background.tasks.emoji_refresh",
+    #"background.logs.join_leave_events"
+    #"background.logs.legend_events"
+    #"background.logs.player_upgrade_events"
 ]
 
 
@@ -136,6 +139,6 @@ if __name__ == "__main__":
             traceback.print_exc()
     bot.EXTENSION_LIST.extend(initial_extensions)
     if not config.is_beta:
-        bot.loop.create_task(kafka_events())
+        bot.loop.create_task(kafka_events(bot))
 
     bot.run(config.bot_token)

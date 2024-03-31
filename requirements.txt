@@ -17,7 +17,7 @@ kaleido==0.2.1
 loguru==0.7.2
 matplotlib==3.7.1
 motor==3.3.2
-msgspec==0.15.1
+msgspec==0.18.6
 numerize==0.12
 openai==0.27.8
 openpyxl==3.1.2

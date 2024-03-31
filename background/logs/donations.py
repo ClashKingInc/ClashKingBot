@@ -2,15 +2,13 @@ import coc
 import disnake
 
 from disnake.ext import commands
-from utility.clash import heros
-from typing import TYPE_CHECKING
 from classes.bot import CustomClient
 from classes.server import DatabaseClan
 from background.logs.events import clan_ee
-from utility.clash import leagueAndTrophies
 from pymongo import UpdateOne
 from utility.discord_utils import get_webhook_for_channel
 from exceptions.CustomExceptions import MissingWebhookPerms
+
 
 class Donations(commands.Cog, name="Donations"):
 
@@ -20,14 +18,13 @@ class Donations(commands.Cog, name="Donations"):
         self.clan_ee.on("all_member_donations", self.donations)
 
     async def donations(self, event):
-
         clan = coc.Clan(data=event["new_clan"], client=self.bot.coc_client)
         old_clan = coc.Clan(data=event["old_clan"], client=self.bot.coc_client)
 
         tag_to_member = {member.tag : member for member in clan.members}
         donated = []
         received = []
-        changes = []
+
         for old_member in old_clan.members:
             new_member: coc.ClanMember = tag_to_member.get(old_member.tag)
             if new_member is None:
@@ -35,14 +32,10 @@ class Donations(commands.Cog, name="Donations"):
             change_dono = new_member.donations - old_member.donations
             change_rec = new_member.received - old_member.received
             if change_dono > 0:
-                change_amount = 0.05 if new_member.donations > 100000 else 0.25
                 donated.append((new_member, change_dono))
-                changes.append(UpdateOne({"tag": new_member.tag}, {"$inc": {f"points": change_amount * change_dono}}, upsert=True))
             if change_rec > 0:
                 received.append((new_member, change_rec))
 
-        if changes:
-            await self.bot.player_stats.bulk_write(changes)
         embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link})")
         embed.set_thumbnail(url=clan.badge.url)
 

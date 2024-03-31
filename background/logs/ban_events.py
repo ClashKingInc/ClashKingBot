@@ -40,9 +40,8 @@ class BanEvents(commands.Cog):
                     date = results.get("DateCreated")[:10]
 
                     role = f"<@&{db_clan.member_role}>"
-
                     embed = disnake.Embed(
-                        description=f"[WARNING! BANNED PLAYER {member.name} JOINED]({member.share_link})",
+                        description=f"{role}\n[WARNING! BANNED PLAYER {member.name} JOINED]({member.share_link})",
                         color=disnake.Color.green())
                     embed.add_field(name="Banned Player.",
                                     value=f"Player {member.name} [{member.tag}] has joined {clan.name} and is on the {server.name} BAN list!\n\n"

@@ -2,14 +2,13 @@ import coc
 import disnake
 
 from disnake.ext import commands
-from utility.clash import heros
-from typing import TYPE_CHECKING
+from utility.clash.other import heros, leagueAndTrophies, basic_heros
 from classes.bot import CustomClient
 from classes.server import DatabaseClan
 from background.logs.events import clan_ee
-from utility.clash import leagueAndTrophies
 from utility.discord_utils import get_webhook_for_channel
 from exceptions.CustomExceptions import MissingWebhookPerms
+
 
 class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
 
@@ -62,8 +61,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
             log = db_clan.join_log
 
             player = await self.bot.getPlayer(player_tag=member.tag)
-            hero = heros(bot=self.bot, player=player)
-            hero = "" if hero is None else hero
+            hero = basic_heros(bot=self.bot, player=player)
 
             th_emoji = self.bot.fetch_emoji(player.town_hall)
             embed = disnake.Embed(description=f"[**{player.name}** ({player.tag})]({player.share_link})\n" +
@@ -100,7 +98,8 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
         clan = coc.Clan(data=event["clan"], client=self.bot.coc_client)
         member = coc.ClanMember(data=event["member"], client=self.bot.coc_client, clan=clan)
 
-        for cc in await self.bot.clan_db.find({"$and": [{"tag": clan.tag}, {"logs.leave_log.webhook": {"$ne" : None}}]}).to_list(length=None):
+        tracked = self.bot.clan_db.find({"$and": [{"tag": clan.tag}, {"logs.join_log.webhook": {"$ne" : None}}]})
+        for cc in await tracked.to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=cc)
             if db_clan.server_id not in self.bot.OUR_GUILDS:
                 continue
@@ -124,8 +123,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
             log = db_clan.leave_log
 
             player = await self.bot.getPlayer(player_tag=member.tag)
-            hero = heros(bot=self.bot, player=player)
-            hero = "" if hero is None else hero
+            hero = basic_heros(bot=self.bot, player=player)
 
             th_emoji = self.bot.fetch_emoji(player.town_hall)
             embed = disnake.Embed(description=f"[**{player.name}** ({player.tag})]({player.share_link})\n" +

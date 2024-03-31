@@ -21,18 +21,15 @@ import textwrap
 from contextlib import redirect_stdout
 import io
 import re
-from assets.emojiDictionary import switcher, emoji_class_dict
 import asyncio
 import aiohttp
-
+from pymongo import InsertOne
 
 class OwnerCommands(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.count = 0
-        coc_client: coc.EventsClient = self.bot.coc_client
-
 
 
 
@@ -206,21 +203,7 @@ class OwnerCommands(commands.Cog):
     @commands.slash_command(name="test", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
-        config = self.bot._config
-        emails = [config.coc_email.format(x=x) for x in range(1, 2 + 1)]
-        passwords = [config.coc_password] * (2 + 1 - 1)
-        keys = await self.create_keys(emails=emails, passwords=passwords, ip="85.10.200.219")
-        print(len(keys))
-        to_insert = []
-        for k in keys:
-            to_insert.append({
-                "token" : k
-            })
-        await self.bot.new_looper.get_collection("api_tokens").insert_many(documents=to_insert)
-
-
-
-
+        switcher, emoji_class_dict
 
 
     @commands.slash_command(name="anniversary", guild_ids=[923764211845312533])

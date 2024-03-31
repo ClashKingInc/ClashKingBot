@@ -413,7 +413,8 @@ class SetupCommands(commands.Cog , name="Setup"):
     @setup.sub_command(name="logs", description="Set a variety of different clan logs for your server!")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def set_log_add(self, ctx: disnake.ApplicationCommandInteraction,
-                          clan: coc.Clan = commands.Param(converter=clan_converter), mode:str = commands.Param(choices=["Add/Edit", "Remove"]),
+                          clan: coc.Clan = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan),
+                          mode:str = commands.Param(choices=["Add/Edit", "Remove"]),
                           channel: Union[disnake.TextChannel, disnake.Thread] = commands.Param(default=None)):
         await ctx.response.defer()
 
@@ -427,29 +428,63 @@ class SetupCommands(commands.Cog , name="Setup"):
         db_clan = DatabaseClan(bot=self.bot, data=results)
         channel = ctx.channel if channel is None else channel
 
-        log_types = {"Member Join" : db_clan.join_log, "Member Leave" : db_clan.leave_log, "War Log" : db_clan.war_log, "War Panel" : db_clan.war_panel,
-                     "Capital Donations" : db_clan.capital_donations, "Capital Attacks" : db_clan.capital_attacks, "Capital Panel" : db_clan.raid_panel,
-                     "Capital Weekly Summary" : db_clan.capital_weekly_summary, "Donation Log" : db_clan.donation_log, "Super Troop Boosts" : db_clan.super_troop_boost_log,
-                     "Role Change" : db_clan.role_change, "Troop Upgrade" : db_clan.troop_upgrade, "Townhall Upgrade" : db_clan.th_upgrade, "League Change" : db_clan.league_change,
-                     "Spell Upgrade" : db_clan.spell_upgrade, "Hero Upgrade" : db_clan.hero_upgrade, "Name Change" : db_clan.name_change,
-                     "Legend Attacks" : db_clan.legend_log_attacks, "Legend Defenses" : db_clan.legend_log_defenses}
-
+        clan_log_types = {
+            "Member Join": db_clan.join_log,
+            "Member Leave": db_clan.leave_log,
+            "Member Donation": db_clan.donation_log,
+            "Clan Achievements" : db_clan.clan_achievement_log,
+            "Clan Requirements" : db_clan.clan_requirements_log,
+            "Clan Description": db_clan.clan_description_log,
+        }
+        war_log_types = {
+            "War Log": db_clan.war_log,
+            "War Panel": db_clan.war_panel,
+            "CWL Lineup Change": db_clan.cwl_lineup_change_log
+        }
+        capital_log_types = {
+            "Capital Donations": db_clan.capital_donations,
+            "Capital Attacks": db_clan.capital_attacks,
+            "Capital Panel": db_clan.raid_panel,
+            "Capital Weekly Summary": db_clan.capital_weekly_summary
+        }
+        player_log_types = {
+            "Role Change": db_clan.role_change,
+            "Troop Upgrade": db_clan.troop_upgrade,
+            "Super Troop Boosts": db_clan.super_troop_boost_log,
+            "Townhall Upgrade": db_clan.th_upgrade,
+            "League Change": db_clan.league_change,
+            "Spell Upgrade": db_clan.spell_upgrade,
+            "Hero Upgrade": db_clan.hero_upgrade,
+            "Hero Equipment Upgrade": db_clan.hero_equipment_upgrade,
+            "Name Change": db_clan.name_change,
+            "Legend Attacks": db_clan.legend_log_attacks,
+            "Legend Defenses": db_clan.legend_log_defenses
+        }
+        master_log_types = clan_log_types | war_log_types | capital_log_types | player_log_types
         if mode == "Remove":
-            for log_type, log in log_types.copy().items():
-                if log.webhook is None:
-                    del log_types[log_type]
+            for log_types in [clan_log_types, war_log_types, capital_log_types, player_log_types]:
+                for log_type, log in log_types.copy().items():
+                    if log.webhook is None:
+                        del log_types[log_type]
 
-        options = []
-        for log_type in log_types.keys():
-            options.append(disnake.SelectOption(label=log_type, emoji=self.bot.emoji.clock.partial_emoji, value=log_type))
+        dropdown = []
+        for name, log_types in zip(["Clan Logs", "War Logs", "Capital Logs", "Player Logs"], [clan_log_types, war_log_types, capital_log_types, player_log_types]):
+            options = []
+            for log_type in log_types.keys():
+                options.append(disnake.SelectOption(label=log_type, emoji=self.bot.emoji.clock.partial_emoji, value=log_type))
+            if options:
+                select = disnake.ui.Select(
+                    options=options,
+                    placeholder=name,  # the placeholder text to show when no options have been chosen
+                    min_values=1,  # the minimum number of options a user must select
+                    max_values=len(options),  # the maximum number of options a user can select
+                )
+                dropdown.append(disnake.ui.ActionRow(select))
 
-        select = disnake.ui.Select(
-            options=options,
-            placeholder="Select logs!",  # the placeholder text to show when no options have been chosen
-            min_values=1,  # the minimum number of options a user must select
-            max_values=len(options),  # the maximum number of options a user can select
-        )
-        dropdown = [disnake.ui.ActionRow(select)]
+        if dropdown:
+            dropdown.append(disnake.ui.ActionRow(disnake.ui.Button(label="Save", emoji=self.bot.emoji.yes.partial_emoji, style=disnake.ButtonStyle.green, custom_id="Save")))
+        else:
+            raise MessageException("No Logs Set Up to Remove")
 
         channel_text = "" if mode == "Remove" else f"in {channel.mention}"
         embed = disnake.Embed(
@@ -457,7 +492,6 @@ class SetupCommands(commands.Cog , name="Setup"):
                         f"Visit https://docs.clashking.xyz/clan-setups/log-setup for more info", color=disnake.Color.green())
         await ctx.edit_original_message(embed=embed, components=dropdown)
 
-        res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
         if mode == "Add/Edit":
             webhook = await get_webhook_for_channel(channel=channel, bot=self.bot)
             thread = None
@@ -465,10 +499,18 @@ class SetupCommands(commands.Cog , name="Setup"):
                 await channel.add_user(self.bot.user)
                 thread = channel.id
 
+        clicked_save = False
+        values = []
+        while not clicked_save:
+            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
+            if res.component.type == disnake.ComponentType.button:
+                break
+            for value in res.values:
+                values.append(value)
 
         text = ""
-        for value in res.values:
-            log = log_types[value]
+        for value in values:
+            log = master_log_types[value]
             if mode == "Add/Edit":
                 await log.set_webhook(id=webhook.id)
                 await log.set_thread(id=thread)
@@ -479,9 +521,8 @@ class SetupCommands(commands.Cog , name="Setup"):
                 await log.set_thread(id=None)
                 text += f'{self.bot.emoji.yes}{value} Removed\n'
 
-
         embed = disnake.Embed(title=f"Logs for {clan.name}", description=text, color=disnake.Color.green())
-        await res.edit_original_message(embed=embed, components=[])
+        await ctx.edit_original_message(embed=embed, components=[])
 
 
     @setup.sub_command(name="reddit-recruit-feed", description="Feed of searching for a clan posts on the recruiting subreddit")

@@ -6,12 +6,11 @@ import coc
 from utility.constants import MAX_ARMY_CAMP, MAX_NUM_SPELLS, EMBED_COLOR_CLASS
 from assets.army_ids import troop_ids, spell_ids, size
 from utility.discord_utils import iter_embed_creation, register_button
-from assets.emojiDictionary import emojiDictionary
 from typing import TYPE_CHECKING
 from classes.bot import CustomClient
 from collections import defaultdict
 from exceptions.CustomExceptions import MessageException
-from assets.emojiDictionary import emojiDictionary
+from assets.emojis import SharedEmojis
 from typing import List, Dict
 
 

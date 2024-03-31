@@ -6,7 +6,7 @@ import pytz
 
 from disnake.ext import commands
 from classes.bot import CustomClient
-from assets.emojiDictionary import emojiDictionary
+from assets.emojis import SharedEmojis
 from classes.roster import Roster
 from utility.discord_utils import check_commands
 from exceptions.CustomExceptions import *
@@ -116,9 +116,9 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         for player in players:
             try:
                 await _roster.add_member(player=player, sub=(sub=="Yes"))
-                added_text += f"{emojiDictionary(player.town_hall)}{player.name}\n"
+                added_text += f"{SharedEmojis.all_emojis.get(player.town_hall)}{player.name}\n"
             except Exception as e:
-                messed_text += f"{emojiDictionary(player.town_hall)}{player.name} - {e}\n"
+                messed_text += f"{SharedEmojis.all_emojis.get(player.town_hall)}{player.name} - {e}\n"
         if added_text == "":
             added_text = f"No Players"
         embed = disnake.Embed(title=f"Added to **{_roster.roster_result.get('alias')}** roster", description=added_text,color=disnake.Color.green())

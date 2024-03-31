@@ -14,7 +14,6 @@ from utility.discord_utils import check_commands
 from typing import List
 
 
-
 class Strikes(commands.Cog, name="Strikes"):
 
     def __init__(self, bot: CustomClient):
@@ -51,8 +50,8 @@ class Strikes(commands.Cog, name="Strikes"):
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def strike_list(self, ctx: disnake.ApplicationCommandInteraction,
                           view=commands.Param(choices=["Strike View", "Player View"]),
-                          clan=commands.Param(default=None, converter=clan_converter),
-                          player=commands.Param(default=None, converter=player_converter),
+                          clan=commands.Param(default=None, converter=convert.clan),
+                          player=commands.Param(default=None, converter=convert.player),
                           strike_amount: int = commands.Param(default=1)):
         """
             Parameters

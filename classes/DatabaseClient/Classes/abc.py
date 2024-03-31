@@ -1,7 +1,7 @@
 import coc
 from utility.constants import SUPER_SCRIPTS, SHORT_CLAN_LINK, SHORT_PLAYER_LINK
 from classes.emoji import EmojiType
-from assets.emojiDictionary import emojiDictionary
+from assets.emojis import SharedEmojis
 from assets.thPicDictionary import thDictionary
 import emoji
 import re
@@ -73,7 +73,7 @@ class CustomTownHall():
 
     @property
     def emoji(self):
-        return EmojiType(emojiDictionary(self.level))
+        return EmojiType(SharedEmojis.all_emojis.get(self.level))
 
     @property
     def image_url(self):
