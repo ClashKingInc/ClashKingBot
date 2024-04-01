@@ -17,11 +17,7 @@ class FamilyStats(commands.Cog, name="Family Trophy Stats"):
 
     @commands.slash_command(name="ranked")
     async def ranked(self, ctx: disnake.ApplicationCommandInteraction):
-        result = await self.bot.user_settings.find_one({"discord_user": ctx.author.id})
-        ephemeral = False
-        if result is not None:
-            ephemeral = result.get("private_mode", False)
-        await ctx.response.defer(ephemeral=ephemeral)
+        await ctx.response.defer()
 
 
     @commands.slash_command(name="rank", description="Ranks for player")

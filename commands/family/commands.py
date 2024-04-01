@@ -12,13 +12,7 @@ class FamilyCommands(commands.Cog, name="Family Commands"):
 
     @commands.slash_command(name="family")
     async def family(self, ctx: disnake.ApplicationCommandInteraction):
-        result = await self.bot.user_settings.find_one({"discord_user" : ctx.author.id})
-        ephemeral = False
-        if result is not None:
-            ephemeral = result.get("private_mode", False)
-        if "board" in ctx.filled_options.keys():
-            ephemeral = True
-        await ctx.response.defer(ephemeral=ephemeral)
+        await ctx.response.defer()
 
 
     @family.sub_command(name="compo", description="Composition of values in a family")

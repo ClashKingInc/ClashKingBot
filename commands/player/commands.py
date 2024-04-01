@@ -19,6 +19,7 @@ from discord.converters import Convert as convert
 from discord.autocomplete import Autocomplete as autocomplete
 #from CommandsOlder.Utils.Player import create_profile_troops
 
+import sentry_sdk
 
 class PlayerCommands(commands.Cog, name="Player Commands"):
     def __init__(self, bot: CustomClient):
@@ -41,12 +42,7 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
 
     @commands.slash_command(name="player")
     async def player(self, ctx: disnake.ApplicationCommandInteraction):
-        result = await self.bot.user_settings.find_one({"discord_user": ctx.author.id})
-        ephemeral = False
-        if result is not None:
-            ephemeral = result.get("private_mode", False)
-        await ctx.response.defer(ephemeral=ephemeral)
-
+        await ctx.response.defer()
 
     @player.sub_command(name="lookup", description="Lookup a player or discord user")
     async def lookup(self, ctx: disnake.ApplicationCommandInteraction,
@@ -58,6 +54,7 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
             player: (optional) player to lookup
             discord_user: (optional) discord user to lookup
         """
+
         if player is None and discord_user is None:
             discord_user = ctx.author
             search_query = str(ctx.author.id)
@@ -71,6 +68,8 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
             raise MessageException(f"{discord_user.name} has no accounts linked.")
 
         msg = await ctx.original_message()
+
+
         await button_pagination(self.bot, ctx, msg, results)
 
 
