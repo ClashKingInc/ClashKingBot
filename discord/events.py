@@ -119,6 +119,7 @@ class DiscordEvents(commands.Cog):
                         our_emoji_servers.append(guild)
                     else:
                         guild = await self.bot.create_guild(name="ckcustombotbadges")
+                        logger.info("created badge emoji server")
 
                 logger.info(", ".join([g.name for g in self.bot.guilds]))
                 logger.info(", ".join([str(len(g.emojis)) for g in self.bot.guilds]))
@@ -170,9 +171,14 @@ class DiscordEvents(commands.Cog):
                             if resp.status == 200:
                                 bytes_image = (await resp.read())
                         await session.close()
-                        emoji = await server.create_custom_emoji(name=str(main_bot_emoji.id), image=bytes_image)
+                        has_created = False
+                        while not has_created:
+                            try:
+                                emoji = await server.create_custom_emoji(name=str(main_bot_emoji.id), image=bytes_image)
+                                has_created = True
+                            except Exception:
+                                pass
                         lookup_name = id_to_lookup_name_map.get(emoji.name)
-                        logger.info(f"created {lookup_name}")
                         all_our_emojis[lookup_name] = f"<:{emoji.name}:{emoji.id}>"
                         our_emoji_servers.rotate(1)
 
