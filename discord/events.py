@@ -53,7 +53,7 @@ class DiscordEvents(commands.Cog):
                     "lbhour": None,
                 })
 
-            self.bot.scheduler.add_job(clan_capital_reminder, trigger="cron", args=[self.bot, "1 hr"], day_of_week="mon", hour=6, misfire_grace_time=None)
+            '''self.bot.scheduler.add_job(clan_capital_reminder, trigger="cron", args=[self.bot, "1 hr"], day_of_week="mon", hour=6, misfire_grace_time=None)
             self.bot.scheduler.add_job(clan_capital_reminder, trigger="cron", args=[self.bot, "2 hr"], day_of_week="mon", hour=5, misfire_grace_time=None)
             self.bot.scheduler.add_job(clan_capital_reminder, trigger="cron", args=[self.bot, "4 hr"], day_of_week="mon", hour=3, misfire_grace_time=None)
             self.bot.scheduler.add_job(clan_capital_reminder, trigger="cron", args=[self.bot, "6 hr"], day_of_week="mon", hour=1, misfire_grace_time=None)
@@ -76,7 +76,7 @@ class DiscordEvents(commands.Cog):
             self.bot.scheduler.add_job(clan_games_reminder, trigger="cron", args=[self.bot, "1 hr"], day=28, hour=7, misfire_grace_time=None)
 
             self.bot.scheduler.add_job(inactivity_reminder, trigger='interval', args=[self.bot], minutes=30, misfire_grace_time=None)
-            self.bot.scheduler.add_job(roster_reminder, trigger='interval', args=[self.bot], minutes=2, misfire_grace_time=None)
+            self.bot.scheduler.add_job(roster_reminder, trigger='interval', args=[self.bot], minutes=2, misfire_grace_time=None)'''
 
             logger.info('We have connected')
 
@@ -97,15 +97,6 @@ class DiscordEvents(commands.Cog):
         logger.info("ready")
         #will remove later, if is a custom bot, remove ourselves from every server but one
         if not self.bot.user.public_flags.verified_bot and self.bot.user.id != 808566437199216691:
-            if len([g for g in self.bot.guilds if "ckemojiserver" in g.name]) != 8:
-                largest_server = sorted(self.bot.guilds, key=lambda x: x.member_count, reverse=True)[0]
-                for server in self.bot.guilds:
-                    if server.id != largest_server.id:
-                        if server.owner_id != self.bot.user.id:
-                            await server.leave()
-                        else:
-                            await server.delete()
-
             for number, emoji_id in self.bot.number_emoji_map.get("gold").items():
                 if number <= 50:
                     SharedEmojis.all_emojis[f"{number}_"] = emoji_id
@@ -113,7 +104,7 @@ class DiscordEvents(commands.Cog):
             logger.info(f"{len(SharedEmojis.all_emojis)} emojis that we have")
             our_emoji_servers = []
             if not self.bot.user.public_flags.verified_bot:
-                if len([g for g in self.bot.guilds if "ckemojiserver" in g.name]) != 8:
+                if len([g for g in self.bot.guilds if "ckemojiserver" in g.name]) < 8:
                     for x in range(0, 8):
                         guild = await self.bot.create_guild(name=f"ckemojiserver{x}")
                         our_emoji_servers.append(guild)
