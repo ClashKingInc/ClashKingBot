@@ -151,7 +151,6 @@ class CustomClient(commands.AutoShardedBot):
         self.STARTED_CHUNK = set()
 
         self.number_emoji_map = {}
-        self.clan_badge_emoji_map = {}
         self.BADGE_GUILDS = BADGE_GUILDS
 
     @property
@@ -175,20 +174,8 @@ class CustomClient(commands.AutoShardedBot):
         return TimeStamp(unix_time)
 
     async def create_new_badge_emoji(self, url:str):
-        if not self.user.public_flags.verified_bot and self.user.id != 808566437199216691:
-            return self.emoji.blank.emoji_string
+        return self.emoji.blank.emoji_string
 
-        new_url = url.replace(".png", "")
-
-        found_emoji = self.clan_badge_emoji_map.get(new_url[-15:].replace("-", ""))
-        if found_emoji is not None:
-            return self.clan_badge_emoji_map.get(new_url[-15:].replace("-", ""))
-
-        img = urlopen(url).read()
-        self.BADGE_GUILDS.rotate(1)
-        guild = await self.getch_guild(self.BADGE_GUILDS[0])
-        emoji = await guild.create_custom_emoji(name=new_url[-15:].replace("-", ""), image=img)
-        return f"<:{emoji.name}:{emoji.id}>"
 
 
     def get_number_emoji(self, color: str, number: int) -> EmojiType:

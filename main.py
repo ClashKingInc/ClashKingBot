@@ -56,10 +56,10 @@ initial_extensions = [
     "discord.converters",
     #"background.features.refresh_boards",
     "exceptions.handler",
-    "background.tasks.emoji_refresh",
     #"background.logs.join_leave_events"
     #"background.logs.legend_events"
     #"background.logs.player_upgrade_events"
+    #"background.logs.reminders"
 ]
 
 
@@ -125,10 +125,8 @@ if __name__ == "__main__":
         # Set traces_sample_rate to 1.0 to capture 100%
         # of transactions for performance monitoring.
         # We recommend adjusting this value in production.
-        traces_sample_rate=1.0,
-        _experiments={
-            "profiles_sample_rate": 1.0,
-        },
+        traces_sample_rate=0.5,
+        profiles_sample_rate=0.5,
         before_send=before_send
     )
     initial_extensions += load()
@@ -138,7 +136,7 @@ if __name__ == "__main__":
         except Exception as extension:
             traceback.print_exc()
     bot.EXTENSION_LIST.extend(initial_extensions)
-    if not config.is_beta:
-        bot.loop.create_task(kafka_events(bot))
+    #if not config.is_beta:
+    #bot.loop.create_task(kafka_events(bot))
 
     bot.run(config.bot_token)

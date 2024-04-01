@@ -73,11 +73,8 @@ async def family_names(bot: CustomClient, query: str, guild):
         ]
     results = await bot.player_search.aggregate(pipeline=pipeline).to_list(length=None)
     for document in results:
-        league = document.get("league")
-        if league == "Unknown":
-            league = "Unranked"
-        league = league.replace(" League", "")
-        names.append(f'{create_superscript(document.get("th"))}{document.get("name")} ({league})' + " | " + document.get("tag"))
+        clan = document.get("clan_name")
+        names.append(f'{create_superscript(document.get("th"))}{document.get("name")} ({clan})' + " | " + document.get("tag"))
     return names
 
 
@@ -103,11 +100,8 @@ async def all_names(bot: CustomClient, query: str):
         ]
     results = await bot.player_search.aggregate(pipeline=pipeline).to_list(length=None)
     for document in results:
-        league = document.get("league")
-        if league == "Unknown":
-            league = "Unranked"
-        league = league.replace(" League", "")
-        names.append(f'{create_superscript(document.get("th"))}{document.get("name")} ({league})' + " | " + document.get("tag"))
+        clan = document.get("clan_name")
+        names.append(f'{create_superscript(document.get("th"))}{document.get("name")} ({clan})' + " | " + document.get("tag"))
     return names
 
 

@@ -232,7 +232,6 @@ class DiscordEvents(commands.Cog):
         
 
 
-
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
         if not self.bot.user.public_flags.verified_bot:
@@ -265,23 +264,10 @@ class DiscordEvents(commands.Cog):
         except Exception:
             pass'''
 
-        await self.bot.command_stats.insert_one({
-            "user": ctx.author.id,
-            "command_name" : ctx.application_command.qualified_name,
-            "server": ctx.guild.id if ctx.guild is not None else None,
-            "server_name" : ctx.guild.name if ctx.guild is not None else None,
-            "time" : int(datetime.datetime.now().timestamp()),
-            "guild_size" : ctx.guild.member_count if ctx.guild is not None else 0,
-            "channel" : ctx.channel_id,
-            "channel_name" : ctx.channel.name if ctx.channel is not None else None,
-            "len_mutual" : len(ctx.user.mutual_guilds),
-            "is_bot_dev" : ctx.user.public_flags.verified_bot_developer,
-            "bot" : ctx.bot.user.id
-        })
-
 
     @commands.Cog.listener()
     async def on_raw_member_remove(self, payload: disnake.RawGuildMemberRemoveEvent):
+        return
         tickets = await self.bot.open_tickets.find({"$and": [{"server": payload.guild_id}, {"user": payload.user.id}, {"status": {"$ne": "delete"}}]}).to_list(length=None)
         if not tickets:
             return
