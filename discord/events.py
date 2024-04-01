@@ -97,7 +97,7 @@ class DiscordEvents(commands.Cog):
         logger.info("ready")
         #will remove later, if is a custom bot, remove ourselves from every server but one
         if not self.bot.user.public_flags.verified_bot and self.bot.user.id != 808566437199216691:
-            if self.bot.guilds:
+            if len([g for g in self.bot.guilds if "ckemojiserver" in g.name]) != 8:
                 largest_server = sorted(self.bot.guilds, key=lambda x: x.member_count, reverse=True)[0]
                 for server in self.bot.guilds:
                     if server.id != largest_server.id:
@@ -113,13 +113,12 @@ class DiscordEvents(commands.Cog):
             logger.info(f"{len(SharedEmojis.all_emojis)} emojis that we have")
             our_emoji_servers = []
             if not self.bot.user.public_flags.verified_bot:
-                for x in range(0, 9):
-                    if x != 8:
+                if len([g for g in self.bot.guilds if "ckemojiserver" in g.name]) != 8:
+                    for x in range(0, 8):
                         guild = await self.bot.create_guild(name=f"ckemojiserver{x}")
                         our_emoji_servers.append(guild)
-                    else:
-                        guild = await self.bot.create_guild(name="ckcustombotbadges")
-                        logger.info("created badge emoji server")
+                else:
+                    our_emoji_servers = [g for g in self.bot.guilds if "ckemojiserver" in g.name]
 
                 logger.info(", ".join([g.name for g in self.bot.guilds]))
                 logger.info(", ".join([str(len(g.emojis)) for g in self.bot.guilds]))
