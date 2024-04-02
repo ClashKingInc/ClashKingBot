@@ -47,7 +47,11 @@ HERO_EQUIPMENT = {
         "Healer Puppet" :  "Archer Queen",
         "Rage Gem" : "Grand Warden",
         "Healing Tome" : "Grand Warden",
-        "Giant Gauntlet" : "Barbarian King"
+        "Giant Gauntlet" : "Barbarian King",
+        "Frozen Arrow" : "Archer Queen",
+        "Hog Rider Puppet" : "Royal Champion",
+        "Haste Vial" : "Royal Champion",
+        "Fireball" : "Grand Warden"
     }
 
 POSTER_LIST = {"Edrag" : "edrag",
