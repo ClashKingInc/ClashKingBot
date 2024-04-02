@@ -98,11 +98,8 @@ class eval(commands.Cog, name="Eval"):
 
         embeds = await logic(bot=self.bot, guild=ctx.guild, db_server=db_server, members=members, role_or_user=role_or_user, eval_types=eval_types, test=test)
 
-        await ctx.edit_original_message(embeds=embeds[:1])
-
         current_page = 0
         await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))
-
 
         while True:
             res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, timeout=3600)

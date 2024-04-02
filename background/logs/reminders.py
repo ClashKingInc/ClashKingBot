@@ -4,7 +4,7 @@ from background.logs.events import reminder_ee
 from commands.reminders.send_reminders import war_reminder
 
 
-class Reminders(commands.Cog):
+class RemindersLog(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
@@ -17,4 +17,4 @@ class Reminders(commands.Cog):
 
 
 def setup(bot: CustomClient):
-    bot.add_cog(Reminders(bot))
+    bot.add_cog(RemindersLog(bot))

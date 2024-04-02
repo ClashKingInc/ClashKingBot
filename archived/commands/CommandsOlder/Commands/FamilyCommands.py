@@ -54,13 +54,7 @@ class FamCommands(commands.Cog, name="Family Commands"):
 
     @commands.slash_command(name="family")
     async def family(self, ctx: disnake.ApplicationCommandInteraction):
-        result = await self.bot.user_settings.find_one({"discord_user": ctx.author.id})
-        ephemeral = False
-        if result is not None:
-            ephemeral = result.get("private_mode", False)
-        if "board" in ctx.filled_options.keys():
-            ephemeral = True
-        await ctx.response.defer(ephemeral=ephemeral)
+        await ctx.response.defer()
 
     '''@commands.slash_command(name="countries")
     async def countries(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = commands.Param(converter=server_converter, default=None)):

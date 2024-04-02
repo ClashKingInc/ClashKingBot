@@ -3,8 +3,9 @@ from disnake.ext import commands
 import disnake
 
 from classes.bot import CustomClient
-from utility.discord_utils import check_commands
+from utility.discord_utils import check_commands, interaction_handler
 from utility.search import search_results
+from utility.general import get_guild_icon
 from ..eval.utils import logic
 from archived.commands.CommandsOlder.Utils.Player import to_do_embed
 from exceptions.CustomExceptions import MessageException, InvalidAPIToken, APITokenRequired
@@ -112,7 +113,7 @@ class Linking(commands.Cog):
 
         perms = ctx.author.guild_permissions.manage_guild
         whitelist_perm = await self.bot.white_list_check(ctx=ctx, command_name="unlink")
-        if ctx.author.id == self.bot.owner.id:
+        if ctx.author.id in self.bot.owner_ids:
             perms = True
 
         is_family = False
@@ -152,132 +153,112 @@ class Linking(commands.Cog):
 
 
 
-    '''@commands.slash_command(name="buttons", description="Create a message that has buttons for easy eval/link/refresh actions.")
-    async def buttons(self, ctx: disnake.ApplicationCommandInteraction, type=commands.Param(choices=["Link Button", "Refresh Button", "To-Do Button", "Roster Button"]), ping: disnake.User = None,
-                      custom_embed = commands.Param(default="False", choices=["True", "False"]), embed_link: str = None):
+    @commands.slash_command(name="buttons", description="Create a message that has buttons for easy eval/link/refresh actions.")
+    async def buttons(self, ctx: disnake.ApplicationCommandInteraction,
+                      embed: str = commands.Param(autocomplete=autocomplete.embeds, default=None),
+                      button_color: str = commands.Param(choices=["Blue", "Green", "Grey", "Red"], default="Grey")):
+        await ctx.response.defer(ephemeral=True)
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
 
-        link_embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
-                              description=f"To link your account, press the link button below to get started.",
-                              color=disnake.Color.green())
-        refresh_embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
-                              description=f"To refresh your roles, press the refresh button below.",
-                              color=disnake.Color.green())
-        to_do_embed = disnake.Embed(description=f"To view your account to-do list click the button below!\n"
+        select_options = []
+        for button_type in ["Link Button", "Link Help Button", "Refresh Button", "To-Do Button", "Roster Button"]:
+            select_options.append(disnake.SelectOption(label=button_type, value=button_type))
+        select = disnake.ui.Select(
+            options=select_options,
+            placeholder="Button Types",  # the placeholder text to show when no options have been chosen
+            min_values=1,  # the minimum number of options a user must select
+            max_values=4,  # the maximum number of options a user can select
+        )
+        await ctx.edit_original_response(content="Choose the buttons you would like on this embed", components=[disnake.ui.ActionRow(select)])
+        res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
+
+        selected_types = res.values
+
+        if embed is not None:
+            lookup = await self.bot.custom_embeds.find_one({"$and": [{"server": ctx.guild_id}, {"name": embed}]})
+            if lookup is None:
+                raise MessageException("No embed with that name found on this server")
+
+            embed_data = lookup.get("data")
+            embeds = [disnake.Embed.from_dict(data=e) for e in embed_data.get("embeds", [])]
+        else:
+            default_embeds = {
+                "Link Button" :
+                    disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
+                                    description=f"To link your account, press the link button below to get started.",
+                                    color=embed_color),
+                "Refresh Button" :
+                    disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
+                                    description=f"To refresh your roles, press the refresh button below.",
+                                    color=embed_color),
+                "To-Do Button" :
+                    disnake.Embed(description=f"To view your account to-do list click the button below!\n"
                                               f"> Clan Games\n"
                                               f"> War Hits\n"
                                               f"> Raid Hits\n"
                                               f"> Inactivity\n"
                                               f"> Legend Hits",
-                                  color=disnake.Color.green())
-
-        roster_embed = disnake.Embed(description=f"To view all the rosters you are on & the what group (Main, Benched, etc) & clans your accounts are in, press the button below.",
-                                  color=disnake.Color.green())
-
-        if ctx.guild.icon is not None:
-            refresh_embed.set_thumbnail(url=ctx.guild.icon.url)
-            link_embed.set_thumbnail(url=ctx.guild.icon.url)
-            to_do_embed.set_thumbnail(url=ctx.guild.icon.url)
-            roster_embed.set_thumbnail(url=ctx.guild.icon.url)
-        default_embeds = {"Link Button" : link_embed, "Refresh Button" : refresh_embed, "To-Do Button" : to_do_embed, "Roster Button" : roster_embed}
-
-        if custom_embed != "False":
-            if embed_link is None:
-                modal_inter, embed = await basic_embed_modal(bot=self.bot,ctx=ctx)
-                if embed is None:
-                    raise MessageException("An Error Occured, Please Try Again.")
-                ctx = modal_inter
+                                  color=embed_color),
+                "Roster Button" :
+                    disnake.Embed(description=f"To view all the rosters you are on & the what group (Main, Benched, etc) "
+                                              f"& clans your accounts are in, press the button below.",
+                                  color=embed_color),
+                "other":
+                    disnake.Embed(description=f"Use the buttons below to view info about your accounts.",
+                                  color=embed_color)
+            }
+            if len(selected_types) == 1 or ("Link Button" in selected_types and "Link Help Button" in selected_types and len(selected_types) == 2):
+                option = selected_types[0]
+                if option == "Link Help Button":
+                    option = "Link Button"
+                embeds = [default_embeds.get(option)]
             else:
-                await ctx.response.defer()
-                try:
-                    if "discord.com" not in embed_link:
-                        return await ctx.send(content="Not a valid message link", ephemeral=True)
-                    link_split = embed_link.split("/")
-                    message_id = link_split[-1]
-                    channel_id = link_split[-2]
+                embeds = [default_embeds.get("other")]
+            for embed in embeds:
+                embed.set_thumbnail(url=get_guild_icon(ctx.guild))
 
-                    channel = await self.bot.getch_channel(channel_id=int(channel_id))
-                    if channel is None:
-                        return await ctx.send(content="Cannot access the channel this embed is in", ephemeral=True)
-                    message = await channel.fetch_message(int(message_id))
-                    if not message.embeds:
-                        return await ctx.send(content="Message has no embeds", ephemeral=True)
-                    embed = message.embeds[0]
-                except:
-                    return await ctx.send(content=f"Something went wrong :/ An error occured with the message link.", ephemeral=True)
-        else:
-            await ctx.response.defer()
-            embed = default_embeds[type]
+        color_conversion = {"Blue": disnake.ButtonStyle.primary,
+         "Grey": disnake.ButtonStyle.secondary,
+         "Green": disnake.ButtonStyle.success,
+         "Red": disnake.ButtonStyle.danger}
+        button_color = color_conversion.get(button_color)
+        buttons = disnake.ui.ActionRow()
+        for b_type in selected_types:
+            if b_type == "Link Button":
+                buttons.append_item(disnake.ui.Button(label="Link Account", emoji="🔗", style=button_color, custom_id="Start Link"))
+            elif b_type == "Link Help Button":
+                buttons.append_item(disnake.ui.Button(label="Help", emoji="❓", style=button_color, custom_id="Link Help"))
+            elif b_type == "Refresh Button":
+                buttons.append_item(disnake.ui.Button(label="Refresh Roles", emoji=self.bot.emoji.refresh.partial_emoji, style=button_color, custom_id="Refresh Roles"))
+            elif b_type == "To-Do Button":
+                buttons.append_item(disnake.ui.Button(label="To-Do List", emoji=self.bot.emoji.yes.partial_emoji, style=button_color, custom_id="MyToDoList"))
+            elif b_type == "Roster Button":
+                buttons.append_item(disnake.ui.Button(label="My Rosters", emoji=self.bot.emoji.calendar.partial_emoji, style=button_color, custom_id="MyRosters"))
 
-        if type == "Link Button":
-
-            stat_buttons = [disnake.ui.Button(label="Link Account", emoji="🔗", style=disnake.ButtonStyle.green,
-                                              custom_id="Start Link"),
-                            disnake.ui.Button(label="Help", emoji="❓", style=disnake.ButtonStyle.grey,
-                                              custom_id="Link Help")]
-            buttons = disnake.ui.ActionRow()
-            for button in stat_buttons:
-                buttons.append_item(button)
-
-            if ping is not None:
-                content = ping.mention
-            else:
-                content = ""
-            await ctx.send(content=content, embed=embed, components=[buttons])
-        elif type == "Refresh Button":
-
-            stat_buttons = [disnake.ui.Button(label="Refresh Roles", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.green, custom_id="Refresh Roles")]
-            buttons = disnake.ui.ActionRow()
-            for button in stat_buttons:
-                buttons.append_item(button)
-            if ping is not None:
-                content = ping.mention
-            else:
-                content = ""
-            await ctx.send(content=content, embed=embed, components=[buttons])
-        elif type == "To-Do Button":
-            stat_buttons = [disnake.ui.Button(label="To-Do List", emoji=self.bot.emoji.yes.partial_emoji,
-                                              style=disnake.ButtonStyle.green, custom_id="MyToDoList")]
-            buttons = disnake.ui.ActionRow()
-            for button in stat_buttons:
-                buttons.append_item(button)
-            if ping is not None:
-                content = ping.mention
-            else:
-                content = ""
-            await ctx.send(content=content, embed=embed, components=[buttons])
-        elif type == "Roster Button":
-            stat_buttons = [disnake.ui.Button(label="My Rosters", emoji=self.bot.emoji.calendar.partial_emoji,
-                                              style=disnake.ButtonStyle.green, custom_id="MyRosters")]
-            buttons = disnake.ui.ActionRow()
-            for button in stat_buttons:
-                buttons.append_item(button)
-            if ctx.guild.icon is not None:
-                embed.set_thumbnail(url=ctx.guild.icon.url)
-            if ping is not None:
-                content = ping.mention
-            else:
-                content = ""
-            await ctx.send(content=content, embed=embed, components=[buttons])'''
+        await ctx.edit_original_message(content="Done", components=[])
+        await ctx.channel.send(embeds=embeds, components=[buttons])
 
 
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
-        #await ctx.response.defer(ephemeral=True)
 
         if ctx.data.custom_id == "Refresh Roles":
+            await ctx.response.defer(ephemeral=True)
             server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
             server_member = await ctx.guild.getch_member(ctx.user.id)
             await logic(bot=self.bot, guild=ctx.guild, db_server=server, members=[server_member], role_or_user=ctx.user)
             await ctx.send(content="Your roles are now up to date!", ephemeral=True)
 
         elif ctx.data.custom_id == "MyToDoList":
+            await ctx.response.defer(ephemeral=True)
             discord_user = ctx.author
             linked_accounts = await search_results(self.bot, str(discord_user.id))
             embed = await to_do_embed(bot=self.bot, discord_user=discord_user, linked_accounts=linked_accounts)
             await ctx.send(embed=embed, ephemeral=True)
 
         elif ctx.data.custom_id == "MyRosters":
+            await ctx.response.defer(ephemeral=True)
             tags = await self.bot.get_tags(ping=ctx.user.id)
             roster_type_text = ctx.user.display_name
             players = await self.bot.get_players(tags=tags, custom=False)

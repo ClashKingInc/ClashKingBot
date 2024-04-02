@@ -6,7 +6,6 @@ import pendulum as pend
 from collections import defaultdict, namedtuple
 from datetime import datetime
 from classes.player import ClanCapitalWeek
-from typing import TYPE_CHECKING
 from classes.bot import CustomClient
 from typing import List
 from utility.clash.capital import get_season_raid_weeks

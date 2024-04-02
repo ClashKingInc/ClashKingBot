@@ -2,6 +2,7 @@ import datetime
 import coc
 import disnake
 import sentry_sdk
+import pendulum as pend
 
 from pytz import utc
 from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
@@ -29,6 +30,52 @@ async def war_reminder(bot: CustomClient, event: dict):
     links = dict(links)
     players = await bot.get_players(tags=tags, custom=False)
     players.sort(key=lambda x: x.town_hall, reverse=True)
+    try:
+        # channel = await bot.getch_channel(reminder.channel_id)
+        channel = await bot.getch_channel(1197924424863731792)
+    except (disnake.NotFound, disnake.Forbidden):
+        # await reminder.delete()
+        return
+
+    # server = await bot.getch_guild(reminder.server_id)
+    server = await bot.getch_guild(923764211845312533)
+
+    missing_text_list = []
+    missing_text = ""
+    start_text = (f"{bot.emoji.pin}**12 Hours Remaining in War**\n"
+                  f"{bot.emoji.pin}**{war.clan.name} vs {war.opponent.name}**\n"
+                  f"{bot.emoji.wood_swords}{war.clan.attacks_used}/{war.opponent.attacks_used} {bot.emoji.war_star}{war.clan.stars}/{war.opponent.stars}")
+    for war_member in players:
+        num_missing = missing[war_member.tag]
+        name = names[war_member.tag]
+        discord_id = links[war_member.tag]
+        member = await server.getch_member(discord_id)
+        text_to_check = start_text
+        if len(missing_text) + len(text_to_check) + 125 >= 2000:
+            missing_text_list.append(missing_text)
+            missing_text = ""
+        if member is None:
+            missing_text += f"({num_missing}/{war.attacks_per_member}) {bot.fetch_emoji(ths[war_member.tag])}{name} | {war_member.tag}\n"
+        else:
+            missing_text += f"({num_missing}/{war.attacks_per_member}) {bot.fetch_emoji(ths[war_member.tag])}{name} | {member.mention}\n"
+
+    if missing_text != "":
+        missing_text_list.append(missing_text)
+
+    for text in missing_text_list:
+        if text == missing_text_list[0]:
+            text = (f"{bot.emoji.clock}**{reminder_time} Hours Remaining in War**\n"
+                    f"{bot.emoji.pin}**{war.clan.name} vs {war.opponent.name}**\n"
+                    f"{bot.emoji.wood_swords}{war.clan.attacks_used}/{war.opponent.attacks_used} {bot.emoji.war_star}{war.clan.stars}/{war.opponent.stars} "
+                    f"{bot.emoji.time} {bot.timestamper(unix_time=int(war.end_time.time.replace(tzinfo=pend.UTC).timestamp())).relative}\n"
+                    f"{text}")
+        try:
+            await channel.send(content=text)
+        except Exception:
+            pass
+
+    return
+
     all_reminders = bot.reminders.find({"$and": [
         {"clan": clan_tag},
         {"type": "War"},
@@ -36,19 +83,21 @@ async def war_reminder(bot: CustomClient, event: dict):
     ]})
     for reminder in await all_reminders.to_list(length=None):
         reminder = Reminder(bot=bot, data=reminder)
-        if reminder.server_id not in bot.OUR_GUILDS:
-            continue
+        '''if reminder.server_id not in bot.OUR_GUILDS:
+            continue'''
 
         war_type = war.type.capitalize() if war.type != "cwl" else war.type.upper()
         if war_type not in reminder.war_types:
             continue
         try:
-            channel = await bot.getch_channel(reminder.channel_id)
+            #channel = await bot.getch_channel(reminder.channel_id)
+            channel = await bot.getch_channel(1197924424863731792)
         except (disnake.NotFound, disnake.Forbidden):
-            await reminder.delete()
+            #await reminder.delete()
             continue
 
-        server = await bot.getch_guild(reminder.server_id)
+        #server = await bot.getch_guild(reminder.server_id)
+        server = await bot.getch_guild(923764211845312533)
         if server is None:
             continue
 
@@ -86,7 +135,7 @@ async def war_reminder(bot: CustomClient, event: dict):
                 text += f"\n{reminder.custom_text}"
             try:
                 await channel.send(content=text)
-            except:
+            except Exception:
                 pass
 
 

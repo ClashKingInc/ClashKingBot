@@ -1,7 +1,6 @@
 aiofiles==0.6.0
 aiokafka==0.8.1
 APScheduler==3.9.1
-asyncpraw==7.5.0
 ballpark @ git+https://github.com/Mee6/python-ballpark.git@5ab86393ba8cb2f306187f393aca8ec5b3bbbbae
 beautifulsoup4==4.10.0
 bs4==0.0.1

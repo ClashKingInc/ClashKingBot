@@ -72,7 +72,8 @@ def spell_ids(spell_id):
         17: "Skeleton Spell",
         28: "Bat Spell",
         35: "Invisibility Spell",
-        53: "Recall Spell"
+        53: "Recall Spell",
+        70: "Overgrowth Spell"
     }
 
     spell_name = switcher.get(spell_id, "Lightning Spell")
@@ -135,7 +136,8 @@ def size(troop_or_spell):
         "Skeleton Spell" : 1,
         "Bat Spell" : 1,
         "Invisibility Spell" : 1,
-        "Recall Spell" : 2
+        "Recall Spell" : 2,
+        "Overgrowth Spell" : 2
     }
 
     size = switcher.get(troop_or_spell, 0)

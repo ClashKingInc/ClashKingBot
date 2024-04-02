@@ -5,7 +5,6 @@ from disnake import Embed
 from disnake.utils import get
 from collections import  namedtuple
 from classes.player import MyCustomPlayer, LegendRanking, ClanCapitalWeek
-from typing import TYPE_CHECKING
 from classes.bot import CustomClient
 from typing import List
 from ballpark import ballpark as B
@@ -713,7 +712,13 @@ async def clan_activity(bot: CustomClient, clan: coc.Clan, season: str, townhall
     season = bot.gen_season_date() if season is None else season
     show_last_online = (gen_season_date() == season)
 
-    clan_stats = (await bot.clan_stats.find_one({"tag" : clan.tag}, projection={"_id" : 0, f"{season}" : 1})).get(season, {})
+    clan_stats = (await bot.clan_stats.find_one({"tag" : clan.tag}, projection={"_id" : 0, f"{season}" : 1}))
+    if not clan_stats:
+        is_tracked = await bot.clan_db.find_one({"tag" : clan.tag})
+        if is_tracked is None:
+            raise MessageException(f"This clan is not tracked, to have the bot collect this info & more, add {clan.name} to your server with `/addclan`")
+        raise MessageException(f"No activity yet, for {clan.name}, for the {season} season")
+    clan_stats = clan_stats.get(season, {})
     tags = list(clan_stats.keys())
     players = await bot.get_players(tags=tags, custom=True, use_cache=True)
     map_player = {p.tag: p for p in players}

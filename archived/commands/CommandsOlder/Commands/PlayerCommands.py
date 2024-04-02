@@ -43,11 +43,7 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
 
     @commands.slash_command(name="player")
     async def player(self, ctx: disnake.ApplicationCommandInteraction):
-        result = await self.bot.user_settings.find_one({"discord_user": ctx.author.id})
-        ephemeral = False
-        if result is not None:
-            ephemeral = result.get("private_mode", False)
-        await ctx.response.defer(ephemeral=ephemeral)
+        await ctx.response.defer()
 
 
     @player.sub_command(name="lookup", description="Lookup a player or discord user")

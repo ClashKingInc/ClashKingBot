@@ -556,7 +556,7 @@ class CustomClient(commands.AutoShardedBot):
         if not next_war:
             try:
                 war = await self.coc_client.get_current_war(clanTag)
-                if war.state == "notInWar":
+                if not war or war.state == "notInWar":
                     return None
                 return war
             except coc.PrivateWarLog:

@@ -65,7 +65,10 @@ hero_equipment_emojis = {
     "Healer Puppet": "<:HealerDoll:1183561771588530298>",
     "Rage Gem": "<:RageGem:1183561924064051343>",
     "Healing Tome": "<:HeartTome:1183561922319229009>",
-    "Freeze Arrow": "<:FreezeArrow:1183561723500834846>",
+    "Frozen Arrow": "<:FreezeArrow:1183561723500834846>",
+    "Hog Rider Puppet" : "<:HogRiderDoll:1224403692740935680>",
+    "Haste Vial" : "<:HasteVial:1224403691659071488>",
+    "Fireball" : "<:Fireball:1224403690031550645>"
 }
 
 capital_hall_emojis = {
@@ -126,6 +129,7 @@ spell_emojis = {
     "Bat Spell": "<:bat:1125795643689025606>",
     "Clone Spell": "<:cs:1125795645958144162>",
     "Recall Spell": "<:recall:1029199491385012304>",
+    "Overgrowth Spell" : "<:overgrowth:1224528305131094159>"
 }
 
 troop_emojis = {

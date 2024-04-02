@@ -146,9 +146,7 @@ class TicketClick(commands.Cog):
             clans = sorted(clans, key=lambda x: x.member_count, reverse=True)
 
             for count, clan in enumerate(clans):
-                emoji = await self.bot.create_new_badge_emoji(
-                    url=clan.badge.url)
-
+                emoji = await self.bot.create_new_badge_emoji(url=clan.badge.url)
                 if count < 25:
                     select_menu_options.append(
                         disnake.SelectOption(label=clan.name, emoji=self.bot.partial_emoji_gen(emoji_string=emoji),
