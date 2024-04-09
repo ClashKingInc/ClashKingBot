@@ -1,24 +1,22 @@
 import asyncio
-from typing import List
 import coc
 import disnake
-import plotly.io as pio
 import io
-import plotly.graph_objects as go
+import pandas as pd
+import pendulum as pend
+import plotly.express as px
+import plotly.io as pio
+import statistics
 import uuid
-from exceptions.CustomExceptions import MessageException
+
+from classes.bot import CustomClient
 from collections import defaultdict
+from exceptions.CustomExceptions import MessageException
+from typing import List
 from utility.constants import leagues
 from utility.clash.capital import get_season_raid_weeks
 from utility.clash.other import gen_season_start_end_as_timestamp, gen_season_start_end_as_iso
 from utility.cdn import upload_html_to_cdn
-from typing import TYPE_CHECKING
-from classes.bot import CustomClient
-import statistics
-import pendulum as pend
-
-import plotly.express as px
-import pandas as pd
 
 
 async def daily_graph(bot: CustomClient, clan_tags: List[str], attribute: str, months: int, limit: int = 20, html: bool = False) -> (disnake.File, str):

@@ -713,7 +713,8 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
 
     @ticket.sub_command(name="category", description="Category where you want different types of tickets")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def ticket_categories(self, ctx: disnake.ApplicationCommandInteraction, panel_name:str,
+    async def ticket_categories(self, ctx: disnake.ApplicationCommandInteraction,
+                                panel_name: str = commands.Param(autocomplete=autocomplete.ticket_panel),
                                 status: str = commands.Param(choices=["all", "open", "sleep", "closed"]),
                                 category: disnake.CategoryChannel = commands.Param(name="category")):
 

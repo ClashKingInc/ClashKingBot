@@ -1,12 +1,11 @@
 import disnake
 
-from disnake.ext import commands
-from typing import TYPE_CHECKING
 from classes.bot import CustomClient
-from typing import Dict, List
 from collections import defaultdict
-from utility.discord_utils import interaction_handler
+from disnake.ext import commands
 from exceptions.CustomExceptions import MessageException
+from typing import Dict, List
+from utility.discord_utils import interaction_handler
 
 
 class HelpCommands(commands.Cog, name="Help"):
@@ -14,50 +13,10 @@ class HelpCommands(commands.Cog, name="Help"):
         self.bot = bot
 
 
-    def get_all_commands(self):
-        command_list: Dict[str, List[disnake.ext.commands.InvokableSlashCommand]] = defaultdict(list)
-        for command in self.bot.slash_commands:
-            if command.guild_ids is not None:
-                continue
-            if command.cog_name == "OwnerCommands":
-                continue
-            if not command.children:
-                command_list[command.cog_name].append(command)
-            else:
-                for child in command.children.keys():
-                    sub_command = self.bot.get_slash_command(name=f"{command.name} {child}")
-                    command_list[command.cog_name].append(sub_command)
-
-        return dict(command_list)
-
-    def get_command_permissions(self, command: disnake.ext.commands.InvokableSlashCommand):
-        permissions = []
-
-        for check in command.checks:
-            name = check.__qualname__.split(".")[0]
-            if "bot" in name or not check.__closure__:
-                continue
-            try:
-                closure = check.__closure__[0]
-
-                for c in closure.cell_contents:
-                    if c.__closure__ is not None:
-                        try:
-                            permissions.extend(
-                                [p.replace("_", " ").title() for p, v in closure.cell_contents.items() if v]
-                            )
-                        except:
-                            permissions.extend(
-                                [p.replace("_", " ").title() for p, v in closure.cell_contents[0].__closure__[0].cell_contents.__closure__[0].cell_contents.items() if v]
-                            )
-            except AttributeError:
-                return []
-        return permissions
-
-
-    @commands.slash_command(name='help', description="List of commands & descriptions for ClashKing",
-                            extras={"Example Usage" : "`/help command: help`"})
-    async def help(self, ctx: disnake.ApplicationCommandInteraction, command: str = None, category: str = None):
+    @commands.slash_command(name='help', description="List of commands & descriptions for ClashKing",extras={"Example Usage" : "`/help command: help`"})
+    async def help(self, ctx: disnake.ApplicationCommandInteraction,
+                   command: str = None,
+                   category: str = None):
         """
             Parameters
             ----------
@@ -151,16 +110,61 @@ class HelpCommands(commands.Cog, name="Help"):
             else:
                 await res.edit_original_message(embed=embeds[page_names.index(res.values[0])])
 
+
     @help.autocomplete("command")
     async def help_command_autocomplete(self, inter: disnake.ApplicationCommandInteraction, query: str) -> List[str]:
         commands: Dict[str, List[disnake.ext.commands.InvokableSlashCommand]] = self.get_all_commands()
         return [c.qualified_name for command_list in commands.values() for c in command_list if query.lower() in c.qualified_name.lower()][:25]
+
 
     @help.autocomplete("category")
     async def help_category_autocomplete(self,inter: disnake.ApplicationCommandInteraction, query: str) -> List[str]:
         commands: Dict[str, List[disnake.ext.commands.InvokableSlashCommand]] = self.get_all_commands()
         categories = commands.keys()
         return [c for c in categories if query.lower() in c.lower()][:25]
+
+
+    def get_all_commands(self):
+        command_list: Dict[str, List[disnake.ext.commands.InvokableSlashCommand]] = defaultdict(list)
+        for command in self.bot.slash_commands:
+            if command.guild_ids is not None:
+                continue
+            if command.cog_name == "OwnerCommands":
+                continue
+            if not command.children:
+                command_list[command.cog_name].append(command)
+            else:
+                for child in command.children.keys():
+                    sub_command = self.bot.get_slash_command(name=f"{command.name} {child}")
+                    command_list[command.cog_name].append(sub_command)
+
+        return dict(command_list)
+
+
+    def get_command_permissions(self, command: disnake.ext.commands.InvokableSlashCommand):
+        permissions = []
+
+        for check in command.checks:
+            name = check.__qualname__.split(".")[0]
+            if "bot" in name or not check.__closure__:
+                continue
+            try:
+                closure = check.__closure__[0]
+
+                for c in closure.cell_contents:
+                    if c.__closure__ is not None:
+                        try:
+                            permissions.extend(
+                                [p.replace("_", " ").title() for p, v in closure.cell_contents.items() if v]
+                            )
+                        except:
+                            permissions.extend(
+                                [p.replace("_", " ").title() for p, v in closure.cell_contents[0].__closure__[0].cell_contents.__closure__[0].cell_contents.items() if v]
+                            )
+            except AttributeError:
+                return []
+        return permissions
+
 
 def setup(bot: CustomClient):
     bot.add_cog(HelpCommands(bot))
