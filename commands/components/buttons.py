@@ -11,9 +11,9 @@ async def button_logic(button_data: str, bot: CustomClient, guild: disnake.Guild
     split_data = button_data.split(":")
     lookup_name = button_data.split(":")[0]
     #print(registered_functions.keys())
-    function, parser, ephemeral, no_embed = registered_functions.get(lookup_name)
+    function, parser, ephemeral, no_embed, components_function = registered_functions.get(lookup_name)
     if function is None:
-        return None #maybe change this
+        return None, 0 #maybe change this
     if ctx:
         await ctx.response.defer(ephemeral=ephemeral)
 
@@ -41,9 +41,14 @@ async def button_logic(button_data: str, bot: CustomClient, guild: disnake.Guild
     hold_kwargs["embed_color"] = embed_color
     hold_kwargs = {key: hold_kwargs[key] for key in inspect.getfullargspec(function).args}
     embed = await function(**hold_kwargs)
+
+    components = 0
+    if components_function:
+        components = await components_function(**hold_kwargs)
+
     if no_embed:
-        return None
-    return embed
+        return None, 0
+    return embed, components
 
 
 class ButtonHandler(commands.Cog):
@@ -57,16 +62,23 @@ class ButtonHandler(commands.Cog):
         if ":" not in button_data:
             return
 
-        embed = await button_logic(button_data=button_data, bot=self.bot, ctx=ctx, guild=ctx.guild)
+        embed, components = await button_logic(button_data=button_data, bot=self.bot, ctx=ctx, guild=ctx.guild)
 
         #in some cases the handling is done outside this function
         if embed is None:
             return
 
         if isinstance(embed, list):
-            await ctx.edit_original_message(embeds=embed)
+            if components != 0:
+                await ctx.edit_original_message(embeds=embed, components=components)
+            else:
+                await ctx.edit_original_message(embeds=embed)
         else:
-            await ctx.edit_original_message(embed=embed)
+            if components != 0:
+                await ctx.edit_original_message(embed=embed, components=components)
+            else:
+                await ctx.edit_original_message(embed=embed)
+
 
 def setup(bot):
     bot.add_cog(ButtonHandler(bot))

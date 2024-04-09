@@ -15,8 +15,13 @@ from utility.general import get_guild_icon
 
 
 
-async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServer, members: List[disnake.Member], role_or_user: disnake.Role | disnake.User,
-                eval_types: List = DEFAULT_EVAL_ROLE_TYPES, test: bool = False,**kwargs):
+async def logic(bot: CustomClient,
+                guild: disnake.Guild,
+                db_server: DatabaseServer,
+                members: List[disnake.Member],
+                role_or_user: disnake.Role | disnake.User,
+                eval_types: List = DEFAULT_EVAL_ROLE_TYPES,
+                test: bool = False, **kwargs):
     time_start = time.time()
     if not guild.chunked:
         if guild.id not in bot.STARTED_CHUNK:
@@ -26,6 +31,7 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
             
     IS_AUTOEVAL = kwargs.pop("auto_eval", False)
     auto_eval_tag = kwargs.pop("auto_eval_tag", None)
+    role_treatment = kwargs.pop("role_treatment", ROLE_TREATMENT_TYPES)
 
     ignored_roles = {r.id for r in db_server.ignored_roles}
     family_roles = {r.id for r in db_server.family_roles}
@@ -196,12 +202,15 @@ async def logic(bot: CustomClient, guild: disnake.Guild, db_server: DatabaseServ
             unless its an ignored role
             but if it is and they have a family account, ignore by skipping
             '''
-            if role not in ROLES_TO_ADD:
+            if role not in ROLES_TO_ADD and "Remove" in role_treatment:
                 if role in ignored_roles:
                     if has_family_account:
                         continue
                 CLASH_ROLES.discard(role)
                 removed += f"<@&{role}> "
+
+        if "Add" not in role_treatment:
+            ROLES_TO_ADD = set()
 
         added = ""
         for role in ROLES_TO_ADD:

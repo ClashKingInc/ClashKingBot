@@ -12,7 +12,7 @@ from classes.tickets import OpenTicket, TicketPanel, LOG_TYPE
 from classes.DatabaseClient.familyclient import FamilyClient
 from assets.emojis import SharedEmojis
 from collections import deque
-from commands.reminders.send_reminders import clan_games_reminder, clan_capital_reminder, inactivity_reminder, roster_reminder
+from commands.reminders.send import clan_games_reminder, clan_capital_reminder, inactivity_reminder, roster_reminder
 
 has_started = False
 has_readied = False

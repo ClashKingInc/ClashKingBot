@@ -1,20 +1,18 @@
 import disnake
 
-from disnake.ext import commands
-from utility.discord_utils import check_commands
-from typing import TYPE_CHECKING
 from classes.bot import CustomClient
-from classes.server import CustomServer
+from discord import convert
+from disnake.ext import commands
+from exceptions.CustomExceptions import MessageException
+from utility.general import get_guild_icon
+from utility.discord_utils import check_commands
 from utility.constants import DEFAULT_EVAL_ROLE_TYPES
 from utility.discord_utils import interaction_handler
-from exceptions.CustomExceptions import MessageException
 from utility.components import create_components
-from discord import convert
 from .utils import logic, family_role_add, family_role_remove
 
 
-
-class eval(commands.Cog, name="Eval"):
+class eval(commands.Cog, name="Refresh"):
     """A couple of simple commands."""
 
     def __init__(self, bot: CustomClient):
@@ -124,18 +122,18 @@ class eval(commands.Cog, name="Eval"):
 
     @commands.slash_command(name="autorefresh")
     async def auto_refresh(self, ctx):
-        pass
+        await ctx.response.defer()
 
 
-
-    @auto_refresh.sub_command(name="options", description="Set settings for autoeval")
+    @auto_refresh.sub_command(name="options", description="Set settings for autorefresh")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def auto_refresh_options(self, ctx: disnake.ApplicationCommandInteraction,
                                 role_treatment: str = commands.Param(default=None, choices=["Add", "Remove", "Both"]),
                                 nickname_change: str = commands.Param(default=None, choices=["True", "False"]),
                                 blacklist_role_add: disnake.Role = None,
-                                blacklist_role_remove: disnake.Role = None):
-        await ctx.response.defer()
+                                blacklist_role_remove: disnake.Role = None,
+                                change_log: disnake.TextChannel | disnake.Thread = None):
+
         if blacklist_role_add == blacklist_role_remove and isinstance(blacklist_role_add, disnake.Role):
             raise MessageException("Cannot both remove and add the same role to/from blacklist at the same time")
 
@@ -153,6 +151,9 @@ class eval(commands.Cog, name="Eval"):
             await db_server.set_auto_eval_nickname(nickname_change == "True")
             changed_text += f"- **Nickname Change:** {nickname_change}\n"
 
+        if change_log:
+            await db_server.set
+
         if blacklist_role_add is not None:
             if blacklist_role_add.id in db_server.blacklisted_roles:
                 raise MessageException(f"{blacklist_role_add.mention} is already in the autoeval blacklisted roles.")
@@ -165,6 +166,7 @@ class eval(commands.Cog, name="Eval"):
             await db_server.remove_blacklisted_role(id=blacklist_role_remove.id)
             changed_text += f"- **BlackList Role Removed:** {blacklist_role_remove.mention}\n"
 
+
         if changed_text == "":
             changed_text = "No Changes Made!"
 
@@ -176,10 +178,23 @@ class eval(commands.Cog, name="Eval"):
 
 
 
-    @auto_refresh.sub_command(name="triggers", description="Set triggers for autoeval")
+    @auto_refresh.sub_command(name="triggers", description="Set triggers for autorefresh")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def auto_eval_options(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
+        db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
+        choices = []
+        for choice in ["Member Join", "Member Leave", "Townhall Change", "League Change", "Role Change"]:
+            choices.append(disnake.SelectOption(label=choice, value=choice.replace(" ", "_").lower()))
+
+        trigger_select = disnake.ui.ActionRow(disnake.ui.Select(options=choices, placeholder="Choose Trigger Types", max_values=5))
+        await ctx.edit_original_message(content="**Choose your new triggers below**", components=[trigger_select])
+        res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
+
+        await db_server.set_auto_eval_triggers(triggers=res.values)
+        embed = disnake.Embed(title=f"{ctx.guild.name} AutoRefresh Triggers Updated",
+                              description=''.join(f'- {r.replace("_", " ").title()}\n' for r in res.values), color=db_server.embed_color)
+        embed.set_thumbnail(url=get_guild_icon(guild=ctx.guild))
+        await ctx.edit_original_message(embed=embed, content=None, components=None)
 
 
     @commands.slash_command(name="roles")

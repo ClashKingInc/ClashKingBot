@@ -585,7 +585,7 @@ async def family_donations(bot: CustomClient, server: disnake.Guild, season: str
     holder = namedtuple("holder", ["tag", "donations", "received"])
     hold_items = []
     for clan_stats in family_clan_donations:
-        season_stats = clan_stats.get(season)
+        season_stats = clan_stats.get(season, {})
         for tag, data in season_stats.items():
             hold_items.append(holder(tag=tag,
                                      donations= data.get("donated", 0),

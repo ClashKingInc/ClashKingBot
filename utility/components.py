@@ -1,14 +1,13 @@
+import coc
 import disnake
-from typing import TYPE_CHECKING
+
 from classes.bot import CustomClient
 from classes.player import MyCustomPlayer
-from typing import List
-import coc
+from typing import List, Union
 from utility.constants import BOARD_TYPES
-from typing import Union
 
 
-def create_components(current_page, embeds, print=False):
+def create_components(current_page, embeds, print:bool =False):
     length = len(embeds)
     if length == 1:
         return []
@@ -112,6 +111,7 @@ def player_components(players: List[MyCustomPlayer]):
 
     return [st2]
 
+
 def clan_board_components(bot: CustomClient, season: Union[str, None], clan_tag: str, type: str):
     buttons = disnake.ui.ActionRow()
     if season is None or season == bot.gen_season_date():
@@ -160,6 +160,7 @@ def clan_component(bot: CustomClient, all_clans: List[coc.Clan], clan_page:int =
     )
 
     return disnake.ui.ActionRow(clan_select)
+
 
 async def basic_clan_dropdown(clans: List[coc.Clan], max_choose=1):
     clan_options = []

@@ -20,7 +20,7 @@ class Linking(commands.Cog):
 
     @commands.slash_command(name="link", description="Link clash of clans accounts to your discord profile")
     async def link(self, ctx: disnake.ApplicationCommandInteraction,
-                   player: coc.Player = commands.Param(autocomplete=autocomplete.all_players, converter=convert.player),
+                   player: coc.Player = commands.Param(autocomplete=autocomplete.family_players, converter=convert.player),
                    user: disnake.Member = None,
                    api_token: str = None,
                    greet=commands.Param(default="Yes", choices=["Yes", "No"])):
@@ -46,7 +46,7 @@ class Linking(commands.Cog):
             raise MessageException(f"[{player.name}]({player.share_link}) is linked to {user.mention} already!")
 
         #if its a relink by a regular user or the server requires api token
-        if not (ctx.user.guild_permissions.manage_guild or self.bot.white_list_check(ctx=ctx, command_name="setup user-settings")) and (server.use_api_token or is_linked):
+        if not ctx.user.guild_permissions.manage_guild or (not self.bot.white_list_check(ctx=ctx, command_name="link")) and (server.use_api_token or is_linked):
             verified = await self.bot.coc_client.verify_player_token(player.tag, str(api_token))
             #if not verified but is linked to someone, explain
             if not verified and is_linked:

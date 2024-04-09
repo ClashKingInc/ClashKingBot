@@ -1,24 +1,24 @@
-import disnake
 import coc
+import disnake
+import pendulum as pend
 
-from utility.discord_utils import check_commands
-from disnake.ext import commands
-from typing import Union, List
-from .utils import create_war_reminder, create_games_reminder, create_roster_reminder, create_capital_reminder, create_inactivity_reminder
 from classes.bot import CustomClient
+from disnake.ext import commands
+from discord.options import convert, autocomplete
 from exceptions.CustomExceptions import NotValidReminderTime
+from .send import war_reminder
+from typing import Union, List
+from .utils import create_war_reminder, create_games_reminder, create_roster_reminder, create_capital_reminder, create_inactivity_reminder, edit_reminder
+from .utils import gen_war_times, gen_capital_times, gen_roster_times, gen_inactivity_times, gen_clan_games_times
+from utility.discord_utils import check_commands, interaction_handler
+from utility.components import clan_component
+from utility.time import time_difference
 
-class ReminderCreation(commands.Cog, name="Reminders"):
+
+class ReminderCommands(commands.Cog, name="Reminders"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-
-    async def clan_converter(self, clan_tag: str):
-        clan = await self.bot.getClan(clan_tag=clan_tag, raise_exceptions=True)
-        if clan.member_count == 0:
-            raise coc.errors.NotFound
-        return clan
-
 
     @commands.slash_command(name="reminders")
     async def reminders(self, ctx):
@@ -28,8 +28,8 @@ class ReminderCreation(commands.Cog, name="Reminders"):
     @reminders.sub_command(name="create", description="Create reminders for your server - Wars, Raids, Inactivity & More")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def setup_reminders(self, ctx: disnake.ApplicationCommandInteraction,
-                              type = commands.Param(choices=["War & CWL", "Clan Capital", "Inactivity", "Clan Games", "Roster"]),
-                              times = commands.Param(name="time_left"),
+                              type=commands.Param(choices=["War & CWL", "Clan Capital", "Inactivity", "Clan Games", "Roster"]),
+                              times=commands.Param(name="time_left", autocomplete=autocomplete.reminder_times),
                               channel: Union[disnake.TextChannel, disnake.Thread] = None):
         """
             Parameters
@@ -38,50 +38,48 @@ class ReminderCreation(commands.Cog, name="Reminders"):
             times: times for reminder to go off, use commas to enter multiple times
             channel: channel for reminder, if blank will use channel command is run in
         """
-
         await ctx.response.defer()
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
 
-        if channel is None:
-            channel = ctx.channel
+        channel = channel or ctx.channel
         temp_times = times.split(",")
         new_times = []
 
         if type == "War & CWL":
             for t in temp_times:
                 t = t.replace(" ", "")
-                if t not in self.gen_war_times():
+                if t not in gen_war_times():
                     raise NotValidReminderTime
                 new_times.append(f"{t[:-2]} hr")
-            await ReminderUtils.create_war_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times)
+            await create_war_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times, embed_color=embed_color)
         elif type == "Clan Capital":
             for t in temp_times:
                 t = t.replace(" ", "")
-                if t not in self.gen_capital_times():
+                if t not in gen_capital_times():
                     raise NotValidReminderTime
                 new_times.append(f"{t[:-2]} hr")
-            await ReminderUtils.create_capital_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times)
+            await create_capital_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times, embed_color=embed_color)
         elif type == "Clan Games":
             for t in temp_times:
                 t = t.replace(" ", "")
-                if t not in self.gen_clan_games_times():
+                if t not in gen_clan_games_times():
                     raise NotValidReminderTime
                 new_times.append(f"{t[:-2]} hr")
-            await ReminderUtils.create_games_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times)
+            await create_games_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times, embed_color=embed_color)
         elif type == "Inactivity":
             for t in temp_times:
                 t = t.replace(" ", "")
-                if t not in self.gen_inactivity_times():
+                if t not in gen_inactivity_times():
                     raise NotValidReminderTime
                 new_times.append(f"{t[:-2]} hr")
-            await ReminderUtils.create_inactivity_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times)
-
+            await create_inactivity_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times, embed_color=embed_color)
         elif type == "Roster":
             for t in temp_times:
                 t = t.replace(" ", "")
-                if t not in self.gen_roster_times():
+                if t not in gen_roster_times():
                     raise NotValidReminderTime
                 new_times.append(f"{t[:-2]} hr")
-            await ReminderUtils.create_roster_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times)
+            await create_roster_reminder(bot=self.bot, ctx=ctx, channel=channel, times=new_times, embed_color=embed_color)
 
         await ctx.edit_original_message(content=f"Setup Complete!", components=[])
 
@@ -89,32 +87,45 @@ class ReminderCreation(commands.Cog, name="Reminders"):
     @reminders.sub_command(name="edit", description="edit or delete reminders on your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def edit_reminders(self, ctx: disnake.ApplicationCommandInteraction,
-                               clan: coc.Clan = commands.Param(converter=clan_converter),
-                               type = commands.Param(choices=["War & CWL", "Clan Capital", "Inactivity", "Clan Games", "Roster"])):
+                             clan: coc.Clan = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan),
+                             type=commands.Param(choices=["War & CWL", "Clan Capital", "Inactivity", "Clan Games", "Roster"])):
         await ctx.response.defer()
-        type_to_type = {"War & CWL" : "War", "Clan Capital" : "Clan Capital", "Inactivity" : "inactivity", "Clan Games" : "Clan Games", "Roster" : "roster"}
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+        type_to_type = {"War & CWL": "War", "Clan Capital": "Clan Capital", "Inactivity": "inactivity", "Clan Games": "Clan Games", "Roster": "roster"}
         r_type = type_to_type[type]
-        await ReminderUtils.edit_reminder(bot=self.bot, clan=clan, ctx=ctx, type=r_type)
+        await edit_reminder(bot=self.bot, clan=clan, ctx=ctx, type=r_type, embed_color=embed_color)
 
 
     @reminders.sub_command(name="manual", description="send a manual reminder")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def manual_reminders(self, ctx: disnake.ApplicationCommandInteraction,
-                             clan: coc.Clan = commands.Param(converter=clan_converter),
-                             type=commands.Param(choices=["War & CWL"])):
-        await ctx.response.defer()
-        pass
+                               clan: coc.Clan = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan),
+                               type = commands.Param(choices=["War & CWL"]),
+                               channel: disnake.TextChannel | disnake.Thread = None):
+        await ctx.response.defer(ephemeral=True)
+        channel = channel or ctx.channel
+        war = await self.bot.coc_client.get_current_war(clan_tag=clan.tag)
+        event = {
+            "time" : time_difference(start=pend.now(tz=pend.UTC), end=war.end_time.time.replace(tzinfo=pend.UTC)),
+            "clan_tag" : clan.tag,
+            "data" : war._raw_data
+        }
+        await war_reminder(bot=self.bot, event=event, manual_send=True, channel=channel)
+        await ctx.edit_original_message(content=f"Reminder sent to {channel.mention}")
 
 
     @reminders.sub_command(name="list", description="Get the list of reminders set up on the server")
     async def reminder_list(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
-        embed = disnake.Embed(title=f"**{ctx.guild.name} Reminders List**", color=disnake.Color.green())
         all_reminders_tags = await self.bot.reminders.distinct("clan", filter={"$and": [{"server": ctx.guild.id}]})
-        for tag in all_reminders_tags:
-            clan = await self.bot.getClan(clan_tag=tag)
-            if clan is None:
-                continue
+        clans = await self.bot.get_clans(tags=all_reminders_tags)
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+
+        dropdown = [clan_component(bot=self.bot, all_clans=clans, clan_page=0, max_choose=1)]
+
+        async def reminder_list_embed(clan: coc.Clan, embed_color: disnake.Color):
+            tag = clan.tag
+
             reminder_text = ""
             clan_capital_reminders = await self.bot.reminders.find({"$and": [{"clan": tag}, {"type": "Clan Capital"}, {"server": ctx.guild.id}]}).to_list(length=None)
             clan_capital_reminders = sorted(clan_capital_reminders, key=lambda l: float(str(l.get('time')).replace("hr", "")), reverse=False)
@@ -159,71 +170,22 @@ class ReminderCreation(commands.Cog, name="Reminders"):
                 war_reminder_text.append(f"`{reminder.get('time')}` - <#{reminder.get('channel')}>")
             if war_reminder_text:
                 reminder_text += "**War:** \n" + "\n".join(war_reminder_text) + "\n"
-            emoji = await self.bot.create_new_badge_emoji(url=clan.badge.url)
+
             if reminder_text == "":
-                continue
-            embed.add_field(name=f"{emoji}{clan.name}", value=reminder_text, inline=False)
-        await ctx.edit_original_message(embed=embed)
+                reminder_text = "No Reminders"
+
+            embed = disnake.Embed(title=f"**{clan.name} Reminders List**", description=reminder_text, color=embed_color)
+            embed.set_thumbnail(url=clan.badge.url)
+            return embed
+
+        await ctx.edit_original_message(embed=(await reminder_list_embed(clans[0], embed_color=embed_color)), components=dropdown)
+        while True:
+            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
+            clan_tag = res.values[0].split("_")[-1]
+            embed = await reminder_list_embed(clan=coc.utils.get(clans, tag=clan_tag), embed_color=embed_color)
+            await res.edit_original_message(embed=embed)
 
 
-    @edit_reminders.autocomplete("clan")
-    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
-        clan_list = []
-        for tClan in await tracked.to_list(length=limit):
-            name = tClan.get("name")
-            tag = tClan.get("tag")
-            if query.lower() in name.lower():
-                clan_list.append(f"{name} | {tag}")
-        return clan_list[:25]
-
-    @setup_reminders.autocomplete("time_left")
-    async def reminder_autocomp(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        if ctx.filled_options["type"] == "War & CWL":
-            all_times = self.gen_war_times()
-        elif ctx.filled_options["type"] == "Clan Capital":
-            all_times = self.gen_capital_times()
-        elif ctx.filled_options["type"] == "Clan Games":
-            all_times = self.gen_clan_games_times()
-        elif ctx.filled_options["type"] == "Inactivity":
-            all_times = self.gen_inactivity_times()
-        elif ctx.filled_options["type"] == "Roster":
-            all_times = self.gen_roster_times()
-        else:
-            return ["Not a valid reminder type"]
-        if len(query.split(",")) >= 2:
-            new_query = query.split(",")[-1]
-            previous_split = query.split(",")[:-1]
-            previous_split = [item.strip() for item in previous_split]
-            previous = ", ".join(previous_split)
-            return [f"{previous}, {time}" for time in all_times if
-                    new_query.lower().strip() in time.lower() and time not in previous_split][:25]
-        else:
-            return [time for time in all_times if query.lower() in time.lower()][:25]
-
-    def gen_war_times(self):
-        all_times = (x * 0.25 for x in range(1, 193))
-        all_times = [f"{int(time)}hr" if time.is_integer() else f"{time}hr" for time in all_times]
-        return all_times
-
-    def gen_capital_times(self):
-        all_times = [1, 2, 4, 6, 8, 12, 16, 24]
-        all_times = [f"{int(time)}hr" for time in all_times]
-        return all_times
-
-    def gen_clan_games_times(self):
-        all_times = [1, 2, 4, 6, 12, 24, 36, 48, 72, 96, 120, 144]
-        all_times = [f"{time}hr" for time in all_times]
-        return all_times
-
-    def gen_roster_times(self):
-        all_times = [0.25, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 48, 64, 72, 96, 112, 120, 136, 144]
-        all_times = [f"{time}hr" for time in all_times]
-        return all_times
-
-    def gen_inactivity_times(self):
-        return ["24hr", "48hr", "72hr", "144hr", "288hr"]
 
 def setup(bot: CustomClient):
-    bot.add_cog(ReminderCreation(bot))
+    bot.add_cog(ReminderCommands(bot))

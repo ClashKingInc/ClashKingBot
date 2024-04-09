@@ -1,7 +1,7 @@
 from disnake.ext import commands
 from classes.bot import CustomClient
 from background.logs.events import reminder_ee
-from commands.reminders.send_reminders import war_reminder
+from commands.reminders.send import war_reminder
 
 
 class RemindersLog(commands.Cog):

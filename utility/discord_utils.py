@@ -1,12 +1,11 @@
+import disnake
+import motor.motor_asyncio
 import os
 
-import disnake
-from disnake.ext import commands
 from assets.emojis import SharedEmojis
-from typing import Callable, Union
+from disnake.ext import commands
 from exceptions.CustomExceptions import *
-from typing import List
-import motor.motor_asyncio
+from typing import Callable, Union, List
 
 
 def check_commands():
@@ -203,7 +202,7 @@ def iter_embed_creation(base_embed: disnake.Embed, iter: List, scheme: str, brk:
 registered_functions = {}
 
 
-def register_button(command_name: str, parser: str, ephemeral: bool = False, no_embed: bool = False):
+def register_button(command_name: str, parser: str, ephemeral: bool = False, no_embed: bool = False, components: Callable = None):
     def decorator(func):
         registered_functions[command_name] = (func, parser, ephemeral, no_embed)
         return func

@@ -1,18 +1,17 @@
-import time
 
 import coc
 import disnake
-
-from typing import TYPE_CHECKING
-from classes.bot import CustomClient
-from typing import List
-from exceptions.CustomExceptions import MessageException
 import pendulum as pend
 import re
+import time
+
+from classes.bot import CustomClient
 from classes.player import MyCustomPlayer
-import aiohttp
-import ujson
+from exceptions.CustomExceptions import MessageException
+from typing import List
 from utility.general import get_guild_icon
+from utility.discord_utils import register_button
+
 
 async def image_board(bot: CustomClient, clan: coc.Clan, server: disnake.Guild, type: str, limit: int, **kwargs):
     if clan is None:
@@ -89,4 +88,46 @@ async def image_board(bot: CustomClient, clan: coc.Clan, server: disnake.Guild, 
             link = await response.json()
         await session.close()
     return f'{link.get("link")}?t={int(pend.now(tz=pend.UTC).timestamp())}'
+
+
+async def location_components(bot: CustomClient, loc_type: str, **kwargs):
+    return None
+
+
+@register_button("locationlb", parser="_:loc_type:location:limit", components=location_components)
+async def location_image_board(bot: CustomClient, loc_type: str, location: str, limit: int):
+    if loc_type:
+        pass
+
+    '''data = []
+    t = time.time()
+   
+    columns = ['Name', "Start", "Atk", "Def", "Net", "Current"]
+    badges = [player.clan_badge_link() for player in players]
+    count = len(players) + 1 + start_number
+    for player in players:
+        count -= 1
+        c = f"{count}."
+        day = player.legend_day()
+        if day.net_gain >= 0:
+            net_gain = f"+{day.net_gain}"
+        else:
+            net_gain = f"{day.net_gain}"
+        data.append([f"{c:3} {player.name.replace('$','')}", player.trophy_start(), f"{day.attack_sum}{day.num_attacks.superscript}", f"{day.defense_sum}{day.num_defenses.superscript}", net_gain, player.trophies])
+    '''
+
+
+    data = {
+        "columns" : columns,
+        "data" : data,
+        "logo" : get_guild_icon(server) if clan is None else clan.badge.url,
+        "badge_columns" : badges,
+        "title" : re.sub('[*_`~/"#]', '', f"{(clan or server).name} Top {limit} {type.title()}"),
+    }
+    async with aiohttp.ClientSession(json_serialize=ujson.dumps) as session:
+        async with session.post("https://api.clashking.xyz/table", json=data) as response:
+            link = await response.json()
+        await session.close()
+    return f'{link.get("link")}?t={int(pend.now(tz=pend.UTC).timestamp())}'
+
 

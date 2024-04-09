@@ -10,7 +10,6 @@ from disnake.ext import commands
 from typing import Union
 from exceptions.CustomExceptions import *
 from classes.server import DatabaseClan
-from classes.enums import LinkParseTypes
 from classes.bot import CustomClient
 from utility.discord_utils import  interaction_handler, get_webhook_for_channel, registered_functions, check_commands
 from utility.general import calculate_time, get_guild_icon
@@ -24,12 +23,6 @@ class SetupCommands(commands.Cog , name="Setup"):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.color = disnake.Color.dark_theme()
-
-    async def clan_converter(self, clan_tag: str):
-        clan = await self.bot.getClan(clan_tag=clan_tag, raise_exceptions=True)
-        if clan.member_count == 0:
-            raise coc.errors.NotFound
-        return clan
 
 
     @commands.slash_command(name="setup")
@@ -396,7 +389,8 @@ class SetupCommands(commands.Cog , name="Setup"):
 
     @setup.sub_command(name="autoeval", description="Turn autoeval on/off")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def autoeval(self, ctx: disnake.ApplicationCommandInteraction, option=commands.Param(choices=["On", "Off"]),
+    async def autoeval(self, ctx: disnake.ApplicationCommandInteraction,
+                       option=commands.Param(choices=["On", "Off"]),
                        log: Union[disnake.TextChannel, disnake.Thread] = commands.Param(default=None, name="log")):
         await ctx.response.defer()
 
@@ -527,7 +521,8 @@ class SetupCommands(commands.Cog , name="Setup"):
 
     @setup.sub_command(name="reddit-recruit-feed", description="Feed of searching for a clan posts on the recruiting subreddit")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def reddit_recruit(self, ctx: disnake.ApplicationCommandInteraction, channel: Union[disnake.TextChannel, disnake.Thread],
+    async def reddit_recruit(self, ctx: disnake.ApplicationCommandInteraction,
+                             channel: Union[disnake.TextChannel, disnake.Thread],
                              role_to_ping: disnake.Role = None,
                              remove=commands.Param(default=None, choices=["Remove Feed"])):
         """
@@ -558,7 +553,8 @@ class SetupCommands(commands.Cog , name="Setup"):
 
     @setup.sub_command(name="countdowns", description="Create countdowns for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def voice_setup(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(default=None, converter=clan_converter)):
+    async def voice_setup(self, ctx: disnake.ApplicationCommandInteraction,
+                          clan: coc.Clan = commands.Param(default=None, converter=convert.clan)):
         """
             Parameters
             ----------
@@ -720,14 +716,16 @@ class SetupCommands(commands.Cog , name="Setup"):
     async def link_parse(self, ctx: disnake.ApplicationCommandInteraction,
                          army_links: str = commands.Param(default=None, choices=["On", "Off"]),
                          player_links: str = commands.Param(default=None, choices=["On", "Off"]),
-                         clan_links: str = commands.Param(default=None, choices=["On", "Off"])):
+                         clan_links: str = commands.Param(default=None, choices=["On", "Off"]),
+                         base_links: str = commands.Param(default=None, choices=["On", "Off"]),
+                         show_parse: str = commands.Param(default=None, description="the -show command", choices=["On", "Off"])):
         await ctx.response.defer()
         if army_links == player_links == clan_links is None:
             pass
         ck_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
-        link_types = [LinkParseTypes.army, LinkParseTypes.player, LinkParseTypes.clan]
+        link_types = ["army", "player", "clan", "base", "show"]
         text = ""
-        for link_type, option in zip(link_types,[army_links, player_links, clan_links]):
+        for link_type, option in zip(link_types,[army_links, player_links, clan_links, base_links, show_parse]):
             if option is None:
                 continue
             await ck_server.set_allowed_link_parse(type=link_type, status=(option == "On"))

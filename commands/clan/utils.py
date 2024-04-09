@@ -974,7 +974,7 @@ async def war_log(bot: CustomClient, clan: coc.Clan, limit=25, embed_color: disn
     embed_description = ""
     wars_counted = 0
     try:
-        war_log = await bot.coc_client.get_warlog(clan.tag, limit=limit)
+        war_log = await bot.coc_client.get_war_log(clan.tag, limit=limit)
     except coc.errors.PrivateWarLog:
         return disnake.Embed(description=f"{clan.name} has a private war log", color=disnake.Color.red())
     for war in war_log:

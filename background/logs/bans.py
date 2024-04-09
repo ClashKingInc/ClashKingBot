@@ -1,11 +1,11 @@
-import disnake
 import coc
+import disnake
 
-from disnake.ext import commands
-from classes.server import DatabaseClan
-from typing import TYPE_CHECKING
-from classes.bot import CustomClient
 from background.logs.events import clan_ee
+from classes.server import DatabaseClan
+from classes.bot import CustomClient
+from disnake.ext import commands
+
 
 class BanEvents(commands.Cog):
 
@@ -57,6 +57,7 @@ class BanEvents(commands.Cog):
                         else:
                             await db_clan.set_ban_alert_channel(id=None)
                         continue
+
 
 def setup(bot: CustomClient):
     bot.add_cog(BanEvents(bot))

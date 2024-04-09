@@ -3,6 +3,7 @@ import coc
 import pytz
 import re
 
+from coc.miscmodels import Timestamp
 from disnake.ext import commands
 from classes.bot import CustomClient
 from utility.clash.capital import gen_raid_weekend_datestrings
@@ -10,12 +11,15 @@ from utility.search import family_names, search_name_with_tag, all_names
 from utility.general import create_superscript
 from utility.constants import TH_FILTER_OPTIONS, TOWNHALL_LEVELS
 from expiring_dict import ExpiringDict
+from commands.reminders.utils import gen_war_times, gen_capital_times, gen_roster_times, gen_inactivity_times, gen_clan_games_times
 
 USER_ACCOUNT_CACHE = ExpiringDict()
+
 
 class Autocomplete(commands.Cog, name="Autocomplete"):
     def __init__(self, bot: CustomClient):
         self.bot = bot
+
 
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
@@ -249,6 +253,88 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
             if query.lower() in alias.lower():
                 alias_list.append(f"{alias}")
         return alias_list[:25]
+
+
+    async def reminder_times(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        if ctx.filled_options["type"] == "War & CWL":
+            all_times = gen_war_times()
+        elif ctx.filled_options["type"] == "Clan Capital":
+            all_times = gen_capital_times()
+        elif ctx.filled_options["type"] == "Clan Games":
+            all_times = gen_clan_games_times()
+        elif ctx.filled_options["type"] == "Inactivity":
+            all_times = gen_inactivity_times()
+        elif ctx.filled_options["type"] == "Roster":
+            all_times = gen_roster_times()
+        else:
+            return ["Not a valid reminder type"]
+        if len(query.split(",")) >= 2:
+            new_query = query.split(",")[-1]
+            previous_split = query.split(",")[:-1]
+            previous_split = [item.strip() for item in previous_split]
+            previous = ", ".join(previous_split)
+            return [f"{previous}, {time}" for time in all_times if
+                    new_query.lower().strip() in time.lower() and time not in previous_split][:25]
+        else:
+            return [time for time in all_times if query.lower() in time.lower()][:25]
+
+
+    async def previous_wars(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        if ctx.filled_options["clan"] != "":
+            clan = await self.bot.getClan(ctx.filled_options["clan"])
+            results = await self.bot.clan_wars.find({"$or" : [{"data.clan.tag" : clan.tag}, {"data.opponent.tag" : clan.tag}]}).sort("data.endTime", -1).limit(25).to_list(length=25)
+            options = []
+            previous = set()
+            prep_list = [
+                5 * 60,
+                15 * 60,
+                30 * 60,
+                60 * 60,
+                2 * 60 * 60,
+                4 * 60 * 60,
+                6 * 60 * 60,
+                8 * 60 * 60,
+                12 * 60 * 60,
+                16 * 60 * 60,
+                20 * 60 * 60,
+                24 * 60 * 60,
+            ]
+
+            for result in results:
+                custom_id = result.get("custom_id")
+                clan_name = result.get("data").get("clan").get("name")
+                clan_tag = result.get("data").get("clan").get("tag")
+                opponent_name = result.get("data").get("opponent").get("name")
+                end_time = result.get("data").get("endTime")
+                end_time = Timestamp(data=end_time)
+                unique_id = result.get("war_id")
+                if unique_id in previous:
+                    continue
+                previous.add(unique_id)
+                days_ago = abs(end_time.seconds_until) // (24 * 3600)
+                if days_ago == 0:
+                    t = days_ago % (24 * 3600)
+                    hour = t // 3600
+                    time_text = f"{hour}H ago"
+                else:
+                    time_text = f"{days_ago}D ago"
+
+                if result.get("data").get("tag") is not None:
+                    type = "CWL"
+                elif (Timestamp(data=result.get("data").get("startTime")).time - Timestamp(data=result.get("data").get("preparationStartTime")).time).seconds in prep_list:
+                    type = "FW"
+                else:
+                    type = "REG"
+
+                if clan_tag == clan.tag:
+                    text = f"{opponent_name} | {time_text} | {type} | {custom_id}"
+                else:
+                    text = f"{clan_name} | \u200e{time_text} | {type} | {custom_id}"
+                if query.lower() in text.lower():
+                    options.append(text)
+            return options
+
+
 
 
 def setup(bot: CustomClient):

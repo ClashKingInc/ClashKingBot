@@ -1,17 +1,16 @@
-import disnake
-import re
-import pendulum as pd
 import coc
+import disnake
+import pendulum as pd
+import re
 
-from utility.constants import MAX_ARMY_CAMP, MAX_NUM_SPELLS, EMBED_COLOR_CLASS
 from assets.army_ids import troop_ids, spell_ids, size
-from utility.discord_utils import iter_embed_creation, register_button
-from typing import TYPE_CHECKING
+from assets.emojis import SharedEmojis
 from classes.bot import CustomClient
 from collections import defaultdict
 from exceptions.CustomExceptions import MessageException
-from assets.emojis import SharedEmojis
 from typing import List, Dict
+from utility.constants import MAX_ARMY_CAMP, MAX_NUM_SPELLS, EMBED_COLOR_CLASS
+from utility.discord_utils import iter_embed_creation, register_button
 
 
 def army_embed(bot: CustomClient, nick: str, link: str, clan_castle: str, embed_color: disnake.Color=EMBED_COLOR_CLASS):
@@ -40,7 +39,7 @@ def army_embed(bot: CustomClient, nick: str, link: str, clan_castle: str, embed_
             troop_name = troop_ids(int(id))
             if troop_name in eightTroops:
                 isEight = True
-            troop_emoji = emojiDictionary(troop_name)
+            troop_emoji = SharedEmojis.all_emojis.get(troop_name)
             if troop_name not in coc.SIEGE_MACHINE_ORDER:
                 troopSpace += (size(troop_name) * int(num))
                 troop_string += f"{troop_emoji}`x {str(num)}` {troop_name}\n"
@@ -64,7 +63,7 @@ def army_embed(bot: CustomClient, nick: str, link: str, clan_castle: str, embed_
             id = split_num_and_id[1]
             spells_used.append(id)
             spell_name = spell_ids(int(id))
-            spell_emoji = emojiDictionary(spell_name)
+            spell_emoji = SharedEmojis.all_emojis.get(spell_name)
             spell_space += (size(spell_name) * int(num))
             spell_string += f"{spell_emoji}`x {str(num)}` {spell_name}\n"
     else:
@@ -90,6 +89,7 @@ def army_embed(bot: CustomClient, nick: str, link: str, clan_castle: str, embed_
     embed = disnake.Embed(title=nick, description=army, color=embed_color)
     embed.timestamp = pd.now(pd.UTC).now()
     return embed
+
 
 
 def townhall_army(size: int):
@@ -211,7 +211,7 @@ async def clan_boost_embeds(bot: CustomClient, clans: List[coc.Clan], embed_colo
             embed = disnake.Embed(title=f"Boosted Troops", color=embed_color)
             for troop, members in clan_boosted.items():
                 text = "".join([f"- {member}\n" for member in members])
-                embed.add_field(name=f"{emojiDictionary(troop)} {troop}", value=text, inline=False)
+                embed.add_field(name=f"{SharedEmojis.all_emojis.get(troop)} {troop}", value=text, inline=False)
                 embed.timestamp = pd.now(pd.UTC)
                 embed.set_footer(icon_url=clan.badge.url, text=clan.name)
             embeds.append(embed)

@@ -37,26 +37,36 @@ class DatabaseServer():
 
         self.clans = [DatabaseClan(bot=bot, data=d) for d in data.get("clans", [])]
         self.category_roles = data.get("category_roles", {})
+
+
         self.blacklisted_roles: List[int] = data.get("blacklisted_roles", [])
         self.role_treatment: List[str] = data.get("role_treatment", ROLE_TREATMENT_TYPES)
         self.auto_eval_nickname: bool = data.get("auto_eval_nickname", False)
+        self.autoeval_triggers = set(data.get("autoeval_triggers", []))
+        self.auto_eval_log = data.get("autoeval_log")
+        self.auto_eval_status = data.get("autoeval", False)
+
         self.family_label = data.get("family_label", "")
         self.banlist_channel = data.get("banlist")
         self.reddit_feed = data.get("reddit_feed")
         self.embed_color = disnake.Color(data.get("embed_color", 0x2ECC71))
         self.tied_stats_only = data.get("tied", True)
-        self.autoeval_triggers = data.get("autoeval_triggers", [])
 
         self.family_nickname_convention = data.get("nickname_rule", "{discord_display_name}")
         self.non_family_nickname_convention = data.get("non_family_nickname_rule", "{discord_display_name}")
         self.change_nickname = data.get("change_nickname", True)
         self.flair_non_family: bool = data.get("flair_non_family", True)
 
+        self.clan_link_parse = data.get("link_parse", {}).get("clan", True)
+        self.army_link_parse = data.get("link_parse", {}).get("army", True)
+        self.player_link_parse = data.get("link_parse", {}).get("player", True)
+        self.base_link_parse = data.get("base_parse", {}).get("base", True)
+        self.show_command_parse = data.get("link_parse", {}).get("show", True)
+
 
 
     async def set_flair_non_family(self, option: bool):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"flair_non_family": option}})
-
 
 
     async def set_allowed_link_parse(self, type: str, status: bool):
@@ -77,6 +87,14 @@ class DatabaseServer():
 
     async def set_auto_eval_nickname(self, status: bool):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"auto_eval_nickname": status}})
+
+
+    async def set_auto_eval_triggers(self, triggers: List[str]):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"autoeval_triggers": triggers}})
+
+
+    async def set_auto_eval_log(self, id: int | None):
+        await self.bot.server_db.update_one({"server": self.server_id}, {'$set': {"autoeval_log": id}})
 
 
     async def set_banlist_channel(self, id: Union[int, None]):
@@ -130,6 +148,7 @@ class DatabaseServer():
     async def add_status_role(self, months: int, role_id: int):
         await self.bot.server_db.update_one({"server": self.server_id},
                                             {"$addToSet": {f"status_roles": {"months": months, "id" : role_id}}})
+
 
     def get_clan(self, clan_tag: str):
         matching_clan = utils.get(self.clans, tag=clan_tag)

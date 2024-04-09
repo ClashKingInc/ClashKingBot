@@ -173,3 +173,16 @@ TH_FILTER_OPTIONS = sorted(TH_FILTER, reverse=True)
 WHITELIST_OPTIONS = [
     "ticket"
 ]
+
+placeholders = [
+    "https://clashking.b-cdn.net/placeholders/DRC_pose03_groundShadows_5k.png",
+    "https://clashking.b-cdn.net/placeholders/Electrofire%20Wizard.png",
+    "https://clashking.b-cdn.net/placeholders/Frosty.png",
+    "https://clashking.b-cdn.net/placeholders/Goblin%20Champion%20July%202023.png",
+    "https://clashking.b-cdn.net/placeholders/PainterKing_Marketing_Shadow_B.png",
+    "https://clashking.b-cdn.net/placeholders/Royal%20Ghost.png",
+    "https://clashking.b-cdn.net/placeholders/LeagueRC_Pose04_NoShadow.png",
+    "https://clashking.b-cdn.net/placeholders/League%20Queen.png",
+    "https://clashking.b-cdn.net/placeholders/LeagueBK_Pose06_NoShadow.png"
+
+]

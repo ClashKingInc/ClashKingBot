@@ -8,7 +8,7 @@ from classes.bot import CustomClient
 from exceptions.CustomExceptions import MessageException
 from coc import utils
 
-class DatabaseServer():
+class OldDatabaseServer():
     def __init__(self, bot: CustomClient, data):
         self.bot = bot
         self.__data = data

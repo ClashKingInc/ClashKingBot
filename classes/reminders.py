@@ -1,5 +1,4 @@
 from utility.constants import ROLES, TOWNHALL_LEVELS
-from typing import TYPE_CHECKING
 from classes.bot import CustomClient
 from typing import List
 from classes.roster import Roster
@@ -19,7 +18,7 @@ class Reminder:
     @property
     def townhalls(self):
         if self.type != "roster":
-            return self.__data.get("townhalls", list(reversed(TOWNHALL_LEVELS)))
+            return self.__data.get("townhall_filter") or list(reversed(TOWNHALL_LEVELS))
         return None
 
     @property
@@ -79,7 +78,7 @@ class Reminder:
     async def set_townhalls(self, townhalls: List[int]):
         await self.__bot.reminders.update_one(
             {"$and": [{"clan": self.clan_tag}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]},
-            {"$set": {"townhalls": townhalls}})
+            {"$set": {"townhall_filter": townhalls}})
 
     async def set_custom_text(self, custom_text: str):
         await self.__bot.reminders.update_one(

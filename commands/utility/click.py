@@ -1,7 +1,8 @@
 import disnake
+
 from disnake.ext import commands
-from typing import TYPE_CHECKING
 from classes.bot import CustomClient
+
 
 class UtilityButtons(commands.Cog):
     def __init__(self, bot: CustomClient):
@@ -9,32 +10,19 @@ class UtilityButtons(commands.Cog):
 
     @commands.Cog.listener()
     async def on_button_click(self, res: disnake.MessageInteraction):
-        results = await self.bot.bases.find_one({"message_id": res.message.id})
         if res.data.custom_id == "link":
+            results = await self.bot.bases.find_one({"message_id": res.message.id})
             count = results.get("downloads")
             feedback = results.get("feedback")
 
-            r1 = disnake.ui.ActionRow()
-            link_button = disnake.ui.Button(label="Link", emoji="🔗", style=disnake.ButtonStyle.green, custom_id="link")
-            downloads = disnake.ui.Button(label=f"{count + 1} Downloads", emoji="📈", style=disnake.ButtonStyle.green,
-                                          custom_id="who")
-            r1.append_item(link_button)
-            r1.append_item(downloads)
+            row_one = disnake.ui.ActionRow(disnake.ui.Button(label="Link", emoji="🔗", style=disnake.ButtonStyle.grey, custom_id="link"),
+                                           disnake.ui.Button(label=f"{count + 1} Downloads", emoji="📈", style=disnake.ButtonStyle.grey, custom_id="who"))
 
-            r2 = disnake.ui.ActionRow()
-            feedback = disnake.ui.Button(label=f"Feedback - {len(feedback)}", emoji="💬",
-                                         style=disnake.ButtonStyle.green,
-                                         custom_id="feedback")
-            feedback_button = disnake.ui.Button(label="Leave Feedback", emoji="📩", style=disnake.ButtonStyle.green,
-                                                custom_id="leave")
-            r2.append_item(feedback)
-            r2.append_item(feedback_button)
-            components = [r1, r2]
-            await res.message.edit(components=components)
+            row_two = disnake.ui.ActionRow(disnake.ui.Button(label=f"Feedback - {len(feedback)}", emoji="💬", style=disnake.ButtonStyle.grey, custom_id="feedback"),
+                                           disnake.ui.Button(label="Leave Feedback", emoji="📩", style=disnake.ButtonStyle.grey, custom_id="leave"))
+            await res.message.edit(components=[row_one, row_two])
             await self.bot.bases.update_one({'message_id': res.message.id},
-                                            {'$inc': {'downloads': 1}})
-            await self.bot.bases.update_one({'message_id': res.message.id},
-                                            {'$push': {'downloaders': f"{res.author.mention} [{res.author.name}]"}})
+                                            {'$inc': {'downloads': 1}, '$push': {'downloaders': f"{res.author.mention} [{res.author.name}]"}})
             if not results.get("new", False):
                 await res.send(content=results.get("link"), ephemeral=True)
             else:
@@ -43,6 +31,7 @@ class UtilityButtons(commands.Cog):
 
 
         elif res.data.custom_id == "leave":
+            results = await self.bot.bases.find_one({"message_id": res.message.id})
             await res.response.send_modal(
                 title="Leave Base Feedback",
                 custom_id="feedback-",
@@ -93,8 +82,8 @@ class UtilityButtons(commands.Cog):
                                             {'$push': {'feedback': f"{f} - {modal_inter.author.display_name}"}})
 
 
-
         elif res.data.custom_id == "feedback":
+            results = await self.bot.bases.find_one({"message_id": res.message.id})
             feedback = results.get("feedback")
             if feedback == []:
                 embed = disnake.Embed(
@@ -110,7 +99,9 @@ class UtilityButtons(commands.Cog):
                                       color=disnake.Color.green())
                 return await res.send(embed=embed, ephemeral=True)
 
+
         elif res.data.custom_id == "who":
+            results = await self.bot.bases.find_one({"message_id": res.message.id})
             ds = results.get("downloaders")
             if ds == []:
                 embed = disnake.Embed(

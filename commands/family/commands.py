@@ -17,7 +17,7 @@ class FamilyCommands(commands.Cog, name="Family Commands"):
 
     @family.sub_command(name="compo", description="Composition of values in a family")
     async def compo(self, ctx: disnake.ApplicationCommandInteraction,
-                         type_: str = commands.Param(name="type", default="Townhall", choices=["Townhall", "Trophies", "Location", "Role",  "League"]),
+                         type_: str = commands.Param(name="type", default="Townhall", choices=["Townhall", "Trophies", "Location", "Role", "League"]),
                          server: disnake.Guild = options.optional_family):
         server = server or ctx.guild
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild.id)
@@ -26,14 +26,21 @@ class FamilyCommands(commands.Cog, name="Family Commands"):
         await ctx.edit_original_response(embed=embed, components=[buttons])
 
 
+
     @family.sub_command(name="overview", description="Board showing a family stats overview")
-    async def overview(self, ctx: disnake.ApplicationCommandInteraction, server: disnake.Guild = options.optional_family):
+    async def overview(self, ctx: disnake.ApplicationCommandInteraction,
+                       server: disnake.Guild = options.optional_family,
+                       types: str = commands.Param(choices=["General", "War", "Clan Capital", "Raid Weekend", "Donations", "Activity"])):
         server = server or ctx.guild
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild.id)
-        embed = await family_overview(bot=self.bot, server=server, embed_color=embed_color)
+        if types == "General":
+            embed = await family_overview(bot=self.bot, server=server, embed_color=embed_color)
         buttons = disnake.ui.ActionRow(
             disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=f"familyoverview:{server.id}"))
         await ctx.edit_original_response(embed=embed, components=[buttons])
+
+
+
 
 
     @family.sub_command(name="progress", description="Progress in various areas for the family")

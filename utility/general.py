@@ -1,23 +1,22 @@
+
+import aiohttp
+import calendar
+import coc
+import disnake
+import datetime as dt
+import io
 import random
 
-import coc
-import calendar
-import datetime as dt
-import aiohttp
-import io
-
-from datetime import datetime
-
-import disnake
-
-from utility.constants import war_leagues, SUPER_SCRIPTS
-from utility.clash.other import league_to_emoji
 from coc import utils
-from pytz import utc
-from typing import List, Any
+from datetime import datetime
 from expiring_dict import ExpiringDict
+from pytz import utc
+from typing import List, Callable
+from utility.constants import war_leagues, SUPER_SCRIPTS, placeholders
+from utility.clash.other import league_to_emoji
 
 IMAGE_CACHE = ExpiringDict()
+
 
 async def fetch(url, session, **kwargs):
     async with session.get(url) as response:
@@ -26,6 +25,7 @@ async def fetch(url, session, **kwargs):
         else:
             return await response.json()
 
+
 def create_superscript(num):
     digits = [int(num) for num in str(num)]
     new_num = ""
@@ -33,7 +33,6 @@ def create_superscript(num):
         new_num += SUPER_SCRIPTS[d]
 
     return new_num
-
 
 
 async def calculate_time(type, war: coc.ClanWar= None):
@@ -213,12 +212,14 @@ async def calculate_time(type, war: coc.ClanWar= None):
 
     return text
 
+
 def get_clan_member_tags(clans: List[coc.Clan]) -> List[str]:
     clan_member_tags = []
     for clan in clans:
         for member in clan.members:
             clan_member_tags.append(member.tag)
     return clan_member_tags
+
 
 def response_to_line(response, clan):
     clans = response["clans"]
@@ -282,6 +283,7 @@ def response_to_line(response, clan):
 
     return (f"{emoji} {league_to_emoji(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n", year)
 
+
 def notate_number(number: int, zero=False):
     if number == 0 and not zero:
         return ""
@@ -297,6 +299,7 @@ def notate_number(number: int, zero=False):
         return f"{rounded}K"
     else:
         return number
+
 
 def custom_round(number: int, add_percent=None):
     number = round(number, 1)
@@ -368,18 +371,7 @@ def acronym(stng):
     oupt = oupt.upper()
     return oupt
 
-placeholders = [
-    "https://clashking.b-cdn.net/placeholders/DRC_pose03_groundShadows_5k.png",
-    "https://clashking.b-cdn.net/placeholders/Electrofire%20Wizard.png",
-    "https://clashking.b-cdn.net/placeholders/Frosty.png",
-    "https://clashking.b-cdn.net/placeholders/Goblin%20Champion%20July%202023.png",
-    "https://clashking.b-cdn.net/placeholders/PainterKing_Marketing_Shadow_B.png",
-    "https://clashking.b-cdn.net/placeholders/Royal%20Ghost.png",
-    "https://clashking.b-cdn.net/placeholders/LeagueRC_Pose04_NoShadow.png",
-    "https://clashking.b-cdn.net/placeholders/League%20Queen.png",
-    "https://clashking.b-cdn.net/placeholders/LeagueBK_Pose06_NoShadow.png"
 
-]
 def get_guild_icon(guild: disnake.Guild | None):
     if guild is None:
         icon = None
@@ -390,4 +382,9 @@ def get_guild_icon(guild: disnake.Guild | None):
     return icon.url
 
 
+async def safe_run(func: Callable, **kwargs):
+    try:
+        await func(**kwargs)
+    except Exception:
+        pass
 

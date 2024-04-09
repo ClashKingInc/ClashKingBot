@@ -121,7 +121,7 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
 
 
 
-    '''@player.sub_command(name="accounts", description="List of accounts a user has & combined stats")
+    @player.sub_command(name="accounts", description="List of accounts a user has & combined stats")
     async def list(self, ctx: disnake.ApplicationCommandInteraction, discord_user: disnake.Member = None):
         discord_user = discord_user if discord_user is not None else ctx.author
 
@@ -205,7 +205,7 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
         if type == "Raids":
             return await player_embeds.raid_stalk(bot=self.bot, ctx=ctx, member=member)
         elif type == "CWL":
-            return await player_embeds.cwl_stalk(bot=self.bot,ctx=ctx, member=member)'''
+            return await player_embeds.cwl_stalk(bot=self.bot,ctx=ctx, member=member)
 
 
 

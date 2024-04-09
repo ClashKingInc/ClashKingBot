@@ -2,17 +2,17 @@ import coc
 import disnake
 import uuid
 
-from .utils import army_embed, super_troop_embed, clan_boost_embeds
-from disnake.ext import commands
+from .click import UtilityButtons
 from classes.bot import CustomClient
-
+from discord import options
+from disnake.ext import commands
+from exceptions.CustomExceptions import MessageException
+from .utils import army_embed, super_troop_embed, clan_boost_embeds
 from utility.discord_utils import interaction_handler
 from utility.components import create_components
-from utility.constants import  SUPER_TROOPS
+from utility.constants import SUPER_TROOPS
 from utility.cdn import upload_to_cdn
-from discord import options
 
-from .bbuttons import UtilityButtons
 
 class UtilityCommands(UtilityButtons, commands.Cog, name="Utility"):
 
@@ -20,9 +20,12 @@ class UtilityCommands(UtilityButtons, commands.Cog, name="Utility"):
         super().__init__(bot)
         self.bot = bot
 
+
     @commands.slash_command(name='army', description="Create a visual message representation of an army link")
     async def army(self, ctx: disnake.ApplicationCommandInteraction,
-                   link: str, nickname: str = "Results", clan_castle: str = "None"):
+                   link: str,
+                   nickname: str = "Results",
+                   clan_castle: str = "None"):
         """
             Parameters
             ----------
@@ -96,25 +99,26 @@ class UtilityCommands(UtilityButtons, commands.Cog, name="Utility"):
 
 
     @commands.slash_command(name="base")
-    async def base(self, ctx: disnake.ApplicationCommandInteraction, base_link: str, description: str, photo: disnake.Attachment):
-        if 'https://link.clashofclans.com/' and "=OpenLayout&id=" not in base_link:
-            await ctx.response.defer(ephemeral=True)
-            return await ctx.send("Not a valid base link")
+    async def base(self, ctx: disnake.ApplicationCommandInteraction,
+                   base_link: str, description: str,
+                   photo: disnake.Attachment):
         await ctx.response.defer()
+
+        if 'https://link.clashofclans.com/' not in base_link or "=OpenLayout&id=" not in base_link:
+            raise MessageException("Not a Valid Base Link")
+
         description = description[0:1900]
         description = description.replace("&&", "\n")
 
         r1 = disnake.ui.ActionRow()
-        link_button = disnake.ui.Button(label="Link", emoji="🔗", style=disnake.ButtonStyle.green, custom_id="link")
-        downloads = disnake.ui.Button(label="0 Downloads", emoji="📈", style=disnake.ButtonStyle.green, custom_id="who")
+        link_button = disnake.ui.Button(label="Link", emoji="🔗", style=disnake.ButtonStyle.grey, custom_id="link")
+        downloads = disnake.ui.Button(label="0 Downloads", emoji="📈", style=disnake.ButtonStyle.grey, custom_id="who")
         r1.append_item(link_button)
         r1.append_item(downloads)
 
         r2 = disnake.ui.ActionRow()
-        feedback = disnake.ui.Button(label="Feedback", emoji="💬", style=disnake.ButtonStyle.green,
-                                     custom_id="feedback")
-        feedback_button = disnake.ui.Button(label="Leave Feedback", emoji="📈", style=disnake.ButtonStyle.green,
-                                            custom_id="leave")
+        feedback = disnake.ui.Button(label="Feedback", emoji="💬", style=disnake.ButtonStyle.grey, custom_id="feedback")
+        feedback_button = disnake.ui.Button(label="Leave Feedback", emoji="📈", style=disnake.ButtonStyle.grey, custom_id="leave")
         r2.append_item(feedback)
         r2.append_item(feedback_button)
 

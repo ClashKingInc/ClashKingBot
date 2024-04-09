@@ -1,27 +1,28 @@
-from disnake.ext import commands
-import disnake
 import coc
-from utility.components import create_components
-from typing import TYPE_CHECKING
+import disnake
+import emoji
+import math
+
 from classes.bot import CustomClient
 from classes.player import MyCustomPlayer
-from utility.components import leaderboard_components
-from exceptions.CustomExceptions import MessageException
-from utility.discord_utils import interaction_handler
-from typing import List
 from discord import options
-import math
-import emoji
+from disnake.ext import commands
+from exceptions.CustomExceptions import MessageException
+from utility.components import create_components, leaderboard_components
+from utility.discord_utils import interaction_handler
 from .utils import image_board
+
 
 class Leaderboards(commands.Cog, name="Leaderboards"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
+
     @commands.slash_command(name="leaderboard")
     async def leaderboard(self, ctx):
         pass
+
 
     @leaderboard.sub_command(name="family", description="Server's player trophy leaderboard")
     async def top(self, ctx: disnake.ApplicationCommandInteraction, limit: int = 100):
@@ -133,6 +134,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                 return
 
 
+
     @leaderboard.sub_command(name="image", description="Image Board")
     async def image(self, ctx: disnake.ApplicationCommandInteraction,
                     clan: coc.Clan = options.optional_clan,
@@ -149,7 +151,6 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
         await ctx.edit_original_message(content="Image Board Created!")
 
         await ctx.channel.send(content=file, components=[])
-
 
 
     @leaderboard.sub_command(name="legends", description="Server's legend players leaderboard")
@@ -173,7 +174,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
         sort_type = 6
         current_page = 0
 
-        picture = await shared_embeds.image_board(bot=self.bot, players=legend_players_chunked[current_page], logo_url=guild_icon, title=f'{ctx.guild.name} Legend Board', type="legend")
+        picture = await image_board(bot=self.bot, players=legend_players_chunked[current_page], logo_url=guild_icon, title=f'{ctx.guild.name} Legend Board', type="legend")
 
         await ctx.edit_original_message(content=picture, components=leaderboard_components(self.bot, current_page, len(legend_players_chunked)))
 
@@ -184,15 +185,15 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
             if res.data.component_type.value == 2:
                 if res.data.custom_id == "Previous":
                     current_page -= 1
-                    picture = await shared_embeds.image_board(bot=self.bot, players=legend_players_chunked[current_page], logo_url=guild_icon,
-                                                              title=f'{ctx.guild.name} Legend Board', type="legend", start_number=20 * current_page)
+                    picture = await image_board(bot=self.bot, players=legend_players_chunked[current_page], logo_url=guild_icon,
+                                                              title=f'{ctx.guild.name} Legend Board', type="legend", start_number=20 * current_page, limit=20)
                     await res.edit_original_message(content=picture,
                                                     components=leaderboard_components(self.bot, current_page, len(legend_players_chunked)))
 
                 elif res.data.custom_id == "Next":
                     current_page += 1
-                    picture = await shared_embeds.image_board(bot=self.bot, players=legend_players_chunked[current_page], logo_url=guild_icon,
-                                                              title=f'{ctx.guild.name} Legend Board', type="legend", start_number=20 * current_page)
+                    picture = await image_board(bot=self.bot, players=legend_players_chunked[current_page], logo_url=guild_icon,
+                                                              title=f'{ctx.guild.name} Legend Board', type="legend", start_number=20 * current_page, limit=20)
                     await res.edit_original_message(content=picture,
                                                     components=leaderboard_components(self.bot, current_page, len(legend_players_chunked)))
 
@@ -212,12 +213,12 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                 elif sort_type == 6:
                     legend_players.sort(key=lambda x: x.trophies, reverse=True)
 
-                # chunk into groups of 30
+                # chunk into groups of 20
                 legend_players_chunked = [legend_players[i * 20:(i + 1) * 20] for i in range((len(legend_players) + 20 - 1) // 20)]
-                picture = await shared_embeds.image_board(bot=self.bot, players=legend_players_chunked[current_page], logo_url=guild_icon,
-                                                          title=f'{ctx.guild.name} Legend Board', type="legend", start_number=20 * current_page)
-                await res.edit_original_message(content=picture,
-                                                components=leaderboard_components(self.bot, current_page, len(legend_players_chunked)))
+                picture = await image_board(bot=self.bot, players=legend_players_chunked[current_page], logo_url=guild_icon,
+                                                          title=f'{ctx.guild.name} Legend Board', type="legend", start_number=20 * current_page, limit=20)
+                await res.edit_original_message(content=picture, components=leaderboard_components(self.bot, current_page, len(legend_players_chunked)))
+
 
     async def create_player_embed(self, ctx, ranking):
         text = ""
@@ -249,6 +250,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                 embed.set_thumbnail(url=ctx.guild.icon.url)
             embeds.append(embed)
         return embeds
+
 
     @leaderboard.sub_command(name="clans", description="Clan leaderboard of a location")
     async def clan_leaderboards(self, ctx: disnake.ApplicationCommandInteraction, country: str ):
@@ -332,6 +334,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                 for embed in embeds:
                     await ctx.send(embed=embed)
 
+
     @leaderboard.sub_command(name="capital", description="Clan Capital leaderboard of a location")
     async def capital_leaderboards(self, ctx: disnake.ApplicationCommandInteraction, country: str):
         """
@@ -409,6 +412,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                 for embed in embeds:
                     await ctx.send(embed=embed)
 
+
     @leaderboard.sub_command(name="players", description="Player leaderboard of a location")
     async def player_leaderboards(self, ctx: disnake.ApplicationCommandInteraction, country: str, limit=100):
         """
@@ -461,7 +465,8 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)
 
-    async def create_country_lb(self, location_id, ctx):
+
+    async def create_country_lb(self, location_id):
 
         if location_id == "global":
             country = await self.bot.coc_client.get_location_players(location_id="global")

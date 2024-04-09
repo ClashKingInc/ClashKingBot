@@ -10,7 +10,7 @@ from classes.bot import CustomClient
 from classes.reminders import Reminder
 
 
-async def war_reminder(bot: CustomClient, event: dict):
+async def war_reminder(bot: CustomClient, event: dict, manual_send: bool = False, channel: disnake.TextChannel = None):
     reminder_time = event.get("time")
     clan_tag = event.get("clan_tag")
     war: coc.ClanWar = coc.ClanWar(data=event.get("data"), client=None, clan_tag=clan_tag)
@@ -30,109 +30,100 @@ async def war_reminder(bot: CustomClient, event: dict):
     links = dict(links)
     players = await bot.get_players(tags=tags, custom=False)
     players.sort(key=lambda x: x.town_hall, reverse=True)
-    try:
-        # channel = await bot.getch_channel(reminder.channel_id)
-        channel = await bot.getch_channel(1197924424863731792)
-    except (disnake.NotFound, disnake.Forbidden):
-        # await reminder.delete()
-        return
 
-    # server = await bot.getch_guild(reminder.server_id)
-    server = await bot.getch_guild(923764211845312533)
+    if not manual_send:
+        all_reminders = bot.reminders.find({"$and": [
+            {"clan": clan_tag},
+            {"type": "War"},
+            {"time": f"{reminder_time} hr"}
+        ]})
+        for reminder in await all_reminders.to_list(length=None):
+            reminder = Reminder(bot=bot, data=reminder)
+            if reminder.server_id not in bot.OUR_GUILDS:
+                continue
 
-    missing_text_list = []
-    missing_text = ""
-    start_text = (f"{bot.emoji.pin}**12 Hours Remaining in War**\n"
-                  f"{bot.emoji.pin}**{war.clan.name} vs {war.opponent.name}**\n"
-                  f"{bot.emoji.wood_swords}{war.clan.attacks_used}/{war.opponent.attacks_used} {bot.emoji.war_star}{war.clan.stars}/{war.opponent.stars}")
-    for war_member in players:
-        num_missing = missing[war_member.tag]
-        name = names[war_member.tag]
-        discord_id = links[war_member.tag]
-        member = await server.getch_member(discord_id)
-        text_to_check = start_text
-        if len(missing_text) + len(text_to_check) + 125 >= 2000:
-            missing_text_list.append(missing_text)
+            war_type = war.type.capitalize() if war.type != "cwl" else war.type.upper()
+            if war_type not in reminder.war_types:
+                continue
+            try:
+                channel = await bot.getch_channel(reminder.channel_id)
+            except (disnake.NotFound, disnake.Forbidden):
+                await reminder.delete()
+                continue
+
+            server = await bot.getch_guild(reminder.server_id)
+            if server is None:
+                continue
+
+            missing_text_list = []
             missing_text = ""
-        if member is None:
-            missing_text += f"({num_missing}/{war.attacks_per_member}) {bot.fetch_emoji(ths[war_member.tag])}{name} | {war_member.tag}\n"
-        else:
-            missing_text += f"({num_missing}/{war.attacks_per_member}) {bot.fetch_emoji(ths[war_member.tag])}{name} | {member.mention}\n"
+            start_text = (f"{bot.emoji.pin}**12 Hours Remaining in War**\n"
+                          f"{bot.emoji.pin}**{war.clan.name} vs {war.opponent.name}**\n"
+                          f"{bot.emoji.wood_swords}{war.clan.attacks_used}/{war.opponent.attacks_used} {bot.emoji.war_star}{war.clan.stars}/{war.opponent.stars}")
+            for war_member in players:
+                num_missing = missing[war_member.tag]
+                name = names[war_member.tag]
+                discord_id = links[war_member.tag]
+                text_to_check = start_text
+                if len(missing_text) + len(text_to_check) + 125 >= 2000:
+                    missing_text_list.append(missing_text)
+                    missing_text = ""
+                if discord_id is None:
+                    missing_text += f"({num_missing}/{war.attacks_per_member}) {bot.fetch_emoji(ths[war_member.tag])}{name} | {war_member.tag}\n"
+                else:
+                    missing_text += f"({num_missing}/{war.attacks_per_member}) {bot.fetch_emoji(ths[war_member.tag])}{name} | <@{discord_id}>\n"
 
-    if missing_text != "":
-        missing_text_list.append(missing_text)
+            if missing_text != "":
+                missing_text_list.append(missing_text)
 
-    for text in missing_text_list:
-        if text == missing_text_list[0]:
-            text = (f"{bot.emoji.clock}**{reminder_time} Hours Remaining in War**\n"
-                    f"{bot.emoji.pin}**{war.clan.name} vs {war.opponent.name}**\n"
-                    f"{bot.emoji.wood_swords}{war.clan.attacks_used}/{war.opponent.attacks_used} {bot.emoji.war_star}{war.clan.stars}/{war.opponent.stars} "
-                    f"{bot.emoji.time} {bot.timestamper(unix_time=int(war.end_time.time.replace(tzinfo=pend.UTC).timestamp())).relative}\n"
-                    f"{text}")
-        try:
-            await channel.send(content=text)
-        except Exception:
-            pass
+            for text in missing_text_list:
+                first_text = (text == missing_text_list[0])
+                last_text = (text == missing_text_list[-1])
+                if first_text:
+                    text = (f"{bot.emoji.clock}**{reminder_time} Remaining in War**\n"
+                            f"{bot.emoji.pin}**{war.clan.name} vs {war.opponent.name}**\n"
+                            f"{bot.emoji.wood_swords}{war.clan.attacks_used}/{war.opponent.attacks_used} {bot.emoji.war_star}{war.clan.stars}/{war.opponent.stars} "
+                            f"{bot.emoji.time} {bot.timestamper(unix_time=int(war.end_time.time.replace(tzinfo=pend.UTC).timestamp())).relative}\n"
+                            f"{text}")
+                if last_text and reminder.custom_text:
+                    text += f"\n{reminder.custom_text}"
 
-    return
-
-    all_reminders = bot.reminders.find({"$and": [
-        {"clan": clan_tag},
-        {"type": "War"},
-        {"time": f"{reminder_time} hr"}
-    ]})
-    for reminder in await all_reminders.to_list(length=None):
-        reminder = Reminder(bot=bot, data=reminder)
-        '''if reminder.server_id not in bot.OUR_GUILDS:
-            continue'''
-
-        war_type = war.type.capitalize() if war.type != "cwl" else war.type.upper()
-        if war_type not in reminder.war_types:
-            continue
-        try:
-            #channel = await bot.getch_channel(reminder.channel_id)
-            channel = await bot.getch_channel(1197924424863731792)
-        except (disnake.NotFound, disnake.Forbidden):
-            #await reminder.delete()
-            continue
-
-        #server = await bot.getch_guild(reminder.server_id)
-        server = await bot.getch_guild(923764211845312533)
-        if server is None:
-            continue
-
+                try:
+                    await channel.send(content=text)
+                except Exception:
+                    pass
+    else:
         missing_text_list = []
         missing_text = ""
-        badge = await bot.create_new_badge_emoji(url=war.clan.badge.url)
-        start_text = f"**12 Hours Remaining in War**\n**{badge}{war.clan.name} vs {war.opponent.name}**\n\n"
+        start_text = (f"{bot.emoji.pin}**12 Hours Remaining in War**\n"
+                      f"{bot.emoji.pin}**{war.clan.name} vs {war.opponent.name}**\n"
+                      f"{bot.emoji.wood_swords}{war.clan.attacks_used}/{war.opponent.attacks_used} {bot.emoji.war_star}{war.clan.stars}/{war.opponent.stars}")
         for war_member in players:
-            if war_member.clan is not None and war_member.clan.tag == war.clan_tag and str(war_member.role) not in reminder.roles:
-                continue
-            if war_member.town_hall not in reminder.townhalls:
-                continue
             num_missing = missing[war_member.tag]
             name = names[war_member.tag]
             discord_id = links[war_member.tag]
-            member = await server.getch_member(discord_id)
-            text_to_check = start_text if len(missing_text_list) == 0 else reminder.custom_text
+            text_to_check = start_text
             if len(missing_text) + len(text_to_check) + 125 >= 2000:
                 missing_text_list.append(missing_text)
                 missing_text = ""
-            if member is None:
+            if discord_id is None:
                 missing_text += f"({num_missing}/{war.attacks_per_member}) {bot.fetch_emoji(ths[war_member.tag])}{name} | {war_member.tag}\n"
             else:
-                missing_text += f"({num_missing}/{war.attacks_per_member}) {bot.fetch_emoji(ths[war_member.tag])}{name} | {member.mention}\n"
+                missing_text += f"({num_missing}/{war.attacks_per_member}) {bot.fetch_emoji(ths[war_member.tag])}{name} | <@{discord_id}>\n"
 
         if missing_text != "":
             missing_text_list.append(missing_text)
 
         for text in missing_text_list:
-            if text == missing_text_list[0]:
-                text = f"**{reminder_time} Hours Remaining in War**\n" \
-                       f"**{badge}{war.clan.name} vs {war.opponent.name}**\n\n" \
-                       f"{text}"
-            if text == missing_text_list[-1]:
-                text += f"\n{reminder.custom_text}"
+            first_text = (text == missing_text_list[0])
+            last_text = (text == missing_text_list[-1])
+            if first_text:
+                text = (f"{bot.emoji.clock}**{reminder_time} Remaining in War**\n"
+                        f"{bot.emoji.pin}**{war.clan.name} vs {war.opponent.name}**\n"
+                        f"{bot.emoji.wood_swords}{war.clan.attacks_used}/{war.opponent.attacks_used} {bot.emoji.war_star}{war.clan.stars}/{war.opponent.stars} "
+                        f"{bot.emoji.time} {bot.timestamper(unix_time=int(war.end_time.time.replace(tzinfo=pend.UTC).timestamp())).relative}\n"
+                        f"{text}")
+
             try:
                 await channel.send(content=text)
             except Exception:

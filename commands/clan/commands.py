@@ -49,7 +49,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
         buttons = disnake.ui.ActionRow(
             disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=custom_id),
-            disnake.ui.Button(label="Open In-Game", url=clan.badge.url, style=disnake.ButtonStyle.url)
+            disnake.ui.Button(label="Open In-Game", url=clan.share_link, style=disnake.ButtonStyle.url)
         )
         await ctx.edit_original_response(embed=embed, components=[buttons])
 

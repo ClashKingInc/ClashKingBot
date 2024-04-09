@@ -24,6 +24,7 @@ import re
 import asyncio
 import aiohttp
 from pymongo import InsertOne
+from meilisearch_python_sdk import AsyncClient
 
 class OwnerCommands(commands.Cog):
 
@@ -203,7 +204,39 @@ class OwnerCommands(commands.Cog):
     @commands.slash_command(name="test", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
-        switcher, emoji_class_dict
+        await ctx.response.defer()
+        client = AsyncClient('http://85.10.200.219:7700', "test", verify=False)
+
+        pipeline = [{"$match": {"$nor" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, {"$group": {"_id": "$tag"}}]
+        all_tags = [x["_id"] for x in (await self.bot.basic_clan.aggregate(pipeline).to_list(length=None))]
+        bot_clan_tags = await self.bot.clan_db.distinct("tag")
+        all_tags = list(set(all_tags + bot_clan_tags))
+        print(f"{len(all_tags)} tags")
+        size_break = 100_000
+        all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
+
+        for tag_group in all_tags:
+            pipeline = [
+               {"$match": {"tag" : {"$in" : tag_group}}},
+               {"$unwind": "$memberList" },
+               {
+                   "$project": {
+                       "id": { "$substr": ["$memberList.tag", 1, { "$strLenBytes": "$memberList.tag"}]},
+                       "name": "$memberList.name",
+                       "clan_name": "$name",
+                       "clan_tag": "$tag",
+                       "townhall": "$memberList.townhall"
+                   }
+               },
+               {"$unset" : ["_id"]}
+            ]
+            docs_to_insert = await self.bot.basic_clan.aggregate(pipeline=pipeline).to_list(length=None)
+            print(len(docs_to_insert), "docs")
+
+            # An index is where the documents are stored.
+            index = client.index('players')
+            await index.add_documents_in_batches(documents=docs_to_insert, batch_size=50_000, primary_key="id", compress=True)
+            await asyncio.sleep(5)
 
 
     @commands.slash_command(name="anniversary", guild_ids=[923764211845312533])

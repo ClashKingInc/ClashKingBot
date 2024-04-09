@@ -103,7 +103,3 @@ async def all_names(bot: CustomClient, query: str):
         clan = document.get("clan_name")
         names.append(f'{create_superscript(document.get("th"))}{document.get("name")} ({clan})' + " | " + document.get("tag"))
     return names
-
-
-
-
