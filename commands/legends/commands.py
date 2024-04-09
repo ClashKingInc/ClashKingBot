@@ -1,27 +1,17 @@
 import coc.utils
 import disnake
-from disnake.ext import commands
 
-from typing import TYPE_CHECKING
 from classes.bot import CustomClient
-from utility.constants import POSTER_LIST
 from discord import autocomplete, convert, options
+from disnake.ext import commands
 from exceptions.CustomExceptions import PlayerNotInLegends
+from utility.constants import POSTER_LIST
 from .utils import legend_day_overview, legend_clan, legend_history, legend_poster, legend_cutoff, legend_streaks, legend_buckets, legend_eos_finishers
 
 
 class Legends(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
-
-    @commands.slash_command(name="check")
-    async def check(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
-
-    @check.sub_command(name="search", description="Outdated legends command")
-    async def check_search(self, ctx: disnake.ApplicationCommandInteraction,
-                           player: coc.Player = commands.Param(autocomplete=autocomplete.legend_players, converter=convert.player)):
-        await ctx.send("This command has been renamed to `/legends search` and will be removed in the next 30 days.")
 
 
     @commands.slash_command(name="legends")
