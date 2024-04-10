@@ -1,5 +1,4 @@
 import asyncio
-import calendar
 import coc
 import disnake
 
@@ -8,7 +7,7 @@ from discord.options import autocomplete, convert
 from disnake.ext import commands
 from pymongo import UpdateOne
 from utility.discord_utils import interaction_handler
-from utility.constants import leagues, war_leagues
+from utility.constants import leagues
 from .utils import plan_text, create_components, open_modal, main_war_page, roster_embed, opp_roster_embed, \
     attacks_embed, opp_overview, defenses_embed, opp_defenses_embed, get_cwl_wars, get_latest_war, get_wars_at_round, component_handler, \
     page_manager, create_cwl_status, cwl_ranking_create
@@ -169,8 +168,8 @@ class War(commands.Cog):
     @cwl.sub_command(name="search", description="Search for a clan's cwl (current or past)")
     async def cwl_search(self, ctx: disnake.ApplicationCommandInteraction,
                   clan: coc.Clan = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan),
-                  season: str = commands.Param(default=None, convert_defaults=True, converter=convert.season)):
-        asyncio.create_task(self.bot.store_all_cwls(clan=clan))
+                  season: str = commands.Param(default=None, convert_defaults=True, converter=convert.season, autocomplete=autocomplete.season)):
+
         (group, clan_league_wars, fetched_clan, war_league) = await get_cwl_wars(bot=self.bot, clan=clan, season=season)
 
         if not clan_league_wars:
@@ -192,28 +191,13 @@ class War(commands.Cog):
                                          war_league=war_league)
 
         await ctx.send(embeds=embeds, components=dropdown)
-        msg = await ctx.original_message()
-
-        def check(res: disnake.MessageInteraction):
-            return res.message.id == msg.id
 
         while True:
-            try:
-                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
-                                                                          timeout=600)
-            except:
-                try:
-                    await msg.edit(components=[])
-                except:
-                    pass
-                break
-
-            await res.response.defer()
+            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, any_run=True)
             if "cwlchoose_" in res.values[0]:
                 clan_tag = (str(res.values[0]).split("_"))[-1]
                 CLAN = await self.bot.getClan(clan_tag)
-                (group, clan_league_wars, x, y) = await get_cwl_wars(bot=self.bot, clan=CLAN, season=season, group=group,
-                                                                          fetched_clan=fetched_clan)
+                (group, clan_league_wars, x, y) = await get_cwl_wars(bot=self.bot, clan=CLAN, season=season, group=group, fetched_clan=fetched_clan)
                 PAGE = "cwlround_overview"
                 ROUND = get_latest_war(clan_league_wars=clan_league_wars)
 
@@ -233,11 +217,14 @@ class War(commands.Cog):
                 PAGE = res.values[0]
 
             (current_war, next_war) = get_wars_at_round(clan_league_wars=clan_league_wars, round=ROUND)
-            embeds = await page_manager(bot=self.bot, page=PAGE, group=group, war=current_war, next_war=next_war,
-                                             league_wars=clan_league_wars,
-                                             clan=CLAN, fetched_clan=fetched_clan, war_league=war_league)
-            dropdown = await component_handler(bot=self.bot, page=PAGE, current_war=current_war, next_war=next_war, group=group,
-                                                    league_wars=clan_league_wars, fetched_clan=fetched_clan)
+            embeds = await page_manager(bot=self.bot, page=PAGE,
+                                        group=group, war=current_war, next_war=next_war,
+                                        league_wars=clan_league_wars,
+                                        clan=CLAN, fetched_clan=fetched_clan, war_league=war_league)
+            dropdown = await component_handler(bot=self.bot,
+                                               page=PAGE, current_war=current_war,
+                                               next_war=next_war, group=group,
+                                               league_wars=clan_league_wars, fetched_clan=fetched_clan)
 
             await res.edit_original_message(embeds=embeds, components=dropdown)
 
@@ -305,28 +292,6 @@ class War(commands.Cog):
                               custom_id=f"cwlstatusfam_"))
         embed = await create_cwl_status(bot=self.bot, guild=ctx.guild)
         await ctx.edit_original_message(embed=embed, components=[buttons])
-
-
-
-    @cwl_search.autocomplete("season")
-    async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        if "|" in ctx.filled_options["clan"]:
-            clan = await self.bot.getClan(clan_tag=ctx.filled_options["clan"])
-            if clan is None:
-                seasons = self.bot.gen_season_date(seasons_ago=25)[0:]
-                return [season for season in seasons if query.lower() in season.lower()]
-            dates = [f"{self.bot.gen_season_date(seasons_ago=1)[0]} | {clan.war_league}"]
-            cwls = await self.bot.cwl_db.find({"$and": [{"clan_tag": clan.tag}, {"data": {"$ne": None}}]},
-                                              {"data.leagueId": 1, "season": 1}).limit(24).to_list(length=None)
-            for cwl in cwls:
-                league_name = next(
-                    (x["name"] for x in war_leagues["items"] if x["id"] == cwl.get("data").get("leagueId")), "Unknown")
-                dates.append(
-                    f"{calendar.month_name[int(cwl.get('season').split('-')[-1])]} {int(cwl.get('season').split('-')[0])} | {league_name}")
-            return dates[:25]
-        else:
-            seasons = self.bot.gen_season_date(seasons_ago=25)[0:]
-            return [season for season in seasons if query.lower() in season.lower()]
 
 
 
