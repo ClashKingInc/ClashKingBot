@@ -1,3 +1,5 @@
+import asyncio
+
 import disnake
 import orjson
 
@@ -13,14 +15,15 @@ raid_ee = EventEmitter()
 reminder_ee = EventEmitter()
 reddit_ee = EventEmitter()
 
-from aiokafka import AIOKafkaConsumer, TopicPartition
+from aiokafka import AIOKafkaConsumer
 
 
 async def kafka_events(bot: disnake.Client):
-    topics = ["clan", "player"]
+    topics = ["clan", "player", "war", "capital", "reminder", "reddit"]
     consumer: AIOKafkaConsumer = AIOKafkaConsumer(*topics, bootstrap_servers='85.10.200.219:9092')
     await consumer.start()
     await bot.wait_until_ready()
+    await asyncio.sleep(180)
     logger.info("Events Started")
     try:
         async for msg in consumer:
