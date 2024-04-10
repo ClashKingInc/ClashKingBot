@@ -236,7 +236,7 @@ icon_emojis =  {
   "toggle_on": "<:toggle_on:1067254915438739456>",
   "toggle_off": "<:toggle_off:1067254958698803230>",
   "unranked": "<:Unranked:601618883853680653>",
-  "hashmark": "<:hash:1097685290132459602>",
+  "hashmark": "<:hashtag:1109716082656301136>",
   "red_tick": "<:redtick:601900691312607242>",
   "green_tick": "<:greentick:601900670823694357>",
   "opt_in": "<:opt_in:944905885367537685>",
