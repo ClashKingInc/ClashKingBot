@@ -13,6 +13,7 @@ from utility.constants import war_leagues, leagues, SUPER_SCRIPTS
 from assets.emojis import SharedEmojis
 from classes.misc import WarPlan
 from typing import List
+from dateutil.relativedelta import relativedelta
 
 
 async def main_war_page(bot: CustomClient, war: coc.ClanWar, war_league=None):
@@ -508,19 +509,39 @@ async def get_cwl_wars(bot:CustomClient, clan: coc.Clan, season: str, group=None
             clan_league_wars.append(w)
         if clan_league_wars:
             return (group, clan_league_wars, None, clan.war_league)
-    except:
+    except Exception:
         pass
 
     if not clan_league_wars:
         if fetched_clan is not None:
             clan_tag = fetched_clan
-        response = await bot.cwl_db.find_one({"clan_tag": clan_tag, "season": season})
-        if response is not None:
-            group = coc.ClanWarLeagueGroup(data=response.get("data"), client=bot.coc_client)
-            clan_league_wars = wars_from_group(bot=bot, data=response.get("data"), clan_tag=clan.tag, group=group)
-            if clan_league_wars:
-                league_name = [x["name"]for x in war_leagues["items"] if x["id"] == response.get("data").get("leagueId")][0]
-                return (group, clan_league_wars, clan.tag, league_name)
+        group_response = await bot.cwl_groups.find_one({"$and" : [{"data.clans.tag" : clan_tag}, {"data.season" : season}]})
+        if group_response is not None:
+            group = coc.ClanWarLeagueGroup(data=group_response.get("data"), client=bot.coc_client)
+            war_tags = []
+            for round in group_response.get("data").get("rounds"):
+                for tag in round.get("warTags"):
+                    war_tags.append(tag)
+            clan_league_wars = await bot.clan_wars.find({"$and": [{"data.tag": {"$in": war_tags}}, {"data.season": season}]}).to_list(length=None)
+            clan_league_wars = wars_from_group(bot=bot, data=clan_league_wars, clan_tag=clan.tag, group=group)
+            if not clan_league_wars:
+                clan_league_wars = []
+                async for war in bot.coc_client.get_league_wars(war_tags=war_tags, clan_tag=clan_tag):
+                    clan_league_wars.append(war)
+
+            basic_clan: dict = await bot.basic_clan.find_one({"tag" : clan_tag}, projection={"changes.clanWarLeague" : 1})
+
+            def get_previous_month(date_str):
+                # Convert the input string to a datetime object (assuming day 1 for simplicity)
+                date_obj = datetime.strptime(date_str + "-01", "%Y-%m-%d")
+
+                # Subtract one month
+                previous_month_obj = date_obj - relativedelta(months=1)
+
+                # Format and return the result
+                return previous_month_obj.strftime("%Y-%m")
+            league_name = basic_clan.get("changes", {}).get("clanWarLeague",{}).get(get_previous_month(season), {}).get("league", "Unranked")
+            return (group, clan_league_wars, clan.tag, league_name)
         else:
             return (None, [], None, None)
 
@@ -643,10 +664,13 @@ async def ranking_lb(bot: CustomClient, group: coc.ClanWarLeagueGroup, fetched_c
 
     league_wars = []
     if fetched_clan is not None:
-        data = (await bot.cwl_db.find_one({"clan_tag": fetched_clan, "season": group.season})).get("data")
-        league_wars = wars_from_group(bot=bot, group=group, data=data)
-    rounds = group.rounds
-    for round in rounds:
+        war_tags = []
+        for round in group.rounds:
+            war_tags.extend([tag for tag in round])
+        clan_league_wars = await bot.clan_wars.find({"$and": [{"data.tag": {"$in": war_tags}}, {"data.season": group.season}]}).to_list(length=None)
+        league_wars = wars_from_group(bot=bot, data=clan_league_wars, group=group)
+
+    for round in group.rounds:
         for war_tag in round:
             if not league_wars:
                 war = await bot.coc_client.get_league_war(war_tag)
@@ -874,27 +898,12 @@ async def clan_components(group: coc.ClanWarLeagueGroup):
     return disnake.ui.ActionRow(select)
 
 
-def wars_from_group(bot:CustomClient, group: coc.ClanWarLeagueGroup, data: dict, clan_tag=None):
-    rounds = data.get("rounds")
+def wars_from_group(bot:CustomClient, group: coc.ClanWarLeagueGroup, data: list[dict], clan_tag=None):
     list_wars = []
-    for round in rounds:
-        for war in round.get("wars"):
-            if clan_tag is None or war.get("clan").get("tag") == clan_tag or war.get("opponent").get("tag") == clan_tag:
-                #print(war["endTime"])
-                war["endTime"] = datetime.fromtimestamp(war["endTime"]/1000).strftime('%Y%m%dT%H%M%S.000Z')
-                war["startTime"] = datetime.fromtimestamp(war["startTime"]/1000).strftime('%Y%m%dT%H%M%S.000Z')
-                war["preparationStartTime"] = datetime.fromtimestamp(war["preparationStartTime"]/1000).strftime('%Y%m%dT%H%M%S.000Z')
-                for member in (war.get("clan").get("members") + war.get("opponent").get("members")):
-                    if member.get("bestOpponentAttack") is None:
-                        member["bestOpponentAttack"] = {}
-                    member["townhallLevel"] = member["townHallLevel"]
-                    if member.get("mapPosition") is None:
-                        member["mapPosition"] = 1
-                    if member.get("attack"):
-                        attack = member.get("attack")
-                        attack["duration"] = 0
-                        member["attacks"] = [attack]
-                list_wars.append(coc.ClanWar(data=war, clan_tag=clan_tag, client=bot.coc_client, league_group=group))
+    for war in data:
+        war = coc.ClanWar(data=war.get("data"), client=bot.coc_client, league_group=group)
+        if clan_tag is None or war.clan.tag == clan_tag or war.opponent.tag == clan_tag:
+            list_wars.append(coc.ClanWar(data=war._raw_data, clan_tag=clan_tag, client=bot.coc_client, league_group=group))
     return list_wars
 
 
