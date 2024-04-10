@@ -11,7 +11,7 @@ async def button_logic(button_data: str, bot: CustomClient, guild: disnake.Guild
     split_data = button_data.split(":")
     lookup_name = button_data.split(":")[0]
     #print(registered_functions.keys())
-    function, parser, ephemeral, no_embed, components_function = registered_functions.get(lookup_name)
+    function, parser, ephemeral, no_embed = registered_functions.get(lookup_name)
     if function is None:
         return None, 0 #maybe change this
     if ctx:
@@ -43,6 +43,7 @@ async def button_logic(button_data: str, bot: CustomClient, guild: disnake.Guild
     embed = await function(**hold_kwargs)
 
     components = 0
+    components_function = None
     if components_function:
         components = await components_function(**hold_kwargs)
 
