@@ -23,6 +23,9 @@ class reddit_feed(commands.Cog):
 
         results = await self.bot.server_db.find({"reddit_feed": {"$ne": None}}).to_list(length=None)
         for r in results:
+            server_id = r.get("server")
+            if server_id not in self.bot.OUR_GUILDS:
+                continue
             try:
                 channel = await self.bot.getch_channel(r.get("reddit_feed"), raise_exception=True)
                 role = r.get("reddit_role")
