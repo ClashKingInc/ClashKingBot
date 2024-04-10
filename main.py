@@ -4,9 +4,7 @@ import traceback
 import sentry_sdk
 
 from classes.bot import CustomClient
-
 from classes.config import Config
-
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
 from background.logs.events import kafka_events
@@ -54,14 +52,9 @@ initial_extensions = [
     "discord.events",
     "discord.autocomplete",
     "discord.converters",
-    #"background.features.refresh_boards",
-    "exceptions.handler",
-    #"background.logs.join_leave_events"
-    #"background.logs.legend_events"
-    #"background.logs.player_upgrade_events"
-    #"background.logs.reminders"
+    "background.tasks.background_cache",
+    "background.features.link_parsers",
 ]
-
 
 
 disallowed = set()
@@ -97,17 +90,16 @@ if not config.is_beta and not config.is_custom:
 #only the local version can not run
 if not config.is_beta:
     initial_extensions += [
-        "Background.voicestat_loop",
-        "Background.Logs.auto_eval",
-        "Background.autoboard_loop",
-        "Background.Logs.ban_events",
-        "Background.Logs.clan_capital_events",
-        "Background.Logs.donations",
-        "Background.Logs.join_leave_events",
-        "Background.Logs.legend_events",
-        "Background.Logs.player_upgrade_events",
-        "Background.Logs.war_track",
-        "Background.background_cache",
+        "background.logs.autorefresh",
+        "background.logs.bans",
+        "background.logs.capital",
+        "background.logs.donations",
+        "background.logs.joinleave",
+        "background.logs.legends",
+        "background.logs.playerupgrades",
+        "background.logs.reddit",
+        "background.logs.reminders"
+        #"background.logs.war"
     ]
 
 
@@ -125,8 +117,8 @@ if __name__ == "__main__":
         # Set traces_sample_rate to 1.0 to capture 100%
         # of transactions for performance monitoring.
         # We recommend adjusting this value in production.
-        traces_sample_rate=0.5,
-        profiles_sample_rate=0.5,
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
         before_send=before_send
     )
     initial_extensions += load()
@@ -136,7 +128,8 @@ if __name__ == "__main__":
         except Exception as extension:
             traceback.print_exc()
     bot.EXTENSION_LIST.extend(initial_extensions)
-    #if not config.is_beta:
-    #bot.loop.create_task(kafka_events(bot))
+
+    if not config.is_beta:
+        bot.loop.create_task(kafka_events(bot))
 
     bot.run(config.bot_token)

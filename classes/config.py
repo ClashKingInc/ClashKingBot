@@ -8,8 +8,8 @@ class Config:
     coc_email = getenv("COC_EMAIL")
     coc_password = getenv("COC_PASSWORD")
 
-    min_coc_email = 1
-    max_coc_email = 2
+    min_coc_email = 51
+    max_coc_email = 51
 
     static_mongodb = getenv("STATIC_MONGODB")
     stats_mongodb = getenv("STATS_MONGODB")
@@ -26,7 +26,7 @@ class Config:
     reddit_user_password = getenv("REDDIT_PW")
     open_ai_api_token = getenv("OPENAI_API_KEY")
 
-    is_beta = (getenv("IS_BETA") == "TRUE")
+    is_beta = (getenv("BETA") == "TRUE")
     is_custom = (getenv("IS_CUSTOM") == "TRUE")
     is_main = (getenv("IS_MAIN") == "TRUE")
     cluster_id = getenv("CLUSTER_ID")
