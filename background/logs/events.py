@@ -25,8 +25,8 @@ async def kafka_events(bot: disnake.Client):
     await bot.wait_until_ready()
     await asyncio.sleep(180)
     logger.info("Events Started")
-    try:
-        async for msg in consumer:
+    async for msg in consumer:
+        try:
             json_message = orjson.loads(msg.value)
             if (f := json_message.get("type")) is not None:
                 fields = [f]
@@ -50,5 +50,6 @@ async def kafka_events(bot: disnake.Client):
                     awaitable = reddit_ee.emit_async(field, json_message)
                 if awaitable is not None:
                     await awaitable
-    finally:
-        await consumer.stop()
+        except Exception as e:
+            logger.error(str(e))
+            continue
