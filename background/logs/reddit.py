@@ -15,6 +15,7 @@ class reddit_feed(commands.Cog):
 
     async def reddit_task(self, event: dict):
         player = None
+        event = event.get("data")
         if tags := event.get("tags"):
             for tag in tags:
                 player = await self.bot.getPlayer(player_tag=tag)
