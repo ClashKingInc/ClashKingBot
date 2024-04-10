@@ -11,7 +11,6 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pendulum as pend
 
-from typing import TYPE_CHECKING
 from classes.bot import CustomClient
 from classes.DatabaseClient.Classes.player import LegendPlayer, LegendDay
 from utility.discord_utils import register_button
