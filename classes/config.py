@@ -8,8 +8,8 @@ class Config:
     coc_email = getenv("COC_EMAIL")
     coc_password = getenv("COC_PASSWORD")
 
-    min_coc_email = 51
-    max_coc_email = 51
+    min_coc_email = 1
+    max_coc_email = 2
 
     static_mongodb = getenv("STATIC_MONGODB")
     stats_mongodb = getenv("STATS_MONGODB")
