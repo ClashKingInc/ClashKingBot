@@ -20,7 +20,7 @@ from aiokafka import AIOKafkaConsumer
 
 async def kafka_events(bot: disnake.Client):
     topics = ["clan", "player", "war", "capital", "reminder", "reddit"]
-    consumer: AIOKafkaConsumer = AIOKafkaConsumer(*topics, bootstrap_servers='85.10.200.219:9092')
+    consumer: AIOKafkaConsumer = AIOKafkaConsumer(*topics, bootstrap_servers='85.10.200.219:9092', auto_offset_reset="latest")
     await consumer.start()
     await bot.wait_until_ready()
     await asyncio.sleep(180)
