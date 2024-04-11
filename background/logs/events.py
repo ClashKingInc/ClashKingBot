@@ -1,3 +1,6 @@
+import asyncio
+
+import disnake
 import ujson
 import orjson
 import websockets
@@ -17,6 +20,7 @@ reddit_ee = EventEmitter()
 
 async def kafka_events(bot):
     await bot.wait_until_ready()
+    await asyncio.sleep(120)
     count = 0
     while True:
         try:
@@ -24,8 +28,10 @@ async def kafka_events(bot):
                 async for message in websocket:
                     #every 1000 events, update which clans we get events for
                     if count % 1000 == 0:
-                        clans = await bot.clan_db.distinct("tag", filter={"server" : {"$in" : list(bot.OUR_GUILDS)}})
+                        clans = await bot.clan_db.distinct("tag", filter={"server" : {"$in" : [g.id for g in bot.guilds]}})
                         await websocket.send(ujson.dumps({"clans" : clans}).encode("utf-8"))
+                    count += 1
+
                     if "Login!" in str(message):
                         logger.info(message)
                     else:
@@ -38,6 +44,7 @@ async def kafka_events(bot):
                                 fields = [f]
                             else:
                                 fields = value.get("types", [])
+                            continue
 
                             for field in fields:
                                 value["trigger"] = field
