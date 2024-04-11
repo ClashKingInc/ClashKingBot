@@ -37,8 +37,8 @@ class CustomClient(commands.AutoShardedBot):
 
         self._config = config
 
-        #if not config.is_beta:
-            #self.loop.create_task(kafka_events(self))
+        if not config.is_beta:
+            self.loop.create_task(kafka_events(self))
 
         self.scheduler = scheduler
         self.ck_client: FamilyClient = None

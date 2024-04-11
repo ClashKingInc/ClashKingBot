@@ -21,12 +21,12 @@ intents = disnake.Intents(
 )
 
 cluster_id = 0
-total_shards = 1
+total_shards = 6
 cluster_kwargs = {"shard_count" : None}
-if config.is_main:
+if  config.is_main:
     total_shards = 6
-    cluster_id = int(config.cluster_id)
-    offset = cluster_id - 1  # As we start at 1
+    cluster_id = 0
+    '''offset = cluster_id - 1  # As we start at 1
     number_of_shards_per_cluster = 2
     # Calculate the shard id's this cluster should handle
     # For example on cluster 1 this would be equal to
@@ -42,7 +42,7 @@ if config.is_main:
     cluster_kwargs = {
         "shard_ids": shard_ids,
         "shard_count": total_shards,
-    }
+    }'''
 
 bot = CustomClient(command_prefix="??", help_command=None, intents=intents, scheduler=scheduler, config=config, chunk_guilds_at_startup=(not config.is_main), **cluster_kwargs)
 
@@ -76,7 +76,7 @@ def load():
 
 
 
-#dont let custom or local run
+'''#dont let custom or local run
 if not config.is_beta and not config.is_custom:
     initial_extensions += [
         "Background.reddit_recruit_feed",
@@ -86,7 +86,7 @@ if not config.is_beta and not config.is_custom:
         "Background.legends_history",
         "Other.erikuh_comp",
         "Background.clan_capital",
-    ]
+    ]'''
 
 #only the local version can not run
 if not config.is_beta:
