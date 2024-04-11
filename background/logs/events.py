@@ -2,7 +2,6 @@ import ujson
 import orjson
 import websockets
 
-from classes.bot import CustomClient
 from classes.config import Config
 from pymitter import EventEmitter
 from loguru import logger
@@ -16,7 +15,7 @@ reminder_ee = EventEmitter()
 reddit_ee = EventEmitter()
 
 
-async def kafka_events(bot: CustomClient):
+async def kafka_events(bot):
     await bot.wait_until_ready()
     count = 0
     while True:
