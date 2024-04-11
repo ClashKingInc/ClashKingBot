@@ -1,14 +1,15 @@
-import disnake
 import coc
+import disnake
 import re
 
-from disnake.ext import commands
+from background.logs.events import player_ee
 from classes.server import DatabaseClan
 from classes.bot import CustomClient
-from background.logs.events import player_ee
-from utility.clash.other import league_emoji
-from utility.discord_utils import get_webhook_for_channel
+from disnake.ext import commands
 from exceptions.CustomExceptions import MissingWebhookPerms
+from utility.clash.other import league_emoji
+from utility.constants import ROLES
+from utility.discord_utils import get_webhook_for_channel
 #from BoardCommands.Utils.Player import upgrade_embed
 
 class UpgradeEvent(commands.Cog):
@@ -103,7 +104,9 @@ class UpgradeEvent(commands.Cog):
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
-            content = f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{new_name}](<{new_player.share_link}>) {old_player.role.in_game_name} -> {new_player.role.in_game_name}"
+            direction = "promoted" if ROLES.index(new_player.role.in_game_name) > ROLES.index(old_player.role.in_game_name) else "demoted"
+            content = (f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{new_name}](<{new_player.share_link}>)"
+                       f" was {direction} from {old_player.role.in_game_name} to {new_player.role.in_game_name}")
 
             log = clan.role_change
             try:
