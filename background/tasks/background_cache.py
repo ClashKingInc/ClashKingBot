@@ -21,6 +21,8 @@ class BackgroundCache(commands.Cog):
             guild_id_list = [id for id in guild_id_list if id not in custom_bot_guilds]
 
         self.bot.OUR_GUILDS = set(guild_id_list)
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server" : {"$in" : guild_id_list}})
+        self.bot.OUR_CLANS = set(clan_tags)
 
     @guilds_store.before_loop
     async def before_guilds_store(self):
