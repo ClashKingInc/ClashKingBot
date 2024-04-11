@@ -61,6 +61,10 @@ async def war_reminder(bot: CustomClient, event: dict, manual_send: bool = False
                           f"{bot.emoji.pin}**{war.clan.name} vs {war.opponent.name}**\n"
                           f"{bot.emoji.wood_swords}{war.clan.attacks_used}/{war.opponent.attacks_used} {bot.emoji.war_star}{war.clan.stars}/{war.opponent.stars}")
             for war_member in players:
+                if war_member.clan is not None and war_member.clan.tag == war.clan_tag and str(war_member.role) not in reminder.roles:
+                    continue
+                if war_member.town_hall not in reminder.townhalls:
+                    continue
                 num_missing = missing[war_member.tag]
                 name = names[war_member.tag]
                 discord_id = links[war_member.tag]
