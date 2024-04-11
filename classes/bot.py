@@ -19,7 +19,6 @@ from typing import Dict, List
 from assets.emojis import SharedEmojis
 from classes.player import MyCustomPlayer, CustomClanClass
 from classes.emoji import Emojis, EmojiType
-from urllib.request import urlopen
 from classes.clashofstats import COSPlayerHistory
 from utility.constants import locations, BADGE_GUILDS
 from utility.general import fetch, create_superscript
@@ -29,6 +28,7 @@ from classes.DatabaseClient.familyclient import FamilyClient
 from classes.config import Config
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from utility.login import coc_login
+from background.logs.events import kafka_events
 
 
 class CustomClient(commands.AutoShardedBot):
@@ -36,6 +36,10 @@ class CustomClient(commands.AutoShardedBot):
         super().__init__(command_prefix=command_prefix, help_command=help_command, intents=intents, shard_count=shard_count, chunk_guilds_at_startup=chunk_guilds_at_startup, **kwargs)
 
         self._config = config
+
+        if not config.is_beta:
+            self.loop.create_task(kafka_events(self))
+
         self.scheduler = scheduler
         self.ck_client: FamilyClient = None
 

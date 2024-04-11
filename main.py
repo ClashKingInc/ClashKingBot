@@ -7,7 +7,6 @@ from classes.bot import CustomClient
 from classes.config import Config
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
-from background.logs.events import kafka_events
 
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
@@ -75,6 +74,7 @@ def load():
     return file_list
 
 
+
 #dont let custom or local run
 if not config.is_beta and not config.is_custom:
     initial_extensions += [
@@ -128,8 +128,4 @@ if __name__ == "__main__":
         except Exception as extension:
             traceback.print_exc()
     bot.EXTENSION_LIST.extend(initial_extensions)
-
-    if not config.is_beta:
-        bot.loop.create_task(kafka_events(bot))
-
     bot.run(config.bot_token)

@@ -1,8 +1,8 @@
-import asyncio
-
-import disnake
+import ujson
 import orjson
+import websockets
 
+from classes.bot import CustomClient
 from classes.config import Config
 from pymitter import EventEmitter
 from loguru import logger
@@ -15,41 +15,51 @@ raid_ee = EventEmitter()
 reminder_ee = EventEmitter()
 reddit_ee = EventEmitter()
 
-from aiokafka import AIOKafkaConsumer
 
-
-async def kafka_events(bot: disnake.Client):
-    topics = ["clan", "player", "war", "capital", "reminder", "reddit"]
-    consumer: AIOKafkaConsumer = AIOKafkaConsumer(*topics, bootstrap_servers='85.10.200.219:9092', auto_offset_reset="latest")
-    await consumer.start()
+async def kafka_events(bot: CustomClient):
     await bot.wait_until_ready()
-    await asyncio.sleep(180)
-    logger.info("Events Started")
-    async for msg in consumer:
+    count = 0
+    while True:
         try:
-            json_message = orjson.loads(msg.value)
-            if (f := json_message.get("type")) is not None:
-                fields = [f]
-            else:
-                fields = json_message.get("types", [])
+            async with websockets.connect(f"ws://85.10.200.219:8001/events", ping_timeout=None, ping_interval=None, open_timeout=None, max_queue=500_000) as websocket:
+                async for message in websocket:
+                    #every 1000 events, update which clans we get events for
+                    if count % 1000 == 0:
+                        clans = await bot.clan_db.distinct("tag", filter={"server" : {"$in" : list(bot.OUR_GUILDS)}})
+                        await websocket.send(ujson.dumps({"clans" : clans}).encode("utf-8"))
+                    if "Login!" in str(message):
+                        logger.info(message)
+                    else:
+                        try:
+                            json_message = orjson.loads(message)
+                            topic = json_message.get("topic")
+                            value = json_message.get("value")
 
-            for field in fields:
-                json_message["trigger"] = field
-                awaitable = None
-                if msg.topic == "player":
-                    awaitable = player_ee.emit_async(field, json_message)
-                elif msg.topic == "war":
-                    awaitable = war_ee.emit_async(field, json_message)
-                if msg.topic == "clan":
-                    awaitable = clan_ee.emit_async(field, json_message)
-                elif msg.topic == "capital":
-                    awaitable = raid_ee.emit_async(field, json_message)
-                elif msg.topic == "reminder":
-                    awaitable = reminder_ee.emit_async(field, json_message)
-                elif msg.topic == "reddit":
-                    awaitable = reddit_ee.emit_async(field, json_message)
-                if awaitable is not None:
-                    await awaitable
+                            if (f := value.get("type")) is not None:
+                                fields = [f]
+                            else:
+                                fields = value.get("types", [])
+
+                            for field in fields:
+                                value["trigger"] = field
+                                awaitable = None
+                                if topic == "player":
+                                    awaitable = player_ee.emit_async(field, value)
+                                elif topic == "war":
+                                    awaitable = war_ee.emit_async(field, value)
+                                if topic == "clan":
+                                    awaitable = clan_ee.emit_async(field, value)
+                                elif topic == "capital":
+                                    awaitable = raid_ee.emit_async(field, value)
+                                elif topic == "reminder":
+                                    awaitable = reminder_ee.emit_async(field, value)
+                                elif topic == "reddit":
+                                    awaitable = reddit_ee.emit_async(field, value)
+                                if awaitable is not None:
+                                    await awaitable
+                        except Exception:
+                            pass
         except Exception as e:
-            logger.error(str(e))
             continue
+
+
