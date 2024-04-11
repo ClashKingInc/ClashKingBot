@@ -146,11 +146,11 @@ def clan_component(bot: CustomClient, all_clans: List[coc.Clan], clan_page:int =
         length = length - 1
     clans = all_clans[(length * clan_page):(length * clan_page) + length]
     if clan_page >= 1:
-        clan_options.append(disnake.SelectOption(label=f"Previous 25 Clans", emoji=bot.emoji.back.partial_emoji, value=f"clanpage_{clan_page - 1}"))
+        clan_options.append(disnake.SelectOption(label=f"< Previous 25 Clans", value=f"clanpage_{clan_page - 1}"))
     for count, clan in enumerate(clans):
         clan_options.append(disnake.SelectOption(label=f"{clan.name} ({clan.tag})", value=f"clantag_{clan.tag}"))
     if len(clans) == length and (len(all_clans) > (length * clan_page) + length):
-        clan_options.append(disnake.SelectOption(label=f"Next 25 Clans", emoji=bot.emoji.forward.partial_emoji, value=f"clanpage_{clan_page + 1}"))
+        clan_options.append(disnake.SelectOption(label=f"Next 25 Clans >", value=f"clanpage_{clan_page + 1}"))
 
     clan_select = disnake.ui.Select(
         options=clan_options,
