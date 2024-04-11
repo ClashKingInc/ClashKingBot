@@ -176,9 +176,10 @@ class SetupCommands(commands.Cog , name="Setup"):
         await ctx.response.defer()
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
 
-        clans = await self.bot.get_clans(tags=(await self.bot.get_guild_clans(guild_id=ctx.guild.id)))
+        clans = await self.bot.get_clans(tags=[c.tag for c in db_server.clans])
+        clans.sort(key=lambda x : x.name)
 
-        embed = disnake.Embed(title=f"{ctx.guild.name} Server Settings", color=disnake.Color.green())
+        embed = disnake.Embed(title=f"{ctx.guild.name} Server Settings", color=db_server.embed_color)
         banlist_channel = f"<#{db_server.banlist_channel}>" if db_server.banlist_channel is not None else None
         reddit_feed = f"<#{db_server.reddit_feed}>" if db_server.reddit_feed is not None else None
 
@@ -192,16 +193,9 @@ class SetupCommands(commands.Cog , name="Setup"):
 
         if ctx.guild.icon is not None:
             embed.set_thumbnail(url=ctx.guild.icon.url)
-        embeds = [embed]
-        tag_to_spot = {}
-        spot = 1
-        for clan in db_server.clans: #type: DatabaseClan
-            got_clan = await self.bot.getClan(clan.tag)
-            tag_to_spot[clan.tag] = spot
-            spot += 1
-            if got_clan is None:
-                continue
-            embed = disnake.Embed(title=f"{clan.name}", color=disnake.Color.green())
+
+        async def create_settings_embed(clan: DatabaseClan, got_clan: coc.Clan):
+            embed = disnake.Embed(title=f"{clan.name}", color=db_server.embed_color)
             embed.set_thumbnail(url=got_clan.badge.url)
             member_role = f"<@&{clan.member_role}>" if clan.member_role is not None else None
             leader_role = f"<@&{clan.leader_role}>" if clan.leader_role is not None else None
@@ -212,13 +206,11 @@ class SetupCommands(commands.Cog , name="Setup"):
             if clan.greeting:
                 embed.add_field(name="Greeting:", value=f"{clan.greeting}", inline=True)
 
-
             embed.add_field(name="Join Log:", value=f"{(await clan.join_log.get_webhook_channel_mention())}", inline=True)
             embed.add_field(name="Leave Log:", value=f"{(await clan.leave_log.get_webhook_channel_mention())}", inline=True)
 
             embed.add_field(name="War Log:", value=f"{(await clan.war_log.get_webhook_channel_mention())}", inline=True)
             embed.add_field(name="War Panel:", value=f"{(await clan.war_panel.get_webhook_channel_mention())}", inline=True)
-
 
             embed.add_field(name="Capital Dono Log:", value=f"{(await clan.capital_donations.get_webhook_channel_mention())}", inline=True)
             embed.add_field(name="Capital Atk Log:", value=f"{(await clan.capital_attacks.get_webhook_channel_mention())}", inline=True)
@@ -239,14 +231,21 @@ class SetupCommands(commands.Cog , name="Setup"):
             embed.add_field(name="Legend Atk Log:", value=f"{(await clan.legend_log_attacks.get_webhook_channel_mention())}", inline=True)
             embed.add_field(name="Legend Def Log:", value=f"{(await clan.legend_log_defenses.get_webhook_channel_mention())}", inline=True)
 
-            embeds.append(embed)
+            return embed
 
-        await ctx.edit_original_message(embed=embeds[0], components=dropdown)
+        await ctx.edit_original_message(embed=embed, components=dropdown)
         while True:
             res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
+            if "clanpage_" in res.values[0]:
+                page = int(res.values[0].split("_")[-1])
+                dropdown = [clan_component(bot=self.bot, all_clans=clans, clan_page=page, max_choose=1)]
+                await res.edit_original_message(components=dropdown)
+                continue
             clan_tag = res.values[0].split("_")[-1]
-            spot = tag_to_spot.get(clan_tag)
-            await res.edit_original_message(embed=embeds[spot])
+            got_clan: coc.Clan = coc.utils.get(clans, tag=clan_tag)
+            clan: DatabaseClan = coc.utils.get(db_server.clans, tag=got_clan.tag)
+            embed = await create_settings_embed(clan=clan, got_clan=got_clan)
+            await res.edit_original_message(embed=embed)
 
 
     @setup.sub_command(name="custom-bot", description="Set up a custom bot on your server")
