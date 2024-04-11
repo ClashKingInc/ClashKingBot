@@ -63,7 +63,7 @@ class AutoEval(commands.Cog):
 
                 await logic(bot=self.bot, guild=server, db_server=db_server, members=[discord_member],
                             role_or_user=discord_member, eval_types=DEFAULT_EVAL_ROLE_TYPES,
-                            auto_eval_tag=player_tag, role_treatment=db_server.role_treatment)
+                            role_treatment=db_server.role_treatment)
                 if db_server.auto_eval_log is not None:
                     try:
                         channel = await self.bot.getch_channel(data.get("server_data", {}).get("autoeval_log"))
