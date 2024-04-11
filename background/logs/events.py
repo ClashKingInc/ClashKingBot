@@ -44,7 +44,6 @@ async def kafka_events(bot):
                                 fields = [f]
                             else:
                                 fields = value.get("types", [])
-                            continue
 
                             for field in fields:
                                 value["trigger"] = field
