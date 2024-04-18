@@ -47,6 +47,7 @@ pet_emojis = {
     "Diggy": "<:Diggy:1029199488906170428>",
     "Root Rider": "<:RootRider:1183561929864794222>",
     "Spirit Fox": "<:PhaseFennec:1183561928438718494>",
+    "Angry Jelly" : "<:AngryJelly:1230311782942380133>"
 }
 
 hero_equipment_emojis = {
@@ -182,7 +183,7 @@ icon_emojis =  {
   "graph_and_stats": "<:graph:989351375349624832>",
   "history": "<:history:989351374087151617>",
   "quick_check": "<:plusminus:989351373608980490>",
-  "gear": "<:gear:989351372711399504>",
+  "gear": "<:gear:1035416941646594118>",
   "pin": "<:pin:1224213383268663326>",
   "back": "<:back_arrow:989399022156525650>",
   "forward": "<:forward_arrow:989399021602877470>",
