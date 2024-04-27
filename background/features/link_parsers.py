@@ -65,7 +65,6 @@ class LinkParsing(commands.Cog):
                 for button in stat_buttons:
                     buttons.append_item(button)
                 await message.channel.send(embed=embed, components=[buttons])
-                await safe_run(func=message.delete)
 
             elif "https://link.clashofclans.com/" in message.content and "CopyArmy" in message.content:
                 server_settings = await self.bot.ck_client.get_server_settings(server_id=message.guild.id)
