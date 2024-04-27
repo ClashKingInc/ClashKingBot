@@ -123,6 +123,7 @@ def size(troop_or_spell):
         "Super Miner" : 24,
         "Super Hog" : 12,
         "Root Rider" : 20,
+        "Apprentice Warden" : 20,
 
         "Lightning Spell" : 1,
         "Healing Spell" : 2,
