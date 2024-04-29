@@ -99,7 +99,7 @@ if not config.is_beta:
         "background.logs.playerupgrades",
         "background.logs.reddit",
         "background.logs.reminders",
-        "background.features.voicestat_loop"
+        "background.features.voicestat_loop",
         "background.logs.war"
     ]
 
