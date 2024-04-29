@@ -43,7 +43,7 @@ class Linking(LinkButtonExtended, commands.Cog):
         manage_guild_perms = ctx.user.guild_permissions.manage_guild
         api_token_requirement = db_server.use_api_token
 
-        if (not whitelist_check or not manage_guild_perms) and api_token_requirement and api_token is None:
+        if (not whitelist_check and not manage_guild_perms) and api_token_requirement and api_token is None:
             raise APITokenRequired
 
         user = user or ctx.user
@@ -58,7 +58,7 @@ class Linking(LinkButtonExtended, commands.Cog):
         if is_linked:
             api_token_requirement = True
         #if its a relink by a regular user or the server requires api token
-        if (not whitelist_check or not manage_guild_perms) and api_token_requirement:
+        if (not whitelist_check and not manage_guild_perms) and api_token_requirement:
             verified = await self.bot.coc_client.verify_player_token(player.tag, str(api_token))
             #if not verified but is linked to someone, explain
             if not verified and is_linked:
