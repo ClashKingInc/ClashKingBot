@@ -12,6 +12,7 @@ from utility.general import create_superscript
 from utility.constants import TH_FILTER_OPTIONS, TOWNHALL_LEVELS
 from expiring_dict import ExpiringDict
 from commands.reminders.utils import gen_war_times, gen_capital_times, gen_roster_times, gen_inactivity_times, gen_clan_games_times
+from commands.help.utils import get_all_commands
 
 USER_ACCOUNT_CACHE = ExpiringDict()
 
@@ -38,7 +39,10 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
 
 
     async def clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        guild_id = ctx.guild.id
+        if ctx.guild is None:
+            guild_id = 0
+        else:
+            guild_id = ctx.guild.id
         if ctx.filled_options.get("family") is not None:
             if len(ctx.filled_options.get("family").split("|")) == 2:
                 guild_id = int(ctx.filled_options.get("family").split("|")[-1])
@@ -335,6 +339,48 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
             return options
 
 
+    async def roster_alias(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        aliases = await self.bot.rosters.distinct("alias", filter={"server_id": ctx.guild_id })
+        alias_list = []
+        if ctx.data.focused_option.name == "roster_" or ctx.options.get("role-refresh"):
+            if ctx.options.get("columns"):
+                alias_list.append("SET ALL")
+            else:
+                alias_list.append("REFRESH ALL")
+        for alias in aliases:
+            if query.lower() in alias.lower():
+                alias_list.append(f"{alias}")
+        return alias_list[:25]
+
+
+    async def strike_ids(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        if (selected := ctx.options.get("remove", {}).get("player")):
+            tag: str = selected.split("|")[-1]
+            results = await self.bot.strikelist.find({"$and": [
+                {"tag" : tag.replace(' ', '')},
+                {"server": ctx.guild.id}
+            ]}).to_list(length=None)
+        else:
+            results = await self.bot.strikelist.find({"server": ctx.guild.id}).to_list(length=None)
+        return_text = []
+        for result in results:
+            text = f"{result.get('strike_id')} | {result.get('reason')}"
+            if query.lower() in text.lower():
+                return_text.append(text[:100])
+            if len(return_text) == 25:
+                break
+        return return_text[:25]
+
+
+    async def command_autocomplete(self, ctx: disnake.ApplicationCommandInteraction, query: str) -> list[str]:
+        commands: dict[str, list[disnake.ext.commands.InvokableSlashCommand]] = get_all_commands(bot=self.bot)
+        return [c.qualified_name for command_list in commands.values() for c in command_list if query.lower() in c.qualified_name.lower()][:25]
+
+
+    async def command_category_autocomplete(self, ctx: disnake.ApplicationCommandInteraction, query: str) -> list[str]:
+        commands: dict[str, list[disnake.ext.commands.InvokableSlashCommand]] = get_all_commands(bot=self.bot)
+        categories = commands.keys()
+        return [c for c in categories if query.lower() in c.lower()][:25]
 
 
 def setup(bot: CustomClient):

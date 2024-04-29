@@ -4,7 +4,7 @@ import emoji
 import math
 
 from classes.bot import CustomClient
-from classes.player import MyCustomPlayer
+from classes.player.stats import StatsPlayer
 from discord import options
 from disnake.ext import commands
 from exceptions.CustomExceptions import MessageException
@@ -484,7 +484,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
         players = await self.bot.get_players(tags=member_tags)
         players = sorted(players, key=lambda x : x.trophies, reverse=True)
         for player in players:
-            player: MyCustomPlayer
+            player: StatsPlayer
             rank = str(x) + "."
             rank = rank.ljust(3)
             x +=1

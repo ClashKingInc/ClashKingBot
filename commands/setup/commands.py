@@ -1,10 +1,9 @@
-import asyncio
-
-import disnake
-import coc
-import secrets
-import re
 import aiohttp
+import asyncio
+import coc
+import disnake
+import re
+import secrets
 
 from disnake.ext import commands
 from typing import Union
@@ -34,20 +33,33 @@ class SetupCommands(commands.Cog , name="Setup"):
     @setup.sub_command(name="server", description="Set settings for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def server_settings(self, ctx: disnake.ApplicationCommandInteraction,
-                              banlist_channel: Union[disnake.TextChannel, disnake.Thread] = None,
+                              ban_log_channel: Union[disnake.TextChannel, disnake.Thread] = None,
+                              strike_log_channel: disnake.TextChannel | disnake.Thread = None,
                               change_nicknames: str = commands.Param(default=None, choices=["On", "Off"]),
                               family_nickname_convention: str = commands.Param(default=None),
                               non_family_nickname_convention: str = commands.Param(default=None),
                               flair_non_family: str = commands.Param(default=None, choices=["True", "False"]),
                               api_token: str = commands.Param(default=None, choices=["Use", "Don't Use"]),
                               leadership_eval: str = commands.Param(default=None, choices=["True", "False"]),
+                              full_whitelist_role: disnake.Role = None,
                               embed_color: str = commands.Param(default=None, converter=convert.hex_code)):
+        '''
+        Parameters
+        ----------
+        banlist_channel: channel where auto_update ban list goes
+        change_nicknames: whether or not the bot should change nicknames
+        full_whitelist_role: role that can run any command on the bot in your server
+        '''
+
         await ctx.response.defer()
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
         changed_text = ""
-        if banlist_channel is not None:
-            await db_server.set_banlist_channel(id=banlist_channel.id)
-            changed_text += f"- **Banlist Channel:** {banlist_channel.mention}\n"
+        if ban_log_channel is not None:
+            await db_server.set_banlist_channel(id=ban_log_channel.id)
+            changed_text += f"- **Ban Log Channel:** {ban_log_channel.mention}\n"
+        if strike_log_channel is not None:
+            await db_server.set_strike_log_channel(id=strike_log_channel.id)
+            changed_text += f"- **Strike Log Channel:** {strike_log_channel.mention}\n"
         if api_token is not None:
             await db_server.set_api_token(status=(api_token == "Use"))
             changed_text += f"- **Api Token:** `{api_token}`\n"
@@ -69,7 +81,11 @@ class SetupCommands(commands.Cog , name="Setup"):
         if flair_non_family is not None:
             await db_server.set_flair_non_family(option=(flair_non_family == "True"))
             changed_text += f"- **Assign Flair Roles to Non-Family:** `{flair_non_family}`\n"
-
+        if full_whitelist_role is not None:
+            if full_whitelist_role.is_default():
+                raise MessageException("Full Whitelist Role cannot be `@everyone`")
+            await db_server.set_full_whitelist_role(id=full_whitelist_role.id)
+            changed_text += f"- **Full Whitelist Role:** `{full_whitelist_role.mention}`\n"
 
         if changed_text == "":
             changed_text = "No Changes Made!"
@@ -87,7 +103,8 @@ class SetupCommands(commands.Cog , name="Setup"):
                             member_role: disnake.Role = None,
                             leadership_role: disnake.Role = None,
                             clan_channel: Union[disnake.TextChannel, disnake.Thread] = None,
-                            greeting: str = None,
+                            greeting: str = commands.Param(autocomplete=autocomplete.embeds, default=None),
+                            auto_greet: str = commands.Param(choices=["Never", "First Join", "Every Join"], default=None),
                             category: str = commands.Param(default=None, autocomplete=autocomplete.category),
                             ban_alert_channel: Union[disnake.TextChannel, disnake.Thread] = None,
                             clan_abbreviation: str = None,
@@ -109,18 +126,24 @@ class SetupCommands(commands.Cog , name="Setup"):
             raise ThingNotFound("**This clan is not set up on this server. Use `/addclan` to get started.**")
         db_clan = DatabaseClan(bot=self.bot, data=results)
         changed_text = ""
+
+        if greeting is not None:
+            lookup = await self.bot.custom_embeds.find_one({"$and": [{"server": ctx.guild_id}, {"name": greeting}]})
+            if lookup is None:
+                raise MessageException("No embed/message with that name found on this server")
+            changed_text += f"- **Greeting set to the embed/message:** {greeting}"
         if member_role is not None:
             await db_clan.set_member_role(id=member_role.id)
             changed_text += f"- **Member Role:** {member_role.mention}\n"
+        if auto_greet is not None:
+            await db_clan.set_auto_greet(option=auto_greet)
+            changed_text += f"- **Auto Greet:** {auto_greet}\n"
         if leadership_role is not None:
             await db_clan.set_leadership_role(id=leadership_role.id)
             changed_text += f"- **Leadership Role:** {leadership_role.mention}\n"
         if clan_channel is not None:
             await db_clan.set_clan_channel(id=clan_channel.id)
             changed_text += f"- **Clan Channel:** {clan_channel.mention}\n"
-        if greeting is not None:
-            await db_clan.set_greeting(text=greeting)
-            changed_text += f"- **Greeting:** {greeting}\n"
         if category is not None:
             await db_clan.set_category(category=category)
             changed_text += f"- **Category:** `{category}`\n"
@@ -145,6 +168,32 @@ class SetupCommands(commands.Cog , name="Setup"):
         embed.set_thumbnail(url=clan.badge.url)
         await ctx.edit_original_message(embed=embed)
 
+
+    @setup.sub_command(name="member-count-warning", description="Set a warning when member count gets to a certain level")
+    async def member_count_warning(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = options.clan,
+                                   below: int = commands.Param(default=0), above: int = commands.Param(default=0), ping: disnake.Role = None,
+                                   channel: Union[disnake.TextChannel, disnake.Thread] = None):
+        if channel is None:
+            channel = ctx.channel
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"tag": clan.tag},
+            {"server": ctx.guild.id}
+        ]})
+        if results is None:
+            raise ThingNotFound("**This clan is not set up on this server. Use `/addclan` to get started.**")
+        db_clan = DatabaseClan(bot=self.bot, data=results)
+        await db_clan.member_count_warning.set_above(num=above)
+        await db_clan.member_count_warning.set_below(num=below)
+        await db_clan.member_count_warning.set_channel(id=channel.id)
+        if ping is not None:
+            await db_clan.member_count_warning.set_role(id=ping.id)
+
+        text = f"Member Count Warning for {clan.name}({clan.tag}) set in {channel.id}. Will warn when reaching {below} & {above}."
+        if ping is not None:
+            text += f" Will ping {ping.mention}."
+        embed = disnake.Embed(description=text, color=disnake.Color.green())
+        embed.set_thumbnail(url=clan.badge.url)
+        await ctx.edit_original_message(embed=embed)
 
 
     @setup.sub_command(name="user-settings", description="Set bot settings for yourself like main account or timezone")
@@ -246,6 +295,39 @@ class SetupCommands(commands.Cog , name="Setup"):
             clan: DatabaseClan = coc.utils.get(db_server.clans, tag=got_clan.tag)
             embed = await create_settings_embed(clan=clan, got_clan=got_clan)
             await res.edit_original_message(embed=embed)
+
+
+    @setup.sub_command(name="category-order", description="Change the order family categories display on /family-clans")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def family_category_order(self, ctx: disnake.ApplicationCommandInteraction):
+        categories = await self.bot.clan_db.distinct("category", filter={"server": ctx.guild.id})
+        select_options = []
+        for category in categories:
+            select_options.append(disnake.SelectOption(label=category, value=category))
+        select = disnake.ui.Select(
+            options=select_options,
+            placeholder="Categories",  # the placeholder text to show when no options have been chosen
+            min_values=len(select_options),  # the minimum number of options a user must select
+            max_values=len(select_options),  # the maximum number of options a user can select
+        )
+        dropdown = [disnake.ui.ActionRow(select)]
+        embed = disnake.Embed(description="**Select from the categories below in the order you would like them to be in**", color=disnake.Color.green())
+        await ctx.edit_original_message(embed=embed, components=dropdown)
+        msg = await ctx.original_message()
+
+        def check(res: disnake.MessageInteraction):
+            return res.message.id == msg.id
+
+        try:
+            res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,
+                                                                      timeout=600)
+        except:
+            return await msg.edit(components=[])
+        await res.response.defer()
+        await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"category_order": res.values}})
+        new_order = ", ".join(res.values)
+        embed = disnake.Embed(description=f"New Category Order: `{new_order}`", color=disnake.Color.green())
+        await res.edit_original_message(embed=embed)
 
 
     @setup.sub_command(name="custom-bot", description="Set up a custom bot on your server")

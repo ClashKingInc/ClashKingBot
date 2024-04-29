@@ -35,6 +35,10 @@ async def button_logic(button_data: str, bot: CustomClient, guild: disnake.Guild
             data = ctx
         elif name == "player":
             data = await bot.getPlayer(player_tag=data)
+        elif name == "custom_player":
+            data = await bot.getPlayer(player_tag=data, custom=True)
+        elif name == "discord_user":
+            data = await ctx.guild.getch_member(data)
         hold_kwargs[name] = data
 
     embed_color = await bot.ck_client.get_server_embed_color(server_id=guild.id)
@@ -45,6 +49,7 @@ async def button_logic(button_data: str, bot: CustomClient, guild: disnake.Guild
     components = 0
     components_function = None
     if components_function:
+        hold_kwargs["ctx"] = ctx
         components = await components_function(**hold_kwargs)
 
     if no_embed:
@@ -52,14 +57,21 @@ async def button_logic(button_data: str, bot: CustomClient, guild: disnake.Guild
     return embed, components
 
 
-class ButtonHandler(commands.Cog):
+class ComponentHandler(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_button_click(self, ctx: disnake.MessageInteraction):
-        button_data = ctx.data.custom_id
+    async def on_message_interaction(self, ctx: disnake.MessageInteraction):
+
+        if ctx.data.component_type == disnake.ComponentType.button:
+            button_data = ctx.data.custom_id
+        elif ctx.data.component_type == disnake.ComponentType.select:
+            button_data = ctx.values[0]
+        else:
+            return
+
         if ":" not in button_data:
             return
 
@@ -82,6 +94,6 @@ class ButtonHandler(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(ButtonHandler(bot))
+    bot.add_cog(ComponentHandler(bot))
 
 

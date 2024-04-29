@@ -1,7 +1,10 @@
 import asyncio
 import coc
 import disnake
+import pendulum as pend
+import random
 
+from hashids import Hashids
 from classes.bot import CustomClient
 from discord.options import autocomplete, convert
 from disnake.ext import commands
@@ -30,7 +33,12 @@ class War(commands.Cog):
                          previous_wars: str = commands.Param(default=None, autocomplete=autocomplete.previous_wars)):
         await ctx.response.defer()
         if previous_wars is not None:
-            war_data = await self.bot.clan_wars.find_one({"custom_id" : previous_wars.split("|")[-1].replace(" ","")})
+            war_data = await self.bot.clan_wars.find_one({"$and": [
+                {"custom_id": previous_wars.split("|")[-1].replace(" ", "")},
+                {"$or" : [
+                    {"$data.clan.tag" : clan.tag}, {"$data.opponent.tag" : clan.tag}
+                ]}
+            ]})
             if war_data is None:
                 embed = disnake.Embed(description=f"Previous war for [**{clan.name}**]({clan.share_link}) not found.",
                                       color=disnake.Color.green())
@@ -50,7 +58,11 @@ class War(commands.Cog):
                                       color=disnake.Color.green())
                 embed.set_thumbnail(url=clan.badge.large)
                 return await ctx.send(embed=embed)
-
+        hashids = Hashids(min_length=7)
+        for x in range(0, 15):
+            custom_id = hashids.encode(
+                int(war.preparation_start_time.time.replace(tzinfo=pend.UTC).timestamp()) + int(pend.now(tz=pend.UTC).timestamp()) + random.randint(1000000000, 9999999999))
+            print(custom_id)
         embed = await main_war_page(bot=self.bot, war=war, war_league=str(clan.war_league))
 
         main = embed

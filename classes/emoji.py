@@ -18,6 +18,8 @@ class EmojiType():
 
 class Emojis():
     def __init__(self):
+        self.win_streak = EmojiType(SharedEmojis.all_emojis.get("win_streak"))
+        self.broken_sword = EmojiType(SharedEmojis.all_emojis.get("broken_sword"))
         self.discord = EmojiType(SharedEmojis.all_emojis.get("discord"))
         self.clan_castle = EmojiType(SharedEmojis.all_emojis.get("clan_castle"))
         self.shield = EmojiType(SharedEmojis.all_emojis.get("shield"))

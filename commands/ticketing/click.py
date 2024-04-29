@@ -11,7 +11,7 @@ from classes.bot import CustomClient
 from disnake.ext import commands
 from datetime import datetime
 from utility.discord_utils import check_commands
-from classes.player import MyCustomPlayer
+from classes.player.stats import StatsPlayer
 from utility.discord_utils import interaction_handler
 from classes.tickets import TicketPanel, LOG_TYPE, OpenTicket
 from .utils import ask_questions, open_ticket, message_convertor
@@ -211,7 +211,7 @@ class TicketClick(commands.Cog):
                     return await ctx.send(content="No accounts linked to you. Click the button below to link. " \
                                                   "**Once you are done, please open a ticket again.**", components=buttons, ephemeral=True)
 
-                accounts: List[MyCustomPlayer] = await self.bot.get_players(tags=linked_accounts, custom=True)
+                accounts: List[StatsPlayer] = await self.bot.get_players(tags=linked_accounts, custom=True)
                 accounts.sort(key=lambda x: x.town_hall, reverse=True)
                 options = []
                 failed_accounts = False

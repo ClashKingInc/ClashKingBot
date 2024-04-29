@@ -1,7 +1,6 @@
 import disnake
-from typing import TYPE_CHECKING
 from classes.bot import CustomClient
-from classes.player import MyCustomPlayer
+from classes.player.stats import StatsPlayer
 from typing import List
 import coc
 from utility.constants import BOARD_TYPES
@@ -130,7 +129,7 @@ def leaderboard_components(bot: CustomClient, current_page, num_players):
     return [selects, buttons]
 
 
-def player_components(players: List[MyCustomPlayer]):
+def player_components(players: List[StatsPlayer]):
     player_results = []
     if len(players) == 1:
         return player_results

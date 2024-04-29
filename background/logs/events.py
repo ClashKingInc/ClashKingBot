@@ -1,6 +1,4 @@
 import asyncio
-
-import disnake
 import ujson
 import orjson
 import websockets
@@ -21,6 +19,10 @@ reddit_ee = EventEmitter()
 async def kafka_events(bot):
     await bot.wait_until_ready()
     await asyncio.sleep(120)
+
+    async def wrap_task(f: callable):
+        await asyncio.sleep(0)
+        await f
 
     while True:
         count = 0
@@ -44,6 +46,7 @@ async def kafka_events(bot):
                         try:
                             json_message = orjson.loads(message)
                             topic = json_message.get("topic")
+
                             value = json_message.get("value")
 
                             if (f := value.get("type")) is not None:
@@ -67,10 +70,11 @@ async def kafka_events(bot):
                                 elif topic == "reddit":
                                     awaitable = reddit_ee.emit_async(field, value)
                                 if awaitable is not None:
-                                    await awaitable
+                                    asyncio.create_task(wrap_task(awaitable))
                         except Exception:
                             pass
         except Exception as e:
+            print(e)
             continue
 
 

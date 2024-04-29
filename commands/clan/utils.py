@@ -4,7 +4,7 @@ import disnake
 from disnake import Embed
 from disnake.utils import get
 from collections import  namedtuple
-from classes.player import MyCustomPlayer, LegendRanking, ClanCapitalWeek
+from classes.player.stats import StatsPlayer, LegendRanking, ClanCapitalWeek
 from classes.bot import CustomClient
 from typing import List
 from ballpark import ballpark as B
@@ -87,9 +87,9 @@ async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake
         title=f"**{clan.name}**",
         description=(
             f"Tag: [{clan.tag}]({clan.share_link})\n"
-            f"Trophies: <:trophy:825563829705637889> {clan.points} | "
-            f"<:vstrophy:944839518824058880> {clan.builder_base_points}\n"
-            f"Requirements: <:trophy:825563829705637889>{clan.required_trophies} | {fetch_emoji(clan.required_townhall)}{clan.required_townhall}\n"
+            f"Trophies: {bot.emoji.trophy} {clan.points} | "
+            f"{bot.emoji.versus_trophy} {clan.builder_base_points}\n"
+            f"Requirements: {bot.emoji.trophy}{clan.required_trophies} | {fetch_emoji(clan.required_townhall)}{clan.required_townhall}\n"
             f"Type: {clan_type_converter[clan.type]}\n"
             f"Location: {flag} {location_name}\n"
             f"{rank_text}\n"
@@ -97,16 +97,16 @@ async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake
             f"Level: {clan.level} \n"
             f"Members: <:people:932212939891552256>{clan.member_count}/50\n\n"
             f"CWL: {cwl_league_emoji}{str(clan.war_league)}\n"
-            f"Wars Won: <:warwon:932212939899949176>{warwin}\n"
-            f"Wars Lost: <:warlost:932212154164183081>{warloss}\n"
-            f"War Streak: <:warstreak:932212939983847464>{winstreak}\n"
-            f"Winratio: <:winrate:932212939908337705>{winrate}\n\n"
+            f"Wars Won: {bot.emoji.up_green_arrow}{warwin}\n"
+            f"Wars Lost: {bot.emoji.down_red_arrow}{warloss}\n"
+            f"War Streak: {bot.emoji.win_streak}{winstreak}\n"
+            f"Winratio: {bot.emoji.ratio}{winrate}\n\n"
             f"{clan_capital_text}\n"
             f"Description: {clan.description}"),
         color=embed_color
     )
 
-    clan_members: List[MyCustomPlayer] = await bot.get_players(tags=[member.tag for member in clan.members], custom=True)
+    clan_members: List[StatsPlayer] = await bot.get_players(tags=[member.tag for member in clan.members], custom=True)
 
     clan_stats = await bot.clan_stats.find_one({"tag" : clan.tag})
     clan_games_points = 0
@@ -673,7 +673,7 @@ async def clan_warpreference(bot: CustomClient, clan: coc.Clan, option: str, emb
             seconds = int(delta.total_seconds())
             member_stats[result["_id"]] = smart_convert_seconds(seconds=seconds)
 
-    players: List[MyCustomPlayer] = await bot.get_players(tags=member_tags, custom=True, use_cache=True, fake_results=True)
+    players: List[StatsPlayer] = await bot.get_players(tags=member_tags, custom=True, use_cache=True, fake_results=True)
     players.sort(key=lambda x: (-x.town_hall, x.name), reverse=False)
 
     opted_in_text = ""
@@ -793,8 +793,8 @@ async def clan_capital_overview(bot: CustomClient, clan: coc.Clan, weekend: str,
                           f"- Start {bot.timestamper(raid_log_entry.start_time.time.timestamp()).relative}, End {bot.timestamper(raid_log_entry.end_time.time.timestamp()).relative}\n",
                     inline=False)
     atk_stats_by_district = defaultdict(list)
-    for clan in raid_log_entry.attack_log:
-        for district in clan.districts:
+    for raid_clan in raid_log_entry.attack_log:
+        for district in raid_clan.districts:
             atk_stats_by_district[district.name].append(len(district.attacks))
 
     offense_district_stats = "```"
@@ -803,8 +803,8 @@ async def clan_capital_overview(bot: CustomClient, clan: coc.Clan, weekend: str,
     offense_district_stats += "```"
 
     def_stats_by_district = defaultdict(list)
-    for clan in raid_log_entry.defense_log:
-        for district in clan.districts:
+    for raid_clan in raid_log_entry.defense_log:
+        for district in raid_clan.districts:
             def_stats_by_district[district.name].append(len(district.attacks))
 
     def_district_stats = "```"
@@ -821,14 +821,14 @@ async def clan_capital_overview(bot: CustomClient, clan: coc.Clan, weekend: str,
     embed.add_field(name="(Avg Atks By District, Def)", value=def_district_stats)
 
     attack_summary_text = f"```a=atks, d=districts, l=loot\n"
-    for clan in raid_log_entry.attack_log:
+    for raid_clan in raid_log_entry.attack_log:
         # badge = await self.bot.create_new_badge_emoji(url=clan.badge.url)
-        attack_summary_text += f"- {clan.name[:12]:12} {clan.attack_count:2}a {clan.destroyed_district_count:1}d {B(sum([d.looted for d in clan.districts])):3}l\n"
+        attack_summary_text += f"- {raid_clan.name[:12]:12} {raid_clan.attack_count:2}a {raid_clan.destroyed_district_count:1}d {B(sum([d.looted for d in raid_clan.districts])):3}l\n"
 
     defense_summary_text = "```"
-    for clan in raid_log_entry.defense_log:
+    for raid_clan in raid_log_entry.defense_log:
         # badge = await self.bot.create_new_badge_emoji(url=clan.badge.url)
-        defense_summary_text += f"- {clan.name[:12]:12} {clan.attack_count:2}a {clan.destroyed_district_count:1}d {B(sum([d.looted for d in clan.districts])):3}l\n"
+        defense_summary_text += f"- {raid_clan.name[:12]:12} {raid_clan.attack_count:2}a {raid_clan.destroyed_district_count:1}d {B(sum([d.looted for d in raid_clan.districts])):3}l\n"
 
     attack_summary_text += "```"
     defense_summary_text += "```"
@@ -864,7 +864,7 @@ async def clan_raid_weekend_donation_stats(bot: CustomClient, clan: coc.Clan, we
     donation_text = ""
 
     players.sort(key=lambda x: sum(x.clan_capital_stats(week=weekend).donated), reverse=True)
-    for player in players[:60]:  # type: MyCustomPlayer
+    for player in players[:60]:  # type: StatsPlayer
         sum_donated = 0
         len_donated = 0
         cc_stats = player.clan_capital_stats(week=weekend)
@@ -1335,7 +1335,7 @@ async def create_offensive_hitrate(bot: CustomClient, clan: coc.Clan, players,
         townhall_level = list(range(1, 17))
     tasks = []
 
-    async def fetch_n_rank(player: MyCustomPlayer):
+    async def fetch_n_rank(player: StatsPlayer):
         hitrate = await player.hit_rate(townhall_level=townhall_level, fresh_type=fresh_type,
                                         start_timestamp=start_timestamp, end_timestamp=end_timestamp,
                                         war_types=war_types, war_statuses=war_statuses)
@@ -1390,7 +1390,7 @@ async def create_defensive_hitrate(bot: CustomClient, clan: coc.Clan, players,
         townhall_level = list(range(1, 17))
     tasks = []
 
-    async def fetch_n_rank(player: MyCustomPlayer):
+    async def fetch_n_rank(player: StatsPlayer):
         hitrate = await player.defense_rate(townhall_level=townhall_level, fresh_type=fresh_type,
                                             start_timestamp=start_timestamp, end_timestamp=end_timestamp,
                                             war_types=war_types, war_statuses=war_statuses)
@@ -1405,7 +1405,7 @@ async def create_defensive_hitrate(bot: CustomClient, clan: coc.Clan, players,
         return [f"{player.town_hall_cls.emoji} `{hr_nums} {destr} {name}`\n", round(hr.average_triples * 100, 3), name,
                 hr.num_attacks, player.town_hall]
 
-    for player in players:  # type: MyCustomPlayer
+    for player in players:  # type: StatsPlayer
         task = asyncio.ensure_future(fetch_n_rank(player=player))
         tasks.append(task)
     responses = await asyncio.gather(*tasks)
@@ -1445,7 +1445,7 @@ async def create_stars_leaderboard(bot: CustomClient,   clan: coc.Clan, players,
         townhall_level = list(range(1, 17))
     tasks = []
 
-    async def fetch_n_rank(player: MyCustomPlayer):
+    async def fetch_n_rank(player: StatsPlayer):
         hitrate = await player.hit_rate(townhall_level=townhall_level, fresh_type=fresh_type,
                                         start_timestamp=start_timestamp, end_timestamp=end_timestamp,
                                         war_types=war_types, war_statuses=war_statuses)
@@ -1459,7 +1459,7 @@ async def create_stars_leaderboard(bot: CustomClient,   clan: coc.Clan, players,
         return [f"{stars} {destruction} {name}\n", round(hr.average_triples * 100, 3), name, hr.total_stars,
                 player.town_hall]
 
-    for player in players:  # type: MyCustomPlayer
+    for player in players:  # type: StatsPlayer
         task = asyncio.ensure_future(fetch_n_rank(player=player))
         tasks.append(task)
     responses = await asyncio.gather(*tasks)

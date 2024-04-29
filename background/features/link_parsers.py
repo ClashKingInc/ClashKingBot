@@ -22,6 +22,9 @@ class LinkParsing(commands.Cog):
         if message.webhook_id is not None:
             return
 
+        if message.guild is None:
+            return
+
         if message.guild.id in self.bot.OUR_GUILDS:
 
             if "https://link.clashofclans.com/" in message.content and "action=OpenPlayerProfile&tag=" in message.content:
@@ -65,7 +68,6 @@ class LinkParsing(commands.Cog):
                 for button in stat_buttons:
                     buttons.append_item(button)
                 await message.channel.send(embed=embed, components=[buttons])
-                await safe_run(func=message.delete)
 
             elif "https://link.clashofclans.com/" in message.content and "CopyArmy" in message.content:
                 server_settings = await self.bot.ck_client.get_server_settings(server_id=message.guild.id)

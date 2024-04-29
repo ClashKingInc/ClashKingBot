@@ -6,8 +6,7 @@ import calendar
 from disnake.ext import commands
 from typing import TYPE_CHECKING
 from classes.bot import CustomClient
-from classes.player import MyCustomPlayer
-from exceptions.CustomExceptions import ExportTemplateAlreadyExists, NoLinkedAccounts
+from classes.player.stats import StatsPlayerfrom exceptions.CustomExceptions import ExportTemplateAlreadyExists, NoLinkedAccounts
 from typing import TYPE_CHECKING, List
 from utility.search import search_results
 if TYPE_CHECKING:
@@ -18,8 +17,7 @@ else:
     
 # McKnight's imports for testing
 from utility.search import search_results
-from classes.player import MyCustomPlayer
-from exceptions.CustomExceptions import *
+from classes.player.stats import StatsPlayerfrom exceptions.CustomExceptions import *
 
 class ExportCommands(cog_class):
     def __init__(self, bot: CustomClient):
@@ -78,7 +76,7 @@ class ExportCommands(cog_class):
                             season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor) ):
         if discord_user is None:
             discord_user = ctx.author
-        players: List[MyCustomPlayer] = await search_results(self.bot, str(discord_user.id))
+        players: List[StatsPlayer] = await search_results(self.bot, str(discord_user.id))
         if not players:
             raise NoLinkedAccounts
         if type in self.DEFAULT_EXPORT_TYPES:

@@ -11,31 +11,36 @@ import aiohttp
 import emoji
 import pendulum as pend
 
-from math import ceil
-from datetime import datetime, timedelta
-from coc.ext import discordlinks
-from disnake.ext import commands
-from typing import Dict, List
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from assets.emojis import SharedEmojis
-from classes.player import MyCustomPlayer, CustomClanClass
-from classes.emoji import Emojis, EmojiType
+from background.logs.events import kafka_events
 from classes.clashofstats import COSPlayerHistory
+from classes.config import Config
+from classes.DatabaseClient.familyclient import FamilyClient
+from classes.emoji import Emojis, EmojiType
+from classes.player.stats import StatsPlayer, CustomClanClass
+from coc.ext import discordlinks
+from datetime import datetime, timedelta
+from disnake.ext import commands, fluent
+from expiring_dict import ExpiringDict
+from math import ceil
+from redis import asyncio as redis
+from typing import Dict, List
 from utility.constants import locations, BADGE_GUILDS
 from utility.general import fetch, create_superscript
-from expiring_dict import ExpiringDict
-from redis import asyncio as redis
-from classes.DatabaseClient.familyclient import FamilyClient
-from classes.config import Config
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from utility.login import coc_login
-from background.logs.events import kafka_events
 
 
 class CustomClient(commands.AutoShardedBot):
     def __init__(self, config: Config, command_prefix: str, help_command, intents: disnake.Intents, scheduler: AsyncIOScheduler, shard_count: int | None, chunk_guilds_at_startup: bool, **kwargs):
         super().__init__(command_prefix=command_prefix, help_command=help_command, intents=intents, shard_count=shard_count, chunk_guilds_at_startup=chunk_guilds_at_startup, **kwargs)
 
+        self.i18n = fluent.FluentStore()
+        self.i18n.load("locales/")
+
         self._config = config
+
+        self.OUR_CLANS = set()
 
         if not config.is_beta:
             self.loop.create_task(kafka_events(self))
@@ -46,6 +51,7 @@ class CustomClient(commands.AutoShardedBot):
         self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(self._config.stats_mongodb, compressors="snappy")
         self.new_looper = self.looper_db.get_database("new_looper")
         self.stats = self.looper_db.get_database(name="stats")
+        self.cache = self.looper_db.get_database(name="cache")
 
         self.user_db = self.new_looper.get_collection("user_db")
         collection_class = self.user_db.__class__
@@ -54,7 +60,7 @@ class CustomClient(commands.AutoShardedBot):
         self.base_player: collection_class = self.stats.base_player
         self.legends_stats: collection_class = self.stats.legends_stats
         self.season_stats: collection_class = self.stats.season_stats
-
+        self.capital_cache: collection_class = self.cache.capital_raids
 
 
         self.player_stats: collection_class = self.new_looper.player_stats
@@ -80,7 +86,9 @@ class CustomClient(commands.AutoShardedBot):
         self.war_elo: collection_class = self.looper_db.looper.war_elo
 
         self.raid_weekend_db: collection_class = self.looper_db.looper.raid_weekends
-        self.clan_join_leave: collection_class = self.new_looper.clan_join_leave
+
+        self.clan_join_leave: collection_class = self.looper_db.looper.join_leave_history
+
         self.base_stats: collection_class = self.looper_db.looper.base_stats
         self.autoboards: collection_class = self.looper_db.clashking.autoboards
         self.clan_war: collection_class = self.looper_db.looper.clan_war
@@ -151,7 +159,6 @@ class CustomClient(commands.AutoShardedBot):
         self.IMAGE_CACHE = ExpiringDict()
 
         self.OUR_GUILDS = set()
-        self.OUR_CLANS = set()
 
         self.EXTENSION_LIST = []
         self.STARTED_CHUNK = set()
@@ -433,10 +440,10 @@ class CustomClient(commands.AutoShardedBot):
                 if results is None:
                     results = {}
                 if cache_data is None:
-                    clashPlayer = await self.coc_client.get_player(player_tag=player_tag, cls=MyCustomPlayer, bot=self,
+                    clashPlayer = await self.coc_client.get_player(player_tag=player_tag, cls=StatsPlayer, bot=self,
                                                                    results=results)
                 else:
-                    clashPlayer = MyCustomPlayer(data=cache_data, client=self.coc_client, bot=self, results=results)
+                    clashPlayer = StatsPlayer(data=cache_data, client=self.coc_client, bot=self, results=results)
             else:
                 if cache_data is None:
                     clashPlayer: coc.Player = await self.coc_client.get_player(player_tag)
@@ -452,16 +459,21 @@ class CustomClient(commands.AutoShardedBot):
 
 
 
-    async def get_players(self, tags: list, fresh_tags=None, custom=True, use_cache=True, fake_results=False, found_results=None):
+    async def get_players(self, tags: list, fresh_tags=None, custom: bool | object =True, use_cache=True, fake_results=False, found_results=None):
         fresh_tags = fresh_tags or []
 
         results_dict = {}
         results_list = found_results if found_results else []
-        if custom and not fake_results:
-            results_list = await self.player_stats.find({"tag": {"$in": tags}}).to_list(length=None)
-        elif custom and fake_results:
+        player_class = coc.Player
+        if custom is not False and not fake_results:
+            if custom is True:
+                player_class = StatsPlayer
+                results_list = await self.player_stats.find({"tag": {"$in": tags}}).to_list(length=None)
+            else:
+                player_class = custom
+        elif custom is not False and fake_results:
             results_dict = {tag: {} for tag in tags}
-        results_dict.update({item["tag"]: item for item in results_list})
+        results_dict.update({item.get("tag") or item.get("VillageTag"): item for item in results_list})
 
         players = []
         tag_set = set(tags)
@@ -474,7 +486,7 @@ class CustomClient(commands.AutoShardedBot):
                 cache_data.append(data)
 
         players.extend(
-            (coc.Player if not custom else MyCustomPlayer)
+            (player_class)
             (data=data, client=self.coc_client, bot=self, results=results_dict.get(data["tag"], {})
              )for data in cache_data
         )
@@ -489,7 +501,7 @@ class CustomClient(commands.AutoShardedBot):
                 data = await response.read()
         player_data: dict = ujson.loads(data)
         players.extend(
-            (coc.Player if not custom else MyCustomPlayer)
+            (player_class)
             (data=data, client=self.coc_client, bot=self, results=results_dict.get(data["tag"], {})
              ) for data in player_data
         )
@@ -597,7 +609,7 @@ class CustomClient(commands.AutoShardedBot):
     async def store_all_cwls(self, clan: coc.Clan):
         await asyncio.sleep(0.1)
         from datetime import date
-        diff = ceil((datetime.now().date() - date(2016, 12, 1)).days / 30)
+        diff = ceil((datetime.now().date() - date(2020, 12, 1)).days / 30)
         dates = self.gen_season_date(seasons_ago=diff, as_text=False)
         names = await self.cwl_db.distinct("season", filter={"clan_tag": clan.tag})
         await self.cwl_db.delete_many({"data.statusCode": 404})
@@ -610,7 +622,7 @@ class CustomClient(commands.AutoShardedBot):
                 url = f"https://api.clashofstats.com/clans/{tag}/cwl/seasons/{date}"
                 task = asyncio.ensure_future(fetch(url, session, extra=date))
                 tasks.append(task)
-            responses = await asyncio.gather(*tasks)
+            responses = await asyncio.gather(*tasks, return_exceptions=True)
             await session.close()
 
         for response, date in responses:
@@ -619,7 +631,7 @@ class CustomClient(commands.AutoShardedBot):
                     await self.cwl_db.insert_one({"clan_tag": clan.tag, "season": date, "data": response})
                 else:
                     await self.cwl_db.insert_one({"clan_tag": clan.tag, "season": date, "data": None})
-            except:
+            except Exception:
                 pass
 
 

@@ -1,14 +1,16 @@
-import disnake
-import time
-import io
 import aiohttp
+import disnake
+import io
+import time
 
-from urllib.parse import urlencode
-from disnake.ext import commands
 from classes.bot import CustomClient
-from PIL import Image, ImageDraw, ImageFont
-from utility.components import create_components
 from discord import convert, autocomplete
+from disnake.ext import commands
+from exceptions.CustomExceptions import MessageException
+from PIL import Image, ImageDraw, ImageFont
+from urllib.parse import urlencode
+from utility.components import create_components
+
 
 class misc(commands.Cog, name="Other"):
 
@@ -133,30 +135,45 @@ class misc(commands.Cog, name="Other"):
         """
             Parameters
             ----------
-            sign_text: Text to write on sign (up to 25 char)
+            sign_text: Text to write on sign (up to 40 char)
             hidden : If yes, message will be visible only to you
         """
-        size = 40
-        if len(sign_text) > 25:
-            return await ctx.send("Too long, sorry :/")
 
+        text_size = 40
         if len(sign_text) >= 11:
-            size = 30
-
-        if len(sign_text) > 14:
-            size = 23
-
-        if len(sign_text) > 19:
-            size = 16
-
-        back = Image.open("other/pepesign.png")
+            text_size = int((-0.43 * len(sign_text)) + 36)
+        if text_size < 5:
+            raise MessageException("Message too long, sorry :/")
+        back = Image.open("commands/other/pepesign.png")
 
         width = 250
-        height = 250
-        font = ImageFont.truetype("other/pepefont.ttf", size)
+        font = ImageFont.truetype("commands/other/pepefont.ttf", text_size)
         draw = ImageDraw.Draw(back)
 
-        draw.text(((width / 2) - 5, 55), sign_text, anchor="mm", fill=(0, 0, 0), font=font)
+        def split_text(text, max_length):
+            words = text.split()
+            current_line = ""
+            lines = []
+
+            for word in words:
+                if len(current_line + ' ' + word) > max_length:
+                    lines.append(current_line)
+                    current_line = word
+                else:
+                    if current_line:
+                        current_line += ' '
+                    current_line += word
+
+            if current_line:
+                lines.append(current_line)
+
+            return '\n'.join(lines)
+
+        characters_per_line = int(0.35 * len(sign_text) + 5.88)
+        sign_text = split_text(sign_text, characters_per_line)
+        height = 55
+        height = height - (2 * sign_text.count("\n"))
+        draw.text(((width / 2) - 5, height), sign_text, anchor="mm", fill=(0, 0, 0), font=font)
 
         temp = io.BytesIO()
         back.save(temp, format="png")
@@ -167,7 +184,11 @@ class misc(commands.Cog, name="Other"):
         if hidden == "Yes":
             await ctx.send(content="Save image or copy link & send wherever you like :)", file=file, ephemeral=True)
         else:
-            await ctx.send(file=file)
+            try:
+                await ctx.send("Done", ephemeral=True)
+                await ctx.channel.send(file=file)
+            except Exception:
+                await ctx.send(file=file)
 
 
 

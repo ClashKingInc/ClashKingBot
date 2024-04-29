@@ -7,44 +7,53 @@ from disnake.ext import commands
 from exceptions.CustomExceptions import *
 from typing import Callable, Union, List
 
+db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("STATIC_MONGODB"))
+whitelist = db_client.usafam.whitelist
+server_settings = db_client.usafam.server
+
 
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
+        #if owner, allow to run
         if ctx.author.id == 706149153431879760:
             return True
 
+        #check for clashking perms role
         member = await ctx.guild.getch_member(member_id=ctx.author.id)
-        if disnake.utils.get(member.roles, name="ClashKing Perms") is not None:
+        server_setup = await server_settings.find_one({"server" : ctx.guild.id}, {"_id" : 0, "full_whitelist_role" : 1})
+
+        if server_setup is not None and server_setup.get("full_whitelist_role") is not None:
+            if disnake.utils.get(member.roles, id=server_setup.get("full_whitelist_role")) is not None:
+                return True
+        else:
+            if disnake.utils.get(member.roles, name="ClashKing Perms") is not None:
+                return True
+
+
+        full_command_name = ctx.application_command.qualified_name
+        #idk why this is, find out later
+        if full_command_name == "unlink":
             return True
-        db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("STATIC_MONGODB"))
-        whitelist = db_client.usafam.whitelist
-        member = ctx.author
 
-        commandd = ctx.application_command.qualified_name
-        if commandd == "unlink":
-            return True
-        guild = ctx.guild.id
+        base_command_name = full_command_name.split(" ")[0]
 
-        results =  whitelist.find({"$and" : [
-                {"command": commandd},
-                {"server" : guild}
-            ]})
+        results = await whitelist.find({"$and" : [
+                {"$or" : [{"command" : full_command_name}, {"command" : base_command_name}]},
+                {"server" : ctx.guild.id}
+            ]}).to_list(length=None)
 
-        if results is None:
+        if not results:
             return False
 
-        perms = False
-        for role in await results.to_list(length=None):
-            role_ = role.get("role_user")
-            is_role = role.get("is_role")
-            if is_role:
-                if disnake.utils.get(member.roles, id=int(role_)) is not None:
+        for result in results:
+            if result.get("is_role"):
+                if disnake.utils.get(member.roles, id=int(result.get("role_user"))) is not None:
                     return True
             else:
-                if member.id == role_:
+                if member.id == result.get("role_user"):
                     return True
 
-        return perms
+        return False
 
     return commands.check(predicate)
 

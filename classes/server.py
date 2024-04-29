@@ -163,15 +163,24 @@ class DatabaseClan():
         self.war_panel = WarPanel(parent=self, type="war_panel")
         self.legend_log_attacks = ClanLog(parent=self, type="legend_log_attacks")
         self.legend_log_defenses = ClanLog(parent=self, type="legend_log_defenses")
-        self.greeting = data.get("greeting", "")
+        self.greeting = data.get("greeting_embed", None)
         self.war_countdown = data.get("warCountdown")
         self.member_count_warning = MemberCountWarning(parent=self)
+        self.auto_greet_option = data.get("auto_greet_option", "First Join")
+
+
+    async def set_auto_greet(self, option: str):
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": self.tag},
+            {"server": self.server_id}
+        ]}, {'$set': {"auto_greet_option": option}})
 
     async def set_war_countdown(self, id: Union[int, None]):
         await self.bot.clan_db.update_one({"$and": [
             {"tag": self.tag},
             {"server": self.server_id}
         ]}, {'$set': {"warCountdown": id}})
+
 
     async def set_clan_channel(self, id: Union[int, None]):
         await self.bot.clan_db.update_one({"$and": [
@@ -202,7 +211,7 @@ class DatabaseClan():
         await self.bot.clan_db.update_one({"$and": [
             {"tag": self.tag},
             {"server": self.server_id}
-        ]}, {'$set': {"greeting": text}})
+        ]}, {'$set': {"greeting_embed": text}})
 
     async def set_category(self, category: str):
         await self.bot.clan_db.update_one({"$and": [

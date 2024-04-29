@@ -79,7 +79,6 @@ def load():
 '''#dont let custom or local run
 if not config.is_beta and not config.is_custom:
     initial_extensions += [
-        "Background.reddit_recruit_feed",
         "Background.region_lb_update"
     ]
     initial_extensions += [
@@ -99,8 +98,9 @@ if not config.is_beta:
         "background.logs.legends",
         "background.logs.playerupgrades",
         "background.logs.reddit",
-        "background.logs.reminders"
-        #"background.logs.war"
+        "background.logs.reminders",
+        "background.features.voicestat_loop"
+        "background.logs.war"
     ]
 
 

@@ -35,7 +35,7 @@ class reddit_feed(commands.Cog):
                                                   f'[Comments]({event.get("comments_link")})',
                                       color=disnake.Color.green())
                 buttons = disnake.ui.ActionRow(disnake.ui.Button(label="Post Link", emoji=self.bot.emoji.reddit_icon.partial_emoji, url=event.get("url")))
-                if tags and player is not None:
+                if player is not None:
                     buttons.append_item(disnake.ui.Button(label="Player Profile", emoji=self.bot.emoji.troop.partial_emoji, style=disnake.ButtonStyle.green, custom_id=f"redditplayer_{player.tag}"))
 
                 if role is not None:

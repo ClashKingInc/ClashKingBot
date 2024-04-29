@@ -1,6 +1,7 @@
 import disnake
+
 from disnake.ext import commands
-from discord import convert, autocomplete, options
+from discord import options
 from .utils import *
 
 
@@ -27,20 +28,76 @@ class FamilyCommands(commands.Cog, name="Family Commands"):
 
 
 
-    @family.sub_command(name="overview", description="Board showing a family stats overview")
-    async def overview(self, ctx: disnake.ApplicationCommandInteraction,
+    @family.sub_command(name="clans", description="Boards showing overview of the family clans in different ways")
+    async def clans(self, ctx: disnake.ApplicationCommandInteraction,
                        server: disnake.Guild = options.optional_family,
-                       types: str = commands.Param(choices=["General", "War", "Clan Capital", "Raid Weekend", "Donations", "Activity"])):
+                       types: str = commands.Param(default="Categories", choices=["Overview", "Categories", "CWL Leagues", "Capital Leagues", "Location", "TH Requirement"])):
         server = server or ctx.guild
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild.id)
-        if types == "General":
+        if types == "Overview":
             embed = await family_overview(bot=self.bot, server=server, embed_color=embed_color)
+            button_id = f"familyoverview:{server.id}"
+        elif types == "Categories":
+            embed = await family_clans(bot=self.bot, server=server, type="db", embed_color=embed_color)
+            button_id = f"familyclans:{server.id}:db"
+        elif types == "CWL Leagues":
+            embed = await family_clans(bot=self.bot, server=server, type="cwl", embed_color=embed_color)
+            button_id = f"familyclans:{server.id}:cwl"
+        elif types == "Capital Leagues":
+            embed = await family_clans(bot=self.bot, server=server, type="capital", embed_color=embed_color)
+            button_id = f"familyclans:{server.id}:capital"
+        elif types == "Location":
+            embed = await family_clans(bot=self.bot, server=server, type="location", embed_color=embed_color)
+            button_id = f"familyclans:{server.id}:location"
+        elif types == "TH Requirement":
+            embed = await family_clans(bot=self.bot, server=server, type="th", embed_color=embed_color)
+            button_id = f"familyclans:{server.id}:th"
+
+        buttons = disnake.ui.ActionRow(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=button_id))
+        await ctx.edit_original_response(embed=embed, components=[buttons])
+
+
+    @family.sub_command(name="stats", description="Boards showing stats by family clan")
+    async def stats(self, ctx: disnake.ApplicationCommandInteraction,
+                    types: str = commands.Param(choices=["Donations", "Activity", "Trophies", "Versus Trophies", "Capital Trophies"]),
+                    server: disnake.Guild = options.optional_family):
+        raise MessageException("Command Under Construction")
+        server = server or ctx.guild
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild.id)
+        if types == "Donations":
+            embed = await family_overview(bot=self.bot, server=server, embed_color=embed_color)
+        elif types == "Activity":
+            pass
         buttons = disnake.ui.ActionRow(
             disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=f"familyoverview:{server.id}"))
         await ctx.edit_original_response(embed=embed, components=[buttons])
 
 
+    @family.sub_command(name="wars", description="On-going wars in the family")
+    async def wars(self, ctx: disnake.ApplicationCommandInteraction,
+                    server: disnake.Guild = options.optional_family):
+        server = server or ctx.guild
 
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild.id)
+        embed = await family_wars(bot=self.bot, server=server, embed_color=embed_color)
+
+        buttons = disnake.ui.ActionRow(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=f"familywars:{server.id}"))
+        await ctx.edit_original_response(embed=embed, components=[buttons])
+
+
+    @family.sub_command(name="raids", description="On-going raids in the family")
+    async def raids(self, ctx: disnake.ApplicationCommandInteraction,
+                    server: disnake.Guild = options.optional_family):
+        server = server or ctx.guild
+
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild.id)
+        embed = await family_raids(bot=self.bot, server=server, weekend=None, embed_color=embed_color)
+
+        buttons = disnake.ui.ActionRow(
+            disnake.ui.Button(label="", emoji=self.bot.emoji.refresh.partial_emoji, style=disnake.ButtonStyle.grey, custom_id=f"familyraids:{server.id}:{None}"))
+        await ctx.edit_original_response(embed=embed, components=[buttons])
 
 
     @family.sub_command(name="progress", description="Progress in various areas for the family")

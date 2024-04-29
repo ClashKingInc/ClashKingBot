@@ -6,7 +6,7 @@ import disnake
 from loguru import logger
 from disnake.ext import commands
 from classes.bot import CustomClient
-from utility.constants import USE_CODE_TEXT
+from utility.constants import USE_CODE_TEXT, DISCORD_STATUS_TYPES
 
 from classes.tickets import OpenTicket, TicketPanel, LOG_TYPE
 from classes.DatabaseClient.familyclient import FamilyClient
@@ -90,12 +90,29 @@ class DiscordEvents(commands.Cog):
         else:
             return
 
+        '''        for command in self.bot.global_application_commands:
+            print(f"Patching command integration type for {command.id}")
+            await self.bot.http.edit_global_command(
+                self.bot.application_id,
+                command.id,
+                payload={"integration_types": [0, 1], "contexts": [0, 1, 2]},
+            )'''
+
         if self.bot.user.public_flags.verified_bot:
             for count, shard in self.bot.shards.items():
                 await self.bot.change_presence(activity=disnake.CustomActivity(state="Use Code ClashKing 👀", name="Custom Status"), shard_id=shard.id)
+        else:
+            default_status = {"activity_text" : "Use Code ClashKing 👀", "status" : "Online"}
+            bot_settings = await self.bot.custom_bots.find_one({"token" : self.bot._config.bot_token})
+            if bot_settings:
+                default_status = bot_settings.get("state", default_status)
+            await self.bot.change_presence(activity=disnake.CustomActivity(state=default_status.get("activity_text"), name="Custom Status"),
+                                           status=DISCORD_STATUS_TYPES.get(default_status.get("status")))
+
+            #FIND A STORED ACTIVITY
 
         logger.info("ready")
-        #will remove later, if is a custom bot, remove ourselves from every server but one
+
         if not self.bot.user.public_flags.verified_bot and self.bot.user.id != 808566437199216691:
             for number, emoji_id in self.bot.number_emoji_map.get("gold").items():
                 if number <= 50:
@@ -120,6 +137,8 @@ class DiscordEvents(commands.Cog):
 
                 id_to_lookup_name_map = {}
                 for emoji_name, emoji_string in SharedEmojis.all_emojis.items():
+                    if not isinstance(emoji_string, str):
+                        continue
                     emoji_split = emoji_string.split(":")
                     animated = "<a:" in emoji_string
                     emoji = disnake.PartialEmoji(name=emoji_split[1][1:], id=int(str(emoji_split[2])[:-1]), animated=animated)

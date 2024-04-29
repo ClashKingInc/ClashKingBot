@@ -58,8 +58,8 @@ async def main_war_page(bot: CustomClient, war: coc.ClanWar, war_league=None):
     opp_hits = f"{len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".rjust(7)
     embed.add_field(name="**War Stats**",
                     value=f"`{team_hits}`{bot.emoji.sword_clash}`{opp_hits}`\n"
-                          f"`{war.clan.stars:<7}`<:star:825571962699907152>`{war.opponent.stars:>7}`\n"
-                          f"`{str(round(war.clan.destruction, 2)) + '%':<7}`<:broken_sword:944896241429540915>`{str(round(war.opponent.destruction, 2)) + '%':>7}`"
+                          f"`{war.clan.stars:<7}`{bot.emoji.war_star}`{war.opponent.stars:>7}`\n"
+                          f"`{str(round(war.clan.destruction, 2)) + '%':<7}`{bot.emoji.broken_sword}`{str(round(war.opponent.destruction, 2)) + '%':>7}`"
                           f"\n­\n"
                     , inline=False)
 
@@ -267,15 +267,15 @@ async def opp_overview(bot: CustomClient, war: coc.ClanWar):
     else:
         flag = f":flag_{clan.location.country_code.lower()}:"
     embed = disnake.Embed(title=f"**War Opponent: {clan.name}**", description=f"Tag: [{clan.tag}]({clan.share_link})\n"
-                                                                              f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.builder_base_points}\n"
-                                                                              f"Required Trophies: <:trophy:825563829705637889> {clan.required_trophies}\n"
+                                                                              f"Trophies: {bot.emoji.trophy} {clan.points} | {bot.emoji.versus_trophy} {clan.builder_base_points}\n"
+                                                                              f"Required Trophies: {bot.emoji.trophy} {clan.required_trophies}\n"
                                                                               f"Location: {flag} {clan.location}\n\n"
                                                                               f"Leader: {leader.name}\n"
                                                                               f"Level: {clan.level} \n"
                                                                               f"Members: <:people:932212939891552256>{clan.member_count}/50\n\n"
                                                                               f"CWL: {cwl_league_emojis(str(clan.war_league))}{str(clan.war_league)}\n"
-                                                                              f"Wars Won: <:warwon:932212939899949176>{warwin}\nWars Lost: <:warlost:932212154164183081>{warloss}\n"
-                                                                              f"War Streak: <:warstreak:932212939983847464>{winstreak}\nWinratio: <:winrate:932212939908337705>{winrate}\n\n"
+                                                                              f"Wars Won: {bot.emoji.up_green_arrow}{warwin}\nWars Lost: {bot.emoji.down_red_arrow}{warloss}\n"
+                                                                              f"War Streak: {bot.emoji.win_streak}{winstreak}\nWinratio: {bot.emoji.ratio}{winrate}\n\n"
                                                                               f"Description: {clan.description}",
                           color=disnake.Color.green())
 

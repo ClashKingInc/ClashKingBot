@@ -190,3 +190,5 @@ placeholders = [
     "https://clashking.b-cdn.net/placeholders/LeagueBK_Pose06_NoShadow.png"
 
 ]
+
+DISCORD_STATUS_TYPES = {"Online" : disnake.Status.online, "Offline" : disnake.Status.offline, "Idle" : disnake.Status.idle, "DND" : disnake.Status.do_not_disturb}

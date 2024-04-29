@@ -2,7 +2,7 @@ import disnake
 from disnake.ext import commands
 from typing import TYPE_CHECKING
 from classes.bot import CustomClient
-from classes.player import MyCustomPlayer
+from classes.player.stats import StatsPlayer
 from datetime import datetime
 
 class erikuh(commands.Cog):
@@ -14,7 +14,7 @@ class erikuh(commands.Cog):
     @commands.slash_command(name="signup", description="Signup for competition", guild_ids=[923019106020638741])
     async def signup(self, ctx: disnake.ApplicationCommandInteraction, player_tag: str):
         await ctx.response.defer()
-        player:MyCustomPlayer = await self.bot.getPlayer(player_tag, custom=True)
+        player:StatsPlayer = await self.bot.getPlayer(player_tag, custom=True)
         if player is None:
             embed = disnake.Embed(
                 description=f"**Not a valid player tag :(**",
@@ -52,7 +52,7 @@ class erikuh(commands.Cog):
                                   color=disnake.Color.red())
             return await ctx.send(embed=embed)
         await ctx.response.defer()
-        player: MyCustomPlayer = await self.bot.getPlayer(player_tag, custom=True)
+        player: StatsPlayer = await self.bot.getPlayer(player_tag, custom=True)
         if player is None:
             embed = disnake.Embed(
                 description=f"**Not a valid player tag :(**",
@@ -107,7 +107,7 @@ class erikuh(commands.Cog):
         ranking = []
         for player in all_players:
             try:
-                player: MyCustomPlayer
+                player: StatsPlayer
                 legend_day = player.legend_day()
                 ranking.append([player.name, player.trophy_start(), legend_day.attack_sum, legend_day.num_attacks.superscript, legend_day.defense_sum, legend_day.num_defenses.superscript, player.trophies])
             except:
@@ -167,7 +167,7 @@ class erikuh(commands.Cog):
             ranking = []
             for player in all_players:
                 try:
-                    player: MyCustomPlayer
+                    player: StatsPlayer
                     legend_day = player.legend_day()
                     ranking.append(
                         [player.name, player.trophy_start(), legend_day.attack_sum, legend_day.num_attacks.superscript,

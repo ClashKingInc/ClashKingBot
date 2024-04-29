@@ -1,7 +1,6 @@
 import disnake
 import coc
 import sentry_sdk
-import traceback
 
 from disnake.ext import commands
 from exceptions.CustomExceptions import *
@@ -180,6 +179,9 @@ class ExceptionHandler(commands.Cog):
 
         if isinstance(error, ExpiredComponents):
             return await ctx.edit_original_message(components=[])
+
+        if isinstance(error, disnake.NotFound):
+            return
 
         event_id = sentry_sdk.capture_exception(error)
         embed = disnake.Embed(description=f"An internal error occurred, it has been reported to the developer. You can follow updates & bug fixes in the [support server](https://discord.gg/clashking)", color=disnake.Color.red())

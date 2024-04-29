@@ -1,7 +1,7 @@
 import disnake
 
 from classes.bot import CustomClient
-from discord import convert
+from discord.options import convert, autocomplete
 from disnake.ext import commands
 from exceptions.CustomExceptions import MessageException
 from utility.general import get_guild_icon
@@ -204,6 +204,34 @@ class eval(commands.Cog, name="Refresh"):
 
 
     #SETTINGS
+    @roles.sub_command(name="category", description="Set a new category role for a server")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def category_role(self, ctx: disnake.ApplicationCommandInteraction,
+                            category: str = commands.Param(autocomplete=autocomplete.category),
+                            role: disnake.Role = commands.Param()):
+        """
+            Parameters
+            ----------
+            category: category to set role for
+            role: New role to switch to
+        """
+
+        results = await self.bot.clan_db.find_one({"$and": [
+            {"category": category},
+            {"server": ctx.guild.id}
+        ]})
+
+        if results is None:
+            raise MessageException(f"No category - **{category}** - on this server")
+
+        await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {f"category_roles.{category}": role.id}})
+
+        embed = disnake.Embed(
+            description=f"Category role set to {role.mention}",
+            color=disnake.Color.green())
+        await ctx.edit_original_message(embed=embed)
+
+
     @roles.sub_command(name="family", description="Add/Remove Family Based Eval Roles")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def family_roles(self, ctx: disnake.ApplicationCommandInteraction,
@@ -373,6 +401,8 @@ class eval(commands.Cog, name="Refresh"):
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def status_roles(self, ctx: disnake.ApplicationCommandInteraction, months: int, role: disnake.Role):
         await ctx.response.defer()
+        raise MessageException("Command Under Construction")
+
         if role.is_default():
             raise MessageException(f"{role.mention} cannot be used as role.")
 
@@ -380,17 +410,21 @@ class eval(commands.Cog, name="Refresh"):
         await db_server.add_status_role(months=months, role_id=role.id)
 
 
-    @roles.sub_command(name="achievement", description="Set role for top donators/activity & more")
+
+    @roles.sub_command(name="achievements", description="Set role for top donators/activity & more")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def achievement_roles(self, ctx: disnake.ApplicationCommandInteraction,
                                     type: str = commands.Param(choices=["Donation", "Trophies", "Activity", "Total Looted"]),
                                     amount_or_rank: int = commands.Param(),
                                     season: str = commands.Param(choices=["Current Season", "Previous Season"])):
         await ctx.response.defer()
+        raise MessageException("Command Under Construction")
+
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild.id)
         is_rank = (amount_or_rank <= 100)
         await db_server.add_achievement_role(type=type.lower().replace(" ", "_"), amount=amount_or_rank,
                                              season=season.lower().replace(" ", "_"))
+
 
 
     @roles.sub_command(name="list", description="List of refresh affiliated roles for this server")
@@ -492,7 +526,6 @@ class eval(commands.Cog, name="Refresh"):
         embed.add_field(name=f"**Achievement Roles**", value=list)
 
         await ctx.edit_original_message(embed=embed)
-
 
 
 

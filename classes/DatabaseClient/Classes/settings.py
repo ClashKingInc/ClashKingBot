@@ -48,6 +48,7 @@ class DatabaseServer():
 
         self.family_label = data.get("family_label", "")
         self.banlist_channel = data.get("banlist")
+        self.strike_log_channel = data.get("strike_log")
         self.reddit_feed = data.get("reddit_feed")
         self.embed_color = disnake.Color(data.get("embed_color", 0x2ECC71))
         self.tied_stats_only = data.get("tied", True)
@@ -76,6 +77,9 @@ class DatabaseServer():
     async def set_change_nickname(self, status: bool):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"change_nickname": status}})
 
+    async def set_full_whitelist_role(self, id: int | None):
+        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"full_whitelist_role": id}})
+
 
     async def set_family_nickname_convention(self, rule: str):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"nickname_rule": rule}})
@@ -99,6 +103,10 @@ class DatabaseServer():
 
     async def set_banlist_channel(self, id: Union[int, None]):
         await self.bot.server_db.update_one({"server": self.server_id}, {'$set': {"banlist": id}})
+
+
+    async def set_strike_log_channel(self, id: Union[int, None]):
+        await self.bot.server_db.update_one({"server": self.server_id}, {'$set': {"strike_log": id}})
 
 
     async def set_api_token(self, status: bool):
@@ -150,10 +158,13 @@ class DatabaseServer():
                                             {"$addToSet": {f"status_roles": {"months": months, "id" : role_id}}})
 
 
-    def get_clan(self, clan_tag: str):
+    def get_clan(self, clan_tag: str, silent=False):
         matching_clan = utils.get(self.clans, tag=clan_tag)
         if matching_clan is None:
-            raise MessageException(f"There is no clan ({clan_tag}) linked to this server.")
+            if not silent:
+                raise MessageException(f"There is no clan ({clan_tag}) linked to this server.")
+            else:
+                return None
         return matching_clan
 
 

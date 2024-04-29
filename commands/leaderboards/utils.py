@@ -1,4 +1,3 @@
-
 import coc
 import disnake
 import pendulum as pend
@@ -6,7 +5,7 @@ import re
 import time
 
 from classes.bot import CustomClient
-from classes.player import MyCustomPlayer
+from classes.player.stats import StatsPlayer
 from exceptions.CustomExceptions import MessageException
 from typing import List
 from utility.general import get_guild_icon
@@ -38,7 +37,7 @@ async def image_board(bot: CustomClient, clan: coc.Clan, server: disnake.Guild, 
         legend_tags = result[0].get("topPlayers", [])
         if not legend_tags:
             raise MessageException("No Legend Players")
-        players: List[MyCustomPlayer] = await bot.get_players(tags=legend_tags, custom=True, use_cache=True)
+        players: List[StatsPlayer] = await bot.get_players(tags=legend_tags, custom=True, use_cache=True)
         players.sort(key=lambda x : x.trophies )
         columns = ['Name', "Start", "Atk", "Def", "Net", "Current"]
         badges = [player.clan_badge_link() for player in players]

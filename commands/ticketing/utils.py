@@ -5,7 +5,7 @@ import coc
 from typing import List
 from classes.bot import CustomClient
 from datetime import datetime
-from classes.player import MyCustomPlayer
+from classes.player.stats import StatsPlayer
 from classes.tickets import TicketPanel, Ticket_Buttons, OpenTicket, ApproveMessages
 tiz = pytz.utc
 from utility.clash.other import heros
@@ -52,7 +52,7 @@ async def ask_questions(bot: CustomClient, ctx: disnake.MessageInteraction, ques
 
 
 
-async def open_ticket(bot: CustomClient, ticket_panel: TicketPanel, button: Ticket_Buttons, ctx: disnake.MessageInteraction, coc_account: MyCustomPlayer = None):
+async def open_ticket(bot: CustomClient, ticket_panel: TicketPanel, button: Ticket_Buttons, ctx: disnake.MessageInteraction, coc_account: StatsPlayer = None):
     overwrite = disnake.PermissionOverwrite()
     overwrite.view_channel = False
     overwrite.external_emojis = True
@@ -117,7 +117,7 @@ async def open_ticket(bot: CustomClient, ticket_panel: TicketPanel, button: Tick
 
 
 
-async def naming_convention_convertor(bot: CustomClient, guild: disnake.Guild, user: disnake.User, naming_convention: str, number: int = None, status: str = "open", coc_account: MyCustomPlayer = None):
+async def naming_convention_convertor(bot: CustomClient, guild: disnake.Guild, user: disnake.User, naming_convention: str, number: int = None, status: str = "open", coc_account: StatsPlayer = None):
     if number is None:
         all_ticket_nums = await bot.open_tickets.distinct("number", filter={"server": guild.id})
         if not all_ticket_nums:

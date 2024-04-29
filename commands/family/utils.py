@@ -1,18 +1,19 @@
+import asyncio
 import coc
-import re
 import disnake
 import pendulum as pend
+import re
 
 from collections import defaultdict, namedtuple
 from datetime import datetime
-from classes.player import ClanCapitalWeek
+from classes.player.stats import ClanCapitalWeek
 from classes.bot import CustomClient
 from typing import List
-from utility.clash.capital import get_season_raid_weeks
+from utility.clash.capital import get_season_raid_weeks, gen_raid_weekend_datestrings, get_raidlog_entry, calc_raid_medals
 from utility.clash.other import cwl_league_emojis, is_games, league_to_emoji, gen_season_start_end_as_iso, gen_season_start_end_as_timestamp, games_season_start_end_as_timestamp
 from utility.discord_utils import register_button
 from utility.general import create_superscript, get_guild_icon, smart_convert_seconds
-from utility.constants import leagues, item_to_name
+from utility.constants import leagues, item_to_name, SHORT_CLAN_LINK, TOWNHALL_LEVELS
 from exceptions.CustomExceptions import MessageException
 from ..graphs.utils import monthly_bar_graph, daily_graph
 
@@ -737,4 +738,192 @@ async def family_activity(bot: CustomClient, server: disnake.Guild, season: str,
     graph, _ = await daily_graph(bot=bot, clan_tags=family_clan_tags, attribute="activity", months=month + 1)
     embed.set_image(file=graph)
     embed.timestamp = pend.now(tz=pend.UTC)
+    return embed
+
+
+@register_button("familyclans", parser="_:server:type")
+async def family_clans(bot: CustomClient, server: disnake.Guild, type: str, embed_color: disnake.Color):
+    if type == "db":
+        categories: list = await bot.clan_db.distinct("category", filter={"server": server.id})
+        server_db = await bot.server_db.find_one({"server": server.id})
+        sorted_categories = server_db.get("category_order")
+        if sorted_categories is not None:
+            missing_cats = list(set(categories).difference(sorted_categories))
+            categories = sorted_categories + missing_cats
+        categories.insert(0, "All Clans")
+
+        results = await bot.clan_db.find({"server": server.id}).sort([("category", 1), ("name", 1)]).to_list(length=100)
+        results_dict = defaultdict(list)
+        clan_tags = []
+        for result in results:
+            results_dict[result.get("category")].append(result)
+            clan_tags.append(result.get("tag"))
+        clans = await bot.get_clans(tags=clan_tags)
+
+    elif type == "cwl":
+        categories = leagues
+        results_dict = defaultdict(list)
+        clan_tags = await bot.get_guild_clans(guild_id=server.id)
+        clans = await bot.get_clans(tags=clan_tags)
+        #fake result so that we can keep the same structure
+        for clan in clans:
+            results_dict[clan.war_league.name].append({"tag" : clan.tag})
+
+    elif type == "capital":
+        categories = leagues
+        results_dict = defaultdict(list)
+        clan_tags = await bot.get_guild_clans(guild_id=server.id)
+        clans = await bot.get_clans(tags=clan_tags)
+        # fake result so that we can keep the same structure
+        for clan in clans:
+            results_dict[clan.capital_league.name].append({"tag": clan.tag})
+
+    elif type == "location":
+        categories = set()
+        results_dict = defaultdict(list)
+        clan_tags = await bot.get_guild_clans(guild_id=server.id)
+        clans = await bot.get_clans(tags=clan_tags)
+        # fake result so that we can keep the same structure
+        for clan in clans:
+            categories.add(clan.location.name)
+            results_dict[clan.location.name].append({"tag": clan.tag})
+        categories = sorted(list(categories))
+
+    elif type == "th":
+        categories = sorted(TOWNHALL_LEVELS, reverse=True)
+        results_dict = defaultdict(list)
+        clan_tags = await bot.get_guild_clans(guild_id=server.id)
+        clans = await bot.get_clans(tags=clan_tags)
+        # fake result so that we can keep the same structure
+        for clan in clans:
+            results_dict[clan.required_townhall].append({"tag": clan.tag})
+
+    member_count = 0
+    text = ""
+    for category in categories:
+        if category == "All Clans":
+            continue
+        clan_result = results_dict.get(category, [])
+        if not clan_result:
+            continue
+        local_text = ""
+        clan_result = [c for clan in clan_result if (c := coc.utils.get(clans, tag=clan.get("tag")))]
+        clan_result.sort(key=lambda x: x.name)
+        for clan in clan_result:
+            local_text += f"{clan.name} [({clan.member_count}/50)]({SHORT_CLAN_LINK + clan.tag.replace('#', '')})\n"
+            member_count += clan.member_count
+        if not local_text:
+            continue
+        category_name = f"**{category}**"
+        if type == "cwl":
+            category_name = f'{bot.fetch_emoji(f"CWL {category}")} {category_name}'
+        elif type == "capital":
+            category_name = f'{bot.fetch_emoji(f"{category}")} {category_name}'
+        elif type == "location":
+            location_code = clan_result[0].location.country_code
+            if not clan_result[0].location.is_country:
+                category_name = f'{bot.emoji.globe} {category_name}'
+            else:
+                category_name = f':flag_{location_code.lower()}: {category_name}'
+        elif type == "th":
+            category_name = f'{bot.fetch_emoji(category)}**{category}+ Required**'
+
+        local_text = f"{category_name}\n{local_text}\n"
+        if len(text + local_text) < 4000:
+            text = text + local_text
+
+    embed = disnake.Embed(description=text, color=embed_color)
+    embed.set_author(name=f"{server.name} Clans", icon_url=get_guild_icon(guild=server))
+    embed.set_footer(text=f"{member_count} Players | {len(clans)} Clans")
+    return embed
+
+
+@register_button("familyraids", parser="_:server:weekend")
+async def family_raids(bot: CustomClient, server: disnake.Guild, weekend: str, embed_color: disnake.Color):
+    clan_tags = await bot.clan_db.distinct("tag", filter={"server": server.id})
+    if not clan_tags:
+        raise MessageException("No clans linked to this server")
+
+    clans = await bot.get_clans(tags=clan_tags)
+
+    tasks = []
+    async def get_raid_stuff(clan):
+        weekend = gen_raid_weekend_datestrings(number_of_weeks=1)[0]
+        weekend_raid_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=bot, limit=2)
+        return [clan, weekend_raid_entry]
+
+    for clan in clans:
+        if clan is None:
+            continue
+        task = asyncio.ensure_future(get_raid_stuff(clan))
+        tasks.append(task)
+
+    raid_list = await asyncio.gather(*tasks)
+    raid_list = [r for r in raid_list if r[1] is not None]
+
+    if len(raid_list) == 0:
+        raise MessageException("No clans linked to this server")
+
+    embed = disnake.Embed(description=f"**Current Raids**", color=embed_color)
+
+    raid_list = sorted(raid_list, key=lambda l: l[0].name, reverse=False)
+    for raid_item in raid_list:
+        clan: coc.Clan = raid_item[0]
+        raid: coc.RaidLogEntry = raid_item[1]
+
+        medals = calc_raid_medals(raid.attack_log)
+        hall_level = 0 if coc.utils.get(clan.capital_districts, id=70000000) is None else coc.utils.get(clan.capital_districts, id=70000000).hall_level
+        embed.add_field(name=f"{clan.name} | CH{hall_level}",
+                        value=f"> {bot.emoji.thick_sword} {raid.attack_count}/300 | "
+                              f"{bot.emoji.person} {len(raid.members)}/50\n"
+                              f"> {bot.emoji.capital_gold} {'{:,}'.format(raid.total_loot)} | "
+                              f"{bot.emoji.raid_medal} {medals}", inline=False)
+    embed.timestamp = pend.now(tz=pend.UTC)
+    embed.set_footer(icon_url=get_guild_icon(guild=server), text=server.name)
+    return embed
+
+
+@register_button("familywars", parser="_:server")
+async def family_wars(bot: CustomClient, server: disnake.Guild, embed_color: disnake.Color):
+    clan_tags = await bot.clan_db.distinct("tag", filter={"server": server.id})
+    if len(clan_tags) == 0:
+        raise MessageException("No clans linked to this server.")
+
+    war_list = await bot.get_clan_wars(tags=clan_tags)
+    war_list = [w for w in war_list if w is not None and w.start_time is not None]
+    if len(war_list) == 0:
+        raise MessageException("No clans in war and/or have public war logs.")
+
+    war_list = sorted(war_list, key=lambda l: (str(l.state), int(l.start_time.time.timestamp())), reverse=False)
+    embed = disnake.Embed(description=f"**Current Wars**", color=embed_color)
+    for war in war_list:
+        if war.clan.name is None:
+            continue
+        emoji = await bot.create_new_badge_emoji(url=war.clan.badge.url)
+
+        war_time = war.start_time.seconds_until
+        if war_time < -172800:
+            continue
+        war_pos = "Starting"
+        if war_time >= 0:
+            war_time = war.start_time.time.replace(tzinfo=pend.UTC).timestamp()
+        else:
+            war_time = war.end_time.seconds_until
+            if war_time <= 0:
+                war_time = war.end_time.time.replace(tzinfo=pend.UTC).timestamp()
+                war_pos = "Ended"
+            else:
+                war_time = war.end_time.time.replace(tzinfo=pend.UTC).timestamp()
+                war_pos = "Ending"
+
+        team_hits = f"{len(war.attacks) - len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".ljust(7)
+        opp_hits = f"{len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".rjust(7)
+        embed.add_field(name=f"{emoji}{war.clan.name} vs {war.opponent.name}",
+                        value=f"> `{team_hits}`{bot.emoji.wood_swords}`{opp_hits}`\n"
+                              f"> `{war.clan.stars:<7}`{bot.emoji.war_star}`{war.opponent.stars:>7}`\n"
+                              f"> `{str(round(war.clan.destruction, 2)) + '%':<7}`<:broken_sword:944896241429540915>`{str(round(war.opponent.destruction, 2)) + '%':>7}`\n"
+                              f"> {war_pos}: {bot.timestamper(int(war_time)).relative}", inline=False)
+
+    embed.timestamp = pend.now(tz=pend.UTC)
+    embed.set_footer(icon_url=get_guild_icon(guild=server), text=server.name)
     return embed

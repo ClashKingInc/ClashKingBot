@@ -1,20 +1,21 @@
 import coc
-from disnake.ext import commands
 import disnake
+from disnake.ext import commands
+import ujson
 
 from classes.bot import CustomClient
-from utility.discord_utils import check_commands, interaction_handler
-from utility.search import search_results
-from utility.general import get_guild_icon
-from ..eval.utils import logic
-from archived.commands.CommandsOlder.Utils.Player import to_do_embed
-from exceptions.CustomExceptions import MessageException, InvalidAPIToken, APITokenRequired
+from .click import LinkButtonExtended
 from discord import convert, autocomplete
+from ..eval.utils import logic
+from exceptions.CustomExceptions import MessageException, InvalidAPIToken, APITokenRequired
+from utility.discord_utils import check_commands, interaction_handler
+from utility.general import get_guild_icon
 
 
-class Linking(commands.Cog):
+class Linking(LinkButtonExtended, commands.Cog):
 
     def __init__(self, bot: CustomClient):
+        super().__init__(bot)
         self.bot = bot
 
 
@@ -23,7 +24,7 @@ class Linking(commands.Cog):
                    player: coc.Player = commands.Param(autocomplete=autocomplete.family_players, converter=convert.player),
                    user: disnake.Member = None,
                    api_token: str = None,
-                   greet=commands.Param(default="Yes", choices=["Yes", "No"])):
+                   greet: bool = commands.Param(default=True, choices=["Yes", "No"], converter=convert.basic_bool)):
         """
             Parameters
             ----------
@@ -31,9 +32,22 @@ class Linking(commands.Cog):
             api_token: player api-token
         """
         await ctx.response.defer()
-        server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
+
+        #if it is a self-link turn off the greet
+        if user is None:
+            greet = False
+
+        db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
         #if the server requires an api token & there is None AND this isnt a modlink operation, throw an error
-        if not (ctx.user.guild_permissions.manage_guild or self.bot.white_list_check(ctx=ctx, command_name="setup user-settings")) and server.use_api_token and api_token is None:
+        whitelist_check = await self.bot.white_list_check(ctx=ctx, command_name="link")
+        manage_guild_perms = ctx.user.guild_permissions.manage_guild
+        api_token_requirement = db_server.use_api_token
+
+        whitelist_check = False
+        manage_guild_perms = False
+        api_token_requirement = True
+
+        if (not whitelist_check or not manage_guild_perms) and api_token_requirement and api_token is None:
             raise APITokenRequired
 
         user = user or ctx.user
@@ -45,8 +59,10 @@ class Linking(commands.Cog):
         if is_linked == user.id:
             raise MessageException(f"[{player.name}]({player.share_link}) is linked to {user.mention} already!")
 
+        if is_linked:
+            api_token_requirement = True
         #if its a relink by a regular user or the server requires api token
-        if not ctx.user.guild_permissions.manage_guild or (not self.bot.white_list_check(ctx=ctx, command_name="link")) and (server.use_api_token or is_linked):
+        if (not whitelist_check or not manage_guild_perms) and api_token_requirement:
             verified = await self.bot.coc_client.verify_player_token(player.tag, str(api_token))
             #if not verified but is linked to someone, explain
             if not verified and is_linked:
@@ -55,7 +71,7 @@ class Linking(commands.Cog):
                     description=f"- Reference below for help finding your api token.\n- Open Clash and navigate to Settings > More Settings - OR use the below link:\nhttps://link.clashofclans.com/?action=OpenMoreSettings" +
                                 "\n- Scroll down to the bottom and copy the api token.\n- View the picture below for reference.",
                     color=disnake.Color.red())
-                embed.set_image(url="https://cdn.clashking.xyz/clash-assets/bot/find_player_tag.png")
+                embed.set_image(url="https://cdn.clashking.xyz/clash-assets/bot/api_token_help.png")
                 return await ctx.edit_original_message(embed=embed)
             elif not verified: #if just a case of wrong api token when required
                 raise InvalidAPIToken
@@ -67,26 +83,53 @@ class Linking(commands.Cog):
         # - if it is an override, need api token (again unless its a modlink)
         # - by this point we have a correct api token or they dont care about one and the account isnt linked to anyone
         server_member = await ctx.guild.getch_member(user.id)
-        linked_embed = disnake.Embed(title="Link Complete", description=f"[{player.name}]({player.share_link}) linked to {user.mention} and roles updated.", color=server.embed_color)
+        linked_embeds = [disnake.Embed(title="Link Complete", description=f"[{player.name}]({player.share_link}) linked to {user.mention}", color=db_server.embed_color)]
+        if is_linked:
+            await self.bot.link_client.delete_link(player_tag=player.tag)
         await self.bot.link_client.add_link(player_tag=player.tag, discord_id=user.id)
         try:
-            await logic(bot=self.bot, guild=ctx.guild, db_server=server, members=[server_member], role_or_user=user)
+            refresh_embeds = await logic(bot=self.bot, guild=ctx.guild, db_server=db_server, members=[server_member], role_or_user=user)
+            for e in refresh_embeds:
+                e.set_author(name="", icon_url=None)
+                e.title = None
+                e.set_footer(text="")
+            linked_embeds.extend(refresh_embeds)
         except Exception:
-            linked_embed.description = f"[{player.name}]({player.share_link}) linked to {user.mention} but could not update roles."
-        await ctx.edit_original_message(embed=linked_embed)
+            linked_embeds[0].description = f"[{player.name}]({player.share_link}) linked to {user.mention}"
+        await ctx.edit_original_message(embeds=linked_embeds)
+
         try:
-            results = await self.bot.clan_db.find_one({"$and": [
-                {"tag": player.clan.tag},
-                {"server": ctx.guild.id}
-            ]})
-            if results is not None and greet != "No":
-                greeting = results.get("greeting")
-                if greeting is None:
-                    badge = await self.bot.create_new_badge_emoji(url=player.clan.badge.url)
-                    greeting = f", welcome to {badge}{player.clan.name}!"
-                channel = results.get("clanChannel")
-                channel = self.bot.get_channel(channel)
-                await channel.send(f"{user.mention}{greeting}")
+            if greet and player.clan:
+                db_clan = db_server.get_clan(clan_tag=player.clan.tag, silent=True)
+                if db_clan:
+                    channel = await self.bot.getch_channel(db_clan.clan_channel)
+                    greet_message = await self.bot.custom_embeds.find_one({"$and": [{"server": db_clan.server_id}, {"name": db_clan.greeting}]})
+                    if greet_message is None:
+                        greet_message = {"content": "Welcome {user_mention} to **{clan_name}**", "embeds": []}
+
+                    clan = await player.get_detailed_clan()
+                    local_greet_message = str(greet_message)
+                    types = {
+                        "{user_mention}": user.mention if user else "",
+                        "{user_display_name}": user.display_name if user else "",
+                        "{clan_name}": player.clan.name,
+                        "{clan_link}": player.clan.share_link,
+                        "{clan_leader_name}": coc.utils.get(clan.members, role=coc.Role.leader),
+                        "{player_name}": player.name,
+                        "{player_link}": player.share_link,
+                        "{player_townhall}": player.town_hall,
+                        "{player_townhall_emoji}": self.bot.fetch_emoji(player.town_hall).emoji_string,
+                        "{player_league}": player.league.name,
+                        "{player_league_emoji}": self.bot.fetch_emoji(player.league.name).emoji_string,
+                        "{player_trophies}": player.trophies
+                    }
+
+                    for type, replace in types.items():
+                        local_greet_message = local_greet_message.replace(type, str(replace))
+
+                    local_greet_message = ujson.loads(local_greet_message)
+
+                    await channel.send(content=local_greet_message.get("content", ""), embeds=[disnake.Embed.from_dict(data=e) for e in local_greet_message.get("embeds", [])])
         except Exception:
             pass
 
@@ -237,50 +280,6 @@ class Linking(commands.Cog):
 
         await ctx.edit_original_message(content="Done", components=[])
         await ctx.channel.send(embeds=embeds, components=[buttons])
-
-
-
-    @commands.Cog.listener()
-    async def on_button_click(self, ctx: disnake.MessageInteraction):
-
-        if ctx.data.custom_id == "Refresh Roles":
-            await ctx.response.defer(ephemeral=True)
-            server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
-            server_member = await ctx.guild.getch_member(ctx.user.id)
-            await logic(bot=self.bot, guild=ctx.guild, db_server=server, members=[server_member], role_or_user=ctx.user)
-            await ctx.send(content="Your roles are now up to date!", ephemeral=True)
-
-        elif ctx.data.custom_id == "MyToDoList":
-            await ctx.response.defer(ephemeral=True)
-            discord_user = ctx.author
-            linked_accounts = await search_results(self.bot, str(discord_user.id))
-            embed = await to_do_embed(bot=self.bot, discord_user=discord_user, linked_accounts=linked_accounts)
-            await ctx.send(embed=embed, ephemeral=True)
-
-        elif ctx.data.custom_id == "MyRosters":
-            await ctx.response.defer(ephemeral=True)
-            tags = await self.bot.get_tags(ping=ctx.user.id)
-            roster_type_text = ctx.user.display_name
-            players = await self.bot.get_players(tags=tags, custom=False)
-            text = ""
-            for player in players:
-                rosters_found = await self.bot.rosters.find({"members.tag": player.tag}).to_list(length=100)
-                if not rosters_found:
-                    continue
-                text += f"{self.bot.fetch_emoji(name=player.town_hall)}**{player.name}**\n"
-                for roster in rosters_found:
-                    our_member = next(member for member in roster["members"] if member["tag"] == player.tag)
-                    group = our_member["group"]
-                    if group == "No Group":
-                        group = "Main"
-                    text += f"{roster['alias']} | {roster['clan_name']} | {group}\n"
-                text += "\n"
-
-            if text == "":
-                text = "Not Found on Any Rosters"
-            embed = disnake.Embed(title=f"Rosters for {roster_type_text}", description=text,
-                                  color=disnake.Color.green())
-            await ctx.send(embed=embed, ephemeral=True)
 
 
 

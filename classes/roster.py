@@ -6,9 +6,8 @@ import random
 import string
 
 from urllib.request import Request, urlopen
-from typing import TYPE_CHECKING
 from classes.bot import CustomClient
-from classes.player import MyCustomPlayer
+from classes.player.stats import StatsPlayer
 from datetime import datetime, timedelta
 from exceptions.CustomExceptions import *
 from collections import defaultdict
@@ -338,7 +337,7 @@ class Roster():
         if "30 Day Hitrate" in columns:
             has_ran = True
             for member in members:
-                member: MyCustomPlayer
+                member: StatsPlayer
                 if member is None:
                     continue
                 hr = await member.hit_rate(start_timestamp=int((datetime.utcnow() - timedelta(days=30)).timestamp()), end_timestamp=int(datetime.utcnow().timestamp()))

@@ -8,10 +8,11 @@ from classes.bot import CustomClient
 from disnake.ext import commands
 from datetime import timedelta
 from discord.options import convert, autocomplete
+from exceptions.CustomExceptions import MessageException
 from utility.components import create_components, townhall_component, clan_component, role_component
 from utility.discord_utils import interaction_handler
 from utility.discord_utils import check_commands
-from typing import List
+from .utils import add_strike, create_embeds
 
 
 class Strikes(commands.Cog, name="Strikes"):
@@ -20,17 +21,18 @@ class Strikes(commands.Cog, name="Strikes"):
         self.bot = bot
 
 
-    @commands.slash_command(name="strike", description="stuff")
+    @commands.slash_command(name=disnake.Localized("strike", key="strike-name"), description="stuff")
     async def strike(self, ctx):
-        pass
+        await ctx.response.defer()
 
     @strike.sub_command(name="add", description="Issue strikes to a player")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def strike_add(self, ctx: disnake.ApplicationCommandInteraction,
-                         player: coc.Player = commands.Param(converter=convert.player),
+                         player: coc.Player = commands.Param(converter=convert.player, autocomplete=autocomplete.family_players),
                          reason: str = commands.Param(name="reason"),
-                         rollover_days: int = commands.Param(name="rollover_days", default=None),
-                         strike_weight: int = commands.Param(name="strike_weight", default=1)):
+                         rollover_days: int = commands.Param(default=None),
+                         strike_weight: int = commands.Param(default=1),
+                         dm_player: str = commands.Param(default=None)):
         """
             Parameters
             ----------
@@ -39,8 +41,8 @@ class Strikes(commands.Cog, name="Strikes"):
             rollover_days: number of days until this strike is removed (auto), (default - never)
             strike_weight: number of strikes this should count as (default 1)
         """
-        await ctx.response.defer()
-        embed = await self.strike_player(ctx, player, reason, rollover_days, strike_weight)
+        embed = await add_strike(bot=self.bot, player=player, added_by=ctx.author, guild=ctx.guild,
+                                 reason=reason, rollover_days=rollover_days, strike_weight=strike_weight, dm_player=dm_player)
         await ctx.edit_original_message(embed=embed)
 
 
@@ -49,33 +51,36 @@ class Strikes(commands.Cog, name="Strikes"):
     @strike.sub_command(name='list', description="List of server (or clan) striked players")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def strike_list(self, ctx: disnake.ApplicationCommandInteraction,
-                          view=commands.Param(choices=["Strike View", "Player View"]),
-                          clan=commands.Param(default=None, converter=convert.clan),
-                          player=commands.Param(default=None, converter=convert.player),
-                          strike_amount: int = commands.Param(default=1)):
+                          view:str = commands.Param(choices=["Strike View", "Player View"]),
+                          clan: coc.Clan = commands.Param(default=None, converter=convert.clan, autocomplete=autocomplete.clan),
+                          user: disnake.Member = None,
+                          strike_amount: int = commands.Param(default=1),
+                          view_expired_strikes: bool = commands.Param(default=False, converter=convert.basic_bool, choices=["True", "False"]),
+                          view_non_family: bool = commands.Param(default=False, converter=convert.basic_bool, choices=["True", "False"])):
         """
             Parameters
             ----------
             view: show in strike view (each strike individually) or by player
             clan: clan to pull strikes for
-            player: player to pull_strikes for
-            strike_amount: only show strikes with more than this amount (only for player view)
+            player: player to pull strikes for
+            user: discord user to pull strikes for
+            strike_amount: only show those with more strikes than this amount (only for player view)
+            view_expired_strikes: view strikes that have rolled over
+            view_non_family: view strikes of players that aren't in your clans anymore
         """
-        if clan is not None:
-            results = await self.bot.clan_db.find_one({"$and": [
-                {"tag": clan.tag},
-                {"server": ctx.guild.id}
-            ]})
-            if results is None:
-                return await ctx.send("This clan is not set up on this server. Use `/addclan` to get started.")
 
-        await ctx.response.defer()
-        embeds = await self.create_embeds(ctx=ctx, strike_clan=clan, strike_player=player, view=view, strike_amount=strike_amount)
-        if embeds == []:
-            embed = disnake.Embed(
-                description="No striked players on this server.",
-                color=disnake.Color.red())
-            return await ctx.edit_original_message(embed=embed)
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild.id)
+        embeds = await create_embeds(bot=self.bot,
+                                     guild=ctx.guild,
+                                     view=view,
+                                     strike_clan=clan,
+                                     strike_user=user,
+                                     strike_amount=strike_amount,
+                                     view_non_family=view_non_family or (user is not None),
+                                     view_expired_strikes=view_expired_strikes,
+                                     embed_color=embed_color
+                                     )
+
 
         current_page = 0
         await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))
@@ -107,9 +112,12 @@ class Strikes(commands.Cog, name="Strikes"):
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)
 
+
     @strike.sub_command(name="remove", description="Remove a strike by ID")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def strike_remove(self, ctx: disnake.ApplicationCommandInteraction, strike_id: str):
+    async def strike_remove(self, ctx: disnake.ApplicationCommandInteraction,
+                            player: coc.Player = commands.Param(converter=convert.player, autocomplete=autocomplete.family_players, default=None),
+                            strike_id: str = commands.Param(converter=None, autocomplete=autocomplete.strike_ids, default=None)):
         strike_id = strike_id.upper()
         result_ = await self.bot.strikelist.find_one({"$and": [
             {"strike_id": strike_id},
@@ -126,13 +134,23 @@ class Strikes(commands.Cog, name="Strikes"):
         return await ctx.send(embed=embed)
 
 
+
     @commands.slash_command(name="autostrike", description="stuff")
     async def autostrikes(self, ctx):
         pass
 
 
+    @autostrikes.sub_command(name="war", description="Create autostrike for missing war attacks")
+    async def war_autostrikes(self, ctx: disnake.ApplicationCommandInteraction,
+                              war_type: str = commands.Param(choices=["War", "CWL", "Both"]),
+                              weight: int = commands.Param(ge=1, le=25),
+                              rollover_days: int = commands.Param(ge=1, le=365, default=None),
+                              clan: coc.Clan = commands.Param(default=None, autocomplete=autocomplete.clan, converter=convert.clan)
+                              ):
+        raise MessageException("Command under construction")
 
-    @autostrikes.sub_command(name="add", description="Create autostrikes for your server")
+
+    '''@autostrikes.sub_command(name="add", description="Create autostrikes for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def autostrikes_create(self, ctx: disnake.ApplicationCommandInteraction,
                                  why=commands.Param(
@@ -222,56 +240,11 @@ class Strikes(commands.Cog, name="Strikes"):
         await message.edit(components=[], embed=embed)
 
 
-    @autostrikes_create.autocomplete("number")
-    async def number_gen(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        filled_option = ctx.filled_options["type"]
-        if filled_option == "":
-            return []
-
-        if filled_option == "War Hit Performance (percent)":
-            list_options = self.gen_percent()
-        elif filled_option == "Capital Raid Performance (loot)":
-            list_options = self.gen_capital_gold()
-        elif filled_option == "Capital Dono Performance (loot)":
-            list_options = self.gen_capital_gold()
-        elif filled_option == "Missed War Hits (hits)":
-            list_options = self.gen_missed_hits_war()
-        elif filled_option == "Sat Out of War (days)":
-            list_options = self.gen_days()
-        elif filled_option == "Missed Capital Hits (hits)":
-            list_options = self.gen_missed_hits_capital()
-        elif filled_option == "Inactivity (days)":
-            list_options = self.gen_days()
-        elif filled_option == "Clan Games (points)":
-            list_options = self.gen_points()
-
-        return [option for option in list_options if query.lower() in option.lower()][:25]
-
     @autostrikes.sub_command(name="remove", description="Remove autostrikes for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def autostrikes_add(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
+        pass'''
 
-
-
-    @strike_add.autocomplete("player")
-    @strike_list.autocomplete("player")
-    async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        names = await self.bot.family_names(query=query, guild=ctx.guild)
-        return names
-
-    @strike_list.autocomplete("clan")
-    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        tracked = self.bot.clan_db.find({"server": ctx.guild.id}).sort("name", 1)
-        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
-        clan_list = []
-        for tClan in await tracked.to_list(length=limit):
-            name = tClan.get("name")
-            tag = tClan.get("tag")
-            if query.lower() in name.lower():
-                clan_list.append(f"{name} | {tag}")
-
-        return clan_list[0:25]
 
 
 

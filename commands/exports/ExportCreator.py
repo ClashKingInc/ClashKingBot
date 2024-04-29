@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from disnake.ext import commands
 from typing import TYPE_CHECKING
 from classes.bot import CustomClient
-from classes.player import MyCustomPlayer, LegendDay
+from classes.player.stats  import StatsPlayer, LegendDay
 from typing import Dict, List
 from coc import utils
 from openpyxl import load_workbook, Workbook
@@ -31,7 +31,7 @@ class ExportCreator(commands.Cog):
 
     async def export_manager(self, player_tags: List[str], season: str = None, template: str = None):
         #get list of custom players (which have lots of db info), use the cache since not time sensitive
-        players: List[MyCustomPlayer] = await self.bot.get_players(tags=player_tags, custom=True, use_cache=True)
+        players: List[StatsPlayer] = await self.bot.get_players(tags=player_tags, custom=True, use_cache=True)
         output = io.BytesIO()
         #if the "template" is just the name of a default type (raw data), just export the 1 sheet
         if template in self.DEFAULT_EXPORT_TYPES:
@@ -116,7 +116,7 @@ class ExportCreator(commands.Cog):
         return xlsx_data
 
 
-    async def create_advanced_player_stats_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
+    async def create_advanced_player_stats_export(self, players: List[StatsPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
         advanced_player_Stats_page =  workbook.create_sheet(sheet_name)
         year = season[:4]
         month = season[-2:]
@@ -153,7 +153,7 @@ class ExportCreator(commands.Cog):
         await self.write_data(worksheet=advanced_player_Stats_page, column_names=columns, data=data)
 
 
-    async def create_player_stats_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str):
+    async def create_player_stats_export(self, players: List[StatsPlayer], workbook: openpyxl.Workbook, sheet_name:str):
         player_stats_page = workbook.create_sheet(sheet_name)
         players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=False)
         data = []
@@ -179,7 +179,7 @@ class ExportCreator(commands.Cog):
         await self.write_data(worksheet=player_stats_page, column_names=columns, data=data)
 
 
-    async def create_troops_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str):
+    async def create_troops_export(self, players: List[StatsPlayer], workbook: openpyxl.Workbook, sheet_name:str):
         troops_page = workbook.create_sheet(sheet_name)
         players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=False)
         # Note home_troop_order already includes siege machines
@@ -206,7 +206,7 @@ class ExportCreator(commands.Cog):
         await self.write_data(worksheet=troops_page, column_names=columns, data=data)
 
 
-    async def create_player_activity_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
+    async def create_player_activity_export(self, players: List[StatsPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
         activity_page = workbook.create_sheet(sheet_name)
         year = season[:4]
         month = season[-2:]
@@ -234,7 +234,7 @@ class ExportCreator(commands.Cog):
         await self.write_data(worksheet=activity_page, column_names=columns, data=data)
 
 
-    async def create_achievements_export(self, players: List[MyCustomPlayer], workbook: openpyxl.workbook, sheet_name: str):
+    async def create_achievements_export(self, players: List[StatsPlayer], workbook: openpyxl.workbook, sheet_name: str):
         achievement_page = workbook.create_sheet(sheet_name)
         players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=False)
         data = []
@@ -255,7 +255,7 @@ class ExportCreator(commands.Cog):
         return workbook
 
 
-    async def create_season_trophies_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
+    async def create_season_trophies_export(self, players: List[StatsPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
         season_trophies_page = workbook.create_sheet(sheet_name)
         trophies_data = await self.bot.history_db.find({"$and": [{"tag": { "$in" : [player.tag for player in players]}},{"season": season}]}).to_list(length=None)
         data = [[entry['name'],entry['tag'],entry['expLevel'],entry['trophies'],entry['attackWins'],entry['defenseWins'],
@@ -268,7 +268,7 @@ class ExportCreator(commands.Cog):
         return workbook
 
 
-    async def create_warhit_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
+    async def create_warhit_export(self, players: List[StatsPlayer], workbook: openpyxl.Workbook, sheet_name:str, season: str = None):
         warhit_stat_page = workbook.create_sheet(sheet_name)
         year = season[:4]
         month = season[-2:]
@@ -307,7 +307,7 @@ class ExportCreator(commands.Cog):
         return workbook
 
 
-    async def create_legend_export(self, players: List[MyCustomPlayer], workbook: openpyxl.Workbook, sheet_name:str ,season: str = None):
+    async def create_legend_export(self, players: List[StatsPlayer], workbook: openpyxl.Workbook, sheet_name:str ,season: str = None):
         legend_stats_page = workbook.create_sheet(sheet_name)
         start = utils.get_season_start().replace(tzinfo=utc).date()
         now = datetime.now(tz=utc).date()
@@ -468,7 +468,7 @@ class ExportCreator(commands.Cog):
     async def create_war_export(self, clan):
         workbook = xlsxwriter.Workbook(f'ExportInfo/war_stats{clan.tag}.xlsx')
 
-        clan_members: list[MyCustomPlayer] = await self.bot.get_players(tags=[member.tag for member in clan.members],
+        clan_members: list[StatsPlayer] = await self.bot.get_players(tags=[member.tag for member in clan.members],
                                                                         custom=True)
         worksheet = workbook.add_worksheet("Hitrates")
 

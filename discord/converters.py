@@ -94,9 +94,18 @@ class Convert(commands.Cog, name="Convert"):
         player = await self.bot.getPlayer(player_tag=player_tag, custom=False, raise_exceptions=True)
         return player
 
+
     async def custom_player(self, player_tag: str):
         player = await self.bot.getPlayer(player_tag=player_tag, custom=True, raise_exceptions=True)
         return player
+
+
+    async def multi_player(self, player_tags: str):
+        player_tags = player_tags.split(",")[:50]
+        players = await self.bot.get_players(tags=player_tags, use_cache=True, custom=False)
+        if not players:
+            raise coc.errors.NotFound
+        return players
 
     def hex_code(self, hex_code: str):
         match = re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', hex_code)

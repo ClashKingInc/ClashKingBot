@@ -4,8 +4,7 @@ import coc
 
 from disnake.ext import commands
 from typing import List
-from classes.player import MyCustomPlayer
-from typing import TYPE_CHECKING
+from classes.player.stats import StatsPlayerfrom typing import TYPE_CHECKING
 from classes.bot import CustomClient
 from exceptions.CustomExceptions import *
 from DiscordLevelingCard import RankCard, Settings

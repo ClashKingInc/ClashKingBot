@@ -10,14 +10,14 @@ from utility.clash.other import *
 from utility.general import acronym, create_superscript
 from utility.discord_utils import interaction_handler
 from classes.bot import CustomClient
-from classes.player import MyCustomPlayer
+from classes.player.stats import StatsPlayer
 from numerize import numerize
 from classes.clashofstats import StayType
 from typing import List
 from pytz import utc
 from coc.raid import RaidMember, RaidLogEntry
 
-async def create_profile_stats(bot: CustomClient, ctx, player: MyCustomPlayer):
+async def create_profile_stats(bot: CustomClient, ctx, player: StatsPlayer):
 
     discord_id = await bot.link_client.get_link(player.tag)
     member = await bot.getch_user(discord_id)
@@ -170,7 +170,7 @@ def cache_test(func):
     return wrapper
 
 @cache_test
-async def create_profile_troops(bot: CustomClient, result: MyCustomPlayer, embed_color: disnake.Color = disnake.Color.green()):
+async def create_profile_troops(bot: CustomClient, result: StatsPlayer, embed_color: disnake.Color = disnake.Color.green()):
     await asyncio.sleep(5)
     player = result
     hero = heros(bot=bot, player=player)
@@ -215,7 +215,7 @@ async def create_profile_troops(bot: CustomClient, result: MyCustomPlayer, embed
 
 
 
-async def upgrade_embed(bot: CustomClient, player: MyCustomPlayer):
+async def upgrade_embed(bot: CustomClient, player: StatsPlayer):
     areas = [player.troop_rushed, player.hero_rushed, player.spell_rushed, player.pets_rushed]
 
     total_time = sum([area.total_time for area in areas])
@@ -445,7 +445,7 @@ async def upgrade_embed(bot: CustomClient, player: MyCustomPlayer):
     return embeds
 
 
-async def create_player_list(bot: CustomClient, discord_user: disnake.Member, players: List[MyCustomPlayer], embed_color = disnake.Color.green()):
+async def create_player_list(bot: CustomClient, discord_user: disnake.Member, players: List[StatsPlayer], embed_color = disnake.Color.green()):
     total_stats = {"donos" : 0, "rec" : 0, "war_stars" : 0, "th" : 0, "attacks" : 0, "trophies" : 0, "total_donos" : 0}
     text = ""
     for count, player in enumerate(players):
@@ -516,7 +516,7 @@ async def to_do_embed(bot: CustomClient, discord_user, linked_accounts , embed_c
     return embed
 
 
-async def get_war_hits(bot:CustomClient, linked_accounts: List[MyCustomPlayer]):
+async def get_war_hits(bot:CustomClient, linked_accounts: List[StatsPlayer]):
     async def get_clan_wars(clan_tag, player):
         war = await bot.get_clanwar(clanTag=clan_tag)
         if war is not None and str(war.state) == "notInWar":
@@ -549,7 +549,7 @@ async def get_war_hits(bot:CustomClient, linked_accounts: List[MyCustomPlayer]):
     return war_hits
 
 
-async def get_legend_hits(linked_accounts: List[MyCustomPlayer]):
+async def get_legend_hits(linked_accounts: List[StatsPlayer]):
     legend_hits_remaining = ""
     for player in linked_accounts:
         if player.is_legends():
@@ -558,7 +558,7 @@ async def get_legend_hits(linked_accounts: List[MyCustomPlayer]):
     return legend_hits_remaining
 
 
-async def get_raid_hits(bot:CustomClient, linked_accounts: List[MyCustomPlayer]):
+async def get_raid_hits(bot:CustomClient, linked_accounts: List[StatsPlayer]):
     async def get_raid(clan_tag, player):
         if player.town_hall <= 5:
             return (player, None)
@@ -591,7 +591,7 @@ async def get_raid_hits(bot:CustomClient, linked_accounts: List[MyCustomPlayer])
     return raid_hits
 
 
-async def get_inactive(linked_accounts: List[MyCustomPlayer]):
+async def get_inactive(linked_accounts: List[StatsPlayer]):
     now = int(datetime.now(tz=utc).timestamp())
     inactive_text = ""
     for player in linked_accounts:
@@ -604,7 +604,7 @@ async def get_inactive(linked_accounts: List[MyCustomPlayer]):
     return inactive_text
 
 
-async def get_clan_games(linked_accounts: List[MyCustomPlayer]):
+async def get_clan_games(linked_accounts: List[StatsPlayer]):
     missing_clan_games = ""
     zeros = ""
     num_zeros = 0
@@ -628,7 +628,7 @@ async def get_clan_games(linked_accounts: List[MyCustomPlayer]):
     return missing_clan_games
 
 
-async def get_pass(bot: CustomClient, linked_accounts: List[MyCustomPlayer]):
+async def get_pass(bot: CustomClient, linked_accounts: List[StatsPlayer]):
     pass_text = ""
     points = 3000 if bot.gen_games_season() == "2023-06" else 4000
     l = sorted(linked_accounts, key=lambda x: x.season_pass(), reverse=True)[:10]
@@ -639,7 +639,7 @@ async def get_pass(bot: CustomClient, linked_accounts: List[MyCustomPlayer]):
     return pass_text
 
 
-async def get_last_donated(bot: CustomClient, linked_accounts: List[MyCustomPlayer]):
+async def get_last_donated(bot: CustomClient, linked_accounts: List[StatsPlayer]):
     pass_text = ""
     now = int(datetime.now(tz=utc).timestamp())
     pipeline = [
@@ -934,7 +934,7 @@ async def raid_stalk(bot: CustomClient, ctx: disnake.ApplicationCommandInteracti
         message = await ctx.followup.send(embeds=embeds[start_page:end_page], components=buttons)
 
 
-async def create_player_hr(bot: CustomClient, player: MyCustomPlayer, start_date, end_date):
+async def create_player_hr(bot: CustomClient, player: StatsPlayer, start_date, end_date):
     embed = disnake.Embed(title=f"{player.name} War Stats", colour=disnake.Color.green())
     time_range = f"{datetime.fromtimestamp(start_date).strftime('%m/%d/%y')} - {datetime.fromtimestamp(end_date).strftime('%m/%d/%y')}"
     embed.set_footer(icon_url=player.town_hall_cls.image_url, text=time_range)
@@ -1125,7 +1125,7 @@ async def create_search(bot: CustomClient, clan, townhall, trophies, war_stars, 
         if player == []:
             tries += 1
     player = player[:1][0]
-    #players = [MyCustomPlayer(data=data.get("data"), client=self.bot.coc_client, bot=self.bot, results=None) for data in player_list]
+    #players = [StatsPlayer(data=data.get("data"), client=self.bot.coc_client, bot=self.bot, results=None) for data in player_list]
     player_links = await bot.link_client.get_links(*[player.tag])
     player_link_dict = dict(player_links)
 

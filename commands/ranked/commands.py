@@ -3,9 +3,8 @@ import disnake
 from utility.search import search_results
 from utility.components import create_components
 from utility.general import create_superscript
-from typing import TYPE_CHECKING
 from classes.bot import CustomClient
-from classes.player import LegendRanking
+from classes.player.stats  import LegendRanking
 import math
 from assets.thPicDictionary import thDictionary
 from exceptions.CustomExceptions import NoLinkedAccounts, ExpiredComponents

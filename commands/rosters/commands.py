@@ -1,42 +1,27 @@
 import asyncio
+import coc
 import datetime
 import disnake
-import coc
 import pytz
 
-from disnake.ext import commands
-from classes.bot import CustomClient
 from assets.emojis import SharedEmojis
+from classes.bot import CustomClient
 from classes.roster import Roster
-from utility.discord_utils import check_commands
+from discord.options import autocomplete, convert
+from disnake.ext import commands
 from exceptions.CustomExceptions import *
 from typing import List
-from collections import defaultdict
-from utility.discord_utils import interaction_handler
+from utility.discord_utils import check_commands, interaction_handler
+
 last_run = {}
 refresh_last_run = {}
 
-class Roster_Commands(commands.Cog, name="Rosters"):
+
+class RosterCommands(commands.Cog, name="Rosters"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    async def clan_converter(self, clan_tag: str):
-        clan = await self.bot.getClan(clan_tag=clan_tag, raise_exceptions=True)
-        if clan.member_count == 0:
-            raise coc.errors.NotFound
-        return clan
-
-    async def player_convertor(self, player_tags: str):
-        player_tags = player_tags.split(",")[:50]
-        players = []
-        for player_tag in player_tags:
-            player = await self.bot.getPlayer(player_tag=player_tag)
-            if player is not None:
-                players.append(player)
-        if not players:
-            raise coc.errors.NotFound
-        return players
 
     @commands.slash_command(name="roster")
     async def roster(self, ctx: disnake.ApplicationCommandInteraction):
@@ -45,7 +30,10 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="create", description="Create a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_create(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = commands.Param(converter=clan_converter), roster_alias: str = commands.Param(name="roster_alias", max_length=100), add_members_to_roster: str = commands.Param(default="No", choices=["Yes", "No"])):
+    async def roster_create(self, ctx: disnake.ApplicationCommandInteraction,
+                            clan: coc.Clan = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan),
+                            roster_alias: str = commands.Param(autocomplete=autocomplete.roster_alias, max_length=100),
+                            add_members_to_roster: str = commands.Param(default="No", choices=["Yes", "No"])):
         await ctx.response.defer()
         roster = Roster(bot=self.bot)
         await roster.create_roster(guild=ctx.guild, clan=clan, alias=roster_alias[:100], add_members=(add_members_to_roster == "Yes"))
@@ -56,7 +44,8 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="delete", description="Delete a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_delete(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+    async def roster_delete(self, ctx: disnake.ApplicationCommandInteraction,
+                            roster: str = commands.Param(autocomplete=autocomplete.roster_alias)):
         await ctx.response.defer()
         _roster = Roster(self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -66,9 +55,11 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             color=disnake.Color.red())
         await ctx.edit_original_message(embed=embed)
 
+
     @roster.sub_command(name="clear", description="Clear a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_clear(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+    async def roster_clear(self, ctx: disnake.ApplicationCommandInteraction,
+                           roster: str = commands.Param(autocomplete=autocomplete.roster_alias)):
         await ctx.response.defer()
         _roster = Roster(self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -78,9 +69,11 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             color=disnake.Color.red())
         await ctx.edit_original_message(embed=embed)
 
+
     @roster.sub_command(name="signup", description="Create a signup for a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_create_signups(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+    async def roster_create_signups(self, ctx: disnake.ApplicationCommandInteraction,
+                                    roster: str = commands.Param(autocomplete=autocomplete.roster_alias)):
         await ctx.response.defer()
         _roster = Roster(self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -106,7 +99,8 @@ class Roster_Commands(commands.Cog, name="Rosters"):
     @roster.sub_command(name="add-player", description="Add a player to a roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_add(self, ctx: disnake.ApplicationCommandInteraction,
-                         roster: str, players: List[coc.Player] = commands.Param(converter=player_convertor),
+                         roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
+                         players: List[coc.Player] = commands.Param(converter=convert.multi_player, autocomplete=autocomplete.family_players),
                          sub = commands.Param(name="sub", default=False, choices=["Yes"])):
         await ctx.response.defer(ephemeral=True)
         _roster = Roster(bot=self.bot)
@@ -130,7 +124,8 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="move-player", description="(re)Move a player from one roster to/from another")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_move(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+    async def roster_move(self, ctx: disnake.ApplicationCommandInteraction,
+                          roster: str = commands.Param(autocomplete=autocomplete.roster_alias)):
         await ctx.response.defer()
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -271,7 +266,9 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="groups", description="create/remove a group players can be placed in")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_create_player_group(self, ctx: disnake.ApplicationCommandInteraction, add: str = None, remove: str = None):
+    async def roster_create_player_group(self, ctx: disnake.ApplicationCommandInteraction,
+                                         add: str = None,
+                                         remove: str = None):
         await ctx.response.defer()
         results = await self.bot.server_db.find_one({"server": ctx.guild.id})
         groups = results.get("player_groups", [])
@@ -300,7 +297,8 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
 
     @roster.sub_command(name="post", description="Post a roster")
-    async def roster_post(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+    async def roster_post(self, ctx: disnake.ApplicationCommandInteraction,
+                          roster: str = commands.Param(autocomplete=autocomplete.roster_alias)):
         await ctx.response.defer()
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -320,7 +318,8 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
     @roster.sub_command(name="refresh", description="Refresh the data in a roster (townhall levels, hero levels)")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_refresh(self, ctx: disnake.ApplicationCommandInteraction, roster: str = commands.Param(name="roster_")):
+    async def roster_refresh(self, ctx: disnake.ApplicationCommandInteraction,
+                             roster: str = commands.Param(name="roster_", autocomplete=autocomplete.roster_alias)):
         await ctx.response.defer()
         if roster != "REFRESH ALL":
             _roster = Roster(bot=self.bot)
@@ -357,9 +356,13 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                 embed.set_thumbnail(url=ctx.guild.icon.url)
             await ctx.edit_original_message(content=None, embed=embed)
 
+
     @roster.sub_command(name="missing", description="Players that aren't in the clan tied to the roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_missing(self, ctx: disnake.ApplicationCommandInteraction, roster: str, message:str ="", reverse = commands.Param(description="Instead ping those in clan who shouldn't be, i.e. not on roster.", default="False", choices= ["True"])):
+    async def roster_missing(self, ctx: disnake.ApplicationCommandInteraction,
+                             roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
+                             message: str = "",
+                             reverse = commands.Param(description="Instead ping those in clan who shouldn't be, i.e. not on roster.", default="False", choices= ["True"])):
         _roster = Roster(bot=self.bot)
         await ctx.response.defer()
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -405,9 +408,14 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         await msg.edit(components=[])
         await res.send(content=f"{_roster.missing_text}{missing_text}")
 
+
     @roster.sub_command(name="restrict", description="Set restrictions for a roster - th level & max roster size")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_restrict(self, ctx: disnake.ApplicationCommandInteraction, roster: str, th_min: int = None, th_max: int = None, max_roster_size: int = None):
+    async def roster_restrict(self, ctx: disnake.ApplicationCommandInteraction,
+                              roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
+                              th_min: int = None,
+                              th_max: int = None,
+                              max_roster_size: int = None):
         """
             Parameters
             ----------
@@ -445,9 +453,12 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
         await ctx.send(embed=embed)
 
+
     @roster.sub_command(name="layout", description="Edit roster name, description")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_edit_layout(self, ctx: disnake.ApplicationCommandInteraction, roster: str, clear = commands.Param(default=None, choices=["Description", "Image"])):
+    async def roster_edit_layout(self, ctx: disnake.ApplicationCommandInteraction,
+                                 roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
+                                 clear: str | None = commands.Param(default=None, choices=["Description", "Image"])):
         if clear is not None:
             await ctx.response.defer()
             if clear == "Image":
@@ -541,9 +552,12 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         embed.set_thumbnail(url=_roster.roster_result.get("clan_badge"))
         await modal_inter.edit_original_message(embed=embed)
 
+
     @roster.sub_command(name="time", description="Set a time for roster/event")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_time(self, ctx: disnake.ApplicationCommandInteraction, roster: str, timezone: str, remove = commands.Param(default=None, choices=["Yes"])):
+    async def roster_time(self, ctx: disnake.ApplicationCommandInteraction, roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
+                          timezone: str = commands.Param(autocomplete=autocomplete.timezone),
+                          remove = commands.Param(default=None, choices=["Yes"])):
         if remove == "Yes":
             await ctx.response.defer()
             _roster = Roster(bot=self.bot)
@@ -606,9 +620,12 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         embed = disnake.Embed(description=f"{roster} Roster time set to <t:{timestamp}:F>", color=disnake.Color.green())
         await modal_inter.edit_original_message(embed=embed)
 
+
     @roster.sub_command(name="change-link", description="Change linked clan for roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_change_link(self, ctx: disnake.ApplicationCommandInteraction, roster: str, clan: coc.Clan = commands.Param(converter=clan_converter)):
+    async def roster_change_link(self, ctx: disnake.ApplicationCommandInteraction,
+                                 roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
+                                 clan: coc.Clan = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan)):
         _roster = Roster(bot=self.bot)
         await ctx.response.defer()
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -619,9 +636,11 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         embed.set_thumbnail(url=clan.badge.url)
         await ctx.edit_original_message(embed=embed)
 
+
     @roster.sub_command(name="sort", description="Choose how to sort your roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_sort(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+    async def roster_sort(self, ctx: disnake.ApplicationCommandInteraction,
+                          roster: str = commands.Param(autocomplete=autocomplete.roster_alias)):
         _roster = Roster(bot=self.bot)
         await ctx.response.defer()
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -658,9 +677,11 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             color=disnake.Color.green())
         await res.edit_original_message(embed=embed, components=[])
 
+
     @roster.sub_command(name="columns", description="Choose the columns of your roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_columns(self, ctx: disnake.ApplicationCommandInteraction, roster: str = commands.Param(name="roster_")):
+    async def roster_columns(self, ctx: disnake.ApplicationCommandInteraction,
+                             roster: str = commands.Param(name="roster_", autocomplete=autocomplete.roster_alias)):
         await ctx.response.defer()
         column_choices = ["Name", "Player Tag", "Heroes", "Townhall Level", "Discord", "30 Day Hitrate", "Current Clan", "Clan Tag", "War Opt Status", "Trophies"]
         roster_list = []
@@ -711,6 +732,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             color=disnake.Color.green())
         await res.edit_original_message(embed=embed, components=[])
 
+
     @roster.sub_command(name="list", description="List of rosters on this server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_list(self, ctx: disnake.ApplicationCommandInteraction):
@@ -734,9 +756,14 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             description=text,colour=disnake.Color.green())
         await ctx.edit_original_message(embed=embed)
 
+
     @roster.sub_command(name="role", description="Set a role that will be added when a person signs up & vice versa")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_role(self, ctx: disnake.ApplicationCommandInteraction, roster: str, role: disnake.Role, group: str = None, remove_role = commands.Param(default=None, choices=["True"])):
+    async def roster_role(self, ctx: disnake.ApplicationCommandInteraction,
+                          roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
+                          role: disnake.Role = commands.Param(),
+                          group: str = None,
+                          remove_role = commands.Param(default=None, choices=["True"])):
         _roster = Roster(bot=self.bot)
         await ctx.response.defer()
         await _roster.find_roster(guild=ctx.guild, alias=roster)
@@ -756,9 +783,11 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             embed = disnake.Embed(description=f"{roster} role {group_text}removed", colour=disnake.Color.green())
         await ctx.edit_original_message(embed=embed)
 
+
     @roster.sub_command(name="role-refresh", description="Refresh the roles of those signed up to this roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_role_refresh(self, ctx: disnake.ApplicationCommandInteraction, roster: str):
+    async def roster_role_refresh(self, ctx: disnake.ApplicationCommandInteraction,
+                                  roster: str = commands.Param(autocomplete=autocomplete.roster_alias)):
         await ctx.response.defer()
         if not ctx.guild.chunked:
             embed = disnake.Embed(
@@ -806,9 +835,12 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                               colour=disnake.Color.green())
         return await ctx.edit_original_message(embed=embed)
 
+
     @roster.sub_command(name="copy", description="import/export/copy rosters")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_copy(self, ctx: disnake.ApplicationCommandInteraction, export_roster: str = None, import_code: str = None):
+    async def roster_copy(self, ctx: disnake.ApplicationCommandInteraction,
+                          export_roster: str = None,
+                          import_code: str = None):
         await ctx.response.defer()
         if export_roster == import_code == None:
             return await ctx.edit_original_message(content="**Must select an option to import or export.")
@@ -834,8 +866,11 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
         await ctx.edit_original_message(embed=embed)
 
+
     @roster.sub_command(name="search", description="Get a list of rosters a user or player is on")
-    async def roster_search(self, ctx: disnake.ApplicationCommandInteraction, user: disnake.Member = None, player: coc.Player = commands.Param(default=None, converter=player_convertor)):
+    async def roster_search(self, ctx: disnake.ApplicationCommandInteraction,
+                            user: disnake.Member = None,
+                            player: coc.Player = commands.Param(default=None, converter=convert.player, autocomplete=autocomplete.family_players)):
         await ctx.response.defer()
         if user is None and player is None:
             user = ctx.user
@@ -874,19 +909,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
 
 
-    @roster_create.autocomplete("clan")
-    @roster_change_link.autocomplete("clan")
-    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
-        clan_list = []
-        for tClan in await tracked.to_list(length=limit):
-            name = tClan.get("name")
-            tag = tClan.get("tag")
-            if query.lower() in name.lower():
-                clan_list.append(f"{name} | {tag}")
-        return clan_list[:25]
-
     @roster_create_player_group.autocomplete("remove")
     @roster_role.autocomplete("group")
     async def autocomp_group(self, ctx: disnake.ApplicationCommandInteraction, query: str):
@@ -894,52 +916,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
         groups = results.get("player_groups", [])
         return [f"{group}" for group in groups if query.lower() in group.lower()]
 
-    @roster_delete.autocomplete("roster")
-    @roster_create_signups.autocomplete("roster")
-    @roster_post.autocomplete("roster")
-    @roster_refresh.autocomplete("roster_")
-    @roster_missing.autocomplete("roster")
-    @roster_add.autocomplete("roster")
-    @roster_move.autocomplete("roster")
-    @roster_restrict.autocomplete("roster")
-    @roster_edit_layout.autocomplete("roster")
-    @roster_change_link.autocomplete("roster")
-    @roster_clear.autocomplete("roster")
-    @roster_sort.autocomplete("roster")
-    @roster_columns.autocomplete("roster_")
-    @roster_role.autocomplete("roster")
-    @roster_role_refresh.autocomplete("roster")
-    @roster_copy.autocomplete("export_roster")
-    @roster_time.autocomplete("roster")
-    async def autocomp_rosters(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        aliases = await self.bot.rosters.distinct("alias", filter={"server_id": ctx.guild_id })
-        alias_list = []
-        if ctx.data.focused_option.name == "roster_" or ctx.options.get("role-refresh"):
-            if ctx.options.get("columns"):
-                alias_list.append("SET ALL")
-            else:
-                alias_list.append("REFRESH ALL")
-        for alias in aliases:
-            if query.lower() in alias.lower():
-                alias_list.append(f"{alias}")
-        return alias_list[:25]
-
-    @roster_add.autocomplete("players")
-    @roster_search.autocomplete("player")
-    async def clan_player_tags(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        names = await self.bot.family_names(query=query, guild=ctx.guild)
-        return names
-
-    @roster_time.autocomplete("timezone")
-    async def timezone_autocomplete(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        all_tz = pytz.common_timezones
-        return_list = []
-        for tz in all_tz:
-            if query.lower() in tz.lower():
-                return_list.append(tz)
-                if len(return_list) == 25:
-                    break
-        return return_list[:25]
 
 
     @commands.Cog.listener()
@@ -1113,7 +1089,6 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                     embed = await roster.embed()
                     await message.edit(embed=embed)
 
-
         elif "Signup_" in str(ctx.data.custom_id):
             alias = str(ctx.data.custom_id).split("_")[1]
             roster = Roster(bot=self.bot)
@@ -1125,6 +1100,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
             if not linked_accounts:
                 return await ctx.send(content="No accounts linked to you. Use `/link` to get started.", ephemeral=True)
             accounts = await self.bot.get_players(tags=linked_accounts)
+            accounts.sort(key= lambda x : (x.town_hall, x.trophies), reverse=True)
             options = []
             player_dict = {}
             roster_tags = [member.get("tag") for member in roster.players]
@@ -1153,7 +1129,7 @@ class Roster_Commands(commands.Cog, name="Rosters"):
                 return res.message.id == msg.id
 
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check,timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
             except:
                 return await msg.edit(components=[])
 
@@ -1301,4 +1277,4 @@ class Roster_Commands(commands.Cog, name="Rosters"):
 
 
 def setup(bot: CustomClient):
-    bot.add_cog(Roster_Commands(bot))
+    bot.add_cog(RosterCommands(bot))

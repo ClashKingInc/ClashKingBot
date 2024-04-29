@@ -1,8 +1,7 @@
 import disnake
 
-from typing import TYPE_CHECKING
 from classes.bot import CustomClient
-from classes.player import MyCustomPlayer
+from classes.player.stats import StatsPlayer
 from archived.commands.CommandsOlder.Utils.Player import create_profile_stats, create_profile_troops, upgrade_embed, history
 
 
@@ -91,7 +90,7 @@ def create_components(bot: CustomClient, results):
 
     player_results = []
     for count, player in enumerate(results):
-        player:MyCustomPlayer
+        player:StatsPlayer
         player_results.append(disnake.SelectOption(label=f"{player.name}", emoji=player.town_hall_cls.emoji.partial_emoji, value=f"{count}"))
 
     profile_select = disnake.ui.Select(options=player_results, placeholder="Accounts", max_values=1)

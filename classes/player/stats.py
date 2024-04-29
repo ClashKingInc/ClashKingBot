@@ -27,7 +27,7 @@ class CustomClanClass(coc.Clan):
         return (hash(self.tag))
 
 
-class MyCustomPlayer(coc.Player):
+class StatsPlayer(coc.Player):
     def __init__(self, **kwargs):
         self.troop_cls = MyCustomTroops
         self.hero_cls = MyCustomHeros

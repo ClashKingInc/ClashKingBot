@@ -1,20 +1,17 @@
-import time
 import coc
-import pytz
 import math
+import pendulum as pend
 
-from datetime import datetime
-from datetime import timedelta
 from coc.miscmodels import Timestamp
 from coc.raid import RaidLogEntry, RaidClan
+from datetime import datetime
+from datetime import timedelta
 from typing import List
-
-utc = pytz.utc
 
 def gen_raid_weekend_datestrings(number_of_weeks: int):
     weekends = []
     for x in range(number_of_weeks):
-        now = datetime.utcnow().replace(tzinfo=utc)
+        now = datetime.utcnow().replace(tzinfo=pend.UTC)
         now = now - timedelta(x * 7)
         current_dayofweek = now.weekday()
         if (current_dayofweek == 4 and now.hour >= 7) or (current_dayofweek == 5) or (current_dayofweek == 6) or (
@@ -32,7 +29,7 @@ def gen_raid_weekend_datestrings(number_of_weeks: int):
 def next_raid_weekend():
     weekends = []
     for x in range(2):
-        now = datetime.utcnow().replace(tzinfo=utc)
+        now = datetime.utcnow().replace(tzinfo=pend.UTC)
         now = now + timedelta(x * 7)
         current_dayofweek = now.weekday()
         if (current_dayofweek == 4 and now.hour >= 7) or (current_dayofweek == 5) or (current_dayofweek == 6) or (
@@ -159,3 +156,13 @@ def get_season_raid_weeks(season: str):
             break
         weeks.append(str(week.date()))
     return weeks
+
+
+def is_raids():
+    now = pend.now(tz=pend.UTC)
+    current_dayofweek = now.weekday()
+    if (current_dayofweek == 4 and now.hour >= 7) or (current_dayofweek == 5) or (current_dayofweek == 6) or (current_dayofweek == 0 and now.hour < 9):
+        raid_on = True
+    else:
+        raid_on = False
+    return raid_on

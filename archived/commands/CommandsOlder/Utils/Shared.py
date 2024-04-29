@@ -8,8 +8,7 @@ import pandas as pd
 from utility.general import notate_number as B, custom_round
 from typing import TYPE_CHECKING
 from classes.bot import CustomClient
-from classes.player import MyCustomPlayer
-from collections import defaultdict
+from classes.player.stats import StatsPlayerfrom collections import defaultdict
 from utility.constants import SHORT_PLAYER_LINK, item_to_name, TOWNHALL_LEVELS
 from utility.graphing import graph_creator
 import stringcase
@@ -375,7 +374,7 @@ async def th_hitrate(bot: CustomClient, player_tags: List[str], title: str, thum
 
 
 
-async def capital_donation_board(bot: CustomClient, players: List[MyCustomPlayer], week: str, title_name: str, limit: int = 60,
+async def capital_donation_board(bot: CustomClient, players: List[StatsPlayer], week: str, title_name: str, limit: int = 60,
                                  footer_icon: str = None, embed_color: disnake.Color = disnake.Color.green()):
     players.sort(key=lambda x: sum(x.clan_capital_stats(week=week).donated), reverse=True)
     total_donated = 0
@@ -397,7 +396,7 @@ async def capital_donation_board(bot: CustomClient, players: List[MyCustomPlayer
     return embed
 
 
-async def capital_raided_board(bot: CustomClient, players: List[MyCustomPlayer], week: str, title_name: str, limit: int = 60,
+async def capital_raided_board(bot: CustomClient, players: List[StatsPlayer], week: str, title_name: str, limit: int = 60,
                                footer_icon: str = None, embed_color: disnake.Color = disnake.Color.green()):
     players.sort(key=lambda x: sum(x.clan_capital_stats(week=week).raided), reverse=True)
     total_donated = 0
@@ -420,7 +419,7 @@ async def capital_raided_board(bot: CustomClient, players: List[MyCustomPlayer],
 
 
 
-async def create_clan_games(bot: CustomClient, players: List[MyCustomPlayer], season: str, title_name: str, limit: int = 50, embed_color: disnake.Color = disnake.Color.green(), **kwargs):
+async def create_clan_games(bot: CustomClient, players: List[StatsPlayer], season: str, title_name: str, limit: int = 50, embed_color: disnake.Color = disnake.Color.green(), **kwargs):
     year = int(season[:4])
     month = int(season[-2:])
 
