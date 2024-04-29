@@ -66,30 +66,6 @@ class Settings(commands.Cog, name="Settings"):
                             ping: disnake.Member | disnake.Role,
                             command: str = commands.Param(default=None, autocomplete=autocomplete.command_autocomplete)):
 
-        list_commands = []
-        for command_ in self.bot.slash_commands:
-            base_command = command_.name
-            children = command_.children
-            if children != {}:
-                for child in children:
-                    command_l = children[child]
-                    full_name = f"{base_command} {command_l.name}"
-                    command_l = self.bot.get_slash_command(name=full_name)
-                    if command_l.checks != []:
-                        list_commands.append(full_name)
-            else:
-                full_name = base_command
-                if command_.checks != []:
-                    list_commands.append(full_name)
-
-        is_command = command in list_commands
-
-        if "whitelist" in command:
-            is_command = False
-
-        if is_command == False:
-            return await ctx.reply("Not a valid command or command cannot be whitelisted.")
-
         results = await self.bot.whitelist.find_one({"$and": [
             {"command": command},
             {"server": ctx.guild.id},
@@ -119,30 +95,6 @@ class Settings(commands.Cog, name="Settings"):
     async def whitelist_remove(self, ctx: disnake.ApplicationCommandInteraction,
                                ping: disnake.Member | disnake.Role,
                                command: str = commands.Param(default=None, autocomplete=autocomplete.command_autocomplete)):
-
-        list_commands = []
-        for command_ in self.bot.slash_commands:
-            base_command = command_.name
-            children = command_.children
-            if children != {}:
-                for child in children:
-                    command_l = children[child]
-                    full_name = f"{base_command} {command_l.name}"
-                    command_l = self.bot.get_slash_command(name=full_name)
-                    if command_l.checks != []:
-                        list_commands.append(full_name)
-            else:
-                full_name = base_command
-                if command_.checks != []:
-                    list_commands.append(full_name)
-
-        is_command = command in list_commands
-
-        if "whitelist" in command:
-            is_command = False
-
-        if is_command == False:
-            return await ctx.reply("Not a valid command or command cannot be whitelisted.")
 
         results = await self.bot.whitelist.find_one({"$and": [
             {"command": command},
