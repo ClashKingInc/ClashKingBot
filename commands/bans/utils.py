@@ -124,7 +124,7 @@ async def create_embeds(bot: CustomClient, bans: list, guild: disnake.Guild, emb
                 f"Added on: {date}\n" \
                 f"Notes: *{notes}*{added_by}\n\n"
 
-        if count % 10 == 0 or count == len(bans):
+        if count % 10 == 0 or count == len(banned_players):
             embed = disnake.Embed(description=hold, color=embed_color)
             embed.set_author(name=f"{guild.name} Ban List", icon_url=get_guild_icon(guild=guild))
             embeds.append(embed)
