@@ -43,10 +43,6 @@ class Linking(LinkButtonExtended, commands.Cog):
         manage_guild_perms = ctx.user.guild_permissions.manage_guild
         api_token_requirement = db_server.use_api_token
 
-        whitelist_check = False
-        manage_guild_perms = False
-        api_token_requirement = True
-
         if (not whitelist_check or not manage_guild_perms) and api_token_requirement and api_token is None:
             raise APITokenRequired
 
