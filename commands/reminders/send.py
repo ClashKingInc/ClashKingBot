@@ -39,24 +39,22 @@ async def war_reminder(bot: CustomClient, event: dict, manual_send: bool = False
         ]})
         for reminder in await all_reminders.to_list(length=None):
             reminder = Reminder(bot=bot, data=reminder)
-            '''if reminder.server_id not in bot.OUR_GUILDS:
-                continue'''
+            if reminder.server_id not in bot.OUR_GUILDS:
+                continue
 
             war_type = war.type.capitalize() if war.type != "cwl" else war.type.upper()
             if war_type not in reminder.war_types:
                 continue
             try:
-                #channel = await bot.getch_channel(reminder.channel_id)
-                channel = await bot.getch_channel(1197924424863731792)
+                channel = await bot.getch_channel(reminder.channel_id)
 
             except (disnake.NotFound, disnake.Forbidden):
-                #await reminder.delete()
+                await reminder.delete()
                 continue
 
-            #server = await bot.getch_guild(reminder.server_id)
-            server = await bot.getch_guild(923764211845312533)
-            '''if server is None:
-                continue'''
+            server = await bot.getch_guild(reminder.server_id)
+            if server is None:
+                continue
 
             missing_text_list = []
             missing_text = ""
