@@ -1,12 +1,9 @@
-import time
-
 import coc
 import disnake
 from PIL import Image, ImageDraw, ImageFont
 import io
 import pytz
 utc = pytz.utc
-import requests
 import aiohttp
 from io import BytesIO
 import asyncio
@@ -52,13 +49,13 @@ async def generate_war_result_image(war: coc.ClanWar):
         sixty_xp = 25
         won_xp += 25
 
-    background = Image.open("ImageGen/warbkpng.png")
-    clan_name = ImageFont.truetype("ImageGen/SCmagic.ttf", 45)
-    result_font = ImageFont.truetype("ImageGen/SCmagic.ttf", 65)
-    score_font = ImageFont.truetype("ImageGen/SCmagic.ttf",70)
-    total_xp_font = ImageFont.truetype("ImageGen/SCmagic.ttf", 35)
-    box_xp_font = ImageFont.truetype("ImageGen/SCmagic.ttf", 25)
-    destruction_font = ImageFont.truetype("ImageGen/SCmagic.ttf", 25)
+    background = Image.open("utility/imagegen/warbkpng.png")
+    clan_name = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 45)
+    result_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 65)
+    score_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf",70)
+    total_xp_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 35)
+    box_xp_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 25)
+    destruction_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 25)
 
     draw = ImageDraw.Draw(background)
 
