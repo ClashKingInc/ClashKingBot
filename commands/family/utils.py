@@ -862,7 +862,7 @@ async def family_raids(bot: CustomClient, server: disnake.Guild, weekend: str, e
     raid_list = [r for r in raid_list if r[1] is not None]
 
     if len(raid_list) == 0:
-        raise MessageException("No clans linked to this server")
+        raise MessageException("No clans in raid weekend")
 
     embed = disnake.Embed(description=f"**Current Raids**", color=embed_color)
 
