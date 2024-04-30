@@ -412,11 +412,12 @@ class CustomClient(commands.AutoShardedBot):
         return webhook
 
 
-    async def webhook_send(self, webhook: disnake.Webhook, content="", embed=None, file=None, components=None, wait=False, thread=None):
+    async def webhook_send(self, webhook: disnake.Webhook, **kwargs):
+        thread = kwargs.pop("thread", None)
         if thread is None:
-            msg = await webhook.send(content=content, embed=embed, file=file, components=components, wait=wait)
+            msg = await webhook.send(**kwargs)
         else:
-            msg = await webhook.send(content=content, embed=embed, file=file, components=components, wait=wait, thread=thread)
+            msg = await webhook.send(thread=thread, **kwargs)
         return msg
 
 
