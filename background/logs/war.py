@@ -128,7 +128,7 @@ class War_Log(commands.Cog):
                 continue
 
             if new_war.state == "preparation":
-                embed = await main_war_page(bot=self.bot, war=new_war,war_league=war_league)
+                embed = await main_war_page(bot=self.bot, war=new_war, war_league=war_league)
                 embed.set_footer(text=f"{new_war.type.capitalize()} War")
                 await self.bot.webhook_send(webhook=webhook, thread=thread, embed=embed)
 
