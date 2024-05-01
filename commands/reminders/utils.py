@@ -383,7 +383,7 @@ async def create_games_reminder(bot: CustomClient, ctx: disnake.ApplicationComma
                 "channel": channel.id,
                 "time": time,
                 "roles": roles_chosen,
-                "townhalls" : townhall_filter,
+                "townhalls" : ths,
                 "point_threshold" : points,
                 "custom_text" : custom_text
             })
