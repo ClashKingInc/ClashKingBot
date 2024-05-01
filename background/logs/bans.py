@@ -15,7 +15,7 @@ class BanEvents(commands.Cog):
         self.clan_ee.on("members_join_leave", self.ban_alerts)
 
     async def ban_alerts(self, event):
-        clan = coc.Clan(data=event["clan"], client=self.bot.coc_client)
+        clan = coc.Clan(data=event["new_clan"], client=self.bot.coc_client)
         members_joined = [coc.ClanMember(data=member, client=self.bot.coc_client, clan=clan) for member in event.get("joined", [])]
 
         if members_joined:
