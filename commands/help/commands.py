@@ -27,7 +27,7 @@ class HelpCommands(commands.Cog, name="Help"):
         await ctx.response.defer()
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
 
-        all_commands: Dict[str, List[disnake.ext.commands.InvokableSlashCommand]] = get_all_commands()
+        all_commands: Dict[str, List[disnake.ext.commands.InvokableSlashCommand]] = get_all_commands(bot=self.bot)
         if category:
             all_commands = {category : all_commands.get(category)}
 
