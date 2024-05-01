@@ -45,7 +45,7 @@ class Embeds(commands.Cog):
             raise MessageException("No embed with that name found on this server")
         if data_link is None:
             encoding = encoded_data(data=lookup.get("data"))
-            shortened_url = await shorten_link(url=f"https://glitchii.github.io/embedbuilder/?data={encoding}&verified&username=ClashKing&avatar={self.bot.user.avatar.url}")
+            shortened_url = await shorten_link(url=f"https://discohook.org/?data={encoding})
             buttons = disnake.ui.ActionRow(
                 disnake.ui.Button(label="Edit Embed",
                                   url=shortened_url,
