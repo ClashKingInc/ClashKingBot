@@ -473,6 +473,7 @@ class CustomClient(commands.AutoShardedBot):
             else:
                 player_class = custom
         elif custom is not False and fake_results:
+            player_class = StatsPlayer
             results_dict = {tag: {} for tag in tags}
         results_dict.update({item.get("tag") or item.get("VillageTag"): item for item in results_list})
 
