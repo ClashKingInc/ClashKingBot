@@ -88,8 +88,6 @@ class LinkParsing(commands.Cog):
                 row_one = disnake.ui.ActionRow(disnake.ui.Button(label="Link", emoji="🔗", style=disnake.ButtonStyle.grey, custom_id="link"),
                                           disnake.ui.Button(label="0 Downloads", emoji="📈", style=disnake.ButtonStyle.grey, custom_id="who"))
 
-                row_two = disnake.ui.ActionRow(disnake.ui.Button(label="Feedback", emoji="💬", style=disnake.ButtonStyle.grey, custom_id="feedback"),
-                                               disnake.ui.Button(label="Leave Feedback", emoji="📈", style=disnake.ButtonStyle.grey, custom_id="leave"))
                 sent_message = await message.channel.send(content=f"[➼](https://cdn.clashking.xyz/{message.attachments[0].id}.png) {description}", components=[row_one, row_two])
                 await safe_run(func=message.delete)
                 await self.bot.bases.insert_one({
