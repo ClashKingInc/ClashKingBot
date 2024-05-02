@@ -61,7 +61,7 @@ class DatabaseServer():
         self.clan_link_parse = data.get("link_parse", {}).get("clan", True)
         self.army_link_parse = data.get("link_parse", {}).get("army", True)
         self.player_link_parse = data.get("link_parse", {}).get("player", True)
-        self.base_link_parse = data.get("base_parse", {}).get("base", True)
+        self.base_link_parse = data.get("link_parse", {}).get("base", True)
         self.show_command_parse = data.get("link_parse", {}).get("show", True)
 
 
