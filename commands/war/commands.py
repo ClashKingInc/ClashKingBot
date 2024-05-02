@@ -35,7 +35,7 @@ class War(commands.Cog):
             war_data = await self.bot.clan_wars.find_one({"$and": [
                 {"custom_id": previous_wars.split("|")[-1].replace(" ", "")},
                 {"$or" : [
-                    {"$data.clan.tag" : clan.tag}, {"$data.opponent.tag" : clan.tag}
+                    {"data.clan.tag" : clan.tag}, {"data.opponent.tag" : clan.tag}
                 ]}
             ]})
             if war_data is None:
