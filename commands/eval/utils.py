@@ -230,7 +230,7 @@ async def logic(bot: CustomClient,
         new_name = None
         if db_server.change_nickname and "nicknames" in eval_types:
             #if they have a family account or the server allows non family to change nickname, then change it
-            if member.top_role > bot_member.top_role:
+            if member.top_role > bot_member.top_role or guild.owner_id == member.id:
                 new_name = "`Cannot Change`"
             else:
                 if has_family_account:
