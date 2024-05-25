@@ -1,21 +1,7 @@
-
-import disnake
-from disnake.ext import commands
-clan_tags = ["#2P0JJQGUJ"]
-known_streak = []
-count = 0
-list_size = 0
-from classes.bot import CustomClient
-
-leagues = ["Champion League I", "Champion League II", "Champion League III",
-                   "Master League I", "Master League II", "Master League III",
-                   "Crystal League I","Crystal League II", "Crystal League III",
-                   "Gold League I","Gold League II", "Gold League III",
-                   "Silver League I","Silver League II","Silver League III",
-                   "Bronze League I", "Bronze League II", "Bronze League III", "Unranked"]
-SUPER_SCRIPTS=["⁰","¹","²","³","⁴","⁵","⁶", "⁷","⁸", "⁹"]
 import coc
-
+import disnake
+from classes.bot import CustomClient
+from disnake.ext import commands
 from datetime import datetime
 import textwrap
 from contextlib import redirect_stdout
@@ -23,14 +9,14 @@ import io
 import re
 import asyncio
 import aiohttp
-from pymongo import InsertOne
-from meilisearch_python_sdk import AsyncClient
+from discord.options import convert, autocomplete
 
 class OwnerCommands(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.count = 0
+        self.model = None
 
 
 
@@ -144,99 +130,24 @@ class OwnerCommands(commands.Cog):
             for i, b in enumerate(buffer):
                 await ctx.followup.send(embed=disnake.Embed(description=f'```py\n{b}```'))
 
-    async def get_keys(self, emails: list, passwords: list, key_names: str, key_count: int, ip: str):
-        total_keys = []
-        for count, email in enumerate(emails):
-            await asyncio.sleep(1.5)
-            _keys = []
-            async with aiohttp.ClientSession() as session:
-                password = passwords[count]
-                body = {"email": email, "password": password}
-                resp = await session.post("https://developer.clashofclans.com/api/login", json=body)
-                resp_paylaod = await resp.json()
-
-                resp = await session.post("https://developer.clashofclans.com/api/apikey/list")
-                keys = (await resp.json()).get("keys", [])
-                _keys.extend(key["key"] for key in keys if key["name"] == key_names and ip in key["cidrRanges"])
-
-                for key in (k for k in keys if ip not in k["cidrRanges"]):
-                    await session.post("https://developer.clashofclans.com/api/apikey/revoke", json={"id": key["id"]})
-
-                print(len(_keys))
-                while len(_keys) < key_count:
-                    data = {
-                        "name": key_names,
-                        "description": "Created on {}".format(datetime.now().strftime("%c")),
-                        "cidrRanges": [ip],
-                        "scopes": ["clash"],
-                    }
-                    hold = True
-                    tries = 1
-                    while hold:
-                        try:
-                            resp = await session.post("https://developer.clashofclans.com/api/apikey/create", json=data)
-                            key = await resp.json()
-                        except Exception:
-                            key = {}
-                        if key.get("key") is None:
-                            await asyncio.sleep(tries * 0.5)
-                            tries += 1
-                            if tries > 2:
-                                print(tries - 1, "tries")
-                        else:
-                            hold = False
-
-                    _keys.append(key["key"]["key"])
-
-                await session.close()
-                for k in _keys:
-                    total_keys.append(k)
-
-        print(len(total_keys), "total keys")
-        return (total_keys)
-
-    async def create_keys(self, emails: list, passwords: list, ip: str):
-        keys = await self.get_keys(emails=emails, passwords=passwords, key_names="test", key_count=10, ip=ip)
-        return keys
 
 
-
-    @commands.slash_command(name="test", guild_ids=[923764211845312533])
+    @commands.slash_command(name="screenshot")
     @commands.is_owner()
-    async def test(self, ctx: disnake.ApplicationCommandInteraction):
+    async def test(self, ctx: disnake.ApplicationCommandInteraction, player: coc.Player = commands.Param(autocomplete=autocomplete.all_players, converter=convert.player)):
         await ctx.response.defer()
-        client = AsyncClient('http://85.10.200.219:7700', "test", verify=False)
+        tag = player.tag.replace("#", "")
+        url = f"https://api.clashking.xyz/ss/{tag}/706149153431879760"
 
-        pipeline = [{"$match": {"$nor" : [{"members" : {"$lt" : 10}}, {"level" : {"$lt" : 3}}, {"capitalLeague" : "Unranked"}]}}, {"$group": {"_id": "$tag"}}]
-        all_tags = [x["_id"] for x in (await self.bot.basic_clan.aggregate(pipeline).to_list(length=None))]
-        bot_clan_tags = await self.bot.clan_db.distinct("tag")
-        all_tags = list(set(all_tags + bot_clan_tags))
-        print(f"{len(all_tags)} tags")
-        size_break = 100_000
-        all_tags = [all_tags[i:i + size_break] for i in range(0, len(all_tags), size_break)]
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    image_data = await response.read()
 
-        for tag_group in all_tags:
-            pipeline = [
-               {"$match": {"tag" : {"$in" : tag_group}}},
-               {"$unwind": "$memberList" },
-               {
-                   "$project": {
-                       "id": { "$substr": ["$memberList.tag", 1, { "$strLenBytes": "$memberList.tag"}]},
-                       "name": "$memberList.name",
-                       "clan_name": "$name",
-                       "clan_tag": "$tag",
-                       "townhall": "$memberList.townhall"
-                   }
-               },
-               {"$unset" : ["_id"]}
-            ]
-            docs_to_insert = await self.bot.basic_clan.aggregate(pipeline=pipeline).to_list(length=None)
-            print(len(docs_to_insert), "docs")
+        image_file = io.BytesIO(image_data)
+        image_file.seek(0)
 
-            # An index is where the documents are stored.
-            index = client.index('players')
-            await index.add_documents_in_batches(documents=docs_to_insert, batch_size=50_000, primary_key="id", compress=True)
-            await asyncio.sleep(5)
+        await ctx.send(file=disnake.File(fp=image_file, filename="screenshot.png"))
 
 
     @commands.slash_command(name="anniversary", guild_ids=[923764211845312533])

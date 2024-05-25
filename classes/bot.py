@@ -4,6 +4,7 @@ import dateutil.relativedelta
 import coc
 import motor.motor_asyncio
 import disnake
+import io
 import re
 import asyncio
 import calendar
@@ -23,6 +24,7 @@ from coc.ext import discordlinks
 from datetime import datetime, timedelta
 from disnake.ext import commands, fluent
 from expiring_dict import ExpiringDict
+from functools import lru_cache
 from math import ceil
 from redis import asyncio as redis
 from typing import Dict, List
@@ -421,6 +423,20 @@ class CustomClient(commands.AutoShardedBot):
         return msg
 
 
+    async def get_screenshot(self,  player: coc.Player):
+        tag = player.tag.replace("#", "")
+        url = f"https://api.clashking.xyz/ss/{tag}/706149153431879760"
+
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5*60)) as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    image_data = await response.read()
+
+        image_file = io.BytesIO(image_data)
+        image_file.seek(0)
+
+        return disnake.File(fp=image_file, filename="screenshot.png")
+
     #CLASH HELPERS
     async def getPlayer(self, player_tag, custom=False, raise_exceptions=False, cache_data=False):
         if "|" in player_tag:
@@ -644,6 +660,12 @@ class CustomClient(commands.AutoShardedBot):
                 history = await resp.json()
                 await session.close()
                 return COSPlayerHistory(data=history)
+
+
+    @lru_cache(maxsize=None)
+    async def get_country_names(self):
+        locations = await self.coc_client.search_locations()
+        return locations
 
 
     #SERVER HELPERS

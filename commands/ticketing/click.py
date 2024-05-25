@@ -305,6 +305,9 @@ class TicketClick(commands.Cog):
             for channel in channels:
                 if channel.type == disnake.ChannelType.text:
                     m = await channel.send(embeds=embeds, components=dropdown + [next_action_row])
+                    if players:
+                        screen = await self.bot.get_screenshot(player=players[0])
+                        await channel.send(file=screen)
                 else:
                     m = await channel.send(embeds=embeds[1:], components=dropdown)
                 await m.pin()
