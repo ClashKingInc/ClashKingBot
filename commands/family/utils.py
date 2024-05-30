@@ -584,14 +584,21 @@ async def family_donations(bot: CustomClient, server: disnake.Guild, season: str
     family_clan_donations = await bot.clan_stats.find({"tag" : {"$in" : family_clan_tags}}, projection={"_id" : 0, f"{season}" : 1}).to_list(length=None)
 
     holder = namedtuple("holder", ["tag", "donations", "received"])
-    hold_items = []
+    hold_items = {}
     for clan_stats in family_clan_donations:
         season_stats = clan_stats.get(season, {})
         for tag, data in season_stats.items():
-            hold_items.append(holder(tag=tag,
+            if hold_items.get(tag) is None:
+                hold_items[tag] = holder(tag=tag,
                                      donations= data.get("donated", 0),
-                                     received= data.get("received", 0)))
+                                     received= data.get("received", 0))
+            else:
+                curr_item = hold_items[tag]
+                curr_item = curr_item._replace(donations=(curr_item.donations + data.get("donated", 0)))
+                curr_item = curr_item._replace(received=(curr_item.received + data.get("received", 0)))
+                hold_items[tag] = curr_item
 
+    hold_items = list(hold_items.values())
     hold_items.sort(key=lambda x: x.__getattribute__(sort_by.lower()), reverse=(sort_order.lower() == "descending"))
     if len(hold_items) == 0:
         raise MessageException("No players, try a lighter search filter")
@@ -606,6 +613,8 @@ async def family_donations(bot: CustomClient, server: disnake.Guild, season: str
     for count, member in enumerate(hold_items, 1):
         if count <= limit:
             player = map_player.get(member.tag)
+            if player is None:
+                continue
             text += f"`{count:2} {member.donations:5} {member.received:5} {player.clear_name[:13]:13}`[{create_superscript(player.town_hall)}]({player.share_link})\n"
         total_donated += member.donations
         total_received += member.received
