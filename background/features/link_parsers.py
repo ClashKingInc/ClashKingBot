@@ -57,7 +57,7 @@ class LinkParsing(commands.Cog):
 
                 clan_tag = self.extract_url(message.content)
                 clan = await self.bot.getClan(clan_tag=clan_tag)
-                embed = await basic_clan_board(clan=clan, embed_color=server_settings.embed_color)
+                embed = await basic_clan_board(bot=self.bot, clan=clan, embed_color=server_settings.embed_color)
 
                 stat_buttons = [
                     disnake.ui.Button(label=f"Open In-Game",
@@ -125,7 +125,7 @@ class LinkParsing(commands.Cog):
                     embeds = []
                     clans = await self.bot.get_clans(tags=clan_tags)
                     for clan in clans:
-                        embed = await basic_clan_board(clan=clan, embed_color=server_settings.embed_color)
+                        embed = await basic_clan_board(bot=self.bot, clan=clan, embed_color=server_settings.embed_color)
                         embeds.append(embed)
                     await message.channel.send(embeds=embeds)
 

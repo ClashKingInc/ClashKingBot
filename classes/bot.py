@@ -366,7 +366,7 @@ class CustomClient(commands.AutoShardedBot):
     def partial_emoji_gen(self, emoji_string: str):
         emoji = emoji_string.split(":")
         animated = "<a:" in emoji_string
-        return disnake.PartialEmoji(name=emoji[1][1:], id=int(str(emoji[2])[:-1]), animated=animated)
+        return disnake.PartialEmoji(name=emoji[1], id=int(str(emoji[2])[:-1]), animated=animated)
 
 
     def fetch_emoji(self, name: str | int):

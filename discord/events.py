@@ -1,7 +1,9 @@
+import aiohttp
 import asyncio
 import datetime
-import aiohttp
 import disnake
+import pendulum as pend
+import random
 
 from loguru import logger
 from disnake.ext import commands
@@ -25,11 +27,6 @@ class DiscordEvents(commands.Cog):
     @commands.Cog.listener()
     async def on_connect(self):
         self.bot.ck_client = FamilyClient(bot=self.bot)
-        number_emojis = await self.bot.number_emojis.find().to_list(length=None)
-        number_emojis_map = {"blue": {}, "gold": {}, "white": {}}
-        for emoji in number_emojis:
-            number_emojis_map[emoji.get("color")][emoji.get("count")] = emoji.get("emoji_id")
-        self.bot.number_emoji_map = number_emojis_map
 
         if self.bot.user.id == 808566437199216691:
             return
@@ -109,92 +106,7 @@ class DiscordEvents(commands.Cog):
             await self.bot.change_presence(activity=disnake.CustomActivity(state=default_status.get("activity_text"), name="Custom Status"),
                                            status=DISCORD_STATUS_TYPES.get(default_status.get("status")))
 
-            #FIND A STORED ACTIVITY
-
         logger.info("ready")
-
-        if not self.bot.user.public_flags.verified_bot and self.bot.user.id != 808566437199216691:
-            for number, emoji_id in self.bot.number_emoji_map.get("gold").items():
-                if number <= 50:
-                    SharedEmojis.all_emojis[f"{number}_"] = emoji_id
-
-            logger.info(f"{len(SharedEmojis.all_emojis)} emojis that we have")
-            our_emoji_servers = []
-            if not self.bot.user.public_flags.verified_bot:
-                if len([g for g in self.bot.guilds if "ckemojiserver" in g.name]) < 8:
-                    for x in range(0, 8):
-                        guild = await self.bot.create_guild(name=f"ckemojiserver{x}")
-                        our_emoji_servers.append(guild)
-                else:
-                    our_emoji_servers = [g for g in self.bot.guilds if "ckemojiserver" in g.name]
-
-                logger.info(", ".join([g.name for g in self.bot.guilds]))
-                logger.info(", ".join([str(len(g.emojis)) for g in self.bot.guilds]))
-                logger.info(f"{sum([(len(g.emojis)) for g in self.bot.guilds]) - 254} emojis installed")
-
-                logger.info(f"{len(our_emoji_servers)} servers")
-                our_emoji_servers = deque(our_emoji_servers)
-
-                id_to_lookup_name_map = {}
-                for emoji_name, emoji_string in SharedEmojis.all_emojis.items():
-                    if not isinstance(emoji_string, str):
-                        continue
-                    emoji_split = emoji_string.split(":")
-                    animated = "<a:" in emoji_string
-                    emoji = disnake.PartialEmoji(name=emoji_split[1][1:], id=int(str(emoji_split[2])[:-1]), animated=animated)
-                    id_to_lookup_name_map[str(emoji.id)] = emoji_name
-
-
-                all_our_emojis = {}
-                deleted = 0
-                for server in our_emoji_servers:
-                    for emoji in server.emojis:
-                        lookup_name = id_to_lookup_name_map.get(emoji.name)
-                        if lookup_name is None:
-                            deleted += 1
-                            await emoji.delete()
-                            continue
-                        all_our_emojis[lookup_name] = f"<:{emoji.name}:{emoji.id}>"
-
-                logger.info(f"{deleted} emojis deleted")
-
-                to_create = 0
-                for emoji_name, emoji_string in SharedEmojis.all_emojis.items():
-                    if emoji_name not in all_our_emojis:
-                        to_create += 1
-
-                logger.info(f"{to_create} emojis to create")
-                for emoji_name, emoji_string in SharedEmojis.all_emojis.items():
-                    if emoji_name not in all_our_emojis:
-                        server = our_emoji_servers[0]
-                        while len(server.emojis) == server.emoji_limit:
-                            our_emoji_servers.rotate(1)
-                            server = our_emoji_servers[0]
-                        emoji_split = emoji_string.split(":")
-                        animated = "<a:" in emoji_string
-
-                        bytes_image: bytes = None
-                        session = aiohttp.ClientSession()
-                        main_bot_emoji = disnake.PartialEmoji(name=emoji_split[1][1:], id=int(str(emoji_split[2])[:-1]), animated=animated)
-                        async with session.get(url=main_bot_emoji.url) as resp:
-                            if resp.status == 200:
-                                bytes_image = (await resp.read())
-                        await session.close()
-                        has_created = False
-                        while not has_created:
-                            try:
-                                emoji = await server.create_custom_emoji(name=str(main_bot_emoji.id), image=bytes_image)
-                                has_created = True
-                            except Exception:
-                                pass
-                        lookup_name = id_to_lookup_name_map.get(emoji.name)
-                        all_our_emojis[lookup_name] = f"<:{emoji.name}:{emoji.id}>"
-                        our_emoji_servers.rotate(1)
-
-                for emoji_name, emoji_string in all_our_emojis.items():
-                    SharedEmojis.all_emojis[emoji_name] = emoji_string
-
-                logger.info("done with emoji creation")
 
 
     @commands.Cog.listener()
@@ -264,13 +176,16 @@ class DiscordEvents(commands.Cog):
         channel = self.bot.get_channel(937528942661877851)
         await channel.edit(name=f"ClashKing: {len_g} Servers")
 
-    @commands.Cog.listener()
+
+    '''@commands.Cog.listener()
     async def on_application_command(self, ctx: disnake.ApplicationCommandInteraction):
-        '''try:
+        sent_support_msg = False
+        try:
             msg = await ctx.original_message()
-            if not msg.flags.ephemeral and (ctx.locale == disnake.Locale.en_US or ctx.locale == disnake.Locale.en_GB):
-                last_run = await self.bot.command_stats.find_one(filter={"user" : ctx.author.id}, sort=[("time", -1)])
-                if last_run is None or int(datetime.datetime.now().timestamp()) - last_run.get('time') >= 7 * 86400:
+            if not msg.flags.ephemeral:
+                last_run = await self.bot.command_stats.find_one(filter={"$and" : [{"user" : ctx.author.id}, {"sent_support_msg" : True}]}, sort=[("time", -1)])
+                last_run = None
+                if last_run is None or int(pend.now(tz=pend.UTC).timestamp()) - last_run.get('time') >= 7 * 86400:
                     tries = 0
                     while msg.flags.loading:
                         tries += 1
@@ -279,9 +194,39 @@ class DiscordEvents(commands.Cog):
                         if tries == 10:
                             break
                     if tries != 10:
-                        await ctx.followup.send(f"{random.choice(USE_CODE_TEXT)}\n", ephemeral=True)
+                        commands_run_by_user = await self.bot.command_stats.count_documents({"user": ctx.author.id})
+                        sent_support_msg = True
+                        file = disnake.File("assets/support.png")
+                        buttons = disnake.ui.ActionRow(
+                            disnake.ui.Button(label="Creator Code", style=disnake.ButtonStyle.url, url="https://code.clashk.ing"),
+                            disnake.ui.Button(label="Server", style=disnake.ButtonStyle.url, url="https://discord.clashk.ing"),
+                            disnake.ui.Button(label="X", style=disnake.ButtonStyle.url, url="https://x.clashk.ing"),
+                            disnake.ui.Button(label="Patreon", style=disnake.ButtonStyle.url, url="https://support.clashk.ing"),
+                            disnake.ui.Button(label="Github", style=disnake.ButtonStyle.url, url="https://git.clashk.ing"),
+                        )
+                        await ctx.followup.send(content=f"You have run {commands_run_by_user} commands on ClashKing!\n"
+                                                        f"- This message is only sent once weekly\n"
+                                                        f"- Your support means a lot! Use our creator code for your purchases, star us on GitHub, or follow us on Twitter. ",
+                                                file=file,
+                                                components=[buttons],
+                                                ephemeral=True)
         except Exception:
-            pass'''
+            pass
+
+        await self.bot.command_stats.insert_one({
+            "user": ctx.author.id,
+            "command_name": ctx.application_command.qualified_name,
+            "server": ctx.guild.id if ctx.guild is not None else None,
+            "server_name": ctx.guild.name if ctx.guild is not None else None,
+            "time": int(datetime.datetime.now().timestamp()),
+            "guild_size": ctx.guild.member_count if ctx.guild is not None else 0,
+            "channel": ctx.channel_id,
+            "channel_name": ctx.channel.name if ctx.channel is not None else None,
+            "len_mutual": len(ctx.user.mutual_guilds),
+            "is_bot_dev": ctx.user.public_flags.verified_bot_developer,
+            "bot": ctx.bot.user.id,
+            "sent_support_msg" : sent_support_msg
+        })'''
 
 
     @commands.Cog.listener()

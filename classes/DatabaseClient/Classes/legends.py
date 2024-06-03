@@ -31,9 +31,9 @@ class LegendRanking():
     @property
     def global_ranking(self):
         if self._ranking_result is None:
-            return "<:status_offline:910938138984206347>"
+            return "<:status_offline:1247040997045829712>"
         if self._ranking_result.get("global_rank") is None:
-            return "<:status_offline:910938138984206347>"
+            return "<:status_offline:1247040997045829712>"
         return self._ranking_result.get("global_rank")
 
     @property

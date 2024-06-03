@@ -24,6 +24,10 @@ class ExceptionHandler(commands.Cog):
             embed = disnake.Embed(description="Not a valid clan/player tag.", color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
+        if isinstance(error, disnake.HTTPException):
+            embed = disnake.Embed(description=f"{error.text}", color=disnake.Color.red())
+            return await ctx.send(embed=embed)
+
         if isinstance(error, coc.errors.Maintenance):
             embed = disnake.Embed(description=f"Game is currently in Maintenance.", color=disnake.Color.red())
             return await ctx.send(embed=embed)

@@ -176,7 +176,7 @@ async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake
 
 
 @register_button("clanbasic", parser="_:clan")
-async def basic_clan_board(clan: coc.Clan, embed_color: disnake.Color = disnake.Color.green()):
+async def basic_clan_board(bot: CustomClient, clan: coc.Clan, embed_color: disnake.Color = disnake.Color.green()):
     leader = coc.utils.get(clan.members, role=coc.Role.leader)
 
     if clan.public_war_log:
@@ -192,25 +192,23 @@ async def basic_clan_board(clan: coc.Clan, embed_color: disnake.Color = disnake.
         winstreak = clan.war_win_streak
         winrate = "Hidden Log"
 
-    if str(clan.location) == "International":
-        flag = "<a:earth:861321402909327370>"
+    if str(clan.location) == "International" or clan.location.country_code is None:
+        flag = bot.emoji.earth.emoji_string
     else:
-        try:
-            flag = f":flag_{clan.location.country_code.lower()}:"
-        except:
-            flag = "<a:earth:861321402909327370>"
+        flag = f":flag_{clan.location.country_code.lower()}:"
+
 
     embed = disnake.Embed(title=f"**{clan.name}**",
                           description=f"Tag: [{clan.tag}]({clan.share_link})\n"
-                                      f"Trophies: <:trophy:825563829705637889> {clan.points} | <:vstrophy:944839518824058880> {clan.builder_base_points}\n"
-                                      f"Required Trophies: <:trophy:825563829705637889> {clan.required_trophies}\n"
+                                      f"Trophies: {bot.emoji.trophy} {clan.points} | {bot.emoji.versus_trophy} {clan.builder_base_points}\n"
+                                      f"Required Trophies: {bot.emoji.trophy} {clan.required_trophies}\n"
                                       f"Location: {flag} {clan.location}\n\n"
                                       f"Leader: {leader.name}\n"
                                       f"Level: {clan.level} \n"
-                                      f"Members: <:people:932212939891552256>{clan.member_count}/50\n\n"
+                                      f"Members: {bot.emoji.person}{clan.member_count}/50\n\n"
                                       f"CWL: {cwl_league_emojis(str(clan.war_league))}{str(clan.war_league)}\n"
-                                      f"Wars Won: <:warwon:932212939899949176>{warwin}\nWars Lost: <:warlost:932212154164183081>{warloss}\n"
-                                      f"War Streak: <:warstreak:932212939983847464>{winstreak}\nWinratio: <:winrate:932212939908337705>{winrate}\n\n"
+                                      f"Wars Won: {bot.emoji.up_green_arrow}{warwin}\nWars Lost: {bot.emoji.down_red_arrow}{warloss}\n"
+                                      f"War Streak: {bot.emoji.win_streak}{winstreak}\nWin Ratio: {bot.emoji.ratio}{winrate}\n\n"
                                       f"Description: {clan.description}",
                           color=embed_color)
 

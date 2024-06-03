@@ -42,7 +42,7 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
             embed = await detailed_clan_board(bot=self.bot, clan=clan, server=ctx.guild, embed_color=embed_color)
         elif type == "Basic":
             custom_id = f"clanbasic:{clan.tag}"
-            embed = await basic_clan_board(clan=clan, embed_color=embed_color)
+            embed = await basic_clan_board(bot=self.bot, clan=clan, embed_color=embed_color)
         elif type == "Minimalistic":
             custom_id = f"clanmini:{clan.tag}"
             embed = await minimalistic_clan_board(bot=self.bot, clan=clan, server=ctx.guild, embed_color=embed_color)

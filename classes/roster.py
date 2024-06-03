@@ -214,12 +214,12 @@ class Roster():
                 if "Townhall Level" in all_fields:
                     return "IN "
                 else:
-                    return "<:opt_in:944905885367537685>"
+                    return self.bot.emoji.opt_in.emoji_string
             elif wp is False:
                 if "Townhall Level" in all_fields:
                     return "OUT"
                 else:
-                    return "<:opt_out:944905931265810432>"
+                    return self.bot.emoji.opt_out.emoji_string
             else:
                 return None
         elif field == "Trophies":
