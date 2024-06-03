@@ -165,7 +165,6 @@ class CustomClient(commands.AutoShardedBot):
         self.EXTENSION_LIST = []
         self.STARTED_CHUNK = set()
 
-        self.number_emoji_map = {}
         self.BADGE_GUILDS = BADGE_GUILDS
 
     @property
@@ -195,10 +194,25 @@ class CustomClient(commands.AutoShardedBot):
 
     def get_number_emoji(self, color: str, number: int) -> EmojiType:
         if not self.user.id == 808566437199216691 and not self.user.public_flags.verified_bot:
-            emoji = SharedEmojis.all_emojis.get(f"{number}_")
-        else:
-            emoji = self.number_emoji_map.get(color).get(number)
-        return EmojiType(emoji_string=emoji)
+            color = "gold"
+        guild = None
+        if number <= 50:
+            if color == "white":
+                guild = self.get_guild(1042301258167484426)
+            elif color == "blue":
+                guild = self.get_guild(1042222078302109779)
+            elif color == "gold":
+                guild = self.get_guild(1042301195240357958)
+        elif number >= 51:
+            if color == "white":
+                guild = self.get_guild(1042635651562086430)
+            elif color == "blue":
+                guild = self.get_guild(1042635521890992158)
+            elif color == "gold":
+                guild = self.get_guild(1042635608088125491)
+        all_emojis = guild.emojis
+        emoji = disnake.utils.get(all_emojis, name=f"{number}_")
+        return EmojiType(emoji_string=f"<:{emoji.name}:{emoji.id}>")
 
 
     async def track_clans(self, tags: list):
