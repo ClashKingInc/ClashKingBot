@@ -349,13 +349,6 @@ class SetupCommands(commands.Cog , name="Setup"):
         premium_users = my_server.get_role(1018316361241477212)
         find = disnake.utils.get(premium_users.members, id=ctx.user.id)
 
-        if ctx.guild.member_count < 250 and find is None:
-            raise MessageException("Server must have 250 or more members for free custom bots")
-
-        server_clans = await self.bot.get_guild_clans(guild_id=ctx.guild.id)
-        if len(server_clans) < 2:
-            raise MessageException("Server must have 2 or more clans linked for free custom bots")
-
         name = re.sub(r'[^a-zA-Z]', '', name)
         name = name.replace(" ", "").lower()
         if name == "":
@@ -635,7 +628,7 @@ class SetupCommands(commands.Cog , name="Setup"):
     @setup.sub_command(name="countdowns", description="Create countdowns for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def voice_setup(self, ctx: disnake.ApplicationCommandInteraction,
-                          clan: coc.Clan = commands.Param(default=None, converter=convert.clan)):
+                          clan: coc.Clan = commands.Param(default=None, autocomplete=autocomplete.clan, converter=convert.clan)):
         """
             Parameters
             ----------
@@ -643,14 +636,14 @@ class SetupCommands(commands.Cog , name="Setup"):
         """
         await ctx.response.defer()
 
-        types = ["CWL", "Clan Games", "Raid Weekend", "EOS", "Clan Member Count", "War"]
-        emojis = [self.bot.emoji.cwl_medal, self.bot.emoji.clan_games, self.bot.emoji.raid_medal, self.bot.emoji.trophy, self.bot.emoji.person, self.bot.emoji.war_star]
+        types = ["CWL", "Clan Games", "Raid Weekend", "EOS", "Clan Member Count", "War Score", "War Timer"]
+        emojis = [self.bot.emoji.cwl_medal, self.bot.emoji.clan_games, self.bot.emoji.raid_medal, self.bot.emoji.trophy, self.bot.emoji.person, self.bot.emoji.war_star, self.bot.emoji.war_star]
         if clan is None:
-            types = types[:-1]
-            emojis = emojis[:-1]
+            types = types[:-2]
+            emojis = emojis[:-2]
         else:
-            types = types[-1:]
-            emojis = emojis[-1:]
+            types = types[-2:]
+            emojis = emojis[-2:]
         options = []
         for type, emoji in zip(types, emojis):
             options.append(disnake.SelectOption(label=type if type != "EOS" else "EOS (End of Season)", emoji=emoji.partial_emoji, value=type))
@@ -684,7 +677,11 @@ class SetupCommands(commands.Cog , name="Setup"):
                 elif type == "EOS":
                     time_ = await calculate_time(type)
                     channel = await ctx.guild.create_voice_channel(name=f"EOS {time_}")
-                elif type == "War":
+                elif type == "War Score":
+                    war = await self.bot.get_clanwar(clanTag=clan.tag)
+                    time_ = await calculate_time(type, war=war)
+                    channel = await ctx.guild.create_voice_channel(name=f"{clan.name}: {time_}")
+                elif type == "War Timer":
                     war = await self.bot.get_clanwar(clanTag=clan.tag)
                     time_ = await calculate_time(type, war=war)
                     channel = await ctx.guild.create_voice_channel(name=f"{clan.name}: {time_}")
@@ -711,8 +708,10 @@ class SetupCommands(commands.Cog , name="Setup"):
                 await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"raidCountdown": channel.id}})
             elif type == "Clan Member Count":
                 await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"memberCount": channel.id}})
-            elif type == "War":
+            elif type == "War Score":
                 await self.bot.clan_db.update_one({"$and": [{"tag": clan.tag}, {"server": ctx.guild.id}]}, {"$set" : {"warCountdown" : channel.id}})
+            elif type == "War Timer":
+                await self.bot.clan_db.update_one({"$and": [{"tag": clan.tag}, {"server": ctx.guild.id}]}, {"$set" : {"warTimerCountdown" : channel.id}})
             else:
                 await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"eosCountdown": channel.id}})
 
@@ -723,62 +722,28 @@ class SetupCommands(commands.Cog , name="Setup"):
         await res.edit_original_message(content="", embed=embed, components=[])
 
 
-
-
-    '''@setup.sub_command(name="welcome-link", description="Create a custom welcome message that can include linking buttons")
+    @setup.sub_command(name="events", description="Create automatic events for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def welcome_message(self, ctx: disnake.ApplicationCommandInteraction, channel: Union[disnake.TextChannel, disnake.Thread], custom_embed = commands.Param(default="False", choices=["True", "False"]),
-                              embed_link: str = None, remove = commands.Param(default="No", choices=["Yes"])):
-        if remove == "Yes":
-            await ctx.response.defer()
-            await self.bot.server_db.update_one({"server": ctx.guild_id},
-                                            {"$set": {"welcome_link_channel": None}})
-            return await ctx.edit_original_message(content="Welcome Message Removed!")
+    async def server_events(self, ctx: disnake.ApplicationCommandInteraction,
+                            type: str = commands.Param(choices=["War"]),
+                            clan: coc.Clan = commands.Param(autocomplete=autocomplete.clan, converter=convert.clan),
+                            status: str = commands.Param(choices=["Enable", "Disable"])):
+        await ctx.response.defer()
 
-        if custom_embed != "False":
-            if embed_link is None:
-                modal_inter, embed = await basic_embed_modal(bot=self.bot, ctx=ctx)
-                ctx = modal_inter
-            else:
-                await ctx.response.defer()
-                try:
-                    if "discord.com" not in embed_link:
-                        return await ctx.send(content="Not a valid message link", ephemeral=True)
-                    link_split = embed_link.split("/")
-                    message_id = link_split[-1]
-                    channel_id = link_split[-2]
+        if 'COMMUNITY' not in ctx.guild.features:
+            raise MessageException("Must be a community server to enable this feature")
 
-                    channel = await self.bot.getch_channel(channel_id=int(channel_id))
-                    if channel is None:
-                        return await ctx.send(content="Cannot access the channel this embed is in", ephemeral=True)
-                    message = await channel.fetch_message(int(message_id))
-                    if not message.embeds:
-                        return await ctx.send(content="Message has no embeds", ephemeral=True)
-                    embed = message.embeds[0]
-                except:
-                    return await ctx.send(content=f"Something went wrong :/ An error occured with the message link.", ephemeral=True)
-        else:
-            await ctx.response.defer()
-            embed = None
+        db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild.id)
+
+        db_clan = db_server.get_clan(clan_tag=clan.tag)
+        await db_clan.set_server_event_creation_status(type=type.replace(' ', '_'), status=(status == "Enable"))
+
+        embed = disnake.Embed(description=f"{type} Server Events for {clan.name} {status}d", color=disnake.Color.green())
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+        await ctx.edit_original_message(content="", embed=embed, components=[])
 
 
-
-        stat_buttons = [disnake.ui.Button(label="Link Account", emoji="🔗", style=disnake.ButtonStyle.green, disabled=True,
-                                          custom_id="LINKDEMO"),
-                        disnake.ui.Button(label="Help", emoji="❓", style=disnake.ButtonStyle.grey, disabled=True,
-                                          custom_id="LINKDEMOHELP")]
-        if embed is not None:
-            await self.bot.server_db.update_one({"server" : ctx.guild_id}, {"$set" : {"welcome_link_channel" : channel.id, "welcome_link_embed" : embed.to_dict()}})
-        else:
-            await self.bot.server_db.update_one({"server": ctx.guild_id}, {"$set": {"welcome_link_channel": channel.id, "welcome_link_embed": None}})
-        if embed is None:
-            embed = disnake.Embed(title=f"**Welcome to {ctx.guild.name}!**",
-                          description=f"To link your account, press the link button below to get started.",
-                          color=disnake.Color.green())
-            if ctx.guild.icon is not None:
-                embed.set_thumbnail(url=ctx.guild.icon.url)
-        await ctx.edit_original_message(content=f"Welcome Message Set in {channel.mention}\n||(buttons for demo & will work on the live version)||", embed=embed, components=stat_buttons)
-'''
 
     @setup.sub_command(name="api-token", description="Create an api token for use in the clashking api to access server resources")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())

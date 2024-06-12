@@ -73,7 +73,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         embed_data = lookup.get("data")
         embeds = [disnake.Embed.from_dict(data=e) for e in embed_data.get("embeds", [])]
         button = disnake.ui.Button(label="Open Ticket", emoji="📩", style=disnake.ButtonStyle.grey, custom_id=f"{panel_name}_0", disabled=True)
-        await ctx.edit_original_message(content="This is what your panel will look like. (You can change what embed the ticketing uses with `/ticket panel-edit`"
+        await ctx.edit_original_message(content="This is what your panel will look like. (You can change what embed the ticketing uses with `/ticket panel-edit`"\
                                                 " or edit the embed itself via `/embed edit`)\n" + embed_data.get("content", ''), embeds=embeds, components=[button])
 
 
@@ -92,13 +92,23 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         if result is None:
             raise PanelNotFound
 
+        apply_account = False
+        for key, value in result.items():
+            if "_settings" in key:
+                if value.get("account_apply", False):
+                    apply_account = True
+                    break
+
         embed_name = result.get("embed_name")
         embed_data = await self.bot.custom_embeds.find_one({"$and": [{"server": ctx.guild_id}, {"name": embed_name}]})
         embed_data = embed_data.get("data")
 
         action_buttons = [[], [], [], [], []]
         row = 0
-        for component in result.get("components"):
+        result_components = result.get("components", [])
+        if apply_account:
+            result_components += [{'type': 2, 'style': 2, 'disabled': False, 'label': 'Link Account', 'custom_id': 'Start Link', 'emoji': {'name': '🔗', 'id': None}}]
+        for component in result_components:
             emoji = component.get("emoji")
             if emoji is not None:
                 if emoji.get("id") is not None:

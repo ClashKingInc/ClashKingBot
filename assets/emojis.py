@@ -69,7 +69,9 @@ hero_equipment_emojis = {
     "Frozen Arrow": "<:FreezeArrow:1247038133460275263>",
     "Hog Rider Puppet": "<:HogRiderDoll:1247038135246913628>",
     "Haste Vial": "<:HasteVial:1247038136857530471>",
-    "Fireball": "<:Fireball:1247038138149376081>"
+    "Fireball": "<:Fireball:1247038138149376081>",
+    "Spiky Ball" : "<:SpikyBall:1249593615554969750>",
+    "Rocket Spear" : "<:RocketSpear:1249594147590115369>"
 }
 
 capital_hall_emojis = {
@@ -199,7 +201,7 @@ icon_emojis =  {
     "blue_trophy": "<:bluetrophy:1247040995908915281>",
     "grey_circle": "<:status_offline:1247040997045829712>",
     "earth": "<:earth:1247040998815825991>",
-    "sword_clash": "<:swords:1247041000724103269>",
+    "sword_clash": "<a:swords:1247041000724103269>",
     "war_star": "<:war_star:1247041002183589991>",
     "blank": "<:blanke:1247041003710451754>",
     "clock": "<:clock:1247041005010681877>",

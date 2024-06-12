@@ -145,13 +145,7 @@ ROLES = ["Member", "Elder", "Co-Leader", "Leader"]
 war_leagues = json.load(open(f"assets/war_leagues.json"))
 
 USE_CODE_TEXT = [
-    "Hey :) Consider supporting me in-game with code [ClashKing](<https://link.clashofclans.com/en?action=SupportCreator&id=clashking>)!",
-    "Code [ClashKing](<https://link.clashofclans.com/en?action=SupportCreator&id=clashking>)?",
-    "Roses are red, Violets are Blue, if you use Code [ClashKing](<https://link.clashofclans.com/en?action=SupportCreator&id=clashking>), I will love you :)",
-    "Nothing is certain except for death, taxes, and Code [ClashKing](<https://link.clashofclans.com/en?action=SupportCreator&id=clashking>) - Not Benjamin Franklin",
-    "We may encounter many ~~defeats~~ [creator codes](<https://link.clashofclans.com/en?action=SupportCreator&id=clashking>) but we must not be defeated. - Unknown",
-    "Using Code [ClashKing](<https://link.clashofclans.com/en?action=SupportCreator&id=clashking>) is Elementary, my dear Watson ;)",
-    "[Go ahead, make my day.](<https://link.clashofclans.com/en?action=SupportCreator&id=clashking>)",
+    "Roses are red, Violets are Blue, if you use Code ClashKing, I will love you :)",
 ]
 
 TH_FILTER = ['1v2', '1v3', '1v4', '1v5', '1v6', '1v7', '1v8', '1v9', '1v10', '1v11', '1v12', '1v13', '1v14', '1v15', '1v16',

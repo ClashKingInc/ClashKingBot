@@ -10,7 +10,7 @@ from exceptions.CustomExceptions import MessageException
 from PIL import Image, ImageDraw, ImageFont
 from urllib.parse import urlencode
 from utility.components import create_components
-
+from utility.discord_utils import interaction_handler
 
 class misc(commands.Cog, name="Other"):
 
@@ -190,6 +190,60 @@ class misc(commands.Cog, name="Other"):
             except Exception:
                 await ctx.send(file=file)
 
+
+    @commands.slash_command(name="fankit", description="View images from the fankit")
+    async def fankit(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        await ctx.response.defer()
+
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild.id)
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get("https://fankit.supercell.com/api/assets/search/338?q={query}&limit=25&page=1&requestnewflag=true&order=RELEVANCE".format(query=query)) as response:
+                data = await response.json()
+
+        data = data.get("data", [])
+
+        def create_embed(data_item):
+            embed = disnake.Embed(title=data_item["title"], color=embed_color)
+            embed.set_image(url=data_item["preview_url"])
+            return embed
+
+        def create_buttons(index, total):
+            buttons = [
+                disnake.ui.Button(label="Previous", style=disnake.ButtonStyle.primary, custom_id="prev", disabled=(index == 0)),
+                disnake.ui.Button(label="Next", style=disnake.ButtonStyle.primary, custom_id="next", disabled=(index == total - 1)),
+                disnake.ui.Button(label="Download", style=disnake.ButtonStyle.url, url=data[index]["preview_url"]),
+                disnake.ui.Button(label="Add as Emoji", style=disnake.ButtonStyle.secondary, custom_id="add_emoji")
+            ]
+            return buttons
+
+        index = 0
+        message = await ctx.send(embed=create_embed(data[index]), components=create_buttons(index, len(data)))
+
+        while True:
+            interaction: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, msg=message)
+            if interaction.component.custom_id == "prev":
+                index = max(0, index - 1)
+            elif interaction.component.custom_id == "next":
+                index = min(len(data) - 1, index + 1)
+            elif interaction.component.custom_id == "download":
+                await interaction.followup.send(data[index]["preview_url"], ephemeral=True)
+            elif interaction.component.custom_id == "add_emoji":
+                if interaction.user.guild_permissions.manage_emojis_and_stickers:
+                    url = data[index]["generic_url"].replace("{width}", "250")
+                    title = data[index]["title"][:32]
+
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(url) as response:
+                            image_data = await response.read()
+
+                    guild = ctx.guild
+                    emoji = await guild.create_custom_emoji(name=title, image=image_data)
+                    await ctx.followup.send(f"Emoji created: {emoji}", ephemeral=True)
+                else:
+                    await ctx.followup.send("You do not have permission to add emojis.", ephemeral=True)
+
+            await interaction.edit_original_message(embed=create_embed(data[index]), components=create_buttons(index, len(data)))
 
 
     @commands.Cog.listener()

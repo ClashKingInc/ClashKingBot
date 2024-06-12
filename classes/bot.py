@@ -43,6 +43,7 @@ class CustomClient(commands.AutoShardedBot):
         self._config = config
 
         self.OUR_CLANS = set()
+        self.CLANS_LOADED = False
 
         if not config.is_beta:
             self.loop.create_task(kafka_events(self))

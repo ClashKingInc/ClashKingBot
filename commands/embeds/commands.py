@@ -1,4 +1,6 @@
+import aiohttp
 import disnake
+
 from classes.bot import CustomClient
 from disnake.ext import commands
 from exceptions.CustomExceptions import MessageException
@@ -19,12 +21,16 @@ class Embeds(commands.Cog):
 
     @embed.sub_command(name="create", description="Create an embed")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def embed_create(self, ctx: disnake.ApplicationCommandInteraction, name: str, data_link: str):
+    async def embed_create(self, ctx: disnake.ApplicationCommandInteraction, name: str, discohook_url: str):
         await ctx.response.defer()
         lookup = await self.bot.custom_embeds.find_one({"$and" : [{"server" : ctx.guild_id}, {"name" : name}]})
         if lookup is not None:
             raise MessageException("Cannot have 2 embeds with the same name")
-        data = data_link.split("data=")
+        if discohook_url.startswith("https://share.discohook.app"):
+            async with aiohttp.ClientSession() as session:
+                async with session.get(discohook_url, allow_redirects=True) as response:
+                    discohook_url = str(response.url)
+        data = discohook_url.split("data=")
         decoded_embed = reverse_encoding(base64_encoded=data[-1])
         await self.bot.custom_embeds.insert_one({
             "server" : ctx.guild_id,
@@ -38,12 +44,13 @@ class Embeds(commands.Cog):
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def embed_edit(self, ctx: disnake.ApplicationCommandInteraction,
                          name: str = commands.Param(autocomplete=autocomplete.embeds),
-                         data_link: str = commands.Param(default=None)):
+                         discohook_url: str = commands.Param(default=None)):
         await ctx.response.defer()
         lookup = await self.bot.custom_embeds.find_one({"$and": [{"server": ctx.guild_id}, {"name": name}]})
         if lookup is None:
             raise MessageException("No embed with that name found on this server")
-        if data_link is None:
+
+        if discohook_url is None:
             encoding = encoded_data(data=lookup.get("data"))
             shortened_url = await shorten_link(url=f"https://discohook.org/?data={encoding}")
             buttons = disnake.ui.ActionRow(
@@ -53,11 +60,15 @@ class Embeds(commands.Cog):
             )
             await ctx.edit_original_message(content="Click the button below to edit your embed", components=[buttons])
         else:
-            data = data_link.split("data=")
+            if discohook_url.startswith("https://share.discohook.app"):
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(discohook_url, allow_redirects=True) as response:
+                        discohook_url = str(response.url)
+            data = discohook_url.split("data=")
             decoded_embed = reverse_encoding(base64_encoded=data[-1])
             await self.bot.custom_embeds.update_one({"$and" : [{"server": ctx.guild_id}, {"name": name}]}, {"$set" : {"data": decoded_embed}})
             embeds = [disnake.Embed.from_dict(data=e) for e in decoded_embed.get("embeds", [])]
-            await ctx.send(content=f"**Your new embed**\n\n" + decoded_embed.get("content", ''), embeds=embeds)
+            await ctx.send(content=f"**Your new embed**\n\n" + (decoded_embed.get("content") or ""), embeds=embeds)
 
 
     @embed.sub_command(name="clone", description="Clone an embed")

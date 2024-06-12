@@ -21,7 +21,9 @@ async def logic(bot: CustomClient,
                 members: List[disnake.Member],
                 role_or_user: disnake.Role | disnake.User,
                 eval_types: List = DEFAULT_EVAL_ROLE_TYPES,
-                test: bool = False, **kwargs):
+                test: bool = False,
+                reason: str = "Refresh Roles",
+                **kwargs):
     time_start = time.time()
     if not guild.chunked:
         if guild.id not in bot.STARTED_CHUNK:
@@ -274,9 +276,9 @@ async def logic(bot: CustomClient,
         if not test:
             try:
                 if new_name != "`Cannot Change`" and new_name != "None":
-                    await member.edit(nick=new_name[:32], roles=FINAL_ROLES)
+                    await member.edit(nick=new_name[:32], roles=FINAL_ROLES, reason=reason)
                 else:
-                    await member.edit(roles=FINAL_ROLES)
+                    await member.edit(roles=FINAL_ROLES, reason=reason)
             except Exception as e:
                 if new_name is not None:
                     new_name = "Error"

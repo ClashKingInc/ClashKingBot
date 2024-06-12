@@ -40,38 +40,6 @@ def create_components(current_page, embeds, print=False):
     return [buttons]
 
 
-def wbb_components(bot: CustomClient, current_page, embeds, print=False):
-    length = len(embeds)
-    if length == 1:
-        return []
-
-    if not print:
-        page_buttons = [
-            disnake.ui.Button(label="", emoji=bot.partial_emoji_gen(emoji_string="<:left_arrow_2:1135312376946761928>"), style=disnake.ButtonStyle.grey, disabled=(current_page == 0),
-                              custom_id="Previous"),
-            disnake.ui.Button(label=f"{current_page + 1}/{length}", emoji=bot.emoji.wbb_red.partial_emoji, style=disnake.ButtonStyle.url,
-                              url="https://discord.gg/worldbb"),
-            disnake.ui.Button(label="", emoji=bot.partial_emoji_gen(emoji_string="<:right_arrow_2:1135312842359316576>"), style=disnake.ButtonStyle.grey,
-                              disabled=(current_page == length - 1), custom_id="Next"),
-            ]
-    else:
-        page_buttons = [
-            disnake.ui.Button(label="", emoji="◀️", style=disnake.ButtonStyle.grey, disabled=(current_page == 0),
-                              custom_id="Previous"),
-            disnake.ui.Button(label=f"Page {current_page + 1}/{length}", style=disnake.ButtonStyle.grey,
-                              disabled=True),
-            disnake.ui.Button(label="", emoji="▶️", style=disnake.ButtonStyle.grey,
-                              disabled=(current_page == length - 1), custom_id="Next"),
-            disnake.ui.Button(label="", emoji="🖨️", style=disnake.ButtonStyle.grey,
-                              custom_id="Print")
-        ]
-
-    buttons = disnake.ui.ActionRow()
-    for button in page_buttons:
-        buttons.append_item(button)
-
-    return [buttons]
-
 
 def raid_buttons(bot: CustomClient, data):
     page_buttons = [

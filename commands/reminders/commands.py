@@ -5,7 +5,7 @@ import pendulum as pend
 from classes.bot import CustomClient
 from disnake.ext import commands
 from discord.options import convert, autocomplete
-from exceptions.CustomExceptions import NotValidReminderTime
+from exceptions.CustomExceptions import NotValidReminderTime, MessageException
 from .send import war_reminder
 from typing import Union, List
 from .utils import create_war_reminder, create_games_reminder, create_roster_reminder, create_capital_reminder, create_inactivity_reminder, edit_reminder
@@ -39,8 +39,11 @@ class ReminderCommands(commands.Cog, name="Reminders"):
             channel: channel for reminder, if blank will use channel command is run in
         """
         await ctx.response.defer()
-        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+        db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
+        if not db_server.clans:
+            raise MessageException("No clans linked to your server. Get started with `/addclan`")
 
+        embed_color = db_server.embed_color
         channel = channel or ctx.channel
         temp_times = times.split(",")
         new_times = []
@@ -114,6 +117,12 @@ class ReminderCommands(commands.Cog, name="Reminders"):
         await ctx.edit_original_message(content=f"Reminder sent to {channel.mention}")
 
 
+    @reminders.sub_command(name="personal", description="Reminders for your own accounts")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def personal_reminders(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
+
+
     @reminders.sub_command(name="list", description="Get the list of reminders set up on the server")
     async def reminder_list(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
@@ -184,6 +193,7 @@ class ReminderCommands(commands.Cog, name="Reminders"):
             clan_tag = res.values[0].split("_")[-1]
             embed = await reminder_list_embed(clan=coc.utils.get(clans, tag=clan_tag), embed_color=embed_color)
             await res.edit_original_message(embed=embed)
+
 
 
 

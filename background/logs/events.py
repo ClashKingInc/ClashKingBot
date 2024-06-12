@@ -17,28 +17,22 @@ reddit_ee = EventEmitter()
 
 
 async def kafka_events(bot):
-    await bot.wait_until_ready()
-    await asyncio.sleep(120)
-
     async def wrap_task(f: callable):
         await asyncio.sleep(0)
         await f
 
     while True:
-        count = 0
         clans = set()
+        while not bot.CLANS_LOADED:
+            await asyncio.sleep(15)
         try:
             async with websockets.connect(f"ws://85.10.200.219:8001/events", ping_timeout=None, ping_interval=None, open_timeout=None, max_queue=500_000) as websocket:
+                await websocket.send(ujson.dumps({"clans": list(bot.OUR_CLANS)}).encode("utf-8"))
+
                 async for message in websocket:
-                    if count == 0:
-                        clans = await bot.clan_db.distinct("tag", filter={"server" : {"$in" : [g.id for g in bot.guilds]}})
-                        await websocket.send(ujson.dumps({"clans" : clans}).encode("utf-8"))
-                        clans = set(clans)
-                    elif clans != bot.OUR_CLANS:
+                    if clans != bot.OUR_CLANS:
                         await websocket.send(ujson.dumps({"clans": list(bot.OUR_CLANS)}).encode("utf-8"))
                         clans = bot.OUR_CLANS
-
-                    count += 1
 
                     if "Login!" in str(message):
                         logger.info(message)

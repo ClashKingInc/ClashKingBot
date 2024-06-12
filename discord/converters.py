@@ -28,9 +28,11 @@ class Convert(commands.Cog, name="Convert"):
 
     async def server(self, server: str):
         try:
-            guild = (await self.bot.getch_guild(int(server.split("|")[-1])))
+            guild = await self.bot.getch_guild(int(server.split("|")[-1]), raise_exception=True)
         except:
-            guild = None
+            guild = await self.bot.getch_guild(923764211845312533)
+            guild.__setattr__("id", int(server.split("|")[-1]))
+            guild.__setattr__("name", server.split("|")[0])
         if guild is None:
             raise InvalidGuildID
         return guild
@@ -106,6 +108,7 @@ class Convert(commands.Cog, name="Convert"):
         if not players:
             raise coc.errors.NotFound
         return players
+
 
     def hex_code(self, hex_code: str):
         match = re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', hex_code)

@@ -20,7 +20,6 @@ class VoiceStatCron(commands.Cog):
         limit = await self.bot.server_db.count_documents(filter={})
         for r in await results.to_list(length=limit):
             channel = r.get("cwlCountdown")
-            #print(channel)
             server = r.get("server")
             if server not in self.bot.OUR_GUILDS:
                 continue
@@ -94,16 +93,16 @@ class VoiceStatCron(commands.Cog):
                 except (disnake.NotFound, disnake.Forbidden):
                     await self.bot.server_db.update_one({"server": server}, {'$set': {"memberCount": None}})
 
-
-        for clan_result in await self.bot.clan_db.find({"warCountdown" : {"$ne" : None}}).to_list(length=None):
+        for clan_result in await self.bot.clan_db.find({"warCountdown": {"$ne": None}}).to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=clan_result)
-            if db_clan.server_id not in self.bot.OUR_GUILDS:
+
+            if db_clan.server_id not in [923764211845312533]:
                 continue
 
             try:
                 channel = await self.bot.getch_channel(channel_id=db_clan.war_countdown, raise_exception=True)
                 war = await self.bot.get_clanwar(clanTag=db_clan.tag)
-                time_ = await calculate_time("War", war=war)
+                time_ = await calculate_time("War Score", war=war)
                 prev_name = channel.name
                 if ":" not in prev_name:
                     raise MissingWebhookPerms
@@ -114,8 +113,24 @@ class VoiceStatCron(commands.Cog):
             except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await db_clan.set_war_countdown(id=None)
 
+        for clan_result in await self.bot.clan_db.find({"warTimerCountdown": {"$ne": None}}).to_list(length=None):
+            db_clan = DatabaseClan(bot=self.bot, data=clan_result)
+            if db_clan.server_id not in [923764211845312533]:
+                continue
 
-
+            try:
+                channel = await self.bot.getch_channel(channel_id=db_clan.war_timer_countdown, raise_exception=True)
+                war = await self.bot.get_clanwar(clanTag=db_clan.tag)
+                time_ = await calculate_time("War Timer", war=war)
+                prev_name = channel.name
+                if ":" not in prev_name:
+                    raise MissingWebhookPerms
+                previous_identifier = prev_name.split(":")[0]
+                text = f"{previous_identifier}: {time_}"
+                if text != channel.name:
+                    await channel.edit(name=text)
+            except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
+                await db_clan.set_war_countdown(id=None)
 
 
 

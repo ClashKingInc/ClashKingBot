@@ -42,13 +42,13 @@ class Donations(commands.Cog, name="Donations"):
         donation_text = ""
         for member, donation in donated:
             donation = f"{donation}".ljust(3)
-            donation_text += f"<:warwon:932212939899949176>`{donation}` | [**{member.name}**]({member.share_link})\n"
+            donation_text += f"{self.bot.emoji.up_green_arrow}`{donation}` | [**{member.name}**]({member.share_link})\n"
         if donation_text != "":
             embed.add_field(name="Donated", value=donation_text, inline=False)
         received_text = ""
         for member, donation in received:
             donation = f"{donation}".ljust(3)
-            received_text += f"<:warlost:932212154164183081>`{donation}` | [**{member.name}**]({member.share_link})\n"
+            received_text += f"{self.bot.emoji.down_red_arrow}`{donation}` | [**{member.name}**]({member.share_link})\n"
         if received_text != "":
             embed.add_field(name="Received", value=received_text, inline=False)
 

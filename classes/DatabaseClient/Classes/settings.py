@@ -13,9 +13,10 @@ from coc import utils
 
 
 class DatabaseServer():
-    def __init__(self, bot: CustomClient, data):
+    def __init__(self, bot: CustomClient, data: dict):
         self.bot = bot
         self.__data = data
+        self._data = data
         self.server_id = data.get("server")
         self.leadership_eval = data.get("leadership_eval", True)
         self.prefix = data.get("prefix", "do ")
@@ -64,6 +65,7 @@ class DatabaseServer():
         self.base_link_parse = data.get("link_parse", {}).get("base", True)
         self.show_command_parse = data.get("link_parse", {}).get("show", True)
 
+        self.welcome_link_log = ServerLog(parent=self, type="welcome_link")
 
 
     async def set_flair_non_family(self, option: bool):
@@ -76,6 +78,7 @@ class DatabaseServer():
 
     async def set_change_nickname(self, status: bool):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"change_nickname": status}})
+
 
     async def set_full_whitelist_role(self, id: int | None):
         await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"full_whitelist_role": id}})
@@ -169,6 +172,50 @@ class DatabaseServer():
 
 
 
+class ServerLog():
+    def __init__(self, parent: DatabaseServer, type: str):
+        self.data = parent._data.get("logs", {}).get(type, {})
+        self.webhook = self.data.get("webhook")
+        self.thread = self.data.get("thread")
+        self.embeds = self.data.get("embeds")
+        self.buttons = self.data.get("buttons")
+        self.button_color = self.data.get("button_color")
+        self.parent = parent
+        self.type = type
+
+    async def get_webhook_channel_mention(self) -> Union[None, str]:
+        if self.webhook is not None:
+            if self.thread is None:
+                try:
+                    webhook = await self.parent.bot.getch_webhook(self.webhook)
+                    return webhook.channel.mention
+                except:
+                    return None
+            else:
+                try:
+                    channel = await self.parent.bot.getch_channel(self.thread, raise_exception=True)
+                    return channel.mention
+                except:
+                    return None
+        return None
+
+
+    async def set_webhook(self, id: Union[int, None]):
+        await self.parent.bot.server_db.update_one({"server": self.parent.server_id},
+                                            {"$set": {f"logs.{self.type}.webhook": id}})
+
+    async def set_thread(self, id: Union[int, None]):
+        await self.parent.bot.server_db.update_one({"server": self.parent.server_id}, {"$set" : {f"logs.{self.type}.thread" : id}})
+
+
+    async def set_embeds(self, embeds: list[dict] | None):
+        await self.parent.bot.server_db.update_one({"server": self.parent.server_id}, {"$set": {f"logs.{self.type}.embeds": embeds}})
+
+    async def set_buttons(self, buttons: list[str] | None, button_color: str = None):
+        await self.parent.bot.server_db.update_one({"server": self.parent.server_id},
+                                                   {"$set": {f"logs.{self.type}.buttons": buttons, f"logs.{self.type}.button_color": button_color}})
+
+
 class EvalRole():
     def __init__(self, bot: CustomClient, data):
         self.server: int = data.get("server")
@@ -244,6 +291,7 @@ class DatabaseClan():
         self.legend_log_defenses = ClanLog(parent=self, type="legend_log_defenses")
         self.greeting = data.get("greeting", "")
         self.war_countdown = data.get("warCountdown")
+        self.war_timer_countdown = data.get("warTimerCountdown")
         self.member_count_warning = MemberCountWarning(parent=self)
 
     async def set_war_countdown(self, id: Union[int, None]):
@@ -316,6 +364,15 @@ class DatabaseClan():
 
     async def add_refresh_board(self, type: str, scope: str, message_id: int, webhook_id: int):
         await self.bot.refresh_boards.insert_one({"type" : type, "scope" : scope, "message_id" : message_id, "webhook_id" : webhook_id})
+
+
+    async def set_server_event_creation_status(self, type: str, status: bool):
+        await self.bot.clan_db.update_one({"$and": [
+            {"tag": self.tag},
+            {"server": self.server_id}
+        ]}, {'$set': {f"events.{type.lower()}": status}})
+
+
 
 
 class MemberCountWarning():

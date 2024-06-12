@@ -23,6 +23,7 @@ class BackgroundCache(commands.Cog):
         self.bot.OUR_GUILDS = set(guild_id_list)
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server" : {"$in" : guild_id_list}})
         self.bot.OUR_CLANS = set(clan_tags)
+        self.bot.CLANS_LOADED = True
 
     @guilds_store.before_loop
     async def before_guilds_store(self):

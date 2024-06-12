@@ -195,7 +195,7 @@ async def calculate_time(type, war: coc.ClanWar= None):
         else:
             text = f"in {int(days)}D {int(hrs)}H "
 
-    elif type == "War":
+    elif type == "War Score":
         if war is None:
             text = "Not in War"
         elif str(war.state) == "preparation":
@@ -209,6 +209,21 @@ async def calculate_time(type, war: coc.ClanWar= None):
                 text = f"{hrs}H {mins}M"
         else:
             text = f"{war.clan.stars}⭐| {war.opponent.stars}⭐"
+
+    elif type == "War Timer":
+        if war is None:
+            text = "Not in War"
+        else:
+            secs = war.end_time.seconds_until
+            days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
+            hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
+            mins, secs = divmod(secs, secs_per_min := 60)
+            if days != 0:
+                text = f"{days}D {hrs}H"
+            elif int(hrs) == 0:
+                text = f"in {mins}M"
+            else:
+                text = f"{hrs}H {mins}M"
 
     return text
 

@@ -23,23 +23,16 @@ class AutoEval(commands.Cog):
 
     async def auto_refresh(self, event):
         if (clan_data := event.get("clan")) is not None:
-            clan_tag = clan_data.get("tag")
-            clan_name = clan_data.get("name")
             player_tag = event.get("member").get("tag")
             player_name = event.get("member").get("name")
         else:
             player_tag = event.get("new_player").get("tag")
-            clan_tag = event.get("new_player").get("clan", {}).get("tag", "")
-            clan_name = event.get("new_player").get("clan", {}).get("name", "No Clan")
             player_name = event.get("new_player").get("name")
 
-        pipeline = [
-            {"$match": {"tag": clan_tag}},
-            {"$lookup": {"from": "server", "localField": "server", "foreignField": "server", "as": "server_data"}},
-            {"$set": {"server_data": {"$first": "$server_data"}}}
-        ]
-        for data in await self.bot.clan_db.aggregate(pipeline=pipeline).to_list(length=None):
-            db_server = DatabaseServer(bot=self.bot, data=data.get("server_data", {}))
+
+        server_ids = await self.bot.clan_db.distinct("server", filter={"tag": "#2QJGQLVJ9"})
+        for server_id in server_ids:
+            db_server = await self.bot.ck_client.get_server_settings(server_id=server_id)
 
             if db_server.server_id not in self.bot.OUR_GUILDS or not db_server.auto_eval_status:
                 continue
@@ -50,7 +43,7 @@ class AutoEval(commands.Cog):
 
             link = await self.bot.link_client.get_link(player_tag)
             if link is not None:
-                server = await self.bot.getch_guild(data.get("server"))
+                server = await self.bot.getch_guild(server_id)
                 if server is None:
                     continue
                 discord_member = await server.getch_member(link)
@@ -63,17 +56,7 @@ class AutoEval(commands.Cog):
 
                 await logic(bot=self.bot, guild=server, db_server=db_server, members=[discord_member],
                             role_or_user=discord_member, eval_types=DEFAULT_EVAL_ROLE_TYPES,
-                            role_treatment=db_server.role_treatment)
-                if db_server.auto_eval_log is not None:
-                    try:
-                        channel = await self.bot.getch_channel(data.get("server_data", {}).get("autoeval_log"))
-                        await channel.send(embed=disnake.Embed(description=f"**Roles updated for <@706149153431879760>**\n"
-                                                                           f"- Trigger: {trigger_name.replace('_', ' ').title()}\n"
-                                                                           f"- Player: {player_name} ({player_tag})\n"
-                                                                           f"- Clan: {clan_name} ({clan_tag})", color=db_server.embed_color))
-                    except (disnake.NotFound, disnake.Forbidden):
-                        await self.bot.server_db.update_one({"server": data.get("server")}, {'$set': {"autoeval_log": None}})
-
+                            role_treatment=db_server.role_treatment, reason=f"Triggered by {trigger_name} ({player_name})")
 
 
 def setup(bot: CustomClient):

@@ -12,6 +12,7 @@ from utility.constants import ROLES
 from utility.discord_utils import get_webhook_for_channel
 #from BoardCommands.Utils.Player import upgrade_embed
 
+
 class UpgradeEvent(commands.Cog):
 
     def __init__(self, bot: CustomClient):
@@ -170,9 +171,14 @@ class UpgradeEvent(commands.Cog):
 
         name = re.sub('[*_`~/]', '', new_player.name)
         text = None
+        print("EVENT HERE")
         for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {f"logs.troop_upgrade.webhook": {"$ne": None}}]}).to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
+
             if clan.server_id not in self.bot.OUR_GUILDS:
+                print("this is TRUE")
+                print(clan.server_id)
+                print(self.bot.OUR_GUILDS)
                 continue
 
             log = clan.troop_upgrade

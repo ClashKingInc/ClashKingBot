@@ -15,6 +15,8 @@ from classes.DatabaseClient.familyclient import FamilyClient
 from assets.emojis import SharedEmojis
 from collections import deque
 from commands.reminders.send import clan_games_reminder, clan_capital_reminder, inactivity_reminder, roster_reminder
+from utility.discord_utils import get_webhook_for_channel
+
 
 has_started = False
 has_readied = False
@@ -177,14 +179,13 @@ class DiscordEvents(commands.Cog):
         await channel.edit(name=f"ClashKing: {len_g} Servers")
 
 
-    '''@commands.Cog.listener()
+    @commands.Cog.listener()
     async def on_application_command(self, ctx: disnake.ApplicationCommandInteraction):
         sent_support_msg = False
         try:
             msg = await ctx.original_message()
             if not msg.flags.ephemeral:
                 last_run = await self.bot.command_stats.find_one(filter={"$and" : [{"user" : ctx.author.id}, {"sent_support_msg" : True}]}, sort=[("time", -1)])
-                last_run = None
                 if last_run is None or int(pend.now(tz=pend.UTC).timestamp()) - last_run.get('time') >= 7 * 86400:
                     tries = 0
                     while msg.flags.loading:
@@ -226,7 +227,48 @@ class DiscordEvents(commands.Cog):
             "is_bot_dev": ctx.user.public_flags.verified_bot_developer,
             "bot": ctx.bot.user.id,
             "sent_support_msg" : sent_support_msg
-        })'''
+        })
+
+
+    @commands.Cog.listener()
+    async def on_member_join(self, member: disnake.Member):
+        if member.guild.id not in self.bot.OUR_GUILDS:
+            return
+
+        server_db = await self.bot.ck_client.get_server_settings(server_id=member.guild.id)
+
+        if not server_db.welcome_link_log.webhook or not server_db.welcome_link_log.embeds:
+            return
+
+        log = server_db.welcome_link_log
+
+        embeds = [disnake.Embed.from_dict(data=e) for e in log.embeds]
+        color_conversion = {"Blue": disnake.ButtonStyle.primary,
+                            "Grey": disnake.ButtonStyle.secondary,
+                            "Green": disnake.ButtonStyle.success,
+                            "Red": disnake.ButtonStyle.danger}
+        button_color_cls = color_conversion.get(log.button_color)
+        buttons = disnake.ui.ActionRow()
+        for b_type in log.buttons:
+            if b_type == "Link Button":
+                buttons.append_item(disnake.ui.Button(label="Link Account", emoji="🔗", style=button_color_cls, custom_id="Start Link"))
+            elif b_type == "Link Help Button":
+                buttons.append_item(disnake.ui.Button(label="Help", emoji="❓", style=button_color_cls, custom_id="Link Help"))
+            elif b_type == "Refresh Button":
+                buttons.append_item(disnake.ui.Button(label="Refresh Roles", emoji=self.bot.emoji.refresh.partial_emoji, style=button_color_cls, custom_id="Refresh Roles"))
+            elif b_type == "To-Do Button":
+                buttons.append_item(disnake.ui.Button(label="To-Do List", emoji=self.bot.emoji.yes.partial_emoji, style=button_color_cls, custom_id="MyToDoList"))
+            elif b_type == "Roster Button":
+                buttons.append_item(disnake.ui.Button(label="My Rosters", emoji=self.bot.emoji.calendar.partial_emoji, style=button_color_cls, custom_id="MyRosters"))
+
+        try:
+            webhook = await self.bot.getch_webhook(log.webhook)
+            if webhook.user.id != self.bot.user.id:
+                webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                await log.set_webhook(id=webhook.id)
+            await webhook.send(content=member.mention, embeds=embeds,  components=[buttons])
+        except (disnake.NotFound, disnake.Forbidden):
+            await log.set_webhook(id=None)
 
 
     @commands.Cog.listener()

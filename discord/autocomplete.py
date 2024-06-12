@@ -383,5 +383,19 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
         return [c for c in categories if query.lower() in c.lower()][:25]
 
 
+    async def country_names(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        locations = await self.bot.get_country_names()
+        results = []
+        if query.lower() in "Global":
+            results.append("Global")
+        for location in locations:
+            if query.lower() in location.name.lower():
+                ignored = ["Africa", "Europe", "North America", "South America", "Asia"]
+                if location.name not in ignored:
+                    if location.name not in results:
+                        results.append(location.name)
+        return results[0:25]
+
+
 def setup(bot: CustomClient):
     bot.add_cog(Autocomplete(bot))

@@ -5,6 +5,7 @@ import pendulum as pend
 from background.logs.events import war_ee
 from classes.bot import CustomClient
 from classes.server import DatabaseClan
+from classes.DatabaseClient.Classes.settings import DatabaseClan
 from commands.war.utils import main_war_page, missed_hits, attacks_embed, defenses_embed
 from disnake.ext import commands
 from exceptions.CustomExceptions import MissingWebhookPerms
@@ -104,6 +105,34 @@ class War_Log(commands.Cog):
         if new_war.type == "cwl":
             clan = await self.bot.getClan(new_war.clan.tag)
         war_league = clan.war_league if clan is not None else None
+
+        for cc in await self.bot.clan_db.find( {"$and": [{"tag": new_war.clan.tag}, {"events.war": {"$eq": True}}]}).to_list(length=None):
+            db_clan = DatabaseClan(bot=self.bot, data=cc)
+            if db_clan.server_id not in self.bot.OUR_GUILDS:
+                continue
+
+            if new_war.state == "preparation":
+                with open("assets/warmap.png", 'rb') as image_file:
+                    image_bytes = image_file.read()
+
+                war_type = new_war.type if new_war.type != "random" else "regular"
+                guild = await self.bot.getch_guild(guild_id=db_clan.server_id)
+                try:
+                    await guild.create_scheduled_event(
+                        name=f"{war_type.capitalize()} Clan War",
+                        description="Details:\n"
+                                    f"Start Time: {self.bot.timestamper(unix_time=new_war.preparation_start_time.time.timestamp()).cal_date}\n"
+                                    f"War Size: ({new_war.team_size} v {new_war.team_size})\n"
+                                    f"Clans: [{new_war.clan.name}]({new_war.clan.share_link}) | [{new_war.opponent.name}]({new_war.opponent.share_link})",
+                        scheduled_start_time=pend.now(tz=pend.UTC).add(seconds=30),
+                        scheduled_end_time=new_war.end_time.time,
+                        image=image_bytes,
+                        entity_type=disnake.GuildScheduledEventEntityType.external,
+                        entity_metadata=disnake.GuildScheduledEventMetadata(location=f"{new_war.clan.name} vs {new_war.opponent.name}")
+                    )
+                except disnake.Forbidden:
+                    await db_clan.set_server_event_creation_status(type="war", status=False)
+
 
         for cc in await self.bot.clan_db.find( {"$and": [{"tag": new_war.clan.tag}, {"logs.war_log.webhook": {"$ne": None}}]}).to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=cc)

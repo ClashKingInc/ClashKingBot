@@ -222,6 +222,25 @@ class FamilyCommands(commands.Cog, name="Family Commands"):
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
 
+
+    @family.sub_command(name="leaderboard", description="Family Image LeaderBoard for Activity, Legends, Trophies, & War Stars!")
+    async def image(self, ctx: disnake.ApplicationCommandInteraction,
+                    clan: coc.Clan = options.optional_clan,
+                    board: str = commands.Param(choices=["Activity", "Legends", "Trophies", "War Stars"]),
+                    limit: int = commands.Param(default=30, min_value=5, max_value=50),
+                    server: disnake.Guild = options.optional_family
+                    ):
+        await ctx.response.defer(ephemeral=True)
+        if clan is None:
+            server = server or ctx.guild
+        if board == "Legends":
+            file = await image_board(bot=self.bot, clan=clan, server=server, type="legend", limit=limit)
+            board_type = "clanboardlegend"
+
+        await ctx.edit_original_message(content="Image Board Created!")
+
+        await ctx.channel.send(content=file, components=[])
+
 def setup(bot):
     bot.add_cog(FamilyCommands(bot))
 

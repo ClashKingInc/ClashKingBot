@@ -22,7 +22,8 @@ class eval(commands.Cog, name="Refresh"):
     async def refresh(self, ctx: disnake.ApplicationCommandInteraction,
                    role_or_user: disnake.Role | disnake.Member = None,
                    test: bool = commands.Param(default=False, converter=convert.basic_bool, choices=["Yes", "No"]),
-                   advanced_mode: bool = commands.Param(default=False, converter=convert.basic_bool, choices=["Yes", "No"])
+                   advanced_mode: bool = commands.Param(default=False, converter=convert.basic_bool, choices=["Yes", "No"]),
+                   role_treatment: str = commands.Param(default="Both", choices=["Add", "Remove", "Both"])
                    ):
         """
             Parameters
@@ -30,6 +31,7 @@ class eval(commands.Cog, name="Refresh"):
             role_or_user: (optional) role or user to refresh roles for
             test: (optional) test mode, won't make any changes
             advanced_mode: (optional) choose what role types to evaluate
+            role_treatment: (optional) how to treat roles, only add, remove, or both
         """
         await ctx.response.defer()
         if role_or_user is None:
@@ -94,7 +96,8 @@ class eval(commands.Cog, name="Refresh"):
         elif len(members) > 3000:
             raise MessageException(f"Max 3000 members can be refreshed at a time ({len(members)} members attempted)")
 
-        embeds = await logic(bot=self.bot, guild=ctx.guild, db_server=db_server, members=members, role_or_user=role_or_user, eval_types=eval_types, test=test)
+        embeds = await logic(bot=self.bot, guild=ctx.guild, db_server=db_server, members=members,
+                             role_or_user=role_or_user, eval_types=eval_types, test=test, role_treatment=[role_treatment] if role_treatment != "Both" else ["Add", "Remove"])
 
         current_page = 0
         await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))

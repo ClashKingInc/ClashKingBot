@@ -8,7 +8,7 @@ from .click import LinkButtonExtended
 from discord import convert, autocomplete
 from ..eval.utils import logic
 from exceptions.CustomExceptions import MessageException, InvalidAPIToken, APITokenRequired
-from utility.discord_utils import check_commands, interaction_handler
+from utility.discord_utils import check_commands, interaction_handler, get_webhook_for_channel
 from utility.general import get_guild_icon
 
 
@@ -195,9 +195,18 @@ class Linking(LinkButtonExtended, commands.Cog):
     @commands.slash_command(name="buttons", description="Create a message that has buttons for easy eval/link/refresh actions.")
     async def buttons(self, ctx: disnake.ApplicationCommandInteraction,
                       embed: str = commands.Param(autocomplete=autocomplete.embeds, default=None),
-                      button_color: str = commands.Param(choices=["Blue", "Green", "Grey", "Red"], default="Grey")):
+                      button_color: str = commands.Param(choices=["Blue", "Green", "Grey", "Red"], default="Grey"),
+                      on_welcome_channel: disnake.TextChannel = None):
+        """
+            Parameters
+            ----------
+            embed: an embed from /embed create
+            button_color: color of buttons on message
+            on_welcome_channel: the message will be sent in a channel every time someone joins the server
+        """
         await ctx.response.defer(ephemeral=True)
-        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+        db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
+        embed_color = db_server.embed_color
 
         select_options = []
         for button_type in ["Link Button", "Link Help Button", "Refresh Button", "To-Do Button", "Roster Button"]:
@@ -244,9 +253,14 @@ class Linking(LinkButtonExtended, commands.Cog):
                                   color=embed_color),
                 "other":
                     disnake.Embed(description=f"Use the buttons below to view info about your accounts.",
-                                  color=embed_color)
+                                  color=embed_color),
+                "welcome":
+                    disnake.Embed(description=f"**Welcome to {ctx.guild.name}!**\n"
+                                              f"Use the buttons below to get started.", color=embed_color)
             }
-            if len(selected_types) == 1 or ("Link Button" in selected_types and "Link Help Button" in selected_types and len(selected_types) == 2):
+            if on_welcome_channel:
+                embeds=[default_embeds.get("welcome")]
+            elif len(selected_types) == 1 or ("Link Button" in selected_types and "Link Help Button" in selected_types and len(selected_types) == 2):
                 option = selected_types[0]
                 if option == "Link Help Button":
                     option = "Link Button"
@@ -260,22 +274,39 @@ class Linking(LinkButtonExtended, commands.Cog):
          "Grey": disnake.ButtonStyle.secondary,
          "Green": disnake.ButtonStyle.success,
          "Red": disnake.ButtonStyle.danger}
-        button_color = color_conversion.get(button_color)
+        button_color_cls = color_conversion.get(button_color)
         buttons = disnake.ui.ActionRow()
         for b_type in selected_types:
             if b_type == "Link Button":
-                buttons.append_item(disnake.ui.Button(label="Link Account", emoji="🔗", style=button_color, custom_id="Start Link"))
+                buttons.append_item(disnake.ui.Button(label="Link Account", emoji="🔗", style=button_color_cls, custom_id="Start Link"))
             elif b_type == "Link Help Button":
-                buttons.append_item(disnake.ui.Button(label="Help", emoji="❓", style=button_color, custom_id="Link Help"))
+                buttons.append_item(disnake.ui.Button(label="Help", emoji="❓", style=button_color_cls, custom_id="Link Help"))
             elif b_type == "Refresh Button":
-                buttons.append_item(disnake.ui.Button(label="Refresh Roles", emoji=self.bot.emoji.refresh.partial_emoji, style=button_color, custom_id="Refresh Roles"))
+                buttons.append_item(disnake.ui.Button(label="Refresh Roles", emoji=self.bot.emoji.refresh.partial_emoji, style=button_color_cls, custom_id="Refresh Roles"))
             elif b_type == "To-Do Button":
-                buttons.append_item(disnake.ui.Button(label="To-Do List", emoji=self.bot.emoji.yes.partial_emoji, style=button_color, custom_id="MyToDoList"))
+                buttons.append_item(disnake.ui.Button(label="To-Do List", emoji=self.bot.emoji.yes.partial_emoji, style=button_color_cls, custom_id="MyToDoList"))
             elif b_type == "Roster Button":
-                buttons.append_item(disnake.ui.Button(label="My Rosters", emoji=self.bot.emoji.calendar.partial_emoji, style=button_color, custom_id="MyRosters"))
+                buttons.append_item(disnake.ui.Button(label="My Rosters", emoji=self.bot.emoji.calendar.partial_emoji, style=button_color_cls, custom_id="MyRosters"))
 
-        await ctx.edit_original_message(content="Done", components=[])
-        await ctx.channel.send(embeds=embeds, components=[buttons])
+        if not on_welcome_channel:
+            await ctx.edit_original_message(content="Done", components=[])
+            await ctx.channel.send(embeds=embeds, components=[buttons])
+        else:
+            webhook = await get_webhook_for_channel(channel=on_welcome_channel, bot=self.bot)
+            thread = None
+            if isinstance(on_welcome_channel, disnake.Thread):
+                await on_welcome_channel.add_user(self.bot.user)
+                thread = on_welcome_channel.id
+
+            embeds_json = [e.to_dict() for e in embeds]
+            await db_server.welcome_link_log.set_webhook(id=webhook.id)
+            await db_server.welcome_link_log.set_embeds(embeds=embeds_json)
+            await db_server.welcome_link_log.set_buttons(buttons=selected_types, button_color=button_color)
+            await db_server.welcome_link_log.set_thread(id=thread)
+
+            await ctx.edit_original_message(content=f"This is what your message will look like & it will post in {on_welcome_channel.mention}", embeds=embeds, components=[buttons])
+
+
 
 
 

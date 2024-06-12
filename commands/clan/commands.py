@@ -26,8 +26,8 @@ class ClanCommands(commands.Cog, name="Clan Commands"):
 
 
 
-    @clan.sub_command(name="overview", description="Board showing basic clan overview")
-    async def overview(self, ctx: disnake.ApplicationCommandInteraction,
+    @clan.sub_command(name="search", description="Board showing basic clan overviews")
+    async def search(self, ctx: disnake.ApplicationCommandInteraction,
                           clan: coc.Clan = options.clan,
                           type: str= commands.Param(default="Detailed", choices=["Minimalistic", "Basic", "Detailed"])):
         """
