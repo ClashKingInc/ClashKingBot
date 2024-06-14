@@ -200,7 +200,7 @@ icon_emojis =  {
     "blue_sword": "<:bluesword:1247040994273132584>",
     "blue_trophy": "<:bluetrophy:1247040995908915281>",
     "grey_circle": "<:status_offline:1247040997045829712>",
-    "earth": "<:earth:1247040998815825991>",
+    "earth": "<a:earth:1247040998815825991>",
     "sword_clash": "<a:swords:1247041000724103269>",
     "war_star": "<:war_star:1247041002183589991>",
     "blank": "<:blanke:1247041003710451754>",
