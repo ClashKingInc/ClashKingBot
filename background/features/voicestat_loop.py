@@ -6,7 +6,8 @@ import pytz
 utc = pytz.utc
 
 from classes.bot import CustomClient
-from classes.server import DatabaseClan
+from classes.DatabaseClient.Classes.settings import DatabaseClan
+
 from exceptions.CustomExceptions import MissingWebhookPerms
 
 class VoiceStatCron(commands.Cog):
@@ -96,7 +97,7 @@ class VoiceStatCron(commands.Cog):
         for clan_result in await self.bot.clan_db.find({"warCountdown": {"$ne": None}}).to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=clan_result)
 
-            if db_clan.server_id not in [923764211845312533]:
+            if db_clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
             try:
@@ -115,7 +116,7 @@ class VoiceStatCron(commands.Cog):
 
         for clan_result in await self.bot.clan_db.find({"warTimerCountdown": {"$ne": None}}).to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=clan_result)
-            if db_clan.server_id not in [923764211845312533]:
+            if db_clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
             try:

@@ -33,29 +33,36 @@ def encoded_data(data: dict):
 
 
 def reverse_encoding(base64_encoded: str):
-    # Step 1: Replace `%2B` with `+`. The replacement of `=` with `%3D` might not be necessary here, as the decoding step will handle URL-encoded values.
+    # Step 1: Replace `%2B` with `+` if necessary (though for URL-safe base64, `%2B` is not used)
     base64_encoded = base64_encoded.replace("%2B", "+")
 
-    # Step 2: Add back the removed `=` padding. The length of base64 string should be a multiple of 4.
-    padding_needed = len(base64_encoded) % 4
-    if padding_needed:  # If padding is needed, add the necessary amount of '=' characters.
-        base64_encoded += '=' * (4 - padding_needed)
+    # Step 2: Handle padding for URL-safe base64
+    base64_encoded += '=' * (4 - len(base64_encoded) % 4)
 
-    # Step 3: Decode the base64-encoded string.
-    decoded_data = base64.b64decode(base64_encoded)
+    # Step 3: Decode the base64-encoded string using urlsafe_b64decode
+    try:
+        decoded_data = base64.urlsafe_b64decode(base64_encoded)
+    except Exception as e:
+        return None
 
-    # Step 4: URL-decode this string.
-    json_string = unquote(decoded_data.decode('utf-8'))
+    # Step 4: URL-decode this string
+    try:
+        json_string = unquote(decoded_data.decode('utf-8'))
+    except UnicodeDecodeError as e:
+        return None
 
-    # Step 5: Parse the JSON string back into a Python dictionary.
-    embed_dict = json.loads(json_string)
+    # Step 5: Parse the JSON string back into a Python dictionary
+    try:
+        embed_dict = json.loads(json_string)
+    except json.JSONDecodeError as e:
+        return None
 
     data = dict(embed_dict).get("messages")[0].get("data")
     data.pop("attachments", None)
     if data.get("embeds") is None:
         data["embeds"] = []
-    return data
 
+    return data
 
 
 async def shorten_link(url: str):

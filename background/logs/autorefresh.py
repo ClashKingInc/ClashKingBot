@@ -23,14 +23,16 @@ class AutoEval(commands.Cog):
 
     async def auto_refresh(self, event):
         if (clan_data := event.get("clan")) is not None:
+            clan_tag = clan_data.get("tag")
             player_tag = event.get("member").get("tag")
             player_name = event.get("member").get("name")
         else:
             player_tag = event.get("new_player").get("tag")
+            clan_tag = event.get("new_player").get("clan", {}).get("tag", "")
             player_name = event.get("new_player").get("name")
 
 
-        server_ids = await self.bot.clan_db.distinct("server", filter={"tag": "#2QJGQLVJ9"})
+        server_ids = await self.bot.clan_db.distinct("server", filter={"tag": clan_tag})
         for server_id in server_ids:
             db_server = await self.bot.ck_client.get_server_settings(server_id=server_id)
 

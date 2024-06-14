@@ -131,6 +131,7 @@ class eval(commands.Cog, name="Refresh"):
     @auto_refresh.sub_command(name="options", description="Set settings for autorefresh")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def auto_refresh_options(self, ctx: disnake.ApplicationCommandInteraction,
+                                state: str = commands.Param(choices=["On", "Off"], default=None),
                                 role_treatment: str = commands.Param(default=None, choices=["Add", "Remove", "Both"]),
                                 nickname_change: str = commands.Param(default=None, choices=["True", "False"]),
                                 blacklist_role_add: disnake.Role = None,
@@ -142,6 +143,11 @@ class eval(commands.Cog, name="Refresh"):
 
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
         changed_text = ""
+
+        if state is not None:
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {'$set': {"autoeval": state == "On"}})
+            changed_text += f"- **AutoRefresh State:** {state}\n"
+
         if role_treatment is not None:
             if role_treatment == "Both":
                 choices = ["Add", "Remove"]
