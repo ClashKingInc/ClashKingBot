@@ -1,1 +1,1 @@
-player-autocomplete-description = Search for a player by name or player tag
+player-autocomplete-description = Rechercher un joueur par son pseudo ou son tag de joueur
