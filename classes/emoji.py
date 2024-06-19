@@ -13,9 +13,7 @@ class EmojiType:
     def partial_emoji(self):
         emoji = self.emoji_string.split(":")
         animated = "<a:" in self.emoji_string
-        emoji = disnake.PartialEmoji(
-            name=emoji[1][1:], id=int(str(emoji[2])[:-1]), animated=animated
-        )
+        emoji = disnake.PartialEmoji(name=emoji[1][1:], id=int(str(emoji[2])[:-1]), animated=animated)
         return emoji
 
 
@@ -31,9 +29,7 @@ class Emojis:
         self.legends_shield = EmojiType(SharedEmojis.all_emojis.get("legends_shield"))
         self.sword = EmojiType(SharedEmojis.all_emojis.get("sword"))
         self.previous_days = EmojiType(SharedEmojis.all_emojis.get("previous_days"))
-        self.legends_overview = EmojiType(
-            SharedEmojis.all_emojis.get("legends_overview")
-        )
+        self.legends_overview = EmojiType(SharedEmojis.all_emojis.get("legends_overview"))
         self.graph_and_stats = EmojiType(SharedEmojis.all_emojis.get("graph_and_stats"))
         self.history = EmojiType(SharedEmojis.all_emojis.get("history"))
         self.quick_check = EmojiType(SharedEmojis.all_emojis.get("quick_check"))
@@ -85,9 +81,7 @@ class Emojis:
         self.person = EmojiType(SharedEmojis.all_emojis.get("person"))
         self.excel = EmojiType(SharedEmojis.all_emojis.get("excel"))
         self.magnify_glass = EmojiType(SharedEmojis.all_emojis.get("magnify_glass"))
-        self.right_green_arrow = EmojiType(
-            SharedEmojis.all_emojis.get("right_green_arrow")
-        )
+        self.right_green_arrow = EmojiType(SharedEmojis.all_emojis.get("right_green_arrow"))
         self.calendar = EmojiType(SharedEmojis.all_emojis.get("calendar"))
         self.red_status = EmojiType(SharedEmojis.all_emojis.get("red_status"))
         self.green_status = EmojiType(SharedEmojis.all_emojis.get("green_status"))

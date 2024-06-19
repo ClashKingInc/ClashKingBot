@@ -47,9 +47,7 @@ async def button_logic(
 
     embed_color = await bot.ck_client.get_server_embed_color(server_id=guild.id)
     hold_kwargs["embed_color"] = embed_color
-    hold_kwargs = {
-        key: hold_kwargs[key] for key in inspect.getfullargspec(function).args
-    }
+    hold_kwargs = {key: hold_kwargs[key] for key in inspect.getfullargspec(function).args}
     embed = await function(**hold_kwargs)
 
     components = 0
@@ -81,9 +79,7 @@ class ComponentHandler(commands.Cog):
         if ":" not in button_data:
             return
 
-        embed, components = await button_logic(
-            button_data=button_data, bot=self.bot, ctx=ctx, guild=ctx.guild
-        )
+        embed, components = await button_logic(button_data=button_data, bot=self.bot, ctx=ctx, guild=ctx.guild)
 
         # in some cases the handling is done outside this function
         if embed is None:

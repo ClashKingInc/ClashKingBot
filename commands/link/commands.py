@@ -26,20 +26,14 @@ class Linking(LinkButtonExtended, commands.Cog):
         super().__init__(bot)
         self.bot = bot
 
-    @commands.slash_command(
-        name="link", description="Link clash of clans accounts to your discord profile"
-    )
+    @commands.slash_command(name="link", description="Link clash of clans accounts to your discord profile")
     async def link(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        player: coc.Player = commands.Param(
-            autocomplete=autocomplete.family_players, converter=convert.player
-        ),
+        player: coc.Player = commands.Param(autocomplete=autocomplete.family_players, converter=convert.player),
         user: disnake.Member = None,
         api_token: str = None,
-        greet: bool = commands.Param(
-            default=True, choices=["Yes", "No"], converter=convert.basic_bool
-        ),
+        greet: bool = commands.Param(default=True, choices=["Yes", "No"], converter=convert.basic_bool),
     ):
         """
         Parameters
@@ -59,11 +53,7 @@ class Linking(LinkButtonExtended, commands.Cog):
         manage_guild_perms = ctx.user.guild_permissions.manage_guild
         api_token_requirement = db_server.use_api_token
 
-        if (
-            (not whitelist_check and not manage_guild_perms)
-            and api_token_requirement
-            and api_token is None
-        ):
+        if (not whitelist_check and not manage_guild_perms) and api_token_requirement and api_token is None:
             raise APITokenRequired
 
         user = user or ctx.user
@@ -73,17 +63,13 @@ class Linking(LinkButtonExtended, commands.Cog):
 
         # if it is already linked to them, let them know
         if is_linked == user.id:
-            raise MessageException(
-                f"[{player.name}]({player.share_link}) is linked to {user.mention} already!"
-            )
+            raise MessageException(f"[{player.name}]({player.share_link}) is linked to {user.mention} already!")
 
         if is_linked:
             api_token_requirement = True
         # if its a relink by a regular user or the server requires api token
         if (not whitelist_check and not manage_guild_perms) and api_token_requirement:
-            verified = await self.bot.coc_client.verify_player_token(
-                player.tag, str(api_token)
-            )
+            verified = await self.bot.coc_client.verify_player_token(player.tag, str(api_token))
             # if not verified but is linked to someone, explain
             if not verified and is_linked:
                 embed = disnake.Embed(
@@ -92,9 +78,7 @@ class Linking(LinkButtonExtended, commands.Cog):
                     + "\n- Scroll down to the bottom and copy the api token.\n- View the picture below for reference.",
                     color=disnake.Color.red(),
                 )
-                embed.set_image(
-                    url="https://cdn.clashking.xyz/clash-assets/bot/api_token_help.png"
-                )
+                embed.set_image(url="https://cdn.clashking.xyz/clash-assets/bot/api_token_help.png")
                 return await ctx.edit_original_message(embed=embed)
             elif not verified:  # if just a case of wrong api token when required
                 raise InvalidAPIToken
@@ -130,9 +114,7 @@ class Linking(LinkButtonExtended, commands.Cog):
                 e.set_footer(text="")
             linked_embeds.extend(refresh_embeds)
         except Exception:
-            linked_embeds[0].description = (
-                f"[{player.name}]({player.share_link}) linked to {user.mention}"
-            )
+            linked_embeds[0].description = f"[{player.name}]({player.share_link}) linked to {user.mention}"
         await ctx.edit_original_message(embeds=linked_embeds)
 
         try:
@@ -161,49 +143,34 @@ class Linking(LinkButtonExtended, commands.Cog):
                         "{user_display_name}": user.display_name if user else "",
                         "{clan_name}": player.clan.name,
                         "{clan_link}": player.clan.share_link,
-                        "{clan_leader_name}": coc.utils.get(
-                            clan.members, role=coc.Role.leader
-                        ),
+                        "{clan_leader_name}": coc.utils.get(clan.members, role=coc.Role.leader),
                         "{player_name}": player.name,
                         "{player_link}": player.share_link,
                         "{player_townhall}": player.town_hall,
-                        "{player_townhall_emoji}": self.bot.fetch_emoji(
-                            player.town_hall
-                        ).emoji_string,
+                        "{player_townhall_emoji}": self.bot.fetch_emoji(player.town_hall).emoji_string,
                         "{player_league}": player.league.name,
-                        "{player_league_emoji}": self.bot.fetch_emoji(
-                            player.league.name
-                        ).emoji_string,
+                        "{player_league_emoji}": self.bot.fetch_emoji(player.league.name).emoji_string,
                         "{player_trophies}": player.trophies,
                     }
 
                     for type, replace in types.items():
-                        local_greet_message = local_greet_message.replace(
-                            type, str(replace)
-                        )
+                        local_greet_message = local_greet_message.replace(type, str(replace))
 
                     local_greet_message = ujson.loads(local_greet_message)
 
                     await channel.send(
                         content=local_greet_message.get("content", ""),
-                        embeds=[
-                            disnake.Embed.from_dict(data=e)
-                            for e in local_greet_message.get("embeds", [])
-                        ],
+                        embeds=[disnake.Embed.from_dict(data=e) for e in local_greet_message.get("embeds", [])],
                     )
         except Exception:
             pass
 
-    @commands.slash_command(
-        name="unlink", description="Unlinks a clash account from discord"
-    )
+    @commands.slash_command(name="unlink", description="Unlinks a clash account from discord")
     @commands.check_any(check_commands())
     async def unlink(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        player: coc.Player = commands.Param(
-            autocomplete=autocomplete.user_accounts, converter=convert.player
-        ),
+        player: coc.Player = commands.Param(autocomplete=autocomplete.user_accounts, converter=convert.player),
     ):
         """
         Parameters
@@ -220,9 +187,7 @@ class Linking(LinkButtonExtended, commands.Cog):
             )
             return await ctx.edit_original_message(embed=embed)
 
-        clan_tags = await self.bot.clan_db.distinct(
-            "tag", filter={"server": ctx.guild.id}
-        )
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
 
         perms = ctx.author.guild_permissions.manage_guild
         whitelist_perm = await self.bot.white_list_check(ctx=ctx, command_name="unlink")
@@ -277,9 +242,7 @@ class Linking(LinkButtonExtended, commands.Cog):
         self,
         ctx: disnake.ApplicationCommandInteraction,
         embed: str = commands.Param(autocomplete=autocomplete.embeds, default=None),
-        button_color: str = commands.Param(
-            choices=["Blue", "Green", "Grey", "Red"], default="Grey"
-        ),
+        button_color: str = commands.Param(choices=["Blue", "Green", "Grey", "Red"], default="Grey"),
         on_welcome_channel: disnake.TextChannel = None,
     ):
         """
@@ -301,9 +264,7 @@ class Linking(LinkButtonExtended, commands.Cog):
             "To-Do Button",
             "Roster Button",
         ]:
-            select_options.append(
-                disnake.SelectOption(label=button_type, value=button_type)
-            )
+            select_options.append(disnake.SelectOption(label=button_type, value=button_type))
         select = disnake.ui.Select(
             options=select_options,
             placeholder="Button Types",  # the placeholder text to show when no options have been chosen
@@ -314,23 +275,17 @@ class Linking(LinkButtonExtended, commands.Cog):
             content="Choose the buttons you would like on this embed",
             components=[disnake.ui.ActionRow(select)],
         )
-        res: disnake.MessageInteraction = await interaction_handler(
-            bot=self.bot, ctx=ctx
-        )
+        res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
 
         selected_types = res.values
 
         if embed is not None:
-            lookup = await self.bot.custom_embeds.find_one(
-                {"$and": [{"server": ctx.guild_id}, {"name": embed}]}
-            )
+            lookup = await self.bot.custom_embeds.find_one({"$and": [{"server": ctx.guild_id}, {"name": embed}]})
             if lookup is None:
                 raise MessageException("No embed with that name found on this server")
 
             embed_data = lookup.get("data")
-            embeds = [
-                disnake.Embed.from_dict(data=e) for e in embed_data.get("embeds", [])
-            ]
+            embeds = [disnake.Embed.from_dict(data=e) for e in embed_data.get("embeds", [])]
         else:
             default_embeds = {
                 "Link Button": disnake.Embed(
@@ -362,17 +317,14 @@ class Linking(LinkButtonExtended, commands.Cog):
                     color=embed_color,
                 ),
                 "welcome": disnake.Embed(
-                    description=f"**Welcome to {ctx.guild.name}!**\n"
-                    f"Use the buttons below to get started.",
+                    description=f"**Welcome to {ctx.guild.name}!**\n" f"Use the buttons below to get started.",
                     color=embed_color,
                 ),
             }
             if on_welcome_channel:
                 embeds = [default_embeds.get("welcome")]
             elif len(selected_types) == 1 or (
-                "Link Button" in selected_types
-                and "Link Help Button" in selected_types
-                and len(selected_types) == 2
+                "Link Button" in selected_types and "Link Help Button" in selected_types and len(selected_types) == 2
             ):
                 option = selected_types[0]
                 if option == "Link Help Button":
@@ -442,9 +394,7 @@ class Linking(LinkButtonExtended, commands.Cog):
             await ctx.edit_original_message(content="Done", components=[])
             await ctx.channel.send(embeds=embeds, components=[buttons])
         else:
-            webhook = await get_webhook_for_channel(
-                channel=on_welcome_channel, bot=self.bot
-            )
+            webhook = await get_webhook_for_channel(channel=on_welcome_channel, bot=self.bot)
             thread = None
             if isinstance(on_welcome_channel, disnake.Thread):
                 await on_welcome_channel.add_user(self.bot.user)
@@ -453,9 +403,7 @@ class Linking(LinkButtonExtended, commands.Cog):
             embeds_json = [e.to_dict() for e in embeds]
             await db_server.welcome_link_log.set_webhook(id=webhook.id)
             await db_server.welcome_link_log.set_embeds(embeds=embeds_json)
-            await db_server.welcome_link_log.set_buttons(
-                buttons=selected_types, button_color=button_color
-            )
+            await db_server.welcome_link_log.set_buttons(buttons=selected_types, button_color=button_color)
             await db_server.welcome_link_log.set_thread(id=thread)
 
             await ctx.edit_original_message(

@@ -34,9 +34,7 @@ class Strikes(commands.Cog, name="Strikes"):
     async def strike_add(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        player: coc.Player = commands.Param(
-            converter=convert.player, autocomplete=autocomplete.family_players
-        ),
+        player: coc.Player = commands.Param(converter=convert.player, autocomplete=autocomplete.family_players),
         reason: str = commands.Param(name="reason"),
         rollover_days: int = commands.Param(default=None),
         strike_weight: int = commands.Param(default=1),
@@ -62,25 +60,19 @@ class Strikes(commands.Cog, name="Strikes"):
         )
         await ctx.edit_original_message(embed=embed)
 
-    @strike.sub_command(
-        name="list", description="List of server (or clan) striked players"
-    )
+    @strike.sub_command(name="list", description="List of server (or clan) striked players")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def strike_list(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         view: str = commands.Param(choices=["Strike View", "Player View"]),
-        clan: coc.Clan = commands.Param(
-            default=None, converter=convert.clan, autocomplete=autocomplete.clan
-        ),
+        clan: coc.Clan = commands.Param(default=None, converter=convert.clan, autocomplete=autocomplete.clan),
         user: disnake.Member = None,
         strike_amount: int = commands.Param(default=1),
         view_expired_strikes: bool = commands.Param(
             default=False, converter=convert.basic_bool, choices=["True", "False"]
         ),
-        view_non_family: bool = commands.Param(
-            default=False, converter=convert.basic_bool, choices=["True", "False"]
-        ),
+        view_non_family: bool = commands.Param(default=False, converter=convert.basic_bool, choices=["True", "False"]),
     ):
         """
         Parameters
@@ -94,9 +86,7 @@ class Strikes(commands.Cog, name="Strikes"):
         view_non_family: view strikes of players that aren't in your clans anymore
         """
 
-        embed_color = await self.bot.ck_client.get_server_embed_color(
-            server_id=ctx.guild.id
-        )
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild.id)
         embeds = await create_embeds(
             bot=self.bot,
             guild=ctx.guild,
@@ -110,9 +100,7 @@ class Strikes(commands.Cog, name="Strikes"):
         )
 
         current_page = 0
-        await ctx.edit_original_message(
-            embed=embeds[0], components=create_components(current_page, embeds, True)
-        )
+        await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))
         msg = await ctx.original_message()
 
         def check(res: disnake.MessageInteraction):
@@ -156,44 +144,32 @@ class Strikes(commands.Cog, name="Strikes"):
             autocomplete=autocomplete.family_players,
             default=None,
         ),
-        strike_id: str = commands.Param(
-            converter=None, autocomplete=autocomplete.strike_ids, default=None
-        ),
+        strike_id: str = commands.Param(converter=None, autocomplete=autocomplete.strike_ids, default=None),
     ):
         strike_id = strike_id.upper()
-        result_ = await self.bot.strikelist.find_one(
-            {"$and": [{"strike_id": strike_id}, {"server": ctx.guild.id}]}
-        )
+        result_ = await self.bot.strikelist.find_one({"$and": [{"strike_id": strike_id}, {"server": ctx.guild.id}]})
         if result_ is None:
             embed = disnake.Embed(
                 description=f"Strike with ID {strike_id} does not exist.",
                 color=disnake.Color.red(),
             )
             return await ctx.send(embed=embed)
-        await self.bot.strikelist.delete_one(
-            {"$and": [{"strike_id": strike_id}, {"server": ctx.guild.id}]}
-        )
-        embed = disnake.Embed(
-            description=f"Strike {strike_id} removed.", color=disnake.Color.green()
-        )
+        await self.bot.strikelist.delete_one({"$and": [{"strike_id": strike_id}, {"server": ctx.guild.id}]})
+        embed = disnake.Embed(description=f"Strike {strike_id} removed.", color=disnake.Color.green())
         return await ctx.send(embed=embed)
 
     @commands.slash_command(name="autostrike", description="stuff")
     async def autostrikes(self, ctx):
         pass
 
-    @autostrikes.sub_command(
-        name="war", description="Create autostrike for missing war attacks"
-    )
+    @autostrikes.sub_command(name="war", description="Create autostrike for missing war attacks")
     async def war_autostrikes(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         war_type: str = commands.Param(choices=["War", "CWL", "Both"]),
         weight: int = commands.Param(ge=1, le=25),
         rollover_days: int = commands.Param(ge=1, le=365, default=None),
-        clan: coc.Clan = commands.Param(
-            default=None, autocomplete=autocomplete.clan, converter=convert.clan
-        ),
+        clan: coc.Clan = commands.Param(default=None, autocomplete=autocomplete.clan, converter=convert.clan),
     ):
         raise MessageException("Command under construction")
 

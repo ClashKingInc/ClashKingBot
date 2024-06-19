@@ -25,9 +25,7 @@ def comparison_bar_graph(full_totals: dict, clan_totals: dict):
                 continue
         x.append(result.get(spot_key))
         if names_plotted[result.get("name")] > 0:
-            y.append(
-                f"{result.get('name')}{create_superscript(names_plotted[result.get('name')] + 1)}"
-            )
+            y.append(f"{result.get('name')}{create_superscript(names_plotted[result.get('name')] + 1)}")
         else:
             y.append(f"{result.get('name')}")
         r = "{:,}".format(result.get(spot_key))

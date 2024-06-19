@@ -29,9 +29,7 @@ class War_Log(commands.Cog):
             war = coc.ClanWar(
                 data=event["war"],
                 client=self.bot.coc_client,
-                league_group=coc.ClanWarLeagueGroup(
-                    data=cwl_group, client=self.bot.coc_client
-                ),
+                league_group=coc.ClanWarLeagueGroup(data=cwl_group, client=self.bot.coc_client),
                 clan_tag=event.get("clan_tag"),
             )
         else:
@@ -41,17 +39,12 @@ class War_Log(commands.Cog):
                 clan_tag=event.get("clan_tag"),
             )
 
-        attacks = [
-            coc.WarAttack(data=a, client=self.bot.coc_client, war=war)
-            for a in event.get("attacks", [])
-        ]
+        attacks = [coc.WarAttack(data=a, client=self.bot.coc_client, war=war) for a in event.get("attacks", [])]
 
         hit_text = ""
         for attack in attacks:
             if attack.attacker.clan.tag == war.clan.tag:
-                find_result = await self.bot.player_stats.find_one(
-                    {"tag": attack.attacker.tag}
-                )
+                find_result = await self.bot.player_stats.find_one({"tag": attack.attacker.tag})
                 if find_result is not None:
                     season = self.bot.gen_season_date()
                     _time = int(pend.now(tz=pend.UTC).timestamp())
@@ -94,9 +87,7 @@ class War_Log(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(
-                        bot=self.bot, channel=webhook.channel
-                    )
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -128,9 +119,7 @@ class War_Log(commands.Cog):
             new_war = coc.ClanWar(
                 data=event["new_war"],
                 client=self.bot.coc_client,
-                league_group=coc.ClanWarLeagueGroup(
-                    data=cwl_group, client=self.bot.coc_client
-                ),
+                league_group=coc.ClanWarLeagueGroup(data=cwl_group, client=self.bot.coc_client),
                 clan_tag=event.get("clan_tag"),
             )
         else:
@@ -174,9 +163,7 @@ class War_Log(commands.Cog):
                         ),
                     )
                 except disnake.Forbidden:
-                    await db_clan.set_server_event_creation_status(
-                        type="war", status=False
-                    )
+                    await db_clan.set_server_event_creation_status(type="war", status=False)
 
         for cc in await self.bot.clan_db.find(
             {
@@ -196,9 +183,7 @@ class War_Log(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(
-                        bot=self.bot, channel=webhook.channel
-                    )
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -210,9 +195,7 @@ class War_Log(commands.Cog):
                 continue
 
             if new_war.state == "preparation":
-                embed = await main_war_page(
-                    bot=self.bot, war=new_war, war_league=war_league
-                )
+                embed = await main_war_page(bot=self.bot, war=new_war, war_league=war_league)
                 embed.set_footer(text=f"{new_war.type.capitalize()} War")
                 await self.bot.webhook_send(webhook=webhook, thread=thread, embed=embed)
 
@@ -221,9 +204,7 @@ class War_Log(commands.Cog):
                 await self.bot.webhook_send(webhook=webhook, thread=thread, embed=embed)
 
             elif new_war.state == "warEnded":
-                embed = await main_war_page(
-                    bot=self.bot, war=new_war, war_league=war_league
-                )
+                embed = await main_war_page(bot=self.bot, war=new_war, war_league=war_league)
                 embed.set_footer(text=f"{new_war.type.capitalize()} War")
                 await self.bot.webhook_send(webhook=webhook, thread=thread, embed=embed)
 
@@ -232,9 +213,7 @@ class War_Log(commands.Cog):
 
                 missed_hits_embed = await missed_hits(bot=self.bot, war=new_war)
                 if len(missed_hits_embed.fields) != 0:
-                    await self.bot.webhook_send(
-                        webhook=webhook, thread=thread, embed=missed_hits_embed
-                    )
+                    await self.bot.webhook_send(webhook=webhook, thread=thread, embed=missed_hits_embed)
 
         for cc in await self.bot.clan_db.find(
             {
@@ -253,9 +232,7 @@ class War_Log(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(
-                        bot=self.bot, channel=webhook.channel
-                    )
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -266,9 +243,7 @@ class War_Log(commands.Cog):
                 await log.set_webhook(id=None)
                 continue
 
-            await update_war_message(
-                bot=self.bot, war=new_war, db_clan=db_clan, clan=clan
-            )
+            await update_war_message(bot=self.bot, war=new_war, db_clan=db_clan, clan=clan)
 
             if new_war.state == "warEnded":
                 file = await war_gen.generate_war_result_image(new_war)
@@ -276,9 +251,7 @@ class War_Log(commands.Cog):
 
                 missed_hits_embed = await missed_hits(bot=self.bot, war=new_war)
                 if len(missed_hits_embed.fields) != 0:
-                    await self.bot.webhook_send(
-                        webhook=webhook, thread=thread, embed=missed_hits_embed
-                    )
+                    await self.bot.webhook_send(webhook=webhook, thread=thread, embed=missed_hits_embed)
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
@@ -289,9 +262,7 @@ class War_Log(commands.Cog):
             war_data = await self.bot.clan_wars.find_one({"war_id": war_id})
             war = None
             if war_data is not None:
-                war = coc.ClanWar(
-                    data=war_data["data"], client=self.bot.coc_client, clan_tag=clan_tag
-                )
+                war = coc.ClanWar(data=war_data["data"], client=self.bot.coc_client, clan_tag=clan_tag)
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
             if war is None:
@@ -306,9 +277,7 @@ class War_Log(commands.Cog):
             war_data = await self.bot.clan_wars.find_one({"war_id": war_id})
             war = None
             if war_data is not None:
-                war = coc.ClanWar(
-                    data=war_data["data"], client=self.bot.coc_client, clan_tag=clan_tag
-                )
+                war = coc.ClanWar(data=war_data["data"], client=self.bot.coc_client, clan_tag=clan_tag)
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
             if war is None:
@@ -323,9 +292,7 @@ class War_Log(commands.Cog):
             war_data = await self.bot.clan_wars.find_one({"war_id": war_id})
             war = None
             if war_data is not None:
-                war = coc.ClanWar(
-                    data=war_data["data"], client=self.bot.coc_client, clan_tag=clan_tag
-                )
+                war = coc.ClanWar(data=war_data["data"], client=self.bot.coc_client, clan_tag=clan_tag)
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
             if war is None:
@@ -341,9 +308,7 @@ class War_Log(commands.Cog):
             war_data = await self.bot.clan_wars.find_one({"war_id": war_id})
             war = None
             if war_data is not None:
-                war = coc.ClanWar(
-                    data=war_data["data"], client=self.bot.coc_client, clan_tag=clan_tag
-                )
+                war = coc.ClanWar(data=war_data["data"], client=self.bot.coc_client, clan_tag=clan_tag)
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
             if war is None:

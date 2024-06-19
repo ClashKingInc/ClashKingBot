@@ -21,12 +21,8 @@ class HelpCommands(commands.Cog, name="Help"):
     async def help(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        command: str = commands.Param(
-            default=None, autocomplete=autocomplete.command_autocomplete
-        ),
-        category: str = commands.Param(
-            default=None, autocomplete=autocomplete.command_category_autocomplete
-        ),
+        command: str = commands.Param(default=None, autocomplete=autocomplete.command_autocomplete),
+        category: str = commands.Param(default=None, autocomplete=autocomplete.command_category_autocomplete),
     ):
         """
         Parameters
@@ -35,13 +31,9 @@ class HelpCommands(commands.Cog, name="Help"):
         category: (optional) category of commands to view
         """
         await ctx.response.defer()
-        embed_color = await self.bot.ck_client.get_server_embed_color(
-            server_id=ctx.guild_id
-        )
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
 
-        all_commands: Dict[str, List[disnake.ext.commands.InvokableSlashCommand]] = (
-            get_all_commands(bot=self.bot)
-        )
+        all_commands: Dict[str, List[disnake.ext.commands.InvokableSlashCommand]] = get_all_commands(bot=self.bot)
         if category:
             all_commands = {category: all_commands.get(category)}
 
@@ -50,16 +42,12 @@ class HelpCommands(commands.Cog, name="Help"):
             for cog, commands in all_commands.items():
                 text = ""
                 for command in commands:
-                    api_command: disnake.APISlashCommand = (
-                        self.bot.get_global_command_named(
-                            name=command.qualified_name.split(" ")[0]
-                        )
+                    api_command: disnake.APISlashCommand = self.bot.get_global_command_named(
+                        name=command.qualified_name.split(" ")[0]
                     )
                     permissions = get_command_permissions(command=command)
                     if permissions:
-                        permissions = f"**({', '.join(permissions)})**".replace(
-                            "Guild", "Server"
-                        )
+                        permissions = f"**({', '.join(permissions)})**".replace("Guild", "Server")
                     else:
                         permissions = ""
 
@@ -71,12 +59,7 @@ class HelpCommands(commands.Cog, name="Help"):
                 )
                 embeds.append(embed)
         else:
-            command = [
-                c
-                for command_list in all_commands.values()
-                for c in command_list
-                if command == c.qualified_name
-            ]
+            command = [c for command_list in all_commands.values() for c in command_list if command == c.qualified_name]
             if not command:
                 raise MessageException("Command Not Found")
             command = command[0]
@@ -94,9 +77,7 @@ class HelpCommands(commands.Cog, name="Help"):
 
             if permissions:
                 permissions = ", ".join(permissions)
-                embed.add_field(
-                    name="Required Permissions", value=permissions, inline=True
-                )
+                embed.add_field(name="Required Permissions", value=permissions, inline=True)
 
             embed.set_footer(text="[ required ] | ( optional )")
 
@@ -108,11 +89,7 @@ class HelpCommands(commands.Cog, name="Help"):
                         disnake.OptionType.sub_command_group,
                     ):
                         continue
-                    name = (
-                        f"**[{option.name}]**"
-                        if option.required
-                        else f"**({option.name})**"
-                    )
+                    name = f"**[{option.name}]**" if option.required else f"**({option.name})**"
                     args += f"{name}: *{option.description}*\n"
 
                 embed.add_field(name="Parameters", value=args, inline=False)
@@ -138,9 +115,7 @@ class HelpCommands(commands.Cog, name="Help"):
                     value=cog_name,
                 )
             )
-        select_options.append(
-            disnake.SelectOption(label="Print", emoji="🖨️", value="Print")
-        )
+        select_options.append(disnake.SelectOption(label="Print", emoji="🖨️", value="Print"))
         select = disnake.ui.Select(
             options=select_options,
             placeholder="Help Modules",  # the placeholder text to show when no options have been chosen
@@ -151,17 +126,13 @@ class HelpCommands(commands.Cog, name="Help"):
         await ctx.edit_original_message(embed=embeds[0], components=dropdown)
 
         while True:
-            res: disnake.MessageInteraction = await interaction_handler(
-                bot=self.bot, ctx=ctx
-            )
+            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
             if res.values[0] == "Print":
                 await res.delete_original_message()
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)
             else:
-                await res.edit_original_message(
-                    embed=embeds[page_names.index(res.values[0])]
-                )
+                await res.edit_original_message(embed=embeds[page_names.index(res.values[0])])
 
 
 def setup(bot: CustomClient):

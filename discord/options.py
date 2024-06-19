@@ -14,11 +14,7 @@ clan = commands.Param(
     description="Input a clan tag or choose an option from the autocomplete",
 )
 
-optional_season = commands.Param(
-    default=None, converter=convert.season, autocomplete=autocomplete.season
-)
+optional_season = commands.Param(default=None, converter=convert.season, autocomplete=autocomplete.season)
 season = commands.Param(converter=convert.season, autocomplete=autocomplete.season)
 
-optional_family = commands.Param(
-    converter=convert.server, default=None, autocomplete=autocomplete.server
-)
+optional_family = commands.Param(converter=convert.server, default=None, autocomplete=autocomplete.server)

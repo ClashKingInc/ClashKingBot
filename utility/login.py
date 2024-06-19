@@ -7,13 +7,8 @@ config = Config()
 
 
 async def coc_login(bot):
-    emails = [
-        config.coc_email.format(x=x)
-        for x in range(config.min_coc_email, config.max_coc_email + 1)
-    ]
-    passwords = [config.coc_password] * (
-        config.max_coc_email + 1 - config.min_coc_email
-    )
+    emails = [config.coc_email.format(x=x) for x in range(config.min_coc_email, config.max_coc_email + 1)]
+    passwords = [config.coc_password] * (config.max_coc_email + 1 - config.min_coc_email)
     tokens = []
     coc_client: coc.Client = coc.Client(
         loop=asyncio.get_event_loop_policy().get_event_loop(),

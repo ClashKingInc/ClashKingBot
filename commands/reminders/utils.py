@@ -61,9 +61,7 @@ def atk_threshold():
     options = []
     attack_numbers = [1, 2, 3, 4, 5, 6]
     for number in attack_numbers:
-        options.append(
-            disnake.SelectOption(label=f"{number} attacks", value=f"{number}")
-        )
+        options.append(disnake.SelectOption(label=f"{number} attacks", value=f"{number}"))
     war_type_select = disnake.ui.Select(
         options=options,
         placeholder="(optional) Attack Threshold",  # the placeholder text to show when no options have been chosen
@@ -110,9 +108,7 @@ def point_threshold():
     options = []
     attack_numbers = [250, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000]
     for number in attack_numbers:
-        options.append(
-            disnake.SelectOption(label=f"{number} points", value=f"{number}")
-        )
+        options.append(disnake.SelectOption(label=f"{number} points", value=f"{number}"))
     war_type_select = disnake.ui.Select(
         options=options,
         placeholder="(optional) Point Threshold",  # the placeholder text to show when no options have been chosen
@@ -124,29 +120,19 @@ def point_threshold():
 
 def roster_options(bot: CustomClient, results):
     now = int(datetime.utcnow().replace(tzinfo=utc).timestamp())
-    results = [
-        result
-        for result in results
-        if result.get("time") is not None and result.get("time", 0) > (now + 1200)
-    ]
+    results = [result for result in results if result.get("time") is not None and result.get("time", 0) > (now + 1200)]
     if not results:
         raise ThingNotFound(
             "**No Rosters or Any Rosters that have times set up (that are in the future) on this server**"
         )
     roster_options = []
     for result in results:
-        roster_options.append(
-            disnake.SelectOption(
-                label=result.get("alias"), value=f"{result.get('alias')}"
-            )
-        )
+        roster_options.append(disnake.SelectOption(label=result.get("alias"), value=f"{result.get('alias')}"))
     roster_select = disnake.ui.Select(
         options=roster_options,
         placeholder="Choose Roster(s)",  # the placeholder text to show when no options have been chosen
         min_values=1,  # the minimum number of options a user must select
-        max_values=len(
-            roster_options
-        ),  # the maximum number of options a user can select
+        max_values=len(roster_options),  # the maximum number of options a user can select
     )
     return (results, roster_select)
 
@@ -167,9 +153,7 @@ def roster_type():
 
 def gen_war_times():
     all_times = (x * 0.25 for x in range(1, 193))
-    all_times = [
-        f"{int(time)}hr" if time.is_integer() else f"{time}hr" for time in all_times
-    ]
+    all_times = [f"{int(time)}hr" if time.is_integer() else f"{time}hr" for time in all_times]
     return all_times
 
 
@@ -249,12 +233,8 @@ async def create_capital_reminder(
     attack_threshold = 1
     custom_text = ""
 
-    embed = disnake.Embed(
-        title="**Clan Capital Reminder options/filters**", color=embed_color
-    )
-    embed.set_footer(
-        text="Note: If you don't select optional fields, defaults will be used"
-    )
+    embed = disnake.Embed(title="**Clan Capital Reminder options/filters**", color=embed_color)
+    embed.set_footer(text="Note: If you don't select optional fields, defaults will be used")
     embed.description = chosen_text(
         clans=clans_chosen,
         atk=attack_threshold,
@@ -266,9 +246,7 @@ async def create_capital_reminder(
     message = await ctx.original_message()
 
     while not save:
-        res: disnake.MessageInteraction = await interaction_handler(
-            bot=bot, ctx=ctx, function=None
-        )
+        res: disnake.MessageInteraction = await interaction_handler(bot=bot, ctx=ctx, function=None)
         if "button" in str(res.data.component_type):
             if res.data.custom_id == "modal_reminder_custom_text":
                 custom_text = await get_custom_text(bot=bot, res=res)
@@ -279,9 +257,7 @@ async def create_capital_reminder(
                     custom_text=custom_text,
                     times=times,
                 )
-                clan_dropdown = clan_component(
-                    bot=bot, all_clans=clans, clan_page=clan_page
-                )
+                clan_dropdown = clan_component(bot=bot, all_clans=clans, clan_page=clan_page)
                 await message.edit(
                     embed=embed,
                     components=[
@@ -296,14 +272,8 @@ async def create_capital_reminder(
             else:
                 save = True
         elif any("clanpage_" in s for s in res.values):
-            clan_page = int(
-                next(value for value in res.values if "clanpage_" in value).split("_")[
-                    -1
-                ]
-            )
-            clan_dropdown = clan_component(
-                bot=bot, all_clans=clans, clan_page=clan_page
-            )
+            clan_page = int(next(value for value in res.values if "clanpage_" in value).split("_")[-1])
+            clan_dropdown = clan_component(bot=bot, all_clans=clans, clan_page=clan_page)
             await message.edit(
                 embed=embed,
                 components=[
@@ -406,9 +376,7 @@ async def create_war_reminder(
     ths = None
 
     embed = disnake.Embed(title="**War Reminder options/filters**", color=embed_color)
-    embed.set_footer(
-        text="Note: If you don't select optional fields, defaults will be used"
-    )
+    embed.set_footer(text="Note: If you don't select optional fields, defaults will be used")
     embed.description = chosen_text(
         clans=clans_chosen,
         war_types=war_types,
@@ -421,9 +389,7 @@ async def create_war_reminder(
     message = await ctx.original_message()
 
     while not save:
-        res: disnake.MessageInteraction = await interaction_handler(
-            bot=bot, ctx=ctx, function=None
-        )
+        res: disnake.MessageInteraction = await interaction_handler(bot=bot, ctx=ctx, function=None)
         if "button" in str(res.data.component_type):
             if res.data.custom_id == "modal_reminder_custom_text":
                 custom_text = await get_custom_text(bot=bot, res=res)
@@ -450,11 +416,7 @@ async def create_war_reminder(
             else:
                 save = True
         elif any("clanpage_" in s for s in res.values):
-            clan_page = int(
-                next(value for value in res.values if "clanpage_" in value).split("_")[
-                    -1
-                ]
-            )
+            clan_page = int(next(value for value in res.values if "clanpage_" in value).split("_")[-1])
             await message.edit(
                 embed=embed,
                 components=[
@@ -571,12 +533,8 @@ async def create_games_reminder(
     custom_text = ""
     ths = None
 
-    embed = disnake.Embed(
-        title="**Clan Games Reminders options/filters**", color=embed_color
-    )
-    embed.set_footer(
-        text="Note: If you don't select optional fields, defaults will be used"
-    )
+    embed = disnake.Embed(title="**Clan Games Reminders options/filters**", color=embed_color)
+    embed.set_footer(text="Note: If you don't select optional fields, defaults will be used")
     embed.description = chosen_text(
         clans=clans_chosen,
         points=points,
@@ -589,9 +547,7 @@ async def create_games_reminder(
     message = await ctx.original_message()
 
     while not save:
-        res: disnake.MessageInteraction = await interaction_handler(
-            bot=bot, ctx=ctx, function=None
-        )
+        res: disnake.MessageInteraction = await interaction_handler(bot=bot, ctx=ctx, function=None)
         if "button" in str(res.data.component_type):
             if res.data.custom_id == "modal_reminder_custom_text":
                 custom_text = await get_custom_text(bot=bot, res=res)
@@ -618,11 +574,7 @@ async def create_games_reminder(
             else:
                 save = True
         elif any("clanpage_" in s for s in res.values):
-            clan_page = int(
-                next(value for value in res.values if "clanpage_" in value).split("_")[
-                    -1
-                ]
-            )
+            clan_page = int(next(value for value in res.values if "clanpage_" in value).split("_")[-1])
             await message.edit(
                 embed=embed,
                 components=[
@@ -737,12 +689,8 @@ async def create_inactivity_reminder(
     custom_text = ""
     ths = None
 
-    embed = disnake.Embed(
-        title="**Inactivity Reminder options/filters**", color=embed_color
-    )
-    embed.set_footer(
-        text="Note: If you don't select optional fields, defaults will be used"
-    )
+    embed = disnake.Embed(title="**Inactivity Reminder options/filters**", color=embed_color)
+    embed.set_footer(text="Note: If you don't select optional fields, defaults will be used")
     embed.description = chosen_text(
         clans=clans_chosen,
         ths=ths,
@@ -754,9 +702,7 @@ async def create_inactivity_reminder(
     message = await ctx.original_message()
 
     while not save:
-        res: disnake.MessageInteraction = await interaction_handler(
-            bot=bot, ctx=ctx, function=None
-        )
+        res: disnake.MessageInteraction = await interaction_handler(bot=bot, ctx=ctx, function=None)
         if "button" in str(res.data.component_type):
             if res.data.custom_id == "modal_reminder_custom_text":
                 custom_text = await get_custom_text(bot=bot, res=res)
@@ -781,11 +727,7 @@ async def create_inactivity_reminder(
             else:
                 save = True
         elif any("clanpage_" in s for s in res.values):
-            clan_page = int(
-                next(value for value in res.values if "clanpage_" in value).split("_")[
-                    -1
-                ]
-            )
+            clan_page = int(next(value for value in res.values if "clanpage_" in value).split("_")[-1])
             await message.edit(
                 embed=embed,
                 components=[
@@ -868,9 +810,7 @@ async def create_roster_reminder(
     times: List[str],
     embed_color: disnake.Color,
 ):
-    results = await bot.rosters.find({"$and": [{"server_id": ctx.guild.id}]}).to_list(
-        length=None
-    )
+    results = await bot.rosters.find({"$and": [{"server_id": ctx.guild.id}]}).to_list(length=None)
     results, menu = roster_options(bot=bot, results=results)
     results = [Roster(bot=bot, roster_result=result) for result in results]
     dropdown = [menu, roster_type(), buttons(bot=bot)]
@@ -881,17 +821,13 @@ async def create_roster_reminder(
     ping_type = "All Roster Members"
     custom_text = ""
 
-    embed = disnake.Embed(
-        title="**Roster Reminder options/filters**", color=embed_color
-    )
+    embed = disnake.Embed(title="**Roster Reminder options/filters**", color=embed_color)
     embed.description = chosen_text(clans=[], times=times, ping_type=ping_type)
     await ctx.edit_original_message(embed=embed, components=dropdown)
     message = await ctx.original_message()
 
     while not save:
-        res: disnake.MessageInteraction = await interaction_handler(
-            bot=bot, ctx=ctx, function=None
-        )
+        res: disnake.MessageInteraction = await interaction_handler(bot=bot, ctx=ctx, function=None)
         if "button" in str(res.data.component_type):
             if res.data.custom_id == "modal_reminder_custom_text":
                 custom_text = await get_custom_text(bot=bot, res=res)
@@ -904,9 +840,7 @@ async def create_roster_reminder(
                 )
                 await message.edit(embed=embed)
             elif not rosters_chosen:
-                await res.send(
-                    content="Must select at least one roster", ephemeral=True
-                )
+                await res.send(content="Must select at least one roster", ephemeral=True)
             else:
                 save = True
 
@@ -923,9 +857,7 @@ async def create_roster_reminder(
                 await message.edit(embed=embed)
             else:
                 roster_aliases = res.values
-                rosters_chosen = [
-                    coc.utils.get(results, alias=roster) for roster in roster_aliases
-                ]
+                rosters_chosen = [coc.utils.get(results, alias=roster) for roster in roster_aliases]
                 embed.description = chosen_text(
                     clans=[],
                     rosters=rosters_chosen,
@@ -1089,14 +1021,10 @@ async def edit_reminder(
                 },
                 {"$set": {"roster": {"$first": "$roster"}}},
             ]
-            reminders = await bot.reminders.aggregate(pipeline=pipeline).to_list(
-                length=None
-            )
+            reminders = await bot.reminders.aggregate(pipeline=pipeline).to_list(length=None)
 
         if not reminders:
-            raise ThingNotFound(
-                f"**No {type.capitalize()} Reminders found for {clan.name}**"
-            )
+            raise ThingNotFound(f"**No {type.capitalize()} Reminders found for {clan.name}**")
         reminders = sorted(
             reminders,
             key=lambda l: float(str(l.get("time")).replace("hr", "")),
@@ -1113,11 +1041,7 @@ async def edit_reminder(
                 text += f"`{reminder.time}` - <#{reminder.channel_id}>\n"
             else:
                 text += f"`{reminder.time} | {reminder.roster.alias}` - <#{reminder.channel_id}>\n"
-            options.append(
-                disnake.SelectOption(
-                    label=f"{reminder.time} Reminder", value=f"{count }"
-                )
-            )
+            options.append(disnake.SelectOption(label=f"{reminder.time} Reminder", value=f"{count }"))
 
         clan_select = disnake.ui.Select(
             options=options,
@@ -1136,9 +1060,7 @@ async def edit_reminder(
         embed.set_footer(text="Choose a reminder to edit or delete it")
         await ctx.edit_original_message(embed=embed, components=clan_select)
 
-        res: disnake.MessageInteraction = await interaction_handler(
-            bot=bot, ctx=ctx, ephemeral=True
-        )
+        res: disnake.MessageInteraction = await interaction_handler(bot=bot, ctx=ctx, ephemeral=True)
         reminder = reminder_class_list[int(res.values[0])]
         embed = disnake.Embed(
             title=f"{clan.name} {reminder.time} {reminder.type.capitalize()} Reminder",
@@ -1181,9 +1103,7 @@ async def edit_reminder(
             del dropdown[1]
             dropdown.append(roster_type())
         dropdown.append(buttons(bot=bot, delete=True))
-        message = await res.followup.send(
-            embed=embed, components=dropdown, ephemeral=True
-        )
+        message = await res.followup.send(embed=embed, components=dropdown, ephemeral=True)
 
         save = False
         deleted = False
@@ -1197,9 +1117,7 @@ async def edit_reminder(
         ping_type = reminder.ping_type
 
         while not save:
-            res: disnake.MessageInteraction = await interaction_handler(
-                bot=bot, ctx=res, msg=message
-            )
+            res: disnake.MessageInteraction = await interaction_handler(bot=bot, ctx=res, msg=message)
             if "button" in str(res.data.component_type):
                 if res.data.custom_id == "modal_reminder_custom_text":
                     custom_text = await get_custom_text(bot=bot, res=res)

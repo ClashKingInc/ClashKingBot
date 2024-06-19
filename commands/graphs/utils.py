@@ -32,10 +32,7 @@ async def daily_graph(
 ) -> (disnake.File, str):
     clan_name_map = await bot.get_clan_name_mapping(clans=clan_tags)
     clan_member_map = await bot.get_mapped_clan_member_tags(clan_tags=clan_tags)
-    member_map = {
-        tag: f"{clan_name_map.get(clan_tag)}"
-        for tag, clan_tag in clan_member_map.items()
-    }
+    member_map = {tag: f"{clan_name_map.get(clan_tag)}" for tag, clan_tag in clan_member_map.items()}
 
     def bucket_timestamps(timestamps: List[int], granularity):
         buckets = {}
@@ -77,11 +74,7 @@ async def daily_graph(
     else:
         do_count = True
         if attribute == "troopupgrades":
-            lookup = list(
-                coc.enums.HOME_TROOP_ORDER
-                + coc.enums.SPELL_ORDER
-                + coc.enums.BUILDER_TROOPS_ORDER
-            )
+            lookup = list(coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER + coc.enums.BUILDER_TROOPS_ORDER)
         elif attribute == "heroupgrades":
             lookup = list(coc.enums.HERO_ORDER + coc.enums.PETS_ORDER)
         elif attribute == "heroequipment":
@@ -105,23 +98,15 @@ async def daily_graph(
             },
             {"$group": {"_id": "$tag", "items": {"$push": "$$ROOT"}}},
         ]
-        result = await bot.player_history.aggregate(pipeline=pipeline).to_list(
-            length=None
-        )
+        result = await bot.player_history.aggregate(pipeline=pipeline).to_list(length=None)
         holder = defaultdict(list)
         for data in result:
             for item in data.get("items", []):
                 times = 1
-                if (
-                    do_count
-                    and str(item.get("p_value")).isdigit()
-                    and str(item.get("value")).isdigit()
-                ):
+                if do_count and str(item.get("p_value")).isdigit() and str(item.get("value")).isdigit():
                     times = item.get("value") - item.get("p_value")
                 for x in range(0, times):
-                    holder[member_map.get(data.get("_id"))] += [
-                        item.get("time")
-                    ] * times
+                    holder[member_map.get(data.get("_id"))] += [item.get("time")] * times
         data = {}
         for clan_name, times in holder.items():
             data[clan_name] = bucket_timestamps(timestamps=times, granularity="day")
@@ -133,9 +118,7 @@ async def daily_graph(
     for clan, datetime_count_dict in data.items():
         for datetime, count in sorted(datetime_count_dict.items()):
             count_each_has[clan] += count
-    top_20_clans = dict(
-        sorted(count_each_has.items(), key=lambda x: x[1], reverse=True)[:limit]
-    )
+    top_20_clans = dict(sorted(count_each_has.items(), key=lambda x: x[1], reverse=True)[:limit])
     for clan, datetime_count_dict in data.items():
         if top_20_clans.get(clan) is None:
             continue
@@ -162,9 +145,7 @@ async def daily_graph(
         height=500,  # Set the height of the plot
         margin=dict(l=20, r=20, t=20, b=25),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        showlegend=(
-            len(clan_tags) >= 2
-        ),  # You can set this to False if you want to hide the legend initially
+        showlegend=(len(clan_tags) >= 2),  # You can set this to False if you want to hide the legend initially
     )
     loop = asyncio.get_event_loop()
 
@@ -177,9 +158,7 @@ async def daily_graph(
         html_content = pio.to_html(fig)
         buffer = io.BytesIO()
         buffer.write(bytes(html_content, "utf-8"))
-        web_version = await upload_html_to_cdn(
-            bytes_=buffer.getvalue(), id=str(uuid.uuid4()).replace("-", "")[:8]
-        )
+        web_version = await upload_html_to_cdn(bytes_=buffer.getvalue(), id=str(uuid.uuid4()).replace("-", "")[:8])
     file = disnake.File(fp=io.BytesIO(img), filename="test.png")
     return file, web_version
 
@@ -205,9 +184,7 @@ async def season_line_graph(
             attribute = "donated"
         data = defaultdict(lambda: defaultdict(int))
         projection = {"_id": 0, "tag": 1} | {s: 1 for s in seasons}
-        clan_stats = await bot.clan_stats.find(
-            {"tag": {"$in": clan_tags}}, projection=projection
-        ).to_list(length=None)
+        clan_stats = await bot.clan_stats.find({"tag": {"$in": clan_tags}}, projection=projection).to_list(length=None)
         for clan in clan_stats:
             clan_name = clan_name_map.get(clan.get("tag"))
             for season in seasons:
@@ -230,9 +207,7 @@ async def season_line_graph(
             cwl_data = clan.get("changes", {}).get("clanWarLeague", {})
             clan_name = clan_name_map.get(clan.get("tag"))
             for season in seasons:
-                data[clan_name][season] = reversed_leagues.index(
-                    cwl_data.get(season, {}).get("league", "Unranked")
-                )
+                data[clan_name][season] = reversed_leagues.index(cwl_data.get(season, {}).get("league", "Unranked"))
         y_axis_set = dict(
             tickmode="array",
             tickvals=list(range(len(leagues))),
@@ -267,9 +242,7 @@ async def season_line_graph(
             cwl_data = clan.get("changes", {}).get("clanCapital", {})
             clan_name = clan_name_map.get(clan.get("tag"))
             for week in raid_weeks:
-                data[clan_name][week] = reversed_leagues.index(
-                    cwl_data.get(week, {}).get("league", "Unranked")
-                )
+                data[clan_name][week] = reversed_leagues.index(cwl_data.get(week, {}).get("league", "Unranked"))
         y_axis_set = dict(
             tickmode="array",
             tickvals=list(range(len(leagues))),
@@ -305,13 +278,9 @@ async def season_line_graph(
     if countable:
         count_each_has = defaultdict(int)
         for clan, season_data in data.items():
-            for season_id, season_count in sorted(
-                season_data.items(), key=lambda x: x[0]
-            ):
+            for season_id, season_count in sorted(season_data.items(), key=lambda x: x[0]):
                 count_each_has[clan] += season_count
-        top_20_clans = dict(
-            sorted(count_each_has.items(), key=lambda x: x[1], reverse=True)[:limit]
-        )
+        top_20_clans = dict(sorted(count_each_has.items(), key=lambda x: x[1], reverse=True)[:limit])
 
     for clan, season_data in data.items():
         if countable and top_20_clans.get(clan) is None:
@@ -339,9 +308,7 @@ async def season_line_graph(
         height=500,  # Set the height of the plot
         margin=dict(l=20, r=20, t=40, b=25),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        showlegend=(
-            len(clan_tags) >= 2
-        ),  # You can set this to False if you want to hide the legend initially
+        showlegend=(len(clan_tags) >= 2),  # You can set this to False if you want to hide the legend initially
     )
     loop = asyncio.get_event_loop()
 
@@ -354,9 +321,7 @@ async def season_line_graph(
         html_content = pio.to_html(fig)
         buffer = io.BytesIO()
         buffer.write(bytes(html_content, "utf-8"))
-        web_version = await upload_html_to_cdn(
-            bytes_=buffer.getvalue(), id=str(uuid.uuid4()).replace("-", "")[:8]
-        )
+        web_version = await upload_html_to_cdn(bytes_=buffer.getvalue(), id=str(uuid.uuid4()).replace("-", "")[:8])
     file = disnake.File(fp=io.BytesIO(img), filename="test.png")
     return file, web_version
 
@@ -392,9 +357,7 @@ async def monthly_bar_graph(
         for player in player_stats:
             player_clan_tag = mapped_member_tags.get(player.get("tag"))
             clan_name = name_mapping.get(player_clan_tag)
-            data[f"{clan_name}"] += player.get(attribute_map.get(attribute), {}).get(
-                season, 0
-            )
+            data[f"{clan_name}"] += player.get(attribute_map.get(attribute), {}).get(season, 0)
 
     elif attribute in ["donations", "received", "activity", "attack_wins"]:
         attribute_map = {
@@ -423,9 +386,7 @@ async def monthly_bar_graph(
             player_clan_tag = mapped_member_tags.get(player.get("tag"))
             clan_name = name_mapping.get(player_clan_tag)
             for week in season_raid_weeks:
-                data[f"{clan_name}"] += sum(
-                    player.get("capital_gold", {}).get(week, {}).get("donate", [])
-                )
+                data[f"{clan_name}"] += sum(player.get("capital_gold", {}).get(week, {}).get("donate", []))
 
     elif attribute == "capital_gold_raided":
         data = defaultdict(int)
@@ -475,9 +436,7 @@ async def monthly_bar_graph(
 
     elif attribute in ["troops_upgraded", "heroes_upgraded"]:
         enum_map = {
-            "troops_upgraded": coc.enums.HOME_TROOP_ORDER
-            + coc.enums.SPELL_ORDER
-            + coc.enums.BUILDER_TROOPS_ORDER,
+            "troops_upgraded": coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER + coc.enums.BUILDER_TROOPS_ORDER,
             "heroes_upgraded": coc.enums.HERO_ORDER + coc.enums.PETS_ORDER,
         }
         SEASON_START, SEASON_END = gen_season_start_end_as_timestamp(season=season)
@@ -494,9 +453,7 @@ async def monthly_bar_graph(
             },
             {"$group": {"_id": "$clan", "num": {"$sum": 1}}},
         ]
-        results = await bot.player_history.aggregate(pipeline=pipeline).to_list(
-            length=None
-        )
+        results = await bot.player_history.aggregate(pipeline=pipeline).to_list(length=None)
         data = defaultdict(int)
         for result in results:
             clan_name = name_mapping.get(result.get("_id"))
@@ -577,8 +534,6 @@ async def monthly_bar_graph(
         html_content = pio.to_html(fig)
         buffer = io.BytesIO()
         buffer.write(bytes(html_content, "utf-8"))
-        web_version = await upload_html_to_cdn(
-            bytes_=buffer.getvalue(), id=str(uuid.uuid4()).replace("-", "")[:8]
-        )
+        web_version = await upload_html_to_cdn(bytes_=buffer.getvalue(), id=str(uuid.uuid4()).replace("-", "")[:8])
     file = disnake.File(fp=io.BytesIO(img), filename="test.png")
     return file, web_version

@@ -31,18 +31,14 @@ class LinkParsing(commands.Cog):
                 "https://link.clashofclans.com/" in message.content
                 and "action=OpenPlayerProfile&tag=" in message.content
             ):
-                server_settings = await self.bot.ck_client.get_server_settings(
-                    server_id=message.guild.id
-                )
+                server_settings = await self.bot.ck_client.get_server_settings(server_id=message.guild.id)
                 if not server_settings.player_link_parse:
                     return
 
                 tag = self.extract_url(text=message.content)
                 player = await self.bot.getPlayer(tag)
 
-                embed = await basic_player_board(
-                    bot=self.bot, player=player, embed_color=server_settings.embed_color
-                )
+                embed = await basic_player_board(bot=self.bot, player=player, embed_color=server_settings.embed_color)
 
                 stat_buttons = [
                     disnake.ui.Button(label=f"Open In-Game", url=player.share_link),
@@ -61,21 +57,14 @@ class LinkParsing(commands.Cog):
                 await message.channel.send(embed=embed, components=[buttons])
                 await safe_run(func=message.delete)
 
-            elif (
-                "https://link.clashofclans.com/" in message.content
-                and "OpenClanProfile" in message.content
-            ):
-                server_settings = await self.bot.ck_client.get_server_settings(
-                    server_id=message.guild.id
-                )
+            elif "https://link.clashofclans.com/" in message.content and "OpenClanProfile" in message.content:
+                server_settings = await self.bot.ck_client.get_server_settings(server_id=message.guild.id)
                 if not server_settings.clan_link_parse:
                     return
 
                 clan_tag = self.extract_url(message.content)
                 clan = await self.bot.getClan(clan_tag=clan_tag)
-                embed = await basic_clan_board(
-                    bot=self.bot, clan=clan, embed_color=server_settings.embed_color
-                )
+                embed = await basic_clan_board(bot=self.bot, clan=clan, embed_color=server_settings.embed_color)
 
                 stat_buttons = [
                     disnake.ui.Button(label=f"Open In-Game", url=clan.share_link),
@@ -89,13 +78,8 @@ class LinkParsing(commands.Cog):
                     buttons.append_item(button)
                 await message.channel.send(embed=embed, components=[buttons])
 
-            elif (
-                "https://link.clashofclans.com/" in message.content
-                and "CopyArmy" in message.content
-            ):
-                server_settings = await self.bot.ck_client.get_server_settings(
-                    server_id=message.guild.id
-                )
+            elif "https://link.clashofclans.com/" in message.content and "CopyArmy" in message.content:
+                server_settings = await self.bot.ck_client.get_server_settings(server_id=message.guild.id)
                 if not server_settings.army_link_parse:
                     return
                 embed = army_embed(
@@ -121,9 +105,7 @@ class LinkParsing(commands.Cog):
                 and message.attachments
                 and "image" in message.attachments[0].content_type
             ):
-                server_settings = await self.bot.ck_client.get_server_settings(
-                    server_id=message.guild.id
-                )
+                server_settings = await self.bot.ck_client.get_server_settings(server_id=message.guild.id)
                 if not server_settings.base_link_parse:
                     return
                 base_url = self.extract_url(text=message.content, url_only=True)
@@ -161,9 +143,7 @@ class LinkParsing(commands.Cog):
                 )
 
             elif message.content.startswith("-show "):
-                server_settings = await self.bot.ck_client.get_server_settings(
-                    server_id=message.guild.id
-                )
+                server_settings = await self.bot.ck_client.get_server_settings(server_id=message.guild.id)
                 if not server_settings.show_command_parse:
                     return
 

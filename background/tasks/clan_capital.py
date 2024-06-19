@@ -46,9 +46,9 @@ class StoreClanCapital(commands.Cog):
             "tag", filter={"logs.capital_weekly_summary.webhook": {"$ne": None}}
         )
         clans = await self.bot.get_clans(tags=clan_tags)
-        for cc in await self.bot.clan_db.find(
-            {"logs.capital_weekly_summary.webhook": {"$ne": None}}
-        ).to_list(length=None):
+        for cc in await self.bot.clan_db.find({"logs.capital_weekly_summary.webhook": {"$ne": None}}).to_list(
+            length=None
+        ):
             db_clan = DatabaseClan(bot=self.bot, data=cc)
             log = db_clan.capital_weekly_summary
 
@@ -57,39 +57,24 @@ class StoreClanCapital(commands.Cog):
                 continue
 
             weekend = gen_raid_weekend_datestrings(2)[1]  # get previous weekend
-            raid_log_entry = await get_raidlog_entry(
-                clan=clan, weekend=weekend, bot=self.bot, limit=1
-            )
+            raid_log_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot, limit=1)
             if raid_log_entry is None:
                 continue
 
-            file = await generate_raid_result_image(
-                raid_entry=raid_log_entry, clan=clan
-            )
-            raid_embed = await clan_raid_weekend_raid_stats(
-                bot=self.bot, clan=clan, raid_log_entry=raid_log_entry
-            )
-            donation_embed = await clan_raid_weekend_donation_stats(
-                clan=clan, weekend=weekend, bot=self.bot
-            )
+            file = await generate_raid_result_image(raid_entry=raid_log_entry, clan=clan)
+            raid_embed = await clan_raid_weekend_raid_stats(bot=self.bot, clan=clan, raid_log_entry=raid_log_entry)
+            donation_embed = await clan_raid_weekend_donation_stats(clan=clan, weekend=weekend, bot=self.bot)
             donation_embed.set_image(file=file)
 
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
-                if (
-                    isinstance(webhook.channel, disnake.ForumChannel)
-                    and log.thread is None
-                ):
+                if isinstance(webhook.channel, disnake.ForumChannel) and log.thread is None:
                     raise MissingWebhookPerms
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(
-                        bot=self.bot, channel=webhook.channel
-                    )
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
-                    thread = await self.bot.getch_channel(
-                        log.thread, raise_exception=True
-                    )
+                    thread = await self.bot.getch_channel(log.thread, raise_exception=True)
                     if thread.locked:
                         continue
                     await webhook.send(embed=raid_embed, thread=thread)
@@ -117,9 +102,7 @@ class StoreClanCapital(commands.Cog):
             clan = coc.utils.get(clans, tag=tag)
             if clan is None:
                 return (None, None)
-            raid_log_entry: RaidLogEntry = await get_raidlog_entry(
-                clan=clan, weekend=weekend, bot=self.bot
-            )
+            raid_log_entry: RaidLogEntry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot)
             """if raid_log_entry is not None:
                 await self.bot.raid_weekend_db.insert_one({
                     "clan_tag" : clan.tag,
@@ -150,13 +133,7 @@ class StoreClanCapital(commands.Cog):
                 updates.append(
                     UpdateOne(
                         {"tag": member.tag},
-                        {
-                            "$set": {
-                                f"capital_gold.{date}.raid": [
-                                    member.capital_resources_looted
-                                ]
-                            }
-                        },
+                        {"$set": {f"capital_gold.{date}.raid": [member.capital_resources_looted]}},
                         upsert=True,
                     )
                 )
@@ -165,9 +142,7 @@ class StoreClanCapital(commands.Cog):
                         {"tag": member.tag},
                         {
                             "$set": {
-                                f"capital_gold.{date}.limit_hits": (
-                                    member.attack_limit + member.bonus_attack_limit
-                                )
+                                f"capital_gold.{date}.limit_hits": (member.attack_limit + member.bonus_attack_limit)
                             }
                         },
                         upsert=True,
@@ -176,11 +151,7 @@ class StoreClanCapital(commands.Cog):
                 updates.append(
                     UpdateOne(
                         {"tag": member.tag},
-                        {
-                            "$set": {
-                                f"capital_gold.{date}.attack_count": member.attack_count
-                            }
-                        },
+                        {"$set": {f"capital_gold.{date}.attack_count": member.attack_count}},
                         upsert=True,
                     )
                 )

@@ -9,9 +9,7 @@ class PlayerClient(BaseClient):
         super().__init__(bot)
 
     async def get_legend_player(self, player: coc.Player):
-        data = await self.bot.player_stats.find_one(
-            {"tag": player.tag}, {"tag": 1, "legends": 1}
-        )
+        data = await self.bot.player_stats.find_one({"tag": player.tag}, {"tag": 1, "legends": 1})
         if data is None:
             await self.bot.player_stats.update_one(
                 {"tag": player.tag},
@@ -36,36 +34,28 @@ class PlayerClient(BaseClient):
         if ranking_data is None:
             ranking_data = default
         if ranking_data.get("global_rank") is None:
-            self_global_ranking = await self.bot.legend_rankings.find_one(
-                {"tag": player.tag}
-            )
+            self_global_ranking = await self.bot.legend_rankings.find_one({"tag": player.tag})
             if self_global_ranking:
                 ranking_data["global_rank"] = self_global_ranking.get("rank")
         return LegendPlayer(data=data, ranking_data=ranking_data, api_player=player)
 
     async def get_clan_legend_players(self, clan: coc.Clan):
-        members = [
-            member for member in clan.members if member.league.name == "Legend League"
-        ]
+        members = [member for member in clan.members if member.league.name == "Legend League"]
         if not members:
             raise MessageException(f"No Legend Players in {clan.name}")
 
         tag_map = {m.tag: m for m in members}
         tags = list(tag_map.keys())
 
-        results = await self.bot.player_stats.find(
-            {"tag": {"$in": list(tags)}}, {"tag": 1, "legends": 1}
-        ).to_list(length=None)
+        results = await self.bot.player_stats.find({"tag": {"$in": list(tags)}}, {"tag": 1, "legends": 1}).to_list(
+            length=None
+        )
         results = {r.get("tag"): r for r in results}
 
-        full_ranking_data = await self.bot.leaderboard_db.find(
-            {"tag": {"$in": list(tags)}}
-        ).to_list(length=None)
+        full_ranking_data = await self.bot.leaderboard_db.find({"tag": {"$in": list(tags)}}).to_list(length=None)
         full_ranking_data = {r.get("tag"): r for r in full_ranking_data}
 
-        full_global_ranking = await self.bot.legend_rankings.find(
-            {"tag": {"$in": list(tags)}}
-        ).to_list(length=None)
+        full_global_ranking = await self.bot.legend_rankings.find({"tag": {"$in": list(tags)}}).to_list(length=None)
         full_global_ranking = {r.get("tag"): r for r in full_global_ranking}
 
         player_list = []
@@ -98,8 +88,6 @@ class PlayerClient(BaseClient):
                 self_global_ranking = full_global_ranking.get(tag)
                 if self_global_ranking is not None:
                     ranking_data["global_rank"] = self_global_ranking.get("rank")
-            player_list.append(
-                LegendPlayer(data=data, ranking_data=ranking_data, api_player=member)
-            )
+            player_list.append(LegendPlayer(data=data, ranking_data=ranking_data, api_player=member))
 
         return player_list

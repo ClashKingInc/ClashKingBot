@@ -72,9 +72,7 @@ async def family_names(bot: CustomClient, query: str, guild):
     for document in results:
         clan = document.get("clan_name")
         names.append(
-            f'{create_superscript(document.get("th"))}{document.get("name")} ({clan})'
-            + " | "
-            + document.get("tag")
+            f'{create_superscript(document.get("th"))}{document.get("name")} ({clan})' + " | " + document.get("tag")
         )
     return names
 
@@ -100,8 +98,6 @@ async def all_names(bot: CustomClient, query: str):
     for document in results:
         clan = document.get("clan_name")
         names.append(
-            f'{create_superscript(document.get("th"))}{document.get("name")} ({clan})'
-            + " | "
-            + document.get("tag")
+            f'{create_superscript(document.get("th"))}{document.get("name")} ({clan})' + " | " + document.get("tag")
         )
     return names

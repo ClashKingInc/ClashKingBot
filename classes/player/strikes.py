@@ -16,6 +16,4 @@ class StrikedPlayer(coc.Player):
     def rollover_date(self) -> None | pend.DateTime:
         if not self._results.get("rollover_date"):
             return None
-        return pend.from_timestamp(
-            timestamp=self._results.get("rollover_date"), tz=pend.UTC
-        )
+        return pend.from_timestamp(timestamp=self._results.get("rollover_date"), tz=pend.UTC)

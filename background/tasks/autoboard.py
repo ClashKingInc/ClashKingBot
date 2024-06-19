@@ -17,14 +17,10 @@ class board_loop(commands.Cog):
     async def autoboard_cron(self):
         hour = 4
         results = self.bot.server_db.find({"topboardchannel": {"$ne": None}})
-        limit = await self.bot.server_db.count_documents(
-            filter={"topboardchannel": {"$ne": None}}
-        )
+        limit = await self.bot.server_db.count_documents(filter={"topboardchannel": {"$ne": None}})
         tasks = []
         date = self.bot.gen_legend_date()
-        all_tags = await self.bot.clan_db.distinct(
-            "tag", {"server": {"$in": list(self.bot.OUR_GUILDS)}}
-        )
+        all_tags = await self.bot.clan_db.distinct("tag", {"server": {"$in": list(self.bot.OUR_GUILDS)}})
         all_clans = await self.bot.get_clans(tags=all_tags)
         clan_dict = {}
         for clan in all_clans:
@@ -108,9 +104,7 @@ class board_loop(commands.Cog):
                 tasks.append(InsertOne({"identifier": identifier, "text": texts}))
 
             except (disnake.NotFound, disnake.Forbidden):
-                await self.bot.server_db.update_one(
-                    {"server": r.get("server")}, {"$set": {"topboardchannel": None}}
-                )
+                await self.bot.server_db.update_one({"server": r.get("server")}, {"$set": {"topboardchannel": None}})
 
         country_results = {}
         locations = await self.bot.coc_client.search_locations(limit=None)
@@ -134,9 +128,7 @@ class board_loop(commands.Cog):
                 try:
                     rankings = country_results[country.id]
                 except:
-                    rankings = await self.bot.coc_client.get_location_clans(
-                        location_id=country.id
-                    )
+                    rankings = await self.bot.coc_client.get_location_clans(location_id=country.id)
                     country_results[country.id] = rankings
                 # print(rankings)
 
@@ -171,13 +163,9 @@ class board_loop(commands.Cog):
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
         if "auto_" in str(ctx.data.custom_id):
-            result = await self.bot.autoboards.find_one(
-                {"identifier": str(ctx.data.custom_id)}
-            )
+            result = await self.bot.autoboards.find_one({"identifier": str(ctx.data.custom_id)})
             if result is None:
-                return await ctx.send(
-                    content="No results stored for this day", ephemeral=True
-                )
+                return await ctx.send(content="No results stored for this day", ephemeral=True)
             texts = result.get("text")
             embeds = []
             for text in texts:
@@ -215,9 +203,7 @@ class board_loop(commands.Cog):
                 text = ""
 
         if text != "":
-            embed = disnake.Embed(
-                title=f"**Erikuh's Legend Competition Leaderboard**", description=text
-            )
+            embed = disnake.Embed(title=f"**Erikuh's Legend Competition Leaderboard**", description=text)
             if guild.icon is not None:
                 embed.set_thumbnail(url=guild.icon.url)
             embeds.append(embed)

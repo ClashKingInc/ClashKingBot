@@ -93,9 +93,7 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
         msg = await ctx.original_message()
         await button_pagination(self.bot, ctx, msg, results)
 
-    @player.sub_command(
-        name="upgrades", description="Show upgrades left for an account"
-    )
+    @player.sub_command(name="upgrades", description="Show upgrades left for an account")
     async def upgrades(
         self,
         ctx: disnake.ApplicationCommandInteraction,
@@ -110,9 +108,7 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
         else:
             search_query = str(discord_user.id)
 
-        player = await self.bot.getPlayer(
-            player_tag=player_tag, custom=True, raise_exceptions=True
-        )
+        player = await self.bot.getPlayer(player_tag=player_tag, custom=True, raise_exceptions=True)
         embed = await create_profile_troops(bot=self.bot, result=player)
         components = []
         """if len(players) > 1:
@@ -148,22 +144,16 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
             embed = await create_profile_troops(self.bot, players[current_page])
             await res.edit_original_message(embeds=embed)
 
-    @player.sub_command(
-        name="accounts", description="List of accounts a user has & combined stats"
-    )
+    @player.sub_command(name="accounts", description="List of accounts a user has & combined stats")
     async def accounts(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         discord_user: disnake.Member = None,
     ):
-        embed_color = await self.bot.ck_client.get_server_embed_color(
-            server_id=ctx.guild_id
-        )
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
         discord_user = discord_user or ctx.author
 
-        embed = await player_accounts(
-            bot=self.bot, discord_user=discord_user, embed_color=embed_color
-        )
+        embed = await player_accounts(bot=self.bot, discord_user=discord_user, embed_color=embed_color)
 
         buttons = disnake.ui.ActionRow(
             disnake.ui.Button(
@@ -186,9 +176,7 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
         discord_user: disnake.Member = None,
     ):
 
-        embed_color = await self.bot.ck_client.get_server_embed_color(
-            server_id=ctx.guild_id
-        )
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
         discord_user = discord_user or ctx.author
 
         buttons = disnake.ui.ActionRow(
@@ -205,9 +193,7 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
                 custom_id=f"playertodosettings:ctx",
             ),
         )
-        embed = await to_do_embed(
-            bot=self.bot, discord_user=discord_user, embed_color=embed_color
-        )
+        embed = await to_do_embed(bot=self.bot, discord_user=discord_user, embed_color=embed_color)
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     '''@player.sub_command(name="war-stats", description="War stats of a player or discord user")

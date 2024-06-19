@@ -64,14 +64,10 @@ class OwnerCommands(commands.Cog):
             )
         ]
         t_ = int(datetime.now().timestamp())
-        await ctx.response.send_modal(
-            title="Code", custom_id=f"basicembed-{t_}", components=components
-        )
+        await ctx.response.send_modal(title="Code", custom_id=f"basicembed-{t_}", components=components)
 
         def check(res: disnake.ModalInteraction):
-            return (
-                ctx.author.id == res.author.id and res.custom_id == f"basicembed-{t_}"
-            )
+            return ctx.author.id == res.author.id and res.custom_id == f"basicembed-{t_}"
 
         try:
             modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
@@ -134,9 +130,7 @@ class OwnerCommands(commands.Cog):
                     buf = v + "\n"
             buffer.append(buf)
             for i, b in enumerate(buffer):
-                await ctx.followup.send(
-                    embed=disnake.Embed(description=f"```py\n{b}```")
-                )
+                await ctx.followup.send(embed=disnake.Embed(description=f"```py\n{b}```"))
 
     @commands.slash_command(name="test", guild_ids=[923764211845312533])
     @commands.is_owner()
@@ -1727,13 +1721,9 @@ class OwnerCommands(commands.Cog):
             clan_name = event.get("new_player").get("clan", {}).get("name", "No Clan")
             player_name = event.get("new_player").get("name")
 
-        server_ids = await self.bot.clan_db.distinct(
-            "server", filter={"tag": "#2QJGQLVJ9"}
-        )
+        server_ids = await self.bot.clan_db.distinct("server", filter={"tag": "#2QJGQLVJ9"})
         for server_id in server_ids:
-            db_server = await self.bot.ck_client.get_server_settings(
-                server_id=server_id
-            )
+            db_server = await self.bot.ck_client.get_server_settings(server_id=server_id)
 
             if db_server.server_id not in self.bot.OUR_GUILDS:
                 continue
@@ -1744,9 +1734,7 @@ class OwnerCommands(commands.Cog):
                 "league": "league_change",
             }
             if (
-                trigger_name := convert_trigger.get(
-                    event.get("trigger"), event.get("trigger")
-                )
+                trigger_name := convert_trigger.get(event.get("trigger"), event.get("trigger"))
             ) not in db_server.autoeval_triggers:
                 continue
 
@@ -1775,9 +1763,7 @@ class OwnerCommands(commands.Cog):
                 # if db_server.auto_eval_log is not None:
                 try:
                     channel = await self.bot.getch_channel(1197924424863731792)
-                    await channel.send(
-                        content=f"Trigger by {trigger_name}", embeds=embeds
-                    )
+                    await channel.send(content=f"Trigger by {trigger_name}", embeds=embeds)
                 except (disnake.NotFound, disnake.Forbidden):
                     # await self.bot.server_db.update_one({"server": data.get("server")}, {'$set': {"autoeval_log": None}})
                     pass
@@ -1813,44 +1799,26 @@ class OwnerCommands(commands.Cog):
                     or six_month in member.roles
                     or three_month in member.roles
                 ):
-                    await member.remove_roles(
-                        *[twelve_month, nine_month, six_month, three_month]
-                    )
+                    await member.remove_roles(*[twelve_month, nine_month, six_month, three_month])
             elif num_months >= 12:
                 if twelve_month not in member.roles:
                     await member.add_roles(*[twelve_month])
-                if (
-                    nine_month in member.roles
-                    or six_month in member.roles
-                    or three_month in member.roles
-                ):
+                if nine_month in member.roles or six_month in member.roles or three_month in member.roles:
                     await member.remove_roles(*[nine_month, six_month, three_month])
             elif num_months >= 9:
                 if nine_month not in member.roles:
                     await member.add_roles(*[nine_month])
-                if (
-                    twelve_month in member.roles
-                    or six_month in member.roles
-                    or three_month in member.roles
-                ):
+                if twelve_month in member.roles or six_month in member.roles or three_month in member.roles:
                     await member.remove_roles(*[twelve_month, six_month, three_month])
             elif num_months >= 6:
                 if six_month not in member.roles:
                     await member.add_roles(*[six_month])
-                if (
-                    twelve_month in member.roles
-                    or nine_month in member.roles
-                    or three_month in member.roles
-                ):
+                if twelve_month in member.roles or nine_month in member.roles or three_month in member.roles:
                     await member.remove_roles(*[twelve_month, nine_month, three_month])
             elif num_months >= 3:
                 if three_month not in member.roles:
                     await member.add_roles(*[three_month])
-                if (
-                    twelve_month in member.roles
-                    or nine_month in member.roles
-                    or six_month in member.roles
-                ):
+                if twelve_month in member.roles or nine_month in member.roles or six_month in member.roles:
                     await member.remove_roles(*[twelve_month, nine_month, six_month])
             x += 1
         await msg.edit(content="Done")

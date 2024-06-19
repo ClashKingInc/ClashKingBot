@@ -54,9 +54,7 @@ class Reminder:
 
     async def fetch_roster(self):
         if self.type == "roster":
-            result = await self.__bot.rosters.find_one(
-                {"_id": self.__data.get("roster")}
-            )
+            result = await self.__bot.rosters.find_one({"_id": self.__data.get("roster")})
             return Roster(bot=self.__bot, roster_result=result)
         return None
 

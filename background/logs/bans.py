@@ -17,14 +17,13 @@ class BanEvents(commands.Cog):
     async def ban_alerts(self, event):
         clan = coc.Clan(data=event["new_clan"], client=self.bot.coc_client)
         members_joined = [
-            coc.ClanMember(data=member, client=self.bot.coc_client, clan=clan)
-            for member in event.get("joined", [])
+            coc.ClanMember(data=member, client=self.bot.coc_client, clan=clan) for member in event.get("joined", [])
         ]
 
         if members_joined:
-            results = await self.bot.banlist.find(
-                {"VillageTag": {"$in": [m.tag for m in members_joined]}}
-            ).to_list(length=None)
+            results = await self.bot.banlist.find({"VillageTag": {"$in": [m.tag for m in members_joined]}}).to_list(
+                length=None
+            )
             # members that have ban results
             for result in results:
                 # go thru each banned person, and find out what server they are banned on
@@ -33,9 +32,7 @@ class BanEvents(commands.Cog):
                     continue
 
                 # find the clan + server combination
-                clan_result = await self.bot.clan_db.find_one(
-                    {"$and": [{"tag": clan.tag}, {"server": ban_server_id}]}
-                )
+                clan_result = await self.bot.clan_db.find_one({"$and": [{"tag": clan.tag}, {"server": ban_server_id}]})
                 if clan_result:
                     db_clan = DatabaseClan(bot=self.bot, data=clan_result)
 

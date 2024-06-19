@@ -18,9 +18,7 @@ class GraphCreator(commands.Cog, name="Graph Commands"):
     async def graph(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
 
-    @graph.sub_command(
-        name="over-time", description="Details for a clan(s)/family over time"
-    )
+    @graph.sub_command(name="over-time", description="Details for a clan(s)/family over time")
     async def graph_over_time(
         self,
         ctx: disnake.ApplicationCommandInteraction,
@@ -59,16 +57,10 @@ class GraphCreator(commands.Cog, name="Graph Commands"):
             html=True,
         )
         buttons = disnake.ui.ActionRow()
-        buttons.append_item(
-            disnake.ui.Button(
-                style=disnake.ButtonStyle.url, label="Online View", url=web
-            )
-        )
+        buttons.append_item(disnake.ui.Button(style=disnake.ButtonStyle.url, label="Online View", url=web))
         await ctx.send(file=graph, components=[buttons])
 
-    @graph.sub_command(
-        name="month", description="Bar Chart comparing clans for an attribute"
-    )
+    @graph.sub_command(name="month", description="Bar Chart comparing clans for an attribute")
     async def graph_over_month(
         self,
         ctx: disnake.ApplicationCommandInteraction,
@@ -107,16 +99,10 @@ class GraphCreator(commands.Cog, name="Graph Commands"):
             html=True,
         )
         buttons = disnake.ui.ActionRow()
-        buttons.append_item(
-            disnake.ui.Button(
-                style=disnake.ButtonStyle.url, label="Online View", url=web
-            )
-        )
+        buttons.append_item(disnake.ui.Button(style=disnake.ButtonStyle.url, label="Online View", url=web))
         await ctx.send(file=graph, components=[buttons])
 
-    @graph.sub_command(
-        name="daily", description="Line chart showing attribute over time"
-    )
+    @graph.sub_command(name="daily", description="Line chart showing attribute over time")
     async def graph_daily(
         self,
         ctx: disnake.ApplicationCommandInteraction,
@@ -169,11 +155,7 @@ class GraphCreator(commands.Cog, name="Graph Commands"):
             html=True,
         )
         buttons = disnake.ui.ActionRow()
-        buttons.append_item(
-            disnake.ui.Button(
-                style=disnake.ButtonStyle.url, label="Online View", url=web
-            )
-        )
+        buttons.append_item(disnake.ui.Button(style=disnake.ButtonStyle.url, label="Online View", url=web))
         await ctx.send(file=graph, components=[buttons])
 
 

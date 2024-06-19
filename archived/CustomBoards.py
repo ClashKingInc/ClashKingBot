@@ -30,9 +30,7 @@ class CustomBoards(commands.Cog):
         else:
             try:
                 if "discord.com" not in embed_link:
-                    return await ctx.send(
-                        content=f"Not a valid message link", ephemeral=True
-                    )
+                    return await ctx.send(content=f"Not a valid message link", ephemeral=True)
                 link_split = embed_link.split("/")
                 message_id = link_split[-1]
                 channel_id = link_split[-2]
@@ -45,9 +43,7 @@ class CustomBoards(commands.Cog):
                     )
                 message = await channel.fetch_message(int(message_id))
                 if not message.embeds:
-                    return await ctx.send(
-                        content=f"Message has no embeds", ephemeral=True
-                    )
+                    return await ctx.send(content=f"Message has no embeds", ephemeral=True)
                 embed = message.embeds[0].to_dict()
             except:
                 return await ctx.send(
@@ -55,13 +51,9 @@ class CustomBoards(commands.Cog):
                     ephemeral=True,
                 )
 
-        result = await self.bot.custom_boards.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": alias}]}
-        )
+        result = await self.bot.custom_boards.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": alias}]})
         if result is not None:
-            return await ctx.send(
-                content=f"Custom Board - `{alias}` already exists", ephemeral=True
-            )
+            return await ctx.send(content=f"Custom Board - `{alias}` already exists", ephemeral=True)
 
         await self.bot.custom_boards.insert_one(
             {
@@ -72,27 +64,17 @@ class CustomBoards(commands.Cog):
             }
         )
 
-        await ctx.edit_original_message(
-            embed=embed, content=f"**__{alias}__ custom board created!**"
-        )
+        await ctx.edit_original_message(embed=embed, content=f"**__{alias}__ custom board created!**")
 
     @board.sub_command(name="buttons-add", description="Add buttons on a custom board")
-    async def board_buttons(
-        self, ctx: disnake.ApplicationCommandInteraction, alias: str
-    ):
-        result = await self.bot.custom_boards.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": alias}]}
-        )
+    async def board_buttons(self, ctx: disnake.ApplicationCommandInteraction, alias: str):
+        result = await self.bot.custom_boards.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": alias}]})
         if result is None:
-            return await ctx.send(
-                content=f"Custom Board - `{alias}` does not exist", ephemeral=True
-            )
+            return await ctx.send(content=f"Custom Board - `{alias}` does not exist", ephemeral=True)
         await ctx.response.defer()
         panel = disnake.Embed().from_dict(data=result.get("embed"))
         components = result.get("buttons")
-        new_component_list = await self.button_wizard(
-            ctx=ctx, panel=panel, components=components
-        )
+        new_component_list = await self.button_wizard(ctx=ctx, panel=panel, components=components)
 
     async def button_wizard(
         self,
@@ -101,9 +83,7 @@ class CustomBoards(commands.Cog):
         components: list,
     ):
         if len(components) <= 24:
-            button = disnake.ui.Button(
-                emoji="➕", style=disnake.ButtonStyle.green, custom_id="add_button"
-            )
+            button = disnake.ui.Button(emoji="➕", style=disnake.ButtonStyle.green, custom_id="add_button")
             components.append(button.to_component_dict())
 
         buttons = await self.generate_components(components=components, disable=True)
@@ -114,24 +94,16 @@ class CustomBoards(commands.Cog):
         )
 
         while True:
-            res: disnake.MessageInteraction = await interaction_handler(
-                bot=self.bot, ctx=ctx
-            )
+            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
             if str(res.data.custom_id) == "add_button":
                 button_types = [  # the options in your dropdown
                     disnake.SelectOption(label="Clan Command", value="clan_command"),
-                    disnake.SelectOption(
-                        label="Family Command", value="family_command"
-                    ),
+                    disnake.SelectOption(label="Family Command", value="family_command"),
                     disnake.SelectOption(label="Ticket Button", value="ticket_button"),
                     disnake.SelectOption(label="URL Button", value="url_button"),
-                    disnake.SelectOption(
-                        label="Refresh Button", value="refresh_button"
-                    ),
+                    disnake.SelectOption(label="Refresh Button", value="refresh_button"),
                     disnake.SelectOption(label="Link Button", value="link_button"),
-                    disnake.SelectOption(
-                        label="Player To-Do Button", value="todo_button"
-                    ),
+                    disnake.SelectOption(label="Player To-Do Button", value="todo_button"),
                 ]
                 button_select = disnake.ui.StringSelect(
                     options=button_types,
@@ -143,27 +115,19 @@ class CustomBoards(commands.Cog):
                     components=[disnake.ui.ActionRow(button_select)],
                     ephemeral=True,
                 )
-                res: disnake.MessageInteraction = await interaction_handler(
-                    bot=self.bot, ctx=res, msg=msg
-                )
+                res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=res, msg=msg)
                 if str(res.data.custom_id) == "clan_command":
-                    clan_tags = await self.bot.clan_db.distinct(
-                        "tag", filter={"server": ctx.guild.id}
-                    )
+                    clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
                     clans = await self.bot.get_clans(tags=clan_tags)
                     select_menu_options = []
                     clans = sorted(clans, key=lambda x: x.member_count, reverse=True)
                     for count, clan in enumerate(clans):
-                        emoji = await self.bot.create_new_badge_emoji(
-                            url=clan.badge.url
-                        )
+                        emoji = await self.bot.create_new_badge_emoji(url=clan.badge.url)
                         if count < 25:
                             select_menu_options.append(
                                 disnake.SelectOption(
                                     label=clan.name,
-                                    emoji=self.bot.partial_emoji_gen(
-                                        emoji_string=emoji
-                                    ),
+                                    emoji=self.bot.partial_emoji_gen(emoji_string=emoji),
                                     value=clan.tag,
                                 )
                             )
@@ -175,12 +139,8 @@ class CustomBoards(commands.Cog):
                         min_values=1,  # the minimum number of options a user must select
                         max_values=1,
                     )
-                    await msg.edit(
-                        components=[disnake.ui.ActionRow(select)], content="Select Clan"
-                    )
-                    res: disnake.MessageInteraction = await interaction_handler(
-                        bot=self.bot, ctx=res, msg=msg
-                    )
+                    await msg.edit(components=[disnake.ui.ActionRow(select)], content="Select Clan")
+                    res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=res, msg=msg)
                     clan_tag = res.values[0]
                     (text, emoji) = await self.button_modal(self, res)
                     button = disnake.ui.Button(
@@ -190,9 +150,7 @@ class CustomBoards(commands.Cog):
                         custom_id=f"act_ephemeral_{self.bot.gen_season_date()}_{clan_tag}",
                     )
                     components.append(button.to_component_dict())
-                    buttons = await self.generate_components(
-                        components=components, disable=True
-                    )
+                    buttons = await self.generate_components(components=components, disable=True)
                     await ctx.edit_original_message(
                         content="**Use the buttons below to edit existing buttons or add new ones**",
                         embed=panel,
@@ -247,9 +205,7 @@ class CustomBoards(commands.Cog):
             emoji = component.get("emoji")
             if emoji is not None:
                 if emoji.get("id") is not None:
-                    emoji = self.bot.partial_emoji_gen(
-                        f"<:{emoji.get('name')}:{emoji.get('id')}>"
-                    )
+                    emoji = self.bot.partial_emoji_gen(f"<:{emoji.get('name')}:{emoji.get('id')}>")
                 else:
                     emoji = emoji.get("name")
             style = {

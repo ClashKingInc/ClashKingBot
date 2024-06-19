@@ -38,9 +38,7 @@ class clan_events(commands.Cog, name="Clan Events"):
                 and old_clan.member_count <= db_clan.member_count_warning.above
             ):
                 try:
-                    channel = await self.bot.getch_channel(
-                        db_clan.member_count_warning.channel, raise_exception=True
-                    )
+                    channel = await self.bot.getch_channel(db_clan.member_count_warning.channel, raise_exception=True)
                     text = f"{new_clan.name} is above {db_clan.member_count_warning.above} members"
                     embed = disnake.Embed(description=text, color=disnake.Color.green())
                     embed.set_thumbnail(url=new_clan.badge.url)
@@ -59,9 +57,7 @@ class clan_events(commands.Cog, name="Clan Events"):
                 and old_clan.member_count >= db_clan.member_count_warning.below
             ):
                 try:
-                    channel = await self.bot.getch_channel(
-                        db_clan.member_count_warning.channel, raise_exception=True
-                    )
+                    channel = await self.bot.getch_channel(db_clan.member_count_warning.channel, raise_exception=True)
                     text = f"{new_clan.name} is below {db_clan.member_count_warning.below} members"
                     embed = disnake.Embed(description=text, color=disnake.Color.red())
                     embed.set_thumbnail(url=new_clan.badge.url)

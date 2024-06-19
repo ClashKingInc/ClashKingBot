@@ -19,12 +19,8 @@ class misc(commands.Cog, name="Other"):
         self.bot = bot
         self.up = time.time()
 
-    @commands.slash_command(
-        name="role-users", description="Get a list of users in a role"
-    )
-    async def roleusers(
-        self, ctx: disnake.ApplicationCommandInteraction, role: disnake.Role
-    ):
+    @commands.slash_command(name="role-users", description="Get a list of users in a role")
+    async def roleusers(self, ctx: disnake.ApplicationCommandInteraction, role: disnake.Role):
         await ctx.response.defer()
         if not ctx.guild.chunked:
             if ctx.guild.id not in self.bot.STARTED_CHUNK:
@@ -61,9 +57,7 @@ class misc(commands.Cog, name="Other"):
                 embed.set_thumbnail(url=ctx.guild.icon.url)
             embeds.append(embed)
         current_page = 0
-        await ctx.edit_original_message(
-            embed=embeds[0], components=create_components(current_page, embeds, True)
-        )
+        await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))
 
         msg = await ctx.original_message()
 
@@ -101,9 +95,7 @@ class misc(commands.Cog, name="Other"):
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)
 
-    @commands.slash_command(
-        name="bot-stats", description="Stats about bots uptime & ping"
-    )
+    @commands.slash_command(name="bot-stats", description="Stats about bots uptime & ping")
     async def stat(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
         uptime = time.time() - self.up
@@ -164,12 +156,8 @@ class misc(commands.Cog, name="Other"):
         server = server or ctx.guild
         pass
 
-    @commands.slash_command(
-        name="pepe", description="Fun Command. Create a pepe holding a sign w/ text."
-    )
-    async def create_pepe(
-        self, ctx, sign_text: str, hidden: str = commands.Param(choices=["Yes", "No"])
-    ):
+    @commands.slash_command(name="pepe", description="Fun Command. Create a pepe holding a sign w/ text.")
+    async def create_pepe(self, ctx, sign_text: str, hidden: str = commands.Param(choices=["Yes", "No"])):
         """
         Parameters
         ----------
@@ -211,9 +199,7 @@ class misc(commands.Cog, name="Other"):
         sign_text = split_text(sign_text, characters_per_line)
         height = 55
         height = height - (2 * sign_text.count("\n"))
-        draw.text(
-            ((width / 2) - 5, height), sign_text, anchor="mm", fill=(0, 0, 0), font=font
-        )
+        draw.text(((width / 2) - 5, height), sign_text, anchor="mm", fill=(0, 0, 0), font=font)
 
         temp = io.BytesIO()
         back.save(temp, format="png")
@@ -238,9 +224,7 @@ class misc(commands.Cog, name="Other"):
     async def fankit(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         await ctx.response.defer()
 
-        embed_color = await self.bot.ck_client.get_server_embed_color(
-            server_id=ctx.guild.id
-        )
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild.id)
 
         async with aiohttp.ClientSession() as session:
             async with session.get(
@@ -287,22 +271,16 @@ class misc(commands.Cog, name="Other"):
             return buttons
 
         index = 0
-        message = await ctx.send(
-            embed=create_embed(data[index]), components=create_buttons(index, len(data))
-        )
+        message = await ctx.send(embed=create_embed(data[index]), components=create_buttons(index, len(data)))
 
         while True:
-            interaction: disnake.MessageInteraction = await interaction_handler(
-                bot=self.bot, ctx=ctx, msg=message
-            )
+            interaction: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, msg=message)
             if interaction.component.custom_id == "prev":
                 index = max(0, index - 1)
             elif interaction.component.custom_id == "next":
                 index = min(len(data) - 1, index + 1)
             elif interaction.component.custom_id == "download":
-                await interaction.followup.send(
-                    data[index]["preview_url"], ephemeral=True
-                )
+                await interaction.followup.send(data[index]["preview_url"], ephemeral=True)
             elif interaction.component.custom_id == "add_emoji":
                 if interaction.user.guild_permissions.manage_emojis_and_stickers:
                     url = data[index]["generic_url"].replace("{width}", "250")
@@ -313,14 +291,10 @@ class misc(commands.Cog, name="Other"):
                             image_data = await response.read()
 
                     guild = ctx.guild
-                    emoji = await guild.create_custom_emoji(
-                        name=title, image=image_data
-                    )
+                    emoji = await guild.create_custom_emoji(name=title, image=image_data)
                     await ctx.followup.send(f"Emoji created: {emoji}", ephemeral=True)
                 else:
-                    await ctx.followup.send(
-                        "You do not have permission to add emojis.", ephemeral=True
-                    )
+                    await ctx.followup.send("You do not have permission to add emojis.", ephemeral=True)
 
             await interaction.edit_original_message(
                 embed=create_embed(data[index]),
@@ -331,18 +305,11 @@ class misc(commands.Cog, name="Other"):
     async def on_message(self, message: disnake.Message):
         if message.content[:2] == "-/" and self.bot.user.public_flags.verified_bot:
             try:
-                command = self.bot.get_global_command_named(
-                    name=message.content.replace("-/", "").split(" ")[0]
-                )
-                await message.channel.send(
-                    f"</{message.content.replace('-/', '')}:{command.id}>"
-                )
+                command = self.bot.get_global_command_named(name=message.content.replace("-/", "").split(" ")[0])
+                await message.channel.send(f"</{message.content.replace('-/', '')}:{command.id}>")
             except Exception:
                 pass
-        elif (
-            message.channel.id == 1204977978438848522
-            and self.bot.user.mention in message.content
-        ):
+        elif message.channel.id == 1204977978438848522 and self.bot.user.mention in message.content:
             query = message.content.replace(self.bot.user.mention, "")
             async with aiohttp.ClientSession() as session:
                 async with session.get(

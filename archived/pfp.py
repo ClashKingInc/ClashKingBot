@@ -31,9 +31,7 @@ class pfp(commands.Cog):
         img = Image.new("RGBA", (width, height), transparent)
         draw = ImageDraw.Draw(img)
 
-        draw.text(
-            (width / 2, height / 2), name, anchor="mm", fill=(22, 37, 91), font=font
-        )
+        draw.text((width / 2, height / 2), name, anchor="mm", fill=(22, 37, 91), font=font)
         draw = ImageDraw.Draw(img)
         img.save("ARCHIVED/text.png")
         # img.show()

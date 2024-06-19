@@ -90,9 +90,7 @@ def basic_heros(bot, player: coc.Player):
     for hero in player.heroes:
         if not hero.is_home_base:
             continue
-        hero_string += (
-            f"{SharedEmojis.all_emojis.get(hero.name)}{get_level_emoji(hero)}"
-        )
+        hero_string += f"{SharedEmojis.all_emojis.get(hero.name)}{get_level_emoji(hero)}"
 
     if not hero_string:
         return ""
@@ -148,11 +146,7 @@ def troops(player, bot=None):
     z = 0
     for x in range(len(troops)):
         troop = troops[x]
-        if (
-            (troop.is_home_base)
-            and (troop.name not in coc.SIEGE_MACHINE_ORDER)
-            and (troop.name not in SUPER_TROOPS)
-        ):
+        if (troop.is_home_base) and (troop.name not in coc.SIEGE_MACHINE_ORDER) and (troop.name not in SUPER_TROOPS):
             z += 1
             troopList += SharedEmojis.all_emojis.get(troop.name) + " "
             levelList += str(get_level_emoji(troop))
@@ -315,9 +309,7 @@ def league_to_emoji(league: str):
 
 
 def cwl_league_emojis(league: str):
-    return SharedEmojis.all_emojis.get(
-        f"CWL {league}", SharedEmojis.all_emojis.get("unranked")
-    )
+    return SharedEmojis.all_emojis.get(f"CWL {league}", SharedEmojis.all_emojis.get("unranked"))
 
 
 def is_cwl():
@@ -367,12 +359,8 @@ def gen_season_start_end_as_iso(season: str):
         month=(int(month) - 1 if int(month) != 1 else month == 12),
         year=int(year) if int(month) != 1 else int(year) - 1,
     ).timestamp()
-    SEASON_START = datetime.fromtimestamp(SEASON_START, tz=utc).strftime(
-        "%Y%m%dT%H%M%S.000Z"
-    )
-    SEASON_END = datetime.fromtimestamp(SEASON_END, tz=utc).strftime(
-        "%Y%m%dT%H%M%S.000Z"
-    )
+    SEASON_START = datetime.fromtimestamp(SEASON_START, tz=utc).strftime("%Y%m%dT%H%M%S.000Z")
+    SEASON_END = datetime.fromtimestamp(SEASON_END, tz=utc).strftime("%Y%m%dT%H%M%S.000Z")
     return (SEASON_START, SEASON_END)
 
 

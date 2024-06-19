@@ -31,9 +31,7 @@ class LinkButtonExtended(commands.Cog):
             link_channel = results.get("welcome_link_channel")
             if link_channel is not None:
                 if results.get("welcome_link_embed") is not None:
-                    embed = disnake.Embed.from_dict(
-                        data=results.get("welcome_link_embed")
-                    )
+                    embed = disnake.Embed.from_dict(data=results.get("welcome_link_embed"))
                 else:
                     embed = disnake.Embed(
                         title=f"**Welcome to {member.guild.name}!**",
@@ -60,9 +58,7 @@ class LinkButtonExtended(commands.Cog):
                 if member.guild.icon is not None:
                     embed.set_thumbnail(url=member.guild.icon.url)
                 try:
-                    channel = await self.bot.getch_channel(
-                        link_channel, raise_exception=True
-                    )
+                    channel = await self.bot.getch_channel(link_channel, raise_exception=True)
                     if member.guild.id == 923764211845312533:
                         await channel.send(
                             content=member.mention,
@@ -77,18 +73,14 @@ class LinkButtonExtended(commands.Cog):
                             components=[stat_buttons],
                         )
                 except (disnake.NotFound, disnake.Forbidden):
-                    await self.bot.welcome.update_one(
-                        {"server": member.guild.id}, {"$set": {"link_channel": None}}
-                    )
+                    await self.bot.welcome.update_one({"server": member.guild.id}, {"$set": {"link_channel": None}})
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
 
         if ctx.data.custom_id == "Refresh Roles":
             await ctx.response.defer(ephemeral=True)
-            server = await self.bot.ck_client.get_server_settings(
-                server_id=ctx.guild_id
-            )
+            server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
             server_member = await ctx.guild.getch_member(ctx.user.id)
             await logic(
                 bot=self.bot,
@@ -103,9 +95,7 @@ class LinkButtonExtended(commands.Cog):
             await ctx.response.defer(ephemeral=True)
             discord_user = ctx.author
             linked_accounts = await search_results(self.bot, str(discord_user.id))
-            embed = await to_do_embed(
-                bot=self.bot, discord_user=discord_user, linked_accounts=linked_accounts
-            )
+            embed = await to_do_embed(bot=self.bot, discord_user=discord_user, linked_accounts=linked_accounts)
             await ctx.send(embed=embed, ephemeral=True)
 
         elif ctx.data.custom_id == "MyRosters":
@@ -115,20 +105,12 @@ class LinkButtonExtended(commands.Cog):
             players = await self.bot.get_players(tags=tags, custom=False)
             text = ""
             for player in players:
-                rosters_found = await self.bot.rosters.find(
-                    {"members.tag": player.tag}
-                ).to_list(length=100)
+                rosters_found = await self.bot.rosters.find({"members.tag": player.tag}).to_list(length=100)
                 if not rosters_found:
                     continue
-                text += (
-                    f"{self.bot.fetch_emoji(name=player.town_hall)}**{player.name}**\n"
-                )
+                text += f"{self.bot.fetch_emoji(name=player.town_hall)}**{player.name}**\n"
                 for roster in rosters_found:
-                    our_member = next(
-                        member
-                        for member in roster["members"]
-                        if member["tag"] == player.tag
-                    )
+                    our_member = next(member for member in roster["members"] if member["tag"] == player.tag)
                     group = our_member["group"]
                     if group == "No Group":
                         group = "Main"
@@ -145,9 +127,7 @@ class LinkButtonExtended(commands.Cog):
             await ctx.send(embed=embed, ephemeral=True)
 
         elif ctx.data.custom_id == "Start Link":
-            db_server = await self.bot.ck_client.get_server_settings(
-                server_id=ctx.guild.id
-            )
+            db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild.id)
             components = [
                 disnake.ui.TextInput(
                     label="Player Tag",
@@ -196,9 +176,7 @@ class LinkButtonExtended(commands.Cog):
             if not modal_inter.response.is_done():
                 await modal_inter.response.defer(ephemeral=True)
 
-            player: StatsPlayer = await self.bot.getPlayer(
-                player_tag=player_tag, custom=True
-            )
+            player: StatsPlayer = await self.bot.getPlayer(player_tag=player_tag, custom=True)
             if player is None:
                 clan = await self.bot.getClan(clan_tag=player_tag)
                 if clan is not None:
@@ -206,18 +184,14 @@ class LinkButtonExtended(commands.Cog):
                         description=f"Sorry, `{player_tag}` is invalid and it also appears to be the **clan** tag for {clan.name}\nUse the image below to help find your player tag.",
                         color=disnake.Color.red(),
                     )
-                    embed.set_image(
-                        url="https://clashking.b-cdn.net/clash-assets/bot/find_player_tag.png"
-                    )
+                    embed.set_image(url="https://clashking.b-cdn.net/clash-assets/bot/find_player_tag.png")
                     return await modal_inter.send(embed=embed, ephemeral=True)
                 else:
                     embed = disnake.Embed(
                         description=f"**Sorry, `{player_tag}` is an invalid player tag** :( \nUse the image below to help find your player tag.",
                         color=disnake.Color.red(),
                     )
-                    embed.set_image(
-                        url="https://clashking.b-cdn.net/clash-assets/bot/find_player_tag.png"
-                    )
+                    embed.set_image(url="https://clashking.b-cdn.net/clash-assets/bot/find_player_tag.png")
                     return await modal_inter.send(embed=embed, ephemeral=True)
 
             link_id = await player.linked()
@@ -260,9 +234,7 @@ class LinkButtonExtended(commands.Cog):
                     if results is not None:
                         greeting = results.get("greeting")
                         if greeting is None:
-                            badge = await self.bot.create_new_badge_emoji(
-                                url=player.clan.badge.url
-                            )
+                            badge = await self.bot.create_new_badge_emoji(url=player.clan.badge.url)
                             greeting = f", welcome to {badge}{player.clan.name}!"
                         channel = results.get("clanChannel")
                         channel = self.bot.get_channel(channel)
@@ -290,16 +262,12 @@ class LinkButtonExtended(commands.Cog):
                 f"- Make sure it is the player tag & **not** the clan\n- View photo below for reference",
                 color=disnake.Color.red(),
             )
-            embed.set_image(
-                url="https://clashking.b-cdn.net/clash-assets/bot/find_player_tag.png"
-            )
+            embed.set_image(url="https://clashking.b-cdn.net/clash-assets/bot/find_player_tag.png")
             embed2 = disnake.Embed(
                 title="What is your api token? ",
                 description=f"- Reference below for help finding your api token.\n- Open Clash and navigate to Settings > More Settings\n- **OR** use the following link:\nhttps://link.clashofclans.com/?action=OpenMoreSettings"
                 + "\n- Scroll down to the bottom and copy the api token.\n- View the picture below for reference.",
                 color=disnake.Color.red(),
             )
-            embed2.set_image(
-                url="https://clashking.b-cdn.net/clash-assets/bot/api_token_help.png"
-            )
+            embed2.set_image(url="https://clashking.b-cdn.net/clash-assets/bot/api_token_help.png")
             await ctx.send(embeds=[embed, embed2], ephemeral=True)

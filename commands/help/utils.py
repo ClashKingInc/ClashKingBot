@@ -7,9 +7,7 @@ from typing import Dict, List
 
 
 def get_all_commands(bot: CustomClient):
-    command_list: Dict[str, List[disnake.ext.commands.InvokableSlashCommand]] = (
-        defaultdict(list)
-    )
+    command_list: Dict[str, List[disnake.ext.commands.InvokableSlashCommand]] = defaultdict(list)
     for command in bot.slash_commands:
         if command.guild_ids is not None:
             continue
@@ -38,13 +36,7 @@ def get_command_permissions(command: disnake.ext.commands.InvokableSlashCommand)
             for c in closure.cell_contents:
                 if c.__closure__ is not None:
                     try:
-                        permissions.extend(
-                            [
-                                p.replace("_", " ").title()
-                                for p, v in closure.cell_contents.items()
-                                if v
-                            ]
-                        )
+                        permissions.extend([p.replace("_", " ").title() for p, v in closure.cell_contents.items() if v])
                     except:
                         permissions.extend(
                             [

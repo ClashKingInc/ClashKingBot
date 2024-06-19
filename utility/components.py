@@ -55,9 +55,7 @@ def create_components(current_page, embeds, print: bool = False):
                 disabled=(current_page == length - 1),
                 custom_id="Next",
             ),
-            disnake.ui.Button(
-                label="", emoji="🖨️", style=disnake.ButtonStyle.grey, custom_id="Print"
-            ),
+            disnake.ui.Button(label="", emoji="🖨️", style=disnake.ButtonStyle.grey, custom_id="Print"),
         ]
 
     buttons = disnake.ui.ActionRow()
@@ -103,21 +101,11 @@ def leaderboard_components(bot: CustomClient, current_page, num_players):
 
     select = disnake.ui.Select(
         options=[  # the options in your dropdown
-            disnake.SelectOption(
-                label="Alphabetic", emoji=bot.emoji.alphabet.partial_emoji, value="0"
-            ),
-            disnake.SelectOption(
-                label="Started", emoji=bot.emoji.start.partial_emoji, value="1"
-            ),
-            disnake.SelectOption(
-                label="Offense", emoji=bot.emoji.blue_sword.partial_emoji, value="2"
-            ),
-            disnake.SelectOption(
-                label="Defense", emoji=bot.emoji.blue_shield.partial_emoji, value="4"
-            ),
-            disnake.SelectOption(
-                label="Trophies", emoji=bot.emoji.blue_trophy.partial_emoji, value="6"
-            ),
+            disnake.SelectOption(label="Alphabetic", emoji=bot.emoji.alphabet.partial_emoji, value="0"),
+            disnake.SelectOption(label="Started", emoji=bot.emoji.start.partial_emoji, value="1"),
+            disnake.SelectOption(label="Offense", emoji=bot.emoji.blue_sword.partial_emoji, value="2"),
+            disnake.SelectOption(label="Defense", emoji=bot.emoji.blue_shield.partial_emoji, value="4"),
+            disnake.SelectOption(label="Trophies", emoji=bot.emoji.blue_trophy.partial_emoji, value="6"),
         ],
         placeholder=f"📁 Sort Type",  # the placeholder text to show when no options have been chosen
         min_values=1,  # the minimum number of options a user must select
@@ -170,9 +158,7 @@ def player_components(players: List[StatsPlayer]):
                 value=f"{count}",
             )
         )
-    profile_select = disnake.ui.Select(
-        options=player_results, placeholder="Accounts", max_values=1
-    )
+    profile_select = disnake.ui.Select(options=player_results, placeholder="Accounts", max_values=1)
 
     st2 = disnake.ui.ActionRow()
     st2.append_item(profile_select)
@@ -180,9 +166,7 @@ def player_components(players: List[StatsPlayer]):
     return [st2]
 
 
-def clan_board_components(
-    bot: CustomClient, season: Union[str, None], clan_tag: str, type: str
-):
+def clan_board_components(bot: CustomClient, season: Union[str, None], clan_tag: str, type: str):
     buttons = disnake.ui.ActionRow()
     if season is None or season == bot.gen_season_date():
         buttons.append_item(
@@ -235,40 +219,24 @@ def clan_board_components(
                 value=f"00_{b_type.replace(' ', '-').lower()}_{season}_{clan_tag}",
             )
         )
-    types_select = disnake.ui.Select(
-        options=types_select, placeholder="Board Types", max_values=1
-    )
+    types_select = disnake.ui.Select(options=types_select, placeholder="Board Types", max_values=1)
     types_select = disnake.ui.ActionRow(types_select)
     components = [types_select, buttons]
     return components
 
 
-def clan_component(
-    bot: CustomClient, all_clans: List[coc.Clan], clan_page: int = 0, max_choose=None
-):
+def clan_component(bot: CustomClient, all_clans: List[coc.Clan], clan_page: int = 0, max_choose=None):
     clan_options = []
     length = 24
     if clan_page >= 1:
         length = length - 1
     clans = all_clans[(length * clan_page) : (length * clan_page) + length]
     if clan_page >= 1:
-        clan_options.append(
-            disnake.SelectOption(
-                label=f"< Previous 25 Clans", value=f"clanpage_{clan_page - 1}"
-            )
-        )
+        clan_options.append(disnake.SelectOption(label=f"< Previous 25 Clans", value=f"clanpage_{clan_page - 1}"))
     for count, clan in enumerate(clans):
-        clan_options.append(
-            disnake.SelectOption(
-                label=f"{clan.name} ({clan.tag})", value=f"clantag_{clan.tag}"
-            )
-        )
+        clan_options.append(disnake.SelectOption(label=f"{clan.name} ({clan.tag})", value=f"clantag_{clan.tag}"))
     if len(clans) == length and (len(all_clans) > (length * clan_page) + length):
-        clan_options.append(
-            disnake.SelectOption(
-                label=f"Next 25 Clans >", value=f"clanpage_{clan_page + 1}"
-            )
-        )
+        clan_options.append(disnake.SelectOption(label=f"Next 25 Clans >", value=f"clanpage_{clan_page + 1}"))
 
     clan_select = disnake.ui.Select(
         options=clan_options,
@@ -286,9 +254,7 @@ async def basic_clan_dropdown(clans: List[coc.Clan], max_choose=1):
     clan_options = []
     clans.sort(key=lambda x: x.member_count)
     for count, clan in enumerate(clans[:25]):
-        clan_options.append(
-            disnake.SelectOption(label=f"{clan.name} ({clan.tag})", value=f"{clan.tag}")
-        )
+        clan_options.append(disnake.SelectOption(label=f"{clan.name} ({clan.tag})", value=f"{clan.tag}"))
 
     clan_select = disnake.ui.Select(
         options=clan_options,

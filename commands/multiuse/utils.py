@@ -11,12 +11,8 @@ from utility.components import basic_clan_dropdown
 
 
 @register_button("discordlinks", parser="_:clan:server")
-async def linked_players(
-    bot: CustomClient, clan: coc.Clan, server: disnake.Guild, embed_color: disnake.Color
-):
-    player_links = await bot.link_client.get_links(
-        *[member.tag for member in clan.members]
-    )
+async def linked_players(bot: CustomClient, clan: coc.Clan, server: disnake.Guild, embed_color: disnake.Color):
+    player_links = await bot.link_client.get_links(*[member.tag for member in clan.members])
     embeds = []
     embed_description = f"{bot.emoji.discord}`Name          ` **Discord**\n"
 
@@ -61,9 +57,7 @@ async def linked_players(
         if len(name) <= 2:
             name = player.name
         unlinked_player_count += 1
-        embed_description += (
-            f"\u200e{bot.emoji.red_tick}`{name:14}` \u200e{player.tag}\n"
-        )
+        embed_description += f"\u200e{bot.emoji.red_tick}`{name:14}` \u200e{player.tag}\n"
 
     if unlinked_player_count == 0:
         embed_description = "No players unlinked."
@@ -77,22 +71,16 @@ async def linked_players(
 
 
 @register_button("discordlinkschoose", parser="_:ctx", ephemeral=True, no_embed=True)
-async def discord_link_clan_choose(
-    bot: CustomClient, ctx: disnake.MessageInteraction, embed_color: disnake.Color
-):
+async def discord_link_clan_choose(bot: CustomClient, ctx: disnake.MessageInteraction, embed_color: disnake.Color):
     clans = await bot.get_guild_clans(guild_id=ctx.guild_id)
     clans = await bot.get_clans(tags=clans)
     dropdown = await basic_clan_dropdown(clans=clans, max_choose=1)
     og_message = await ctx.original_message()
     msg = await ctx.followup.send(components=[dropdown], ephemeral=True)
 
-    res: disnake.MessageInteraction = await interaction_handler(
-        bot=bot, ctx=ctx, msg=msg, timeout=30
-    )
+    res: disnake.MessageInteraction = await interaction_handler(bot=bot, ctx=ctx, msg=msg, timeout=30)
     clan = await bot.getClan(clan_tag=res.values[0])
-    embeds = await linked_players(
-        bot=bot, clan=clan, server=ctx.guild, embed_color=embed_color
-    )
+    embeds = await linked_players(bot=bot, clan=clan, server=ctx.guild, embed_color=embed_color)
 
     buttons = disnake.ui.ActionRow()
     buttons.add_button(

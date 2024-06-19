@@ -17,10 +17,7 @@ class COSPlayerHistory:
         if self._data.get("error") is not None:
             return "Private History"
 
-        clans = [
-            COSClan(full_data=self._data, clan_data=clan_data)
-            for clan_data in self._data["log"]
-        ]
+        clans = [COSClan(full_data=self._data, clan_data=clan_data) for clan_data in self._data["log"]]
         clans = [clan for clan in clans if clan.tag != ""][:limit]
         return clans
 
@@ -28,10 +25,7 @@ class COSPlayerHistory:
         if self._data.get("error") is not None:
             return "Private History"
 
-        return [
-            SummaryClans(full_data=self._data, clan_data=clan_data)
-            for clan_data in self._data["summary"][:limit]
-        ]
+        return [SummaryClans(full_data=self._data, clan_data=clan_data) for clan_data in self._data["summary"][:limit]]
 
 
 class SummaryClans:
@@ -55,9 +49,7 @@ class SummaryClans:
 
     @property
     def days_per_stay(self):
-        return datetime.timedelta(
-            milliseconds=int((self._clandata["duration"] / self.count))
-        )
+        return datetime.timedelta(milliseconds=int((self._clandata["duration"] / self.count)))
 
     @property
     def tag(self):

@@ -34,17 +34,13 @@ async def create_profile_stats(bot: CustomClient, ctx, player: StatsPlayer):
     else:
         link_text = "Not linked. Owner? Use </link:1033741922180796451>"
 
-    last_online = (
-        f"<t:{player.last_online}:R>, {len(player.season_last_online())} times"
-    )
+    last_online = f"<t:{player.last_online}:R>, {len(player.season_last_online())} times"
     if player.last_online is None:
         last_online = "`Not Seen Yet`"
 
     loot_text = ""
     if player.gold_looted != 0:
-        loot_text += (
-            f"- {bot.emoji.gold}Gold Looted: {'{:,}'.format(player.gold_looted())}\n"
-        )
+        loot_text += f"- {bot.emoji.gold}Gold Looted: {'{:,}'.format(player.gold_looted())}\n"
     if player.elixir_looted != 0:
         loot_text += f"- {bot.emoji.elixir}Elixir Looted: {'{:,}'.format(player.elixir_looted())}\n"
     if player.dark_elixir_looted != 0:
@@ -96,9 +92,7 @@ async def create_profile_stats(bot: CustomClient, ctx, player: StatsPlayer):
     if member is not None:
         embed.set_footer(text=str(member), icon_url=member.display_avatar)
 
-    ban = await bot.banlist.find_one(
-        {"$and": [{"VillageTag": f"{player.tag}"}, {"server": ctx.guild.id}]}
-    )
+    ban = await bot.banlist.find_one({"$and": [{"VillageTag": f"{player.tag}"}, {"server": ctx.guild.id}]})
 
     if ban is not None:
         date = ban.get("DateCreated")
@@ -106,9 +100,7 @@ async def create_profile_stats(bot: CustomClient, ctx, player: StatsPlayer):
         notes = ban.get("Notes")
         if notes == "":
             notes = "No Reason Given"
-        embed.add_field(
-            name="__**Banned Player**__", value=f"Date: {date}\nReason: {notes}"
-        )
+        embed.add_field(name="__**Banned Player**__", value=f"Date: {date}\nReason: {notes}")
     return embed
 
 
@@ -153,9 +145,7 @@ async def history(bot: CustomClient, ctx, player):
 
     if top_5 == "":
         top_5 = "No Clans Found"
-    embed.add_field(
-        name="**Top 5 Clans Player has stayed the most:**", value=top_5, inline=False
-    )
+    embed.add_field(name="**Top 5 Clans Player has stayed the most:**", value=top_5, inline=False)
 
     last_5 = ""
     for clan in previous_clans:
@@ -163,18 +153,16 @@ async def history(bot: CustomClient, ctx, player):
             continue
         last_5 += f"[{clan.clan_name}]({clan.share_link}), {clan.role.in_game_name}"
         if clan.stay_type == StayType.stay:
+            last_5 += f", {clan.stay_length.days} days" if clan.stay_length.days >= 1 else ""
             last_5 += (
-                f", {clan.stay_length.days} days" if clan.stay_length.days >= 1 else ""
+                f"\n<t:{int(clan.start_stay.time.timestamp())}:D> to <t:{int(clan.end_stay.time.timestamp())}:D>\n"
             )
-            last_5 += f"\n<t:{int(clan.start_stay.time.timestamp())}:D> to <t:{int(clan.end_stay.time.timestamp())}:D>\n"
         elif clan.stay_type == StayType.seen:
             last_5 += f"\nSeen on <t:{int(clan.seen_date.time.timestamp())}:D>\n"
 
     if last_5 == "":
         last_5 = "No Clans Found"
-    embed.add_field(
-        name="**Last 5 Clans Player has been seen at:**", value=last_5, inline=False
-    )
+    embed.add_field(name="**Last 5 Clans Player has been seen at:**", value=last_5, inline=False)
 
     embed.set_footer(text="Data from ClashofStats.com")
     return embed
@@ -222,9 +210,7 @@ async def create_profile_troops(
         troop_embed_text += f"{bot.emoji.heart}**Siege Machines**\n{siege}"
 
     troop_embed = disnake.Embed(description=troop_embed_text, color=embed_color)
-    troop_embed.set_author(
-        name=f"{player.name}", icon_url=player.town_hall_cls.image_url
-    )
+    troop_embed.set_author(name=f"{player.name}", icon_url=player.town_hall_cls.image_url)
 
     hero_embed_text = ""
     if hero:
@@ -272,9 +258,7 @@ async def upgrade_embed(bot: CustomClient, player: StatsPlayer):
 
     total_h_levels = sum([area.total_levels for area in [player.hero_rushed]])
     total_h_levels_done = sum([area.levels_done for area in [player.hero_rushed]])
-    total_h_levels_remaining = sum(
-        [area.total_levels_left for area in [player.hero_rushed]]
-    )
+    total_h_levels_remaining = sum([area.total_levels_left for area in [player.hero_rushed]])
 
     def seconds_convert(secs: int):
         day = secs // (24 * 3600)
@@ -323,9 +307,7 @@ async def upgrade_embed(bot: CustomClient, player: StatsPlayer):
 
     not_unlocked = []
     home_elixir_troops = ""
-    for troop in (
-        player.troop_rushed.rushed_items + player.troop_rushed.not_max_items
-    ):  # type: coc.Troop
+    for troop in player.troop_rushed.rushed_items + player.troop_rushed.not_max_items:  # type: coc.Troop
         if not troop.is_elixir_troop:
             continue
         th_max = troop.get_max_level_for_townhall(player.town_hall)
@@ -335,17 +317,13 @@ async def upgrade_embed(bot: CustomClient, player: StatsPlayer):
         hours = f"{(int(troop.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
         time = f"{days}D {hours}"
         cost = f"{numerize.numerize(troop.upgrade_cost)}".ljust(5)
-        home_elixir_troops += (
-            f"{bot.fetch_emoji(name=troop.name)} `{level}/{th_max}` `{time}` `{cost}`"
-        )
+        home_elixir_troops += f"{bot.fetch_emoji(name=troop.name)} `{level}/{th_max}` `{time}` `{cost}`"
         if troop in player.troop_rushed.rushed_items:
             home_elixir_troops += "✗"
         home_elixir_troops += "\n"
 
     home_de_troops = ""
-    for troop in (
-        player.troop_rushed.rushed_items + player.troop_rushed.not_max_items
-    ):  # type: coc.Troop
+    for troop in player.troop_rushed.rushed_items + player.troop_rushed.not_max_items:  # type: coc.Troop
         if not troop.is_dark_troop:
             continue
         th_max = troop.get_max_level_for_townhall(player.town_hall)
@@ -355,17 +333,13 @@ async def upgrade_embed(bot: CustomClient, player: StatsPlayer):
         hours = f"{(int(troop.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
         time = f"{days}D {hours}"
         cost = f"{numerize.numerize(troop.upgrade_cost)}".ljust(5)
-        home_de_troops += (
-            f"{bot.fetch_emoji(name=troop.name)} `{level}/{th_max}` `{time}` `{cost}`"
-        )
+        home_de_troops += f"{bot.fetch_emoji(name=troop.name)} `{level}/{th_max}` `{time}` `{cost}`"
         if troop in player.troop_rushed.rushed_items:
             home_de_troops += "✗"
         home_de_troops += "\n"
 
     siege_machines = ""
-    for troop in (
-        player.troop_rushed.rushed_items + player.troop_rushed.not_max_items
-    ):  # type: coc.Troop
+    for troop in player.troop_rushed.rushed_items + player.troop_rushed.not_max_items:  # type: coc.Troop
         if not troop.is_siege_machine:
             continue
         th_max = troop.get_max_level_for_townhall(player.town_hall)
@@ -375,17 +349,13 @@ async def upgrade_embed(bot: CustomClient, player: StatsPlayer):
         hours = f"{(int(troop.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
         time = f"{days}D {hours}"
         cost = f"{numerize.numerize(troop.upgrade_cost)}".ljust(5)
-        siege_machines += (
-            f"{bot.fetch_emoji(name=troop.name)} `{level}/{th_max}` `{time}` `{cost}`"
-        )
+        siege_machines += f"{bot.fetch_emoji(name=troop.name)} `{level}/{th_max}` `{time}` `{cost}`"
         if troop in player.troop_rushed.rushed_items:
             siege_machines += "✗"
         siege_machines += "\n"
 
     hero_text = ""
-    for hero in (
-        player.hero_rushed.rushed_items + player.hero_rushed.not_max_items
-    ):  # type: coc.hero.Hero
+    for hero in player.hero_rushed.rushed_items + player.hero_rushed.not_max_items:  # type: coc.hero.Hero
         if not hero.is_home_base:
             continue
         th_max = hero.get_max_level_for_townhall(player.town_hall)
@@ -395,17 +365,13 @@ async def upgrade_embed(bot: CustomClient, player: StatsPlayer):
         hours = f"{(int(hero.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
         time = f"{days}D {hours}"
         cost = f"{numerize.numerize(hero.upgrade_cost)}".ljust(5)
-        hero_text += (
-            f"{bot.fetch_emoji(name=hero.name)} `{level}/{th_max}` `{time}` `{cost}`"
-        )
+        hero_text += f"{bot.fetch_emoji(name=hero.name)} `{level}/{th_max}` `{time}` `{cost}`"
         if hero in player.hero_rushed.rushed_items:
             hero_text += "✗"
         hero_text += "\n"
 
     pet_text = ""
-    for pet in (
-        player.pets_rushed.rushed_items + player.pets_rushed.not_max_items
-    ):  # type: coc.Pet
+    for pet in player.pets_rushed.rushed_items + player.pets_rushed.not_max_items:  # type: coc.Pet
         if player.town_hall == 14:
             prev_level_max = 0
             max = 10
@@ -427,17 +393,13 @@ async def upgrade_embed(bot: CustomClient, player: StatsPlayer):
         hours = f"{(int(pet.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
         time = f"{days}D {hours}"
         cost = f"{numerize.numerize(pet.upgrade_cost)}".ljust(5)
-        pet_text += (
-            f"{bot.fetch_emoji(name=pet.name)} `{level}/{th_max}` `{time}` `{cost}`"
-        )
+        pet_text += f"{bot.fetch_emoji(name=pet.name)} `{level}/{th_max}` `{time}` `{cost}`"
         if pet in player.pets_rushed.rushed_items:
             pet_text += "✗"
         pet_text += "\n"
 
     elixir_spells = ""
-    for spell in (
-        player.spell_rushed.rushed_items + player.spell_rushed.not_max_items
-    ):  # type: coc.Spell
+    for spell in player.spell_rushed.rushed_items + player.spell_rushed.not_max_items:  # type: coc.Spell
         if spell.is_dark_spell:
             continue
         th_max = spell.get_max_level_for_townhall(player.town_hall)
@@ -447,17 +409,13 @@ async def upgrade_embed(bot: CustomClient, player: StatsPlayer):
         hours = f"{(int(spell.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
         time = f"{days}D {hours}"
         cost = f"{numerize.numerize(spell.upgrade_cost)}".ljust(5)
-        elixir_spells += (
-            f"{bot.fetch_emoji(name=spell.name)} `{level}/{th_max}` `{time}` `{cost}`"
-        )
+        elixir_spells += f"{bot.fetch_emoji(name=spell.name)} `{level}/{th_max}` `{time}` `{cost}`"
         if spell in player.spell_rushed.rushed_items:
             elixir_spells += "✗"
         elixir_spells += "\n"
 
     de_spells = ""
-    for spell in (
-        player.spell_rushed.rushed_items + player.spell_rushed.not_max_items
-    ):  # type: coc.Spell
+    for spell in player.spell_rushed.rushed_items + player.spell_rushed.not_max_items:  # type: coc.Spell
         if not spell.is_dark_spell:
             continue
         th_max = spell.get_max_level_for_townhall(player.town_hall)
@@ -467,9 +425,7 @@ async def upgrade_embed(bot: CustomClient, player: StatsPlayer):
         hours = f"{(int(spell.upgrade_time.hours % 24 / 24 * 10))}H".ljust(3)
         time = f"{days}D {hours}"
         cost = f"{numerize.numerize(spell.upgrade_cost)}".ljust(5)
-        de_spells += (
-            f"{bot.fetch_emoji(name=spell.name)} `{level}/{th_max}` `{time}` `{cost}`"
-        )
+        de_spells += f"{bot.fetch_emoji(name=spell.name)} `{level}/{th_max}` `{time}` `{cost}`"
         if spell in player.spell_rushed.rushed_items:
             de_spells += "✗"
         de_spells += "\n"
@@ -541,9 +497,7 @@ async def create_player_list(
             heros = ""
             for hero in player.heroes:
                 if hero.is_home_base:
-                    level = (
-                        f"{hero.level}" if hero.is_max_for_townhall else f"{hero.level}"
-                    )
+                    level = f"{hero.level}" if hero.is_max_for_townhall else f"{hero.level}"
                     heros += f"{acronym(hero.name)}{level} "
             if heros != "" and len([h for h in player.heroes if h.is_home_base]) >= 2:
                 heros += f"{sum([h.level for h in player.heroes if h.is_home_base])}"
@@ -565,18 +519,12 @@ async def create_player_list(
         icon_url=discord_user.display_avatar,
     )
     if len(players) > 20:
-        embed.set_footer(
-            text="Only top 20 accounts are shown due to character limitations"
-        )
+        embed.set_footer(text="Only top 20 accounts are shown due to character limitations")
     return embed
 
 
-async def to_do_embed(
-    bot: CustomClient, discord_user, linked_accounts, embed_color=disnake.Color.green()
-):
-    embed = disnake.Embed(
-        title=f"{discord_user.display_name} To-Do List", color=disnake.Color.green()
-    )
+async def to_do_embed(bot: CustomClient, discord_user, linked_accounts, embed_color=disnake.Color.green()):
+    embed = disnake.Embed(title=f"{discord_user.display_name} To-Do List", color=disnake.Color.green())
     if linked_accounts == []:
         embed.description = "No accounts linked, use `/link` to get started!"
         return embed
@@ -603,15 +551,11 @@ async def to_do_embed(
 
     inactive_to_do = await get_inactive(linked_accounts=linked_accounts)
     if inactive_to_do != "":
-        embed.add_field(
-            name="Inactive Accounts (48+ hr)", value=inactive_to_do, inline=False
-        )
+        embed.add_field(name="Inactive Accounts (48+ hr)", value=inactive_to_do, inline=False)
 
     donation_to_do = await get_last_donated(bot=bot, linked_accounts=linked_accounts)
     if donation_to_do != "":
-        embed.add_field(
-            name="Capital Dono (24+ hr)", value=donation_to_do, inline=False
-        )
+        embed.add_field(name="Capital Dono (24+ hr)", value=donation_to_do, inline=False)
 
     if len(embed.fields) == 0:
         embed.description = "You're all caught up chief!"
@@ -633,9 +577,7 @@ async def get_war_hits(bot: CustomClient, linked_accounts: List[StatsPlayer]):
     tasks = []
     for player in linked_accounts:
         if player.clan is not None:
-            task = asyncio.ensure_future(
-                get_clan_wars(clan_tag=player.clan.tag, player=player)
-            )
+            task = asyncio.ensure_future(get_clan_wars(clan_tag=player.clan.tag, player=player))
             tasks.append(task)
     wars = await asyncio.gather(*tasks)
 
@@ -659,9 +601,7 @@ async def get_legend_hits(linked_accounts: List[StatsPlayer]):
     for player in linked_accounts:
         if player.is_legends():
             if player.legend_day().num_attacks.integer < 8:
-                legend_hits_remaining += (
-                    f"({player.legend_day().num_attacks.integer}/8) - {player.name}\n"
-                )
+                legend_hits_remaining += f"({player.legend_day().num_attacks.integer}/8) - {player.name}\n"
     return legend_hits_remaining
 
 
@@ -670,9 +610,7 @@ async def get_raid_hits(bot: CustomClient, linked_accounts: List[StatsPlayer]):
         if player.town_hall <= 5:
             return (player, None)
         weekend = gen_raid_weekend_datestrings(number_of_weeks=1)[0]
-        weekend_raid_entry = await get_raidlog_entry(
-            clan=player.clan, weekend=weekend, bot=bot, limit=2
-        )
+        weekend_raid_entry = await get_raidlog_entry(clan=player.clan, weekend=weekend, bot=bot, limit=2)
         if weekend_raid_entry is not None and str(weekend_raid_entry.state) == "ended":
             weekend_raid_entry = None
         return (player, weekend_raid_entry)
@@ -680,9 +618,7 @@ async def get_raid_hits(bot: CustomClient, linked_accounts: List[StatsPlayer]):
     tasks = []
     for player in linked_accounts:
         if player.clan is not None:
-            task = asyncio.ensure_future(
-                get_raid(clan_tag=player.clan.tag, player=player)
-            )
+            task = asyncio.ensure_future(get_raid(clan_tag=player.clan.tag, player=player))
             tasks.append(task)
     wars = await asyncio.gather(*tasks)
 
@@ -843,12 +779,8 @@ async def cwl_stalk(
         name = ""
         clan_tag = ""
         for day, result in enumerate(results, 1):
-            hits[f"{result['townhall']}v{result['defender_townhall']}"].append(
-                result["stars"]
-            )
-            percents[f"{result['townhall']}v{result['defender_townhall']}"].append(
-                result["destruction"]
-            )
+            hits[f"{result['townhall']}v{result['defender_townhall']}"].append(result["stars"])
+            percents[f"{result['townhall']}v{result['defender_townhall']}"].append(result["destruction"])
             my_townhalls.append(result["townhall"])
             townhalls_attacked.append([result["defender_townhall"]])
             star_str = ""
@@ -881,12 +813,8 @@ async def cwl_stalk(
             .to_list(length=10)
         )
         for day, result in enumerate(defense_results, 1):
-            defense_hits[f"{result['defender_townhall']}v{result['townhall']}"].append(
-                result["stars"]
-            )
-            defense_percents[
-                f"{result['defender_townhall']}v{result['townhall']}"
-            ].append(result["destruction"])
+            defense_hits[f"{result['defender_townhall']}v{result['townhall']}"].append(result["stars"])
+            defense_percents[f"{result['defender_townhall']}v{result['townhall']}"].append(result["destruction"])
             townhalls_defended.append([result["defender_townhall"]])
             star_str = ""
             stars = result["stars"]
@@ -929,9 +857,7 @@ async def cwl_stalk(
                 break
 
         clan = await bot.getClan(clan_tag=clan_tag)
-        embed = disnake.Embed(
-            title=f"{name} | {clan.name}", color=disnake.Color.green()
-        )
+        embed = disnake.Embed(title=f"{name} | {clan.name}", color=disnake.Color.green())
         embed.add_field(name="Attacks", value=text, inline=False)
         embed.add_field(name="Defenses", value=defense_text, inline=False)
         embed.set_footer(
@@ -946,13 +872,7 @@ async def cwl_stalk(
                 "$and": [
                     {"tag": {"$in": tags}},
                     {"war_type": {"$in": ["cwl", "random"]}},
-                    {
-                        "_time": {
-                            "$gte": int(
-                                (datetime.now() - timedelta(days=35)).timestamp()
-                            )
-                        }
-                    },
+                    {"_time": {"$gte": int((datetime.now() - timedelta(days=35)).timestamp())}},
                 ]
             }
         )
@@ -964,9 +884,7 @@ async def cwl_stalk(
         time = datetime.fromtimestamp(result["_time"])
         seconds.append((time.hour * 60 * 60) + (time.minute * 60) + (time.second))
     average_seconds = int(sum(seconds) / len(seconds))
-    now = int(
-        datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
-    )
+    now = int(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
     average_time = datetime.fromtimestamp(now + average_seconds)
     average_time = f"<t:{int(average_time.timestamp())}:t>"
 
@@ -991,9 +909,7 @@ async def cwl_stalk(
     perc_text = "Perc%"
     hitrate_text = f"`{th_text:>5} {stars_text:>4}{perc_text:>6}`\n"
     for type, stars in sorted_hits.items():
-        hitrate_text += (
-            f"`{type:>5} {average(stars):>4.2f} {average(percents[type]):>5.1f}%`\n"
-        )
+        hitrate_text += f"`{type:>5} {average(stars):>4.2f} {average(percents[type]):>5.1f}%`\n"
     if not embeds:
         return await ctx.send(
             embed=disnake.Embed(
@@ -1003,8 +919,7 @@ async def cwl_stalk(
         )
     main_embed = disnake.Embed(
         title=f"{member.display_name} CWL Stats | {month} {datetime.now().year}",
-        description=f"Avg. Attacks Around: {average_time}\n"
-        f"**Average Hitrates:**\n{hitrate_text}",
+        description=f"Avg. Attacks Around: {average_time}\n" f"**Average Hitrates:**\n{hitrate_text}",
         color=disnake.Color.gold(),
     )
 
@@ -1028,9 +943,7 @@ async def cwl_stalk(
     message = await ctx.original_message()
     while True:
         try:
-            res: disnake.MessageInteraction = await interaction_handler(
-                bot=bot, ctx=ctx, msg=message
-            )
+            res: disnake.MessageInteraction = await interaction_handler(bot=bot, ctx=ctx, msg=message)
         except:
             return await message.edit(components=[])
         start_page += 5
@@ -1047,9 +960,7 @@ async def cwl_stalk(
                     )
                 )
             ]
-        message = await ctx.followup.send(
-            embeds=embeds[start_page:end_page], components=buttons
-        )
+        message = await ctx.followup.send(embeds=embeds[start_page:end_page], components=buttons)
 
 
 async def raid_stalk(
@@ -1075,9 +986,7 @@ async def raid_stalk(
         member_looted = 0
         member_medals = 0
         results = (
-            await bot.raid_weekend_db.find({"data.members.tag": player})
-            .sort("data.startTime", 1)
-            .to_list(length=8)
+            await bot.raid_weekend_db.find({"data.members.tag": player}).sort("data.startTime", 1).to_list(length=8)
         )
         if not results:
             continue
@@ -1108,19 +1017,11 @@ async def raid_stalk(
             if member.capital_resources_looted > highest_looted:
                 highest_looted = member.capital_resources_looted
             member_looted += member.capital_resources_looted
-            total_medals += (
-                raid.offensive_reward * member.attack_count
-            ) + raid.defensive_reward
+            total_medals += (raid.offensive_reward * member.attack_count) + raid.defensive_reward
 
-            if (
-                raid.offensive_reward * member.attack_count
-            ) + raid.defensive_reward > highest_medals:
-                highest_medals = (
-                    raid.offensive_reward * member.attack_count
-                ) + raid.defensive_reward
-            member_medals += (
-                raid.offensive_reward * member.attack_count
-            ) + raid.defensive_reward
+            if (raid.offensive_reward * member.attack_count) + raid.defensive_reward > highest_medals:
+                highest_medals = (raid.offensive_reward * member.attack_count) + raid.defensive_reward
+            member_medals += (raid.offensive_reward * member.attack_count) + raid.defensive_reward
             clans.append(result["clan_tag"])
 
         text = f"**Totals: {bot.emoji.capital_gold}{'{:,}'.format(member_looted)} | {bot.emoji.raid_medal}{member_medals}**\n{text}"
@@ -1161,9 +1062,7 @@ async def raid_stalk(
     message = await ctx.original_message()
     while True:
         try:
-            res: disnake.MessageInteraction = await interaction_handler(
-                bot=bot, ctx=ctx, msg=message
-            )
+            res: disnake.MessageInteraction = await interaction_handler(bot=bot, ctx=ctx, msg=message)
         except:
             return await message.edit(components=[])
         start_page += 5
@@ -1180,17 +1079,11 @@ async def raid_stalk(
                     )
                 )
             ]
-        message = await ctx.followup.send(
-            embeds=embeds[start_page:end_page], components=buttons
-        )
+        message = await ctx.followup.send(embeds=embeds[start_page:end_page], components=buttons)
 
 
-async def create_player_hr(
-    bot: CustomClient, player: StatsPlayer, start_date, end_date
-):
-    embed = disnake.Embed(
-        title=f"{player.name} War Stats", colour=disnake.Color.green()
-    )
+async def create_player_hr(bot: CustomClient, player: StatsPlayer, start_date, end_date):
+    embed = disnake.Embed(title=f"{player.name} War Stats", colour=disnake.Color.green())
     time_range = f"{datetime.fromtimestamp(start_date).strftime('%m/%d/%y')} - {datetime.fromtimestamp(end_date).strftime('%m/%d/%y')}"
     embed.set_footer(icon_url=player.town_hall_cls.image_url, text=time_range)
     hitrate = await player.hit_rate(start_timestamp=start_date, end_timestamp=end_date)
@@ -1198,28 +1091,20 @@ async def create_player_hr(
     for hr in hitrate:
         hr_type = f"{hr.type}".ljust(5)
         hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
-        hr_text += (
-            f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
-        )
+        hr_text += f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
     if hr_text == "":
         hr_text = "No war hits tracked.\n"
     embed.add_field(name="**Triple Hit Rate**", value=hr_text + "­\n", inline=False)
 
-    defrate = await player.defense_rate(
-        start_timestamp=start_date, end_timestamp=end_date
-    )
+    defrate = await player.defense_rate(start_timestamp=start_date, end_timestamp=end_date)
     def_text = ""
     for hr in defrate:
         hr_type = f"{hr.type}".ljust(5)
         hr_nums = f"{hr.total_triples}/{hr.num_attacks}".center(5)
-        def_text += (
-            f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
-        )
+        def_text += f"`{hr_type}` | `{hr_nums}` | {round(hr.average_triples * 100, 1)}%\n"
     if def_text == "":
         def_text = "No war defenses tracked.\n"
-    embed.add_field(
-        name="**Triple Defense Rate**", value=def_text + "­\n", inline=False
-    )
+    embed.add_field(name="**Triple Defense Rate**", value=def_text + "­\n", inline=False)
 
     text = ""
     hr = hitrate[0]
@@ -1256,18 +1141,10 @@ async def create_player_hr(
         text = "No attacks/defenses yet.\n"
     embed.add_field(name="**Star Count %'s**", value=text + "­\n", inline=False)
 
-    fresh_hr = await player.hit_rate(
-        fresh_type=[True], start_timestamp=start_date, end_timestamp=end_date
-    )
-    nonfresh_hr = await player.hit_rate(
-        fresh_type=[False], start_timestamp=start_date, end_timestamp=end_date
-    )
-    fresh_dr = await player.hit_rate(
-        fresh_type=[True], start_timestamp=start_date, end_timestamp=end_date
-    )
-    nonfresh_dr = await player.defense_rate(
-        fresh_type=[False], start_timestamp=start_date, end_timestamp=end_date
-    )
+    fresh_hr = await player.hit_rate(fresh_type=[True], start_timestamp=start_date, end_timestamp=end_date)
+    nonfresh_hr = await player.hit_rate(fresh_type=[False], start_timestamp=start_date, end_timestamp=end_date)
+    fresh_dr = await player.hit_rate(fresh_type=[True], start_timestamp=start_date, end_timestamp=end_date)
+    nonfresh_dr = await player.defense_rate(fresh_type=[False], start_timestamp=start_date, end_timestamp=end_date)
     hitrates = [fresh_hr, nonfresh_hr, fresh_dr, nonfresh_dr]
     names = ["Fresh HR", "Non-Fresh HR", "Fresh DR", "Non-Fresh DR"]
     text = ""
@@ -1282,24 +1159,12 @@ async def create_player_hr(
         text = "No attacks/defenses yet.\n"
     embed.add_field(name="**Fresh/Not Fresh**", value=text + "­\n", inline=False)
 
-    random = await player.hit_rate(
-        war_types=["random"], start_timestamp=start_date, end_timestamp=end_date
-    )
-    cwl = await player.hit_rate(
-        war_types=["cwl"], start_timestamp=start_date, end_timestamp=end_date
-    )
-    friendly = await player.hit_rate(
-        war_types=["friendly"], start_timestamp=start_date, end_timestamp=end_date
-    )
-    random_dr = await player.defense_rate(
-        war_types=["random"], start_timestamp=start_date, end_timestamp=end_date
-    )
-    cwl_dr = await player.defense_rate(
-        war_types=["cwl"], start_timestamp=start_date, end_timestamp=end_date
-    )
-    friendly_dr = await player.defense_rate(
-        war_types=["friendly"], start_timestamp=start_date, end_timestamp=end_date
-    )
+    random = await player.hit_rate(war_types=["random"], start_timestamp=start_date, end_timestamp=end_date)
+    cwl = await player.hit_rate(war_types=["cwl"], start_timestamp=start_date, end_timestamp=end_date)
+    friendly = await player.hit_rate(war_types=["friendly"], start_timestamp=start_date, end_timestamp=end_date)
+    random_dr = await player.defense_rate(war_types=["random"], start_timestamp=start_date, end_timestamp=end_date)
+    cwl_dr = await player.defense_rate(war_types=["cwl"], start_timestamp=start_date, end_timestamp=end_date)
+    friendly_dr = await player.defense_rate(war_types=["friendly"], start_timestamp=start_date, end_timestamp=end_date)
     hitrates = [random, cwl, friendly, random_dr, cwl_dr, friendly_dr]
     names = ["War HR", "CWL HR", "Friendly HR", "War DR", "CWL DR", "Friendly DR"]
     text = ""
@@ -1317,20 +1182,14 @@ async def create_player_hr(
     war_sizes = list(range(5, 55, 5))
     hitrates = []
     for size in war_sizes:
-        hr = await player.hit_rate(
-            war_sizes=[size], start_timestamp=start_date, end_timestamp=end_date
-        )
+        hr = await player.hit_rate(war_sizes=[size], start_timestamp=start_date, end_timestamp=end_date)
         hitrates.append(hr)
     for size in war_sizes:
-        hr = await player.defense_rate(
-            war_sizes=[size], start_timestamp=start_date, end_timestamp=end_date
-        )
+        hr = await player.defense_rate(war_sizes=[size], start_timestamp=start_date, end_timestamp=end_date)
         hitrates.append(hr)
 
     text = ""
-    names = [f"{size}v{size} HR" for size in war_sizes] + [
-        f"{size}v{size} DR" for size in war_sizes
-    ]
+    names = [f"{size}v{size} HR" for size in war_sizes] + [f"{size}v{size} DR" for size in war_sizes]
     for count, hr in enumerate(hitrates):
         hr = hr[0]
         if hr.num_attacks == 0:
@@ -1415,9 +1274,7 @@ async def create_search(
         queries["$and"].append({"data.warStars": {"$gte": int(war_stars)}})
 
     if clan_capital_donos is not None:
-        queries["$and"].append(
-            {"data.clanCapitalContributions": {"$gte": int(clan_capital_donos)}}
-        )
+        queries["$and"].append({"data.clanCapitalContributions": {"$gte": int(clan_capital_donos)}})
 
     if queries["$and"] == []:
         queries = {}
@@ -1429,9 +1286,7 @@ async def create_search(
         player_list = await bot.player_cache.aggregate(pipeline).to_list(length=3)
         if player_list == [] or tries == 3:
             return (
-                disnake.Embed(
-                    description="**No Results Found**", color=disnake.Color.red()
-                ),
+                disnake.Embed(description="**No Results Found**", color=disnake.Color.red()),
                 [],
             )
         players = await bot.get_players(
@@ -1464,11 +1319,7 @@ async def create_search(
     else:
         lo = "`N/A`"
 
-    discord = (
-        bot.emoji.green_status
-        if player_link_dict.get(player.tag) is not None
-        else bot.emoji.red_status
-    )
+    discord = bot.emoji.green_status if player_link_dict.get(player.tag) is not None else bot.emoji.red_status
 
     embed = disnake.Embed(
         title=f"**Invite {player.name} to your clan:**",

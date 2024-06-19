@@ -31,9 +31,7 @@ from ..graphs.utils import monthly_bar_graph, daily_graph
 
 
 @register_button("familycompo", parser="_:server:type")
-async def family_composition(
-    bot: CustomClient, server: disnake.Guild, type: str, embed_color: disnake.Color
-):
+async def family_composition(bot: CustomClient, server: disnake.Guild, type: str, embed_color: disnake.Color):
 
     bucket = defaultdict(int)
     clan_tags = await bot.get_guild_clans(guild_id=server.id)
@@ -45,13 +43,7 @@ async def family_composition(
                 return
             bucket[str(member._raw_data.get("townHallLevel"))] += 1
         elif type == "Trophies":
-            bucket[
-                str(
-                    int(str(member.trophies)[0]) * 1000
-                    if member.trophies >= 1000
-                    else 100
-                )
-            ] += 1
+            bucket[str(int(str(member.trophies)[0]) * 1000 if member.trophies >= 1000 else 100)] += 1
         elif type == "Location":
             location = tag_to_location.get(member.tag)
             if location:
@@ -67,9 +59,7 @@ async def family_composition(
             {"tag": 1, "country_name": 1, "country_code": 1},
         ).to_list(length=None)
         tag_to_location = {d.get("tag"): d.get("country_name") for d in location_info}
-        location_name_to_code = {
-            d.get("country_name"): d.get("country_code") for d in location_info
-        }
+        location_name_to_code = {d.get("country_name"): d.get("country_code") for d in location_info}
 
     total_count = 0
     for clan in clans:
@@ -99,9 +89,7 @@ async def family_composition(
     field_to_sort = 1
     if type == "Townhall":
         field_to_sort = 0
-    for key, value in sorted(
-        bucket.items(), key=lambda x: int(x[field_to_sort]), reverse=True
-    ):
+    for key, value in sorted(bucket.items(), key=lambda x: int(x[field_to_sort]), reverse=True):
         icon = get_icon(type, key)
         text += formats[type].format(key=key, value=value, icon=icon)
 
@@ -110,9 +98,7 @@ async def family_composition(
         footer_text += f" | Avg Townhall: {round((total / total_count), 2)}"
 
     embed = disnake.Embed(description=text, color=embed_color)
-    embed.set_author(
-        name=f"{server.name} {type} Compo", icon_url=get_guild_icon(guild=server)
-    )
+    embed.set_author(name=f"{server.name} {type} Compo", icon_url=get_guild_icon(guild=server))
     embed.set_footer(text=footer_text)
     embed.timestamp = datetime.now()
     return embed
@@ -129,17 +115,15 @@ async def family_summary(
     season = bot.gen_season_date() if season is None else season
     member_tags = await bot.get_family_member_tags(guild_id=server.id)
     # we dont want results w/ no name
-    results = await bot.player_stats.find(
-        {"$and": [{"tag": {"$in": member_tags}}, {"name": {"$ne": None}}]}
-    ).to_list(length=None)
+    results = await bot.player_stats.find({"$and": [{"tag": {"$in": member_tags}}, {"name": {"$ne": None}}]}).to_list(
+        length=None
+    )
     text = ""
     for option, emoji in zip(
         ["gold", "elixir", "dark_elixir"],
         [bot.emoji.gold, bot.emoji.elixir, bot.emoji.dark_elixir],
     ):
-        top_results = sorted(
-            results, key=lambda x: x.get(option, {}).get(season, 0), reverse=True
-        )[:limit]
+        top_results = sorted(results, key=lambda x: x.get(option, {}).get(season, 0), reverse=True)[:limit]
         if top_results[0] == 0:
             continue
         for count, result in enumerate(top_results, 1):
@@ -155,9 +139,7 @@ async def family_summary(
         ["activity", "attack_wins", "season_trophies"],
         [bot.emoji.clock, bot.emoji.wood_swords, bot.emoji.trophy],
     ):
-        top_results = sorted(
-            results, key=lambda x: x.get(option, {}).get(season, 0), reverse=True
-        )[:limit]
+        top_results = sorted(results, key=lambda x: x.get(option, {}).get(season, 0), reverse=True)[:limit]
         if top_results[0] == 0:
             continue
         for count, result in enumerate(top_results, 1):
@@ -170,9 +152,7 @@ async def family_summary(
         text += "\n"
 
     first_embed = disnake.Embed(description=text, color=embed_color)
-    first_embed.set_author(
-        name=f"{server.name} Season Summary ({season})", icon_url=get_guild_icon(server)
-    )
+    first_embed.set_author(name=f"{server.name} Season Summary ({season})", icon_url=get_guild_icon(server))
     text = ""
 
     top_results = sorted(
@@ -270,13 +250,7 @@ async def family_summary(
             }
         },
         {"$group": {"_id": "$uniqueKey", "data": {"$first": "$data"}}},
-        {
-            "$project": {
-                "members": {
-                    "$concatArrays": ["$data.clan.members", "$data.opponent.members"]
-                }
-            }
-        },
+        {"$project": {"members": {"$concatArrays": ["$data.clan.members", "$data.opponent.members"]}}},
         {"$unwind": "$members"},
         {"$match": {"members.tag": {"$in": member_tags}}},
         {
@@ -297,9 +271,7 @@ async def family_summary(
         {"$sort": {"totalStars": -1}},
         {"$limit": limit},
     ]
-    war_star_results = await bot.clan_war.aggregate(pipeline=pipeline).to_list(
-        length=None
-    )
+    war_star_results = await bot.clan_war.aggregate(pipeline=pipeline).to_list(length=None)
 
     if war_star_results:
         text += f"**{bot.emoji.war_star} War Stars\n**"
@@ -312,20 +284,14 @@ async def family_summary(
 
 
 @register_button("familyoverview", parser="_:server")
-async def family_overview(
-    bot: CustomClient, server: disnake.Guild, embed_color: disnake.Color
-):
+async def family_overview(bot: CustomClient, server: disnake.Guild, embed_color: disnake.Color):
     season = bot.gen_season_date()
     clan_tags = await bot.clan_db.distinct("tag", filter={"server": server.id})
-    basic_clans = await bot.basic_clan.find({"tag": {"$in": clan_tags}}).to_list(
-        length=None
-    )
+    basic_clans = await bot.basic_clan.find({"tag": {"$in": clan_tags}}).to_list(length=None)
 
     owner = await server.getch_member(server.owner_id)
     member_count = sum([c.get("members", 0) for c in basic_clans])
-    member_tags = [
-        m.get("tag") for clan in basic_clans for m in clan.get("memberList", [])
-    ]
+    member_tags = [m.get("tag") for clan in basic_clans for m in clan.get("memberList", [])]
     sixty_mins = pend.now(tz=pend.UTC).subtract(minutes=60)
     last_online_sixty_mins = await bot.player_stats.count_documents(
         {
@@ -343,9 +309,7 @@ async def family_overview(
         f"- Owner: {owner.display_name}"
     )
     first_embed = disnake.Embed(description=description_text, color=embed_color)
-    first_embed.set_author(
-        name=f"{server.name} Overview", icon_url=get_guild_icon(server)
-    )
+    first_embed.set_author(name=f"{server.name} Overview", icon_url=get_guild_icon(server))
 
     th_compo_bucket = defaultdict(int)
     total_trophies = 0
@@ -420,9 +384,7 @@ async def family_overview(
     )
     first_embed.add_field(name="Season Stats", value=stats_text, inline=False)
 
-    top_ten_clans = sorted(
-        basic_clans, key=lambda x: leagues.index(x.get("warLeague", "Unranked"))
-    )[:10]
+    top_ten_clans = sorted(basic_clans, key=lambda x: leagues.index(x.get("warLeague", "Unranked")))[:10]
     clan_text = ""
     for clan in top_ten_clans:
         clan_text += f'{cwl_league_emojis(clan.get("warLeague", "Unranked"))}`{clan.get("name"):<15} ({clan.get("members")}/50)`\n'
@@ -458,11 +420,7 @@ async def family_hero_progress(
             "$match": {
                 "$and": [
                     {"tag": {"$in": player_tags}},
-                    {
-                        "type": {
-                            "$in": list(coc.enums.HERO_ORDER + coc.enums.PETS_ORDER)
-                        }
-                    },
+                    {"type": {"$in": list(coc.enums.HERO_ORDER + coc.enums.PETS_ORDER)}},
                     {"time": {"$gte": SEASON_START}},
                     {"time": {"$lte": SEASON_END}},
                 ]
@@ -485,71 +443,43 @@ async def family_hero_progress(
         },
         {"$set": {"name": "$name.name"}},
     ]
-    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(
-        length=None
-    )
+    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
 
     class ItemHolder:
         def __init__(self, data: dict):
             self.tag = data.get("_id")
             self.name = data.get("name")[0] if data.get("name") else "unknown"
             self.king = next(
-                (
-                    item["count"]
-                    for item in data["hero_counts"]
-                    if item["hero_name"] == "Barbarian King"
-                ),
+                (item["count"] for item in data["hero_counts"] if item["hero_name"] == "Barbarian King"),
                 0,
             )
             self.queen = next(
-                (
-                    item["count"]
-                    for item in data["hero_counts"]
-                    if item["hero_name"] == "Archer Queen"
-                ),
+                (item["count"] for item in data["hero_counts"] if item["hero_name"] == "Archer Queen"),
                 0,
             )
             self.warden = next(
-                (
-                    item["count"]
-                    for item in data["hero_counts"]
-                    if item["hero_name"] == "Grand Warden"
-                ),
+                (item["count"] for item in data["hero_counts"] if item["hero_name"] == "Grand Warden"),
                 0,
             )
             self.rc = next(
-                (
-                    item["count"]
-                    for item in data["hero_counts"]
-                    if item["hero_name"] == "Royal Champion"
-                ),
+                (item["count"] for item in data["hero_counts"] if item["hero_name"] == "Royal Champion"),
                 0,
             )
             self.pets = sum(
                 next(
-                    (
-                        item["count"]
-                        for item in data["hero_counts"]
-                        if item["hero_name"] == pet
-                    ),
+                    (item["count"] for item in data["hero_counts"] if item["hero_name"] == pet),
                     0,
                 )
                 for pet in coc.enums.PETS_ORDER
             )
-            self.total_upgraded = (
-                self.king + self.queen + self.warden + self.rc + self.pets
-            )
+            self.total_upgraded = self.king + self.queen + self.warden + self.rc + self.pets
 
     all_items = []
     for result in results:
         all_items.append(ItemHolder(data=result))
-    all_items = sorted(all_items, key=lambda x: x.total_upgraded, reverse=True)[
-        : min(limit, len(all_items))
-    ]
+    all_items = sorted(all_items, key=lambda x: x.total_upgraded, reverse=True)[: min(limit, len(all_items))]
     if not all_items:
-        embed = disnake.Embed(
-            description="**No Upgrades Yet**", colour=disnake.Color.red()
-        )
+        embed = disnake.Embed(description="**No Upgrades Yet**", colour=disnake.Color.red())
     else:
         text = f"BK AQ WD RC Pet Name          \n"
         for item in all_items:
@@ -563,9 +493,7 @@ async def family_hero_progress(
                 + f"  {item.name[:13]}\n"
             )
         embed = disnake.Embed(description=f"```{text}```", colour=embed_color)
-    embed.set_author(
-        name=f"{server.name} Hero & Pet Upgrades", icon_url=get_guild_icon(server)
-    )
+    embed.set_author(name=f"{server.name} Hero & Pet Upgrades", icon_url=get_guild_icon(server))
 
     enums = coc.enums.HERO_ORDER + coc.enums.PETS_ORDER
     pipeline = [
@@ -583,9 +511,7 @@ async def family_hero_progress(
         {"$sort": {"num": -1}},
         {"$limit": 25},
     ]
-    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(
-        length=None
-    )
+    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
     text = ""
     total_upgrades = 0
     for result in results:
@@ -623,9 +549,7 @@ async def family_troop_progress(
                     {
                         "type": {
                             "$in": list(
-                                coc.enums.HOME_TROOP_ORDER
-                                + coc.enums.SPELL_ORDER
-                                + coc.enums.BUILDER_TROOPS_ORDER
+                                coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER + coc.enums.BUILDER_TROOPS_ORDER
                             )
                         }
                     },
@@ -651,9 +575,7 @@ async def family_troop_progress(
         },
         {"$set": {"name": "$name.name"}},
     ]
-    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(
-        length=None
-    )
+    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
 
     class ItemHolder:
         def __init__(self, data: dict):
@@ -661,16 +583,10 @@ async def family_troop_progress(
             self.name = data.get("name", ["unknown"])[0]
             self.troops = sum(
                 next(
-                    (
-                        item["count"]
-                        for item in data["counts"]
-                        if item["name"] == troop and troop != "Baby Dragon"
-                    ),
+                    (item["count"] for item in data["counts"] if item["name"] == troop and troop != "Baby Dragon"),
                     0,
                 )
-                for troop in list(
-                    set(coc.enums.HOME_TROOP_ORDER) - set(coc.enums.SIEGE_MACHINE_ORDER)
-                )
+                for troop in list(set(coc.enums.HOME_TROOP_ORDER) - set(coc.enums.SIEGE_MACHINE_ORDER))
             )
             self.spells = sum(
                 next(
@@ -688,25 +604,17 @@ async def family_troop_progress(
             )
             self.builder_troops = sum(
                 next(
-                    (
-                        item["count"]
-                        for item in data["counts"]
-                        if item["name"] == b_troop and b_troop != "Baby Dragon"
-                    ),
+                    (item["count"] for item in data["counts"] if item["name"] == b_troop and b_troop != "Baby Dragon"),
                     0,
                 )
                 for b_troop in coc.enums.BUILDER_TROOPS_ORDER
             )
-            self.total_upgraded = (
-                self.troops + self.spells + self.sieges + self.builder_troops
-            )
+            self.total_upgraded = self.troops + self.spells + self.sieges + self.builder_troops
 
     all_items = []
     for result in results:
         all_items.append(ItemHolder(data=result))
-    all_items = sorted(all_items, key=lambda x: x.total_upgraded, reverse=True)[
-        : min(limit, len(all_items))
-    ]
+    all_items = sorted(all_items, key=lambda x: x.total_upgraded, reverse=True)[: min(limit, len(all_items))]
     if not all_items:
         embed = disnake.Embed(description="**No Upgrades Yet**", colour=embed_color)
     else:
@@ -714,15 +622,9 @@ async def family_troop_progress(
         for item in all_items:
             text += f"{item.troops:<2} {item.spells:<2} {item.sieges:<2} {item.builder_troops:<2} {item.name[:13]}\n"
         embed = disnake.Embed(description=f"```{text}```", colour=embed_color)
-    embed.set_author(
-        name=f"{server.name} Hero & Pet Upgrades", icon_url=get_guild_icon(server)
-    )
+    embed.set_author(name=f"{server.name} Hero & Pet Upgrades", icon_url=get_guild_icon(server))
 
-    enums = (
-        coc.enums.HOME_TROOP_ORDER
-        + coc.enums.SPELL_ORDER
-        + coc.enums.BUILDER_TROOPS_ORDER
-    )
+    enums = coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER + coc.enums.BUILDER_TROOPS_ORDER
     pipeline = [
         {
             "$match": {
@@ -738,9 +640,7 @@ async def family_troop_progress(
         {"$sort": {"num": -1}},
         {"$limit": 25},
     ]
-    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(
-        length=None
-    )
+    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
     text = ""
     total_upgrades = 0
     for result in results:
@@ -777,13 +677,7 @@ async def family_sorted(
             if "ach_" not in attribute and attribute not in ["season_rank", "heroes"]:
                 spot = len(str(player.__getattribute__(sort_by)))
             elif "ach_" in sort_by:
-                spot = len(
-                    str(
-                        player.get_achievement(
-                            name=sort_by.split("_")[-1], default_value=0
-                        ).value
-                    )
-                )
+                spot = len(str(player.get_achievement(name=sort_by.split("_")[-1], default_value=0).value))
             elif sort_by == "season_rank":
 
                 def sort_func(a_player):
@@ -794,11 +688,7 @@ async def family_sorted(
 
                 spot = len(str(sort_func(player))) + 1
             else:
-                spot = len(
-                    str(
-                        sum([hero.level for hero in player.heroes if hero.is_home_base])
-                    )
-                )
+                spot = len(str(sum([hero.level for hero in player.heroes if hero.is_home_base])))
             if spot > longest:
                 longest = spot
         return longest
@@ -807,22 +697,14 @@ async def family_sorted(
     sort_by = item_to_name[sort_by]
     if "ach_" not in sort_by and sort_by not in ["season_rank", "heroes"]:
         attr = players[0].__getattribute__(sort_by)
-        if (
-            isinstance(attr, str)
-            or isinstance(attr, coc.Role)
-            or isinstance(attr, coc.League)
-        ):
+        if isinstance(attr, str) or isinstance(attr, coc.Role) or isinstance(attr, coc.League):
             players = sorted(players, key=lambda x: str(x.__getattribute__(sort_by)))
         else:
-            players = sorted(
-                players, key=lambda x: x.__getattribute__(sort_by), reverse=True
-            )
+            players = sorted(players, key=lambda x: x.__getattribute__(sort_by), reverse=True)
     elif "ach_" in sort_by:
         players = sorted(
             players,
-            key=lambda x: x.get_achievement(
-                name=sort_by.split("_")[-1], default_value=0
-            ).value,
+            key=lambda x: x.get_achievement(name=sort_by.split("_")[-1], default_value=0).value,
             reverse=True,
         )
     elif sort_by == "season_rank":
@@ -890,21 +772,15 @@ async def family_sorted(
                 rank = " N/A"
             text += f"`{spot:3}`{emoji}`#{rank:<{longest}} {player.name[:15]}`\n"
         else:
-            cum_heroes = sum(
-                [hero.level for hero in player.heroes if hero.is_home_base]
-            )
+            cum_heroes = sum([hero.level for hero in player.heroes if hero.is_home_base])
             text += f"`{spot:3}`{emoji}`{cum_heroes:3} {player.name[:15]}`\n"
 
-    embed = disnake.Embed(
-        title=f"{server.name} sorted by {og_sort}", description=text, color=embed_color
-    )
+    embed = disnake.Embed(title=f"{server.name} sorted by {og_sort}", description=text, color=embed_color)
     embed.timestamp = pend.now(tz=pend.UTC)
     return embed
 
 
-@register_button(
-    "familydonos", parser="_:server:season:townhall:limit:sort_by:sort_order"
-)
+@register_button("familydonos", parser="_:server:season:townhall:limit:sort_by:sort_order")
 async def family_donations(
     bot: CustomClient,
     server: disnake.Guild,
@@ -935,12 +811,8 @@ async def family_donations(
                 )
             else:
                 curr_item = hold_items[tag]
-                curr_item = curr_item._replace(
-                    donations=(curr_item.donations + data.get("donated", 0))
-                )
-                curr_item = curr_item._replace(
-                    received=(curr_item.received + data.get("received", 0))
-                )
+                curr_item = curr_item._replace(donations=(curr_item.donations + data.get("donated", 0)))
+                curr_item = curr_item._replace(received=(curr_item.received + data.get("received", 0)))
                 hold_items[tag] = curr_item
 
     hold_items = list(hold_items.values())
@@ -952,9 +824,7 @@ async def family_donations(
         raise MessageException("No players, try a lighter search filter")
 
     tags = [h.tag for h in hold_items[:limit]]
-    players = await bot.get_players(
-        tags=tags, custom=True, use_cache=True, fake_results=True
-    )
+    players = await bot.get_players(tags=tags, custom=True, use_cache=True, fake_results=True)
     map_player = {p.tag: p for p in players}
 
     text = "` #  DON   REC  NAME        `\n"
@@ -1007,9 +877,7 @@ async def family_clan_games(
         {"tag": {"$in": family_clan_tags}},
         projection={"tag": 1, f"{season}": 1, "_id": 0},
     ).to_list(length=None)
-    all_member_tags = [
-        tag for clan in family_games_stats for tag in clan.get(season, {}).keys()
-    ]
+    all_member_tags = [tag for clan in family_games_stats for tag in clan.get(season, {}).keys()]
     SEASON_START, SEASON_END = games_season_start_end_as_timestamp(season=season)
     pipeline = [
         {
@@ -1031,13 +899,9 @@ async def family_clan_games(
             }
         },
     ]
-    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(
-        length=None
-    )
+    results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
     # map to a dict
-    member_time_dict = {
-        m["_id"]: {"first": m["first"], "last": m["last"]} for m in results
-    }
+    member_time_dict = {m["_id"]: {"first": m["first"], "last": m["last"]} for m in results}
 
     holder = namedtuple("holder", ["tag", "points", "time"])
     hold_items = []
@@ -1065,9 +929,7 @@ async def family_clan_games(
         raise MessageException("No players, try a lighter search filter")
 
     tags = [h.tag for h in hold_items[:limit]]
-    players = await bot.get_players(
-        tags=tags, custom=True, use_cache=True, fake_results=True
-    )
+    players = await bot.get_players(tags=tags, custom=True, use_cache=True, fake_results=True)
     map_player = {p.tag: p for p in players}
 
     text = "` #      TIME    NAME       `\n"
@@ -1108,9 +970,7 @@ async def family_activity(
         {"tag": {"$in": family_clan_tags}},
         projection={"tag": 1, f"{season}": 1, "_id": 0},
     ).to_list(length=None)
-    all_member_tags = [
-        tag for clan in clan_stats for tag in clan.get(season, {}).keys()
-    ]
+    all_member_tags = [tag for clan in clan_stats for tag in clan.get(season, {}).keys()]
     players = await bot.get_players(tags=all_member_tags, custom=True, use_cache=True)
     map_player = {p.tag: p for p in players}
 
@@ -1147,9 +1007,7 @@ async def family_activity(
     for count, member in enumerate(hold_items, 1):
         if count <= limit:
             if show_last_online:
-                time_text = smart_convert_seconds(
-                    seconds=(now - member.player.last_online)
-                )
+                time_text = smart_convert_seconds(seconds=(now - member.player.last_online))
                 text += f"`{count:2} {member.activity:3} {time_text:7} {member.player.clear_name[:13]:13}`[{create_superscript(member.player.town_hall)}]({member.player.share_link})\n"
             else:
                 text += f"`{count:2} {member.activity:4} {member.player.clear_name[:13]:13}`[{create_superscript(member.player.town_hall)}]({member.player.share_link})\n"
@@ -1165,22 +1023,16 @@ async def family_activity(
         text=f"Total Activity: {total_activity} | {season}",
     )
     month = bot.gen_season_date(seasons_ago=24, as_text=False).index(season)
-    graph, _ = await daily_graph(
-        bot=bot, clan_tags=family_clan_tags, attribute="activity", months=month + 1
-    )
+    graph, _ = await daily_graph(bot=bot, clan_tags=family_clan_tags, attribute="activity", months=month + 1)
     embed.set_image(file=graph)
     embed.timestamp = pend.now(tz=pend.UTC)
     return embed
 
 
 @register_button("familyclans", parser="_:server:type")
-async def family_clans(
-    bot: CustomClient, server: disnake.Guild, type: str, embed_color: disnake.Color
-):
+async def family_clans(bot: CustomClient, server: disnake.Guild, type: str, embed_color: disnake.Color):
     if type == "db":
-        categories: list = await bot.clan_db.distinct(
-            "category", filter={"server": server.id}
-        )
+        categories: list = await bot.clan_db.distinct("category", filter={"server": server.id})
         server_db = await bot.server_db.find_one({"server": server.id})
         sorted_categories = server_db.get("category_order")
         if sorted_categories is not None:
@@ -1188,11 +1040,7 @@ async def family_clans(
             categories = sorted_categories + missing_cats
         categories.insert(0, "All Clans")
 
-        results = (
-            await bot.clan_db.find({"server": server.id})
-            .sort([("category", 1), ("name", 1)])
-            .to_list(length=100)
-        )
+        results = await bot.clan_db.find({"server": server.id}).sort([("category", 1), ("name", 1)]).to_list(length=100)
         results_dict = defaultdict(list)
         clan_tags = []
         for result in results:
@@ -1247,11 +1095,7 @@ async def family_clans(
         if not clan_result:
             continue
         local_text = ""
-        clan_result = [
-            c
-            for clan in clan_result
-            if (c := coc.utils.get(clans, tag=clan.get("tag")))
-        ]
+        clan_result = [c for clan in clan_result if (c := coc.utils.get(clans, tag=clan.get("tag")))]
         clan_result.sort(key=lambda x: x.name)
         for clan in clan_result:
             local_text += f"{clan.name} [({clan.member_count}/50)]({SHORT_CLAN_LINK + clan.tag.replace('#', '')})\n"
@@ -1283,9 +1127,7 @@ async def family_clans(
 
 
 @register_button("familyraids", parser="_:server:weekend")
-async def family_raids(
-    bot: CustomClient, server: disnake.Guild, weekend: str, embed_color: disnake.Color
-):
+async def family_raids(bot: CustomClient, server: disnake.Guild, weekend: str, embed_color: disnake.Color):
     clan_tags = await bot.clan_db.distinct("tag", filter={"server": server.id})
     if not clan_tags:
         raise MessageException("No clans linked to this server")
@@ -1296,9 +1138,7 @@ async def family_raids(
 
     async def get_raid_stuff(clan):
         weekend = gen_raid_weekend_datestrings(number_of_weeks=1)[0]
-        weekend_raid_entry = await get_raidlog_entry(
-            clan=clan, weekend=weekend, bot=bot, limit=2
-        )
+        weekend_raid_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=bot, limit=2)
         return [clan, weekend_raid_entry]
 
     for clan in clans:
@@ -1340,9 +1180,7 @@ async def family_raids(
 
 
 @register_button("familywars", parser="_:server")
-async def family_wars(
-    bot: CustomClient, server: disnake.Guild, embed_color: disnake.Color
-):
+async def family_wars(bot: CustomClient, server: disnake.Guild, embed_color: disnake.Color):
     clan_tags = await bot.clan_db.distinct("tag", filter={"server": server.id})
     if len(clan_tags) == 0:
         raise MessageException("No clans linked to this server.")
@@ -1378,12 +1216,8 @@ async def family_wars(
                 war_time = war.end_time.time.replace(tzinfo=pend.UTC).timestamp()
                 war_pos = "Ending"
 
-        team_hits = f"{len(war.attacks) - len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".ljust(
-            7
-        )
-        opp_hits = f"{len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".rjust(
-            7
-        )
+        team_hits = f"{len(war.attacks) - len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".ljust(7)
+        opp_hits = f"{len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".rjust(7)
         embed.add_field(
             name=f"{emoji}{war.clan.name} vs {war.opponent.name}",
             value=f"> `{team_hits}`{bot.emoji.wood_swords}`{opp_hits}`\n"

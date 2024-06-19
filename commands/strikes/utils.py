@@ -52,9 +52,7 @@ async def add_strike(
         }
     )
 
-    results = await bot.strikelist.find(
-        {"$and": [{"tag": player.tag}, {"server": guild.id}]}
-    ).to_list(length=100)
+    results = await bot.strikelist.find({"$and": [{"tag": player.tag}, {"server": guild.id}]}).to_list(length=100)
     num_strikes = sum([result.get("strike_weight") for result in results])
 
     if rollover_days is not None:
@@ -78,9 +76,7 @@ async def add_strike(
                     await server_member.send(content=dm_player, embed=embed)
                     embed.set_footer(text=f"Strike ID: {strike_id} | Notified in DM")
                 except:
-                    embed.set_footer(
-                        text=f"Strike ID: {strike_id} | DM Notification Failed"
-                    )
+                    embed.set_footer(text=f"Strike ID: {strike_id} | DM Notification Failed")
     else:
         embed.set_footer(text=f"Strike ID: {strike_id}")
     await send_strike_log(bot=bot, guild=guild, reason=embed)
@@ -88,14 +84,10 @@ async def add_strike(
     return embed
 
 
-async def send_strike_log(
-    bot: CustomClient, guild: disnake.Guild, reason: disnake.Embed
-):
+async def send_strike_log(bot: CustomClient, guild: disnake.Guild, reason: disnake.Embed):
     server_db = await bot.ck_client.get_server_settings(server_id=guild.id)
     if server_db.strike_log_channel is not None:
-        strike_log_channel = await bot.getch_channel(
-            channel_id=server_db.strike_log_channel
-        )
+        strike_log_channel = await bot.getch_channel(channel_id=server_db.strike_log_channel)
         if strike_log_channel is not None:
             await safe_run(func=strike_log_channel.send, embed=reason)
 
@@ -116,9 +108,7 @@ async def create_embeds(
     if view_expired_strikes:
         gte = 0
     if strike_user:
-        linked_accounts = await bot.link_client.get_linked_players(
-            discord_id=strike_user.id
-        )
+        linked_accounts = await bot.link_client.get_linked_players(discord_id=strike_user.id)
         if not linked_accounts:
             raise NoLinkedAccounts
         all_strikes = (
@@ -216,9 +206,7 @@ async def create_embeds(
             if player is None:
                 continue
 
-            striked_player = StrikedPlayer(
-                data=player._raw_data, client=None, results=strike
-            )
+            striked_player = StrikedPlayer(data=player._raw_data, client=None, results=strike)
             name = disnake.utils.escape_markdown(striked_player.name)
             date = striked_player.date_created[:10]
 
@@ -257,9 +245,7 @@ async def create_embeds(
             stacked_strikes[strike.get("tag")].append(strike)
 
         for tag, strike_list in stacked_strikes.items():
-            total_strike_weight = sum(
-                [result.get("strike_weight") for result in strike_list]
-            )
+            total_strike_weight = sum([result.get("strike_weight") for result in strike_list])
             num_strikes = len(strike_list)
             if num_strikes < strike_amount:
                 continue
@@ -276,11 +262,7 @@ async def create_embeds(
                     for result in strike_list
                 ]
             )
-            clan = (
-                f"{player.clan.name}, {str(player.role)}"
-                if player.clan is not None
-                else "No Clan"
-            )
+            clan = f"{player.clan.name}, {str(player.role)}" if player.clan is not None else "No Clan"
 
             hold += (
                 f"{bot.fetch_emoji(player.town_hall)}[{disnake.utils.escape_markdown(player.name)}]({player.share_link}) | {clan}\n"
@@ -299,9 +281,7 @@ async def create_embeds(
     embeds = []
     for t in text:
         embed = disnake.Embed(description=t, color=embed_color)
-        embed.set_author(
-            name=f"{guild.name} Strike List", icon_url=get_guild_icon(guild=guild)
-        )
+        embed.set_author(name=f"{guild.name} Strike List", icon_url=get_guild_icon(guild=guild))
         embeds.append(embed)
 
     return embeds

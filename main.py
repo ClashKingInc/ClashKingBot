@@ -12,9 +12,7 @@ scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
 
 config = Config()
-intents = disnake.Intents(
-    guilds=True, members=True, emojis=True, messages=True, message_content=True
-)
+intents = disnake.Intents(guilds=True, members=True, emojis=True, messages=True, message_content=True)
 
 cluster_id = 0
 total_shards = 6
@@ -76,9 +74,7 @@ def load():
                 "commands",
                 "buttons",
             ]:
-                path = os.path.join(root, filename)[len("commands/") :][:-3].replace(
-                    os.path.sep, "."
-                )
+                path = os.path.join(root, filename)[len("commands/") :][:-3].replace(os.path.sep, ".")
                 if path.split(".")[0] in disallowed:
                     continue
                 file_list.append(f"commands.{path}")

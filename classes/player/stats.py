@@ -89,9 +89,7 @@ class StatsPlayer(coc.Player):
         if ranking_result is None:
             ranking_result = default
         if ranking_result.get("global_rank") is None:
-            self_global_ranking = await self.bot.legend_rankings.find_one(
-                {"tag": self.tag}
-            )
+            self_global_ranking = await self.bot.legend_rankings.find_one({"tag": self.tag})
             if self_global_ranking:
                 ranking_result["global_rank"] = self_global_ranking.get("rank")
         return LegendRanking(ranking_result)
@@ -324,14 +322,9 @@ class StatsPlayer(coc.Player):
             type = result.get("war_type")
             status = result.get("war_status")
             war_size = result.get("war_size")
-            if (
-                f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}"
-                in prev_
-            ):
+            if f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}" in prev_:
                 continue
-            prev_.append(
-                f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}"
-            )
+            prev_.append(f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}")
 
             if (
                 (townhall in townhall_level)
@@ -416,14 +409,9 @@ class StatsPlayer(coc.Player):
             type = result.get("war_type")
             status = result.get("war_status")
             war_size = result.get("war_size")
-            if (
-                f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}"
-                in prev_
-            ):
+            if f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}" in prev_:
                 continue
-            prev_.append(
-                f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}"
-            )
+            prev_.append(f"{self.tag}-{result.get('war_start')}-{result.get('defender_tag')}")
             if (
                 (townhall in townhall_level)
                 and (fresh in fresh_type)
@@ -488,9 +476,7 @@ class StatsPlayer(coc.Player):
             return await self.bot.track_players(players=[self])
 
     async def verify(self, api_token):
-        verified = await self.bot.coc_client.verify_player_token(
-            player_tag=self.tag, token=api_token
-        )
+        verified = await self.bot.coc_client.verify_player_token(player_tag=self.tag, token=api_token)
         return verified
 
     async def linked(self):
@@ -509,9 +495,7 @@ class StatsPlayer(coc.Player):
         for hero_name in coc.HERO_ORDER:
             hero = self.get_hero(name=hero_name)
             if hero is None:
-                hero: coc.Hero = self.bot.coc_client.get_hero(
-                    name=hero_name, townhall=self.town_hall, level=1
-                )
+                hero: coc.Hero = self.bot.coc_client.get_hero(name=hero_name, townhall=self.town_hall, level=1)
                 if not hero.name in HOME_VILLAGE_HEROES:
                     continue
                 if hero.required_th_level > self.town_hall:
@@ -534,15 +518,9 @@ class StatsPlayer(coc.Player):
 
                 if hero.level < prev_level_max:  # rushed
                     rushed_items.append(hero)
-                elif hero.level < hero.get_max_level_for_townhall(
-                    self.town_hall
-                ):  # not max
+                elif hero.level < hero.get_max_level_for_townhall(self.town_hall):  # not max
                     not_max_items.append(hero)
-                all_items.append(
-                    self.bot.coc_client.get_hero(
-                        name=hero_name, townhall=self.town_hall, level=1
-                    )
-                )
+                all_items.append(self.bot.coc_client.get_hero(name=hero_name, townhall=self.town_hall, level=1))
         return RushedInfo(
             player=self,
             rushed_items=rushed_items,
@@ -560,9 +538,7 @@ class StatsPlayer(coc.Player):
         for spell_name in coc.SPELL_ORDER:
             spell = self.get_spell(name=spell_name)
             if spell is None:
-                spell = self.bot.coc_client.get_spell(
-                    name=spell_name, townhall=self.town_hall, level=1
-                )
+                spell = self.bot.coc_client.get_spell(name=spell_name, townhall=self.town_hall, level=1)
                 th_max = spell.get_max_level_for_townhall(self.town_hall)
                 if th_max is None:
                     continue
@@ -575,23 +551,15 @@ class StatsPlayer(coc.Player):
                 if spell.required_th_level == self.town_hall:
                     prev_level_max = None
                 else:
-                    prev_level_max = spell.get_max_level_for_townhall(
-                        self.town_hall - 1
-                    )
+                    prev_level_max = spell.get_max_level_for_townhall(self.town_hall - 1)
                 if prev_level_max is None:
                     prev_level_max = spell.level
 
                 if spell.level < prev_level_max:  # rushed
                     rushed_items.append(spell)
-                elif spell.level < spell.get_max_level_for_townhall(
-                    self.town_hall
-                ):  # not max
+                elif spell.level < spell.get_max_level_for_townhall(self.town_hall):  # not max
                     not_max_items.append(spell)
-                all_items.append(
-                    self.bot.coc_client.get_spell(
-                        name=spell_name, townhall=self.town_hall, level=1
-                    )
-                )
+                all_items.append(self.bot.coc_client.get_spell(name=spell_name, townhall=self.town_hall, level=1))
         return RushedInfo(
             player=self,
             rushed_items=rushed_items,
@@ -609,9 +577,7 @@ class StatsPlayer(coc.Player):
         for troop_name in coc.HOME_TROOP_ORDER:
             troop = self.get_troop(name=troop_name)
             if troop is None:
-                troop = self.bot.coc_client.get_troop(
-                    name=troop_name, townhall=self.town_hall, level=1
-                )
+                troop = self.bot.coc_client.get_troop(name=troop_name, townhall=self.town_hall, level=1)
                 th_max = troop.get_max_level_for_townhall(self.town_hall)
                 if th_max is None:
                     continue
@@ -624,23 +590,15 @@ class StatsPlayer(coc.Player):
                 if troop.required_th_level == self.town_hall:
                     prev_level_max = None
                 else:
-                    prev_level_max = troop.get_max_level_for_townhall(
-                        self.town_hall - 1
-                    )
+                    prev_level_max = troop.get_max_level_for_townhall(self.town_hall - 1)
                 if prev_level_max is None:
                     prev_level_max = troop.level
 
                 if troop.level < prev_level_max:  # rushed
                     rushed_items.append(troop)
-                elif troop.level < troop.get_max_level_for_townhall(
-                    self.town_hall
-                ):  # not max
+                elif troop.level < troop.get_max_level_for_townhall(self.town_hall):  # not max
                     not_max_items.append(troop)
-                all_items.append(
-                    self.bot.coc_client.get_troop(
-                        name=troop_name, townhall=self.town_hall, level=1
-                    )
-                )
+                all_items.append(self.bot.coc_client.get_troop(name=troop_name, townhall=self.town_hall, level=1))
         return RushedInfo(
             player=self,
             rushed_items=rushed_items,
@@ -679,19 +637,12 @@ class StatsPlayer(coc.Player):
                 rushed_items.append(pet)
             elif pet.level < max:  # not max
                 not_max_items.append(pet)
-            all_items.append(
-                self.bot.coc_client.get_pet(
-                    name=pet.name, townhall=self.town_hall, level=1
-                )
-            )
+            all_items.append(self.bot.coc_client.get_pet(name=pet.name, townhall=self.town_hall, level=1))
 
         for pet_name in names:
-            pet = self.bot.coc_client.get_pet(
-                name=pet_name, townhall=self.town_hall, level=1
-            )
+            pet = self.bot.coc_client.get_pet(name=pet_name, townhall=self.town_hall, level=1)
             if self.town_hall < 14 or (
-                pet.name not in ["L.A.S.S.I", "Mighty Yak", "Electro Owl", "Unicorn"]
-                and self.town_hall == 14
+                pet.name not in ["L.A.S.S.I", "Mighty Yak", "Electro Owl", "Unicorn"] and self.town_hall == 14
             ):
                 continue
             th_max = pet.get_max_level_for_townhall(self.town_hall)
@@ -723,10 +674,7 @@ class StatsPlayer(coc.Player):
                 equipment_dict[gear.get("name")]["is_active"] = True
                 equipment_dict[gear.get("name")]["hero_name"] = hero.get("name")
 
-        return (
-            coc.HeroEquipment(data=data, client=self._client)
-            for data in equipment_dict.values()
-        )
+        return (coc.HeroEquipment(data=data, client=self._client) for data in equipment_dict.values())
 
 
 class RushedInfo:
@@ -780,28 +728,21 @@ class RushedInfo:
             og_level = item.level
             while item.level < item.get_max_level_for_townhall(self.player.town_hall):
                 if (
-                    (
-                        item.name
-                        in ["Barbarian King", "Archer Queen", "Royal Champion"]
-                        and item.is_home_base
-                    )
+                    (item.name in ["Barbarian King", "Archer Queen", "Royal Champion"] and item.is_home_base)
                     or (item.name in coc.PETS_ORDER)
                     or (item.name in coc.HOME_TROOP_ORDER and item.is_dark_troop)
                     or (item.name in coc.SPELL_ORDER and item.is_dark_spell)
                 ):
                     dark_elixir += item.upgrade_cost
-                elif (
-                    item.name in ["Battle Machine", "Battle Copter"]
-                    and item.is_builder_base
-                ) or (item.is_builder_base):
+                elif (item.name in ["Battle Machine", "Battle Copter"] and item.is_builder_base) or (
+                    item.is_builder_base
+                ):
                     builder_elixir += item.upgrade_cost
                 else:
                     elixir += item.upgrade_cost
                 item.level += 1
             item.level = og_level
-        return LootObject(
-            elixir=elixir, dark_elixir=dark_elixir, builder_elixir=builder_elixir
-        )
+        return LootObject(elixir=elixir, dark_elixir=dark_elixir, builder_elixir=builder_elixir)
 
     @property
     def total_levels_left(self):
@@ -818,12 +759,8 @@ class RushedInfo:
     def loot_done(self):
         return LootObject(
             elixir=(self.total_loot.elixir - self.total_loot_left.elixir),
-            dark_elixir=(
-                self.total_loot.dark_elixir - self.total_loot_left.dark_elixir
-            ),
-            builder_elixir=(
-                self.total_loot.builder_elixir - self.total_loot_left.builder_elixir
-            ),
+            dark_elixir=(self.total_loot.dark_elixir - self.total_loot_left.dark_elixir),
+            builder_elixir=(self.total_loot.builder_elixir - self.total_loot_left.builder_elixir),
         )
 
     @property
@@ -835,28 +772,21 @@ class RushedInfo:
             og_level = item.level
             while item.level <= item.get_max_level_for_townhall(self.player.town_hall):
                 if (
-                    (
-                        item.name
-                        in ["Barbarian King", "Archer Queen", "Royal Champion"]
-                        and item.is_home_base
-                    )
+                    (item.name in ["Barbarian King", "Archer Queen", "Royal Champion"] and item.is_home_base)
                     or (item.name in coc.PETS_ORDER)
                     or (item.name in coc.HOME_TROOP_ORDER and item.is_dark_troop)
                     or (item.name in coc.SPELL_ORDER and item.is_dark_spell)
                 ):
                     dark_elixir += item.upgrade_cost
-                elif (
-                    item.name in ["Battle Machine", "Battle Copter"]
-                    and item.is_builder_base
-                ) or (item.is_builder_base):
+                elif (item.name in ["Battle Machine", "Battle Copter"] and item.is_builder_base) or (
+                    item.is_builder_base
+                ):
                     builder_elixir += item.upgrade_cost
                 else:
                     elixir += item.upgrade_cost
                 item.level += 1
             item.level = og_level
-        return LootObject(
-            elixir=elixir, dark_elixir=dark_elixir, builder_elixir=builder_elixir
-        )
+        return LootObject(elixir=elixir, dark_elixir=dark_elixir, builder_elixir=builder_elixir)
 
     @property
     def total_levels(self):
@@ -955,18 +885,13 @@ class LegendDay:
         if self.legend_result is None:
             return []
 
-        if (
-            self.legend_result.get("attacks") is None
-            and self.legend_result.get("new_attacks") is None
-        ):
+        if self.legend_result.get("attacks") is None and self.legend_result.get("new_attacks") is None:
             return []
 
         new_data = []
         old_attacks = self.legend_result.get("attacks", [])
         for attack in old_attacks:
-            new_data.append(
-                {"change": attack, "time": None, "trophies": None, "hero_gear": []}
-            )
+            new_data.append({"change": attack, "time": None, "trophies": None, "hero_gear": []})
         new_format: List = self.legend_result.get("new_attacks", [])
         if new_format:
             new_data = new_data[: -len(new_format)]
@@ -978,18 +903,13 @@ class LegendDay:
         if self.legend_result is None:
             return []
 
-        if (
-            self.legend_result.get("defenses") is None
-            and self.legend_result.get("new_defenses") is None
-        ):
+        if self.legend_result.get("defenses") is None and self.legend_result.get("new_defenses") is None:
             return []
 
         new_data = []
         old_attacks = self.legend_result.get("defenses", [])
         for attack in old_attacks:
-            new_data.append(
-                {"change": attack, "time": None, "trophies": None, "hero_gear": []}
-            )
+            new_data.append({"change": attack, "time": None, "trophies": None, "hero_gear": []})
         new_format: List = self.legend_result.get("new_defenses", [])
         if new_format:
             new_data = new_data[: -len(new_format)]
@@ -1280,9 +1200,7 @@ class HitRate:
     @property
     def average_destruction(self):
         try:
-            return (
-                self.hitrate_dict["total_destruction"] / self.hitrate_dict["num_hits"]
-            )
+            return self.hitrate_dict["total_destruction"] / self.hitrate_dict["num_hits"]
         except:
             return 0.00
 
@@ -1360,10 +1278,7 @@ class DefenseRate:
     @property
     def average_destruction(self):
         try:
-            return (
-                1
-                - self.hitrate_dict["total_destruction"] / self.hitrate_dict["num_hits"]
-            )
+            return 1 - self.hitrate_dict["total_destruction"] / self.hitrate_dict["num_hits"]
         except:
             return 1 - 0.00
 
@@ -1374,9 +1289,7 @@ class DefenseRate:
     @property
     def average_triples(self):
         try:
-            return (
-                1 - self.hitrate_dict["total_triples"] / self.hitrate_dict["num_hits"]
-            )
+            return 1 - self.hitrate_dict["total_triples"] / self.hitrate_dict["num_hits"]
         except:
             return 1 - 0.00
 

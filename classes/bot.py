@@ -69,9 +69,7 @@ class CustomClient(commands.AutoShardedBot):
         self.scheduler = scheduler
         self.ck_client: FamilyClient = None
 
-        self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(
-            self._config.stats_mongodb, compressors="snappy"
-        )
+        self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(self._config.stats_mongodb, compressors="snappy")
         self.new_looper = self.looper_db.get_database("new_looper")
         self.stats = self.looper_db.get_database(name="stats")
         self.cache = self.looper_db.get_database(name="cache")
@@ -91,9 +89,7 @@ class CustomClient(commands.AutoShardedBot):
 
         self.history_db: collection_class = self.looper_db.looper.legend_history
         self.warhits: collection_class = self.looper_db.looper.warhits
-        self.webhook_message_db: collection_class = (
-            self.looper_db.looper.webhook_messages
-        )
+        self.webhook_message_db: collection_class = self.looper_db.looper.webhook_messages
         self.user_name = "admin"
         self.cwl_db: collection_class = self.looper_db.looper.cwl_db
         self.leveling: collection_class = self.new_looper.leveling
@@ -102,16 +98,10 @@ class CustomClient(commands.AutoShardedBot):
         self.player_history: collection_class = self.new_looper.player_history
         self.clan_history: collection_class = self.new_looper.clan_history
         self.clan_cache: collection_class = self.new_looper.clan_cache
-        self.excel_templates: collection_class = (
-            self.looper_db.clashking.excel_templates
-        )
+        self.excel_templates: collection_class = self.looper_db.clashking.excel_templates
         self.lineups: collection_class = self.looper_db.clashking.lineups
-        self.link_client: (
-            coc.ext.discordlinks.DiscordLinkClient
-        ) = asyncio.get_event_loop().run_until_complete(
-            discordlinks.login(
-                self._config.link_api_username, self._config.link_api_password
-            )
+        self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(
+            discordlinks.login(self._config.link_api_username, self._config.link_api_password)
         )
         self.bot_stats: collection_class = self.looper_db.clashking.bot_stats
         self.clan_stats: collection_class = self.new_looper.clan_stats
@@ -119,9 +109,7 @@ class CustomClient(commands.AutoShardedBot):
 
         self.raid_weekend_db: collection_class = self.looper_db.looper.raid_weekends
 
-        self.clan_join_leave: collection_class = (
-            self.looper_db.looper.join_leave_history
-        )
+        self.clan_join_leave: collection_class = self.looper_db.looper.join_leave_history
 
         self.base_stats: collection_class = self.looper_db.looper.base_stats
         self.autoboards: collection_class = self.looper_db.clashking.autoboards
@@ -133,27 +121,19 @@ class CustomClient(commands.AutoShardedBot):
         self.war_timers: collection_class = self.looper_db.looper.war_timer
         self.number_emojis: collection_class = self.looper_db.clashking.number_emojis
 
-        self.db_client = motor.motor_asyncio.AsyncIOMotorClient(
-            self._config.static_mongodb
-        )
+        self.db_client = motor.motor_asyncio.AsyncIOMotorClient(self._config.static_mongodb)
         self.clan_db: collection_class = self.db_client.usafam.clans
         self.banlist: collection_class = self.db_client.usafam.banlist
         self.server_db: collection_class = self.db_client.usafam.server
         self.profile_db: collection_class = self.db_client.usafam.profile_db
         self.ignoredroles: collection_class = self.db_client.usafam.evalignore
         self.generalfamroles: collection_class = self.db_client.usafam.generalrole
-        self.familyexclusiveroles: collection_class = (
-            self.db_client.usafam.familyexclusiveroles
-        )
+        self.familyexclusiveroles: collection_class = self.db_client.usafam.familyexclusiveroles
         self.notfamroles: collection_class = self.db_client.usafam.linkrole
         self.townhallroles: collection_class = self.db_client.usafam.townhallroles
         self.builderhallroles: collection_class = self.db_client.usafam.builderhallroles
-        self.legendleagueroles: collection_class = (
-            self.db_client.usafam.legendleagueroles
-        )
-        self.builderleagueroles: collection_class = (
-            self.db_client.usafam.builderleagueroles
-        )
+        self.legendleagueroles: collection_class = self.db_client.usafam.legendleagueroles
+        self.builderleagueroles: collection_class = self.db_client.usafam.builderleagueroles
         self.donationroles: collection_class = self.db_client.usafam.donationroles
         self.achievementroles: collection_class = self.db_client.usafam.achievementroles
         self.statusroles: collection_class = self.db_client.usafam.statusroles
@@ -171,9 +151,7 @@ class CustomClient(commands.AutoShardedBot):
         self.strikelist: collection_class = self.db_client.usafam.strikes
         self.custom_bots: collection_class = self.db_client.usafam.custom_bots
         self.suggestions: collection_class = self.db_client.usafam.suggestions
-        self.personal_reminders: collection_class = (
-            self.db_client.usafam.personal_reminders
-        )
+        self.personal_reminders: collection_class = self.db_client.usafam.personal_reminders
 
         self.tickets: collection_class = self.db_client.usafam.tickets
         self.open_tickets: collection_class = self.db_client.usafam.open_tickets
@@ -189,9 +167,7 @@ class CustomClient(commands.AutoShardedBot):
         self.autoboard_db: collection_class = self.db_client.usafam.autoboard_db
         self.player_search: collection_class = self.db_client.usafam.player_search
 
-        self.coc_client: coc.Client = asyncio.get_event_loop().run_until_complete(
-            coc_login(bot=self)
-        )
+        self.coc_client: coc.Client = asyncio.get_event_loop().run_until_complete(coc_login(bot=self))
 
         self.redis = redis.Redis(
             host=self._config.redis_ip,
@@ -257,15 +233,10 @@ class CustomClient(commands.AutoShardedBot):
         return functools.partial(self.i18n.l10n, locale=self.get_locale(ctx))
 
     def get_server_localizator(self, server: disnake.Guild) -> Callable[[str], str]:
-        return functools.partial(
-            self.i18n.l10n, locale=server.preferred_locale or disnake.Locale.en_US
-        )
+        return functools.partial(self.i18n.l10n, locale=server.preferred_locale or disnake.Locale.en_US)
 
     def get_number_emoji(self, color: str, number: int) -> EmojiType:
-        if (
-            not self.user.id == 808566437199216691
-            and not self.user.public_flags.verified_bot
-        ):
+        if not self.user.id == 808566437199216691 and not self.user.public_flags.verified_bot:
             color = "gold"
         guild = None
         if number <= 50:
@@ -292,9 +263,7 @@ class CustomClient(commands.AutoShardedBot):
         if tracked_list is None:
             tracked_list = []
         tracked_list = list(set(tracked_list + tags))
-        await self.user_db.update_one(
-            {"username": self.user_name}, {"$set": {"tracked_clans": tracked_list}}
-        )
+        await self.user_db.update_one({"username": self.user_name}, {"$set": {"tracked_clans": tracked_list}})
         return tracked_list
 
     async def get_tags(self, ping):
@@ -340,13 +309,11 @@ class CustomClient(commands.AutoShardedBot):
         else:
             dates = []
             for x in range(0, seasons_ago + 1):
-                end = coc.utils.get_season_end().replace(
-                    tzinfo=pend.UTC
-                ) - dateutil.relativedelta.relativedelta(months=x)
+                end = coc.utils.get_season_end().replace(tzinfo=pend.UTC) - dateutil.relativedelta.relativedelta(
+                    months=x
+                )
                 if as_text:
-                    dates.append(
-                        f"{calendar.month_name[end.date().month]} {end.date().year}"
-                    )
+                    dates.append(f"{calendar.month_name[end.date().month]} {end.date().year}")
                 else:
                     month = end.month
                     if end.month <= 9:
@@ -378,12 +345,8 @@ class CustomClient(commands.AutoShardedBot):
         return str(date)
 
     async def get_reminder_times(self, clan_tag):
-        all_reminders = self.reminders.find(
-            {"$and": [{"clan": clan_tag}, {"type": "War"}]}
-        )
-        limit = await self.reminders.count_documents(
-            filter={"$and": [{"clan": clan_tag}, {"type": "War"}]}
-        )
+        all_reminders = self.reminders.find({"$and": [{"clan": clan_tag}, {"type": "War"}]})
+        limit = await self.reminders.count_documents(filter={"$and": [{"clan": clan_tag}, {"type": "War"}]})
         times = set()
         for reminder in await all_reminders.to_list(length=limit):
             time = reminder.get("time")
@@ -404,13 +367,11 @@ class CustomClient(commands.AutoShardedBot):
     async def get_family_member_tags(self, guild_id, th_filter: int = None):
         clan_tags = await self.clan_db.distinct("tag", filter={"server": guild_id})
         if th_filter is None:
-            member_tags = await self.basic_clan.distinct(
-                "memberList.tag", filter={"tag": {"$in": clan_tags}}
-            )
+            member_tags = await self.basic_clan.distinct("memberList.tag", filter={"tag": {"$in": clan_tags}})
         else:
-            basic_clans = await self.basic_clan.find(
-                {"tag": {"$in": clan_tags}}, projection={"memberList": 1}
-            ).to_list(length=None)
+            basic_clans = await self.basic_clan.find({"tag": {"$in": clan_tags}}, projection={"memberList": 1}).to_list(
+                length=None
+            )
             member_tags = [
                 m.get("tag")
                 for clan in basic_clans
@@ -421,13 +382,11 @@ class CustomClient(commands.AutoShardedBot):
 
     async def get_clan_member_tags(self, clan_tags: list[str], legends_only=False):
         if not legends_only:
-            member_tags = await self.basic_clan.distinct(
-                "memberList.tag", filter={"tag": {"$in": clan_tags}}
-            )
+            member_tags = await self.basic_clan.distinct("memberList.tag", filter={"tag": {"$in": clan_tags}})
         else:
-            basic_clans = await self.basic_clan.find(
-                {"tag": {"$in": clan_tags}}, projection={"memberList": 1}
-            ).to_list(length=None)
+            basic_clans = await self.basic_clan.find({"tag": {"$in": clan_tags}}, projection={"memberList": 1}).to_list(
+                length=None
+            )
             member_tags = [
                 m.get("tag")
                 for clan in basic_clans
@@ -472,9 +431,7 @@ class CustomClient(commands.AutoShardedBot):
     def partial_emoji_gen(self, emoji_string: str):
         emoji = emoji_string.split(":")
         animated = "<a:" in emoji_string
-        return disnake.PartialEmoji(
-            name=emoji[1], id=int(str(emoji[2])[:-1]), animated=animated
-        )
+        return disnake.PartialEmoji(name=emoji[1], id=int(str(emoji[2])[:-1]), animated=animated)
 
     def fetch_emoji(self, name: str | int):
         emoji = SharedEmojis.all_emojis.get(name)
@@ -529,9 +486,7 @@ class CustomClient(commands.AutoShardedBot):
         tag = player.tag.replace("#", "")
         url = f"https://api.clashking.xyz/ss/{tag}/706149153431879760"
 
-        async with aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=5 * 60)
-        ) as session:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5 * 60)) as session:
             async with session.get(url) as response:
                 if response.status == 200:
                     image_data = await response.read()
@@ -542,9 +497,7 @@ class CustomClient(commands.AutoShardedBot):
         return disnake.File(fp=image_file, filename="screenshot.png")
 
     # CLASH HELPERS
-    async def getPlayer(
-        self, player_tag, custom=False, raise_exceptions=False, cache_data=False
-    ):
+    async def getPlayer(self, player_tag, custom=False, raise_exceptions=False, cache_data=False):
         if "|" in player_tag:
             player_tag = player_tag.split("|")[-1]
         use_cache = cache_data
@@ -577,9 +530,7 @@ class CustomClient(commands.AutoShardedBot):
                     )
             else:
                 if cache_data is None:
-                    clashPlayer: coc.Player = await self.coc_client.get_player(
-                        player_tag
-                    )
+                    clashPlayer: coc.Player = await self.coc_client.get_player(player_tag)
                     # await self.redis.set(clashPlayer.tag, ujson.dumps(clashPlayer._raw_data).encode('utf-8'), ex=120)
                 else:
                     clashPlayer = coc.Player(data=cache_data, client=self.coc_client)
@@ -607,31 +558,21 @@ class CustomClient(commands.AutoShardedBot):
         if custom is not False and not fake_results:
             if custom is True:
                 player_class = StatsPlayer
-                results_list = await self.player_stats.find(
-                    {"tag": {"$in": tags}}
-                ).to_list(length=None)
+                results_list = await self.player_stats.find({"tag": {"$in": tags}}).to_list(length=None)
             else:
                 player_class = custom
         elif custom is not False and fake_results:
             player_class = StatsPlayer
             results_dict = {tag: {} for tag in tags}
-        results_dict.update(
-            {item.get("tag") or item.get("VillageTag"): item for item in results_list}
-        )
+        results_dict.update({item.get("tag") or item.get("VillageTag"): item for item in results_list})
 
         players = []
         tag_set = set(tags)
         cache_data = []
 
         if use_cache:
-            redis_cache_data = await self.redis.mget(
-                keys=[tag for tag in tag_set if tag not in fresh_tags]
-            )
-            for data in (
-                ujson.loads(snappy.uncompress(data))
-                for data in redis_cache_data
-                if data is not None
-            ):
+            redis_cache_data = await self.redis.mget(keys=[tag for tag in tag_set if tag not in fresh_tags])
+            for data in (ujson.loads(snappy.uncompress(data)) for data in redis_cache_data if data is not None):
                 tag_set.discard(data.get("tag"))
                 cache_data.append(data)
 
@@ -651,9 +592,7 @@ class CustomClient(commands.AutoShardedBot):
         }
         data = [f"players/{t.replace('#', '%23')}" for t in tag_set]
         async with aiohttp.ClientSession() as session:
-            async with session.post(
-                "https://api.clashking.xyz/ck/bulk", json=data, headers=headers
-            ) as response:
+            async with session.post("https://api.clashking.xyz/ck/bulk", json=data, headers=headers) as response:
                 data = await response.read()
         player_data: dict = ujson.loads(data)
         players.extend(
@@ -671,9 +610,7 @@ class CustomClient(commands.AutoShardedBot):
         tag_set = set(tags)
 
         if use_cache:
-            cache_data = await self.clan_cache.find({"tag": {"$in": tags}}).to_list(
-                length=2500
-            )
+            cache_data = await self.clan_cache.find({"tag": {"$in": tags}}).to_list(length=2500)
         else:
             cache_data = []
         clans = []
@@ -749,15 +686,11 @@ class CustomClient(commands.AutoShardedBot):
                 clan_to_use = result.get("clan")
                 war = await self.coc_client.get_current_war(clan_tag=clan_to_use)
                 raw_data = war._raw_data
-                war = coc.ClanWar(
-                    client=self.coc_client, data=raw_data, clan_tag=war.opponent.tag
-                )
+                war = coc.ClanWar(client=self.coc_client, data=raw_data, clan_tag=war.opponent.tag)
                 return war
         else:
             try:
-                war = await self.coc_client.get_current_war(
-                    clanTag, cwl_round=coc.WarRound.current_preparation
-                )
+                war = await self.coc_client.get_current_war(clanTag, cwl_round=coc.WarRound.current_preparation)
                 if war.state == "notInWar":
                     return None
                 return war
@@ -794,18 +727,10 @@ class CustomClient(commands.AutoShardedBot):
 
         for response, date in responses:
             try:
-                if (
-                    "Not Found" not in str(response)
-                    and "'status': 500" not in str(response)
-                    and response is not None
-                ):
-                    await self.cwl_db.insert_one(
-                        {"clan_tag": clan.tag, "season": date, "data": response}
-                    )
+                if "Not Found" not in str(response) and "'status': 500" not in str(response) and response is not None:
+                    await self.cwl_db.insert_one({"clan_tag": clan.tag, "season": date, "data": response})
                 else:
-                    await self.cwl_db.insert_one(
-                        {"clan_tag": clan.tag, "season": date, "data": None}
-                    )
+                    await self.cwl_db.insert_one({"clan_tag": clan.tag, "season": date, "data": None})
             except Exception:
                 pass
 
@@ -833,9 +758,7 @@ class CustomClient(commands.AutoShardedBot):
             return True
 
         guild = ctx.guild.id
-        results = self.whitelist.find(
-            {"$and": [{"command": command_name}, {"server": guild}]}
-        )
+        results = self.whitelist.find({"$and": [{"command": command_name}, {"server": guild}]})
 
         if results is None:
             return False

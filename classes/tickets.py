@@ -40,23 +40,17 @@ class OpenTicket:
         self.clan: str = open_ticket.get("set_clan")
 
     async def set_clan(self, clan_tag):
-        await self.bot.open_tickets.update_one(
-            {"channel": self.channel}, {"$set": {"set_clan": clan_tag}}
-        )
+        await self.bot.open_tickets.update_one({"channel": self.channel}, {"$set": {"set_clan": clan_tag}})
 
     async def set_ticket_status(self, status: str):
-        await self.bot.open_tickets.update_one(
-            {"channel": self.channel}, {"$set": {"status": status}}
-        )
+        await self.bot.open_tickets.update_one({"channel": self.channel}, {"$set": {"status": status}})
         self.status = status
 
     async def rename_ticket(self):
         naming_convention = self.naming_convention
         coc_account = None
         if self.apply_account is not None:
-            coc_account = await self.bot.getPlayer(
-                player_tag=self.apply_account, custom=False, cache_data=False
-            )
+            coc_account = await self.bot.getPlayer(player_tag=self.apply_account, custom=False, cache_data=False)
 
         user = await self.bot.getch_user(self.user)
         status_emoji = {"open": "✅", "sleep": "🌙", "closed": "❌"}
@@ -85,13 +79,9 @@ class BaseTicket:
         self.bot = bot
         self.panel_settings = panel_settings
         self.panel_name = panel_settings.get("name")
-        self.panel_server: disnake.Guild = bot.get_guild(
-            self.panel_settings.get("server_id")
-        )
+        self.panel_server: disnake.Guild = bot.get_guild(self.panel_settings.get("server_id"))
         self.status_change_log = self.panel_settings.get("status_change_log")
-        self.ticket_button_click_log = self.panel_settings.get(
-            "ticket_button_click_log"
-        )
+        self.ticket_button_click_log = self.panel_settings.get("ticket_button_click_log")
         self.ticket_close_log = self.panel_settings.get("ticket_close_log")
         # self._embed_data = asyncio.get_running_loop().run_until_complete(bot.custom_embeds.find_one({"$and": [{"server": self.panel_server.id}, {"name": self.panel_settings.get("embed_name")}]}))
 
@@ -152,9 +142,7 @@ class BaseTicket:
                     )
                     link = f"https://api.clashking.xyz/renderhtml?url={link}"
                     buttons = disnake.ui.ActionRow()
-                    buttons.append_item(
-                        disnake.ui.Button(label=f"Thread Transcript", url=link)
-                    )
+                    buttons.append_item(disnake.ui.Button(label=f"Thread Transcript", url=link))
 
             transcript = await chat_exporter.export(ticket_channel)
             link = await upload_html_to_cdn(
@@ -162,9 +150,7 @@ class BaseTicket:
                 id=f"transcript-{ticket_channel.id}",
             )
             link = f"https://api.clashking.xyz/renderhtml?url={link}"
-            buttons.append_item(
-                disnake.ui.Button(label=f"Channel Transcript", url=link)
-            )
+            buttons.append_item(disnake.ui.Button(label=f"Channel Transcript", url=link))
             components = [buttons]
 
         try:
@@ -184,16 +170,13 @@ class TicketPanel(BaseTicket):
                 bot=bot,
                 panel_settings=panel_settings,
             )
-            for count, button_data in enumerate(
-                self.panel_settings.get("components", [])
-            )
+            for count, button_data in enumerate(self.panel_settings.get("components", []))
         ]
         self.open_category: int = self.panel_settings.get("open-category")
         self.sleep_category: int = self.panel_settings.get("sleep-category")
         self.closed_category: int = self.panel_settings.get("closed-category")
         self.approve_messages: List[ApproveMessages] = [
-            ApproveMessages(data=msg)
-            for msg in self.panel_settings.get("approve_messages", [])
+            ApproveMessages(data=msg) for msg in self.panel_settings.get("approve_messages", [])
         ]
 
     def get_message(self, name: str):
@@ -243,9 +226,7 @@ class TicketPanel(BaseTicket):
             },
         )
 
-    async def edit_button(
-        self, button: str, new_text: str, new_color: str, new_emoji: str = None
-    ):
+    async def edit_button(self, button: str, new_text: str, new_color: str, new_emoji: str = None):
         button = self.get_button(label=button)
         if button is None:
             raise ButtonNotFound
@@ -271,9 +252,7 @@ class TicketPanel(BaseTicket):
 
     def get_button(self, label: str = None, custom_id: str = None):
         if label is not None:
-            button = next(
-                (button for button in self.buttons if button.label == label), None
-            )
+            button = next((button for button in self.buttons if button.label == label), None)
         else:
             button = next(
                 (button for button in self.buttons if button.custom_id == custom_id),
@@ -312,14 +291,10 @@ class Ticket_Buttons(BaseTicket):
         )
 
         self.roles_to_add: List[int] = (
-            self.settings.get("roles_to_add", [])
-            if self.settings.get("roles_to_add") is not None
-            else []
+            self.settings.get("roles_to_add", []) if self.settings.get("roles_to_add") is not None else []
         )
         self.roles_to_remove: List[int] = (
-            self.settings.get("roles_to_remove", [])
-            if self.settings.get("roles_to_remove") is not None
-            else []
+            self.settings.get("roles_to_remove", []) if self.settings.get("roles_to_remove") is not None else []
         )
 
         self.questions: List[str] = self.settings.get("questions", [])
@@ -328,40 +303,26 @@ class Ticket_Buttons(BaseTicket):
         self.number_allowed_to_apply: int = self.settings.get("num_apply", 25)
         self.townhall_minimum: int = self.settings.get("th_min", 0)
         self.send_player_info: bool = self.settings.get("player_info", False)
-        self.townhall_requirements: dict = self.settings.get(
-            "townhall_requirements", {}
-        )
+        self.townhall_requirements: dict = self.settings.get("townhall_requirements", {})
         self.private_thread: bool = self.settings.get("private_thread", False)
 
         self.ping_staff_roles: List[int] = (
-            self.settings.get("mod_role", [])
-            if self.settings.get("mod_role") is not None
-            else []
+            self.settings.get("mod_role", []) if self.settings.get("mod_role") is not None else []
         )
         self.no_ping_staff_roles: List[int] = (
-            self.settings.get("no_ping_mod_role", [])
-            if self.settings.get("no_ping_mod_role") is not None
-            else []
+            self.settings.get("no_ping_mod_role", []) if self.settings.get("no_ping_mod_role") is not None else []
         )
 
-        self.naming_convention: str = self.settings.get(
-            "naming", "{ticket_count}-{user}"
-        )
+        self.naming_convention: str = self.settings.get("naming", "{ticket_count}-{user}")
 
     def get_townhall_requirement(self, townhall_level: int):
-        specific_townhall_requirement = self.townhall_requirements.get(
-            str(townhall_level), {"TH": townhall_level}
-        )
+        specific_townhall_requirement = self.townhall_requirements.get(str(townhall_level), {"TH": townhall_level})
         return TownhallRequirements(data=specific_townhall_requirement)
 
     async def set_townhall_requirements(self, requirements: dict):
         await self.bot.tickets.update_one(
             {"$and": [{"server_id": self.panel_server.id}, {"name": self.panel_name}]},
-            {
-                "$set": {
-                    f"{self.custom_id}_settings.townhall_requirements": requirements
-                }
-            },
+            {"$set": {f"{self.custom_id}_settings.townhall_requirements": requirements}},
         )
 
     async def set_player_info(self, state: bool):
@@ -393,9 +354,7 @@ class Ticket_Buttons(BaseTicket):
         emoji = self.button_data.get("emoji")
         if emoji is not None:
             if emoji.get("id") is not None:
-                emoji = self.bot.partial_emoji_gen(
-                    f"<:{emoji.get('name')}:{emoji.get('id')}>"
-                )
+                emoji = self.bot.partial_emoji_gen(f"<:{emoji.get('name')}:{emoji.get('id')}>")
             else:
                 emoji = emoji.get("name")
         style = {

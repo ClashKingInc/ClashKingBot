@@ -20,9 +20,7 @@ class FamilyStats(commands.Cog, name="Family Trophy Stats"):
         await ctx.response.defer()
 
     @commands.slash_command(name="rank", description="Ranks for player")
-    async def player_rank(
-        self, ctx: disnake.ApplicationCommandInteraction, user: disnake.User
-    ):
+    async def player_rank(self, ctx: disnake.ApplicationCommandInteraction, user: disnake.User):
         """
         Parameters
         ----------
@@ -33,27 +31,18 @@ class FamilyStats(commands.Cog, name="Family Trophy Stats"):
         players = await self.bot.get_players(tags=tags, custom=False)
         if not players:
             raise NoLinkedAccounts
-        embed_color = await self.bot.ck_client.get_server_embed_color(
-            server_id=ctx.guild_id
-        )
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
 
         rr = {}
-        clan_tags = await self.bot.clan_db.distinct(
-            "tag", filter={"server": ctx.guild.id}
-        )
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
         clans = await self.bot.get_clans(tags=clan_tags)
         for clan in clans:
             for player in clan.members:
                 rr[player.tag] = player.trophies
 
-        rr = {
-            key: rank
-            for rank, key in enumerate(sorted(rr, key=rr.get, reverse=True), 1)
-        }
+        rr = {key: rank for rank, key in enumerate(sorted(rr, key=rr.get, reverse=True), 1)}
 
-        leaderboard_rankings = await self.bot.leaderboard_db.find(
-            {"tag": {"$in": tags}}
-        ).to_list(length=None)
+        leaderboard_rankings = await self.bot.leaderboard_db.find({"tag": {"$in": tags}}).to_list(length=None)
         leaderboard_rankings = {r.get("tag"): r for r in leaderboard_rankings}
 
         players.sort(key=lambda x: rr.get(x.tag, 10000))
@@ -75,16 +64,12 @@ class FamilyStats(commands.Cog, name="Family Trophy Stats"):
                 + f"Country: {ranking.country}",
                 color=embed_color,
             )
-            embed.set_footer(
-                text=f"Ranks for {user.display_name}", icon_url=user.display_avatar.url
-            )
+            embed.set_footer(text=f"Ranks for {user.display_name}", icon_url=user.display_avatar.url)
             embed.set_thumbnail(url=thDictionary(player.town_hall))
             embeds.append(embed)
 
         current_page = 0
-        await ctx.edit_original_message(
-            embed=embeds[0], components=create_components(current_page, embeds)
-        )
+        await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds))
 
         msg = await ctx.original_message()
 
@@ -178,9 +163,7 @@ class FamilyStats(commands.Cog, name="Family Trophy Stats"):
         embed.set_footer(text="All Clans have 50 Members")
         await ctx.edit_original_message(embed=embed)
 
-    @ranked.sub_command(
-        name="players", description="Region rankings for players on server"
-    )
+    @ranked.sub_command(name="players", description="Region rankings for players on server")
     async def ranked_players(self, ctx: disnake.ApplicationCommandInteraction):
         server_players = {}
         names = {}
@@ -203,10 +186,7 @@ class FamilyStats(commands.Cog, name="Family Trophy Stats"):
 
         sorted(server_players, key=server_players.get, reverse=True)
         server_players = {
-            key: rank
-            for rank, key in enumerate(
-                sorted(server_players, key=server_players.get, reverse=True), 1
-            )
+            key: rank for rank, key in enumerate(sorted(server_players, key=server_players.get, reverse=True), 1)
         }
         server_players_list = list(server_players.keys())
 
@@ -223,7 +203,9 @@ class FamilyStats(commands.Cog, name="Family Trophy Stats"):
 
             if ranking.local_ranking != "<:status_offline:910938138984206347>":
                 num += 1
-                text += f"<:trophy:956417881778815016>`{trophies[tag]}` | {ranking.flag} {ranking.country} | {names[tag]}\n"
+                text += (
+                    f"<:trophy:956417881778815016>`{trophies[tag]}` | {ranking.flag} {ranking.country} | {names[tag]}\n"
+                )
 
             if num == 25:
                 embed = disnake.Embed(
@@ -242,13 +224,9 @@ class FamilyStats(commands.Cog, name="Family Trophy Stats"):
             embeds.append(embed)
 
         if embeds == []:
-            return await ctx.edit_original_message(
-                content="No ranked players on this server."
-            )
+            return await ctx.edit_original_message(content="No ranked players on this server.")
         current_page = 0
-        await ctx.edit_original_message(
-            embed=embeds[0], components=create_components(current_page, embeds, True)
-        )
+        await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))
         msg = await ctx.original_message()
 
         def check(res: disnake.MessageInteraction):

@@ -79,11 +79,7 @@ async def get_wars(
                             {"data.opponent.tag": {"$in": clan_tags}},
                         ]
                     },
-                    {
-                        "data.preparationStartTime": {
-                            "$gte": days_ago.strftime("%Y%m%dT%H%M%S.000Z")
-                        }
-                    },
+                    {"data.preparationStartTime": {"$gte": days_ago.strftime("%Y%m%dT%H%M%S.000Z")}},
                 ]
             },
             projection={"data": 1, "_id": 0},
@@ -149,9 +145,7 @@ async def war_hitrate(
                     hit_rate_dict[attack.attacker_tag]["total"] += 1
             elif "v" in th_filter:
                 th, def_th = th_filter.split("v")
-                if attack.attacker.town_hall == int(
-                    th
-                ) and attack.defender.town_hall == int(def_th):
+                if attack.attacker.town_hall == int(th) and attack.defender.town_hall == int(def_th):
                     hit_rate_dict[attack.attacker_tag][attack.stars] += 1
                     hit_rate_dict[attack.attacker_tag]["total"] += 1
             else:
@@ -160,9 +154,7 @@ async def war_hitrate(
                     hit_rate_dict[attack.attacker_tag]["total"] += 1
 
     holder_list = []
-    holder = namedtuple(
-        "holder", ["name", "tag", "townhall", "hitrate", "attacks", "total"]
-    )
+    holder = namedtuple("holder", ["name", "tag", "townhall", "hitrate", "attacks", "total"])
     for tag, data in hit_rate_dict.items():
         total_attacks = data.get("total", 0)
         if total_attacks == 0:
@@ -198,9 +190,7 @@ async def war_hitrate(
         f_text = f"{len(clan_wars)} wars"
     elif num_days:
         f_text = f"{num_days} days | {len(clan_wars)} wars"
-    embed.set_footer(
-        text=f"{f_text} | Stars: {str(star_filter)}\nWar Types: {str(war_types)} | TH Filter: {th_filter}"
-    )
+    embed.set_footer(text=f"{f_text} | Stars: {str(star_filter)}\nWar Types: {str(war_types)} | TH Filter: {th_filter}")
     embed.timestamp = pend.now(tz=pend.UTC)
     return embed
 
@@ -262,9 +252,7 @@ async def war_hitcount(
                     hit_rate_dict[attack.attacker_tag]["total"] += 1
             else:
                 th, def_th = th_filter.split("v")
-                if attack.attacker.town_hall == int(
-                    th
-                ) and attack.defender.town_hall == int(def_th):
+                if attack.attacker.town_hall == int(th) and attack.defender.town_hall == int(def_th):
                     hit_rate_dict[attack.attacker_tag][attack.stars] += 1
                     hit_rate_dict[attack.attacker_tag]["total"] += 1
 
@@ -288,16 +276,12 @@ async def war_hitcount(
                 hitrate_3=data.get(3, 0),
             )
         )
-    holder_list.sort(
-        key=lambda x: (x.hitrate_3, x.hitrate_2, x.hitrate_1), reverse=True
-    )
+    holder_list.sort(key=lambda x: (x.hitrate_3, x.hitrate_2, x.hitrate_1), reverse=True)
     text = "`#  TH 1★ 2★ 3★   Name`\n"
     for count, player in enumerate(holder_list[:limit], 1):
         text += f"`{count:<2} {player.townhall:>2} {player.hitrate_1:>2} {player.hitrate_2:>2} {player.hitrate_3:>2} {player.name[:13]}`\n"
 
     embed = disnake.Embed(description=text, color=embed_color)
-    embed.set_author(
-        name=f"Top {limit} Hitcount ({season})", icon_url=get_guild_icon(None)
-    )
+    embed.set_author(name=f"Top {limit} Hitcount ({season})", icon_url=get_guild_icon(None))
     embed.timestamp = pend.now(tz=pend.UTC)
     return embed

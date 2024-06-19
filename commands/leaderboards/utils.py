@@ -44,9 +44,7 @@ async def image_board(
         legend_tags = result[0].get("topPlayers", [])
         if not legend_tags:
             raise MessageException("No Legend Players")
-        players: List[StatsPlayer] = await bot.get_players(
-            tags=legend_tags, custom=True, use_cache=True
-        )
+        players: List[StatsPlayer] = await bot.get_players(tags=legend_tags, custom=True, use_cache=True)
         players.sort(key=lambda x: x.trophies)
         columns = ["Name", "Start", "Atk", "Def", "Net", "Current"]
         badges = [player.clan_badge_link() for player in players]
@@ -97,14 +95,10 @@ async def image_board(
         "data": data,
         "logo": get_guild_icon(server) if clan is None else clan.badge.url,
         "badge_columns": badges,
-        "title": re.sub(
-            '[*_`~/"#]', "", f"{(clan or server).name} Top {limit} {type.title()}"
-        ),
+        "title": re.sub('[*_`~/"#]', "", f"{(clan or server).name} Top {limit} {type.title()}"),
     }
     async with aiohttp.ClientSession(json_serialize=ujson.dumps) as session:
-        async with session.post(
-            "https://api.clashking.xyz/table", json=data
-        ) as response:
+        async with session.post("https://api.clashking.xyz/table", json=data) as response:
             link = await response.json()
         await session.close()
     return f'{link.get("link")}?t={int(pend.now(tz=pend.UTC).timestamp())}'
@@ -114,12 +108,8 @@ async def location_components(bot: CustomClient, loc_type: str, **kwargs):
     return None
 
 
-@register_button(
-    "locationlb", parser="_:loc_type:location:limit", components=location_components
-)
-async def location_image_board(
-    bot: CustomClient, loc_type: str, location: str, limit: int
-):
+@register_button("locationlb", parser="_:loc_type:location:limit", components=location_components)
+async def location_image_board(bot: CustomClient, loc_type: str, location: str, limit: int):
     if loc_type:
         pass
 
@@ -145,14 +135,10 @@ async def location_image_board(
         "data": data,
         "logo": get_guild_icon(server) if clan is None else clan.badge.url,
         "badge_columns": badges,
-        "title": re.sub(
-            '[*_`~/"#]', "", f"{(clan or server).name} Top {limit} {type.title()}"
-        ),
+        "title": re.sub('[*_`~/"#]', "", f"{(clan or server).name} Top {limit} {type.title()}"),
     }
     async with aiohttp.ClientSession(json_serialize=ujson.dumps) as session:
-        async with session.post(
-            "https://api.clashking.xyz/table", json=data
-        ) as response:
+        async with session.post("https://api.clashking.xyz/table", json=data) as response:
             link = await response.json()
         await session.close()
     return f'{link.get("link")}?t={int(pend.now(tz=pend.UTC).timestamp())}'

@@ -14,9 +14,7 @@ class Suggestions(commands.Cog):
         description="Suggest a feature for the bot",
         guild_ids=[923764211845312533],
     )
-    async def suggest(
-        self, ctx: disnake.ApplicationCommandInteraction, topic: str, description: str
-    ):
+    async def suggest(self, ctx: disnake.ApplicationCommandInteraction, topic: str, description: str):
         suggestion_id = str(uuid.uuid4())
         suggestion = {
             "_id": suggestion_id,
@@ -29,9 +27,7 @@ class Suggestions(commands.Cog):
 
         # Send to suggestion channel
         channel = await self.bot.getch_channel(1206000739143647372)
-        embed = disnake.Embed(
-            title=topic, description=description, color=0x000000  # Starting as black
-        )
+        embed = disnake.Embed(title=topic, description=description, color=0x000000)  # Starting as black
         embed.set_footer(text=f"Suggestion ID: {str(suggestion_id)}")
         message = await channel.send(
             embed=embed,
@@ -46,20 +42,13 @@ class Suggestions(commands.Cog):
 
         # Create a thread for discussion
         await message.create_thread(name=f"Suggestion: {topic}")
-        await ctx.response.send_message(
-            "Your suggestion has been posted!", ephemeral=True
-        )
+        await ctx.response.send_message("Your suggestion has been posted!", ephemeral=True)
 
         # Update the leaderboard
         await self.update_leaderboard(channel)
 
     async def update_leaderboard(self, channel: disnake.TextChannel, edit=False):
-        top_suggestions: list = (
-            await self.bot.suggestions.find()
-            .sort("votes", -1)
-            .limit(10)
-            .to_list(length=None)
-        )
+        top_suggestions: list = await self.bot.suggestions.find().sort("votes", -1).limit(10).to_list(length=None)
 
         # Start building the embed
         embed = disnake.Embed(
@@ -95,16 +84,12 @@ class Suggestions(commands.Cog):
             last_message = messages[0]
             await last_message.edit(embed=embed)
 
-    @commands.slash_command(
-        description="Remove a completed suggestion", guild_ids=[923764211845312533]
-    )
+    @commands.slash_command(description="Remove a completed suggestion", guild_ids=[923764211845312533])
     @commands.is_owner()
     async def remove_suggestion(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        suggestion_id: str = commands.Param(
-            description="The ID of the suggestion to remove"
-        ),
+        suggestion_id: str = commands.Param(description="The ID of the suggestion to remove"),
     ):
         await self.bot.suggestions.delete_one({"_id": suggestion_id})
         await ctx.response.send_message("Suggestion removed.", ephemeral=True)
@@ -127,9 +112,7 @@ class Suggestions(commands.Cog):
 
         upvoters = suggestion.get("voters", [])
         if not upvoters:
-            await inter.response.send_message(
-                "No upvotes for this suggestion.", ephemeral=True
-            )
+            await inter.response.send_message("No upvotes for this suggestion.", ephemeral=True)
             return
 
         # Construct the message to ping all upvoters
@@ -137,9 +120,7 @@ class Suggestions(commands.Cog):
         # so you may need to split this into multiple messages if there are many upvoters.
         ping_message = " ".join([f"<@{user_id}>" for user_id in upvoters])
         # Send the message in the current channel or a specific channel
-        await inter.channel.send(
-            ping_message[:2000]
-        )  # Trim to 2000 characters to meet Discord's limit
+        await inter.channel.send(ping_message[:2000])  # Trim to 2000 characters to meet Discord's limit
         await inter.response.send_message("Upvoters pinged.", ephemeral=True)
 
     @commands.Cog.listener()
@@ -151,9 +132,7 @@ class Suggestions(commands.Cog):
             user_id = str(ctx.author.id)
             suggestion = await self.bot.suggestions.find_one({"_id": suggestion_id})
             if user_id in suggestion["voters"]:
-                await ctx.response.send_message(
-                    "You have already voted on this suggestion.", ephemeral=True
-                )
+                await ctx.response.send_message("You have already voted on this suggestion.", ephemeral=True)
                 return
             await self.bot.suggestions.update_one(
                 {"_id": suggestion_id},
@@ -165,9 +144,7 @@ class Suggestions(commands.Cog):
             # Clamp votes between 0 and 10 for color calculation
             clamped_votes = max(0, min(votes, 10))
             green_intensity = int((clamped_votes / 10) * 255)
-            new_color = 0x000000 + (
-                green_intensity << 8
-            )  # Shift green component to the right place
+            new_color = 0x000000 + (green_intensity << 8)  # Shift green component to the right place
 
             # Update the embed with the new color and votes
             new_embed = disnake.Embed(

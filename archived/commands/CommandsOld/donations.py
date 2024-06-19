@@ -20,25 +20,15 @@ class Donations(commands.Cog, name="Donations"):
         self,
         ctx: disnake.ApplicationCommandInteraction,
         user: disnake.Member = None,
-        clan: coc.Clan = commands.Param(
-            default=None, converter=convert.clan, autocomplete=autocomplete.clan
-        ),
+        clan: coc.Clan = commands.Param(default=None, converter=convert.clan, autocomplete=autocomplete.clan),
         family: disnake.Guild = commands.Param(
             converter=convert.server, default=None, autocomplete=autocomplete.server
         ),
         limit: int = commands.Param(default=50, max_value=50),
-        townhalls: List[int] = commands.Param(
-            default=None, convert_defaults=False, converter=convert.townhall
-        ),
-        season: str = commands.Param(
-            default=None, converter=convert.season, autocomplete=autocomplete.season
-        ),
-        sort_by: str = commands.Param(
-            default="Donations", choices=["Name", "Townhall", "Donations", "Received"]
-        ),
-        sort_order: str = commands.Param(
-            default="Descending", choices=["Ascending", "Descending"]
-        ),
+        townhalls: List[int] = commands.Param(default=None, convert_defaults=False, converter=convert.townhall),
+        season: str = commands.Param(default=None, converter=convert.season, autocomplete=autocomplete.season),
+        sort_by: str = commands.Param(default="Donations", choices=["Name", "Townhall", "Donations", "Received"]),
+        sort_order: str = commands.Param(default="Descending", choices=["Ascending", "Descending"]),
     ):
         await ctx.response.defer()
         key_switch = {
@@ -66,9 +56,7 @@ class Donations(commands.Cog, name="Donations"):
         result = await self.bot.ck_client.get_donations(
             as_dict=(as_dict | {"tied_only": server_result.get("tied", True)})
         )
-        name, icon = await self.bot.parse_to_name_icon(
-            discord_user=user, clan=clan, server=family
-        )
+        name, icon = await self.bot.parse_to_name_icon(discord_user=user, clan=clan, server=family)
         embed = donation_board(
             bot=self.bot,
             result=result,

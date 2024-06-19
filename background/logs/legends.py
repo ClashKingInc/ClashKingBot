@@ -29,12 +29,8 @@ class Clan(Struct):
         for field, value in result.items():
             if isinstance(value, Struct):
                 result[field] = value.to_dict()  # Recursively convert nested structs
-            elif isinstance(value, list) and all(
-                isinstance(item, Struct) for item in value
-            ):
-                result[field] = [
-                    item.to_dict() for item in value
-                ]  # Convert lists of structs
+            elif isinstance(value, list) and all(isinstance(item, Struct) for item in value):
+                result[field] = [item.to_dict() for item in value]  # Convert lists of structs
 
         return result
 
@@ -56,12 +52,8 @@ class Heroes(Struct):
         for field, value in result.items():
             if isinstance(value, Struct):
                 result[field] = value.to_dict()  # Recursively convert nested structs
-            elif isinstance(value, list) and all(
-                isinstance(item, Struct) for item in value
-            ):
-                result[field] = [
-                    item.to_dict() for item in value
-                ]  # Convert lists of structs
+            elif isinstance(value, list) and all(isinstance(item, Struct) for item in value):
+                result[field] = [item.to_dict() for item in value]  # Convert lists of structs
 
         return result
 
@@ -89,12 +81,8 @@ class Player(Struct):
         for field, value in result.items():
             if isinstance(value, Struct):
                 result[field] = value.to_dict()  # Recursively convert nested structs
-            elif isinstance(value, list) and all(
-                isinstance(item, Struct) for item in value
-            ):
-                result[field] = [
-                    item.to_dict() for item in value
-                ]  # Convert lists of structs
+            elif isinstance(value, list) and all(isinstance(item, Struct) for item in value):
+                result[field] = [item.to_dict() for item in value]  # Convert lists of structs
 
         return result
 
@@ -127,9 +115,7 @@ class LegendEvents(commands.Cog):
             change = f"{self.bot.emoji.shield} {trophy_change} trophies"
             type = "logs.legend_log_defenses.webhook"
 
-        embed = disnake.Embed(
-            description=f"{change} | [profile]({player.share_link()})", color=color
-        )
+        embed = disnake.Embed(description=f"{change} | [profile]({player.share_link()})", color=color)
         embed.set_author(
             name=f"{player.name} | {player.clan.name}",
             icon_url=player.clan.badgeUrls.large,
@@ -140,9 +126,7 @@ class LegendEvents(commands.Cog):
         )
         embed.timestamp = utc_time
 
-        tracked = self.bot.clan_db.find(
-            {"$and": [{"tag": player.clan.tag}, {f"{type}": {"$ne": None}}]}
-        )
+        tracked = self.bot.clan_db.find({"$and": [{"tag": player.clan.tag}, {f"{type}": {"$ne": None}}]})
         for cc in await tracked.to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
             if clan.server_id not in self.bot.OUR_GUILDS:
@@ -154,9 +138,7 @@ class LegendEvents(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(
-                        bot=self.bot, channel=webhook.channel
-                    )
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
