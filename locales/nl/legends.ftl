@@ -1,4 +1,4 @@
-legends-name = legends
-legends-description = Legend League Commands & Stats
-search-name = search
-search-description = View legend stats for a player or discord user
+legends-name = legendarisch
+legends-description = Legendarische Divisie commando's & statistieken
+search-name = zoeken
+search-description = Bekijk legendarische statistieken voor een speler of een discord gebruiker
