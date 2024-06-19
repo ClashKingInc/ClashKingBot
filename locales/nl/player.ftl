@@ -1,5 +1,5 @@
 player-name = speler
-player-description = Commands for player accounts & stats
+player-description = Opdrachten voor speler accounts & statistieken
 lookup-name = zoeken
 player-lookup-description = Zoek een speler of een discord gebruiker.
 upgrades-name = upgrades
