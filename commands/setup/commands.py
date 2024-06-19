@@ -233,12 +233,9 @@ class SetupCommands(commands.Cog, name="Setup"):
     ):
         await ctx.response.defer()
         if user.id != ctx.user.id and not (
-            ctx.user.guild_permissions.manage_guild
-            or self.bot.white_list_check(ctx=ctx, command_name="setup user-settings")
+            ctx.user.guild_permissions.manage_guild or self.bot.white_list_check(ctx=ctx, command_name="setup user-settings")
         ):
-            raise MessageException(
-                "Missing permissions to run this command. Must have `Manage Server` Perms or be whitelisted `/whitelist add`"
-            )
+            raise MessageException("Missing permissions to run this command. Must have `Manage Server` Perms or be whitelisted `/whitelist add`")
 
         changed_text = ""
         if private_mode is not None and ctx.user.id == user.id:
@@ -481,13 +478,17 @@ class SetupCommands(commands.Cog, name="Setup"):
         premium_users = my_server.get_role(1018316361241477212)
         find = disnake.utils.get(premium_users.members, id=ctx.user.id)
 
+        if not find:
+            raise MessageException(
+                "Must have a current ClashKing subscription to create a custom bot. Visit our discord server to learn more: discord.gg/clashking"
+            )
         name = re.sub(r"[^a-zA-Z]", "", name)
         name = name.replace(" ", "").lower()
         if name == "":
             raise MessageException("Name cannot be empty")
 
-        if name in ["clashking", "clashking_beta", "portainer", "watchtower"]:
-            raise MessageException("Name is not allowed, reserved names.")
+        if name in ["clashking", "clashking_beta", "portainer", "watchtower"] or "aa_" in name:
+            raise MessageException("Name is not allowed, those names are reserved.")
 
         await ctx.response.defer(ephemeral=True)
         # make sure they have only created one before and that the name is not taken and check that they themselves or this server dont have one already
@@ -587,6 +588,42 @@ class SetupCommands(commands.Cog, name="Setup"):
                 "PYTHON_GET_PIP_URL=https://github.com/pypa/get-pip/raw/049c52c665e8c5fd1751f942316e0a5c777d304f/public/get-pip.py",
                 "PYTHON_GET_PIP_SHA256=7cfd4bdc4d475ea971f1c0710a5953bcc704d171f83c797b9529d9974502fcc6",
             ],
+            "NetworkSettings": {
+                "Bridge": "",
+                "EndpointID": "",
+                "Gateway": "",
+                "GlobalIPv6Address": "",
+                "GlobalIPv6PrefixLen": 0,
+                "HairpinMode": False,
+                "IPAddress": "",
+                "IPPrefixLen": 0,
+                "IPv6Gateway": "",
+                "LinkLocalIPv6Address": "",
+                "LinkLocalIPv6PrefixLen": 0,
+                "MacAddress": "",
+                "Networks": {
+                    "host": {
+                        "Aliases": [],
+                        "DNSNames": None,
+                        "DriverOpts": None,
+                        "Gateway": "",
+                        "GlobalIPv6Address": "",
+                        "GlobalIPv6PrefixLen": 0,
+                        "IPAMConfig": {},
+                        "IPAddress": "",
+                        "IPPrefixLen": 0,
+                        "IPv6Gateway": "",
+                        "Links": None,
+                        "MacAddress": "",
+                        "NetworkID": "04309af25ed26308771ffe8535853dc3bbe7ace652a5cdb3cc1953e73e72f569",
+                    }
+                },
+                "Ports": {},
+                "SandboxID": "cff30522306cbdc39c326b5be3dbd0335ae545bc12aa5e86eb31ebbee5fd4ccb",
+                "SandboxKey": "/var/run/docker/netns/default",
+                "SecondaryIPAddresses": null,
+                "SecondaryIPv6Addresses": null,
+            },
             "Image": "docker.io/matthewvanderson/clashking:latest",
         }
         connector = TCPConnector(ssl=False)
@@ -1153,9 +1190,7 @@ class SetupCommands(commands.Cog, name="Setup"):
         chose = False
         while chose is False:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for(
-                    "message_interaction", check=check, timeout=600
-                )
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
             except:
                 await msg.edit(components=[])
                 break

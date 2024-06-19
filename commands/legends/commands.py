@@ -49,11 +49,11 @@ class Legends(commands.Cog):
         if player.league.name != "Legend League":
             raise PlayerNotInLegends
 
-        _ = self.bot.get_localizator(ctx=ctx)
+        _, locale = self.bot.get_localizator(ctx=ctx)
         # make sure player has unpaused tracking
         await self.bot.player_stats.update_one({"tag": player.tag}, {"$set": {"paused": False}})
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
-        embed = await legend_day_overview(bot=self.bot, player=player, embed_color=embed_color)
+        embed = await legend_day_overview(bot=self.bot, player=player, embed_color=embed_color, locale=locale)
         buttons = [
             disnake.ui.Button(
                 label=_("today"),

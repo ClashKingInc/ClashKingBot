@@ -229,8 +229,10 @@ class CustomClient(commands.AutoShardedBot):
 
         return disnake.Locale.en_US
 
-    def get_localizator(self, ctx: disnake.Interaction) -> Callable[[str], str]:
-        return functools.partial(self.i18n.l10n, locale=self.get_locale(ctx))
+    def get_localizator(self, ctx: disnake.Interaction = None, locale: disnake.Locale = None):
+        if not locale:
+            locale = self.get_locale(ctx)
+        return functools.partial(self.i18n.l10n, locale=locale), locale
 
     def get_server_localizator(self, server: disnake.Guild) -> Callable[[str], str]:
         return functools.partial(self.i18n.l10n, locale=server.preferred_locale or disnake.Locale.en_US)
@@ -309,9 +311,7 @@ class CustomClient(commands.AutoShardedBot):
         else:
             dates = []
             for x in range(0, seasons_ago + 1):
-                end = coc.utils.get_season_end().replace(tzinfo=pend.UTC) - dateutil.relativedelta.relativedelta(
-                    months=x
-                )
+                end = coc.utils.get_season_end().replace(tzinfo=pend.UTC) - dateutil.relativedelta.relativedelta(months=x)
                 if as_text:
                     dates.append(f"{calendar.month_name[end.date().month]} {end.date().year}")
                 else:
@@ -369,30 +369,16 @@ class CustomClient(commands.AutoShardedBot):
         if th_filter is None:
             member_tags = await self.basic_clan.distinct("memberList.tag", filter={"tag": {"$in": clan_tags}})
         else:
-            basic_clans = await self.basic_clan.find({"tag": {"$in": clan_tags}}, projection={"memberList": 1}).to_list(
-                length=None
-            )
-            member_tags = [
-                m.get("tag")
-                for clan in basic_clans
-                for m in clan.get("memberList", [])
-                if m.get("townhall") == th_filter
-            ]
+            basic_clans = await self.basic_clan.find({"tag": {"$in": clan_tags}}, projection={"memberList": 1}).to_list(length=None)
+            member_tags = [m.get("tag") for clan in basic_clans for m in clan.get("memberList", []) if m.get("townhall") == th_filter]
         return member_tags
 
     async def get_clan_member_tags(self, clan_tags: list[str], legends_only=False):
         if not legends_only:
             member_tags = await self.basic_clan.distinct("memberList.tag", filter={"tag": {"$in": clan_tags}})
         else:
-            basic_clans = await self.basic_clan.find({"tag": {"$in": clan_tags}}, projection={"memberList": 1}).to_list(
-                length=None
-            )
-            member_tags = [
-                m.get("tag")
-                for clan in basic_clans
-                for m in clan.get("memberList", [])
-                if m.get("league") == "Legend League"
-            ]
+            basic_clans = await self.basic_clan.find({"tag": {"$in": clan_tags}}, projection={"memberList": 1}).to_list(length=None)
+            member_tags = [m.get("tag") for clan in basic_clans for m in clan.get("memberList", []) if m.get("league") == "Legend League"]
         return member_tags
 
     async def get_mapped_clan_member_tags(self, clan_tags: List[str]) -> Dict[str, str]:
@@ -411,9 +397,7 @@ class CustomClient(commands.AutoShardedBot):
         return clan_tags
 
     async def get_clan_name_mapping(self, clans: list[str]):
-        basic_clans = await self.basic_clan.find(
-            {"tag": {"$in": clans}}, projection={"tag": 1, "_id": 0, "name": 1}
-        ).to_list(length=None)
+        basic_clans = await self.basic_clan.find({"tag": {"$in": clans}}, projection={"tag": 1, "_id": 0, "name": 1}).to_list(length=None)
         names = {}
         mapping = {}
         for c in basic_clans:

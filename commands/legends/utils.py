@@ -27,16 +27,18 @@ from typing import List
 
 
 @register_button("legendday", parser="_:player")
-async def legend_day_overview(bot: CustomClient, player: coc.Player, embed_color: disnake.Color):
+async def legend_day_overview(bot: CustomClient, player: coc.Player, embed_color: disnake.Color, locale: disnake.Locale):
     player = await bot.ck_client.get_legend_player(player=player)
     legend_day = player.get_legend_day()
 
+    _, locale = bot.get_localizator(locale=locale)
     embed = disnake.Embed(
-        description=f"**Legends Overview** | [profile]({player.share_link})\n"
-        + f"Start: {bot.emoji.legends_shield} {player.trophy_start} | Now: {bot.emoji.legends_shield} {player._.trophies}\n"
-        + f"- {legend_day.num_attacks} attacks for +{legend_day.attack_sum} trophies\n"
-        + f"- {legend_day.num_defenses} defenses for -{legend_day.defense_sum} trophies\n"
-        f"- Net: {legend_day.net_gain} trophies\n- Streak: {player.streak} triples",
+        description=f"**{_('legend-overview')}** | [{_('profile')}]({player.share_link})\n"
+        + f"{_('start')} {bot.emoji.legends_shield} {player.trophy_start} | {_('now')}  {bot.emoji.legends_shield} {player._.trophies}\n"
+        + f"- {_('attacks-for-trophies', values={'num_attacks' : int(legend_day.num_attacks), 'attack_sum' : legend_day.attack_sum})}\n"
+        + f"- {_('defenses-for-trophies', values={'num_defenses' : int(legend_day.num_defenses), 'defense_sum' : legend_day.defense_sum})}\n"
+        + f"- {_('net-trophies', values={'net_gain' : legend_day.net_gain})}\n"
+        + f"- {_('streak', values={'triple_steak' : player.streak})}",
         color=embed_color,
     )
 
@@ -168,9 +170,7 @@ async def legend_poster(bot: CustomClient, player: coc.Player | LegendPlayer, ba
     season_stats = list(season_stats.values())
     season_stats = season_stats[0 : length.days + 1]
 
-    y = [5000] + [
-        legend_day.finished_trophies for legend_day in season_stats if legend_day.finished_trophies is not None
-    ]
+    y = [5000] + [legend_day.finished_trophies for legend_day in season_stats if legend_day.finished_trophies is not None]
     x = [spot for spot in range(0, len(y))]
 
     fig = plt.figure(dpi=100)
@@ -477,9 +477,7 @@ async def legend_quicksearch(bot: CustomClient, ctx: disnake.MessageInteraction,
             ephemeral=True,
         )
     else:
-        await bot.legend_profile.update_one(
-            {"discord_id": ctx.author.id}, {"$push": {"profile_tags": tag}}, upsert=True
-        )
+        await bot.legend_profile.update_one({"discord_id": ctx.author.id}, {"$push": {"profile_tags": tag}}, upsert=True)
         await ctx.send(
             content=f"Added {player.name} to your Quick Check & Daily Report list.",
             ephemeral=True,
@@ -527,10 +525,7 @@ async def legend_cutoff(bot: CustomClient, embed_color: disnake.Color):
 @register_button("legendstreaks", parser="_:limit")
 async def legend_streaks(bot: CustomClient, limit: int, embed_color: disnake.Color):
     results = (
-        await bot.player_stats.find({}, projection={"name": 1, "legends.streak": 1})
-        .sort("legends.streak", -1)
-        .limit(limit)
-        .to_list(length=None)
+        await bot.player_stats.find({}, projection={"name": 1, "legends.streak": 1}).sort("legends.streak", -1).limit(limit).to_list(length=None)
     )
     text = "``` # ★★★ Name\n"
     for count, result in enumerate(results, 1):

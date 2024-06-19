@@ -124,11 +124,7 @@ class UpgradeEvent(commands.Cog):
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
-            direction = (
-                "promoted"
-                if ROLES.index(new_player.role.in_game_name) > ROLES.index(old_player.role.in_game_name)
-                else "demoted"
-            )
+            direction = "promoted" if ROLES.index(new_player.role.in_game_name) > ROLES.index(old_player.role.in_game_name) else "demoted"
             content = (
                 f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{new_name}](<{new_player.share_link}>)"
                 f" was {direction} from {old_player.role.in_game_name} to {new_player.role.in_game_name}"
@@ -170,7 +166,9 @@ class UpgradeEvent(commands.Cog):
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
-            content = f"[{name}](<{new_player.share_link}>) upgraded to {self.bot.fetch_emoji(name=new_player.town_hall)}Townhall {new_player.town_hall}"
+            content = (
+                f"[{name}](<{new_player.share_link}>) upgraded to {self.bot.fetch_emoji(name=new_player.town_hall)}Townhall {new_player.town_hall}"
+            )
 
             log = clan.th_upgrade
             try:
@@ -206,7 +204,6 @@ class UpgradeEvent(commands.Cog):
 
         name = re.sub("[*_`~/]", "", new_player.name)
         text = None
-        print("EVENT HERE")
         for cc in await self.bot.clan_db.find(
             {
                 "$and": [
@@ -218,9 +215,6 @@ class UpgradeEvent(commands.Cog):
             clan = DatabaseClan(bot=self.bot, data=cc)
 
             if clan.server_id not in self.bot.OUR_GUILDS:
-                print("this is TRUE")
-                print(clan.server_id)
-                print(self.bot.OUR_GUILDS)
                 continue
 
             log = clan.troop_upgrade
