@@ -1,0 +1,3 @@
+files:
+  - source: locales/en-US/*.ftl
+    translation: '%file_name%.ftl'
