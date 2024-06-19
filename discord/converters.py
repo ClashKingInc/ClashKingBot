@@ -27,9 +27,7 @@ class Convert(commands.Cog, name="Convert"):
 
     async def server(self, server: str):
         try:
-            guild = await self.bot.getch_guild(
-                int(server.split("|")[-1]), raise_exception=True
-            )
+            guild = await self.bot.getch_guild(int(server.split("|")[-1]), raise_exception=True)
         except:
             guild = await self.bot.getch_guild(923764211845312533)
             guild.__setattr__("id", int(server.split("|")[-1]))
@@ -88,22 +86,16 @@ class Convert(commands.Cog, name="Convert"):
         return players
 
     async def player(self, player_tag: str):
-        player = await self.bot.getPlayer(
-            player_tag=player_tag, custom=False, raise_exceptions=True
-        )
+        player = await self.bot.getPlayer(player_tag=player_tag, custom=False, raise_exceptions=True)
         return player
 
     async def custom_player(self, player_tag: str):
-        player = await self.bot.getPlayer(
-            player_tag=player_tag, custom=True, raise_exceptions=True
-        )
+        player = await self.bot.getPlayer(player_tag=player_tag, custom=True, raise_exceptions=True)
         return player
 
     async def multi_player(self, player_tags: str):
         player_tags = player_tags.split(",")[:50]
-        players = await self.bot.get_players(
-            tags=player_tags, use_cache=True, custom=False
-        )
+        players = await self.bot.get_players(tags=player_tags, use_cache=True, custom=False)
         if not players:
             raise coc.errors.NotFound
         return players

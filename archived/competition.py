@@ -20,9 +20,7 @@ class erikuh(commands.Cog):
         await ctx.response.defer()
         player: StatsPlayer = await self.bot.getPlayer(player_tag, custom=True)
         if player is None:
-            embed = disnake.Embed(
-                description=f"**Not a valid player tag :(**", color=disnake.Color.red()
-            )
+            embed = disnake.Embed(description=f"**Not a valid player tag :(**", color=disnake.Color.red())
             embed.set_thumbnail(url=ctx.guild.icon.url)
             return await ctx.edit_original_message(embed=embed)
 
@@ -44,9 +42,7 @@ class erikuh(commands.Cog):
             return await ctx.edit_original_message(embed=embed)
 
         await player.track()
-        await self.bot.erikuh.insert_one(
-            {"discord_id": ctx.user.id, "player_tag": player.tag}
-        )
+        await self.bot.erikuh.insert_one({"discord_id": ctx.user.id, "player_tag": player.tag})
         embed = disnake.Embed(
             description=f"**Successfully signed up {player.name} ({player.tag}) for the Legend League Tournament**",
             color=disnake.Color.from_rgb(248, 140, 164),
@@ -58,9 +54,7 @@ class erikuh(commands.Cog):
         description="remove signup for competition",
         guild_ids=[900783471708999700],
     )
-    async def remove_signup(
-        self, ctx: disnake.ApplicationCommandInteraction, player_tag: str
-    ):
+    async def remove_signup(self, ctx: disnake.ApplicationCommandInteraction, player_tag: str):
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
             embed = disnake.Embed(
@@ -71,9 +65,7 @@ class erikuh(commands.Cog):
         await ctx.response.defer()
         player: StatsPlayer = await self.bot.getPlayer(player_tag, custom=True)
         if player is None:
-            embed = disnake.Embed(
-                description=f"**Not a valid player tag :(**", color=disnake.Color.red()
-            )
+            embed = disnake.Embed(description=f"**Not a valid player tag :(**", color=disnake.Color.red())
             embed.set_thumbnail(url=ctx.guild.icon.url)
             return await ctx.edit_original_message(embed=embed)
 
@@ -114,9 +106,7 @@ class erikuh(commands.Cog):
                 pass
 
         if text == "":
-            embed = disnake.Embed(
-                description="No players have signed up yet", color=disnake.Color.red()
-            )
+            embed = disnake.Embed(description="No players have signed up yet", color=disnake.Color.red())
             embed.set_thumbnail(url=ctx.guild.icon.url)
             return await ctx.edit_original_message(embed=embed)
 
@@ -157,9 +147,7 @@ class erikuh(commands.Cog):
                 pass
 
         if ranking == []:
-            embed = disnake.Embed(
-                description="No players have signed up yet", color=disnake.Color.red()
-            )
+            embed = disnake.Embed(description="No players have signed up yet", color=disnake.Color.red())
             embed.set_thumbnail(url=ctx.guild.icon.url)
             return await ctx.edit_original_message(embed=embed)
 
@@ -195,9 +183,7 @@ class erikuh(commands.Cog):
                     msg = await ctx.followup.send(embed=embed)
                 messages.append(msg.id)
 
-        await self.bot.button_db.insert_one(
-            {"identifier": int(time), "messages": messages}
-        )
+        await self.bot.button_db.insert_one({"identifier": int(time), "messages": messages})
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
@@ -275,9 +261,7 @@ class erikuh(commands.Cog):
                         msg = await ctx.channel.send(embed=embed)
                     messages.append(msg.id)
 
-            await self.bot.button_db.insert_one(
-                {"identifier": time, "messages": messages}
-            )
+            await self.bot.button_db.insert_one({"identifier": time, "messages": messages})
 
     @commands.slash_command(
         name="mod-leaderboardfeed",
@@ -299,21 +283,15 @@ class erikuh(commands.Cog):
             return await ctx.send(embed=embed)
         await ctx.response.defer()
         if remove == "True":
-            await self.bot.server_db.update_one(
-                {"server": ctx.guild.id}, {"$set": {"comp_channel": channel.id}}
-            )
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"comp_channel": channel.id}})
             embed = disnake.Embed(
                 description=f"**Competition leaderboard feed set to {channel.mention}**",
                 color=disnake.Color.green(),
             )
             return await ctx.edit_original_message(embed=embed)
         else:
-            await self.bot.server_db.update_one(
-                {"server": ctx.guild.id}, {"$set": {"comp_channel": None}}
-            )
-            embed = disnake.Embed(
-                description=f"**Leaderboard feed removed**", color=disnake.Color.green()
-            )
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"comp_channel": None}})
+            embed = disnake.Embed(description=f"**Leaderboard feed removed**", color=disnake.Color.green())
             return await ctx.edit_original_message(embed=embed)
 
     async def create_player_embed(self, ctx, ranking):

@@ -58,9 +58,7 @@ class TicketClick(commands.Cog):
                 return await ctx.send(content="Ticket already closed", ephemeral=True)
 
             if ctx.user.id == ticket.user:
-                return await ctx.send(
-                    content="You don't have permissions to do this", ephemeral=True
-                )
+                return await ctx.send(content="You don't have permissions to do this", ephemeral=True)
 
             panel_settings = await self.bot.tickets.find_one(
                 {"$and": [{"server_id": ctx.guild.id}, {"name": ticket.panel_name}]}
@@ -75,11 +73,7 @@ class TicketClick(commands.Cog):
 
             options = []
             for message in panel.approve_messages[:25]:
-                options.append(
-                    disnake.SelectOption(
-                        label=message.name, value=f"aprmsg_{message.name}"
-                    )
-                )
+                options.append(disnake.SelectOption(label=message.name, value=f"aprmsg_{message.name}"))
 
             select = disnake.ui.Select(
                 options=options,
@@ -89,13 +83,9 @@ class TicketClick(commands.Cog):
                 max_values=1,  # the maximum number of options a user can select
             )
             dropdown = [disnake.ui.ActionRow(select)]
-            msg: disnake.Message = await ctx.followup.send(
-                components=dropdown, ephemeral=True
-            )
+            msg: disnake.Message = await ctx.followup.send(components=dropdown, ephemeral=True)
 
-            res: disnake.MessageInteraction = await interaction_handler(
-                bot=self.bot, ctx=ctx, msg=msg, no_defer=True
-            )
+            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, msg=msg, no_defer=True)
             await msg.delete()
             # await res.send(content="Sent!", ephemeral=True)
             approve_msg = panel.get_message(name=res.values[0].split("_")[-1])
@@ -152,13 +142,9 @@ class TicketClick(commands.Cog):
             if ticket.status == "closed":
                 return await ctx.send(content="Ticket already closed", ephemeral=True)
             if ctx.user.id == ticket.user:
-                return await ctx.send(
-                    content="You don't have permissions to do this", ephemeral=True
-                )
+                return await ctx.send(content="You don't have permissions to do this", ephemeral=True)
 
-            clan_tags = await self.bot.clan_db.distinct(
-                "tag", filter={"server": ctx.guild.id}
-            )
+            clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
 
             if not clan_tags:
                 # TO-DO, use command id & new name
@@ -196,9 +182,7 @@ class TicketClick(commands.Cog):
                 components=dropdown,
                 ephemeral=True,
             )
-            res: disnake.MessageInteraction = await interaction_handler(
-                ctx=ctx, msg=msg, bot=self.bot
-            )
+            res: disnake.MessageInteraction = await interaction_handler(ctx=ctx, msg=msg, bot=self.bot)
             await msg.delete()
             apply_clans = res.values[0]
             await ticket.set_clan(apply_clans)
@@ -267,16 +251,12 @@ class TicketClick(commands.Cog):
                         ephemeral=True,
                     )
 
-                accounts: List[StatsPlayer] = await self.bot.get_players(
-                    tags=linked_accounts, custom=True
-                )
+                accounts: List[StatsPlayer] = await self.bot.get_players(tags=linked_accounts, custom=True)
                 accounts.sort(key=lambda x: x.town_hall, reverse=True)
                 options = []
                 failed_accounts = False
                 for account in accounts:
-                    data_requirements = button.get_townhall_requirement(
-                        townhall_level=account.town_hall
-                    )
+                    data_requirements = button.get_townhall_requirement(townhall_level=account.town_hall)
                     meet_hero_req = True
                     name_to_req = {
                         "Barbarian King": data_requirements.barbarian_king,
@@ -300,9 +280,7 @@ class TicketClick(commands.Cog):
                         options.append(
                             disnake.SelectOption(
                                 label=account.name,
-                                emoji=self.bot.fetch_emoji(
-                                    name=account.town_hall
-                                ).partial_emoji,
+                                emoji=self.bot.fetch_emoji(name=account.town_hall).partial_emoji,
                                 value=f"{account.tag}",
                             )
                         )
@@ -348,16 +326,12 @@ class TicketClick(commands.Cog):
                     if res.response.is_done():
                         await res.edit_original_response(content="Done!", components=[])
                     else:
-                        await res.response.send_message(
-                            content="Done!", components=[], ephemeral=True
-                        )
+                        await res.response.send_message(content="Done!", components=[], ephemeral=True)
 
             if button.questions:
                 if message:
                     await message.delete()
-                (message, questionaire_embed) = await ask_questions(
-                    bot=self.bot, ctx=ctx, questions=button.questions
-                )
+                (message, questionaire_embed) = await ask_questions(bot=self.bot, ctx=ctx, questions=button.questions)
                 embeds.append(questionaire_embed)
 
             channels = await open_ticket(
@@ -369,13 +343,9 @@ class TicketClick(commands.Cog):
             )
 
             if message is None:
-                await ctx.send(
-                    f"Ticket opened -> {channels[0].mention}", ephemeral=True
-                )
+                await ctx.send(f"Ticket opened -> {channels[0].mention}", ephemeral=True)
             else:
-                await message.edit(
-                    f"Ticket opened -> {channels[0].mention}", components=[]
-                )
+                await message.edit(f"Ticket opened -> {channels[0].mention}", components=[])
 
             dropdown = []
             if len(players) >= 2:
@@ -384,9 +354,7 @@ class TicketClick(commands.Cog):
                     options.append(
                         disnake.SelectOption(
                             label=account.name,
-                            emoji=self.bot.fetch_emoji(
-                                name=account.town_hall
-                            ).partial_emoji,
+                            emoji=self.bot.fetch_emoji(name=account.town_hall).partial_emoji,
                             value=f"ticketviewer_{account.tag}",
                         )
                     )
@@ -403,9 +371,7 @@ class TicketClick(commands.Cog):
                     disnake.ui.ActionRow(
                         disnake.ui.Button(
                             label="Applicant Account",
-                            emoji=self.bot.fetch_emoji(
-                                name=players[0].town_hall
-                            ).partial_emoji,
+                            emoji=self.bot.fetch_emoji(name=players[0].town_hall).partial_emoji,
                             style=disnake.ButtonStyle.grey,
                             custom_id=f"redditplayer_{players[0].tag}",
                         )
@@ -434,37 +400,27 @@ class TicketClick(commands.Cog):
 
             for channel in channels:
                 if channel.type == disnake.ChannelType.text:
-                    m = await channel.send(
-                        embeds=embeds, components=dropdown + [next_action_row]
-                    )
+                    m = await channel.send(embeds=embeds, components=dropdown + [next_action_row])
                 else:
                     m = await channel.send(embeds=embeds[1:], components=dropdown)
                 await m.pin()
 
             try:
                 if button.roles_to_add:
-                    roles_to_add = [
-                        disnake.utils.get(member.guild.roles, id=int(role))
-                        for role in button.roles_to_add
-                    ]
+                    roles_to_add = [disnake.utils.get(member.guild.roles, id=int(role)) for role in button.roles_to_add]
                     roles_to_add = [r for r in roles_to_add if r is not None]
                     await member.add_roles(*[r for r in roles_to_add if r is not None])
 
                 if button.roles_to_remove:
                     roles_to_remove = [
-                        disnake.utils.get(member.guild.roles, id=int(role))
-                        for role in button.roles_to_remove
+                        disnake.utils.get(member.guild.roles, id=int(role)) for role in button.roles_to_remove
                     ]
                     roles_to_remove = [r for r in roles_to_remove if r is not None]
-                    await member.remove_roles(
-                        *[r for r in roles_to_remove if r is not None]
-                    )
+                    await member.remove_roles(*[r for r in roles_to_remove if r is not None])
             except Exception:
                 await channels[0].send("**Could not add/remove roles**")
 
-            all_ticket_nums = await self.bot.open_tickets.distinct(
-                "number", filter={"server": ctx.guild.id}
-            )
+            all_ticket_nums = await self.bot.open_tickets.distinct("number", filter={"server": ctx.guild.id})
             if not all_ticket_nums:
                 all_ticket_nums = [0]
 

@@ -32,14 +32,9 @@ class AutoEval(commands.Cog):
 
         server_ids = await self.bot.clan_db.distinct("server", filter={"tag": clan_tag})
         for server_id in server_ids:
-            db_server = await self.bot.ck_client.get_server_settings(
-                server_id=server_id
-            )
+            db_server = await self.bot.ck_client.get_server_settings(server_id=server_id)
 
-            if (
-                db_server.server_id not in self.bot.OUR_GUILDS
-                or not db_server.auto_eval_status
-            ):
+            if db_server.server_id not in self.bot.OUR_GUILDS or not db_server.auto_eval_status:
                 continue
 
             convert_trigger = {
@@ -48,9 +43,7 @@ class AutoEval(commands.Cog):
                 "league": "league_change",
             }
             if (
-                trigger_name := convert_trigger.get(
-                    event.get("trigger"), event.get("trigger")
-                )
+                trigger_name := convert_trigger.get(event.get("trigger"), event.get("trigger"))
             ) not in db_server.autoeval_triggers:
                 continue
 

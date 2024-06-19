@@ -37,9 +37,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
             text += f"\u200e**<:trophyy:849144172698402817>\u200e{trophies} | \u200e{name}**\n➼ <:sword_coc:940713893926428782> {hits}{numHits} <:clash:877681427129458739> {defs}{numDefs}\n"
             x += 1
             if x == 25:
-                embed = disnake.Embed(
-                    title=f"**{ctx.guild} Legend Leaderboard**", description=text
-                )
+                embed = disnake.Embed(title=f"**{ctx.guild} Legend Leaderboard**", description=text)
                 if ctx.guild.icon is not None:
                     embed.set_thumbnail(url=ctx.guild.icon.url)
                 x = 0
@@ -47,18 +45,14 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                 text = ""
 
         if text != "":
-            embed = disnake.Embed(
-                title=f"**{ctx.guild} Legend Leaderboard**", description=text
-            )
+            embed = disnake.Embed(title=f"**{ctx.guild} Legend Leaderboard**", description=text)
             if ctx.guild.icon is not None:
                 embed.set_thumbnail(url=ctx.guild.icon.url)
             embeds.append(embed)
         return embeds
 
     @leaderboard.sub_command(name="clans", description="Clan leaderboard of a location")
-    async def clan_leaderboards(
-        self, ctx: disnake.ApplicationCommandInteraction, country: str
-    ):
+    async def clan_leaderboards(self, ctx: disnake.ApplicationCommandInteraction, country: str):
         """
         Parameters
         ----------
@@ -76,9 +70,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
             is_country = country != "International"
             country = coc.utils.get(locations, name=country, is_country=is_country)
             country_names = country.name
-            rankings = await self.bot.coc_client.get_location_clans(
-                location_id=country.id
-            )
+            rankings = await self.bot.coc_client.get_location_clans(location_id=country.id)
         else:
             rankings = await self.bot.coc_client.get_location_clans()
             country_names = "Global"
@@ -116,9 +108,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
             embeds.append(embed)
 
         current_page = 0
-        await ctx.send(
-            embed=embeds[0], components=create_components(current_page, embeds, True)
-        )
+        await ctx.send(embed=embeds[0], components=create_components(current_page, embeds, True))
         msg = await ctx.original_message()
 
         def check(res: disnake.MessageInteraction):
@@ -152,12 +142,8 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                 for embed in embeds:
                     await ctx.send(embed=embed)
 
-    @leaderboard.sub_command(
-        name="capital", description="Clan Capital leaderboard of a location"
-    )
-    async def capital_leaderboards(
-        self, ctx: disnake.ApplicationCommandInteraction, country: str
-    ):
+    @leaderboard.sub_command(name="capital", description="Clan Capital leaderboard of a location")
+    async def capital_leaderboards(self, ctx: disnake.ApplicationCommandInteraction, country: str):
         """
         Parameters
         ----------
@@ -170,9 +156,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
             is_country = country != "International"
             country = coc.utils.get(locations, name=country, is_country=is_country)
             country_names = country.name
-            rankings = await self.bot.coc_client.get_location_clans_capital(
-                location_id=country.id
-            )
+            rankings = await self.bot.coc_client.get_location_clans_capital(location_id=country.id)
         else:
             rankings = await self.bot.coc_client.get_location_clans_capital()
             country_names = "Global"
@@ -210,9 +194,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
             embeds.append(embed)
 
         current_page = 0
-        await ctx.send(
-            embed=embeds[0], components=create_components(current_page, embeds, True)
-        )
+        await ctx.send(embed=embeds[0], components=create_components(current_page, embeds, True))
         msg = await ctx.original_message()
 
         def check(res: disnake.MessageInteraction):
@@ -246,12 +228,8 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
                 for embed in embeds:
                     await ctx.send(embed=embed)
 
-    @leaderboard.sub_command(
-        name="players", description="Player leaderboard of a location"
-    )
-    async def player_leaderboards(
-        self, ctx: disnake.ApplicationCommandInteraction, country: str, limit=100
-    ):
+    @leaderboard.sub_command(name="players", description="Player leaderboard of a location")
+    async def player_leaderboards(self, ctx: disnake.ApplicationCommandInteraction, country: str, limit=100):
         """
         Parameters
         ----------
@@ -272,9 +250,7 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
             embeds = await self.create_country_lb(country.id, ctx)
 
         current_page = 0
-        await ctx.edit_original_message(
-            embed=embeds[0], components=create_components(current_page, embeds, True)
-        )
+        await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))
         msg = await ctx.original_message()
 
         def check(res: disnake.MessageInteraction):
@@ -314,15 +290,11 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
     async def create_country_lb(self, location_id):
 
         if location_id == "global":
-            country = await self.bot.coc_client.get_location_players(
-                location_id="global"
-            )
+            country = await self.bot.coc_client.get_location_players(location_id="global")
             country_name = "Global"
         else:
             location_id = int(location_id)
-            country = await self.bot.coc_client.get_location_players(
-                location_id=location_id
-            )
+            country = await self.bot.coc_client.get_location_players(location_id=location_id)
             country_name = await self.bot.coc_client.get_location(location_id)
 
         x = 1
@@ -346,17 +318,13 @@ class Leaderboards(commands.Cog, name="Leaderboards"):
             text += f"`{rank}`\u200e**<:trophyy:849144172698402817>\u200e{player.trophies} | \u200e{name}**{hit_text}\n"
             y += 1
             if y == 30:
-                embed = disnake.Embed(
-                    title=f"**{country_name} Legend Leaderboard**", description=text
-                )
+                embed = disnake.Embed(title=f"**{country_name} Legend Leaderboard**", description=text)
                 y = 0
                 embeds.append(embed)
                 text = ""
 
         if text != "":
-            embed = disnake.Embed(
-                title=f"**{country_name} Legend Leaderboard**", description=text
-            )
+            embed = disnake.Embed(title=f"**{country_name} Legend Leaderboard**", description=text)
             embeds.append(embed)
 
         if text == "" and embeds == []:

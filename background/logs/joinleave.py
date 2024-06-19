@@ -27,8 +27,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
             ).to_list(length=None)
             if tracked:
                 members_joined = [
-                    coc.ClanMember(data=member, client=self.bot.coc_client, clan=clan)
-                    for member in members_joined
+                    coc.ClanMember(data=member, client=self.bot.coc_client, clan=clan) for member in members_joined
                 ]
                 player_pull = await self.bot.get_players(
                     tags=[m.tag for m in members_joined], use_cache=False, custom=False
@@ -92,53 +91,33 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
 
                                 local_greet_message = str(greet_message)
                                 types = {
-                                    "{user_mention}": (
-                                        discord_user.mention if discord_user else ""
-                                    ),
-                                    "{user_display_name}": (
-                                        discord_user.display_name
-                                        if discord_user
-                                        else ""
-                                    ),
+                                    "{user_mention}": (discord_user.mention if discord_user else ""),
+                                    "{user_display_name}": (discord_user.display_name if discord_user else ""),
                                     "{clan_name}": clan.name,
                                     "{clan_link}": clan.share_link,
-                                    "{clan_leader_name}": coc.utils.get(
-                                        clan.members, role=coc.Role.leader
-                                    ),
+                                    "{clan_leader_name}": coc.utils.get(clan.members, role=coc.Role.leader),
                                     "{player_name}": player.name,
                                     "{player_link}": player.share_link,
                                     "{player_townhall}": player.town_hall,
-                                    "{player_townhall_emoji}": self.bot.fetch_emoji(
-                                        player.town_hall
-                                    ).emoji_string,
+                                    "{player_townhall_emoji}": self.bot.fetch_emoji(player.town_hall).emoji_string,
                                     "{player_league}": player.league.name,
-                                    "{player_league_emoji}": self.bot.fetch_emoji(
-                                        player.league.name
-                                    ).emoji_string,
+                                    "{player_league_emoji}": self.bot.fetch_emoji(player.league.name).emoji_string,
                                     "{player_trophies}": player.trophies,
                                 }
 
                                 for type, replace in types.items():
-                                    local_greet_message = local_greet_message.replace(
-                                        type, str(replace)
-                                    )
+                                    local_greet_message = local_greet_message.replace(type, str(replace))
 
                                 local_greet_message = ujson.loads(local_greet_message)
 
-                                channel = await self.bot.getch_channel(
-                                    db_clan.clan_channel
-                                )
+                                channel = await self.bot.getch_channel(db_clan.clan_channel)
                                 if channel is not None:
                                     try:
                                         await channel.send(
-                                            content=local_greet_message.get(
-                                                "content", ""
-                                            ),
+                                            content=local_greet_message.get("content", ""),
                                             embeds=[
                                                 disnake.Embed.from_dict(data=e)
-                                                for e in local_greet_message.get(
-                                                    "embeds", []
-                                                )
+                                                for e in local_greet_message.get("embeds", [])
                                             ],
                                         )
                                     # WE NEED TO HANDLE THIS EVENTUALLY
@@ -167,9 +146,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                     try:
                         webhook = await self.bot.getch_webhook(log.webhook)
                         if webhook.user.id != self.bot.user.id:
-                            webhook = await get_webhook_for_channel(
-                                bot=self.bot, channel=webhook.channel
-                            )
+                            webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                             await log.set_webhook(id=webhook.id)
                         if log.thread is not None:
                             thread = await self.bot.getch_channel(log.thread)
@@ -183,9 +160,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                                 )
                         else:
                             for embed_chunk in embeds:
-                                await webhook.send(
-                                    embeds=embed_chunk, components=components
-                                )
+                                await webhook.send(embeds=embed_chunk, components=components)
                     except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                         await log.set_thread(id=None)
                         await log.set_webhook(id=None)
@@ -197,8 +172,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
             ).to_list(length=None)
             if tracked:
                 members_left = [
-                    coc.ClanMember(data=member, client=self.bot.coc_client, clan=clan)
-                    for member in members_left
+                    coc.ClanMember(data=member, client=self.bot.coc_client, clan=clan) for member in members_left
                 ]
                 player_pull = await self.bot.get_players(
                     tags=[m.tag for m in members_left], use_cache=False, custom=False
@@ -269,9 +243,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                     try:
                         webhook = await self.bot.getch_webhook(log.webhook)
                         if webhook.user.id != self.bot.user.id:
-                            webhook = await get_webhook_for_channel(
-                                bot=self.bot, channel=webhook.channel
-                            )
+                            webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                             await log.set_webhook(id=webhook.id)
                         if log.thread is not None:
                             thread = await self.bot.getch_channel(log.thread)
@@ -285,9 +257,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                                 )
                         else:
                             for embed_chunk in embeds:
-                                await webhook.send(
-                                    embeds=embed_chunk, components=components
-                                )
+                                await webhook.send(embeds=embed_chunk, components=components)
                     except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                         await log.set_thread(id=None)
                         await log.set_webhook(id=None)
@@ -314,9 +284,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                     max_length=100,
                 )
             ]
-            await ctx.response.send_modal(
-                title="Ban Form", custom_id="banform-", components=components
-            )
+            await ctx.response.send_modal(title="Ban Form", custom_id="banform-", components=components)
 
             def check(res):
                 return ctx.author.id == res.author.id
@@ -371,9 +339,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
                     max_length=2,
                 ),
             ]
-            await ctx.response.send_modal(
-                title="Strike Form", custom_id="strikeform-", components=components
-            )
+            await ctx.response.send_modal(title="Strike Form", custom_id="strikeform-", components=components)
 
             def check(res):
                 return ctx.author.id == res.author.id
@@ -392,9 +358,7 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
             rollover_days = modal_inter.text_values["rollover_days"]
             if rollover_days != "":
                 if not str(rollover_days).isdigit():
-                    return await modal_inter.send(
-                        content="Rollover Days must be an integer", ephemeral=True
-                    )
+                    return await modal_inter.send(content="Rollover Days must be an integer", ephemeral=True)
                 else:
                     rollover_days = int(rollover_days)
             else:
@@ -402,17 +366,13 @@ class join_leave_events(commands.Cog, name="Clan Join & Leave Events"):
             strike_weight = modal_inter.text_values["strike_weight"]
             if strike_weight != "":
                 if not str(strike_weight).isdigit():
-                    return await modal_inter.send(
-                        content="Strike Weight must be an integer", ephemeral=True
-                    )
+                    return await modal_inter.send(content="Strike Weight must be an integer", ephemeral=True)
                 else:
                     strike_weight = int(strike_weight)
             else:
                 strike_weight = 1
             strike_cog = self.bot.get_cog(name="Strikes")
-            embed = await strike_cog.strike_player(
-                ctx, player, strike_reason, rollover_days, strike_weight
-            )
+            embed = await strike_cog.strike_player(ctx, player, strike_reason, rollover_days, strike_weight)
             await modal_inter.send(embed=embed)
 
 

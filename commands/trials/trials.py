@@ -57,9 +57,7 @@ class Trials(commands.Cog, name="Trials"):
         beginning_store = {
             "trophies": player.trophies,
             "attack_wins": player.attack_wins,
-            "combined_hero_level": [
-                hero for hero in player.heroes if hero.is_home_base
-            ],
+            "combined_hero_level": [hero for hero in player.heroes if hero.is_home_base],
             "hitrate": 0,
             "capital_gold_looted": 0,
             "capital_gold_donated": 0,

@@ -51,9 +51,7 @@ class UpgradeEvent(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(
-                        bot=self.bot, channel=webhook.channel
-                    )
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -93,9 +91,7 @@ class UpgradeEvent(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(
-                        bot=self.bot, channel=webhook.channel
-                    )
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -128,12 +124,7 @@ class UpgradeEvent(commands.Cog):
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
-            direction = (
-                "promoted"
-                if ROLES.index(new_player.role.in_game_name)
-                > ROLES.index(old_player.role.in_game_name)
-                else "demoted"
-            )
+            direction = "promoted" if ROLES.index(new_player.role.in_game_name) > ROLES.index(old_player.role.in_game_name) else "demoted"
             content = (
                 f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{new_name}](<{new_player.share_link}>)"
                 f" was {direction} from {old_player.role.in_game_name} to {new_player.role.in_game_name}"
@@ -143,9 +134,7 @@ class UpgradeEvent(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(
-                        bot=self.bot, channel=webhook.channel
-                    )
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -177,7 +166,9 @@ class UpgradeEvent(commands.Cog):
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
-            content = f"[{name}](<{new_player.share_link}>) upgraded to {self.bot.fetch_emoji(name=new_player.town_hall)}Townhall {new_player.town_hall}"
+            content = (
+                f"[{name}](<{new_player.share_link}>) upgraded to {self.bot.fetch_emoji(name=new_player.town_hall)}Townhall {new_player.town_hall}"
+            )
 
             log = clan.th_upgrade
             try:
@@ -191,17 +182,13 @@ class UpgradeEvent(commands.Cog):
                 )
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(
-                        bot=self.bot, channel=webhook.channel
-                    )
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
                         continue
-                    await webhook.send(
-                        content=content, thread=thread, components=buttons
-                    )
+                    await webhook.send(content=content, thread=thread, components=buttons)
                 else:
                     await webhook.send(content=content, components=buttons)
             except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
@@ -217,7 +204,6 @@ class UpgradeEvent(commands.Cog):
 
         name = re.sub("[*_`~/]", "", new_player.name)
         text = None
-        print("EVENT HERE")
         for cc in await self.bot.clan_db.find(
             {
                 "$and": [
@@ -229,24 +215,17 @@ class UpgradeEvent(commands.Cog):
             clan = DatabaseClan(bot=self.bot, data=cc)
 
             if clan.server_id not in self.bot.OUR_GUILDS:
-                print("this is TRUE")
-                print(clan.server_id)
-                print(self.bot.OUR_GUILDS)
                 continue
 
             log = clan.troop_upgrade
 
             if text is None:
-                old_player = coc.Player(
-                    data=event["old_player"], client=self.bot.coc_client
-                )
+                old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
                 unlocked = []
                 leveled_up = []
                 boosted = []
                 for troop in new_player.troops:
-                    old_troop = old_player.get_troop(
-                        name=troop.name, is_home_troop=troop.is_home_base
-                    )
+                    old_troop = old_player.get_troop(name=troop.name, is_home_troop=troop.is_home_base)
                     if old_troop is None:
                         if troop.is_super_troop:
                             boosted.append(troop)
@@ -276,9 +255,7 @@ class UpgradeEvent(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(
-                        bot=self.bot, channel=webhook.channel
-                    )
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -312,9 +289,7 @@ class UpgradeEvent(commands.Cog):
                 continue
             log = clan.hero_upgrade
             if text is None:
-                old_player = coc.Player(
-                    data=event["old_player"], client=self.bot.coc_client
-                )
+                old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
                 unlocked = []
                 leveled_up = []
                 for hero in new_player.heroes:
@@ -334,9 +309,7 @@ class UpgradeEvent(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(
-                        bot=self.bot, channel=webhook.channel
-                    )
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -370,9 +343,7 @@ class UpgradeEvent(commands.Cog):
                 continue
             log = clan.hero_equipment_upgrade
             if text is None:
-                old_player = coc.Player(
-                    data=event["old_player"], client=self.bot.coc_client
-                )
+                old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
                 unlocked = []
                 leveled_up = []
                 for gear in new_player.equipment:
@@ -392,9 +363,7 @@ class UpgradeEvent(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(
-                        bot=self.bot, channel=webhook.channel
-                    )
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -430,9 +399,7 @@ class UpgradeEvent(commands.Cog):
             log = clan.spell_upgrade
 
             if text is None:
-                old_player = coc.Player(
-                    data=event["old_player"], client=self.bot.coc_client
-                )
+                old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
                 unlocked = []
                 leveled_up = []
                 for spell in new_player.spells:
@@ -452,9 +419,7 @@ class UpgradeEvent(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(
-                        bot=self.bot, channel=webhook.channel
-                    )
+                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)

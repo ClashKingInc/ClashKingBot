@@ -95,17 +95,13 @@ class Settings(commands.Cog, name="Settings"):
     async def whitelist(self, ctx: disnake.ApplicationCommandInteraction):
         pass
 
-    @whitelist.sub_command(
-        name="add", description="Adds a role that can run a specific command."
-    )
+    @whitelist.sub_command(name="add", description="Adds a role that can run a specific command.")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def whitelist_add(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         ping: disnake.Member | disnake.Role,
-        command: str = commands.Param(
-            default=None, autocomplete=autocomplete.command_autocomplete
-        ),
+        command: str = commands.Param(default=None, autocomplete=autocomplete.command_autocomplete),
     ):
 
         results = await self.bot.whitelist.find_one(
@@ -140,17 +136,13 @@ class Settings(commands.Cog, name="Settings"):
         )
         return await ctx.send(embed=embed)
 
-    @whitelist.sub_command(
-        name="remove", description="Deletes a role/user that can run a specific command"
-    )
+    @whitelist.sub_command(name="remove", description="Deletes a role/user that can run a specific command")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def whitelist_remove(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         ping: disnake.Member | disnake.Role,
-        command: str = commands.Param(
-            default=None, autocomplete=autocomplete.command_autocomplete
-        ),
+        command: str = commands.Param(default=None, autocomplete=autocomplete.command_autocomplete),
     ):
 
         results = await self.bot.whitelist.find_one(
@@ -170,9 +162,7 @@ class Settings(commands.Cog, name="Settings"):
             )
             return await ctx.send(embed=embed)
 
-        await self.bot.whitelist.find_one_and_delete(
-            {"command": command, "server": ctx.guild.id, "role_user": ping.id}
-        )
+        await self.bot.whitelist.find_one_and_delete({"command": command, "server": ctx.guild.id, "role_user": ping.id})
 
         embed = disnake.Embed(
             description=f"{ping.mention} removed from `{command}` whitelist.",
@@ -187,9 +177,7 @@ class Settings(commands.Cog, name="Settings"):
     async def whitelist_list(self, ctx: disnake.ApplicationCommandInteraction):
         text = ""
         results = self.bot.whitelist.find({"server": ctx.guild.id})
-        limit = await self.bot.whitelist.count_documents(
-            filter={"server": ctx.guild.id}
-        )
+        limit = await self.bot.whitelist.count_documents(filter={"server": ctx.guild.id})
         for role in await results.to_list(length=limit):
             r = role.get("role_user")
             command = role.get("command")
@@ -201,9 +189,7 @@ class Settings(commands.Cog, name="Settings"):
         if text == "":
             text = "Whitelist is empty."
 
-        embed = disnake.Embed(
-            title=f"Command Whitelist", description=text, color=disnake.Color.green()
-        )
+        embed = disnake.Embed(title=f"Command Whitelist", description=text, color=disnake.Color.green())
 
         await ctx.send(embed=embed)
 

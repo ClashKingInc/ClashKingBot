@@ -37,7 +37,7 @@ class Legends(commands.Cog):
         self,
         ctx: disnake.ApplicationCommandInteraction,
         player: coc.Player = commands.Param(
-            autocomplete=autocomplete.legend_players, converter=convert.player
+            autocomplete=autocomplete.legend_players, converter=convert.player, description=disnake.Localized(key="player-autocomplete-description")
         ),
     ):
         """
@@ -49,19 +49,14 @@ class Legends(commands.Cog):
         if player.league.name != "Legend League":
             raise PlayerNotInLegends
 
+        _, locale = self.bot.get_localizator(ctx=ctx)
         # make sure player has unpaused tracking
-        await self.bot.player_stats.update_one(
-            {"tag": player.tag}, {"$set": {"paused": False}}
-        )
-        embed_color = await self.bot.ck_client.get_server_embed_color(
-            server_id=ctx.guild_id
-        )
-        embed = await legend_day_overview(
-            bot=self.bot, player=player, embed_color=embed_color
-        )
+        await self.bot.player_stats.update_one({"tag": player.tag}, {"$set": {"paused": False}})
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+        embed = await legend_day_overview(bot=self.bot, player=player, embed_color=embed_color, locale=locale)
         buttons = [
             disnake.ui.Button(
-                label=f"Today",
+                label=_("today"),
                 style=disnake.ButtonStyle.grey,
                 custom_id=f"legendday:{player.tag}",
             ),
@@ -86,36 +81,24 @@ class Legends(commands.Cog):
         await ctx.send(embed=embed, components=buttons)
 
     @legends.sub_command(name="clan", description="View a clan's legend day results")
-    async def legends_clan(
-        self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = options.clan
-    ):
+    async def legends_clan(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = options.clan):
         """
         Parameters
         ----------
         clan: Search for a clan by name or tag
         """
-        embed_color = await self.bot.ck_client.get_server_embed_color(
-            server_id=ctx.guild_id
-        )
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
         embed = await legend_clan(bot=self.bot, clan=clan, embed_color=embed_color)
         await ctx.send(embed=embed)
 
-    @legends.sub_command(
-        name="history", description="View legend history of an account"
-    )
+    @legends.sub_command(name="history", description="View legend history of an account")
     async def legend_history(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        player: coc.Player = commands.Param(
-            autocomplete=autocomplete.legend_players, converter=convert.player
-        ),
+        player: coc.Player = commands.Param(autocomplete=autocomplete.legend_players, converter=convert.player),
     ):
-        embed_color = await self.bot.ck_client.get_server_embed_color(
-            server_id=ctx.guild_id
-        )
-        embed = await legend_history(
-            bot=self.bot, player=player, embed_color=embed_color
-        )
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+        embed = await legend_history(bot=self.bot, player=player, embed_color=embed_color)
         await ctx.send(embed=embed)
 
     @legends.sub_command(
@@ -125,12 +108,8 @@ class Legends(commands.Cog):
     async def legend_poster(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        player: coc.Player = commands.Param(
-            autocomplete=autocomplete.legend_players, converter=convert.player
-        ),
-        background: str = commands.Param(
-            default=None, choices=list(POSTER_LIST.keys())
-        ),
+        player: coc.Player = commands.Param(autocomplete=autocomplete.legend_players, converter=convert.player),
+        background: str = commands.Param(default=None, choices=list(POSTER_LIST.keys())),
     ):
         """
         Parameters
@@ -138,23 +117,17 @@ class Legends(commands.Cog):
         smart_search: Name or player tag to search with
         background: Which background for poster to use (optional)
         """
-        poster_link: str = await legend_poster(
-            bot=self.bot, player=player, background=background
-        )
+        poster_link: str = await legend_poster(bot=self.bot, player=player, background=background)
         await ctx.send(content=poster_link)
 
     @legends.sub_command(name="stats", description="View various legend related stats")
     async def legend_stats(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        type: str = commands.Param(
-            choices=["Rank Cutoff", "Triple Streaks", "Trophy Buckets", "EOS Finishers"]
-        ),
+        type: str = commands.Param(choices=["Rank Cutoff", "Triple Streaks", "Trophy Buckets", "EOS Finishers"]),
         limit: int = commands.Param(default=50, min_value=1, max_value=50),
     ):
-        embed_color = await self.bot.ck_client.get_server_embed_color(
-            server_id=ctx.guild_id
-        )
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
         if type == "Rank Cutoff":
             embed = await legend_cutoff(bot=self.bot, embed_color=embed_color)
             buttons = disnake.ui.ActionRow()
@@ -167,9 +140,7 @@ class Legends(commands.Cog):
                 )
             )
         elif type == "Triple Streaks":
-            embed = await legend_streaks(
-                bot=self.bot, limit=limit, embed_color=embed_color
-            )
+            embed = await legend_streaks(bot=self.bot, limit=limit, embed_color=embed_color)
             buttons = disnake.ui.ActionRow()
             buttons.append_item(
                 disnake.ui.Button(

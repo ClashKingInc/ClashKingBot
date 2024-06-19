@@ -30,19 +30,13 @@ class StatCommands(commands.Cog, name="Stat Commands"):
         type: str = commands.Param(choices=["Hit Rate", "Defense Rate", "Attack Info"]),
         clan: coc.Clan = options.optional_clan,
         server: disnake.Guild = options.optional_family,
-        war_types: str = commands.Param(
-            default="All", choices=["All", "CWL", "Friendly", "War", "War & CWL"]
-        ),
-        th_filter: str = commands.Param(
-            default="All", autocomplete=autocomplete.th_filters
-        ),
+        war_types: str = commands.Param(default="All", choices=["All", "CWL", "Friendly", "War", "War & CWL"]),
+        th_filter: str = commands.Param(default="All", autocomplete=autocomplete.th_filters),
         star_filter: str = commands.Param(
             default="3",
             description="Comma seperated list (default: '3', example: '3, 2, 1')",
         ),
-        min_attacks: int = commands.Param(
-            default=5, min_value=1, max_value=100, description="default 5"
-        ),
+        min_attacks: int = commands.Param(default=5, min_value=1, max_value=100, description="default 5"),
         season: str = options.optional_season,
         num_wars: int = None,
         num_days: int = None,
@@ -50,9 +44,7 @@ class StatCommands(commands.Cog, name="Stat Commands"):
     ):
         if clan is None:
             server = server or ctx.guild
-        embed_color = await self.bot.ck_client.get_server_embed_color(
-            server_id=ctx.guild_id
-        )
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
         if type == "Hit Rate":
             embed = await war_hitrate(
                 bot=self.bot,

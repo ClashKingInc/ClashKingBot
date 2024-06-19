@@ -27,9 +27,7 @@ async def add_ban(
         rollover_days = now + timedelta(rollover_days)
         rollover_days = int(rollover_days.timestamp())
 
-    find_ban = await bot.banlist.find_one(
-        {"$and": [{"VillageTag": player.tag}, {"server": guild.id}]}
-    )
+    find_ban = await bot.banlist.find_one({"$and": [{"VillageTag": player.tag}, {"server": guild.id}]})
     if find_ban:
         await bot.banlist.update_one(
             {"$and": [{"VillageTag": player.tag}, {"server": guild.id}]},
@@ -94,15 +92,11 @@ async def remove_ban(
     removed_by: disnake.User,
     guild: disnake.Guild,
 ):
-    results = await bot.banlist.find_one(
-        {"$and": [{"VillageTag": player.tag}, {"server": guild.id}]}
-    )
+    results = await bot.banlist.find_one({"$and": [{"VillageTag": player.tag}, {"server": guild.id}]})
     if not results:
         raise MessageException(f"{player.name} is not banned on this server.")
 
-    await bot.banlist.find_one_and_delete(
-        {"$and": [{"VillageTag": player.tag}, {"server": guild.id}]}
-    )
+    await bot.banlist.find_one_and_delete({"$and": [{"VillageTag": player.tag}, {"server": guild.id}]})
 
     embed = disnake.Embed(
         description=f"[{player.name}]({player.share_link}) removed from the banlist by {removed_by.mention}.",
@@ -121,9 +115,7 @@ async def send_ban_log(bot: CustomClient, guild: disnake.Guild, reason: disnake.
             await safe_run(func=ban_log_channel.send, embed=reason)
 
 
-async def create_embeds(
-    bot: CustomClient, bans: list, guild: disnake.Guild, embed_color: disnake.Color
-):
+async def create_embeds(bot: CustomClient, bans: list, guild: disnake.Guild, embed_color: disnake.Color):
     embeds = []
     banned_tags = [b.get("VillageTag") for b in bans]
     discord_links = await bot.link_client.get_links(*banned_tags)
@@ -161,9 +153,7 @@ async def create_embeds(
 
         if count % 10 == 0 or count == len(banned_players):
             embed = disnake.Embed(description=hold, color=embed_color)
-            embed.set_author(
-                name=f"{guild.name} Ban List", icon_url=get_guild_icon(guild=guild)
-            )
+            embed.set_author(name=f"{guild.name} Ban List", icon_url=get_guild_icon(guild=guild))
             embeds.append(embed)
             hold = ""
 

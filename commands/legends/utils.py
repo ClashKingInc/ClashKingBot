@@ -27,29 +27,24 @@ from typing import List
 
 
 @register_button("legendday", parser="_:player")
-async def legend_day_overview(
-    bot: CustomClient, player: coc.Player, embed_color: disnake.Color
-):
+async def legend_day_overview(bot: CustomClient, player: coc.Player, embed_color: disnake.Color, locale: disnake.Locale):
     player = await bot.ck_client.get_legend_player(player=player)
     legend_day = player.get_legend_day()
 
+    _, locale = bot.get_localizator(locale=locale)
     embed = disnake.Embed(
-        description=f"**Legends Overview** | [profile]({player.share_link})\n"
-        + f"Start: {bot.emoji.legends_shield} {player.trophy_start} | Now: {bot.emoji.legends_shield} {player._.trophies}\n"
-        + f"- {legend_day.num_attacks} attacks for +{legend_day.attack_sum} trophies\n"
-        + f"- {legend_day.num_defenses} defenses for -{legend_day.defense_sum} trophies\n"
-        f"- Net: {legend_day.net_gain} trophies\n- Streak: {player.streak} triples",
+        description=f"**{_('legend-overview')}** | [{_('profile')}]({player.share_link})\n"
+        + f"{_('start')} {bot.emoji.legends_shield} {player.trophy_start} | {_('now')}  {bot.emoji.legends_shield} {player._.trophies}\n"
+        + f"- {_('attacks-for-trophies', values={'num_attacks' : int(legend_day.num_attacks), 'attack_sum' : legend_day.attack_sum})}\n"
+        + f"- {_('defenses-for-trophies', values={'num_defenses' : int(legend_day.num_defenses), 'defense_sum' : legend_day.defense_sum})}\n"
+        + f"- {_('net-trophies', values={'net_gain' : legend_day.net_gain})}\n"
+        + f"- {_('streak', values={'triple_steak' : player.streak})}",
         color=embed_color,
     )
 
     global_ranking_text = player.ranking.global_ranking
     if isinstance(global_ranking_text, int):
-        lowest_rank = (
-            await bot.legend_rankings.find({})
-            .sort([("rank", -1)])
-            .limit(1)
-            .to_list(length=1)
-        )
+        lowest_rank = await bot.legend_rankings.find({}).sort([("rank", -1)]).limit(1).to_list(length=1)
         lowest_rank = lowest_rank[0].get("rank")
         curr_rank = player.ranking.global_ranking
         if player.ranking.global_ranking < 100:
@@ -64,9 +59,7 @@ async def legend_day_overview(
         inline=False,
     )
 
-    embed.set_author(
-        name=f"{player._.name} | {player.clan_name}", icon_url=player.clan_badge
-    )
+    embed.set_author(name=f"{player._.name} | {player.clan_name}", icon_url=player.clan_badge)
     embed.set_thumbnail(url=player.townhall.image_url)
 
     off = ""
@@ -86,9 +79,7 @@ async def legend_day_overview(
         for gear in gears_used:
             gear_hero = HERO_EQUIPMENT.get(gear.name)
             if gear_hero == hero:
-                emoji_text += (
-                    f"{bot.fetch_emoji(gear.name)}{create_superscript(gear.level)}"
-                )
+                emoji_text += f"{bot.fetch_emoji(gear.name)}{create_superscript(gear.level)}"
         if emoji_text != "":
             gear_text += f"{bot.fetch_emoji(name=hero)} | {emoji_text}\n"
 
@@ -114,9 +105,7 @@ async def legend_day_overview(
 
 
 @register_button("legendseason", parser="_:player")
-async def legend_season_overview(
-    bot: CustomClient, player: coc.Player, embed_color: disnake.Color
-):
+async def legend_season_overview(bot: CustomClient, player: coc.Player, embed_color: disnake.Color):
     player = await bot.ck_client.get_legend_player(player=player)
     season_stats = player.get_legend_season()
     text = f"**Attacks Won:** {player._.attack_wins} | **Def Won:** {player._.defense_wins}\n"
@@ -147,9 +136,7 @@ async def legend_season_overview(
         text += "\n**No Previous Days Tracked**"
     text += "```"
 
-    embed = disnake.Embed(
-        title=f"Season Legends Overview", description=text, color=embed_color
-    )
+    embed = disnake.Embed(title=f"Season Legends Overview", description=text, color=embed_color)
 
     embed.set_author(
         name=f"{player._.name} | {player.clan_name}",
@@ -166,9 +153,7 @@ async def legend_season_overview(
     return embed
 
 
-async def legend_poster(
-    bot: CustomClient, player: coc.Player | LegendPlayer, background: str = None
-):
+async def legend_poster(bot: CustomClient, player: coc.Player | LegendPlayer, background: str = None):
     if isinstance(player, coc.Player):
         player = await bot.ck_client.get_legend_player(player=player)
     start = utils.get_season_start().replace(tzinfo=utc).date()
@@ -185,11 +170,7 @@ async def legend_poster(
     season_stats = list(season_stats.values())
     season_stats = season_stats[0 : length.days + 1]
 
-    y = [5000] + [
-        legend_day.finished_trophies
-        for legend_day in season_stats
-        if legend_day.finished_trophies is not None
-    ]
+    y = [5000] + [legend_day.finished_trophies for legend_day in season_stats if legend_day.finished_trophies is not None]
     x = [spot for spot in range(0, len(y))]
 
     fig = plt.figure(dpi=100)
@@ -224,13 +205,9 @@ async def legend_poster(
 
     graph = Image.open("assets/poster_graph.png")
     if background is None:
-        poster = Image.open(
-            f"assets/backgrounds/{random.choice(list(POSTER_LIST.values()))}.png"
-        )
+        poster = Image.open(f"assets/backgrounds/{random.choice(list(POSTER_LIST.values()))}.png")
     else:
-        poster = Image.open(
-            f"assets/backgrounds/{random.choice(list(POSTER_LIST.get(background)))}.png"
-        )
+        poster = Image.open(f"assets/backgrounds/{random.choice(list(POSTER_LIST.get(background)))}.png")
 
     poster.paste(graph, (1175, 475), graph.convert("RGBA"))
 
@@ -377,22 +354,16 @@ async def legend_poster(
 
     if player.ranking.country_code is not None:
         try:
-            globe = Image.open(
-                f"assets/country_flags/{player.ranking.country_code.lower()}2.png"
-            )
+            globe = Image.open(f"assets/country_flags/{player.ranking.country_code.lower()}2.png")
         except Exception:
-            globe = Image.open(
-                f"assets/country_flags/{player.ranking.country_code.lower()}.png"
-            )
+            globe = Image.open(f"assets/country_flags/{player.ranking.country_code.lower()}.png")
             size = 80, 80
             globe.thumbnail(size, Image.LANCZOS)
             globe.save(
                 f"assets/country_flags/{player.ranking.country_code.lower()}2.png",
                 "PNG",
             )
-            globe = Image.open(
-                f"assets/country_flags/{player.ranking.country_code.lower()}2.png"
-            )
+            globe = Image.open(f"assets/country_flags/{player.ranking.country_code.lower()}2.png")
 
         poster.paste(globe, (770, 350), globe.convert("RGBA"))
         if isinstance(player.ranking.local_ranking, int):
@@ -415,23 +386,15 @@ async def legend_poster(
     poster = poster.resize((960, 540))
     poster.save(temp, format="png", compress_level=1)
     temp.seek(0)
-    link = await general_upload_to_cdn(
-        bytes_=temp.read(), id=f"legend_poster_{player.tag.strip('#')}"
-    )
+    link = await general_upload_to_cdn(bytes_=temp.read(), id=f"legend_poster_{player.tag.strip('#')}")
 
     return link
 
 
 @register_button("legendhistory", parser="_:player")
-async def legend_history(
-    bot: CustomClient, player: coc.Player, embed_color: disnake.Color
-):
+async def legend_history(bot: CustomClient, player: coc.Player, embed_color: disnake.Color):
     player = await bot.ck_client.get_legend_player(player=player)
-    results = (
-        await bot.history_db.find({"tag": player.tag})
-        .sort("season", -1)
-        .to_list(length=None)
-    )
+    results = await bot.history_db.find({"tag": player.tag}).sort("season", -1).to_list(length=None)
     if not results:
         embed = disnake.Embed(
             description=f"{player._.name} has never finished a season in legends",
@@ -446,9 +409,7 @@ async def legend_history(
 
     text = ""
     oldyear = "2015"
-    embed = disnake.Embed(
-        description="🏆= trophies, 🌎= global rank", color=embed_color
-    )
+    embed = disnake.Embed(description="🏆= trophies, 🌎= global rank", color=embed_color)
     if names:
         names = ", ".join(names)
         embed.add_field(name="**Previous Names**", value=names, inline=False)
@@ -472,9 +433,7 @@ async def legend_history(
 
     if text != "":
         embed.add_field(name=f"**{oldyear}**", value=text, inline=False)
-    embed.set_author(
-        name=f"{player._.name} Legend History", icon_url=player.townhall.image_url
-    )
+    embed.set_author(name=f"{player._.name} Legend History", icon_url=player.townhall.image_url)
     return embed
 
 
@@ -498,9 +457,7 @@ async def legend_clan(bot: CustomClient, clan: Clan, embed_color: disnake.Color)
 
 
 @register_button("legendquick", parser="_:ctx:player", ephemeral=True, no_embed=True)
-async def legend_quicksearch(
-    bot: CustomClient, ctx: disnake.MessageInteraction, player: coc.Player
-):
+async def legend_quicksearch(bot: CustomClient, ctx: disnake.MessageInteraction, player: coc.Player):
     results = await bot.legend_profile.find_one({"discord_id": ctx.author.id})
     profile_tags = results.get("profile_tags", []) if results is not None else []
     tag = player.tag
@@ -520,9 +477,7 @@ async def legend_quicksearch(
             ephemeral=True,
         )
     else:
-        await bot.legend_profile.update_one(
-            {"discord_id": ctx.author.id}, {"$push": {"profile_tags": tag}}, upsert=True
-        )
+        await bot.legend_profile.update_one({"discord_id": ctx.author.id}, {"$push": {"profile_tags": tag}}, upsert=True)
         await ctx.send(
             content=f"Added {player.name} to your Quick Check & Daily Report list.",
             ephemeral=True,
@@ -562,9 +517,7 @@ async def legend_cutoff(bot: CustomClient, embed_color: disnake.Color):
         rank = f"#{result.get('rank')}"
         text += f"`{rank:>7} `{bot.emoji.trophy}`{result.get('trophies')}`\n"
     embed = disnake.Embed(description=text, color=embed_color)
-    embed.set_author(
-        name="Legend Rank Cutoffs", icon_url=bot.emoji.legends_shield.partial_emoji.url
-    )
+    embed.set_author(name="Legend Rank Cutoffs", icon_url=bot.emoji.legends_shield.partial_emoji.url)
     embed.timestamp = pend.now(tz=pend.UTC)
     return embed
 
@@ -572,10 +525,7 @@ async def legend_cutoff(bot: CustomClient, embed_color: disnake.Color):
 @register_button("legendstreaks", parser="_:limit")
 async def legend_streaks(bot: CustomClient, limit: int, embed_color: disnake.Color):
     results = (
-        await bot.player_stats.find({}, projection={"name": 1, "legends.streak": 1})
-        .sort("legends.streak", -1)
-        .limit(limit)
-        .to_list(length=None)
+        await bot.player_stats.find({}, projection={"name": 1, "legends.streak": 1}).sort("legends.streak", -1).limit(limit).to_list(length=None)
     )
     text = "``` # ★★★ Name\n"
     for count, result in enumerate(results, 1):
@@ -624,16 +574,9 @@ async def legend_buckets(bot: CustomClient, embed_color: disnake.Color):
             }
         }
     ]
-    results = await bot.legend_rankings.aggregate(pipeline=pipeline).to_list(
-        length=None
-    )
+    results = await bot.legend_rankings.aggregate(pipeline=pipeline).to_list(length=None)
     text = "`  Troph Count    Perc`\n"
-    lowest_rank = (
-        await bot.legend_rankings.find({})
-        .sort([("rank", -1)])
-        .limit(1)
-        .to_list(length=1)
-    )
+    lowest_rank = await bot.legend_rankings.find({}).sort([("rank", -1)]).limit(1).to_list(length=1)
     lowest_rank = lowest_rank[0].get("rank")
     for result in results:
         trophy = result.get("_id")
@@ -658,12 +601,7 @@ async def legend_buckets(bot: CustomClient, embed_color: disnake.Color):
 
 @register_button("legendeosfinishers", parser="_:")
 async def legend_eos_finishers(bot: CustomClient, embed_color: disnake.Color):
-    results = (
-        await bot.history_db.find({"rank": 1})
-        .sort("season", -1)
-        .limit(48)
-        .to_list(length=None)
-    )
+    results = await bot.history_db.find({"rank": 1}).sort("season", -1).limit(48).to_list(length=None)
     text = ""
     embed = disnake.Embed(color=embed_color)
     old_year = results[0].get("season").split("-")[0]

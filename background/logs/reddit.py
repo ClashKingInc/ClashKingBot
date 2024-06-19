@@ -22,17 +22,13 @@ class reddit_feed(commands.Cog):
                 if player is not None:
                     break
 
-        results = await self.bot.server_db.find({"reddit_feed": {"$ne": None}}).to_list(
-            length=None
-        )
+        results = await self.bot.server_db.find({"reddit_feed": {"$ne": None}}).to_list(length=None)
         for r in results:
             server_id = r.get("server")
             if server_id not in self.bot.OUR_GUILDS:
                 continue
             try:
-                channel = await self.bot.getch_channel(
-                    r.get("reddit_feed"), raise_exception=True
-                )
+                channel = await self.bot.getch_channel(r.get("reddit_feed"), raise_exception=True)
                 role = r.get("reddit_role")
                 embed = disnake.Embed(
                     title=event.get("title"),
@@ -58,9 +54,7 @@ class reddit_feed(commands.Cog):
                     )
 
                 if role is not None:
-                    await channel.send(
-                        content=f"<@&{role}>", embed=embed, components=buttons
-                    )
+                    await channel.send(content=f"<@&{role}>", embed=embed, components=buttons)
                 else:
                     await channel.send(embed=embed, components=buttons)
             except (disnake.NotFound, disnake.Forbidden):

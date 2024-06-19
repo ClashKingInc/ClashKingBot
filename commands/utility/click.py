@@ -49,9 +49,7 @@ class UtilityButtons(commands.Cog):
                 {"message_id": res.message.id},
                 {
                     "$inc": {"downloads": 1},
-                    "$push": {
-                        "downloaders": f"{res.author.mention} [{res.author.name}]"
-                    },
+                    "$push": {"downloaders": f"{res.author.mention} [{res.author.name}]"},
                 },
             )
             if not results.get("new", False):
@@ -138,9 +136,7 @@ class UtilityButtons(commands.Cog):
             results = await self.bot.bases.find_one({"message_id": res.message.id})
             feedback = results.get("feedback")
             if feedback == []:
-                embed = disnake.Embed(
-                    description=f"No Feedback Currently.", color=disnake.Color.red()
-                )
+                embed = disnake.Embed(description=f"No Feedback Currently.", color=disnake.Color.red())
                 return await res.send(embed=embed, ephemeral=True)
             else:
                 text = ""
@@ -157,9 +153,7 @@ class UtilityButtons(commands.Cog):
             results = await self.bot.bases.find_one({"message_id": res.message.id})
             ds = results.get("downloaders")
             if ds == []:
-                embed = disnake.Embed(
-                    description=f"No Downloads Currently.", color=disnake.Color.red()
-                )
+                embed = disnake.Embed(description=f"No Downloads Currently.", color=disnake.Color.red())
                 return await res.send(embed=embed, ephemeral=True)
             else:
                 text = ""

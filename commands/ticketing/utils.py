@@ -12,9 +12,7 @@ tiz = pytz.utc
 from utility.clash.other import heros
 
 
-async def ask_questions(
-    bot: CustomClient, ctx: disnake.MessageInteraction, questions: List[str]
-):
+async def ask_questions(bot: CustomClient, ctx: disnake.MessageInteraction, questions: List[str]):
     components = [
         disnake.ui.TextInput(
             label=f"Question #{count + 1}:",
@@ -28,9 +26,7 @@ async def ask_questions(
         if question != ""
     ]
     made_id = f"Answers-{ctx.user.id}-{int(datetime.now().timestamp())}"
-    await ctx.response.send_modal(
-        title="Questionnaire ", custom_id=made_id, components=components
-    )
+    await ctx.response.send_modal(title="Questionnaire ", custom_id=made_id, components=components)
 
     def check(res: disnake.ModalInteraction):
         return ctx.author.id == res.author.id and res.custom_id == made_id
@@ -49,9 +45,7 @@ async def ask_questions(
         for count, answer in enumerate(answers, 1):
             description += f"**{count}. {questions[count - 1]}**\n> {answer}\n"
 
-    embed = disnake.Embed(
-        title="**Questionnaire**", description=description, color=disnake.Color(2829617)
-    )
+    embed = disnake.Embed(title="**Questionnaire**", description=description, color=disnake.Color(2829617))
     return (message, embed)
 
 
@@ -89,14 +83,8 @@ async def open_ticket(
     user_overwrite.send_messages = True
     user_overwrite.attach_files = True
 
-    no_ping_roles = [
-        disnake.utils.get(ctx.guild.roles, id=int(role))
-        for role in button.no_ping_staff_roles
-    ]
-    ping_roles = [
-        disnake.utils.get(ctx.guild.roles, id=int(role))
-        for role in button.ping_staff_roles
-    ]
+    no_ping_roles = [disnake.utils.get(ctx.guild.roles, id=int(role)) for role in button.no_ping_staff_roles]
+    ping_roles = [disnake.utils.get(ctx.guild.roles, id=int(role)) for role in button.ping_staff_roles]
 
     for role in no_ping_roles + ping_roles:
         if role is not None:
@@ -125,10 +113,7 @@ async def open_ticket(
         category=category,
     )
 
-    text = (
-        " ".join([role.mention for role in ping_roles if role is not None])
-        + member.mention
-    )
+    text = " ".join([role.mention for role in ping_roles if role is not None]) + member.mention
     if text.replace(" ", "") != "":
         await channel.send(content=text)
 
@@ -139,9 +124,7 @@ async def open_ticket(
             name=f"Private | {channel_name.replace('-', ' ')}",
             type=disnake.ChannelType.private_thread,
         )
-        text = " ".join(
-            [role.mention for role in no_ping_roles + ping_roles if role is not None]
-        )
+        text = " ".join([role.mention for role in no_ping_roles + ping_roles if role is not None])
         if text.replace(" ", "") != "":
             await thread.send(content=text)
         channels.append(thread)
@@ -159,9 +142,7 @@ async def naming_convention_convertor(
     coc_account: StatsPlayer = None,
 ):
     if number is None:
-        all_ticket_nums = await bot.open_tickets.distinct(
-            "number", filter={"server": guild.id}
-        )
+        all_ticket_nums = await bot.open_tickets.distinct("number", filter={"server": guild.id})
         if not all_ticket_nums:
             all_ticket_nums = [0]
         number = max(all_ticket_nums) + 1
@@ -192,9 +173,7 @@ async def message_convertor(
 
     coc_account = None
     if ticket.apply_account is not None:
-        coc_account = await bot.getPlayer(
-            player_tag=ticket.apply_account, custom=True, cache_data=False
-        )
+        coc_account = await bot.getPlayer(player_tag=ticket.apply_account, custom=True, cache_data=False)
 
     coc_clan = None
     clan_badge = None
@@ -218,26 +197,18 @@ async def message_convertor(
         "{server_member_count}": ctx.guild.member_count,
         "{account_name}": coc_account.name if coc_account is not None else "",
         "{account_th}": coc_account.town_hall if coc_account is not None else "",
-        "{account_heroes}": (
-            heros(bot=bot, player=coc_account) if coc_account is not None else ""
-        ),
+        "{account_heroes}": (heros(bot=bot, player=coc_account) if coc_account is not None else ""),
         "{clan_name}": coc_clan.name if coc_clan is not None else "",
         "{clan_level}": coc_clan.level if coc_clan is not None else "",
         "{clan_badge_emoji}": clan_badge if coc_clan is not None else "",
         "{clan_link}": coc_clan.share_link if coc_clan is not None else "",
         "{clan_location}": coc_clan.location if coc_clan is not None else "",
         "{clan_member_count}": coc_clan.member_count if coc_clan is not None else "",
-        "{clan_leader}": (
-            coc.utils.get(coc_clan.members, role=coc.Role.leader).name
-            if coc_clan is not None
-            else ""
-        ),
+        "{clan_leader}": (coc.utils.get(coc_clan.members, role=coc.Role.leader).name if coc_clan is not None else ""),
         "{clan_leader_mention}": clm,
         "{clan_tag}": coc_clan.tag if coc_clan is not None else "",
         "{clan_war_league}": coc_clan.war_league if coc_clan is not None else "",
-        "{clan_capital_league}": (
-            coc_clan.capital_league if coc_clan is not None else ""
-        ),
+        "{clan_capital_league}": (coc_clan.capital_league if coc_clan is not None else ""),
     }
 
     for type, replace in types.items():

@@ -37,9 +37,7 @@ class TopCommands(commands.Cog, name="Top"):
     async def donations(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        season: str = commands.Param(
-            default=None, convert_defaults=True, converter=season_convertor
-        ),
+        season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor),
     ):
         players = (
             await self.bot.player_stats.find({}, {"tag": 1})
@@ -47,9 +45,7 @@ class TopCommands(commands.Cog, name="Top"):
             .limit(50)
             .to_list(length=50)
         )
-        players = await self.bot.get_players(
-            tags=[result.get("tag") for result in players]
-        )
+        players = await self.bot.get_players(tags=[result.get("tag") for result in players])
 
         footer_icon = self.bot.user.avatar.url
         embed: disnake.Embed = await shared_embeds.donation_board(
@@ -79,9 +75,7 @@ class TopCommands(commands.Cog, name="Top"):
         )
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
-    @top.sub_command(
-        name="compo", description="Composition of a family. (with a twist?)"
-    )
+    @top.sub_command(name="compo", description="Composition of a family. (with a twist?)")
     async def family_compo(
         self,
         ctx: disnake.ApplicationCommandInteraction,
@@ -113,32 +107,24 @@ class TopCommands(commands.Cog, name="Top"):
 
         await ctx.edit_original_message(embed=embed, components=None)
 
-    @top.sub_command(
-        name="activities", description="Members with the highest activity on the bot"
-    )
+    @top.sub_command(name="activities", description="Members with the highest activity on the bot")
     async def activities(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        season: str = commands.Param(
-            default=None, convert_defaults=True, converter=season_convertor
-        ),
+        season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor),
     ):
         pipeline = [
             {
                 "$project": {
                     "tag": "$tag",
-                    "activity_len": {
-                        "$size": {"$ifNull": [f"$last_online_times.{season}", []]}
-                    },
+                    "activity_len": {"$size": {"$ifNull": [f"$last_online_times.{season}", []]}},
                 }
             },
             {"$sort": {"activity_len": -1}},
             {"$limit": 50},
         ]
         players = await self.bot.player_stats.aggregate(pipeline).to_list(length=None)
-        players = await self.bot.get_players(
-            tags=[result.get("tag") for result in players]
-        )
+        players = await self.bot.get_players(tags=[result.get("tag") for result in players])
 
         footer_icon = self.bot.user.avatar.url
         embed: disnake.Embed = await shared_embeds.activity_board(
@@ -188,12 +174,8 @@ class TopCommands(commands.Cog, name="Top"):
 
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
-    @top.sub_command(
-        name="capital", description="Top capital contributors across the bot"
-    )
-    async def capital(
-        self, ctx: disnake.ApplicationCommandInteraction, weekend: str = None
-    ):
+    @top.sub_command(name="capital", description="Top capital contributors across the bot")
+    async def capital(self, ctx: disnake.ApplicationCommandInteraction, weekend: str = None):
         if weekend is None:
             week = self.bot.gen_raid_date()
         else:
@@ -202,18 +184,14 @@ class TopCommands(commands.Cog, name="Top"):
             {
                 "$project": {
                     "tag": "$tag",
-                    "capital_sum": {
-                        "$sum": {"$ifNull": [f"$capital_gold.{week}.donate", []]}
-                    },
+                    "capital_sum": {"$sum": {"$ifNull": [f"$capital_gold.{week}.donate", []]}},
                 }
             },
             {"$sort": {"capital_sum": -1}},
             {"$limit": 50},
         ]
         players = await self.bot.player_stats.aggregate(pipeline).to_list(length=None)
-        players = await self.bot.get_players(
-            tags=[result.get("tag") for result in players]
-        )
+        players = await self.bot.get_players(tags=[result.get("tag") for result in players])
         embed: disnake.Embed = await shared_embeds.capital_donation_board(
             bot=self.bot,
             players=players,

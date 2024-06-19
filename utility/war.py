@@ -8,16 +8,11 @@ from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.discord_utils import get_webhook_for_channel
 
 
-async def update_war_message(
-    bot: CustomClient, war: coc.ClanWar, db_clan: DatabaseClan, clan: coc.Clan = None
-):
+async def update_war_message(bot: CustomClient, war: coc.ClanWar, db_clan: DatabaseClan, clan: coc.Clan = None):
     log = db_clan.war_panel
     webhook_id = log.webhook
     message_id = log.message_id
-    if (
-        log.war_id
-        != f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}"
-    ):
+    if log.war_id != f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}":
         message_id = None
 
     war_league = clan.war_league if clan is not None else None
@@ -41,9 +36,7 @@ async def update_war_message(
         try:
             webhook = await bot.getch_webhook(webhook_id)
             if webhook.user.id != bot.user.id:
-                webhook = await get_webhook_for_channel(
-                    bot=bot, channel=webhook.channel
-                )
+                webhook = await get_webhook_for_channel(bot=bot, channel=webhook.channel)
                 await log.set_webhook(id=webhook.id)
             if log.thread is not None:
                 thread = await bot.getch_channel(log.thread, raise_exception=True)
@@ -57,9 +50,7 @@ async def update_war_message(
         if thread is None:
             message = await webhook.send(embed=embed, components=button, wait=True)
         else:
-            message = await webhook.send(
-                embed=embed, components=button, thread=thread, wait=True
-            )
+            message = await webhook.send(embed=embed, components=button, thread=thread, wait=True)
 
         war_id = f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}"
         await bot.clan_db.update_one(
@@ -91,8 +82,7 @@ def war_start_embed(new_war: coc.ClanWar):
 
 def war_buttons(bot: CustomClient, new_war: coc.ClanWar):
     war_unique_id = (
-        "-".join([new_war.clan_tag, new_war.opponent.tag])
-        + f"-{int(new_war.preparation_start_time.time.timestamp())}"
+        "-".join([new_war.clan_tag, new_war.opponent.tag]) + f"-{int(new_war.preparation_start_time.time.timestamp())}"
     )
     button = [
         disnake.ui.ActionRow(

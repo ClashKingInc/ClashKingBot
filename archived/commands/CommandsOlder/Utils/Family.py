@@ -20,38 +20,27 @@ from typing import List
 from pytz import utc
 
 
-async def create_trophies(
-    bot: CustomClient, guild: disnake.Guild, sort_type: TrophySort
-):
+async def create_trophies(bot: CustomClient, guild: disnake.Guild, sort_type: TrophySort):
     clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
     clans = await bot.get_clans(tags=clan_tags)
     clans = [clan for clan in clans if clan is not None]
     if not clans:
-        return disnake.Embed(
-            description="No clans linked to this server.", color=disnake.Color.red()
-        )
+        return disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
 
     if sort_type is TrophySort.home:
         point_type = "Trophies"
         clans = sorted(clans, key=lambda l: l.points, reverse=True)
         clan_text = [
-            f"{bot.emoji.trophy}`{clan.points:5} {clan.name}`{create_superscript(clan.member_count)}"
-            for clan in clans
+            f"{bot.emoji.trophy}`{clan.points:5} {clan.name}`{create_superscript(clan.member_count)}" for clan in clans
         ]
     elif sort_type is TrophySort.versus:
         point_type = "Versus Trophies"
         clans = sorted(clans, key=lambda l: l.builder_base_points, reverse=True)
-        clan_text = [
-            f"{bot.emoji.versus_trophy}`{clan.builder_base_points:5} {clan.name}`"
-            for clan in clans
-        ]
+        clan_text = [f"{bot.emoji.versus_trophy}`{clan.builder_base_points:5} {clan.name}`" for clan in clans]
     elif sort_type is TrophySort.capital:
         point_type = "Capital Trophies"
         clans = sorted(clans, key=lambda l: l.capital_points, reverse=True)
-        clan_text = [
-            f"{bot.emoji.capital_trophy}`{clan.capital_points:5} {clan.name}`"
-            for clan in clans
-        ]
+        clan_text = [f"{bot.emoji.capital_trophy}`{clan.capital_points:5} {clan.name}`" for clan in clans]
 
     clan_text = "\n".join(clan_text)
 
@@ -103,9 +92,7 @@ async def create_joinhistory(
         },
         {"$set": {"name": "$name.data.name"}},
     ]
-    results: List[dict] = await bot.clan_history.aggregate(pipeline).to_list(
-        length=None
-    )
+    results: List[dict] = await bot.clan_history.aggregate(pipeline).to_list(length=None)
 
     class ItemHolder:
         def __init__(self, data):

@@ -38,15 +38,9 @@ class UtilityCommands(UtilityButtons, commands.Cog, name="Utility"):
         nickname: (optional) nickname for this army,
         clan_castle: (optional) clan castle to go with this army
         """
-        embed = army_embed(
-            bot=self.bot, nick=nickname, link=link, clan_castle=clan_castle
-        )
+        embed = army_embed(bot=self.bot, nick=nickname, link=link, clan_castle=clan_castle)
         buttons = disnake.ui.ActionRow()
-        buttons.append_item(
-            disnake.ui.Button(
-                label=f"Copy Link", emoji=self.bot.emoji.troop.partial_emoji, url=link
-            )
-        )
+        buttons.append_item(disnake.ui.Button(label=f"Copy Link", emoji=self.bot.emoji.troop.partial_emoji, url=link))
         await ctx.send(embed=embed, components=buttons)
 
     @commands.slash_command(
@@ -84,9 +78,7 @@ class UtilityCommands(UtilityButtons, commands.Cog, name="Utility"):
             embeds = await clan_boost_embeds(bot=self.bot, clans=clans)
 
         if len(embeds) >= 2:
-            await ctx.send(
-                embed=embeds[0], components=create_components(0, embeds, True)
-            )
+            await ctx.send(embed=embeds[0], components=create_components(0, embeds, True))
         else:
             custom_id = f"clan_{uuid.uuid4()}"
             components = disnake.ui.ActionRow()
@@ -109,9 +101,7 @@ class UtilityCommands(UtilityButtons, commands.Cog, name="Utility"):
 
         current_page = 0
         while True:
-            res: disnake.MessageInteraction = await interaction_handler(
-                bot=self.bot, ctx=ctx, any_run=True
-            )
+            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, any_run=True)
             if res.data.custom_id == "Previous":
                 current_page -= 1
                 await res.edit_original_message(
@@ -141,19 +131,14 @@ class UtilityCommands(UtilityButtons, commands.Cog, name="Utility"):
     ):
         await ctx.response.defer()
 
-        if (
-            "https://link.clashofclans.com/" not in base_link
-            or "=OpenLayout&id=" not in base_link
-        ):
+        if "https://link.clashofclans.com/" not in base_link or "=OpenLayout&id=" not in base_link:
             raise MessageException("Not a Valid Base Link")
 
         description = description[0:1900]
         description = description.replace("&&", "\n")
 
         r1 = disnake.ui.ActionRow()
-        link_button = disnake.ui.Button(
-            label="Link", emoji="🔗", style=disnake.ButtonStyle.grey, custom_id="link"
-        )
+        link_button = disnake.ui.Button(label="Link", emoji="🔗", style=disnake.ButtonStyle.grey, custom_id="link")
         downloads = disnake.ui.Button(
             label="0 Downloads",
             emoji="📈",

@@ -33,13 +33,9 @@ class ExportCreator(commands.Cog):
             col = 1
         return worksheet
 
-    async def export_manager(
-        self, player_tags: List[str], season: str = None, template: str = None
-    ):
+    async def export_manager(self, player_tags: List[str], season: str = None, template: str = None):
         # get list of custom players (which have lots of db info), use the cache since not time sensitive
-        players: List[StatsPlayer] = await self.bot.get_players(
-            tags=player_tags, custom=True, use_cache=True
-        )
+        players: List[StatsPlayer] = await self.bot.get_players(tags=player_tags, custom=True, use_cache=True)
         output = io.BytesIO()
         # if the "template" is just the name of a default type (raw data), just export the 1 sheet
         if template in self.DEFAULT_EXPORT_TYPES:
@@ -67,9 +63,7 @@ class ExportCreator(commands.Cog):
                     sheet_name="season_trophies",
                 )
             elif template == "Troops":
-                await self.create_troops_export(
-                    players=players, workbook=workbook, sheet_name="season_troops"
-                )
+                await self.create_troops_export(players=players, workbook=workbook, sheet_name="season_troops")
             elif template == "Player Achievements":
                 await self.create_achievements_export(
                     players=players, workbook=workbook, sheet_name="player_achievements"
@@ -117,9 +111,7 @@ class ExportCreator(commands.Cog):
                     # not convenient, but we have written the code once before (exports.py - season convertor)
                     # could skip this all by writting a season generator that actually gives the right thing, if u feel inclined xD
                     # or we could switch all generators to give back datetimes which would allow us to create whatever we want with them...hindsight is 20/20 lol
-                    month = list(calendar.month_name).index(
-                        season_for_sheet.split(" ")[0]
-                    )
+                    month = list(calendar.month_name).index(season_for_sheet.split(" ")[0])
                     year = int(season_for_sheet.split(" ")[1])
                     if month == 1:
                         month = 13
@@ -155,14 +147,10 @@ class ExportCreator(commands.Cog):
                     )
                 elif "season_troops" in sheet_name:
                     workbook.remove(workbook.get_sheet_by_name(sheet_name))
-                    await self.create_troops_export(
-                        players=players, workbook=workbook, sheet_name=sheet_name
-                    )
+                    await self.create_troops_export(players=players, workbook=workbook, sheet_name=sheet_name)
                 elif "player_achievements" in sheet_name:
                     workbook.remove(workbook.get_sheet_by_name(sheet_name))
-                    await self.create_achievements_export(
-                        players=players, workbook=workbook, sheet_name=sheet_name
-                    )
+                    await self.create_achievements_export(players=players, workbook=workbook, sheet_name=sheet_name)
                 elif "player_activity" in sheet_name:
                     workbook.remove(workbook.get_sheet_by_name(sheet_name))
                     await self.create_player_activity_export(
@@ -173,9 +161,7 @@ class ExportCreator(commands.Cog):
                     )
                 elif "player_stats" in sheet_name:
                     workbook.remove(workbook.get_sheet_by_name(sheet_name))
-                    await self.create_player_stats_export(
-                        players=players, workbook=workbook, sheet_name=sheet_name
-                    )
+                    await self.create_player_stats_export(players=players, workbook=workbook, sheet_name=sheet_name)
                 elif "advanced_stats" in sheet_name:
                     workbook.remove(workbook.get_sheet_by_name(sheet_name))
                     await self.create_advanced_player_stats_export(
@@ -209,9 +195,7 @@ class ExportCreator(commands.Cog):
             if week > SEASON_END:
                 break
             weeks.append(week)
-        players_data = await self.bot.get_players(
-            tags=[player.tag for player in players], custom=True
-        )
+        players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=True)
         if season is None:
             season = self.bot.gen_season_date()
         data = []
@@ -227,9 +211,7 @@ class ExportCreator(commands.Cog):
             if player.last_online is None:
                 lastOnline = "-"
             else:
-                lastOnline = datetime.fromtimestamp(
-                    player.last_online, tz=utc
-                ).strftime("%Y-%m-%d-%H:%M:%S")
+                lastOnline = datetime.fromtimestamp(player.last_online, tz=utc).strftime("%Y-%m-%d-%H:%M:%S")
             data.append(
                 [
                     player.name,
@@ -261,17 +243,13 @@ class ExportCreator(commands.Cog):
             "Capital Raided",
             "Capital Donated",
         ]
-        await self.write_data(
-            worksheet=advanced_player_Stats_page, column_names=columns, data=data
-        )
+        await self.write_data(worksheet=advanced_player_Stats_page, column_names=columns, data=data)
 
     async def create_player_stats_export(
         self, players: List[StatsPlayer], workbook: openpyxl.Workbook, sheet_name: str
     ):
         player_stats_page = workbook.create_sheet(sheet_name)
-        players_data = await self.bot.get_players(
-            tags=[player.tag for player in players], custom=False
-        )
+        players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=False)
         data = []
         for player in players_data:
             info = [
@@ -303,9 +281,7 @@ class ExportCreator(commands.Cog):
                 value = value.name if i == "league" else value
                 value = "-" if value is None or value == "" else value
                 if i == "labels":
-                    labels = [label.name for label in value] + [
-                        "-" for x in range(3 - len(value))
-                    ]
+                    labels = [label.name for label in value] + ["-" for x in range(3 - len(value))]
                     line.extend(labels)
                 else:
                     line.append(str(value))
@@ -336,17 +312,11 @@ class ExportCreator(commands.Cog):
             "Versus Trophies",
         ]
 
-        await self.write_data(
-            worksheet=player_stats_page, column_names=columns, data=data
-        )
+        await self.write_data(worksheet=player_stats_page, column_names=columns, data=data)
 
-    async def create_troops_export(
-        self, players: List[StatsPlayer], workbook: openpyxl.Workbook, sheet_name: str
-    ):
+    async def create_troops_export(self, players: List[StatsPlayer], workbook: openpyxl.Workbook, sheet_name: str):
         troops_page = workbook.create_sheet(sheet_name)
-        players_data = await self.bot.get_players(
-            tags=[player.tag for player in players], custom=False
-        )
+        players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=False)
         # Note home_troop_order already includes siege machines
         home_troops = coc.enums.HOME_TROOP_ORDER
         super_troops = coc.enums.SUPER_TROOP_ORDER
@@ -356,29 +326,16 @@ class ExportCreator(commands.Cog):
         builder_troops = coc.enums.BUILDER_TROOPS_ORDER
         builder_heroes = coc.enums.BUILDER_BASE_HERO_ORDER
 
-        columns = (
-            home_troops
-            + super_troops
-            + spells
-            + pets
-            + home_heroes
-            + builder_troops
-            + builder_heroes
-        )
+        columns = home_troops + super_troops + spells + pets + home_heroes + builder_troops + builder_heroes
         data = []
         for player in players_data:
             _troops = {troop.name: troop.level for troop in player.troops}
             _spells = {spell.name: spell.level for spell in player.spells}
-            _super_troops = {
-                super_troop.name: super_troop.level
-                for super_troop in player.super_troops
-            }
+            _super_troops = {super_troop.name: super_troop.level for super_troop in player.super_troops}
             _pets = {pet.name: pet.level for pet in player.pets}
             _heros = {hero.name: hero.level for hero in player.heroes}
             all_troops_data = {**_troops, **_spells, **_super_troops, **_pets, **_heros}
-            line = [player.name, player.tag] + [
-                all_troops_data.get(column, "-") for column in columns
-            ]
+            line = [player.name, player.tag] + [all_troops_data.get(column, "-") for column in columns]
             data.append(line)
         columns = ["Player Name", "Player Tag"] + columns
         await self.write_data(worksheet=troops_page, column_names=columns, data=data)
@@ -393,12 +350,8 @@ class ExportCreator(commands.Cog):
         activity_page = workbook.create_sheet(sheet_name)
         year = season[:4]
         month = season[-2:]
-        SEASON_START = utils.get_season_start(
-            month=int(month) - 1, year=int(year)
-        ).timestamp()
-        SEASON_END = utils.get_season_end(
-            month=int(month) - 1, year=int(year)
-        ).timestamp()
+        SEASON_START = utils.get_season_start(month=int(month) - 1, year=int(year)).timestamp()
+        SEASON_END = utils.get_season_end(month=int(month) - 1, year=int(year)).timestamp()
         pipeline = [
             {
                 "$match": {
@@ -434,9 +387,7 @@ class ExportCreator(commands.Cog):
             },
             {"$set": {"name": "$name.name"}},
         ]
-        results: List[dict] = await self.bot.player_history.aggregate(pipeline).to_list(
-            length=None
-        )
+        results: List[dict] = await self.bot.player_history.aggregate(pipeline).to_list(length=None)
         data = []
         leagues = ["builderBaseLeague", "league"]
         for result in results:
@@ -446,9 +397,7 @@ class ExportCreator(commands.Cog):
                 if change["type"] in leagues:
                     value = change["value"]["name"]
                     p_value = change["p_value"]["name"] if p_value != "-" else p_value
-                time = datetime.fromtimestamp(change["time"], tz=utc).strftime(
-                    "%Y-%m-%d-%H:%M:%S"
-                )
+                time = datetime.fromtimestamp(change["time"], tz=utc).strftime("%Y-%m-%d-%H:%M:%S")
                 data.append(
                     [
                         result["name"][0],
@@ -475,9 +424,7 @@ class ExportCreator(commands.Cog):
         self, players: List[StatsPlayer], workbook: openpyxl.workbook, sheet_name: str
     ):
         achievement_page = workbook.create_sheet(sheet_name)
-        players_data = await self.bot.get_players(
-            tags=[player.tag for player in players], custom=False
-        )
+        players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=False)
         data = []
         achievement_order = coc.enums.ACHIEVEMENT_ORDER
         for player in players_data:
@@ -492,9 +439,7 @@ class ExportCreator(commands.Cog):
         columns = ["Player Name", "Player Tag"] + achievement_order
         columns.remove("Get those other Goblins!")
         # columns.remove("Get even more Goblins!")
-        await self.write_data(
-            worksheet=achievement_page, column_names=columns, data=data
-        )
+        await self.write_data(worksheet=achievement_page, column_names=columns, data=data)
         return workbook
 
     async def create_season_trophies_export(
@@ -542,9 +487,7 @@ class ExportCreator(commands.Cog):
             "Season",
         ]
 
-        await self.write_data(
-            worksheet=season_trophies_page, column_names=columns, data=data
-        )
+        await self.write_data(worksheet=season_trophies_page, column_names=columns, data=data)
         return workbook
 
     async def create_warhit_export(
@@ -557,12 +500,8 @@ class ExportCreator(commands.Cog):
         warhit_stat_page = workbook.create_sheet(sheet_name)
         year = season[:4]
         month = season[-2:]
-        SEASON_START = utils.get_season_start(
-            month=int(month) - 1, year=int(year)
-        ).timestamp()
-        SEASON_END = utils.get_season_end(
-            month=int(month) - 1, year=int(year)
-        ).timestamp()
+        SEASON_START = utils.get_season_start(month=int(month) - 1, year=int(year)).timestamp()
+        SEASON_END = utils.get_season_end(month=int(month) - 1, year=int(year)).timestamp()
         attacks = await self.bot.warhits.find(
             {
                 "$and": [
@@ -590,15 +529,11 @@ class ExportCreator(commands.Cog):
                     attack["name"],
                     attack["tag"],
                     attack["townhall"],
-                    datetime.fromtimestamp(attack["_time"], tz=utc).strftime(
-                        "%Y-%m-%d-%H:%M:%S"
-                    ),
+                    datetime.fromtimestamp(attack["_time"], tz=utc).strftime("%Y-%m-%d-%H:%M:%S"),
                     attack["destruction"],
                     attack["stars"],
                     attack["fresh"],
-                    datetime.fromtimestamp(attack["war_start"], tz=utc).strftime(
-                        "%Y-%m-%d-%H:%M:%S"
-                    ),
+                    datetime.fromtimestamp(attack["war_start"], tz=utc).strftime("%Y-%m-%d-%H:%M:%S"),
                     attack["defender_tag"],
                     attack["defender_name"],
                     attack["defender_townhall"],
@@ -618,15 +553,11 @@ class ExportCreator(commands.Cog):
                     defense["name"],
                     defense["tag"],
                     defense["townhall"],
-                    datetime.fromtimestamp(defense["_time"], tz=utc).strftime(
-                        "%Y-%m-%d-%H:%M:%S"
-                    ),
+                    datetime.fromtimestamp(defense["_time"], tz=utc).strftime("%Y-%m-%d-%H:%M:%S"),
                     defense["destruction"],
                     defense["stars"],
                     defense["fresh"],
-                    datetime.fromtimestamp(defense["war_start"], tz=utc).strftime(
-                        "%Y-%m-%d-%H:%M:%S"
-                    ),
+                    datetime.fromtimestamp(defense["war_start"], tz=utc).strftime("%Y-%m-%d-%H:%M:%S"),
                     defense["defender_tag"],
                     defense["defender_name"],
                     defense["defender_townhall"],
@@ -660,9 +591,7 @@ class ExportCreator(commands.Cog):
             "Clan",
         ]
 
-        await self.write_data(
-            worksheet=warhit_stat_page, column_names=columns, data=data
-        )
+        await self.write_data(worksheet=warhit_stat_page, column_names=columns, data=data)
         return workbook
 
     async def create_legend_export(
@@ -714,9 +643,7 @@ class ExportCreator(commands.Cog):
             "Num Defenses",
         ]
 
-        await self.write_data(
-            worksheet=legend_stats_page, column_names=columns, data=data
-        )
+        await self.write_data(worksheet=legend_stats_page, column_names=columns, data=data)
         return workbook
 
     """#THESE ARE JUST PROTOTYPES, MAY HAVE SOME GOOD STUFF, MAY NOT.

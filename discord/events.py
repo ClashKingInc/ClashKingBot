@@ -45,9 +45,7 @@ class DiscordEvents(commands.Cog):
             has_started = True
             database_guilds = await self.bot.server_db.distinct("server")
             database_guilds: set = set(database_guilds)
-            missing_guilds = [
-                guild.id for guild in self.bot.guilds if guild.id not in database_guilds
-            ]
+            missing_guilds = [guild.id for guild in self.bot.guilds if guild.id not in database_guilds]
             for guild in missing_guilds:
                 await self.bot.server_db.insert_one(
                     {
@@ -109,9 +107,7 @@ class DiscordEvents(commands.Cog):
         if self.bot.user.public_flags.verified_bot:
             for count, shard in self.bot.shards.items():
                 await self.bot.change_presence(
-                    activity=disnake.CustomActivity(
-                        state="Use Code ClashKing 👀", name="Custom Status"
-                    ),
+                    activity=disnake.CustomActivity(state="Use Code ClashKing 👀", name="Custom Status"),
                     shard_id=shard.id,
                 )
         else:
@@ -119,15 +115,11 @@ class DiscordEvents(commands.Cog):
                 "activity_text": "Use Code ClashKing 👀",
                 "status": "Online",
             }
-            bot_settings = await self.bot.custom_bots.find_one(
-                {"token": self.bot._config.bot_token}
-            )
+            bot_settings = await self.bot.custom_bots.find_one({"token": self.bot._config.bot_token})
             if bot_settings:
                 default_status = bot_settings.get("state", default_status)
             await self.bot.change_presence(
-                activity=disnake.CustomActivity(
-                    state=default_status.get("activity_text"), name="Custom Status"
-                ),
+                activity=disnake.CustomActivity(state=default_status.get("activity_text"), name="Custom Status"),
                 status=DISCORD_STATUS_TYPES.get(default_status.get("status")),
             )
 
@@ -145,9 +137,7 @@ class DiscordEvents(commands.Cog):
             "in-game to help support the project"
         )
         results = await self.bot.server_db.find_one({"server": guild.id})
-        botAdmin = (
-            await guild.getch_member(self.bot.user.id)
-        ).guild_permissions.administrator
+        botAdmin = (await guild.getch_member(self.bot.user.id)).guild_permissions.administrator
         if results is None:
             await self.bot.server_db.insert_one(
                 {
@@ -170,9 +160,7 @@ class DiscordEvents(commands.Cog):
         len_g = len(self.bot.guilds)
         for count, shard in self.bot.shards.items():
             await self.bot.change_presence(
-                activity=disnake.CustomActivity(
-                    state="Use Code ClashKing 👀", name="Custom Status"
-                ),
+                activity=disnake.CustomActivity(state="Use Code ClashKing 👀", name="Custom Status"),
                 shard_id=shard.id,
             )  # type 3 watching type#1 - playing
 
@@ -190,16 +178,8 @@ class DiscordEvents(commands.Cog):
         embed = disnake.Embed(description=msg, color=disnake.Color.blue())
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         buttons = disnake.ui.ActionRow()
-        buttons.append_item(
-            disnake.ui.Button(
-                label="Support Server", emoji="🔗", url="https://discord.gg/clashking"
-            )
-        )
-        buttons.append_item(
-            disnake.ui.Button(
-                label="Documentation", emoji="🔗", url="https://docs.clashking.xyz"
-            )
-        )
+        buttons.append_item(disnake.ui.Button(label="Support Server", emoji="🔗", url="https://discord.gg/clashking"))
+        buttons.append_item(disnake.ui.Button(label="Documentation", emoji="🔗", url="https://docs.clashking.xyz"))
         (
             embed.set_footer(
                 text="Admin permissions are recommended for full functionality & easier set up, thank you!"
@@ -207,11 +187,7 @@ class DiscordEvents(commands.Cog):
             if not botAdmin
             else None
         )
-        (
-            await firstChannel.send(components=buttons, embed=embed)
-            if results is None
-            else None
-        )
+        (await firstChannel.send(components=buttons, embed=embed) if results is None else None)
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
@@ -222,9 +198,7 @@ class DiscordEvents(commands.Cog):
         len_g = len(self.bot.guilds)
         for count, shard in self.bot.shards.items():
             await self.bot.change_presence(
-                activity=disnake.CustomActivity(
-                    state="Use Code ClashKing 👀", name="Custom Status"
-                ),
+                activity=disnake.CustomActivity(state="Use Code ClashKing 👀", name="Custom Status"),
                 shard_id=shard.id,
             )  # type 3 watching type#1 - playing
         channel = self.bot.get_channel(937528942661877851)
@@ -237,16 +211,10 @@ class DiscordEvents(commands.Cog):
             msg = await ctx.original_message()
             if not msg.flags.ephemeral:
                 last_run = await self.bot.command_stats.find_one(
-                    filter={
-                        "$and": [{"user": ctx.author.id}, {"sent_support_msg": True}]
-                    },
+                    filter={"$and": [{"user": ctx.author.id}, {"sent_support_msg": True}]},
                     sort=[("time", -1)],
                 )
-                if (
-                    last_run is None
-                    or int(pend.now(tz=pend.UTC).timestamp()) - last_run.get("time")
-                    >= 7 * 86400
-                ):
+                if last_run is None or int(pend.now(tz=pend.UTC).timestamp()) - last_run.get("time") >= 7 * 86400:
                     tries = 0
                     while msg.flags.loading:
                         tries += 1
@@ -255,11 +223,7 @@ class DiscordEvents(commands.Cog):
                         if tries == 10:
                             break
                     if tries != 10:
-                        commands_run_by_user = (
-                            await self.bot.command_stats.count_documents(
-                                {"user": ctx.author.id}
-                            )
-                        )
+                        commands_run_by_user = await self.bot.command_stats.count_documents({"user": ctx.author.id})
                         sent_support_msg = True
                         file = disnake.File("assets/support.png")
                         buttons = disnake.ui.ActionRow(
@@ -271,7 +235,7 @@ class DiscordEvents(commands.Cog):
                             disnake.ui.Button(
                                 label="Server",
                                 style=disnake.ButtonStyle.url,
-                                url="https://discord.clashk.ing",
+                                url="https://discord.gg/clashking",
                             ),
                             disnake.ui.Button(
                                 label="X",
@@ -322,14 +286,9 @@ class DiscordEvents(commands.Cog):
         if member.guild.id not in self.bot.OUR_GUILDS:
             return
 
-        server_db = await self.bot.ck_client.get_server_settings(
-            server_id=member.guild.id
-        )
+        server_db = await self.bot.ck_client.get_server_settings(server_id=member.guild.id)
 
-        if (
-            not server_db.welcome_link_log.webhook
-            or not server_db.welcome_link_log.embeds
-        ):
+        if not server_db.welcome_link_log.webhook or not server_db.welcome_link_log.embeds:
             return
 
         log = server_db.welcome_link_log
@@ -393,13 +352,9 @@ class DiscordEvents(commands.Cog):
         try:
             webhook = await self.bot.getch_webhook(log.webhook)
             if webhook.user.id != self.bot.user.id:
-                webhook = await get_webhook_for_channel(
-                    bot=self.bot, channel=webhook.channel
-                )
+                webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                 await log.set_webhook(id=webhook.id)
-            await webhook.send(
-                content=member.mention, embeds=embeds, components=[buttons]
-            )
+            await webhook.send(content=member.mention, embeds=embeds, components=[buttons])
         except (disnake.NotFound, disnake.Forbidden):
             await log.set_webhook(id=None)
 
@@ -425,9 +380,7 @@ class DiscordEvents(commands.Cog):
                 {"$and": [{"server_id": payload.guild_id}, {"name": ticket.panel_name}]}
             )
             panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
-            channel: disnake.TextChannel = await self.bot.getch_channel(
-                channel_id=ticket.channel
-            )
+            channel: disnake.TextChannel = await self.bot.getch_channel(channel_id=ticket.channel)
             if channel is None:
                 continue
             await panel.send_log(

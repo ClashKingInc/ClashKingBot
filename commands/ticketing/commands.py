@@ -45,15 +45,11 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         embed: embed to use, can be created with /embed create
         """
         await ctx.response.defer()
-        lookup = await self.bot.custom_embeds.find_one(
-            {"$and": [{"server": ctx.guild_id}, {"name": embed}]}
-        )
+        lookup = await self.bot.custom_embeds.find_one({"$and": [{"server": ctx.guild_id}, {"name": embed}]})
         if lookup is None:
             raise MessageException("No embed with that name found on this server")
 
-        result = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
+        result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is not None:
             raise PanelAlreadyExists
 
@@ -96,15 +92,12 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         )
         await ctx.edit_original_message(
             content="This is what your panel will look like. (You can change what embed the ticketing uses with `/ticket panel-edit`"
-            " or edit the embed itself via `/embed edit`)\n"
-            + embed_data.get("content", ""),
+            " or edit the embed itself via `/embed edit`)\n" + embed_data.get("content", ""),
             embeds=embeds,
             components=[button],
         )
 
-    @ticket.sub_command(
-        name="panel-post", description="Post your created ticket panels anywhere!"
-    )
+    @ticket.sub_command(name="panel-post", description="Post your created ticket panels anywhere!")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_panel_post(
         self,
@@ -117,9 +110,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         panel_name: name of panel
         """
         await ctx.response.defer(ephemeral=True)
-        result = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
+        result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:
             raise PanelNotFound
 
@@ -131,9 +122,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
                     break
 
         embed_name = result.get("embed_name")
-        embed_data = await self.bot.custom_embeds.find_one(
-            {"$and": [{"server": ctx.guild_id}, {"name": embed_name}]}
-        )
+        embed_data = await self.bot.custom_embeds.find_one({"$and": [{"server": ctx.guild_id}, {"name": embed_name}]})
         embed_data = embed_data.get("data")
 
         action_buttons = [[], [], [], [], []]
@@ -154,9 +143,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
             emoji = component.get("emoji")
             if emoji is not None:
                 if emoji.get("id") is not None:
-                    emoji = self.bot.partial_emoji_gen(
-                        f"<:{emoji.get('name')}:{emoji.get('id')}>"
-                    )
+                    emoji = self.bot.partial_emoji_gen(f"<:{emoji.get('name')}:{emoji.get('id')}>")
                 else:
                     emoji = emoji.get("name")
             style = {
@@ -186,14 +173,10 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
             all_buttons.append(buttons)
 
         embeds = [disnake.Embed.from_dict(data=e) for e in embed_data.get("embeds", [])]
-        await ctx.channel.send(
-            content=embed_data.get("content", ""), embeds=embeds, components=all_buttons
-        )
+        await ctx.channel.send(content=embed_data.get("content", ""), embeds=embeds, components=all_buttons)
         await ctx.edit_original_response(content="Panel Posted!")
 
-    @ticket.sub_command(
-        name="panel-edit", description="Change what embed your ticket panel uses"
-    )
+    @ticket.sub_command(name="panel-edit", description="Change what embed your ticket panel uses")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_panel_edit(
         self,
@@ -208,15 +191,11 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         embed: embed to use, can be created with /embed create
         """
         await ctx.response.defer()
-        result = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
+        result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:
             raise PanelNotFound
 
-        lookup = await self.bot.custom_embeds.find_one(
-            {"$and": [{"server": ctx.guild_id}, {"name": embed}]}
-        )
+        lookup = await self.bot.custom_embeds.find_one({"$and": [{"server": ctx.guild_id}, {"name": embed}]})
         if lookup is None:
             raise MessageException("No embed with that name found on this server")
 
@@ -224,9 +203,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
             {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]},
             {"$set": {"embed_name": embed}},
         )
-        await ctx.edit_original_message(
-            content="Panel updated to use new embed", components=None
-        )
+        await ctx.edit_original_message(content="Panel updated to use new embed", components=None)
 
     @ticket.sub_command(
         name="panel-delete",
@@ -239,14 +216,10 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         panel_name: str = commands.Param(autocomplete=autocomplete.ticket_panel),
     ):
         await ctx.response.defer()
-        result = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
+        result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:
             raise PanelNotFound
-        await self.bot.tickets.delete_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
+        await self.bot.tickets.delete_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         await ctx.send(content=f"**{panel_name} Panel Deleted**")
 
     # BUTTONS
@@ -269,20 +242,14 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         button_emoji: (optional) default discord emoji or one from *your* server
         """
         await ctx.response.defer()
-        panel_settings = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
+        panel_settings = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if panel_settings is None:
             raise PanelNotFound
         panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
-        await panel.create_button(
-            label=button_text, color=button_color, emoji=button_emoji
-        )
+        await panel.create_button(label=button_text, color=button_color, emoji=button_emoji)
         await ctx.edit_original_message(content="**Button Created!**", components=[])
 
-    @ticket.sub_command(
-        name="button-edit", description="Edit a button on a ticket panel"
-    )
+    @ticket.sub_command(name="button-edit", description="Edit a button on a ticket panel")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_button_edit(
         self,
@@ -303,20 +270,14 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         new_emoji: (optional) default discord emoji or one from *your* server
         """
         await ctx.response.defer()
-        panel_settings = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
+        panel_settings = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if panel_settings is None:
             raise PanelNotFound
         panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
-        await panel.edit_button(
-            button=button, new_text=new_text, new_color=new_color, new_emoji=new_emoji
-        )
+        await panel.edit_button(button=button, new_text=new_text, new_color=new_color, new_emoji=new_emoji)
         await ctx.edit_original_message(content="**Button Edited!**", components=[])
 
-    @ticket.sub_command(
-        name="button-remove", description="Remove a button from a ticket panel"
-    )
+    @ticket.sub_command(name="button-remove", description="Remove a button from a ticket panel")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_button_remove(
         self,
@@ -331,14 +292,10 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         button: button to remove
         """
         await ctx.response.defer()
-        result = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
+        result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:
             raise PanelNotFound
-        button_id = next(
-            (x for x in result.get("components") if x.get("label") == button), None
-        )
+        button_id = next((x for x in result.get("components") if x.get("label") == button), None)
         if button_id is None:
             raise ButtonNotFound
 
@@ -359,9 +316,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         )
 
     # ACTIONS
-    @ticket.sub_command(
-        name="settings", description="Turn/set questions & private thread usage"
-    )
+    @ticket.sub_command(name="settings", description="Turn/set questions & private thread usage")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_settings(
         self,
@@ -383,14 +338,10 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         if choice == "Questions":
             if option == "Off":
                 await ctx.response.defer()
-            result = await self.bot.tickets.find_one(
-                {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-            )
+            result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
             if result is None:
                 raise PanelNotFound
-            button_id = next(
-                (x for x in result.get("components") if x.get("label") == button), None
-            )
+            button_id = next((x for x in result.get("components") if x.get("label") == button), None)
             if button_id is None:
                 raise ButtonNotFound
 
@@ -437,20 +388,10 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
                 return
             await modal_inter.response.defer()
             questions = [modal_inter.text_values[f"question_{x}"] for x in range(1, 6)]
-            text = "\n".join(
-                [
-                    f"{count}. {question}"
-                    for count, question in enumerate(questions, 1)
-                    if question != ""
-                ]
-            )
+            text = "\n".join([f"{count}. {question}" for count, question in enumerate(questions, 1) if question != ""])
             await self.bot.tickets.update_one(
                 {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]},
-                {
-                    "$set": {
-                        f"{button_id.get('custom_id')}_settings.questions": questions
-                    }
-                },
+                {"$set": {f"{button_id.get('custom_id')}_settings.questions": questions}},
             )
             await modal_inter.send(
                 embed=disnake.Embed(
@@ -462,26 +403,16 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         elif choice == "Private Thread":
             await ctx.response.defer()
 
-            result = await self.bot.tickets.find_one(
-                {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-            )
+            result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
             if result is None:
                 raise PanelNotFound
-            button_id = next(
-                (x for x in result.get("components") if x.get("label") == button), None
-            )
+            button_id = next((x for x in result.get("components") if x.get("label") == button), None)
             if button_id is None:
                 raise ButtonNotFound
 
             await self.bot.tickets.update_one(
                 {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]},
-                {
-                    "$set": {
-                        f"{button_id.get('custom_id')}_settings.private_thread": (
-                            option == "On"
-                        )
-                    }
-                },
+                {"$set": {f"{button_id.get('custom_id')}_settings.private_thread": (option == "On")}},
             )
             return await ctx.send(
                 embed=disnake.Embed(
@@ -493,26 +424,16 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         elif choice == "Close On Leave":
             await ctx.response.defer()
 
-            result = await self.bot.tickets.find_one(
-                {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-            )
+            result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
             if result is None:
                 raise PanelNotFound
-            button_id = next(
-                (x for x in result.get("components") if x.get("label") == button), None
-            )
+            button_id = next((x for x in result.get("components") if x.get("label") == button), None)
             if button_id is None:
                 raise ButtonNotFound
 
             await self.bot.tickets.update_one(
                 {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]},
-                {
-                    "$set": {
-                        f"{button_id.get('custom_id')}_settings.close_on_leave": (
-                            option == "On"
-                        )
-                    }
-                },
+                {"$set": {f"{button_id.get('custom_id')}_settings.close_on_leave": (option == "On")}},
             )
             return await ctx.send(
                 embed=disnake.Embed(
@@ -534,15 +455,11 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         embed_link: str = None,
         ping_staff=commands.Param(default=None, choices=["True", "False"]),
     ):
-        result = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
+        result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:
             raise PanelNotFound
 
-        button_id = next(
-            (x for x in result.get("components") if x.get("label") == button), None
-        )
+        button_id = next((x for x in result.get("components") if x.get("label") == button), None)
         if button_id is None:
             raise ButtonNotFound
 
@@ -550,17 +467,9 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
             await ctx.response.defer()
             await self.bot.tickets.update_one(
                 {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]},
-                {
-                    "$set": {
-                        f"{button_id.get('custom_id')}_settings.ping_staff": (
-                            ping_staff == "True"
-                        )
-                    }
-                },
+                {"$set": {f"{button_id.get('custom_id')}_settings.ping_staff": (ping_staff == "True")}},
             )
-            return await ctx.edit_original_message(
-                content=f"**Ping Staff Setting changed to {ping_staff == 'True'}**"
-            )
+            return await ctx.edit_original_message(content=f"**Ping Staff Setting changed to {ping_staff == 'True'}**")
 
         if embed_link is None:
             modal_inter, embed = await self.basic_embed_modal(ctx=ctx)
@@ -569,9 +478,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
             await ctx.response.defer()
             try:
                 if "discord.com" not in embed_link:
-                    return await ctx.send(
-                        content="Not a valid message link", ephemeral=True
-                    )
+                    return await ctx.send(content="Not a valid message link", ephemeral=True)
                 link_split = embed_link.split("/")
                 message_id = link_split[-1]
                 channel_id = link_split[-2]
@@ -584,9 +491,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
                     )
                 message = await channel.fetch_message(int(message_id))
                 if not message.embeds:
-                    return await ctx.send(
-                        content="Message has no embeds", ephemeral=True
-                    )
+                    return await ctx.send(content="Message has no embeds", ephemeral=True)
                 embed = message.embeds[0]
             except:
                 return await ctx.edit_original_message(
@@ -595,11 +500,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
 
         await self.bot.tickets.update_one(
             {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]},
-            {
-                "$set": {
-                    f"{button_id.get('custom_id')}_settings.message": embed.to_dict()
-                }
-            },
+            {"$set": {f"{button_id.get('custom_id')}_settings.message": embed.to_dict()}},
         )
 
         await ctx.edit_original_message(
@@ -620,14 +521,10 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         remove=commands.Param(default="False", choices=["True"]),
     ):
         await ctx.response.defer()
-        result = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
+        result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:
             raise PanelNotFound
-        button_id = next(
-            (x for x in result.get("components") if x.get("label") == button), None
-        )
+        button_id = next((x for x in result.get("components") if x.get("label") == button), None)
         if button_id is None:
             raise ButtonNotFound
 
@@ -643,9 +540,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
                 )
             )
 
-        role_select = disnake.ui.RoleSelect(
-            placeholder="Choose Roles (max 10)", max_values=10
-        )
+        role_select = disnake.ui.RoleSelect(placeholder="Choose Roles (max 10)", max_values=10)
         dropdown = [disnake.ui.ActionRow(role_select)]
 
         await ctx.send(
@@ -653,22 +548,16 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
             components=dropdown,
         )
 
-        res: disnake.MessageInteraction = await interaction_handler(
-            ctx=ctx, function=None, bot=self.bot
-        )
+        res: disnake.MessageInteraction = await interaction_handler(ctx=ctx, function=None, bot=self.bot)
         ticket_roles = res.values
 
         await self.bot.tickets.update_one(
             {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]},
             {"$set": {f"{button_id.get('custom_id')}_settings.mod_role": ticket_roles}},
         )
-        await res.edit_original_message(
-            content=f"**{button} Staff Roles Saved!**", components=[]
-        )
+        await res.edit_original_message(content=f"**{button} Staff Roles Saved!**", components=[])
 
-    @ticket.sub_command(
-        name="roles", description="Manage Roles around Tickets being opened"
-    )
+    @ticket.sub_command(name="roles", description="Manage Roles around Tickets being opened")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_roles(
         self,
@@ -681,14 +570,10 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
 
         await ctx.response.defer()
 
-        result = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
+        result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:
             raise PanelNotFound
-        button_id = next(
-            (x for x in result.get("components") if x.get("label") == button), None
-        )
+        button_id = next((x for x in result.get("components") if x.get("label") == button), None)
         if button_id is None:
             raise ButtonNotFound
 
@@ -706,9 +591,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
                 )
             )
 
-        role_select = disnake.ui.RoleSelect(
-            placeholder="Choose Roles (max 10)", max_values=10
-        )
+        role_select = disnake.ui.RoleSelect(placeholder="Choose Roles (max 10)", max_values=10)
         dropdown = [disnake.ui.ActionRow(role_select)]
         if mode == "Add Roles":
             await ctx.send(
@@ -721,28 +604,18 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
                 components=dropdown,
             )
 
-        res: disnake.MessageInteraction = await interaction_handler(
-            ctx=ctx, function=None, bot=self.bot
-        )
+        res: disnake.MessageInteraction = await interaction_handler(ctx=ctx, function=None, bot=self.bot)
         ticket_roles = res.values
 
-        result = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
-        button_id = next(
-            (x for x in result.get("components") if x.get("label") == button), None
-        )
+        result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
+        button_id = next((x for x in result.get("components") if x.get("label") == button), None)
         await self.bot.tickets.update_one(
             {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]},
             {"$set": {f"{button_id.get('custom_id')}_settings.{type}": ticket_roles}},
         )
-        await res.edit_original_message(
-            content=f"**{button} Button {mode} Saved!**", components=[]
-        )
+        await res.edit_original_message(content=f"**{button} Button {mode} Saved!**", components=[])
 
-    @ticket.sub_command(
-        name="apply", description="Set settings regarding accounts applying"
-    )
+    @ticket.sub_command(name="apply", description="Set settings regarding accounts applying")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_account_apply(
         self,
@@ -752,9 +625,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
     ):
         await ctx.response.defer()
 
-        panel_settings = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
+        panel_settings = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if panel_settings is None:
             raise PanelNotFound
         panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
@@ -776,11 +647,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
                     disnake.SelectOption(
                         label=f"{x} Accounts",
                         value=f"numaccounts_{x}",
-                        emoji=(
-                            self.bot.emoji.green_tick.partial_emoji
-                            if x == number_allowed_to_apply
-                            else None
-                        ),
+                        emoji=(self.bot.emoji.green_tick.partial_emoji if x == number_allowed_to_apply else None),
                     )
                     for x in range(1, 26)
                 ],
@@ -839,9 +706,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         )
 
         while True:
-            res: disnake.MessageInteraction = await interaction_handler(
-                bot=self.bot, ctx=ctx, no_defer=True
-            )
+            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, no_defer=True)
             if res.data.component_type.value == 2:
                 if "send_player_info" in res.data.custom_id:
                     send_player_info = not send_player_info
@@ -858,9 +723,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
 
                 elif "numaccounts_" in select_value:
                     number_allowed_to_apply = int(select_value.split("_")[-1])
-                    await button.set_number_allowed_to_apply(
-                        num=number_allowed_to_apply
-                    )
+                    await button.set_number_allowed_to_apply(num=number_allowed_to_apply)
 
             await res.response.edit_message(
                 components=create_components(
@@ -887,9 +750,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
             return await ctx.send("*Coming Soon*", ephemeral=True)
         await ctx.response.defer()
 
-        panel_settings = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
+        panel_settings = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if panel_settings is None:
             raise PanelNotFound
         panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
@@ -926,9 +787,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
 
         await ctx.send(embed=embed, content=example_text, components=buttons)
 
-        res: disnake.ApplicationCommandInteraction = await interaction_handler(
-            bot=self.bot, ctx=ctx, no_defer=True
-        )
+        res: disnake.ApplicationCommandInteraction = await interaction_handler(bot=self.bot, ctx=ctx, no_defer=True)
         await res.response.send_modal(
             title="Townhall Requirements Upload",
             custom_id=f"threq-{int(datetime.now().timestamp())}",
@@ -983,9 +842,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
                 if index == 6:
                     index = 0
         except Exception:
-            return await modal_inter.send(
-                content="Invalid Format, Please Run Command & Try Again"
-            )
+            return await modal_inter.send(content="Invalid Format, Please Run Command & Try Again")
 
         await button.set_townhall_requirements(requirements=new_data)
         await modal_inter.send(content=f"Requirements Stored\n```{requirements}```")
@@ -1001,9 +858,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         ]
         await ctx.edit_original_message(components=buttons)
 
-    @ticket.sub_command(
-        name="apply-messages", description="Set up to 25 approve/deny messages"
-    )
+    @ticket.sub_command(name="apply-messages", description="Set up to 25 approve/deny messages")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_messages(
         self,
@@ -1011,9 +866,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         panel_name: str = commands.Param(autocomplete=autocomplete.ticket_panel),
         name: str = commands.Param(),
     ):
-        result = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
+        result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:
             raise PanelNotFound
         ticket = TicketPanel(bot=self.bot, panel_settings=result)
@@ -1045,14 +898,10 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         except:
             return
         await modal_inter.response.defer(ephemeral=True)
-        await ticket.add_edit_approve_messages(
-            name=name, message=modal_inter.text_values["approve_msg"]
-        )
+        await ticket.add_edit_approve_messages(name=name, message=modal_inter.text_values["approve_msg"])
         await modal_inter.send(content="Message Added/Edited/Updated")
 
-    @ticket.sub_command(
-        name="naming", description="Creating a naming convention for channels"
-    )
+    @ticket.sub_command(name="naming", description="Creating a naming convention for channels")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_name(
         self,
@@ -1062,26 +911,16 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         naming_convention: str = commands.Param(),
     ):
         await ctx.response.defer()
-        result = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
+        result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:
             raise PanelNotFound
-        button_id = next(
-            (x for x in result.get("components") if x.get("label") == button), None
-        )
+        button_id = next((x for x in result.get("components") if x.get("label") == button), None)
         if button_id is None:
             raise ButtonNotFound
 
         await self.bot.tickets.update_one(
             {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]},
-            {
-                "$set": {
-                    f"{button_id.get('custom_id')}_settings.naming": naming_convention[
-                        0:100
-                    ]
-                }
-            },
+            {"$set": {f"{button_id.get('custom_id')}_settings.naming": naming_convention[0:100]}},
         )
 
         await ctx.send(content=f"Naming Convention Saved : `{naming_convention}`")
@@ -1100,9 +939,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
     ):
 
         await ctx.response.defer()
-        result = await self.bot.tickets.find_one(
-            {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-        )
+        result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
         if result is None:
             raise PanelNotFound
 
@@ -1121,17 +958,13 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         await ctx.send(content=text)
 
     # TO-DO add all panels as an option
-    @ticket.sub_command(
-        name="logging", description="Loggin Channels for ticket actions"
-    )
+    @ticket.sub_command(name="logging", description="Loggin Channels for ticket actions")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_logging(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         panel_name: str = commands.Param(autocomplete=autocomplete.ticket_panel),
-        types: str = commands.Param(
-            choices=["All", "Ticket Button Click", "Ticket Close", "Status Change"]
-        ),
+        types: str = commands.Param(choices=["All", "Ticket Button Click", "Ticket Close", "Status Change"]),
         channel: Union[disnake.TextChannel, disnake.Thread] = None,
     ):
         """
@@ -1146,9 +979,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
             channel = ctx.channel
 
         if panel_name != "All Panels":
-            result = await self.bot.tickets.find_one(
-                {"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]}
-            )
+            result = await self.bot.tickets.find_one({"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]})
             if result is None:
                 raise PanelNotFound
 
@@ -1167,17 +998,11 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
                 {"$set": updater_list},
             )
         else:
-            await self.bot.tickets.update_many(
-                {"server_id": ctx.guild.id}, {"$set": updater_list}
-            )
-        await ctx.send(
-            content=f"Logging channel for {panel_name} panel set to {channel.mention}"
-        )
+            await self.bot.tickets.update_many({"server_id": ctx.guild.id}, {"$set": updater_list})
+        await ctx.send(content=f"Logging channel for {panel_name} panel set to {channel.mention}")
 
     @ticket.sub_command(name="status", description="Change status of ticket")
-    @commands.check_any(
-        commands.has_permissions(manage_channels=True), check_commands()
-    )
+    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
     async def ticket_status(
         self,
         ctx: disnake.ApplicationCommandInteraction,
@@ -1232,9 +1057,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
 
         category = None
         if panel_settings.get(f"{status}-category") is not None:
-            category = await self.bot.getch_channel(
-                panel_settings.get(f"{status}-category")
-            )
+            category = await self.bot.getch_channel(panel_settings.get(f"{status}-category"))
 
         if category is None:
             category: disnake.CategoryChannel = ctx.channel.category
@@ -1243,12 +1066,8 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         await ctx.send(content=f"Ticket status switched to {status}")
 
     @ticket.sub_command(name="add", description="Add a member to a ticket")
-    @commands.check_any(
-        commands.has_permissions(manage_channels=True), check_commands()
-    )
-    async def ticket_add(
-        self, ctx: disnake.ApplicationCommandInteraction, member: disnake.Member
-    ):
+    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
+    async def ticket_add(self, ctx: disnake.ApplicationCommandInteraction, member: disnake.Member):
         await ctx.response.defer()
         result = await self.bot.open_tickets.find_one({"channel": ctx.channel.id})
         if result is None:
@@ -1261,14 +1080,10 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         user_overwrite.send_messages = True
         user_overwrite.attach_files = True
         await ctx.channel.set_permissions(member, overwrite=user_overwrite)
-        await ctx.send(
-            f"**{member.mention} added to this ticket by {ctx.user.mention}**"
-        )
+        await ctx.send(f"**{member.mention} added to this ticket by {ctx.user.mention}**")
 
     @ticket.sub_command(name="opt", description="Opt in/out of a ticket")
-    @commands.check_any(
-        commands.has_permissions(manage_channels=True), check_commands()
-    )
+    @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
     async def ticket_opt(
         self,
         ctx: disnake.ApplicationCommandInteraction,
@@ -1279,13 +1094,9 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
         if result is None:
             return await ctx.send("Not a ticket channel")
         if opt == "In":
-            await self.bot.open_tickets.update_one(
-                {"channel": ctx.channel.id}, {"$push": {"opted_in": ctx.user.id}}
-            )
+            await self.bot.open_tickets.update_one({"channel": ctx.channel.id}, {"$push": {"opted_in": ctx.user.id}})
         else:
-            await self.bot.open_tickets.update_one(
-                {"channel": ctx.channel.id}, {"$pull": {"opted_in": ctx.user.id}}
-            )
+            await self.bot.open_tickets.update_one({"channel": ctx.channel.id}, {"$pull": {"opted_in": ctx.user.id}})
         await ctx.send(content=f"Opted {opt} now!")
 
     async def create_setting_if_none(self, server_id):
@@ -1300,9 +1111,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
                 }
             )
 
-    async def basic_embed_modal(
-        self, ctx: disnake.ApplicationCommandInteraction, previous_embed=None
-    ):
+    async def basic_embed_modal(self, ctx: disnake.ApplicationCommandInteraction, previous_embed=None):
         components = [
             disnake.ui.TextInput(
                 label=f"Embed Title",
@@ -1351,9 +1160,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
 
         def check(res: disnake.ModalInteraction):
 
-            return (
-                ctx.author.id == res.author.id and res.custom_id == f"basicembed-{t_}"
-            )
+            return ctx.author.id == res.author.id and res.custom_id == f"basicembed-{t_}"
 
         try:
             modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
@@ -1369,9 +1176,7 @@ class TicketCommands(TicketClick, commands.Cog, name="Ticket Commands"):
             try:
                 r, g, b = tuple(
                     int(
-                        modal_inter.text_values.get("color").replace("#", "")[
-                            i : i + 2
-                        ],
+                        modal_inter.text_values.get("color").replace("#", "")[i : i + 2],
                         16,
                     )
                     for i in (0, 2, 4)

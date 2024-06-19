@@ -7,9 +7,7 @@ from CommandsOld.board_generation import donation_board, activity_board, games_b
 
 
 async def basic_parser(bot: CustomClient, result: dict):
-    server_result = await bot.server_db.find_one(
-        {"server": result.get("server_lookup")}
-    )
+    server_result = await bot.server_db.find_one({"server": result.get("server_lookup")})
     result = result | {"tied_only": server_result.get("tied", True)}
     type = result.get("type")
     if result.get("user_id") is not None:

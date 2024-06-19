@@ -153,13 +153,7 @@ def is_link_valid(link: str):
         return False
 
     for character in link:
-        if (
-            character == "u"
-            or character == "x"
-            or character == "-"
-            or character.isdigit()
-            or character == "s"
-        ):
+        if character == "u" or character == "x" or character == "-" or character.isdigit() or character == "s":
             pass
         else:
             return False
@@ -200,10 +194,7 @@ async def super_troop_embed(
     player_tags = [m.tag for clan in clans for m in clan.members]
     players = await bot.get_players(tags=player_tags, custom=False)
     players = [
-        p
-        for p in players
-        if p.get_troop(name=super_troop) is not None
-        and p.get_troop(name=super_troop).is_active
+        p for p in players if p.get_troop(name=super_troop) is not None and p.get_troop(name=super_troop).is_active
     ]
     base_embed = disnake.Embed(title=f"Players with {super_troop}", color=embed_color)
     embeds = iter_embed_creation(

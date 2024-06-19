@@ -4,9 +4,9 @@ from pymongo import InsertOne
 
 async def migrate_clan_db_simple_schema(bot: CustomClient):
     our_clan_tags = await bot.clan_db.distinct("tag")
-    our_clan_stats = await bot.clan_stats.find(
-        {"tag": {"$in": our_clan_tags}}, projection={"_id": 0}
-    ).to_list(length=None)
+    our_clan_stats = await bot.clan_stats.find({"tag": {"$in": our_clan_tags}}, projection={"_id": 0}).to_list(
+        length=None
+    )
     print(len(our_clan_stats), "clans")
 
     player_tags = []
@@ -63,14 +63,10 @@ async def migrate_legends(bot: CustomClient):
         count += 1
         if count % 5000 == 0:
             try:
-                await bot.legends_stats.bulk_write(
-                    legend_stats_insertions, ordered=False
-                )
+                await bot.legends_stats.bulk_write(legend_stats_insertions, ordered=False)
             except Exception as e:
                 print(e)
-            print(
-                f"{count} players done, {len(legend_stats_insertions)} days accounted"
-            )
+            print(f"{count} players done, {len(legend_stats_insertions)} days accounted")
             legend_stats_insertions = []
 
         player_tag = player_stats.get("tag")
@@ -94,9 +90,7 @@ async def migrate_legends(bot: CustomClient):
                     defense = sum([x.get("change") for x in defenses])
 
                 if data.get("new_attacks") or data.get("new_defenses"):
-                    all_attacks = data.get("new_attacks", []) + data.get(
-                        "new_defenses", []
-                    )
+                    all_attacks = data.get("new_attacks", []) + data.get("new_defenses", [])
                     all_attacks.sort(key=lambda x: x.get("time"), reverse=True)
                     if all_attacks:
                         ending_trophies = all_attacks[-1].get("trophies")

@@ -18,9 +18,7 @@ async def war_reminder(
 ):
     reminder_time = event.get("time")
     clan_tag = event.get("clan_tag")
-    war: coc.ClanWar = coc.ClanWar(
-        data=event.get("data"), client=None, clan_tag=clan_tag
-    )
+    war: coc.ClanWar = coc.ClanWar(data=event.get("data"), client=None, clan_tag=clan_tag)
     missing = {}
     names = {}
     ths = {}
@@ -159,9 +157,9 @@ async def war_reminder(
 
 
 async def clan_capital_reminder(bot: CustomClient, reminder_time):
-    for reminder in await bot.reminders.find(
-        {"$and": [{"type": "Clan Capital"}, {"time": reminder_time}]}
-    ).to_list(length=None):
+    for reminder in await bot.reminders.find({"$and": [{"type": "Clan Capital"}, {"time": reminder_time}]}).to_list(
+        length=None
+    ):
         try:
             reminder = Reminder(bot=bot, data=reminder)
             if reminder.server_id not in bot.OUR_GUILDS:
@@ -181,9 +179,7 @@ async def clan_capital_reminder(bot: CustomClient, reminder_time):
             if clan is None:
                 continue
             weekend = gen_raid_weekend_datestrings(1)[0]
-            raid_log_entry = await get_raidlog_entry(
-                clan=clan, weekend=weekend, bot=bot, limit=1
-            )
+            raid_log_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=bot, limit=1)
             if raid_log_entry is None:
                 continue
 
@@ -194,9 +190,7 @@ async def clan_capital_reminder(bot: CustomClient, reminder_time):
                     del clan_members[member.tag]
                 except:
                     pass
-                if member.attack_count == (
-                    member.attack_limit + member.bonus_attack_limit
-                ):
+                if member.attack_count == (member.attack_limit + member.bonus_attack_limit):
                     continue
                 if int(member.attack_count) < int(reminder.attack_threshold):
                     missing[member.tag] = member
@@ -223,9 +217,7 @@ async def clan_capital_reminder(bot: CustomClient, reminder_time):
                 if discord_user is None:
                     missing_text += f"{num_missing} {player.name} | {player_tag}\n"
                 else:
-                    missing_text += (
-                        f"{num_missing} {player.name} | {discord_user.mention}\n"
-                    )
+                    missing_text += f"{num_missing} {player.name} | {discord_user.mention}\n"
 
             if missing_text != "":
                 missing_text_list.append(missing_text)
@@ -247,9 +239,9 @@ async def clan_capital_reminder(bot: CustomClient, reminder_time):
 
 
 async def clan_games_reminder(bot: CustomClient, reminder_time):
-    for reminder in await bot.reminders.find(
-        {"$and": [{"type": "Clan Games"}, {"time": reminder_time}]}
-    ).to_list(length=None):
+    for reminder in await bot.reminders.find({"$and": [{"type": "Clan Games"}, {"time": reminder_time}]}).to_list(
+        length=None
+    ):
         reminder = Reminder(bot=bot, data=reminder)
         if reminder.server_id not in bot.OUR_GUILDS:
             continue
@@ -270,18 +262,12 @@ async def clan_games_reminder(bot: CustomClient, reminder_time):
 
         missing = {}
         member_points = {}
-        for stat in await bot.player_stats.find(
-            {f"tag": {"$in": [member.tag for member in clan.members]}}
-        ).to_list(length=None):
-            points = (
-                stat.get("clan_games", {})
-                .get(f"{bot.gen_games_season()}", {})
-                .get("points", 0)
-            )
+        for stat in await bot.player_stats.find({f"tag": {"$in": [member.tag for member in clan.members]}}).to_list(
+            length=None
+        ):
+            points = stat.get("clan_games", {}).get(f"{bot.gen_games_season()}", {}).get("points", 0)
             if points < reminder.point_threshold:
-                missing[stat.get("tag")] = coc.utils.get(
-                    clan.members, tag=stat.get("tag")
-                )
+                missing[stat.get("tag")] = coc.utils.get(clan.members, tag=stat.get("tag"))
                 member_points[stat.get("tag")] = points
 
         if not missing:
@@ -311,9 +297,7 @@ async def clan_games_reminder(bot: CustomClient, reminder_time):
 
 
 async def inactivity_reminder(bot: CustomClient):
-    for reminder in await bot.reminders.find({"type": "inactivity"}).to_list(
-        length=None
-    ):
+    for reminder in await bot.reminders.find({"type": "inactivity"}).to_list(length=None):
         reminder = Reminder(bot=bot, data=reminder)
         if reminder.server_id not in bot.OUR_GUILDS:
             continue
@@ -335,9 +319,7 @@ async def inactivity_reminder(bot: CustomClient):
         max_diff = 30 * 60  # time in seconds between runs
         now = datetime.datetime.now(tz=utc)
         clan_members = [member.tag for member in clan.members]
-        clan_members_stats = await bot.player_stats.find(
-            {f"tag": {"$in": clan_members}}
-        ).to_list(length=None)
+        clan_members_stats = await bot.player_stats.find({f"tag": {"$in": clan_members}}).to_list(length=None)
         inactive_tags = []
         names = {}
         for stat in clan_members_stats:
@@ -346,17 +328,12 @@ async def inactivity_reminder(bot: CustomClient):
                 continue
             lo_time = datetime.datetime.fromtimestamp(float(last_online), tz=utc)
             passed_time = (now - lo_time).total_seconds()
-            if (
-                passed_time - seconds_inactive >= 0
-                and passed_time - seconds_inactive <= max_diff
-            ):
+            if passed_time - seconds_inactive >= 0 and passed_time - seconds_inactive <= max_diff:
                 inactive_tags.append(stat.get("tag"))
                 try:
                     names[stat.get("tag")] = stat.get("name")
                 except:
-                    names[stat.get("tag")] = coc.utils.get(
-                        clan.members, tag=stat.get("tag")
-                    ).name
+                    names[stat.get("tag")] = coc.utils.get(clan.members, tag=stat.get("tag")).name
 
         if not inactive_tags:
             continue
@@ -372,9 +349,7 @@ async def inactivity_reminder(bot: CustomClient):
         time = str(reminder.time).replace("hr", "")
         badge = await bot.create_new_badge_emoji(url=clan.badge.url)
         reminder_text = (
-            f"**{badge}{clan.name}\nPlayers Inactive for {time}Hours**\n"
-            f"{inactive_text}"
-            f"\n{reminder.custom_text}"
+            f"**{badge}{clan.name}\nPlayers Inactive for {time}Hours**\n" f"{inactive_text}" f"\n{reminder.custom_text}"
         )
         try:
             await channel.send(content=reminder_text)
@@ -395,17 +370,11 @@ async def roster_reminder(bot: CustomClient):
         },
         {"$set": {"roster": {"$first": "$roster"}}},
     ]
-    for reminder in await bot.reminders.aggregate(pipeline=pipeline).to_list(
-        length=None
-    ):
+    for reminder in await bot.reminders.aggregate(pipeline=pipeline).to_list(length=None):
         reminder = Reminder(bot=bot, data=reminder)
         if reminder.server_id not in bot.OUR_GUILDS:
             continue
-        if (
-            not reminder.roster.is_valid
-            or reminder.time is None
-            or len(reminder.roster.players) == 0
-        ):
+        if not reminder.roster.is_valid or reminder.time is None or len(reminder.roster.players) == 0:
             continue
 
         try:
@@ -423,9 +392,7 @@ async def roster_reminder(bot: CustomClient):
 
         max_diff = 2 * 60  # time in seconds between runs
         now = datetime.datetime.now(tz=utc)
-        roster_time = datetime.datetime.fromtimestamp(
-            float(reminder.roster.time), tz=utc
-        )
+        roster_time = datetime.datetime.fromtimestamp(float(reminder.roster.time), tz=utc)
         time_until_time = (roster_time - now).total_seconds()
         # goes negative if now >= time
         # gets smaller as we get closer
@@ -433,10 +400,7 @@ async def roster_reminder(bot: CustomClient):
         # we want to ping when we are closer to the time than further, so when seconds_before
         # larger - smaller >= 0
         # smaller - larger <= 0
-        if (
-            seconds_before_to_ping - time_until_time >= 0
-            and seconds_before_to_ping - time_until_time <= max_diff
-        ):
+        if seconds_before_to_ping - time_until_time >= 0 and seconds_before_to_ping - time_until_time <= max_diff:
             members = []
             if reminder.ping_type == "All Roster Members":
                 members = reminder.roster.players

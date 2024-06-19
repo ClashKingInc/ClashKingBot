@@ -24,9 +24,7 @@ class Bans(commands.Cog, name="Bans"):
     async def ban_add(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        player: coc.Player = commands.Param(
-            autocomplete=autocomplete.family_players, converter=convert.player
-        ),
+        player: coc.Player = commands.Param(autocomplete=autocomplete.family_players, converter=convert.player),
         reason: str = "No Notes",
         dm_player: str = commands.Param(default=None),
     ):
@@ -53,9 +51,7 @@ class Bans(commands.Cog, name="Bans"):
     async def ban_remove(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        player: coc.Player = commands.Param(
-            autocomplete=autocomplete.banned_players, converter=convert.player
-        ),
+        player: coc.Player = commands.Param(autocomplete=autocomplete.banned_players, converter=convert.player),
     ):
         """
         Parameters
@@ -63,34 +59,22 @@ class Bans(commands.Cog, name="Bans"):
         player: player to unban (names are shown as they were when banned)
         """
 
-        embed = await remove_ban(
-            bot=self.bot, player=player, removed_by=ctx.user, guild=ctx.guild
-        )
+        embed = await remove_ban(bot=self.bot, player=player, removed_by=ctx.user, guild=ctx.guild)
         await ctx.edit_original_message(embed=embed)
 
     @ban.sub_command(name="list", description="List of server banned players")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ban_list(self, ctx: disnake.ApplicationCommandInteraction):
 
-        bans = await self.bot.banlist.find({"server": ctx.guild.id}).to_list(
-            length=None
-        )
+        bans = await self.bot.banlist.find({"server": ctx.guild.id}).to_list(length=None)
         if not bans:
-            raise MessageException(
-                "No banned players on this servers. Use `/ban add` to get started."
-            )
+            raise MessageException("No banned players on this servers. Use `/ban add` to get started.")
 
-        embed_color = await self.bot.ck_client.get_server_embed_color(
-            server_id=ctx.guild_id
-        )
-        embeds = await create_embeds(
-            bot=self.bot, bans=bans, guild=ctx.guild, embed_color=embed_color
-        )
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+        embeds = await create_embeds(bot=self.bot, bans=bans, guild=ctx.guild, embed_color=embed_color)
 
         current_page = 0
-        await ctx.edit_original_message(
-            embed=embeds[0], components=create_components(current_page, embeds, True)
-        )
+        await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))
         msg = await ctx.original_message()
 
         def check(res: disnake.MessageInteraction):

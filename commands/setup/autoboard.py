@@ -14,16 +14,12 @@ class autoB(commands.Cog, name="Board Setup"):
     async def autoboard(self, ctx):
         pass
 
-    @autoboard.sub_command(
-        name="create", description="Create server autoposting leaderboards"
-    )
+    @autoboard.sub_command(name="create", description="Create server autoposting leaderboards")
     async def setupboard(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         channel: disnake.TextChannel,
-        autoboard_type: str = commands.Param(
-            choices=["Player Leaderboard", "Clan Leaderboard"]
-        ),
+        autoboard_type: str = commands.Param(choices=["Player Leaderboard", "Clan Leaderboard"]),
     ):
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
@@ -40,9 +36,7 @@ class autoB(commands.Cog, name="Board Setup"):
         if autoboard_type == "Clan Leaderboard":
             rr = []
             tracked = self.bot.clan_db.find({"server": ctx.guild.id})
-            limit = await self.bot.clan_db.count_documents(
-                filter={"server": ctx.guild.id}
-            )
+            limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
 
             for clan in await tracked.to_list(length=limit):
                 tag = clan.get("tag")
@@ -53,9 +47,7 @@ class autoB(commands.Cog, name="Board Setup"):
 
             options = []
             for country in rr:
-                options.append(
-                    disnake.SelectOption(label=f"{country}", value=f"{country}")
-                )
+                options.append(disnake.SelectOption(label=f"{country}", value=f"{country}"))
 
             select1 = disnake.ui.Select(
                 options=options,
@@ -98,30 +90,18 @@ class autoB(commands.Cog, name="Board Setup"):
 
         tex = ""
         if autoboard_type == "Player Leaderboard":
-            await self.bot.server_db.update_one(
-                {"server": ctx.guild.id}, {"$set": {"topboardchannel": channel.id}}
-            )
-            await self.bot.server_db.update_one(
-                {"server": ctx.guild.id}, {"$set": {"tophour": 5}}
-            )
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"topboardchannel": channel.id}})
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"tophour": 5}})
         else:
-            await self.bot.server_db.update_one(
-                {"server": ctx.guild.id}, {"$set": {"lbboardChannel": channel.id}}
-            )
-            await self.bot.server_db.update_one(
-                {"server": ctx.guild.id}, {"$set": {"country": country}}
-            )
-            await self.bot.server_db.update_one(
-                {"server": ctx.guild.id}, {"$set": {"lbhour": 5}}
-            )
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"lbboardChannel": channel.id}})
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"country": country}})
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"lbhour": 5}})
             tex = f"\nCountry: {country}"
 
         time = f"<t:{1643263200}:t>"
         embed = disnake.Embed(
             title="**Autoboard Successfully Setup**",
-            description=f"Channel: {channel.mention}\n"
-            f"Time: {time}\n"
-            f"Type: {autoboard_type}{tex}",
+            description=f"Channel: {channel.mention}\n" f"Time: {time}\n" f"Type: {autoboard_type}{tex}",
             color=disnake.Color.green(),
         )
         await msg.edit(embed=embed)
@@ -130,9 +110,7 @@ class autoB(commands.Cog, name="Board Setup"):
     async def removeboard(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        autoboard_type: str = commands.Param(
-            choices=["Player Leaderboard", "Clan Leaderboard"]
-        ),
+        autoboard_type: str = commands.Param(choices=["Player Leaderboard", "Clan Leaderboard"]),
     ):
         perms = ctx.author.guild_permissions.manage_guild
         if not perms:
@@ -143,22 +121,12 @@ class autoB(commands.Cog, name="Board Setup"):
             return await ctx.send(embed=embed)
 
         if autoboard_type == "Player Leaderboard":
-            await self.bot.server_db.update_one(
-                {"server": ctx.guild.id}, {"$set": {"topboardchannel": None}}
-            )
-            await self.bot.server_db.update_one(
-                {"server": ctx.guild.id}, {"$set": {"tophour": None}}
-            )
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"topboardchannel": None}})
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"tophour": None}})
         else:
-            await self.bot.server_db.update_one(
-                {"server": ctx.guild.id}, {"$set": {"lbboardChannel": None}}
-            )
-            await self.bot.server_db.update_one(
-                {"server": ctx.guild.id}, {"$set": {"country": None}}
-            )
-            await self.bot.server_db.update_one(
-                {"server": ctx.guild.id}, {"$set": {"lbhour": None}}
-            )
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"lbboardChannel": None}})
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"country": None}})
+            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"lbhour": None}})
 
         embed = disnake.Embed(
             description=f"{autoboard_type} autoboard has been removed.",

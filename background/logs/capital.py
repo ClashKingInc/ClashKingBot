@@ -27,10 +27,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
         if new_player.clan.tag is None:
             return
         old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
-        dono_change = (
-            new_player.clan_capital_contributions
-            - old_player.clan_capital_contributions
-        )
+        dono_change = new_player.clan_capital_contributions - old_player.clan_capital_contributions
 
         utc_time = datetime.now(utc).replace(tzinfo=utc)
         for cc in await self.bot.clan_db.find(
@@ -50,9 +47,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
                 description=f"[**{new_player.name}**]({new_player.share_link}) donated {self.bot.emoji.capital_gold}{dono_change}",
                 color=disnake.Color.green(),
             )
-            embed.set_footer(
-                icon_url=new_player.clan.badge.url, text=new_player.clan.name
-            )
+            embed.set_footer(icon_url=new_player.clan.badge.url, text=new_player.clan.name)
             embed.timestamp = utc_time
 
             try:
@@ -102,9 +97,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
 
         clan: coc.Clan = coc.Clan(data=clan_data, client=self.bot.coc_client)
 
-        raid = RaidLogEntry(
-            data=event["raid"], client=self.bot.coc_client, clan_tag=event["clan_tag"]
-        )
+        raid = RaidLogEntry(data=event["raid"], client=self.bot.coc_client, clan_tag=event["clan_tag"])
         old_raid = RaidLogEntry(
             data=event["old_raid"],
             client=self.bot.coc_client,
@@ -132,9 +125,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
                 old_member = old_raid.get_member(tag=member_tag)
                 new_member = raid.get_member(tag=member_tag)
 
-                previous_loot = (
-                    old_member.capital_resources_looted if old_member is not None else 0
-                )
+                previous_loot = old_member.capital_resources_looted if old_member is not None else 0
                 looted_amount = new_member.capital_resources_looted - previous_loot
 
                 embed = disnake.Embed(

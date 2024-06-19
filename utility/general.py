@@ -157,9 +157,7 @@ async def calculate_time(type, war: coc.ClanWar = None):
             is_raids = False
 
         if is_raids:
-            end = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(
-                days=(7 - current_dayofweek)
-            )
+            end = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days=(7 - current_dayofweek))
             time_left = end - now
             secs = time_left.total_seconds()
             days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
@@ -172,9 +170,7 @@ async def calculate_time(type, war: coc.ClanWar = None):
             else:
                 text = f"end {int(days)}D {int(hrs)}H"
         else:
-            first = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(
-                days=(4 - current_dayofweek)
-            )
+            first = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days=(4 - current_dayofweek))
             time_left = first - now
             secs = time_left.total_seconds()
             days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)

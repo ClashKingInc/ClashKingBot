@@ -55,9 +55,7 @@ class MessageCommands(commands.Cog):
 
     @commands.message_command(name="Refresh Board", dm_permission=False)
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def refresh_board(
-        self, ctx: disnake.MessageCommandInteraction, message: disnake.Message
-    ):
+    async def refresh_board(self, ctx: disnake.MessageCommandInteraction, message: disnake.Message):
         check = await self.bot.white_list_check(ctx, "setup server-settings")
         await ctx.response.defer(ephemeral=True)
         if not check and not ctx.author.guild_permissions.manage_guild:
@@ -74,14 +72,10 @@ class MessageCommands(commands.Cog):
                 continue
             name = child.custom_id.split(":")[0]
             if mapping.get(name) is not None:
-                options.append(
-                    disnake.SelectOption(label=mapping.get(name), value=child.custom_id)
-                )
+                options.append(disnake.SelectOption(label=mapping.get(name), value=child.custom_id))
 
         if not options:
-            raise MessageException(
-                "This command does not support auto refreshing currently"
-            )
+            raise MessageException("This command does not support auto refreshing currently")
 
         if len(options) >= 2:
             option_select = disnake.ui.Select(
@@ -94,9 +88,7 @@ class MessageCommands(commands.Cog):
                 content="Choose which button to make an auto refreshing board for",
                 components=[disnake.ui.ActionRow(option_select)],
             )
-            res: disnake.MessageInteraction = await interaction_handler(
-                bot=self.bot, ctx=ctx, ephemeral=True
-            )
+            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, ephemeral=True)
             custom_id = res.values[0]
         else:
             custom_id = options[0].value
@@ -113,9 +105,7 @@ class MessageCommands(commands.Cog):
         )
         if thread is not None:
             thread = await self.bot.getch_channel(thread)
-            webhook_message = await webhook.send(
-                embed=placeholder, thread=thread, wait=True
-            )
+            webhook_message = await webhook.send(embed=placeholder, thread=thread, wait=True)
             thread = thread.id
         else:
             webhook_message = await webhook.send(embed=placeholder, wait=True)
@@ -135,9 +125,7 @@ class MessageCommands(commands.Cog):
 
     @commands.message_command(name="Auto Board", dm_permission=False)
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def auto_board(
-        self, ctx: disnake.MessageCommandInteraction, message: disnake.Message
-    ):
+    async def auto_board(self, ctx: disnake.MessageCommandInteraction, message: disnake.Message):
         check = await self.bot.white_list_check(ctx, "setup server-settings")
         await ctx.response.defer(ephemeral=True)
         if not check and not ctx.author.guild_permissions.manage_guild:
@@ -154,14 +142,10 @@ class MessageCommands(commands.Cog):
                 continue
             name = child.custom_id.split(":")[0]
             if mapping.get(name) is not None:
-                options.append(
-                    disnake.SelectOption(label=mapping.get(name), value=child.custom_id)
-                )
+                options.append(disnake.SelectOption(label=mapping.get(name), value=child.custom_id))
 
         if not options:
-            raise MessageException(
-                "This command does not support auto refreshing currently"
-            )
+            raise MessageException("This command does not support auto refreshing currently")
 
         if len(options) >= 2:
             option_select = disnake.ui.Select(
@@ -174,9 +158,7 @@ class MessageCommands(commands.Cog):
                 content="Choose which button to make an auto refreshing board for",
                 components=[disnake.ui.ActionRow(option_select)],
             )
-            res: disnake.MessageInteraction = await interaction_handler(
-                bot=self.bot, ctx=ctx, ephemeral=True
-            )
+            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, ephemeral=True)
             custom_id = res.values[0]
         else:
             custom_id = options[0].value
@@ -193,9 +175,7 @@ class MessageCommands(commands.Cog):
         )
         if thread is not None:
             thread = await self.bot.getch_channel(thread)
-            webhook_message = await webhook.send(
-                embed=placeholder, thread=thread, wait=True
-            )
+            webhook_message = await webhook.send(embed=placeholder, thread=thread, wait=True)
             thread = thread.id
         else:
             webhook_message = await webhook.send(embed=placeholder, wait=True)

@@ -67,26 +67,19 @@ async def get_raidlog_entry(clan: coc.Clan, weekend: str, bot, limit=0):
     raidlog = await bot.coc_client.get_raid_log(clan_tag=clan.tag, limit=limit)
     weekend_timestamp = weekend_to_cocpy_timestamp(weekend)
     weekend_raid: RaidLogEntry = coc.utils.get(raidlog, start_time=weekend_timestamp)
-    if (
-        weekend_raid is not None
-        and sum(member.capital_resources_looted for member in weekend_raid.members) != 0
-    ):
+    if weekend_raid is not None and sum(member.capital_resources_looted for member in weekend_raid.members) != 0:
         return weekend_raid
     else:
         raid_data = await bot.raid_weekend_db.find_one(
             {
                 "$and": [
                     {"clan_tag": clan.tag},
-                    {
-                        "data.startTime": f"{weekend_timestamp.time.strftime('%Y%m%dT%H%M%S.000Z')}"
-                    },
+                    {"data.startTime": f"{weekend_timestamp.time.strftime('%Y%m%dT%H%M%S.000Z')}"},
                 ]
             }
         )
         if raid_data is not None:
-            entry: RaidLogEntry = RaidLogEntry(
-                data=raid_data.get("data"), client=bot.coc_client, clan_tag=clan.tag
-            )
+            entry: RaidLogEntry = RaidLogEntry(data=raid_data.get("data"), client=bot.coc_client, clan_tag=clan.tag)
             return entry
 
     """raid_data = await player_results_to_json(clan=clan, weekend=weekend, player_stats=bot.player_stats)
@@ -97,14 +90,10 @@ async def get_raidlog_entry(clan: coc.Clan, weekend: str, bot, limit=0):
 
 async def player_results_to_json(clan: coc.Clan, weekend: str, player_stats):
     weekend = next_raid_weekend()
-    tags = await player_stats.distinct(
-        "tag", filter={f"capital_gold.{weekend}.raided_clan": clan.tag}
-    )
+    tags = await player_stats.distinct("tag", filter={f"capital_gold.{weekend}.raided_clan": clan.tag})
     if not tags:
         return None
-    all_players = await player_stats.find(
-        {f"capital_gold.{weekend}.raided_clan": clan.tag}
-    ).to_list(length=100)
+    all_players = await player_stats.find({f"capital_gold.{weekend}.raided_clan": clan.tag}).to_list(length=100)
     member_list = []
     for player in all_players:
         player_cc = player.get("capital_gold")
@@ -137,12 +126,8 @@ async def player_results_to_json(clan: coc.Clan, weekend: str, player_stats):
         return None
     return {
         "state": "ended",
-        "startTime": weekend_to_cocpy_timestamp(weekend).time.strftime(
-            "%Y%m%dT%H%M%S.000Z"
-        ),
-        "endTime": weekend_to_cocpy_timestamp(weekend, end=True).time.strftime(
-            "%Y%m%dT%H%M%S.000Z"
-        ),
+        "startTime": weekend_to_cocpy_timestamp(weekend).time.strftime("%Y%m%dT%H%M%S.000Z"),
+        "endTime": weekend_to_cocpy_timestamp(weekend, end=True).time.strftime("%Y%m%dT%H%M%S.000Z"),
         "capitalTotalLoot": 0,
         "raidsCompleted": 0,
         "totalAttacks": 0,

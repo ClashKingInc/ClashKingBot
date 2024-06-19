@@ -102,9 +102,7 @@ class FamCommands(commands.Cog, name="Family Commands"):
     async def family_clans(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        server: disnake.Guild = commands.Param(
-            converter=server_converter, default=None
-        ),
+        server: disnake.Guild = commands.Param(converter=server_converter, default=None),
     ):
         guild = server if server is not None else ctx.guild
         embed = await family_embeds.create_family_clans(bot=self.bot, guild=guild)
@@ -119,16 +117,12 @@ class FamCommands(commands.Cog, name="Family Commands"):
         )
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
-    @family.sub_command(
-        name="compo", description="Composition of a family. (with a twist?)"
-    )
+    @family.sub_command(name="compo", description="Composition of a family. (with a twist?)")
     async def family_compo(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         type: str = commands.Param(default="Totals", choices=["Totals", "Hitrate"]),
-        server: disnake.Guild = commands.Param(
-            converter=server_converter, default=None
-        ),
+        server: disnake.Guild = commands.Param(converter=server_converter, default=None),
     ):
         """
         Parameters
@@ -174,9 +168,7 @@ class FamCommands(commands.Cog, name="Family Commands"):
     async def family_wars(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        server: disnake.Guild = commands.Param(
-            converter=server_converter, default=None
-        ),
+        server: disnake.Guild = commands.Param(converter=server_converter, default=None),
     ):
         guild = server if server is not None else ctx.guild
         embed = await family_embeds.create_wars(bot=self.bot, guild=guild)
@@ -196,31 +188,23 @@ class FamCommands(commands.Cog, name="Family Commands"):
         self,
         ctx: disnake.ApplicationCommandInteraction,
         board: str = commands.Param(choices=["Activity", "Legends", "Trophies"]),
-        server: disnake.Guild = commands.Param(
-            converter=server_converter, default=None
-        ),
+        server: disnake.Guild = commands.Param(converter=server_converter, default=None),
     ):
 
         guild = server if server is not None else ctx.guild
         guild_icon = guild.icon.url if guild.icon else self.bot.user.avatar.url
 
         if board == "Activity":
-            clan_tags = await self.bot.clan_db.distinct(
-                "tag", filter={"server": guild.id}
-            )
+            clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
             clans: List[coc.Clan] = await self.bot.get_clans(tags=clan_tags)
             member_tags = get_clan_member_tags(clans=clans)
             top_50 = (
-                await self.bot.player_stats.find(
-                    {"tag": {"$in": member_tags}}, {"tag": 1}
-                )
+                await self.bot.player_stats.find({"tag": {"$in": member_tags}}, {"tag": 1})
                 .sort(f"donations.{self.bot.gen_season_date()}.donated", -1)
                 .limit(30)
                 .to_list(length=50)
             )
-            players = await self.bot.get_players(
-                tags=[p["tag"] for p in top_50], custom=True
-            )
+            players = await self.bot.get_players(tags=[p["tag"] for p in top_50], custom=True)
             players.sort(key=lambda x: x.donos().donated, reverse=True)
             file = await shared_embeds.image_board(
                 bot=self.bot,
@@ -232,9 +216,7 @@ class FamCommands(commands.Cog, name="Family Commands"):
             )
             board_type = "famboardact"
         elif board == "Legends":
-            clan_tags = await self.bot.clan_db.distinct(
-                "tag", filter={"server": guild.id}
-            )
+            clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
             top_30 = (
                 await self.bot.player_stats.find(
                     {
@@ -248,9 +230,7 @@ class FamCommands(commands.Cog, name="Family Commands"):
                 .limit(30)
                 .to_list(length=30)
             )
-            players = await self.bot.get_players(
-                tags=[p["tag"] for p in top_30], found_results=top_30, custom=True
-            )
+            players = await self.bot.get_players(tags=[p["tag"] for p in top_30], found_results=top_30, custom=True)
             players.sort(key=lambda x: x.trophies, reverse=True)
             file = await shared_embeds.image_board(
                 bot=self.bot,
@@ -262,18 +242,14 @@ class FamCommands(commands.Cog, name="Family Commands"):
             board_type = "famboardlegend"
 
         elif board == "Trophies":
-            clan_tags = await self.bot.clan_db.distinct(
-                "tag", filter={"server": guild.id}
-            )
+            clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
             top_30 = (
                 await self.bot.player_stats.find({"clan_tag": {"$in": clan_tags}})
                 .sort(f"trophies", -1)
                 .limit(30)
                 .to_list(length=30)
             )
-            players = await self.bot.get_players(
-                tags=[p["tag"] for p in top_30], found_results=top_30, custom=True
-            )
+            players = await self.bot.get_players(tags=[p["tag"] for p in top_30], found_results=top_30, custom=True)
             players.sort(key=lambda x: x.trophies, reverse=True)
             file = await shared_embeds.image_board(
                 bot=self.bot,
@@ -297,20 +273,14 @@ class FamCommands(commands.Cog, name="Family Commands"):
         )
         await ctx.channel.send(content=file, components=[buttons])
 
-    @family.sub_command(
-        name="leagues", description="List of clans by cwl or capital league"
-    )
+    @family.sub_command(name="leagues", description="List of clans by cwl or capital league")
     async def family_leagues(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        server: disnake.Guild = commands.Param(
-            converter=server_converter, default=None
-        ),
+        server: disnake.Guild = commands.Param(converter=server_converter, default=None),
     ):
         guild = server if server is not None else ctx.guild
-        embed = await family_embeds.create_leagues(
-            bot=self.bot, guild=guild, type="CWL"
-        )
+        embed = await family_embeds.create_leagues(bot=self.bot, guild=guild, type="CWL")
         buttons = disnake.ui.ActionRow()
         buttons.append_item(
             disnake.ui.Button(
@@ -334,15 +304,9 @@ class FamCommands(commands.Cog, name="Family Commands"):
     async def family_donations(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        season: str = commands.Param(
-            default=None, convert_defaults=True, converter=season_convertor
-        ),
-        townhall: List[int] = commands.Param(
-            default=None, convert_defaults=True, converter=th_convertor
-        ),
-        server: disnake.Guild = commands.Param(
-            converter=server_converter, default=None
-        ),
+        season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor),
+        townhall: List[int] = commands.Param(default=None, convert_defaults=True, converter=th_convertor),
+        server: disnake.Guild = commands.Param(converter=server_converter, default=None),
         limit: int = commands.Param(default=50, max_value=50),
     ):
 
@@ -365,14 +329,12 @@ class FamCommands(commands.Cog, name="Family Commands"):
             .to_list(length=50)
         )
         players = await self.bot.get_players(tags=[p["tag"] for p in top_50])
-        graph, total_donos, total_received = (
-            await graph_creator.create_clan_donation_graph(
-                bot=self.bot,
-                clans=clans,
-                season=season,
-                type="donated",
-                townhalls=townhall,
-            )
+        graph, total_donos, total_received = await graph_creator.create_clan_donation_graph(
+            bot=self.bot,
+            clans=clans,
+            season=season,
+            type="donated",
+            townhalls=townhall,
         )
         embed = await shared_embeds.donation_board(
             bot=self.bot,
@@ -380,11 +342,7 @@ class FamCommands(commands.Cog, name="Family Commands"):
             season=season,
             title_name=f"{guild.name}",
             type="donations",
-            footer_icon=(
-                ctx.guild.icon.url
-                if ctx.guild.icon is not None
-                else self.bot.user.avatar.url
-            ),
+            footer_icon=(ctx.guild.icon.url if ctx.guild.icon is not None else self.bot.user.avatar.url),
             total_donos=total_donos,
             total_received=total_received,
         )
@@ -409,19 +367,13 @@ class FamCommands(commands.Cog, name="Family Commands"):
         )
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
-    @family.sub_command(
-        name="capital", description="Top 50 capital contributors in family"
-    )
+    @family.sub_command(name="capital", description="Top 50 capital contributors in family")
     async def family_capital(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         weekend: str = None,
-        townhall: List[str] = commands.Param(
-            default=None, convert_defaults=True, converter=th_convertor
-        ),
-        server: disnake.Guild = commands.Param(
-            converter=server_converter, default=None
-        ),
+        townhall: List[str] = commands.Param(default=None, convert_defaults=True, converter=th_convertor),
+        server: disnake.Guild = commands.Param(converter=server_converter, default=None),
         limit: int = commands.Param(default=50, max_value=50),
     ):
         guild = server if server is not None else ctx.guild
@@ -430,9 +382,7 @@ class FamCommands(commands.Cog, name="Family Commands"):
         else:
             week = weekend
         member_tags = await self.bot.get_family_member_tags(guild_id=guild.id)
-        distinct = await self.bot.player_stats.distinct(
-            "tag", filter={"tag": {"$in": member_tags}}
-        )
+        distinct = await self.bot.player_stats.distinct("tag", filter={"tag": {"$in": member_tags}})
         players = await self.bot.get_players(tags=distinct)
         embed: disnake.Embed = await shared_embeds.capital_donation_board(
             bot=self.bot,
@@ -464,21 +414,13 @@ class FamCommands(commands.Cog, name="Family Commands"):
         # embed.set_image(url=f"{graph}?{int(datetime.datetime.now().timestamp())}")
         await ctx.send(embed=embed, components=[buttons])
 
-    @family.sub_command(
-        name="progress", description="Top 50 Progress for family members"
-    )
+    @family.sub_command(name="progress", description="Top 50 Progress for family members")
     async def progress(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        type=commands.Param(
-            choices=["Heroes & Pets", "Troops, Spells, & Sieges", "Loot"]
-        ),
-        season: str = commands.Param(
-            default=None, convert_defaults=True, converter=season_convertor
-        ),
-        server: disnake.Guild = commands.Param(
-            converter=server_converter, default=None
-        ),
+        type=commands.Param(choices=["Heroes & Pets", "Troops, Spells, & Sieges", "Loot"]),
+        season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor),
+        server: disnake.Guild = commands.Param(converter=server_converter, default=None),
         limit: int = commands.Param(default=50, min_value=1, max_value=50),
     ):
         """
@@ -491,9 +433,7 @@ class FamCommands(commands.Cog, name="Family Commands"):
         """
         buttons = []
         guild = server if server is not None else ctx.guild
-        footer_icon = (
-            guild.icon.url if guild.icon is not None else self.bot.user.avatar.url
-        )
+        footer_icon = guild.icon.url if guild.icon is not None else self.bot.user.avatar.url
         member_tags = await self.bot.get_family_member_tags(guild_id=guild.id)
         if type == "Heroes & Pets":
             embed = await shared_embeds.hero_progress(
@@ -550,29 +490,19 @@ class FamCommands(commands.Cog, name="Family Commands"):
                 )
             )
 
-        await ctx.edit_original_message(
-            embed=embed, components=[buttons] if buttons else []
-        )
+        await ctx.edit_original_message(embed=embed, components=[buttons] if buttons else [])
 
-    @family.sub_command(
-        name="clan-games", description="Top Clan Games Points in Family"
-    )
+    @family.sub_command(name="clan-games", description="Top Clan Games Points in Family")
     async def clan_games(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        season: str = commands.Param(
-            default=None, convert_defaults=True, converter=season_convertor
-        ),
-        server: disnake.Guild = commands.Param(
-            converter=server_converter, default=None
-        ),
+        season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor),
+        server: disnake.Guild = commands.Param(converter=server_converter, default=None),
         limit: int = commands.Param(default=50, min_value=1, max_value=50),
     ):
         guild = server if server is not None else ctx.guild
         clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": guild.id})
-        members = await self.bot.player_stats.distinct(
-            "tag", filter={f"clan_tag": {"$in": clan_tags}}
-        )
+        members = await self.bot.player_stats.distinct("tag", filter={f"clan_tag": {"$in": clan_tags}})
         did_games_in_clan = await self.bot.player_stats.distinct(
             "tag", filter={f"clan_games.{season}.clan": {"$in": clan_tags}}
         )
@@ -608,26 +538,18 @@ class FamCommands(commands.Cog, name="Family Commands"):
         )
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
-    @family.sub_command(
-        name="history", description="History of certain stats for the season"
-    )
+    @family.sub_command(name="history", description="History of certain stats for the season")
     async def family_history(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         type=commands.Param(choices=["Join/Leave"]),
-        season: str = commands.Param(
-            default=None, convert_defaults=True, converter=season_convertor
-        ),
-        server: disnake.Guild = commands.Param(
-            converter=server_converter, default=None
-        ),
+        season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor),
+        server: disnake.Guild = commands.Param(converter=server_converter, default=None),
     ):
 
         guild = server if server is not None else ctx.guild
         if type == "Join/Leave":
-            embed: disnake.Embed = await family_embeds.create_joinhistory(
-                bot=self.bot, guild=guild, season=season
-            )
+            embed: disnake.Embed = await family_embeds.create_joinhistory(bot=self.bot, guild=guild, season=season)
         await ctx.edit_original_message(embed=embed, components=None)
 
     @family.sub_command(
@@ -637,25 +559,17 @@ class FamCommands(commands.Cog, name="Family Commands"):
     async def trophies(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        server: disnake.Guild = commands.Param(
-            converter=server_converter, default=None
-        ),
+        server: disnake.Guild = commands.Param(converter=server_converter, default=None),
     ):
         guild = server if server is not None else ctx.guild
-        embed = await family_embeds.create_trophies(
-            bot=self.bot, guild=guild, sort_type=TrophySort.home
-        )
+        embed = await family_embeds.create_trophies(bot=self.bot, guild=guild, sort_type=TrophySort.home)
         buttons = disnake.ui.ActionRow()
         sort_type = TrophySort.home
         buttons.append_item(
             disnake.ui.Button(
                 label="Home",
                 emoji=self.bot.emoji.trophy.partial_emoji,
-                style=(
-                    disnake.ButtonStyle.green
-                    if sort_type == TrophySort.home
-                    else disnake.ButtonStyle.grey
-                ),
+                style=(disnake.ButtonStyle.green if sort_type == TrophySort.home else disnake.ButtonStyle.grey),
                 custom_id=f"hometrophiesfam_{guild.id}",
             )
         )
@@ -663,11 +577,7 @@ class FamCommands(commands.Cog, name="Family Commands"):
             disnake.ui.Button(
                 label="Versus",
                 emoji=self.bot.emoji.versus_trophy.partial_emoji,
-                style=(
-                    disnake.ButtonStyle.green
-                    if sort_type == TrophySort.versus
-                    else disnake.ButtonStyle.grey
-                ),
+                style=(disnake.ButtonStyle.green if sort_type == TrophySort.versus else disnake.ButtonStyle.grey),
                 custom_id=f"versustrophiesfam_{guild.id}",
             )
         )
@@ -675,11 +585,7 @@ class FamCommands(commands.Cog, name="Family Commands"):
             disnake.ui.Button(
                 label="Capital",
                 emoji=self.bot.emoji.capital_trophy.partial_emoji,
-                style=(
-                    disnake.ButtonStyle.green
-                    if sort_type == TrophySort.capital
-                    else disnake.ButtonStyle.grey
-                ),
+                style=(disnake.ButtonStyle.green if sort_type == TrophySort.capital else disnake.ButtonStyle.grey),
                 custom_id=f"capitaltrophiesfam_{guild.id}",
             )
         )

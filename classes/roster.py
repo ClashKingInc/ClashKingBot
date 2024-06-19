@@ -39,12 +39,8 @@ class Roster:
             return None
         return self.roster_result.get("alias")
 
-    async def create_roster(
-        self, guild: disnake.Guild, clan: coc.Clan, alias: str, add_members: bool
-    ):
-        roster_result = await self.bot.rosters.find_one(
-            {"$and": [{"server_id": guild.id}, {"alias": alias}]}
-        )
+    async def create_roster(self, guild: disnake.Guild, clan: coc.Clan, alias: str, add_members: bool):
+        roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": guild.id}, {"alias": alias}]})
         if roster_result is not None:
             raise RosterAliasAlreadyExists
         roster_result = await self.bot.rosters.insert_one(
@@ -64,18 +60,14 @@ class Roster:
         roster_result = await self.bot.rosters.find_one({"_id": inserted_id})
         self.roster_result = roster_result
         if add_members:
-            players = await self.bot.get_players(
-                tags=[member.tag for member in clan.members]
-            )
+            players = await self.bot.get_players(tags=[member.tag for member in clan.members])
             for player in players:
                 await self.add_member(player)
             roster_result = await self.bot.rosters.find_one({"_id": inserted_id})
             self.roster_result = roster_result
 
     async def find_roster(self, guild: disnake.Guild, alias: str):
-        roster_result = await self.bot.rosters.find_one(
-            {"$and": [{"server_id": guild.id}, {"alias": alias}]}
-        )
+        roster_result = await self.bot.rosters.find_one({"$and": [{"server_id": guild.id}, {"alias": alias}]})
         if roster_result is None:
             raise RosterDoesNotExist
         self.roster_result = roster_result
@@ -159,9 +151,7 @@ class Roster:
             if member.get("sub") is True:
                 group_text["SUBS"].append([f"{text}\n"] + all_fields)
             elif member.get("group") not in ["No Group", "Sub", None]:
-                group_text[str(member.get("group")).upper()].append(
-                    [f"{text}\n"] + all_fields
-                )
+                group_text[str(member.get("group")).upper()].append([f"{text}\n"] + all_fields)
             else:
                 roster_text.append([f"{text}\n"] + all_fields)
             thcount[member.get("townhall")] += 1
@@ -210,11 +200,7 @@ class Roster:
             description=f"{pre_description}{time}{roster_text}",
             color=disnake.Color.from_rgb(r=43, g=45, b=49),
         )
-        footer_text = "".join(
-            f"Th{index}: {th} "
-            for index, th in sorted(thcount.items(), reverse=True)
-            if th != 0
-        )
+        footer_text = "".join(f"Th{index}: {th} " for index, th in sorted(thcount.items(), reverse=True) if th != 0)
         embed.set_footer(
             text=f"{footer_text}\nTh{self.th_min}-Th{self.th_max} | {self.roster_size} Account Limit\n{move_text}"
         )
@@ -389,9 +375,7 @@ class Roster:
             name = name[:12]
             name = name.ljust(12)
             tag = str(member["tag"]).ljust(longest_tag)
-            missing_text += (
-                f"{self.bot.fetch_emoji(name=member['townhall'])}`{name} {tag}`\n"
-            )
+            missing_text += f"{self.bot.fetch_emoji(name=member['townhall'])}`{name} {tag}`\n"
 
         tag = "TAG".ljust(longest_tag)
         missing_text = f"`TH NAME         {tag}`\n{missing_text}"
@@ -421,15 +405,11 @@ class Roster:
         has_ran = False
         if "Discord" in columns:
             has_ran = True
-            tag_to_id = await self.bot.link_client.get_links(
-                *[member.tag for member in members]
-            )
+            tag_to_id = await self.bot.link_client.get_links(*[member.tag for member in members])
             tag_to_id = dict(tag_to_id)
             for member in members:
                 discord_user = await self.bot.getch_user(tag_to_id[member.tag])
-                await self.update_member(
-                    player=member, field="discord", field_value=str(discord_user)
-                )
+                await self.update_member(player=member, field="discord", field_value=str(discord_user))
 
         if "30 Day Hitrate" in columns:
             has_ran = True
@@ -438,9 +418,7 @@ class Roster:
                 if member is None:
                     continue
                 hr = await member.hit_rate(
-                    start_timestamp=int(
-                        (datetime.utcnow() - timedelta(days=30)).timestamp()
-                    ),
+                    start_timestamp=int((datetime.utcnow() - timedelta(days=30)).timestamp()),
                     end_timestamp=int(datetime.utcnow().timestamp()),
                 )
                 await self.update_member(
@@ -486,11 +464,7 @@ class Roster:
                 role = default
             if role is None:
                 continue
-            tags = [
-                player.get("tag")
-                for player in self.players
-                if player.get("group") == group
-            ]
+            tags = [player.get("tag") for player in self.players if player.get("group") == group]
             tag_to_id = await self.bot.link_client.get_links(*tags)
             tag_to_id = dict(tag_to_id)
             role = self.guild.get_role(role)
@@ -498,10 +472,7 @@ class Roster:
                 continue
             ids = []
             for member in role.members:
-                if (
-                    member.id not in tag_to_id.values()
-                    and member.id not in assigned_by_other_group[role.id]
-                ):
+                if member.id not in tag_to_id.values() and member.id not in assigned_by_other_group[role.id]:
                     try:
                         await member.remove_roles(*[role])
                     except:
@@ -665,9 +636,7 @@ class Roster:
         roster_member_tags = [member.get("tag") for member in roster_members]
         if player.tag not in roster_member_tags:
             raise PlayerNotInRoster
-        new_roster_member_tags = [
-            member.get("tag") for member in new_roster.roster_result.get("members")
-        ]
+        new_roster_member_tags = [member.get("tag") for member in new_roster.roster_result.get("members")]
         if self.roster_result.get("alias") != new_roster.roster_result.get("alias"):
             if player.tag in new_roster_member_tags:
                 raise PlayerAlreadyInRoster
@@ -793,9 +762,7 @@ class Roster:
         try:
             req = Request(url=url, headers={"User-Agent": "Mozilla/5.0"})
             f = io.BytesIO(urlopen(req).read())
-            pic = await general_upload_to_cdn(
-                bytes_=f, id=self.roster_result.get("_id")
-            )
+            pic = await general_upload_to_cdn(bytes_=f, id=self.roster_result.get("_id"))
         except:
             pic = "https://cdn.discordapp.com/attachments/1028905437300531271/1028905577662922772/unknown.png"
         await self.bot.rosters.update_one(
@@ -878,15 +845,11 @@ class Roster:
 
     async def other_rosters(self):
         guild = self.roster_result.get("server_id")
-        aliases: list = await self.bot.rosters.distinct(
-            "alias", filter={"server_id": guild}
-        )
+        aliases: list = await self.bot.rosters.distinct("alias", filter={"server_id": guild})
         aliases.remove(self.roster_result.get("alias"))
         return aliases
 
-    async def mode_components(
-        self, mode: str, player_page: int, roster_page: int, other_roster_page: int
-    ):
+    async def mode_components(self, mode: str, player_page: int, roster_page: int, other_roster_page: int):
 
         dropdowns = []
 
@@ -897,9 +860,7 @@ class Roster:
         length = 24
         if roster_page >= 1:
             length = length - 1
-        edit_rosters = other_rosters[
-            (length * roster_page) : (length * roster_page) + length
-        ]
+        edit_rosters = other_rosters[(length * roster_page) : (length * roster_page) + length]
         if roster_page >= 1:
             edit_roster_options.append(
                 disnake.SelectOption(
@@ -916,9 +877,7 @@ class Roster:
                     value=f"roster_{roster}",
                 )
             )
-        if len(edit_rosters) == length and (
-            len(other_rosters) > (length * roster_page) + length
-        ):
+        if len(edit_rosters) == length and (len(other_rosters) > (length * roster_page) + length):
             edit_roster_options.append(
                 disnake.SelectOption(
                     label=f"Next 25 Rosters",
@@ -971,15 +930,11 @@ class Roster:
             player_options.append(
                 disnake.SelectOption(
                     label=f"{player.get('name')}",
-                    emoji=self.bot.fetch_emoji(
-                        name=player.get("townhall")
-                    ).partial_emoji,
+                    emoji=self.bot.fetch_emoji(name=player.get("townhall")).partial_emoji,
                     value=f"edit_{player.get('tag')}",
                 )
             )
-        if len(players) == length and (
-            len(self.players) > (length * player_page) + length
-        ):
+        if len(players) == length and (len(self.players) > (length * player_page) + length):
             player_options.append(
                 disnake.SelectOption(
                     label=f"Next 25 Players",
@@ -993,9 +948,7 @@ class Roster:
                 options=player_options,
                 placeholder=f"Select Player(s) to {mode}",  # the placeholder text to show when no options have been chosen
                 min_values=1,  # the minimum number of options a user must select
-                max_values=len(
-                    players
-                ),  # the maximum number of options a user can select
+                max_values=len(players),  # the maximum number of options a user can select
             )
             dropdowns.append(player_select)
 
@@ -1006,9 +959,7 @@ class Roster:
             length = 24
             if other_roster_page >= 1:
                 length = length - 1
-            move_rosters = other_rosters[
-                (length * other_roster_page) : (length * other_roster_page) + length
-            ]
+            move_rosters = other_rosters[(length * other_roster_page) : (length * other_roster_page) + length]
             if other_roster_page >= 1:
                 move_roster_options.append(
                     disnake.SelectOption(
@@ -1025,9 +976,7 @@ class Roster:
                         value=f"rostermove_{roster}",
                     )
                 )
-            if len(move_rosters) == length and (
-                len(other_rosters) > (length * other_roster_page) + length
-            ):
+            if len(move_rosters) == length and (len(other_rosters) > (length * other_roster_page) + length):
                 move_roster_options.append(
                     disnake.SelectOption(
                         label=f"Next 25 Rosters",
@@ -1074,9 +1023,7 @@ class Roster:
 
             is_used = await self.bot.rosters.find_one({"roster_id": roster_id})
             while is_used is not None:
-                roster_id = str(
-                    "".join((random.choice(source) for i in range(5)))
-                ).upper()
+                roster_id = str("".join((random.choice(source) for i in range(5)))).upper()
                 is_used = await self.bot.rosters.find_one({"roster_id": roster_id})
 
             await self.bot.rosters.update_one(
@@ -1163,9 +1110,7 @@ class Roster:
 
     @property
     async def roster_roles(self):
-        results = await self.bot.server_db.find_one(
-            {"server": self.roster_result.get("server_id")}
-        )
+        results = await self.bot.server_db.find_one({"server": self.roster_result.get("server_id")})
         groups = results.get("player_groups", [])
 
         group_to_role = {
@@ -1201,9 +1146,7 @@ class Roster:
         missing_tags = []
         if not reverse:
             missing_tags = list(set(roster_member_tags).difference(clan_members))
-            return [
-                member for member in roster_members if member.get("tag") in missing_tags
-            ]
+            return [member for member in roster_members if member.get("tag") in missing_tags]
         else:
             for tag in clan_members:
                 if tag not in roster_member_tags:
@@ -1211,7 +1154,4 @@ class Roster:
             hold_player = []
             async for player in self.bot.coc_client.get_players(missing_tags):
                 hold_player.append(player)
-            return [
-                {"name": player.name, "tag": player.tag, "townhall": player.town_hall}
-                for player in hold_player
-            ]
+            return [{"name": player.name, "tag": player.tag, "townhall": player.town_hall} for player in hold_player]

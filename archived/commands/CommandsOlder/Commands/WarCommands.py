@@ -61,9 +61,7 @@ class War(commands.Cog):
     async def war(self, ctx: disnake.ApplicationCommandInteraction):
         pass
 
-    @war.sub_command(
-        name="search", description="Search for a clan's war (current or past)"
-    )
+    @war.sub_command(name="search", description="Search for a clan's war (current or past)")
     async def war_search(
         self,
         ctx: disnake.ApplicationCommandInteraction,
@@ -75,9 +73,7 @@ class War(commands.Cog):
         if clan is None:
             return await ctx.send("Not a valid clan tag.")
         if previous_wars is not None:
-            war_data = await self.bot.clan_wars.find_one(
-                {"custom_id": previous_wars.split("|")[-1].replace(" ", "")}
-            )
+            war_data = await self.bot.clan_wars.find_one({"custom_id": previous_wars.split("|")[-1].replace(" ", "")})
             if war_data is None:
                 embed = disnake.Embed(
                     description=f"Previous war for [**{clan.name}**]({clan.share_link}) not found.",
@@ -85,9 +81,7 @@ class War(commands.Cog):
                 )
                 embed.set_thumbnail(url=clan.badge.large)
                 return await ctx.send(embed=embed)
-            war = coc.ClanWar(
-                data=war_data.get("data"), client=self.bot.coc_client, clan_tag=clan.tag
-            )
+            war = coc.ClanWar(data=war_data.get("data"), client=self.bot.coc_client, clan_tag=clan.tag)
         else:
             war = await self.bot.get_clanwar(clan.tag)
         if war is None or war.start_time is None:
@@ -136,9 +130,7 @@ class War(commands.Cog):
         surr = self.bot.emoji_holder.all_emojis.get(int(surr))
         surr = disnake.PartialEmoji(name=surr.name, id=surr.id)
 
-        embed = await main_war_page(
-            bot=self.bot, war=war, war_league=str(clan.war_league)
-        )
+        embed = await main_war_page(bot=self.bot, war=war, war_league=str(clan.war_league))
 
         main = embed
 
@@ -146,17 +138,11 @@ class War(commands.Cog):
             options=[  # the options in your dropdown
                 disnake.SelectOption(label="War Overview", emoji=emoji, value="war"),
                 disnake.SelectOption(label="Clan Roster", emoji=troop, value="croster"),
-                disnake.SelectOption(
-                    label="Opponent Roster", emoji=troop, value="oroster"
-                ),
+                disnake.SelectOption(label="Opponent Roster", emoji=troop, value="oroster"),
                 disnake.SelectOption(label="Attacks", emoji=swords, value="attacks"),
                 disnake.SelectOption(label="Defenses", emoji=shield, value="defenses"),
-                disnake.SelectOption(
-                    label="Opponent Defenses", emoji=surr, value="odefenses"
-                ),
-                disnake.SelectOption(
-                    label="Opponent Clan Overview", emoji=magnify, value="opp_over"
-                ),
+                disnake.SelectOption(label="Opponent Defenses", emoji=surr, value="odefenses"),
+                disnake.SelectOption(label="Opponent Clan Overview", emoji=magnify, value="opp_over"),
             ],
             placeholder="Choose a page",  # the placeholder text to show when no options have been chosen
             min_values=1,  # the minimum number of options a user must select
@@ -209,9 +195,7 @@ class War(commands.Cog):
     ):
         war = await self.bot.get_clanwar(clanTag=clan.tag)
         if war is None:
-            return await ctx.send(
-                ephemeral=True, content=f"{clan.name} is not currently in a war."
-            )
+            return await ctx.send(ephemeral=True, content=f"{clan.name} is not currently in a war.")
         await ctx.response.defer()
 
         result = await self.bot.lineups.find_one(
@@ -241,18 +225,12 @@ class War(commands.Cog):
 
         if option == "Manual Set":
             await ctx.edit_original_message(
-                content=await plan_text(
-                    bot=self.bot, plans=result.get("plans", []), war=war
-                ),
-                components=await create_components(
-                    bot=self.bot, plans=result.get("plans", []), war=war
-                ),
+                content=await plan_text(bot=self.bot, plans=result.get("plans", []), war=war),
+                components=await create_components(bot=self.bot, plans=result.get("plans", []), war=war),
             )
             done = False
             while not done:
-                res: disnake.MessageInteraction = await interaction_handler(
-                    bot=self.bot, ctx=ctx, no_defer=True
-                )
+                res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, no_defer=True)
                 plan_one, plan_two = await open_modal(bot=self.bot, res=res)
                 if plan_one == "" and plan_two == "":
                     continue
@@ -267,11 +245,7 @@ class War(commands.Cog):
                                     "clan_tag": clan.tag,
                                     "warStart": f"{int(war.preparation_start_time.time.timestamp())}",
                                 },
-                                {
-                                    "$pull": {
-                                        "plans": {"player_tag": plan.get("player_tag")}
-                                    }
-                                },
+                                {"$pull": {"plans": {"player_tag": plan.get("player_tag")}}},
                             )
                         )
                 if to_remove:
@@ -316,12 +290,8 @@ class War(commands.Cog):
                     }
                 )
                 await ctx.edit_original_message(
-                    content=await plan_text(
-                        bot=self.bot, plans=result.get("plans", []), war=war
-                    ),
-                    components=await create_components(
-                        bot=self.bot, plans=result.get("plans", []), war=war
-                    ),
+                    content=await plan_text(bot=self.bot, plans=result.get("plans", []), war=war),
+                    components=await create_components(bot=self.bot, plans=result.get("plans", []), war=war),
                 )
         elif option == "Post Plan":
             result = await self.bot.lineups.find_one(
@@ -336,9 +306,7 @@ class War(commands.Cog):
                 }
             )
             await ctx.edit_original_message(
-                content=await plan_text(
-                    bot=self.bot, plans=result.get("plans", []), war=war
-                ),
+                content=await plan_text(bot=self.bot, plans=result.get("plans", []), war=war),
                 components=[],
             )
 
@@ -346,22 +314,16 @@ class War(commands.Cog):
     async def cwl(self, ctx: disnake.ApplicationCommandInteraction):
         pass
 
-    @cwl.sub_command(
-        name="search", description="Search for a clan's cwl (current or past)"
-    )
+    @cwl.sub_command(name="search", description="Search for a clan's cwl (current or past)")
     async def cwl_search(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         clan: coc.Clan = commands.Param(converter=clan_converter),
-        season: str = commands.Param(
-            default=None, convert_defaults=True, converter=season_convertor
-        ),
+        season: str = commands.Param(default=None, convert_defaults=True, converter=season_convertor),
     ):
         await ctx.response.defer()
         asyncio.create_task(self.bot.store_all_cwls(clan=clan))
-        (group, clan_league_wars, fetched_clan, war_league) = await get_cwl_wars(
-            bot=self.bot, clan=clan, season=season
-        )
+        (group, clan_league_wars, fetched_clan, war_league) = await get_cwl_wars(bot=self.bot, clan=clan, season=season)
 
         if not clan_league_wars:
             embed = disnake.Embed(
@@ -376,9 +338,7 @@ class War(commands.Cog):
         CLAN = clan
         PAGE = "cwlround_overview"
 
-        (current_war, next_war) = get_wars_at_round(
-            clan_league_wars=clan_league_wars, round=ROUND
-        )
+        (current_war, next_war) = get_wars_at_round(clan_league_wars=clan_league_wars, round=ROUND)
         dropdown = await component_handler(
             bot=self.bot,
             page=PAGE,
@@ -447,9 +407,7 @@ class War(commands.Cog):
             else:
                 PAGE = res.values[0]
 
-            (current_war, next_war) = get_wars_at_round(
-                clan_league_wars=clan_league_wars, round=ROUND
-            )
+            (current_war, next_war) = get_wars_at_round(clan_league_wars=clan_league_wars, round=ROUND)
             embeds = await page_manager(
                 bot=self.bot,
                 page=PAGE,
@@ -476,9 +434,7 @@ class War(commands.Cog):
     @cwl.sub_command(name="rankings", description="Rankings in cwl for a family")
     async def cwl_rankings(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
-        clan_tags = await self.bot.clan_db.distinct(
-            "tag", filter={"server": ctx.guild.id}
-        )
+        clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": ctx.guild.id})
         if len(clan_tags) == 0:
             return await ctx.send("No clans linked to this server.")
 
@@ -496,9 +452,7 @@ class War(commands.Cog):
 
         clans_list = sorted(cwl_list, key=lambda l: l[2], reverse=False)
 
-        main_embed = disnake.Embed(
-            title=f"__**{ctx.guild.name} CWL Rankings**__", color=disnake.Color.green()
-        )
+        main_embed = disnake.Embed(title=f"__**{ctx.guild.name} CWL Rankings**__", color=disnake.Color.green())
         if ctx.guild.icon is not None:
             main_embed.set_thumbnail(url=ctx.guild.icon.url)
 
@@ -514,9 +468,7 @@ class War(commands.Cog):
                     if placement is None:
                         continue
                     if len(text) + len(f"{placement}{clan[0]}\n") >= 1020:
-                        main_embed.add_field(
-                            name=f"**{league}**", value=text, inline=False
-                        )
+                        main_embed.add_field(name=f"**{league}**", value=text, inline=False)
                         text = ""
                     text += f"{placement}{clan[0]}\n"
                 if (clan[0] == clans_list[len(clans_list) - 1][0]) and (text != ""):
@@ -556,9 +508,7 @@ class War(commands.Cog):
             if clan is None:
                 seasons = self.bot.gen_season_date(seasons_ago=25)[0:]
                 return [season for season in seasons if query.lower() in season.lower()]
-            dates = [
-                f"{self.bot.gen_season_date(seasons_ago=1)[0]} | {clan.war_league}"
-            ]
+            dates = [f"{self.bot.gen_season_date(seasons_ago=1)[0]} | {clan.war_league}"]
             cwls = (
                 await self.bot.cwl_db.find(
                     {"$and": [{"clan_tag": clan.tag}, {"data": {"$ne": None}}]},
@@ -569,11 +519,7 @@ class War(commands.Cog):
             )
             for cwl in cwls:
                 league_name = next(
-                    (
-                        x["name"]
-                        for x in war_leagues["items"]
-                        if x["id"] == cwl.get("data").get("leagueId")
-                    ),
+                    (x["name"] for x in war_leagues["items"] if x["id"] == cwl.get("data").get("leagueId")),
                     "Unknown",
                 )
                 dates.append(
@@ -588,9 +534,7 @@ class War(commands.Cog):
     @war_search.autocomplete("clan")
     @war_plan.autocomplete("clan")
     @cwl_search.autocomplete("clan")
-    async def autocomp_clan(
-        self, ctx: disnake.ApplicationCommandInteraction, query: str
-    ):
+    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         tracked = self.bot.clan_db.find({"server": ctx.guild.id})
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         clan_list = []
@@ -614,9 +558,7 @@ class War(commands.Cog):
         return clan_list[0:25]
 
     @war_search.autocomplete("previous_wars")
-    async def autocomp_clan(
-        self, ctx: disnake.ApplicationCommandInteraction, query: str
-    ):
+    async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         if ctx.filled_options["clan"] != "":
             clan = await self.bot.getClan(ctx.filled_options["clan"])
             results = (
@@ -672,9 +614,7 @@ class War(commands.Cog):
                     type = "CWL"
                 elif (
                     Timestamp(data=result.get("data").get("startTime")).time
-                    - Timestamp(
-                        data=result.get("data").get("preparationStartTime")
-                    ).time
+                    - Timestamp(data=result.get("data").get("preparationStartTime")).time
                 ).seconds in prep_list:
                     type = "FW"
                 else:

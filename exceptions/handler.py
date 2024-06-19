@@ -13,9 +13,7 @@ class ExceptionHandler(commands.Cog):
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_slash_command_error(
-        self, ctx: disnake.ApplicationCommandInteraction, error
-    ):
+    async def on_slash_command_error(self, ctx: disnake.ApplicationCommandInteraction, error):
         if isinstance(error, disnake.ext.commands.ConversionError):
             error = error.original
 
@@ -23,15 +21,11 @@ class ExceptionHandler(commands.Cog):
             error = error.original
 
         if isinstance(error, coc.errors.NotFound):
-            embed = disnake.Embed(
-                description="Not a valid clan/player tag.", color=disnake.Color.red()
-            )
+            embed = disnake.Embed(description="Not a valid clan/player tag.", color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
         if isinstance(error, disnake.HTTPException):
-            embed = disnake.Embed(
-                description=f"{error.text}", color=disnake.Color.red()
-            )
+            embed = disnake.Embed(description=f"{error.text}", color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
         if isinstance(error, coc.errors.Maintenance):
@@ -43,9 +37,7 @@ class ExceptionHandler(commands.Cog):
 
         if isinstance(error, disnake.ext.commands.CheckAnyFailure):
             if isinstance(error.errors[0], disnake.ext.commands.MissingPermissions):
-                embed = disnake.Embed(
-                    description=error.errors[0], color=disnake.Color.red()
-                )
+                embed = disnake.Embed(description=error.errors[0], color=disnake.Color.red())
                 return await ctx.send(embed=embed)
 
         if isinstance(error, disnake.ext.commands.MissingPermissions):
@@ -64,9 +56,7 @@ class ExceptionHandler(commands.Cog):
                 "- View the picture below for reference.",
                 color=disnake.Color.red(),
             )
-            embed.set_image(
-                url="https://cdn.clashking.xyz/clash-assets/bot/api_token_help.png"
-            )
+            embed.set_image(url="https://cdn.clashking.xyz/clash-assets/bot/api_token_help.png")
             if not ctx.response.is_done():
                 return await ctx.edit_original_message(embed=embed)
             else:
@@ -81,9 +71,7 @@ class ExceptionHandler(commands.Cog):
                 "- View the picture below for reference.",
                 color=disnake.Color.red(),
             )
-            embed.set_image(
-                url="https://cdn.clashking.xyz/clash-assets/bot/api_token_help.png"
-            )
+            embed.set_image(url="https://cdn.clashking.xyz/clash-assets/bot/api_token_help.png")
             if not ctx.response.is_done():
                 return await ctx.edit_original_message(embed=embed)
             else:
@@ -127,24 +115,18 @@ class ExceptionHandler(commands.Cog):
             return await ctx.send(embed=embed)
 
         if isinstance(error, PlayerNotInLegends):
-            embed = disnake.Embed(
-                description=f"Player is not in legends.", color=disnake.Color.red()
-            )
+            embed = disnake.Embed(description=f"Player is not in legends.", color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
         if isinstance(error, ThingNotFound):
-            embed = disnake.Embed(
-                description=f"{str(error)}", color=disnake.Color.red()
-            )
+            embed = disnake.Embed(description=f"{str(error)}", color=disnake.Color.red())
             if not ctx.response.is_done():
                 return await ctx.edit_original_message(embed=embed)
             else:
                 return await ctx.send(embed=embed)
 
         if isinstance(error, MessageException):
-            embed = disnake.Embed(
-                description=f"{str(error)}", color=disnake.Color.red()
-            )
+            embed = disnake.Embed(description=f"{str(error)}", color=disnake.Color.red())
             if not ctx.response.is_done():
                 return await ctx.edit_original_message(embed=embed)
             else:
@@ -196,21 +178,15 @@ class ExceptionHandler(commands.Cog):
             return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, RosterSizeLimit):
-            embed = disnake.Embed(
-                description=f"Roster has hit max size limit", color=disnake.Color.red()
-            )
+            embed = disnake.Embed(description=f"Roster has hit max size limit", color=disnake.Color.red())
             return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, PanelNotFound):
-            embed = disnake.Embed(
-                description=f"Panel not found!", color=disnake.Color.red()
-            )
+            embed = disnake.Embed(description=f"Panel not found!", color=disnake.Color.red())
             return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, ButtonNotFound):
-            embed = disnake.Embed(
-                description=f"Button not found!", color=disnake.Color.red()
-            )
+            embed = disnake.Embed(description=f"Button not found!", color=disnake.Color.red())
             return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, PanelAlreadyExists):
@@ -266,9 +242,7 @@ class ExceptionHandler(commands.Cog):
                 value=f"{ctx.user.global_name} | {ctx.user.mention}",
                 inline=False,
             )
-            error_embed.add_field(
-                name="Server", value=f"{ctx.guild.name} | {ctx.guild.id}", inline=False
-            )
+            error_embed.add_field(name="Server", value=f"{ctx.guild.name} | {ctx.guild.id}", inline=False)
             error_embed.add_field(
                 name="Command",
                 value=f"{ctx.application_command.qualified_name}",
@@ -279,9 +253,7 @@ class ExceptionHandler(commands.Cog):
                 value=f"{ctx.bot.user.name} | {ctx.bot.user.mention}",
                 inline=False,
             )
-            error_embed.add_field(
-                name="Options", value=f"{str(ctx.filled_options)[:1020]}", inline=False
-            )
+            error_embed.add_field(name="Options", value=f"{str(ctx.filled_options)[:1020]}", inline=False)
             await channel.send(embed=error_embed, components=[buttons])
 
         if not ctx.response.is_done():
