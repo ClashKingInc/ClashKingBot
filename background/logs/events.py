@@ -26,12 +26,22 @@ async def kafka_events(bot):
         while not bot.CLANS_LOADED:
             await asyncio.sleep(15)
         try:
-            async with websockets.connect(f"ws://85.10.200.219:8001/events", ping_timeout=None, ping_interval=None, open_timeout=None, max_queue=500_000) as websocket:
-                await websocket.send(ujson.dumps({"clans": list(bot.OUR_CLANS)}).encode("utf-8"))
+            async with websockets.connect(
+                f"ws://85.10.200.219:8001/events",
+                ping_timeout=None,
+                ping_interval=None,
+                open_timeout=None,
+                max_queue=500_000,
+            ) as websocket:
+                await websocket.send(
+                    ujson.dumps({"clans": list(bot.OUR_CLANS)}).encode("utf-8")
+                )
 
                 async for message in websocket:
                     if clans != bot.OUR_CLANS:
-                        await websocket.send(ujson.dumps({"clans": list(bot.OUR_CLANS)}).encode("utf-8"))
+                        await websocket.send(
+                            ujson.dumps({"clans": list(bot.OUR_CLANS)}).encode("utf-8")
+                        )
                         clans = bot.OUR_CLANS
 
                     if "Login!" in str(message):
@@ -70,5 +80,3 @@ async def kafka_events(bot):
         except Exception as e:
             print(e)
             continue
-
-

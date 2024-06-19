@@ -3,6 +3,7 @@ from classes.bot import CustomClient
 from typing import List
 from classes.roster import Roster
 
+
 class Reminder:
     def __init__(self, bot: CustomClient, data):
         self.__bot = bot
@@ -51,10 +52,11 @@ class Reminder:
             return self.__data.get("ping_type", "All Roster Members")
         return None
 
-
     async def fetch_roster(self):
         if self.type == "roster":
-            result = await self.__bot.rosters.find_one({"_id" : self.__data.get("roster")})
+            result = await self.__bot.rosters.find_one(
+                {"_id": self.__data.get("roster")}
+            )
             return Roster(bot=self.__bot, roster_result=result)
         return None
 
@@ -67,43 +69,107 @@ class Reminder:
 
     async def set_channel_id(self, id: int):
         await self.__bot.reminders.update_one(
-            {"$and": [{"clan": self.clan_tag}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]},
-            {"$set": {"channel": id}})
+            {
+                "$and": [
+                    {"clan": self.clan_tag},
+                    {"type": self.type},
+                    {"time": self.time},
+                    {"server": self.server_id},
+                ]
+            },
+            {"$set": {"channel": id}},
+        )
 
     async def set_roles(self, roles: List[str]):
         await self.__bot.reminders.update_one(
-            {"$and": [{"clan": self.clan_tag}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]},
-            {"$set": {"roles": roles}})
+            {
+                "$and": [
+                    {"clan": self.clan_tag},
+                    {"type": self.type},
+                    {"time": self.time},
+                    {"server": self.server_id},
+                ]
+            },
+            {"$set": {"roles": roles}},
+        )
 
     async def set_townhalls(self, townhalls: List[int]):
         await self.__bot.reminders.update_one(
-            {"$and": [{"clan": self.clan_tag}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]},
-            {"$set": {"townhall_filter": townhalls}})
+            {
+                "$and": [
+                    {"clan": self.clan_tag},
+                    {"type": self.type},
+                    {"time": self.time},
+                    {"server": self.server_id},
+                ]
+            },
+            {"$set": {"townhall_filter": townhalls}},
+        )
 
     async def set_custom_text(self, custom_text: str):
         await self.__bot.reminders.update_one(
-            {"$and": [{"clan": self.clan_tag}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]},
-            {"$set": {"custom_text": custom_text}})
+            {
+                "$and": [
+                    {"clan": self.clan_tag},
+                    {"type": self.type},
+                    {"time": self.time},
+                    {"server": self.server_id},
+                ]
+            },
+            {"$set": {"custom_text": custom_text}},
+        )
 
     async def set_war_types(self, types: List[str]):
         await self.__bot.reminders.update_one(
-            {"$and": [{"clan": self.clan_tag}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]},
-            {"$set": {"types": types}})
+            {
+                "$and": [
+                    {"clan": self.clan_tag},
+                    {"type": self.type},
+                    {"time": self.time},
+                    {"server": self.server_id},
+                ]
+            },
+            {"$set": {"types": types}},
+        )
 
     async def set_ping_type(self, type: str):
         await self.__bot.reminders.update_one(
-            {"$and": [{"roster": self.__data.get("roster")}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]},
-            {"$set": {"ping_type": type}})
+            {
+                "$and": [
+                    {"roster": self.__data.get("roster")},
+                    {"type": self.type},
+                    {"time": self.time},
+                    {"server": self.server_id},
+                ]
+            },
+            {"$set": {"ping_type": type}},
+        )
 
     async def set_attack_threshold(self, threshold: int):
         await self.__bot.reminders.update_one(
-            {"$and": [{"clan": self.clan_tag}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]},
-            {"$set": {"attack_threshold": threshold}})
+            {
+                "$and": [
+                    {"clan": self.clan_tag},
+                    {"type": self.type},
+                    {"time": self.time},
+                    {"server": self.server_id},
+                ]
+            },
+            {"$set": {"attack_threshold": threshold}},
+        )
 
     async def set_point_threshold(self, threshold: int):
         await self.__bot.reminders.update_one(
-            {"$and": [{"clan": self.clan_tag}, {"type": self.type}, {"time": self.time}, {"server": self.server_id}]},
-            {"$set": {"point_threshold": threshold}})
+            {
+                "$and": [
+                    {"clan": self.clan_tag},
+                    {"type": self.type},
+                    {"time": self.time},
+                    {"server": self.server_id},
+                ]
+            },
+            {"$set": {"point_threshold": threshold}},
+        )
 
     async def delete(self):
-        await self.__bot.reminders.delete_one({"_id" : self.reminder_id})
+        await self.__bot.reminders.delete_one({"_id": self.reminder_id})

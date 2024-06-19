@@ -12,6 +12,7 @@ from numerize import numerize
 from utility.clash.capital import calc_raid_medals
 from exceptions.CustomExceptions import MissingWebhookPerms
 
+
 class clan_capital_events(commands.Cog, name="Clan Capital Events"):
 
     def __init__(self, bot: CustomClient):
@@ -26,10 +27,20 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
         if new_player.clan.tag is None:
             return
         old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
-        dono_change = new_player.clan_capital_contributions - old_player.clan_capital_contributions
+        dono_change = (
+            new_player.clan_capital_contributions
+            - old_player.clan_capital_contributions
+        )
 
         utc_time = datetime.now(utc).replace(tzinfo=utc)
-        for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {"logs.capital_donations.webhook": {"$ne" : None}}]}).to_list(length=None):
+        for cc in await self.bot.clan_db.find(
+            {
+                "$and": [
+                    {"tag": new_player.clan.tag},
+                    {"logs.capital_donations.webhook": {"$ne": None}},
+                ]
+            }
+        ).to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=cc)
             if db_clan.server_id not in self.bot.OUR_GUILDS:
                 continue
@@ -37,8 +48,11 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
             log = db_clan.capital_donations
             embed = disnake.Embed(
                 description=f"[**{new_player.name}**]({new_player.share_link}) donated {self.bot.emoji.capital_gold}{dono_change}",
-                color=disnake.Color.green())
-            embed.set_footer(icon_url=new_player.clan.badge.url, text=new_player.clan.name)
+                color=disnake.Color.green(),
+            )
+            embed.set_footer(
+                icon_url=new_player.clan.badge.url, text=new_player.clan.name
+            )
             embed.timestamp = utc_time
 
             try:
@@ -55,8 +69,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
                 await log.set_webhook(id=None)
                 continue
 
-
-    '''@coc.RaidEvents.new_offensive_opponent()
+    """@coc.RaidEvents.new_offensive_opponent()
     async def new_opponent(self, clan: coc.RaidClan, raid: RaidLogEntry):
         channel = await self.bot.getch_channel(1071566470137511966)
         district_text = ""
@@ -75,8 +88,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
                               color=disnake.Color.green())
         embed.add_field(name="Districts", value=district_text)
         embed.set_thumbnail(url=clan.badge.url)
-        await channel.send(embed=embed)'''
-
+        await channel.send(embed=embed)"""
 
     async def member_attack_log(self, event):
         attacked_list: list = event.get("attacked", [])
@@ -90,36 +102,53 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
 
         clan: coc.Clan = coc.Clan(data=clan_data, client=self.bot.coc_client)
 
-        raid = RaidLogEntry(data=event["raid"], client=self.bot.coc_client, clan_tag=event["clan_tag"])
-        old_raid = RaidLogEntry(data=event["old_raid"], client=self.bot.coc_client, clan_tag=event["clan_tag"])
+        raid = RaidLogEntry(
+            data=event["raid"], client=self.bot.coc_client, clan_tag=event["clan_tag"]
+        )
+        old_raid = RaidLogEntry(
+            data=event["old_raid"],
+            client=self.bot.coc_client,
+            clan_tag=event["clan_tag"],
+        )
 
         off_medal_reward = calc_raid_medals(raid.attack_log)
 
-        for cc in await self.bot.clan_db.find({"$and": [{"tag": raid.clan_tag}, {"logs.capital_attacks.webhook": {"$ne" : None}}]}).to_list(length=None):
+        for cc in await self.bot.clan_db.find(
+            {
+                "$and": [
+                    {"tag": raid.clan_tag},
+                    {"logs.capital_attacks.webhook": {"$ne": None}},
+                ]
+            }
+        ).to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=cc)
             if db_clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
             log = db_clan.capital_attacks
 
-
             embeds = []
             for member_tag in attacked_list:
                 old_member = old_raid.get_member(tag=member_tag)
                 new_member = raid.get_member(tag=member_tag)
 
-                previous_loot = old_member.capital_resources_looted if old_member is not None else 0
+                previous_loot = (
+                    old_member.capital_resources_looted if old_member is not None else 0
+                )
                 looted_amount = new_member.capital_resources_looted - previous_loot
 
                 embed = disnake.Embed(
                     description=f"[**{new_member.name}**]({new_member.share_link}) raided {self.bot.emoji.capital_gold}{looted_amount}",
-                    color=disnake.Color.green())
+                    color=disnake.Color.green(),
+                )
                 embed.set_author(name=f"{clan.name}", icon_url=clan.badge.url)
-                embed.set_footer(text=f"{numerize.numerize(raid.total_loot, 2)} Total CG | Calc Medals: {off_medal_reward}")
+                embed.set_footer(
+                    text=f"{numerize.numerize(raid.total_loot, 2)} Total CG | Calc Medals: {off_medal_reward}"
+                )
 
                 embeds.append(embed)
 
-            embeds = [embeds[i:i + 10] for i in range(0, len(embeds), 10)]
+            embeds = [embeds[i : i + 10] for i in range(0, len(embeds), 10)]
 
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
@@ -137,8 +166,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
                 await log.set_webhook(id=None)
                 continue
 
-
-        '''for cc in await self.bot.clan_db.find({"$and": [{"tag": raid.clan_tag}, {"logs.new_raid_panel.webhook": {"$ne": None}}]}).to_list(length=None):
+        """for cc in await self.bot.clan_db.find({"$and": [{"tag": raid.clan_tag}, {"logs.new_raid_panel.webhook": {"$ne": None}}]}).to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=cc)
             if db_clan.server_id not in self.bot.OUR_GUILDS:
                 continue
@@ -176,12 +204,7 @@ class clan_capital_events(commands.Cog, name="Clan Capital Events"):
                     continue
 
                 await log.set_raid_id(raid=raid)
-                await log.set_message_id(id=message.id)'''
-
-
-
-
-
+                await log.set_message_id(id=message.id)"""
 
 
 def setup(bot: CustomClient):

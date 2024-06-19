@@ -1,4 +1,3 @@
-
 import aiohttp
 import calendar
 import coc
@@ -35,7 +34,7 @@ def create_superscript(num):
     return new_num
 
 
-async def calculate_time(type, war: coc.ClanWar= None):
+async def calculate_time(type, war: coc.ClanWar = None):
     text = ""
     now = datetime.utcnow().replace(tzinfo=utc)
     year = now.year
@@ -55,7 +54,7 @@ async def calculate_time(type, war: coc.ClanWar= None):
                 next_year = year
             first = datetime(next_year, next_month, 1, hour=8, tzinfo=utc)
         end = datetime(year, month, 11, hour=8, tzinfo=utc)
-        if (day >= 1 and day <= 10):
+        if day >= 1 and day <= 10:
             if (day == 1 and hour < 8) or (day == 11 and hour >= 8):
                 is_cwl = False
             else:
@@ -92,7 +91,7 @@ async def calculate_time(type, war: coc.ClanWar= None):
         is_games = True
         first = datetime(year, month, 22, hour=8, tzinfo=utc)
         end = datetime(year, month, 28, hour=8, tzinfo=utc)
-        if (day >= 22 and day <= 28):
+        if day >= 22 and day <= 28:
             if (day == 22 and hour < 8) or (day == 28 and hour >= 8):
                 is_games = False
             else:
@@ -145,8 +144,12 @@ async def calculate_time(type, war: coc.ClanWar= None):
 
         now = datetime.utcnow().replace(tzinfo=utc)
         current_dayofweek = now.weekday()
-        if (current_dayofweek == 4 and now.hour >= 7) or (current_dayofweek == 5) or (current_dayofweek == 6) or (
-                current_dayofweek == 0 and now.hour < 7):
+        if (
+            (current_dayofweek == 4 and now.hour >= 7)
+            or (current_dayofweek == 5)
+            or (current_dayofweek == 6)
+            or (current_dayofweek == 0 and now.hour < 7)
+        ):
             if current_dayofweek == 0:
                 current_dayofweek = 7
             is_raids = True
@@ -154,7 +157,9 @@ async def calculate_time(type, war: coc.ClanWar= None):
             is_raids = False
 
         if is_raids:
-            end = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days= (7 - current_dayofweek))
+            end = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(
+                days=(7 - current_dayofweek)
+            )
             time_left = end - now
             secs = time_left.total_seconds()
             days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
@@ -167,7 +172,9 @@ async def calculate_time(type, war: coc.ClanWar= None):
             else:
                 text = f"end {int(days)}D {int(hrs)}H"
         else:
-            first = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days=(4 - current_dayofweek))
+            first = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(
+                days=(4 - current_dayofweek)
+            )
             time_left = first - now
             secs = time_left.total_seconds()
             days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
@@ -266,12 +273,9 @@ def response_to_line(response, clan):
     stars = dict(sorted(stars.items(), key=lambda item: item[1], reverse=True))
     place = list(stars.keys()).index(clan.tag) + 1
     league = response["leagueId"]
-    league_name = [x["name"]
-                   for x in war_leagues["items"] if x["id"] == league][0]
-    promo = [x["promo"]
-             for x in war_leagues["items"] if x["id"] == league][0]
-    demo = [x["demote"]
-            for x in war_leagues["items"] if x["id"] == league][0]
+    league_name = [x["name"] for x in war_leagues["items"] if x["id"] == league][0]
+    promo = [x["promo"] for x in war_leagues["items"] if x["id"] == league][0]
+    demo = [x["demote"] for x in war_leagues["items"] if x["id"] == league][0]
 
     if place <= promo:
         emoji = "<:warwon:932212939899949176>"
@@ -288,15 +292,18 @@ def response_to_line(response, clan):
     year = season[0:4]
     month = season[5:]
     month = calendar.month_abbr[int(month)]
-    #month = month.ljust(9)
+    # month = month.ljust(9)
     date = f"`{month}`"
-    league = str(league_name).replace('League ', '')
+    league = str(league_name).replace("League ", "")
     league = league.ljust(14)
     league = f"{league}"
 
     tier = str(league_name).count("I")
 
-    return (f"{emoji} {league_to_emoji(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n", year)
+    return (
+        f"{emoji} {league_to_emoji(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n",
+        year,
+    )
 
 
 def notate_number(number: int, zero=False):
@@ -319,7 +326,7 @@ def notate_number(number: int, zero=False):
 def custom_round(number: int, add_percent=None):
     number = round(number, 1)
     if len(str(number)) <= 3:
-        number = format(number, '.2f')
+        number = format(number, ".2f")
     elif number == 100.0:
         number = 100
     if add_percent:
@@ -340,10 +347,10 @@ def convert_seconds(seconds):
 
 def smart_convert_seconds(seconds, granularity=2):
     intervals = (
-        ('w', 604800),  # 60 * 60 * 24 * 7
-        ('d', 86400),  # 60 * 60 * 24
-        ('h', 3600),  # 60 * 60
-        ('m', 60),
+        ("w", 604800),  # 60 * 60 * 24 * 7
+        ("d", 86400),  # 60 * 60 * 24
+        ("h", 3600),  # 60 * 60
+        ("m", 60),
     )
 
     result = []
@@ -353,9 +360,9 @@ def smart_convert_seconds(seconds, granularity=2):
         if value:
             seconds -= value * count
             if value == 1:
-                name = name.rstrip('s')
+                name = name.rstrip("s")
             result.append("{}{}".format(int(value), name))
-    return ' '.join(result[:granularity])
+    return " ".join(result[:granularity])
 
 
 async def download_image(url: str):
@@ -378,7 +385,7 @@ def acronym(stng):
 
     # iterate over string
     for i in range(1, len(stng)):
-        if stng[i - 1] == ' ':
+        if stng[i - 1] == " ":
             # add letter next to space
             oupt += stng[i]
 
@@ -402,4 +409,3 @@ async def safe_run(func: Callable, **kwargs):
         await func(**kwargs)
     except Exception:
         pass
-

@@ -11,10 +11,13 @@ from exceptions.CustomExceptions import MissingWebhookPerms
 from msgspec import Struct
 from typing import Optional, List
 
+
 class Badges(Struct):
     large: str
+
     def to_dict(self):
         return {f: getattr(self, f) for f in self.__struct_fields__}
+
 
 class Clan(Struct):
     name: str
@@ -26,10 +29,15 @@ class Clan(Struct):
         for field, value in result.items():
             if isinstance(value, Struct):
                 result[field] = value.to_dict()  # Recursively convert nested structs
-            elif isinstance(value, list) and all(isinstance(item, Struct) for item in value):
-                result[field] = [item.to_dict() for item in value]  # Convert lists of structs
+            elif isinstance(value, list) and all(
+                isinstance(item, Struct) for item in value
+            ):
+                result[field] = [
+                    item.to_dict() for item in value
+                ]  # Convert lists of structs
 
         return result
+
 
 class Equipment(Struct):
     name: str
@@ -37,6 +45,7 @@ class Equipment(Struct):
 
     def to_dict(self):
         return {f: getattr(self, f) for f in self.__struct_fields__}
+
 
 class Heroes(Struct):
     name: str
@@ -47,16 +56,22 @@ class Heroes(Struct):
         for field, value in result.items():
             if isinstance(value, Struct):
                 result[field] = value.to_dict()  # Recursively convert nested structs
-            elif isinstance(value, list) and all(isinstance(item, Struct) for item in value):
-                result[field] = [item.to_dict() for item in value]  # Convert lists of structs
+            elif isinstance(value, list) and all(
+                isinstance(item, Struct) for item in value
+            ):
+                result[field] = [
+                    item.to_dict() for item in value
+                ]  # Convert lists of structs
 
         return result
+
 
 class League(Struct):
     name: str
 
     def to_dict(self):
         return {f: getattr(self, f) for f in self.__struct_fields__}
+
 
 class Player(Struct):
     name: str
@@ -74,14 +89,17 @@ class Player(Struct):
         for field, value in result.items():
             if isinstance(value, Struct):
                 result[field] = value.to_dict()  # Recursively convert nested structs
-            elif isinstance(value, list) and all(isinstance(item, Struct) for item in value):
-                result[field] = [item.to_dict() for item in value]  # Convert lists of structs
+            elif isinstance(value, list) and all(
+                isinstance(item, Struct) for item in value
+            ):
+                result[field] = [
+                    item.to_dict() for item in value
+                ]  # Convert lists of structs
 
         return result
 
     def share_link(self):
         return f"https://link.clashofclans.com/en?action=OpenPlayerProfile&tag=%23{self.tag.strip('#')}"
-
 
 
 class LegendEvents(commands.Cog):
@@ -104,17 +122,27 @@ class LegendEvents(commands.Cog):
             color = disnake.Color.green()
             change = f"{self.bot.emoji.sword} +{trophy_change} trophies"
             type = "logs.legend_log_attacks.webhook"
-        else: #trophy_change <= -1
+        else:  # trophy_change <= -1
             color = disnake.Color.red()
             change = f"{self.bot.emoji.shield} {trophy_change} trophies"
             type = "logs.legend_log_defenses.webhook"
 
-        embed = disnake.Embed(description=f"{change} | [profile]({player.share_link()})", color=color)
-        embed.set_author(name=f"{player.name} | {player.clan.name}", icon_url=player.clan.badgeUrls.large)
-        embed.set_footer(text=f"{player.trophies}", icon_url=self.bot.emoji.legends_shield.partial_emoji.url)
+        embed = disnake.Embed(
+            description=f"{change} | [profile]({player.share_link()})", color=color
+        )
+        embed.set_author(
+            name=f"{player.name} | {player.clan.name}",
+            icon_url=player.clan.badgeUrls.large,
+        )
+        embed.set_footer(
+            text=f"{player.trophies}",
+            icon_url=self.bot.emoji.legends_shield.partial_emoji.url,
+        )
         embed.timestamp = utc_time
 
-        tracked = self.bot.clan_db.find({"$and": [{"tag": player.clan.tag}, {f"{type}": {"$ne" : None}}]})
+        tracked = self.bot.clan_db.find(
+            {"$and": [{"tag": player.clan.tag}, {f"{type}": {"$ne": None}}]}
+        )
         for cc in await tracked.to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
             if clan.server_id not in self.bot.OUR_GUILDS:
@@ -126,7 +154,9 @@ class LegendEvents(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    webhook = await get_webhook_for_channel(
+                        bot=self.bot, channel=webhook.channel
+                    )
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)

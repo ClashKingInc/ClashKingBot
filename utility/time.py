@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+
 def time_difference(start: datetime, end: datetime):
     # Calculate the difference
     diff = end - start

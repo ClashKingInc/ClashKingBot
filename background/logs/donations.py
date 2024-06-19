@@ -21,7 +21,7 @@ class Donations(commands.Cog, name="Donations"):
         clan = coc.Clan(data=event["new_clan"], client=self.bot.coc_client)
         old_clan = coc.Clan(data=event["old_clan"], client=self.bot.coc_client)
 
-        tag_to_member = {member.tag : member for member in clan.members}
+        tag_to_member = {member.tag: member for member in clan.members}
         donated = []
         received = []
 
@@ -55,7 +55,9 @@ class Donations(commands.Cog, name="Donations"):
         if donation_text == "" and received_text == "":
             return
 
-        for cc in await self.bot.clan_db.find({"$and": [{"tag": clan.tag}, {f"logs.donation_log.webhook": {"$ne" : None}}]}).to_list(length=None):
+        for cc in await self.bot.clan_db.find(
+            {"$and": [{"tag": clan.tag}, {f"logs.donation_log.webhook": {"$ne": None}}]}
+        ).to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
@@ -64,7 +66,9 @@ class Donations(commands.Cog, name="Donations"):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    webhook = await get_webhook_for_channel(
+                        bot=self.bot, channel=webhook.channel
+                    )
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -81,4 +85,3 @@ class Donations(commands.Cog, name="Donations"):
 
 def setup(bot: CustomClient):
     bot.add_cog(Donations(bot))
-

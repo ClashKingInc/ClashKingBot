@@ -10,7 +10,8 @@ from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.clash.other import league_emoji
 from utility.constants import ROLES
 from utility.discord_utils import get_webhook_for_channel
-#from BoardCommands.Utils.Player import upgrade_embed
+
+# from BoardCommands.Utils.Player import upgrade_embed
 
 
 class UpgradeEvent(commands.Cog):
@@ -27,15 +28,21 @@ class UpgradeEvent(commands.Cog):
         self.player_ee.on("role", self.role_change)
         self.player_ee.on("heroEquipment", self.gear_upgrade)
 
-
     async def league_change(self, event):
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
         if new_player.clan is None or new_player.league.id == 29000000:
             return
 
         old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
-        name = re.sub('[*_`~/]', '', new_player.name)
-        for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {f"logs.league_change.webhook": {"$ne": None}}]}).to_list(length=None):
+        name = re.sub("[*_`~/]", "", new_player.name)
+        for cc in await self.bot.clan_db.find(
+            {
+                "$and": [
+                    {"tag": new_player.clan.tag},
+                    {f"logs.league_change.webhook": {"$ne": None}},
+                ]
+            }
+        ).to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
@@ -44,7 +51,9 @@ class UpgradeEvent(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    webhook = await get_webhook_for_channel(
+                        bot=self.bot, channel=webhook.channel
+                    )
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -58,16 +67,22 @@ class UpgradeEvent(commands.Cog):
                 await log.set_webhook(id=None)
                 continue
 
-
     async def name_change(self, event):
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
         if new_player.clan is None:
             return
 
-        new_name = re.sub('[*_`~/]', '', new_player.name)
+        new_name = re.sub("[*_`~/]", "", new_player.name)
         old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
-        old_name = re.sub('[*_`~/]', '', old_player.name)
-        for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {f"logs.name_change.webhook": {"$ne": None}}]}).to_list(length=None):
+        old_name = re.sub("[*_`~/]", "", old_player.name)
+        for cc in await self.bot.clan_db.find(
+            {
+                "$and": [
+                    {"tag": new_player.clan.tag},
+                    {f"logs.name_change.webhook": {"$ne": None}},
+                ]
+            }
+        ).to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
@@ -78,7 +93,9 @@ class UpgradeEvent(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    webhook = await get_webhook_for_channel(
+                        bot=self.bot, channel=webhook.channel
+                    )
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -91,29 +108,44 @@ class UpgradeEvent(commands.Cog):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)
                 continue
-
 
     async def role_change(self, event):
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
         if new_player.clan is None or new_player.role is None:
             return
 
-        new_name = re.sub('[*_`~/]', '', new_player.name)
+        new_name = re.sub("[*_`~/]", "", new_player.name)
         old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
-        for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {f"logs.role_change.webhook": {"$ne": None}}]}).to_list(length=None):
+        for cc in await self.bot.clan_db.find(
+            {
+                "$and": [
+                    {"tag": new_player.clan.tag},
+                    {f"logs.role_change.webhook": {"$ne": None}},
+                ]
+            }
+        ).to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
-            direction = "promoted" if ROLES.index(new_player.role.in_game_name) > ROLES.index(old_player.role.in_game_name) else "demoted"
-            content = (f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{new_name}](<{new_player.share_link}>)"
-                       f" was {direction} from {old_player.role.in_game_name} to {new_player.role.in_game_name}")
+            direction = (
+                "promoted"
+                if ROLES.index(new_player.role.in_game_name)
+                > ROLES.index(old_player.role.in_game_name)
+                else "demoted"
+            )
+            content = (
+                f"{self.bot.fetch_emoji(name=new_player.town_hall)}[{new_name}](<{new_player.share_link}>)"
+                f" was {direction} from {old_player.role.in_game_name} to {new_player.role.in_game_name}"
+            )
 
             log = clan.role_change
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    webhook = await get_webhook_for_channel(
+                        bot=self.bot, channel=webhook.channel
+                    )
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -127,14 +159,20 @@ class UpgradeEvent(commands.Cog):
                 await log.set_webhook(id=None)
                 continue
 
-
     async def th_upgrade(self, event):
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
         if new_player.clan is None:
             return
 
-        name = re.sub('[*_`~/]', '', new_player.name)
-        for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {f"logs.th_upgrade.webhook": {"$ne": None}}]}).to_list(length=None):
+        name = re.sub("[*_`~/]", "", new_player.name)
+        for cc in await self.bot.clan_db.find(
+            {
+                "$and": [
+                    {"tag": new_player.clan.tag},
+                    {f"logs.th_upgrade.webhook": {"$ne": None}},
+                ]
+            }
+        ).to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
@@ -143,18 +181,27 @@ class UpgradeEvent(commands.Cog):
 
             log = clan.th_upgrade
             try:
-                buttons = disnake.ui.ActionRow(disnake.ui.Button(label="", emoji=self.bot.emoji.troop.partial_emoji,
-                                                                 style=disnake.ButtonStyle.green,
-                                                                 custom_id=f"logrushed_{new_player.tag}"))
+                buttons = disnake.ui.ActionRow(
+                    disnake.ui.Button(
+                        label="",
+                        emoji=self.bot.emoji.troop.partial_emoji,
+                        style=disnake.ButtonStyle.green,
+                        custom_id=f"logrushed_{new_player.tag}",
+                    )
+                )
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    webhook = await get_webhook_for_channel(
+                        bot=self.bot, channel=webhook.channel
+                    )
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
                     if thread.locked:
                         continue
-                    await webhook.send(content=content, thread=thread, components=buttons)
+                    await webhook.send(
+                        content=content, thread=thread, components=buttons
+                    )
                 else:
                     await webhook.send(content=content, components=buttons)
             except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
@@ -162,17 +209,23 @@ class UpgradeEvent(commands.Cog):
                 await log.set_webhook(id=None)
                 continue
 
-
     async def troop_upgrade(self, event):
 
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
         if new_player.clan is None:
             return
 
-        name = re.sub('[*_`~/]', '', new_player.name)
+        name = re.sub("[*_`~/]", "", new_player.name)
         text = None
         print("EVENT HERE")
-        for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {f"logs.troop_upgrade.webhook": {"$ne": None}}]}).to_list(length=None):
+        for cc in await self.bot.clan_db.find(
+            {
+                "$and": [
+                    {"tag": new_player.clan.tag},
+                    {f"logs.troop_upgrade.webhook": {"$ne": None}},
+                ]
+            }
+        ).to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
 
             if clan.server_id not in self.bot.OUR_GUILDS:
@@ -184,12 +237,16 @@ class UpgradeEvent(commands.Cog):
             log = clan.troop_upgrade
 
             if text is None:
-                old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
+                old_player = coc.Player(
+                    data=event["old_player"], client=self.bot.coc_client
+                )
                 unlocked = []
                 leveled_up = []
                 boosted = []
                 for troop in new_player.troops:
-                    old_troop = old_player.get_troop(name=troop.name, is_home_troop=troop.is_home_base)
+                    old_troop = old_player.get_troop(
+                        name=troop.name, is_home_troop=troop.is_home_base
+                    )
                     if old_troop is None:
                         if troop.is_super_troop:
                             boosted.append(troop)
@@ -219,7 +276,9 @@ class UpgradeEvent(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    webhook = await get_webhook_for_channel(
+                        bot=self.bot, channel=webhook.channel
+                    )
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -233,21 +292,29 @@ class UpgradeEvent(commands.Cog):
                 await log.set_webhook(id=None)
                 continue
 
-
     async def hero_upgrade(self, event):
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
         if new_player.clan is None:
             return
 
-        name = re.sub('[*_`~/]', '', new_player.name)
+        name = re.sub("[*_`~/]", "", new_player.name)
         text = None
-        for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {f"logs.hero_upgrade.webhook": {"$ne": None}}]}).to_list(length=None):
+        for cc in await self.bot.clan_db.find(
+            {
+                "$and": [
+                    {"tag": new_player.clan.tag},
+                    {f"logs.hero_upgrade.webhook": {"$ne": None}},
+                ]
+            }
+        ).to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
             log = clan.hero_upgrade
             if text is None:
-                old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
+                old_player = coc.Player(
+                    data=event["old_player"], client=self.bot.coc_client
+                )
                 unlocked = []
                 leveled_up = []
                 for hero in new_player.heroes:
@@ -267,7 +334,9 @@ class UpgradeEvent(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    webhook = await get_webhook_for_channel(
+                        bot=self.bot, channel=webhook.channel
+                    )
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -281,21 +350,29 @@ class UpgradeEvent(commands.Cog):
                 await log.set_webhook(id=None)
                 continue
 
-
     async def gear_upgrade(self, event):
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
         if new_player.clan is None:
             return
 
-        name = re.sub('[*_`~/]', '', new_player.name)
+        name = re.sub("[*_`~/]", "", new_player.name)
         text = None
-        for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {f"logs.hero_equipment_upgrade.webhook": {"$ne": None}}]}).to_list(length=None):
+        for cc in await self.bot.clan_db.find(
+            {
+                "$and": [
+                    {"tag": new_player.clan.tag},
+                    {f"logs.hero_equipment_upgrade.webhook": {"$ne": None}},
+                ]
+            }
+        ).to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
             log = clan.hero_equipment_upgrade
             if text is None:
-                old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
+                old_player = coc.Player(
+                    data=event["old_player"], client=self.bot.coc_client
+                )
                 unlocked = []
                 leveled_up = []
                 for gear in new_player.equipment:
@@ -315,7 +392,9 @@ class UpgradeEvent(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    webhook = await get_webhook_for_channel(
+                        bot=self.bot, channel=webhook.channel
+                    )
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -329,15 +408,21 @@ class UpgradeEvent(commands.Cog):
                 await log.set_webhook(id=None)
                 continue
 
-
     async def spells_upgrade(self, event):
         new_player = coc.Player(data=event["new_player"], client=self.bot.coc_client)
         if new_player.clan is None:
             return
 
-        name = re.sub('[*_`~/]', '', new_player.name)
+        name = re.sub("[*_`~/]", "", new_player.name)
         text = None
-        for cc in await self.bot.clan_db.find({"$and": [{"tag": new_player.clan.tag}, {f"logs.spell_upgrade.webhook": {"$ne": None}}]}).to_list(length=None):
+        for cc in await self.bot.clan_db.find(
+            {
+                "$and": [
+                    {"tag": new_player.clan.tag},
+                    {f"logs.spell_upgrade.webhook": {"$ne": None}},
+                ]
+            }
+        ).to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue
@@ -345,7 +430,9 @@ class UpgradeEvent(commands.Cog):
             log = clan.spell_upgrade
 
             if text is None:
-                old_player = coc.Player(data=event["old_player"], client=self.bot.coc_client)
+                old_player = coc.Player(
+                    data=event["old_player"], client=self.bot.coc_client
+                )
                 unlocked = []
                 leveled_up = []
                 for spell in new_player.spells:
@@ -365,7 +452,9 @@ class UpgradeEvent(commands.Cog):
             try:
                 webhook = await self.bot.getch_webhook(log.webhook)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    webhook = await get_webhook_for_channel(
+                        bot=self.bot, channel=webhook.channel
+                    )
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
                     thread = await self.bot.getch_channel(log.thread)
@@ -379,7 +468,6 @@ class UpgradeEvent(commands.Cog):
                 await log.set_webhook(id=None)
                 continue
 
-
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
         if "logrushed_" in str(ctx.data.custom_id):
@@ -388,8 +476,9 @@ class UpgradeEvent(commands.Cog):
             player = await self.bot.getPlayer(player_tag=tag, custom=True)
             if player is None:
                 return await ctx.edit_original_response(content="No player found.")
-            #embeds = await upgrade_embed(self.bot, player)
-            #await ctx.edit_original_response(embeds=embeds)
+            # embeds = await upgrade_embed(self.bot, player)
+            # await ctx.edit_original_response(embeds=embeds)
+
 
 def setup(bot: CustomClient):
     bot.add_cog(UpgradeEvent(bot))

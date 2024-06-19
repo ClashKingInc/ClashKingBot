@@ -1,5 +1,4 @@
-
-class WarPlan():
+class WarPlan:
     def __init__(self, data):
         self.data = data
         self.name: str = data.get("name")
@@ -18,4 +17,3 @@ class WarPlan():
         if self.plan_two != "No Plan" and self.plan_two != "":
             text += f"\n▸ 2. {self.plan_two}"
         return text
-

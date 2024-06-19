@@ -6,7 +6,8 @@ from assets.thPicDictionary import thDictionary
 import emoji
 import re
 
-class BasePlayer():
+
+class BasePlayer:
     def __init__(self, data: dict, api_player: coc.Player | coc.ClanMember):
         self.tag: str = data.get("tag")
         self.api_player = api_player
@@ -15,7 +16,7 @@ class BasePlayer():
     @property
     def clear_name(self):
         name = emoji.replace_emoji(self._.name)
-        name = re.sub('[*_`~/]', '', name)
+        name = re.sub("[*_`~/]", "", name)
         return f"\u200e{name}"
 
     @property
@@ -43,7 +44,7 @@ class BasePlayer():
         return clan_badge
 
 
-class BaseClan():
+class BaseClan:
     def __init__(self, data: dict, api_clan: coc.Clan):
         self.tag: str = data.get("tag")
         self.api_clan = api_clan
@@ -52,7 +53,7 @@ class BaseClan():
     @property
     def clear_name(self):
         name = emoji.replace_emoji(self._.name)
-        name = re.sub('[*_`~/]', '', name)
+        name = re.sub("[*_`~/]", "", name)
         return f"\u200e{name}"
 
     @property
@@ -60,8 +61,7 @@ class BaseClan():
         return SHORT_PLAYER_LINK + self.tag.replace("#", "")
 
 
-
-class CustomTownHall():
+class CustomTownHall:
     def __init__(self, level):
         self._level = level if level >= 5 else 5
 
@@ -80,7 +80,7 @@ class CustomTownHall():
         return thDictionary(self._level)
 
 
-class NumChoice():
+class NumChoice:
     def __init__(self, num):
         self.integer = num if num <= 8 else 8
 

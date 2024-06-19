@@ -4,6 +4,7 @@ from utility.clash.other import gen_legend_date, gen_season_date
 from coc.utils import get_season_end, get_season_start
 from datetime import timedelta
 
+
 class LegendPlayer(BasePlayer):
     def __init__(self, data, ranking_data, api_player):
         super().__init__(data, api_player)
@@ -16,16 +17,13 @@ class LegendPlayer(BasePlayer):
         todays_legend_day = self.get_legend_day()
         return self.api_player.trophies - todays_legend_day.net_gain
 
-
     @property
     def ranking(self):
         return LegendRanking(ranking_result=self._ranking_data)
 
-
     def get_legend_day(self, date=None):
         date = date or gen_legend_date()
         return LegendDay(self._legend_data.get(date, {}))
-
 
     def get_legend_season(self, season=None):
         season = season or gen_season_date()
@@ -41,7 +39,6 @@ class LegendPlayer(BasePlayer):
         for day in days:
             legend_days[day] = self.get_legend_day(date=day)
         return legend_days
-
 
     def get_legend_season_stats(self, season=None):
         season_stats = self.get_legend_season(season=season)

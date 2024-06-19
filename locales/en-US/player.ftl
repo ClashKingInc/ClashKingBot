@@ -1,5 +1,5 @@
-#PLAYER COMMANDS
 player-name = player
+player-description = Commands for player accounts & stats
 lookup-name = lookup
 player-lookup-description = Lookup a player or discord user.
 upgrades-name = upgrades
@@ -12,6 +12,3 @@ war-stats-name = war-stats
 player-war-stats-description = War stats of a player or discord user.
 stats-name = stats
 player-stats-description = Get stats for different areas of a player.
-
-#STRIKE COMMANDS
-strike-name = strike

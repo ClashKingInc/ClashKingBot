@@ -6,16 +6,19 @@ from utility.discord_utils import get_webhook_for_channel
 from exceptions.CustomExceptions import MissingWebhookPerms
 from commands.components.buttons import button_logic
 
+
 class RefreshBoards(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        self.bot.scheduler.add_job(self.refresh, 'interval', minutes=5)
+        self.bot.scheduler.add_job(self.refresh, "interval", minutes=5)
 
     async def refresh(self):
-        if not self.bot.user.public_flags.verified_bot: #only main bot for now
+        if not self.bot.user.public_flags.verified_bot:  # only main bot for now
             return
-        all_refresh_boards = await self.bot.button_store.find({"webhook_id" : {"$ne" : None}}).to_list(length=None)
+        all_refresh_boards = await self.bot.button_store.find(
+            {"webhook_id": {"$ne": None}}
+        ).to_list(length=None)
         for board in all_refresh_boards:
             webhook_id = board.get("webhook_id")
             thread_id = board.get("thread_id")
@@ -28,7 +31,9 @@ class RefreshBoards(commands.Cog):
             try:
                 webhook: disnake.Webhook = await self.bot.getch_webhook(webhook_id)
                 if webhook.user.id != self.bot.user.id:
-                    webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
+                    webhook = await get_webhook_for_channel(
+                        bot=self.bot, channel=webhook.channel
+                    )
                     if thread_id is None:
                         if isinstance(embed, list):
                             message = await webhook.send(embeds=embed, wait=True)
@@ -37,29 +42,41 @@ class RefreshBoards(commands.Cog):
                     else:
                         thread = await self.bot.getch_channel(thread_id)
                         if isinstance(embed, list):
-                            message = await webhook.send(embeds=embed, thread=thread, wait=True)
+                            message = await webhook.send(
+                                embeds=embed, thread=thread, wait=True
+                            )
                         else:
-                            message = await webhook.send(embed=embed, thread=thread, wait=True)
-                    await self.bot.button_store.update_one({"_id" : board.get("_id")}, {"$set" : {"webhook_id" : webhook.id, "message_id" : message.id}})
+                            message = await webhook.send(
+                                embed=embed, thread=thread, wait=True
+                            )
+                    await self.bot.button_store.update_one(
+                        {"_id": board.get("_id")},
+                        {"$set": {"webhook_id": webhook.id, "message_id": message.id}},
+                    )
                     continue
 
                 if thread_id is not None:
-                    thread = await self.bot.getch_channel(thread_id, raise_exception=True)
+                    thread = await self.bot.getch_channel(
+                        thread_id, raise_exception=True
+                    )
                     if isinstance(embed, list):
-                        await webhook.edit_message(message_id, thread=thread, embeds=embed)
+                        await webhook.edit_message(
+                            message_id, thread=thread, embeds=embed
+                        )
                     else:
-                        await webhook.edit_message(message_id, thread=thread, embed=embed)
+                        await webhook.edit_message(
+                            message_id, thread=thread, embed=embed
+                        )
                 else:
                     if isinstance(embed, list):
                         await webhook.edit_message(message_id, embeds=embed)
                     else:
                         await webhook.edit_message(message_id, embed=embed)
 
-
             except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
-                await self.bot.button_store.update_one({"_id" : board.get("_id")}, {"$set" : {"webhook_id" : None}})
-
-
+                await self.bot.button_store.update_one(
+                    {"_id": board.get("_id")}, {"$set": {"webhook_id": None}}
+                )
 
 
 def setup(bot: CustomClient):

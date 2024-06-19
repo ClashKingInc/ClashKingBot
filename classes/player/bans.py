@@ -1,5 +1,6 @@
 import coc
 
+
 class BannedPlayer(coc.Player):
     def __init__(self, *, data, client, **kwargs):
         super().__init__(data=data, client=client, **kwargs)
@@ -7,4 +8,3 @@ class BannedPlayer(coc.Player):
         self.notes: str = self._results.get("Notes")
         self.date_created: str = self._results.get("DateCreated")
         self.added_by: int = self._results.get("added_by")
-

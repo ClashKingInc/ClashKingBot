@@ -8,7 +8,8 @@ from classes.bot import CustomClient
 from exceptions.CustomExceptions import MessageException
 from coc import utils
 
-class OldDatabaseServer():
+
+class OldDatabaseServer:
     def __init__(self, bot: CustomClient, data):
         self.bot = bot
         self.__data = data
@@ -17,20 +18,49 @@ class OldDatabaseServer():
         self.prefix = data.get("prefix", "do ")
         self.greeting = data.get("greeting")
         self.use_api_token = data.get("api_token", True)
-        self.league_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get("eval", {}).get("league_roles", [])]
-        self.builder_league_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get("eval", {}).get("builder_league_roles", [])]
-        self.ignored_roles = [EvalRole(bot=bot, data=d) for d in data.get("eval", {}).get("ignored_roles", [])]
-        self.family_roles = [EvalRole(bot=bot, data=d) for d in data.get("eval", {}).get("family_roles", [])]
-        self.not_family_roles = [EvalRole(bot=bot, data=d) for d in data.get("eval", {}).get("not_family_roles", [])]
-        self.townhall_roles = [TownhallRole(bot=bot, data=d) for d in data.get("eval", {}).get("townhall_roles", [])]
-        self.builderhall_roles = [BuilderHallRole(bot=bot, data=d) for d in data.get("eval", {}).get("builderhall_roles", [])]
-        self.achievement_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get("eval", {}).get("achievement_roles", [])]
-        self.status_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get("eval", {}).get("status_roles", [])]
+        self.league_roles = [
+            MultiTypeRole(bot=bot, data=d)
+            for d in data.get("eval", {}).get("league_roles", [])
+        ]
+        self.builder_league_roles = [
+            MultiTypeRole(bot=bot, data=d)
+            for d in data.get("eval", {}).get("builder_league_roles", [])
+        ]
+        self.ignored_roles = [
+            EvalRole(bot=bot, data=d)
+            for d in data.get("eval", {}).get("ignored_roles", [])
+        ]
+        self.family_roles = [
+            EvalRole(bot=bot, data=d)
+            for d in data.get("eval", {}).get("family_roles", [])
+        ]
+        self.not_family_roles = [
+            EvalRole(bot=bot, data=d)
+            for d in data.get("eval", {}).get("not_family_roles", [])
+        ]
+        self.townhall_roles = [
+            TownhallRole(bot=bot, data=d)
+            for d in data.get("eval", {}).get("townhall_roles", [])
+        ]
+        self.builderhall_roles = [
+            BuilderHallRole(bot=bot, data=d)
+            for d in data.get("eval", {}).get("builderhall_roles", [])
+        ]
+        self.achievement_roles = [
+            MultiTypeRole(bot=bot, data=d)
+            for d in data.get("eval", {}).get("achievement_roles", [])
+        ]
+        self.status_roles = [
+            MultiTypeRole(bot=bot, data=d)
+            for d in data.get("eval", {}).get("status_roles", [])
+        ]
         self.clans = [DatabaseClan(bot=bot, data=d) for d in data.get("clans", [])]
         self.category_roles = data.get("category_roles")
         self.eval_non_members: bool = data.get("eval_non_members", True)
         self.blacklisted_roles: List[int] = data.get("blacklisted_roles", [])
-        self.role_treatment: List[str] = data.get("role_treatment", ROLE_TREATMENT_TYPES)
+        self.role_treatment: List[str] = data.get(
+            "role_treatment", ROLE_TREATMENT_TYPES
+        )
         self.auto_eval_nickname: bool = data.get("auto_eval_nickname", False)
         self.family_label = data.get("family_label", "")
         self.banlist_channel = data.get("banlist")
@@ -42,78 +72,118 @@ class OldDatabaseServer():
         self.nickname_convention = data.get("nickname_rule", "{discord_display_name}")
         self.change_nickname = data.get("change_nickname", False)
 
-
     async def set_change_nickname(self, status: bool):
-        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"change_nickname": status}})
+        await self.bot.server_db.update_one(
+            {"server": self.server_id}, {"$set": {"change_nickname": status}}
+        )
 
     async def set_nickname_convention(self, rule: str):
-        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"nickname_rule": rule}})
+        await self.bot.server_db.update_one(
+            {"server": self.server_id}, {"$set": {"nickname_rule": rule}}
+        )
 
     async def set_banlist_channel(self, id: Union[int, None]):
-        await self.bot.server_db.update_one({"server": self.server_id}, {'$set': {"banlist": id}})
+        await self.bot.server_db.update_one(
+            {"server": self.server_id}, {"$set": {"banlist": id}}
+        )
 
     async def set_family_label(self, label: str):
-        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"family_label": label}})
+        await self.bot.server_db.update_one(
+            {"server": self.server_id}, {"$set": {"family_label": label}}
+        )
 
     async def set_api_token(self, status: bool):
-        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"api_token": status}})
+        await self.bot.server_db.update_one(
+            {"server": self.server_id}, {"$set": {"api_token": status}}
+        )
 
     async def set_leadership_eval(self, status: bool):
-        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"leadership_eval": status}})
+        await self.bot.server_db.update_one(
+            {"server": self.server_id}, {"$set": {"leadership_eval": status}}
+        )
 
     async def add_blacklisted_role(self, id: int):
-        await self.bot.server_db.update_one({"server": self.server_id}, {"$push": {"blacklisted_roles": id}})
+        await self.bot.server_db.update_one(
+            {"server": self.server_id}, {"$push": {"blacklisted_roles": id}}
+        )
 
     async def remove_blacklisted_role(self, id: int):
-        await self.bot.server_db.update_one({"server": self.server_id}, {"$pull": {"blacklisted_roles": id}})
+        await self.bot.server_db.update_one(
+            {"server": self.server_id}, {"$pull": {"blacklisted_roles": id}}
+        )
 
     async def set_role_treatment(self, treatment: List[str]):
-        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"role_treatment": treatment}})
+        await self.bot.server_db.update_one(
+            {"server": self.server_id}, {"$set": {"role_treatment": treatment}}
+        )
 
     async def set_auto_eval_nickname(self, status: bool):
-        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"auto_eval_nickname": status}})
+        await self.bot.server_db.update_one(
+            {"server": self.server_id}, {"$set": {"auto_eval_nickname": status}}
+        )
 
     async def set_tied_stats(self, state: bool):
-        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"tied": state}})
+        await self.bot.server_db.update_one(
+            {"server": self.server_id}, {"$set": {"tied": state}}
+        )
 
     async def set_hex_code(self, hex_code: str):
         hex_code = hex_code.replace("#", "")
         hex_code = int(hex_code, 16)
-        await self.bot.server_db.update_one({"server": self.server_id}, {"$set": {"embed_color": hex_code}})
+        await self.bot.server_db.update_one(
+            {"server": self.server_id}, {"$set": {"embed_color": hex_code}}
+        )
 
     async def get_achievement_role_by_type(self, type: str, award_type: str = None):
 
         result = self.__data.get("achievement_roles", {}).get(type, [])
         if award_type is not None:
-            result = filter(lambda x : x.get("amount") > 100 if award_type == "amount" else x.get("amount") <= 100, result)
+            result = filter(
+                lambda x: (
+                    x.get("amount") > 100
+                    if award_type == "amount"
+                    else x.get("amount") <= 100
+                ),
+                result,
+            )
         return result
 
     async def add_achievement_role(self, type: str, season: str, amount: int):
-        await self.bot.server_db.update_one({"server": self.server_id},
-                                            {"$push": {f"achievement_roles.{type}": {"season" : season, "amount" : amount}}})
+        await self.bot.server_db.update_one(
+            {"server": self.server_id},
+            {
+                "$push": {
+                    f"achievement_roles.{type}": {"season": season, "amount": amount}
+                }
+            },
+        )
 
     def get_clan(self, clan_tag: str):
         matching_clan = utils.get(self.clans, tag=clan_tag)
         if matching_clan is None:
-            raise MessageException(f"There is no clan ({clan_tag}) linked to this server.")
+            raise MessageException(
+                f"There is no clan ({clan_tag}) linked to this server."
+            )
         return matching_clan
 
 
-
-class EvalRole():
+class EvalRole:
     def __init__(self, bot: CustomClient, data):
         self.server: int = data.get("server")
         self.id: int = data.get("role")
+
 
 class BuilderHallRole(EvalRole):
     def __init__(self, bot: CustomClient, data):
         super().__init__(bot=bot, data=data)
         self.builderhall: str = data.get("bh")
 
+
 class MultiTypeRole(EvalRole):
     def __init__(self, bot: CustomClient, data):
         super().__init__(bot=bot, data=data)
         self.type: str = data.get("type")
+
 
 class TownhallRole(EvalRole):
     def __init__(self, bot: CustomClient, data):
@@ -121,8 +191,7 @@ class TownhallRole(EvalRole):
         self.townhall: str = data.get("th")
 
 
-
-class DatabaseClan():
+class DatabaseClan:
     def __init__(self, bot: CustomClient, data):
         self.name = data.get("name")
         self.bot = bot
@@ -140,7 +209,9 @@ class DatabaseClan():
         self.capital_donations = ClanLog(parent=self, type="capital_donations")
         self.capital_attacks = ClanLog(parent=self, type="capital_attacks")
         self.raid_map = ClanLog(parent=self, type="raid_map")
-        self.capital_weekly_summary = ClanLog(parent=self, type="capital_weekly_summary")
+        self.capital_weekly_summary = ClanLog(
+            parent=self, type="capital_weekly_summary"
+        )
         self.raid_panel = CapitalPanel(parent=self, type="new_raid_panel")
         self.donation_log = ClanLog(parent=self, type="donation_log")
         self.clan_achievement_log = ClanLog(parent=self, type="clan_achievement_log")
@@ -155,7 +226,9 @@ class DatabaseClan():
         self.league_change = ClanLog(parent=self, type="league_change")
         self.spell_upgrade = ClanLog(parent=self, type="spell_upgrade")
         self.hero_upgrade = ClanLog(parent=self, type="hero_upgrade")
-        self.hero_equipment_upgrade = ClanLog(parent=self, type="hero_equipment_upgrade")
+        self.hero_equipment_upgrade = ClanLog(
+            parent=self, type="hero_equipment_upgrade"
+        )
 
         self.name_change = ClanLog(parent=self, type="name_change")
         self.ban_alert_channel = data.get("ban_alert_channel")
@@ -168,87 +241,92 @@ class DatabaseClan():
         self.member_count_warning = MemberCountWarning(parent=self)
         self.auto_greet_option = data.get("auto_greet_option", "First Join")
 
-
     async def set_auto_greet(self, option: str):
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": self.tag},
-            {"server": self.server_id}
-        ]}, {'$set': {"auto_greet_option": option}})
+        await self.bot.clan_db.update_one(
+            {"$and": [{"tag": self.tag}, {"server": self.server_id}]},
+            {"$set": {"auto_greet_option": option}},
+        )
 
     async def set_war_countdown(self, id: Union[int, None]):
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": self.tag},
-            {"server": self.server_id}
-        ]}, {'$set': {"warCountdown": id}})
-
+        await self.bot.clan_db.update_one(
+            {"$and": [{"tag": self.tag}, {"server": self.server_id}]},
+            {"$set": {"warCountdown": id}},
+        )
 
     async def set_clan_channel(self, id: Union[int, None]):
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": self.tag},
-            {"server": self.server_id}
-        ]}, {'$set': {"clanChannel": id}})
+        await self.bot.clan_db.update_one(
+            {"$and": [{"tag": self.tag}, {"server": self.server_id}]},
+            {"$set": {"clanChannel": id}},
+        )
 
     async def set_member_role(self, id: Union[int, None]):
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": self.tag},
-            {"server": self.server_id}
-        ]}, {'$set': {"generalRole": id}})
+        await self.bot.clan_db.update_one(
+            {"$and": [{"tag": self.tag}, {"server": self.server_id}]},
+            {"$set": {"generalRole": id}},
+        )
 
     async def set_leadership_role(self, id: Union[int, None]):
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": self.tag},
-            {"server": self.server_id}
-        ]}, {'$set': {"leaderRole": id}})
-
+        await self.bot.clan_db.update_one(
+            {"$and": [{"tag": self.tag}, {"server": self.server_id}]},
+            {"$set": {"leaderRole": id}},
+        )
 
     async def set_ban_alert_channel(self, id: Union[int, None]):
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": self.tag},
-            {"server": self.server_id}
-        ]}, {'$set': {"ban_alert_channel": id}})
+        await self.bot.clan_db.update_one(
+            {"$and": [{"tag": self.tag}, {"server": self.server_id}]},
+            {"$set": {"ban_alert_channel": id}},
+        )
 
     async def set_greeting(self, text: str):
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": self.tag},
-            {"server": self.server_id}
-        ]}, {'$set': {"greeting_embed": text}})
+        await self.bot.clan_db.update_one(
+            {"$and": [{"tag": self.tag}, {"server": self.server_id}]},
+            {"$set": {"greeting_embed": text}},
+        )
 
     async def set_category(self, category: str):
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": self.tag},
-            {"server": self.server_id}
-        ]}, {'$set': {"category": category}})
+        await self.bot.clan_db.update_one(
+            {"$and": [{"tag": self.tag}, {"server": self.server_id}]},
+            {"$set": {"category": category}},
+        )
 
     async def set_nickname_label(self, abbreviation: str):
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": self.tag},
-            {"server": self.server_id}
-        ]}, {'$set': {"abbreviation": abbreviation}})
-
+        await self.bot.clan_db.update_one(
+            {"$and": [{"tag": self.tag}, {"server": self.server_id}]},
+            {"$set": {"abbreviation": abbreviation}},
+        )
 
     async def set_strike_button(self, set: bool):
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": self.tag},
-            {"server": self.server_id}
-        ]}, {'$set': {"logs.leave_log.strike_button": set}})
+        await self.bot.clan_db.update_one(
+            {"$and": [{"tag": self.tag}, {"server": self.server_id}]},
+            {"$set": {"logs.leave_log.strike_button": set}},
+        )
 
     async def set_ban_button(self, set: bool):
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": self.tag},
-            {"server": self.server_id}
-        ]}, {'$set': {"logs.leave_log.ban_button": set}})
+        await self.bot.clan_db.update_one(
+            {"$and": [{"tag": self.tag}, {"server": self.server_id}]},
+            {"$set": {"logs.leave_log.ban_button": set}},
+        )
 
     async def set_profile_button(self, set: bool):
-        await self.bot.clan_db.update_one({"$and": [
-            {"tag": self.tag},
-            {"server": self.server_id}
-        ]}, {'$set': {"logs.join_log.profile_button": set}})
+        await self.bot.clan_db.update_one(
+            {"$and": [{"tag": self.tag}, {"server": self.server_id}]},
+            {"$set": {"logs.join_log.profile_button": set}},
+        )
 
-    async def add_refresh_board(self, type: str, scope: str, message_id: int, webhook_id: int):
-        await self.bot.refresh_boards.insert_one({"type" : type, "scope" : scope, "message_id" : message_id, "webhook_id" : webhook_id})
+    async def add_refresh_board(
+        self, type: str, scope: str, message_id: int, webhook_id: int
+    ):
+        await self.bot.refresh_boards.insert_one(
+            {
+                "type": type,
+                "scope": scope,
+                "message_id": message_id,
+                "webhook_id": webhook_id,
+            }
+        )
 
 
-class MemberCountWarning():
+class MemberCountWarning:
     def __init__(self, parent: DatabaseClan):
         self.data = parent.data.get("member_count_warning", {})
         self.channel = self.data.get("channel")
@@ -258,23 +336,31 @@ class MemberCountWarning():
         self.parent = parent
 
     async def set_channel(self, id: Union[int, None]):
-        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
-                                                 {"$set" : {f"member_count_warning.channel" : id}})
+        await self.parent.bot.clan_db.update_one(
+            {"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
+            {"$set": {f"member_count_warning.channel": id}},
+        )
 
     async def set_above(self, num: Union[int, None]):
-        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
-                                                 {"$set" : {f"member_count_warning.above" : num}})
+        await self.parent.bot.clan_db.update_one(
+            {"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
+            {"$set": {f"member_count_warning.above": num}},
+        )
 
     async def set_below(self, num: Union[int, None]):
-        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
-                                                 {"$set" : {f"member_count_warning.below" : num}})
+        await self.parent.bot.clan_db.update_one(
+            {"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
+            {"$set": {f"member_count_warning.below": num}},
+        )
 
     async def set_role(self, id: Union[int, None]):
-        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
-                                                 {"$set" : {f"member_count_warning.role" : id}})
+        await self.parent.bot.clan_db.update_one(
+            {"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
+            {"$set": {f"member_count_warning.role": id}},
+        )
 
 
-class ClanLog():
+class ClanLog:
     def __init__(self, parent: DatabaseClan, type: str):
         self.data = parent.data.get("logs", {}).get(type, {})
         self.webhook = self.data.get("webhook")
@@ -292,18 +378,25 @@ class ClanLog():
                     return None
             else:
                 try:
-                    channel = await self.parent.bot.getch_channel(self.thread, raise_exception=True)
+                    channel = await self.parent.bot.getch_channel(
+                        self.thread, raise_exception=True
+                    )
                     return channel.mention
                 except:
                     return None
         return None
 
     async def set_webhook(self, id: Union[int, None]):
-        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
-                                                 {"$set" : {f"logs.{self.type}.webhook" : id}})
+        await self.parent.bot.clan_db.update_one(
+            {"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
+            {"$set": {f"logs.{self.type}.webhook": id}},
+        )
 
     async def set_thread(self, id: Union[int, None]):
-        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]}, {"$set" : {f"logs.{self.type}.thread" : id}})
+        await self.parent.bot.clan_db.update_one(
+            {"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
+            {"$set": {f"logs.{self.type}.thread": id}},
+        )
 
 
 class Join_Log(ClanLog):
@@ -323,13 +416,23 @@ class WarPanel(ClanLog):
 
     async def set_war_id(self, war: coc.ClanWar):
         war_id = f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}"
-        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]}, {"$set" : {f"logs.{self.type}.war_id" : war_id}})
+        await self.parent.bot.clan_db.update_one(
+            {"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
+            {"$set": {f"logs.{self.type}.war_id": war_id}},
+        )
 
     async def set_message_id(self, id: Union[str, None]):
-        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]}, {"$set" : {f"logs.{self.type}.war_message" : id}})
+        await self.parent.bot.clan_db.update_one(
+            {"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
+            {"$set": {f"logs.{self.type}.war_message": id}},
+        )
 
     async def set_channel_id(self, id: Union[str, None]):
-        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]}, {"$set" : {f"logs.{self.type}.war_channel" : id}})
+        await self.parent.bot.clan_db.update_one(
+            {"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
+            {"$set": {f"logs.{self.type}.war_channel": id}},
+        )
+
 
 class CapitalPanel(ClanLog):
     def __init__(self, parent: DatabaseClan, type: str):
@@ -339,13 +442,19 @@ class CapitalPanel(ClanLog):
 
     async def set_raid_id(self, raid: coc.RaidLogEntry):
         raid_id = f"{raid.clan_tag}v{int(raid.start_time.time.timestamp())}"
-        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]}, {"$set" : {f"logs.{self.type}.raid_id" : raid_id}})
+        await self.parent.bot.clan_db.update_one(
+            {"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
+            {"$set": {f"logs.{self.type}.raid_id": raid_id}},
+        )
 
     async def set_message_id(self, id: Union[str, None]):
-        await self.parent.bot.clan_db.update_one({"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]}, {"$set" : {f"logs.{self.type}.raid_message" : id}})
+        await self.parent.bot.clan_db.update_one(
+            {"$and": [{"tag": self.parent.tag}, {"server": self.parent.server_id}]},
+            {"$set": {f"logs.{self.type}.raid_message": id}},
+        )
 
 
-class CustomServer():
+class CustomServer:
     def __init__(self, guild: disnake.Guild, bot: CustomClient):
         self.guild = guild
         self.bot = bot
@@ -371,14 +480,19 @@ class CustomServer():
         return "" if family_label is None else family_label
 
     async def change_leadership_eval(self, option: bool):
-        await self.bot.server_db.update_one({"server": self.guild.id}, {"$set" : {"leadership_eval" : option}})
+        await self.bot.server_db.update_one(
+            {"server": self.guild.id}, {"$set": {"leadership_eval": option}}
+        )
 
     async def change_auto_nickname(self, type: str):
-        await self.bot.server_db.update_one({"server": self.guild.id}, {"$set" : {"auto_nick" : type}})
+        await self.bot.server_db.update_one(
+            {"server": self.guild.id}, {"$set": {"auto_nick": type}}
+        )
 
     async def set_family_label(self, label: str):
-        await self.bot.server_db.update_one({"server": self.guild.id}, {"$set" : {"family_label" : label}})
-
+        await self.bot.server_db.update_one(
+            {"server": self.guild.id}, {"$set": {"family_label": label}}
+        )
 
     @property
     async def clan_list(self):
@@ -395,7 +509,9 @@ class CustomServer():
         self.server = await self.bot.server_db.find_one({"server": self.guild.id})
         if with_clans:
             tracked = self.bot.clan_db.find({"server": self.guild.id})
-            limit = await self.bot.clan_db.count_documents(filter={"server": self.guild.id})
+            limit = await self.bot.clan_db.count_documents(
+                filter={"server": self.guild.id}
+            )
             for clan in await tracked.to_list(length=limit):
                 self.clans.append(clan)
 
@@ -427,7 +543,8 @@ class CustomServer():
     def reminders(self):
         return [clan.reminders for clan in self.server_clans]
 
-class ServerClan():
+
+class ServerClan:
     def __init__(self, clan_result, bot):
         self.clan_result = clan_result
         self.bot: CustomClient = bot
@@ -487,13 +604,12 @@ class ServerClan():
         except:
             return webhook
 
-
-
     @property
     def reminders(self):
         return Reminders(self.clan_result, self.bot)
 
-class Reminders():
+
+class Reminders:
     def __init__(self, clan_result, bot):
         self.clan_result = clan_result
         self.reminders = clan_result.get("reminders")
@@ -502,11 +618,21 @@ class Reminders():
     @property
     def clan_capital_reminder(self):
         if self.reminders is None:
-            return Reminder(clan_tag=None, reminder_result=self.reminders, bot=self.bot, reminder_type="clan_capital")
-        return Reminder(clan_tag=self.clan_result.get("tag"), reminder_result=self.reminders.get("clan_capital"), bot=self.bot, reminder_type="clan_capital")
+            return Reminder(
+                clan_tag=None,
+                reminder_result=self.reminders,
+                bot=self.bot,
+                reminder_type="clan_capital",
+            )
+        return Reminder(
+            clan_tag=self.clan_result.get("tag"),
+            reminder_result=self.reminders.get("clan_capital"),
+            bot=self.bot,
+            reminder_type="clan_capital",
+        )
 
 
-class Reminder():
+class Reminder:
     def __init__(self, clan_tag, reminder_result, bot, reminder_type):
         self.clan_tag = clan_tag
         self.reminder_result = reminder_result
@@ -520,19 +646,21 @@ class Reminder():
         return Channel(channel_id=self.reminder_result.get("channel"))
 
     async def set_channel(self, channel_id: int):
-        await self.bot.reminders.update_one({"tag": self.clan_tag}, {"$set": {f"reminders.{self.reminder_type}.channel": channel_id}})
+        await self.bot.reminders.update_one(
+            {"tag": self.clan_tag},
+            {"$set": {f"reminders.{self.reminder_type}.channel": channel_id}},
+        )
 
     async def set_time(self, time: str, setting: bool):
-        await self.bot.reminders.update_one({"tag": self.clan_tag},
-                                            {"$set": {f"reminders.{self.reminder_type}.{time}": setting}})
+        await self.bot.reminders.update_one(
+            {"tag": self.clan_tag},
+            {"$set": {f"reminders.{self.reminder_type}.{time}": setting}},
+        )
 
 
-class Channel():
+class Channel:
     def __init__(self, channel_id):
         self.channel_id = channel_id
 
     def __str__(self):
         return None if self.channel_id is None else f"<#{self.channel_id}>"
-
-
-

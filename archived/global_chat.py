@@ -5,29 +5,32 @@ from typing import TYPE_CHECKING
 from classes.bot import CustomClient
 from utility.discord_utils import check_commands
 from urlextract import URLExtract
+
 extractor = URLExtract()
 import asyncio
 
 from collections import defaultdict
+
 last_ping = defaultdict(int)
 staff_webhook = 0
 from better_profanity import profanity
+
 profanity.load_censor_words()
+
 
 class GlobalChat(commands.Cog, name="Global Chat"):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        self.bot.scheduler.add_job(self.send_rules, 'interval', minutes=240)
+        self.bot.scheduler.add_job(self.send_rules, "interval", minutes=240)
         self.bot.global_channels = [1060857976505761792, 863133347601842226]
-
 
     async def send_message(self, message: disnake.Message):
         tasks = []
         other_message_link_dict = {}
         try:
             msg_id = message.reference.message_id
-            r = await self.bot.webhook_message_db.find_one({"messages" : msg_id})
+            r = await self.bot.webhook_message_db.find_one({"messages": msg_id})
             message_ids = r.get("messages")
             message_channels = r.get("channels")
             for count, channel in enumerate(message_channels):
@@ -39,12 +42,27 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 continue
             if channel_id is None:
                 continue
-            task = asyncio.ensure_future(self.webhook_task(channel_id, message, other_message_link=other_message_link_dict.get(channel_id)))
+            task = asyncio.ensure_future(
+                self.webhook_task(
+                    channel_id,
+                    message,
+                    other_message_link=other_message_link_dict.get(channel_id),
+                )
+            )
             tasks.append(task)
         results = await asyncio.gather(*tasks)
         message_ids = [m.id for m in results if m is not None] + [message.id]
-        message_channels = [m.channel.id for m in results if m is not None] + [message.channel.id]
-        await self.bot.webhook_message_db.insert_one({"op_message": message.id, "op_channel": message.channel.id, "messages": message_ids,"channels": message_channels})
+        message_channels = [m.channel.id for m in results if m is not None] + [
+            message.channel.id
+        ]
+        await self.bot.webhook_message_db.insert_one(
+            {
+                "op_message": message.id,
+                "op_channel": message.channel.id,
+                "messages": message_ids,
+                "channels": message_channels,
+            }
+        )
 
     @commands.Cog.listener()
     async def on_message(self, message: disnake.Message):
@@ -54,9 +72,12 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             if message.author.id in self.bot.banned_global:
                 return
 
-            if message.guild.member_count <= 14 and message.guild.id != 849364313156485120:
+            if (
+                message.guild.member_count <= 14
+                and message.guild.id != 849364313156485120
+            ):
                 return
-                
+
             if message.guild.id == 539207480740151303:
                 return
 
@@ -67,20 +88,33 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 if "tenor" not in url and "gif" not in url and "giphy" not in url:
                     message.content = message.content.replace(url, "")
 
-            message.content = profanity.censor(message.content, '-')
+            message.content = profanity.censor(message.content, "-")
 
-            if message.content == "" and message.attachments == [] and message.stickers == []:
+            if (
+                message.content == ""
+                and message.attachments == []
+                and message.stickers == []
+            ):
                 return
 
             await self.send_message(message)
             try:
-                staff_channel: disnake.TextChannel = self.bot.get_channel(1046572580200525894)
+                staff_channel: disnake.TextChannel = self.bot.get_channel(
+                    1046572580200525894
+                )
             except:
-                staff_channel: disnake.TextChannel = await self.bot.fetch_channel(1046572580200525894)
+                staff_channel: disnake.TextChannel = await self.bot.fetch_channel(
+                    1046572580200525894
+                )
             files = [await attachment.to_file() for attachment in message.attachments]
             files += [await sticker.to_file() for sticker in message.stickers]
             files = files[:10]
-            await staff_channel.send(content=message.content + f"\nUser: `{str(message.author)}` | User_ID:`{message.author.id} | Msg: `{message.id}`", files=files, allowed_mentions=disnake.AllowedMentions.none())
+            await staff_channel.send(
+                content=message.content
+                + f"\nUser: `{str(message.author)}` | User_ID:`{message.author.id} | Msg: `{message.id}`",
+                files=files,
+                allowed_mentions=disnake.AllowedMentions.none(),
+            )
 
         result = await self.bot.open_tickets.find_one({"channel": message.channel.id})
         if result is not None:
@@ -92,18 +126,26 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                 for user in opted_in:
                     text += f"<@{user}> "
                 global last_ping
-                if int(datetime.datetime.now().timestamp()) - last_ping[message.channel.id] >= 60:
+                if (
+                    int(datetime.datetime.now().timestamp())
+                    - last_ping[message.channel.id]
+                    >= 60
+                ):
                     await message.channel.send(content=text, delete_after=1)
-                    last_ping[message.channel.id] = int(datetime.datetime.now().timestamp())
-
+                    last_ping[message.channel.id] = int(
+                        datetime.datetime.now().timestamp()
+                    )
 
     async def send_rules(self):
         async def webhook_task(channel, embed_):
             async def send_web(webhook, embed):
                 try:
-                    await webhook.send(username="ClashKing", avatar_url=self.bot.user.avatar.url,
-                                       embed=embed,
-                                       allowed_mentions=disnake.AllowedMentions.none())
+                    await webhook.send(
+                        username="ClashKing",
+                        avatar_url=self.bot.user.avatar.url,
+                        embed=embed,
+                        allowed_mentions=disnake.AllowedMentions.none(),
+                    )
                 except:
                     return None
 
@@ -112,11 +154,17 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                     glob_channel: disnake.TextChannel = self.bot.get_channel(channel)
                 except:
                     try:
-                        glob_channel: disnake.TextChannel = await self.bot.fetch_channel(channel)
+                        glob_channel: disnake.TextChannel = (
+                            await self.bot.fetch_channel(channel)
+                        )
                     except (disnake.NotFound, disnake.Forbidden):
-                        result = await self.bot.global_chat_db.find_one({"channel": channel})
-                        await self.bot.global_chat_db.update_one({"server": result.get("server")},
-                                                                 {'$set': {"channel": None}})
+                        result = await self.bot.global_chat_db.find_one(
+                            {"channel": channel}
+                        )
+                        await self.bot.global_chat_db.update_one(
+                            {"server": result.get("server")},
+                            {"$set": {"channel": None}},
+                        )
                         self.bot.global_channels.remove(channel)
                         return
                 try:
@@ -130,7 +178,9 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                         break
                 if glob_webhook is None:
                     try:
-                        glob_webhook = await glob_channel.create_webhook(name="Global Chat", reason="Global Chat")
+                        glob_webhook = await glob_channel.create_webhook(
+                            name="Global Chat", reason="Global Chat"
+                        )
                     except:
                         return
                 self.bot.global_webhooks[channel] = glob_webhook
@@ -146,18 +196,20 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         for channel in self.bot.global_channels:
             if channel is None:
                 continue
-            em = disnake.Embed(title="**Global Chat Rules**",
-                               description="- No bullying, sexism, racism, homophobia or other hate-based chat\n"
-                                           "- No ethnic, sexual, religious, disability, agist or transphobic slurs\n"
-                                           "- No spamming\n"
-                                           "- English Chat Only\n"
-                                           "- No advertising or self-promotion, unless in reference to a question\n"
-                                           "- No discussion of topics against Discord or Clash of Clans/Supercell TOS\n"
-                                           "- Report bad behavior with </global-chat report:1046600513728290937>\n"
-                                           "[Support Server](https://discord.gg/gChZm3XCrS)",
-                               color=disnake.Color.green())
-            #em.set_image(
-                #url="https://cdn.discordapp.com/attachments/923767060977303552/1046920746636685342/unknown.png")
+            em = disnake.Embed(
+                title="**Global Chat Rules**",
+                description="- No bullying, sexism, racism, homophobia or other hate-based chat\n"
+                "- No ethnic, sexual, religious, disability, agist or transphobic slurs\n"
+                "- No spamming\n"
+                "- English Chat Only\n"
+                "- No advertising or self-promotion, unless in reference to a question\n"
+                "- No discussion of topics against Discord or Clash of Clans/Supercell TOS\n"
+                "- Report bad behavior with </global-chat report:1046600513728290937>\n"
+                "[Support Server](https://discord.gg/gChZm3XCrS)",
+                color=disnake.Color.green(),
+            )
+            # em.set_image(
+            # url="https://cdn.discordapp.com/attachments/923767060977303552/1046920746636685342/unknown.png")
             task = asyncio.ensure_future(webhook_task(channel, em))
             tasks.append(task)
         await asyncio.gather(*tasks)
@@ -169,7 +221,9 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         if after_message.webhook_id is not None:
             return
         if after_message.channel.id in self.bot.global_channels:
-            result = await self.bot.webhook_message_db.find_one({"op_message": after_message.id})
+            result = await self.bot.webhook_message_db.find_one(
+                {"op_message": after_message.id}
+            )
             if result is None:
                 return
             message_ids = result.get("messages")
@@ -191,18 +245,28 @@ class GlobalChat(commands.Cog, name="Global Chat"):
 
             tasks = []
             for count, channel in enumerate(message_channels):
-                task = asyncio.ensure_future(edit_task(message_ids[count], channel, None))
+                task = asyncio.ensure_future(
+                    edit_task(message_ids[count], channel, None)
+                )
                 tasks.append(task)
             await asyncio.gather(*tasks)
 
-    async def webhook_task(self, channel, message: disnake.Message, other_message_link:str):
-        if self.bot.global_webhooks[channel] == "" or self.bot.global_webhooks[channel].user.id != self.bot.user.id:
+    async def webhook_task(
+        self, channel, message: disnake.Message, other_message_link: str
+    ):
+        if (
+            self.bot.global_webhooks[channel] == ""
+            or self.bot.global_webhooks[channel].user.id != self.bot.user.id
+        ):
             try:
-                glob_channel: disnake.TextChannel = await self.bot.getch_channel(channel, raise_exception=True)
+                glob_channel: disnake.TextChannel = await self.bot.getch_channel(
+                    channel, raise_exception=True
+                )
             except (disnake.NotFound, disnake.Forbidden):
                 result = await self.bot.global_chat_db.find_one({"channel": channel})
-                await self.bot.global_chat_db.update_one({"server": result.get("server")},
-                                                         {'$set': {"channel": None}})
+                await self.bot.global_chat_db.update_one(
+                    {"server": result.get("server")}, {"$set": {"channel": None}}
+                )
                 self.bot.global_channels.remove(channel)
                 return None
             try:
@@ -216,20 +280,28 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                     break
             if glob_webhook is None:
                 try:
-                    glob_webhook = await glob_channel.create_webhook(name="Global Chat", reason="Global Chat")
+                    glob_webhook = await glob_channel.create_webhook(
+                        name="Global Chat", reason="Global Chat"
+                    )
                 except:
                     return None
             self.bot.global_webhooks[channel] = glob_webhook
-            return await self.send_web(glob_webhook, message, other_message_link, channel)
+            return await self.send_web(
+                glob_webhook, message, other_message_link, channel
+            )
         else:
             try:
                 webhook = self.bot.global_webhooks[channel]
-                return await self.send_web(webhook, message, other_message_link, channel)
+                return await self.send_web(
+                    webhook, message, other_message_link, channel
+                )
             except:
                 self.bot.global_webhooks[channel] = ""
                 return None
 
-    async def send_web(self, webhook: disnake.Webhook, message, other_message_link: str, channel):
+    async def send_web(
+        self, webhook: disnake.Webhook, message, other_message_link: str, channel
+    ):
         files = [await attachment.to_file() for attachment in message.attachments]
         files += [await sticker.to_file() for sticker in message.stickers]
         files = files[:10]
@@ -244,55 +316,87 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         buttons = []
         if other_message_link is not None:
             stat_buttons = [
-                disnake.ui.Button(label=f"", emoji=self.bot.partial_emoji_gen("<:back:1095895335202738216>"),
-                                  url=f"https://canary.discord.com/channels/{webhook.guild_id}/{other_message_link}")]
+                disnake.ui.Button(
+                    label=f"",
+                    emoji=self.bot.partial_emoji_gen("<:back:1095895335202738216>"),
+                    url=f"https://canary.discord.com/channels/{webhook.guild_id}/{other_message_link}",
+                )
+            ]
             buttons = disnake.ui.ActionRow()
             for button in stat_buttons:
                 buttons.append_item(button)
-        #try:
+        # try:
         if str(message.guild.explicit_content_filter) == "all_members":
-            web_msg = await webhook.send(username=web_name[:80], avatar_url=message.author.display_avatar,
-                               content=message.content, files=files,
-                               allowed_mentions=disnake.AllowedMentions.none(), components=buttons, wait=True)
+            web_msg = await webhook.send(
+                username=web_name[:80],
+                avatar_url=message.author.display_avatar,
+                content=message.content,
+                files=files,
+                allowed_mentions=disnake.AllowedMentions.none(),
+                components=buttons,
+                wait=True,
+            )
         else:
             if message.content != "":
-                web_msg = await webhook.send(username=web_name[:80],
-                                   avatar_url=message.author.display_avatar,
-                                   content=message.content,
-                                   allowed_mentions=disnake.AllowedMentions.none(), components=buttons, wait=True)
+                web_msg = await webhook.send(
+                    username=web_name[:80],
+                    avatar_url=message.author.display_avatar,
+                    content=message.content,
+                    allowed_mentions=disnake.AllowedMentions.none(),
+                    components=buttons,
+                    wait=True,
+                )
             else:
                 return None
         return web_msg
-        '''except:
+        """except:
             self.bot.global_webhooks[channel] = ""
-            return None'''
+            return None"""
 
     @commands.slash_command(name="global-chat", description="Global Chat")
     async def global_chat(self, ctx):
         pass
 
-    @global_chat.sub_command(name="channel", description="Set a channel for the bot global chat!")
+    @global_chat.sub_command(
+        name="channel", description="Set a channel for the bot global chat!"
+    )
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def global_chat_channel(self, ctx: disnake.ApplicationCommandInteraction, channel: disnake.TextChannel, remove = commands.Param(default="False", choices=["True", "False"])):
+    async def global_chat_channel(
+        self,
+        ctx: disnake.ApplicationCommandInteraction,
+        channel: disnake.TextChannel,
+        remove=commands.Param(default="False", choices=["True", "False"]),
+    ):
         await ctx.response.defer()
         limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
         if limit == 0:
-            embed = disnake.Embed(description="Must have at least one clan set up on this server. This global chat is only for clash servers whom have 25 or more members.", color=disnake.Color.red())
+            embed = disnake.Embed(
+                description="Must have at least one clan set up on this server. This global chat is only for clash servers whom have 25 or more members.",
+                color=disnake.Color.red(),
+            )
             return await ctx.edit_original_message(embed=embed)
 
-        result = await self.bot.global_chat_db.find_one({"server" : ctx.guild.id})
+        result = await self.bot.global_chat_db.find_one({"server": ctx.guild.id})
         if result is None and remove == "True":
             return await ctx.edit_original_message("No global channel set up")
         elif remove == "True":
-            await self.bot.global_chat_db.update_one({"server": ctx.guild.id}, {"$set" : {"channel": None}})
-            embed = disnake.Embed(description="Global Chat removed.", color=disnake.Color.green())
+            await self.bot.global_chat_db.update_one(
+                {"server": ctx.guild.id}, {"$set": {"channel": None}}
+            )
+            embed = disnake.Embed(
+                description="Global Chat removed.", color=disnake.Color.green()
+            )
             self.bot.global_channels.remove(channel.id)
             return await ctx.edit_original_message(embed=embed)
         if result is None:
-            await self.bot.global_chat_db.insert_one({"server" : ctx.guild.id, "channel" : channel.id})
+            await self.bot.global_chat_db.insert_one(
+                {"server": ctx.guild.id, "channel": channel.id}
+            )
             embed = disnake.Embed(description=f"Global Chat set to {channel.mention}")
         else:
-            await self.bot.global_chat_db.update_one({"server" : ctx.guild.id}, {"$set": {"channel" : channel.id}})
+            await self.bot.global_chat_db.update_one(
+                {"server": ctx.guild.id}, {"$set": {"channel": channel.id}}
+            )
             embed = disnake.Embed(description=f"Global Chat set to {channel.mention}")
         self.bot.global_webhooks[channel.id] = ""
         self.bot.global_channels.append(channel.id)
@@ -300,9 +404,12 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         async def webhook_task(channel, embed_):
             async def send_web(webhook, embed):
                 try:
-                    await webhook.send(username="ClashKing", avatar_url=self.bot.user.avatar.url,
-                                       embed=embed,
-                                       allowed_mentions=disnake.AllowedMentions.none())
+                    await webhook.send(
+                        username="ClashKing",
+                        avatar_url=self.bot.user.avatar.url,
+                        embed=embed,
+                        allowed_mentions=disnake.AllowedMentions.none(),
+                    )
                 except:
                     return None
 
@@ -311,11 +418,17 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                     glob_channel: disnake.TextChannel = self.bot.get_channel(channel)
                 except:
                     try:
-                        glob_channel: disnake.TextChannel = await self.bot.fetch_channel(channel)
+                        glob_channel: disnake.TextChannel = (
+                            await self.bot.fetch_channel(channel)
+                        )
                     except (disnake.NotFound, disnake.Forbidden):
-                        result = await self.bot.global_chat_db.find_one({"channel": channel})
-                        await self.bot.global_chat_db.update_one({"server": result.get("server")},
-                                                                 {'$set': {"channel": None}})
+                        result = await self.bot.global_chat_db.find_one(
+                            {"channel": channel}
+                        )
+                        await self.bot.global_chat_db.update_one(
+                            {"server": result.get("server")},
+                            {"$set": {"channel": None}},
+                        )
                         self.bot.global_channels.remove(channel)
                         return
                 try:
@@ -329,7 +442,9 @@ class GlobalChat(commands.Cog, name="Global Chat"):
                         break
                 if glob_webhook is None:
                     try:
-                        glob_webhook = await glob_channel.create_webhook(name="Global Chat", reason="Global Chat")
+                        glob_webhook = await glob_channel.create_webhook(
+                            name="Global Chat", reason="Global Chat"
+                        )
                     except:
                         return
                 self.bot.global_webhooks[channel] = glob_webhook
@@ -345,35 +460,59 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         for channel in self.bot.global_channels:
             if channel is None:
                 continue
-            em = disnake.Embed(description=f"Everyone welcome {ctx.guild.name} to the global chat!", color=disnake.Color.green())
-            em.set_image(url="https://cdn.discordapp.com/attachments/923767060977303552/1046920746636685342/unknown.png")
+            em = disnake.Embed(
+                description=f"Everyone welcome {ctx.guild.name} to the global chat!",
+                color=disnake.Color.green(),
+            )
+            em.set_image(
+                url="https://cdn.discordapp.com/attachments/923767060977303552/1046920746636685342/unknown.png"
+            )
             task = asyncio.ensure_future(webhook_task(channel, em))
             tasks.append(task)
         await asyncio.gather(*tasks)
         await ctx.edit_original_message(embed=embed)
 
-    @global_chat.sub_command(name="report", description="Report a user in the global chat")
-    async def global_chat_report(self, ctx: disnake.ApplicationCommandInteraction, message_id: str):
+    @global_chat.sub_command(
+        name="report", description="Report a user in the global chat"
+    )
+    async def global_chat_report(
+        self, ctx: disnake.ApplicationCommandInteraction, message_id: str
+    ):
         if not message_id.isdigit():
             return await ctx.send(content="Message id is invalid.", ephemeral=True)
         try:
-            message: disnake.WebhookMessage = await ctx.channel.fetch_message(message_id)
+            message: disnake.WebhookMessage = await ctx.channel.fetch_message(
+                message_id
+            )
         except:
             return await ctx.send(content="Message id is invalid.", ephemeral=True)
         self.bot.global_channels = [903019225046741092]
         if message.channel.id not in self.bot.global_channels:
-            return await ctx.send(content="Message is not in a global chat channel.", ephemeral=True)
+            return await ctx.send(
+                content="Message is not in a global chat channel.", ephemeral=True
+            )
         user = message.author.display_name
         await ctx.response.defer()
         channel = await self.bot.fetch_channel(1046595439962636318)
-        embed = disnake.Embed(description=f"Report from {str(ctx.author)}\n"
-                                          f"{user} - {message.content[0:100]}", color=disnake.Color.red())
+        embed = disnake.Embed(
+            description=f"Report from {str(ctx.author)}\n"
+            f"{user} - {message.content[0:100]}",
+            color=disnake.Color.red(),
+        )
         await channel.send(embed=embed)
         await ctx.edit_original_message(content="Report submitted!")
 
-    @global_chat.sub_command(name="staff-ban", description="Staff Command. Ban a user.", guild_ids=[923764211845312533])
-    @commands.check_any(commands.has_any_role(*[1034134693869797416, 923787651058901062]))
-    async def global_chat_ban(self, ctx: disnake.ApplicationCommandInteraction, user_id: str):
+    @global_chat.sub_command(
+        name="staff-ban",
+        description="Staff Command. Ban a user.",
+        guild_ids=[923764211845312533],
+    )
+    @commands.check_any(
+        commands.has_any_role(*[1034134693869797416, 923787651058901062])
+    )
+    async def global_chat_ban(
+        self, ctx: disnake.ApplicationCommandInteraction, user_id: str
+    ):
         await ctx.response.defer()
         try:
             user_id = int(user_id)
@@ -385,13 +524,23 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         if results is None:
             await self.bot.global_reports.insert_one({"user": user_id, "strikes": 3})
         else:
-            await self.bot.global_reports.update_one({"user": user_id}, {"$set": {"strikes": 3}})
+            await self.bot.global_reports.update_one(
+                {"user": user_id}, {"$set": {"strikes": 3}}
+            )
         self.bot.banned_global.append(int(user.id))
         await ctx.edit_original_message(f"Banned {user.name}")
 
-    @global_chat.sub_command(name="staff-strike", description="Staff Command. Give a user a strike.", guild_ids=[923764211845312533])
-    @commands.check_any(commands.has_any_role(*[1034134693869797416, 923787651058901062]))
-    async def global_chat_strike(self, ctx: disnake.ApplicationCommandInteraction, user_id : str):
+    @global_chat.sub_command(
+        name="staff-strike",
+        description="Staff Command. Give a user a strike.",
+        guild_ids=[923764211845312533],
+    )
+    @commands.check_any(
+        commands.has_any_role(*[1034134693869797416, 923787651058901062])
+    )
+    async def global_chat_strike(
+        self, ctx: disnake.ApplicationCommandInteraction, user_id: str
+    ):
         await ctx.response.defer()
         try:
             user_id = int(user_id)
@@ -399,24 +548,34 @@ class GlobalChat(commands.Cog, name="Global Chat"):
         except:
             return await ctx.edit_original_message(content="Not a valid user")
 
-        results = await self.bot.global_reports.find_one({"user" : user.id})
+        results = await self.bot.global_reports.find_one({"user": user.id})
         if results is None:
-            await self.bot.global_reports.insert_one({"user" : user.id, "strikes" : 1})
+            await self.bot.global_reports.insert_one({"user": user.id, "strikes": 1})
         else:
-            await self.bot.global_reports.update_one({"user" : user.id}, {"$inc" : {"strikes" : 1}})
-        result = self.bot.global_reports.find_one({"user" : user.id})
+            await self.bot.global_reports.update_one(
+                {"user": user.id}, {"$inc": {"strikes": 1}}
+            )
+        result = self.bot.global_reports.find_one({"user": user.id})
         if result.get("strikes") >= 3:
             self.bot.banned_global.append(user.id)
         await ctx.edit_original_message(f"Gave {str(user)} a strike")
 
-    @global_chat.sub_command(name="delete-message", description="Staff Command. Delete a message", guild_ids=[923764211845312533])
-    @commands.check_any(commands.has_any_role(*[1034134693869797416, 923787651058901062]))
+    @global_chat.sub_command(
+        name="delete-message",
+        description="Staff Command. Delete a message",
+        guild_ids=[923764211845312533],
+    )
+    @commands.check_any(
+        commands.has_any_role(*[1034134693869797416, 923787651058901062])
+    )
     async def delete_mes(self, ctx: disnake.ApplicationCommandInteraction, message_):
         message_ = int(message_)
         await ctx.response.defer()
         result = await self.bot.webhook_message_db.find_one({"messages": message_})
         if result is None:
-            result = await self.bot.webhook_message_db.find_one({"op_message": message_})
+            result = await self.bot.webhook_message_db.find_one(
+                {"op_message": message_}
+            )
             if result is None:
                 return await ctx.edit_original_message(content="Message Not Found")
         message_ids = result.get("messages") + [result.get("op_message")]
@@ -432,7 +591,7 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             except:
                 pass
             try:
-              await message.delete()
+                await message.delete()
             except:
                 pass
 
@@ -442,7 +601,6 @@ class GlobalChat(commands.Cog, name="Global Chat"):
             tasks.append(task)
         await asyncio.gather(*tasks)
         await ctx.edit_original_message(content="Message Deleted")
-
 
 
 def setup(bot: CustomClient):

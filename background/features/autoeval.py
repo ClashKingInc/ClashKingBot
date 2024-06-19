@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from classes.bot import CustomClient
 from pymongo import InsertOne
 
+
 class AutoEvalBackground(commands.Cog):
 
     def __init__(self, bot: CustomClient):
@@ -15,12 +16,7 @@ class AutoEvalBackground(commands.Cog):
 
     async def autoeval_update(self):
         pass
-        #go thru clans with achievement roles set up & update roles as such
-
-
-
-
-
+        # go thru clans with achievement roles set up & update roles as such
 
 
 def setup(bot: CustomClient):

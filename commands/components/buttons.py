@@ -1,4 +1,3 @@
-
 import disnake
 import inspect
 
@@ -7,13 +6,18 @@ from classes.bot import CustomClient
 from utility.discord_utils import registered_functions
 
 
-async def button_logic(button_data: str, bot: CustomClient, guild: disnake.Guild, ctx: disnake.MessageInteraction = None):
+async def button_logic(
+    button_data: str,
+    bot: CustomClient,
+    guild: disnake.Guild,
+    ctx: disnake.MessageInteraction = None,
+):
     split_data = button_data.split(":")
     lookup_name = button_data.split(":")[0]
-    #print(registered_functions.keys())
+    # print(registered_functions.keys())
     function, parser, ephemeral, no_embed = registered_functions.get(lookup_name)
     if function is None:
-        return None, 0 #maybe change this
+        return None, 0  # maybe change this
     if ctx:
         await ctx.response.defer(ephemeral=ephemeral)
 
@@ -43,7 +47,9 @@ async def button_logic(button_data: str, bot: CustomClient, guild: disnake.Guild
 
     embed_color = await bot.ck_client.get_server_embed_color(server_id=guild.id)
     hold_kwargs["embed_color"] = embed_color
-    hold_kwargs = {key: hold_kwargs[key] for key in inspect.getfullargspec(function).args}
+    hold_kwargs = {
+        key: hold_kwargs[key] for key in inspect.getfullargspec(function).args
+    }
     embed = await function(**hold_kwargs)
 
     components = 0
@@ -75,9 +81,11 @@ class ComponentHandler(commands.Cog):
         if ":" not in button_data:
             return
 
-        embed, components = await button_logic(button_data=button_data, bot=self.bot, ctx=ctx, guild=ctx.guild)
+        embed, components = await button_logic(
+            button_data=button_data, bot=self.bot, ctx=ctx, guild=ctx.guild
+        )
 
-        #in some cases the handling is done outside this function
+        # in some cases the handling is done outside this function
         if embed is None:
             return
 
@@ -95,5 +103,3 @@ class ComponentHandler(commands.Cog):
 
 def setup(bot):
     bot.add_cog(ComponentHandler(bot))
-
-

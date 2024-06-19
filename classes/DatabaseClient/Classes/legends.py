@@ -3,10 +3,9 @@ from .abc import NumChoice
 from datetime import datetime, timedelta
 
 
-class LegendRanking():
+class LegendRanking:
     def __init__(self, ranking_result):
         self._ranking_result = ranking_result
-
 
     @property
     def country_code(self):
@@ -43,8 +42,7 @@ class LegendRanking():
         return f":flag_{self.country_code.lower()}:"
 
 
-
-class LegendDay():
+class LegendDay:
     def __init__(self, legend_result):
         self.legend_result = legend_result
         self.net_gain = self.attack_sum - self.defense_sum
@@ -79,7 +77,7 @@ class LegendDay():
     def finished_trophies(self):
         all_hits = self.attacks + self.defenses
         all_hits = [hit for hit in all_hits if hit.timestamp is not None]
-        all_hits.sort(key=lambda x : x.timestamp, reverse=True)
+        all_hits.sort(key=lambda x: x.timestamp, reverse=True)
         if all_hits:
             return all_hits[0].trophies
         return None
@@ -93,7 +91,7 @@ class LegendDay():
         return sum([defense.change for defense in self.defenses])
 
 
-class LegendAttackInfo():
+class LegendAttackInfo:
     def __init__(self, data):
         self.data = data
         self.timestamp: int = data.get("time")
@@ -105,25 +103,25 @@ class LegendAttackInfo():
         gears = []
         for gear in self.data.get("hero_gear", []):
             if isinstance(gear, str):
-                gears.append({"name" : gear, "level" : 1})
+                gears.append({"name": gear, "level": 1})
             else:
                 gears.append(gear)
         return [LegendHeroGear(data=gear) for gear in gears]
 
 
-class LegendHeroGear():
+class LegendHeroGear:
     def __init__(self, data: dict):
         self.name = data.get("name")
         self.level = data.get("level")
 
     def __hash__(self):
-        return (hash(self.name))
+        return hash(self.name)
 
     def __eq__(self, other):
-        return (self.name == other.name)
+        return self.name == other.name
 
 
-class LegendStats():
+class LegendStats:
     def __init__(self, season_stats):
         self.season_stats = season_stats
         self.offensive_one_star = self._calculate()[0]
@@ -184,7 +182,6 @@ class LegendStats():
                 elif hit.change == 40:
                     three_stars_def += 1
 
-
         total = one_stars + two_stars + three_stars
         total_def = zero_star_def + one_stars_def + two_stars_def + three_stars_def
 
@@ -229,8 +226,17 @@ class LegendStats():
             average_defense = int(sum_defs / def_days_used)
         average_net = average_offense - average_defense
 
-        return [one_stars_avg, two_stars_avg, three_stars_avg, zero_stars_avg_def, one_stars_avg_def, two_stars_avg_def,
-                three_stars_avg_def, average_offense, average_defense]
+        return [
+            one_stars_avg,
+            two_stars_avg,
+            three_stars_avg,
+            zero_stars_avg_def,
+            one_stars_avg_def,
+            two_stars_avg_def,
+            three_stars_avg_def,
+            average_offense,
+            average_defense,
+        ]
 
     def _today(self):
         now = datetime.utcnow()

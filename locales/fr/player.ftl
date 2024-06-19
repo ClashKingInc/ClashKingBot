@@ -1,4 +1,5 @@
 player-name = joueur
+player-description = baguette
 lookup-name = rechercher
 player-lookup-description = Rechercher un joueur ou un utilisateur Discord.
 upgrades-name = amélioration

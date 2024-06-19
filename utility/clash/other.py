@@ -27,6 +27,7 @@ def gen_legend_date():
         date = now.date()
     return str(date)
 
+
 async def superTroops(player, asArray=False):
     troops = player.troop_cls
     troops = player.troops
@@ -35,7 +36,7 @@ async def superTroops(player, asArray=False):
 
     for x in range(len(troops)):
         troop = troops[x]
-        if (troop.is_active):
+        if troop.is_active:
             # print (troop.name)
             boostedTroops.append(troop.name)
 
@@ -77,6 +78,7 @@ def heros(bot, player: coc.Player):
 
     return "".join(hero_string)
 
+
 def basic_heros(bot, player: coc.Player):
     def get_level_emoji(hero: coc.Hero):
         color = "blue"
@@ -88,7 +90,9 @@ def basic_heros(bot, player: coc.Player):
     for hero in player.heroes:
         if not hero.is_home_base:
             continue
-        hero_string += f"{SharedEmojis.all_emojis.get(hero.name)}{get_level_emoji(hero)}"
+        hero_string += (
+            f"{SharedEmojis.all_emojis.get(hero.name)}{get_level_emoji(hero)}"
+        )
 
     if not hero_string:
         return ""
@@ -114,7 +118,7 @@ def spells(player, bot=None):
         # print(str(regTroop))
         spell = spells[x]
         if spell.name in theSpells:
-            if (spell.name == "Poison Spell"):
+            if spell.name == "Poison Spell":
                 spellList += "\n" + levelList + "\n"
                 levelList = ""
             spellList += f"{SharedEmojis.all_emojis.get(spell.name)} "
@@ -144,7 +148,11 @@ def troops(player, bot=None):
     z = 0
     for x in range(len(troops)):
         troop = troops[x]
-        if (troop.is_home_base) and (troop.name not in coc.SIEGE_MACHINE_ORDER) and (troop.name not in SUPER_TROOPS):
+        if (
+            (troop.is_home_base)
+            and (troop.name not in coc.SIEGE_MACHINE_ORDER)
+            and (troop.name not in SUPER_TROOPS)
+        ):
             z += 1
             troopList += SharedEmojis.all_emojis.get(troop.name) + " "
             levelList += str(get_level_emoji(troop))
@@ -152,7 +160,7 @@ def troops(player, bot=None):
             if troop.level <= 11:
                 levelList += " "
 
-            if (z != 0 and z % 8 == 0):
+            if z != 0 and z % 8 == 0:
                 troopList += "\n" + levelList + "\n"
                 levelList = ""
 
@@ -163,7 +171,7 @@ def troops(player, bot=None):
 
 def clean_name(name: str):
     name = emoji.replace_emoji(name)
-    name = re.sub('[*_`~/]', '', name)
+    name = re.sub("[*_`~/]", "", name)
     return f"\u200e{name}"
 
 
@@ -245,7 +253,7 @@ def profileSuperTroops(player):
             emoji = SharedEmojis.all_emojis.get(troop.name)
             boostedTroops += f"{emoji} {troop.name}" + "\n"
 
-    if (len(boostedTroops) > 0):
+    if len(boostedTroops) > 0:
         boostedTroops = f"\n**Super Troops:**\n{boostedTroops}"
     else:
         boostedTroops = ""
@@ -295,7 +303,6 @@ def league_emoji(player):
     return SharedEmojis.all_emojis.get(league, SharedEmojis.all_emojis.get("unranked"))
 
 
-
 def league_to_emoji(league: str):
 
     emoji = SharedEmojis.all_emojis.get(league)
@@ -308,20 +315,27 @@ def league_to_emoji(league: str):
 
 
 def cwl_league_emojis(league: str):
-    return SharedEmojis.all_emojis.get(f"CWL {league}", SharedEmojis.all_emojis.get("unranked"))
+    return SharedEmojis.all_emojis.get(
+        f"CWL {league}", SharedEmojis.all_emojis.get("unranked")
+    )
 
 
 def is_cwl():
     now = datetime.utcnow().replace(tzinfo=utc)
     current_dayofweek = now.weekday()
-    if (current_dayofweek == 4 and now.hour >= 7) or (current_dayofweek == 5) or (current_dayofweek == 6) or (
-            current_dayofweek == 0 and now.hour < 7):
+    if (
+        (current_dayofweek == 4 and now.hour >= 7)
+        or (current_dayofweek == 5)
+        or (current_dayofweek == 6)
+        or (current_dayofweek == 0 and now.hour < 7)
+    ):
         if current_dayofweek == 0:
             current_dayofweek = 7
         is_raids = True
     else:
         is_raids = False
     return is_raids
+
 
 def is_games():
     is_games = True
@@ -332,7 +346,7 @@ def is_games():
     hour = now.hour
     first = datetime(year, month, 22, hour=8, tzinfo=utc)
     end = datetime(year, month, 28, hour=8, tzinfo=utc)
-    if (day >= 22 and day <= 28):
+    if day >= 22 and day <= 28:
         if (day == 22 and hour < 8) or (day == 28 and hour >= 8):
             is_games = False
         else:
@@ -345,18 +359,36 @@ def is_games():
 def gen_season_start_end_as_iso(season: str):
     year = season[:4]
     month = season[-2:]
-    SEASON_START = coc.utils.get_season_start(month=(int(month) - 1 if int(month) != 1 else month == 12), year=int(year) if int(month) != 1 else int(year) - 1).timestamp()
-    SEASON_END = coc.utils.get_season_end(month=(int(month) - 1 if int(month) != 1 else month == 12), year=int(year) if int(month) != 1 else int(year) - 1).timestamp()
-    SEASON_START = datetime.fromtimestamp(SEASON_START, tz=utc).strftime('%Y%m%dT%H%M%S.000Z')
-    SEASON_END = datetime.fromtimestamp(SEASON_END, tz=utc).strftime('%Y%m%dT%H%M%S.000Z')
+    SEASON_START = coc.utils.get_season_start(
+        month=(int(month) - 1 if int(month) != 1 else month == 12),
+        year=int(year) if int(month) != 1 else int(year) - 1,
+    ).timestamp()
+    SEASON_END = coc.utils.get_season_end(
+        month=(int(month) - 1 if int(month) != 1 else month == 12),
+        year=int(year) if int(month) != 1 else int(year) - 1,
+    ).timestamp()
+    SEASON_START = datetime.fromtimestamp(SEASON_START, tz=utc).strftime(
+        "%Y%m%dT%H%M%S.000Z"
+    )
+    SEASON_END = datetime.fromtimestamp(SEASON_END, tz=utc).strftime(
+        "%Y%m%dT%H%M%S.000Z"
+    )
     return (SEASON_START, SEASON_END)
+
 
 def gen_season_start_end_as_timestamp(season: str):
     year = season[:4]
     month = season[-2:]
-    SEASON_START = coc.utils.get_season_start(month=(int(month) - 1 if int(month) != 1 else month == 12), year=int(year) if int(month) != 1 else int(year) - 1).timestamp()
-    SEASON_END = coc.utils.get_season_end(month=(int(month) - 1 if int(month) != 1 else month == 12), year=int(year) if int(month) != 1 else int(year) - 1).timestamp()
+    SEASON_START = coc.utils.get_season_start(
+        month=(int(month) - 1 if int(month) != 1 else month == 12),
+        year=int(year) if int(month) != 1 else int(year) - 1,
+    ).timestamp()
+    SEASON_END = coc.utils.get_season_end(
+        month=(int(month) - 1 if int(month) != 1 else month == 12),
+        year=int(year) if int(month) != 1 else int(year) - 1,
+    ).timestamp()
     return (SEASON_START, SEASON_END)
+
 
 def games_season_start_end_as_timestamp(season: str):
     year = int(season[:4])
@@ -369,10 +401,3 @@ def games_season_start_end_as_timestamp(season: str):
     start = datetime(year, month, 1)
     end = datetime(next_year, next_month, 1)
     return (start.timestamp(), end.timestamp())
-
-
-
-
-
-
-

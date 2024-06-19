@@ -3,6 +3,7 @@ import disnake
 from utility.general import calculate_time
 
 import pytz
+
 utc = pytz.utc
 
 from classes.bot import CustomClient
@@ -10,11 +11,12 @@ from classes.DatabaseClient.Classes.settings import DatabaseClan
 
 from exceptions.CustomExceptions import MissingWebhookPerms
 
+
 class VoiceStatCron(commands.Cog):
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        self.bot.scheduler.add_job(self.voice_update, 'interval', minutes=10)
+        self.bot.scheduler.add_job(self.voice_update, "interval", minutes=10)
 
     async def voice_update(self):
         results = self.bot.server_db.find()
@@ -26,7 +28,9 @@ class VoiceStatCron(commands.Cog):
                 continue
             if channel is not None:
                 try:
-                    channel = await self.bot.getch_channel(channel_id=channel, raise_exception=True)
+                    channel = await self.bot.getch_channel(
+                        channel_id=channel, raise_exception=True
+                    )
                     time_ = await calculate_time("CWL")
                     prev_name = channel.name
                     text = f"CWL {time_}"
@@ -36,12 +40,16 @@ class VoiceStatCron(commands.Cog):
                     if text != channel.name:
                         await channel.edit(name=text)
                 except (disnake.NotFound, disnake.Forbidden):
-                    await self.bot.server_db.update_one({"server": server}, {'$set': {"cwlCountdown": None}})
+                    await self.bot.server_db.update_one(
+                        {"server": server}, {"$set": {"cwlCountdown": None}}
+                    )
 
             channel = r.get("gamesCountdown")
             if channel is not None:
                 try:
-                    channel = await self.bot.getch_channel(channel_id=channel, raise_exception=True)
+                    channel = await self.bot.getch_channel(
+                        channel_id=channel, raise_exception=True
+                    )
                     time_ = await calculate_time("Clan Games")
                     prev_name = channel.name
                     text = f"CG {time_}"
@@ -51,12 +59,16 @@ class VoiceStatCron(commands.Cog):
                     if text != channel.name:
                         await channel.edit(name=text)
                 except (disnake.NotFound, disnake.Forbidden):
-                    await self.bot.server_db.update_one({"server": server}, {'$set': {"gamesCountdown": None}})
+                    await self.bot.server_db.update_one(
+                        {"server": server}, {"$set": {"gamesCountdown": None}}
+                    )
 
             channel = r.get("raidCountdown")
             if channel is not None:
                 try:
-                    channel = await self.bot.getch_channel(channel_id=channel, raise_exception=True)
+                    channel = await self.bot.getch_channel(
+                        channel_id=channel, raise_exception=True
+                    )
                     time_ = await calculate_time("Raid Weekend")
                     prev_name = channel.name
                     text = f"Raids {time_}"
@@ -66,12 +78,16 @@ class VoiceStatCron(commands.Cog):
                     if text != channel.name:
                         await channel.edit(name=text)
                 except (disnake.NotFound, disnake.Forbidden):
-                    await self.bot.server_db.update_one({"server": server}, {'$set': {"raidCountdown": None}})
+                    await self.bot.server_db.update_one(
+                        {"server": server}, {"$set": {"raidCountdown": None}}
+                    )
 
             channel = r.get("eosCountdown")
             if channel is not None:
                 try:
-                    channel = await self.bot.getch_channel(channel_id=channel, raise_exception=True)
+                    channel = await self.bot.getch_channel(
+                        channel_id=channel, raise_exception=True
+                    )
                     time_ = await calculate_time("EOS")
                     prev_name = channel.name
                     text = f"EOS {time_}"
@@ -81,27 +97,40 @@ class VoiceStatCron(commands.Cog):
                     if text != channel.name:
                         await channel.edit(name=text)
                 except (disnake.NotFound, disnake.Forbidden):
-                    await self.bot.server_db.update_one({"server": server}, {'$set': {"eosCountdown": None}})
-
+                    await self.bot.server_db.update_one(
+                        {"server": server}, {"$set": {"eosCountdown": None}}
+                    )
 
             channel = r.get("memberCount")
             if channel is not None:
                 try:
-                    channel = await self.bot.getch_channel(channel_id=channel, raise_exception=True)
-                    clan_tags = await self.bot.clan_db.distinct("tag", filter={"server": server})
-                    results = await self.bot.player_stats.count_documents(filter = {"clan_tag": {"$in": clan_tags}})
+                    channel = await self.bot.getch_channel(
+                        channel_id=channel, raise_exception=True
+                    )
+                    clan_tags = await self.bot.clan_db.distinct(
+                        "tag", filter={"server": server}
+                    )
+                    results = await self.bot.player_stats.count_documents(
+                        filter={"clan_tag": {"$in": clan_tags}}
+                    )
                     await channel.edit(name=f"{results} Clan Members")
                 except (disnake.NotFound, disnake.Forbidden):
-                    await self.bot.server_db.update_one({"server": server}, {'$set': {"memberCount": None}})
+                    await self.bot.server_db.update_one(
+                        {"server": server}, {"$set": {"memberCount": None}}
+                    )
 
-        for clan_result in await self.bot.clan_db.find({"warCountdown": {"$ne": None}}).to_list(length=None):
+        for clan_result in await self.bot.clan_db.find(
+            {"warCountdown": {"$ne": None}}
+        ).to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=clan_result)
 
             if db_clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
             try:
-                channel = await self.bot.getch_channel(channel_id=db_clan.war_countdown, raise_exception=True)
+                channel = await self.bot.getch_channel(
+                    channel_id=db_clan.war_countdown, raise_exception=True
+                )
                 war = await self.bot.get_clanwar(clanTag=db_clan.tag)
                 time_ = await calculate_time("War Score", war=war)
                 prev_name = channel.name
@@ -114,13 +143,17 @@ class VoiceStatCron(commands.Cog):
             except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                 await db_clan.set_war_countdown(id=None)
 
-        for clan_result in await self.bot.clan_db.find({"warTimerCountdown": {"$ne": None}}).to_list(length=None):
+        for clan_result in await self.bot.clan_db.find(
+            {"warTimerCountdown": {"$ne": None}}
+        ).to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=clan_result)
             if db_clan.server_id not in self.bot.OUR_GUILDS:
                 continue
 
             try:
-                channel = await self.bot.getch_channel(channel_id=db_clan.war_timer_countdown, raise_exception=True)
+                channel = await self.bot.getch_channel(
+                    channel_id=db_clan.war_timer_countdown, raise_exception=True
+                )
                 war = await self.bot.get_clanwar(clanTag=db_clan.tag)
                 time_ = await calculate_time("War Timer", war=war)
                 prev_name = channel.name
@@ -134,7 +167,5 @@ class VoiceStatCron(commands.Cog):
                 await db_clan.set_war_countdown(id=None)
 
 
-
 def setup(bot: CustomClient):
     bot.add_cog(VoiceStatCron(bot))
-

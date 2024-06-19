@@ -4,7 +4,8 @@ from coc.miscmodels import Timestamp
 import datetime
 from datetime import datetime as dt
 
-class COSPlayerHistory():
+
+class COSPlayerHistory:
     def __init__(self, data):
         self._data = data
 
@@ -12,21 +13,28 @@ class COSPlayerHistory():
     def num_clans(self):
         return len(list(set([clandata.get("tag") for clandata in self._data["log"]])))
 
-    def previous_clans(self, limit = 5):
+    def previous_clans(self, limit=5):
         if self._data.get("error") is not None:
             return "Private History"
 
-        clans = [COSClan(full_data=self._data, clan_data=clan_data) for clan_data in self._data["log"]]
+        clans = [
+            COSClan(full_data=self._data, clan_data=clan_data)
+            for clan_data in self._data["log"]
+        ]
         clans = [clan for clan in clans if clan.tag != ""][:limit]
         return clans
 
-    def summary(self, limit = 5):
+    def summary(self, limit=5):
         if self._data.get("error") is not None:
             return "Private History"
 
-        return [SummaryClans(full_data=self._data, clan_data=clan_data) for clan_data in self._data["summary"][:limit]]
+        return [
+            SummaryClans(full_data=self._data, clan_data=clan_data)
+            for clan_data in self._data["summary"][:limit]
+        ]
 
-class SummaryClans():
+
+class SummaryClans:
     def __init__(self, full_data, clan_data):
         self._data = full_data
         self._clandata = clan_data
@@ -47,7 +55,9 @@ class SummaryClans():
 
     @property
     def days_per_stay(self):
-        return datetime.timedelta(milliseconds=int((self._clandata["duration"]/self.count)))
+        return datetime.timedelta(
+            milliseconds=int((self._clandata["duration"] / self.count))
+        )
 
     @property
     def tag(self):
@@ -68,7 +78,8 @@ class SummaryClans():
     def share_link(self):
         return f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{self.tag.strip('#')}"
 
-class COSClan():
+
+class COSClan:
     def __init__(self, full_data, clan_data):
         self._data = full_data
         self._clandata = clan_data
@@ -103,27 +114,27 @@ class COSClan():
     @property
     def start_stay(self):
         _ = dt.strptime(self._clandata["start"].split(".")[0], "%Y-%m-%dT%H:%M:%S")
-        return Timestamp(data=_.strftime('%Y%m%dT%H%M%S.000Z'))
+        return Timestamp(data=_.strftime("%Y%m%dT%H%M%S.000Z"))
 
     @property
     def end_stay(self):
         _ = dt.strptime(self._clandata["end"].split(".")[0], "%Y-%m-%dT%H:%M:%S")
-        return Timestamp(data=_.strftime('%Y%m%dT%H%M%S.000Z'))
+        return Timestamp(data=_.strftime("%Y%m%dT%H%M%S.000Z"))
 
     @property
     def seen_date(self):
         if self.stay_type != StayType.unknown:
             _ = dt.strptime(self._clandata["date"].split(".")[0], "%Y-%m-%dT%H:%M:%S")
-            return Timestamp(data=_.strftime('%Y%m%dT%H%M%S.000Z'))
+            return Timestamp(data=_.strftime("%Y%m%dT%H%M%S.000Z"))
         else:
             return None
 
     @property
     def stay_length(self):
         if self.stay_type == StayType.seen:
-            return datetime.timedelta(seconds = self._clandata["duration"])
+            return datetime.timedelta(seconds=self._clandata["duration"])
         else:
-            return (self.end_stay.time.date() - self.start_stay.time.date())
+            return self.end_stay.time.date() - self.start_stay.time.date()
 
     @property
     def clan_badge(self):
@@ -145,6 +156,7 @@ class COSClan():
             return f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{self.tag.strip('#')}"
         else:
             return None
+
 
 class StayType(Enum):
     stay = "STAY"

@@ -3,31 +3,32 @@ import json
 import aiohttp
 from urllib.parse import quote, unquote
 
-#data = {'messages': [{'data': {'content': 'fuck', 'embeds': [{'title': "What's this about?", 'description': 'fuck fuck fuck', 'color': 5814783}], 'attachments': []}}]}
+# data = {'messages': [{'data': {'content': 'fuck', 'embeds': [{'title': "What's this about?", 'description': 'fuck fuck fuck', 'color': 5814783}], 'attachments': []}}]}
+
 
 def encoded_data(data: dict):
     if data.get("embeds") == []:
         data["embeds"] = None
-    data['attachments'] = []
-    data = {"messages" : [{"data" : data}]}
+    data["attachments"] = []
+    data = {"messages": [{"data": data}]}
 
-    json_string = json.dumps(data, separators=(',', ':'), sort_keys=True)
+    json_string = json.dumps(data, separators=(",", ":"), sort_keys=True)
 
     # Encode the JSON string to base64
-    base64_encoded = base64.b64encode(json_string.encode('utf-8')).decode('utf-8')
+    base64_encoded = base64.b64encode(json_string.encode("utf-8")).decode("utf-8")
 
     # Remove any '=' padding characters
-    base64_encoded = base64_encoded.rstrip('=')
+    base64_encoded = base64_encoded.rstrip("=")
 
     # Replace '+' with '%2B' for URL encoding
-    base64_encoded = base64_encoded.replace('+', '%2B')
+    base64_encoded = base64_encoded.replace("+", "%2B")
 
     # Since the decoding side expects '%3D' to replace '=', add '=' signs back for URL encoding.
     # But this is not typically how you would handle base64 in URL parameters.
     # Instead, let's ensure that '=' is handled correctly in URL encoding scenarios.
     # This depends on whether your decoding logic expects '%3D' or '=' directly.
     # Comment out the next line if your decoder does not convert '%3D' back to '='.
-    base64_encoded = base64_encoded.replace('=', '%3D')
+    base64_encoded = base64_encoded.replace("=", "%3D")
 
     return base64_encoded
 
@@ -37,7 +38,7 @@ def reverse_encoding(base64_encoded: str):
     base64_encoded = base64_encoded.replace("%2B", "+")
 
     # Step 2: Handle padding for URL-safe base64
-    base64_encoded += '=' * (4 - len(base64_encoded) % 4)
+    base64_encoded += "=" * (4 - len(base64_encoded) % 4)
 
     # Step 3: Decode the base64-encoded string using urlsafe_b64decode
     try:
@@ -47,7 +48,7 @@ def reverse_encoding(base64_encoded: str):
 
     # Step 4: URL-decode this string
     try:
-        json_string = unquote(decoded_data.decode('utf-8'))
+        json_string = unquote(decoded_data.decode("utf-8"))
     except UnicodeDecodeError as e:
         return None
 
@@ -67,7 +68,7 @@ def reverse_encoding(base64_encoded: str):
 
 async def shorten_link(url: str):
     api_url = "https://api.clashking.xyz/shortner"
-    params = {'url': url}
+    params = {"url": url}
     async with aiohttp.ClientSession() as session:
         async with session.get(api_url, params=params) as response:
             if response.status == 200:

@@ -2,7 +2,7 @@ townhall_emojis = {
     1: "<:02:1247034898750111764>",
     2: "<:02:1247034899731447878>",
     3: "<:03:1247034901199454208>",
-    4 : "<:04:1247034902738763796>",
+    4: "<:04:1247034902738763796>",
     5: "<:05:1247034904093524018>",
     6: "<:06:1247034905100161058>",
     7: "<:07:1247034906828210247>",
@@ -14,7 +14,7 @@ townhall_emojis = {
     13: "<:132:1247034914956640399>",
     14: "<:14:1247034916152152064>",
     15: "<:th15_big:1247034917225893940>",
-    16: "<:16:1247034918819860540>"
+    16: "<:16:1247034918819860540>",
 }
 
 super_troop_emojis = {
@@ -33,7 +33,7 @@ super_troop_emojis = {
     "Ice Hound": "<:IceHound:1247040232810086400>",
     "Super Dragon": "<:SuperDragon:1247040234198269962>",
     "Super Bowler": "<:SuperBowler:1247040235494441060>",
-    "Super Hog Rider": "<:SHogRider:1247040236752474182>"
+    "Super Hog Rider": "<:SHogRider:1247040236752474182>",
 }
 
 pet_emojis = {
@@ -47,7 +47,7 @@ pet_emojis = {
     "Diggy": "<:Diggy:1247037121449955370>",
     "Root Rider": "<:RootRider:1247037123249311787>",
     "Spirit Fox": "<:PhaseFennec:1247037124881154048>",
-    "Angry Jelly": "<:AngryJelly:1247037126999015504>"
+    "Angry Jelly": "<:AngryJelly:1247037126999015504>",
 }
 
 hero_equipment_emojis = {
@@ -70,8 +70,8 @@ hero_equipment_emojis = {
     "Hog Rider Puppet": "<:HogRiderDoll:1247038135246913628>",
     "Haste Vial": "<:HasteVial:1247038136857530471>",
     "Fireball": "<:Fireball:1247038138149376081>",
-    "Spiky Ball" : "<:SpikyBall:1249593615554969750>",
-    "Rocket Spear" : "<:RocketSpear:1249594147590115369>"
+    "Spiky Ball": "<:SpikyBall:1249593615554969750>",
+    "Rocket Spear": "<:RocketSpear:1249594147590115369>",
 }
 
 capital_hall_emojis = {
@@ -89,7 +89,7 @@ capital_hall_emojis = {
     "Capital_Hall5": "<:CH5:1247035927910551555>",
     "Capital_Hall3": "<:CH3:1247035929495994438>",
     "Capital_Hall2": "<:CH2:1247035930620198993>",
-    "Capital_Hall1": "<:CH1:1247035932318765137>"
+    "Capital_Hall1": "<:CH1:1247035932318765137>",
 }
 
 builder_base_emojis = {
@@ -105,7 +105,7 @@ builder_base_emojis = {
     "Sneaky Archer": "<:SneakyArcher:1247039151891677304>",
     "Battle Machine": "<:bm:1247039152789262408>",
     "Battle Copter": "<:battle_copter:1247039154097881122>",
-    "Electrofire Wizard": "<:electro_wiz:1247039155805093929>"
+    "Electrofire Wizard": "<:electro_wiz:1247039155805093929>",
 }
 
 siege_machine_emojis = {
@@ -115,7 +115,7 @@ siege_machine_emojis = {
     "Siege Barracks": "<:SiegeBarracks:1247037769956720670>",
     "Log Launcher": "<:LogLauncher:1247037771223404646>",
     "Flame Flinger": "<:FlameFlinger:1247037772695343215>",
-    "Battle Drill": "<:BattleDrill:1247037774159417385>"
+    "Battle Drill": "<:BattleDrill:1247037774159417385>",
 }
 
 spell_emojis = {
@@ -132,7 +132,7 @@ spell_emojis = {
     "Bat Spell": "<:bat:1247036653902630942>",
     "Clone Spell": "<:cs:1247036656067022908>",
     "Recall Spell": "<:recall:1247036657639751720>",
-    "Overgrowth Spell": "<:overgrowth:1247036658855972864>"
+    "Overgrowth Spell": "<:overgrowth:1247036658855972864>",
 }
 
 troop_emojis = {
@@ -161,18 +161,18 @@ troop_emojis = {
     "Valkyrie": "<:Valkyrie:1247040032833802302>",
     "Headhunter": "<:Headhunter:1247040033664532512>",
     "Electro Titan": "<:ElectroTitan:1247040035036074060>",
-    "Apprentice Warden": "<:Apprentice:1247040036617060404>"
+    "Apprentice Warden": "<:Apprentice:1247040036617060404>",
 }
 
 hero_emojis = {
     "Barbarian King": "<:BarbarianKing:1247037440464650314>",
     "Archer Queen": "<:ArcherQueen:1247037442092175411>",
     "Grand Warden": "<:GrandWarden:1247037443870560363>",
-    "Royal Champion": "<:RoyalChampion:1247037446802116617>"
+    "Royal Champion": "<:RoyalChampion:1247037446802116617>",
 }
 
 
-icon_emojis =  {
+icon_emojis = {
     "win_streak": "<:warstreak:1247040947225890867>",
     "broken_sword": "<:broken_sword:1247040948425195560>",
     "trophy": "<:trophyy:1247040949662781574>",
@@ -251,11 +251,11 @@ icon_emojis =  {
     "red_pin": "<:redpin:1247044045625364511>",
     "spells": "<:spells:1247044047261143061>",
     "heart": "<:heart:1247044048632676444>",
-    "pet_paw": "<:pet:1247044050713051227>"
+    "pet_paw": "<:pet:1247044050713051227>",
 }
 
 league_emojis = {
-    "Unranked" : icon_emojis.get("unranked"),
+    "Unranked": icon_emojis.get("unranked"),
     "Bronze League I": "<:BronzeLeagueI:1247044563949064252>",
     "Bronze League II": "<:BronzeLeagueII:1247044570387320902>",
     "Bronze League III": "<:BronzeLeagueIII:1247044571523711047>",
@@ -277,7 +277,7 @@ league_emojis = {
     "Silver League III": "<:SilverLeagueIII:1247044593934012437>",
     "Titan League I": "<:TitanLeagueI:1247044595527979088>",
     "Titan League II": "<:TitanLeagueII:1247044596928745542>",
-    "Titan League III": "<:TitanLeagueIII:1247044598224654397>"
+    "Titan League III": "<:TitanLeagueIII:1247044598224654397>",
 }
 
 builder_league_emojis = {
@@ -293,11 +293,11 @@ builder_league_emojis = {
     "Platinum": "<:platinum_league:1247039354568835072>",
     "Emerald": "<:emerald_league:1247039355952955402>",
     "Ruby": "<:ruby_league:1247039357290807317>",
-    "Diamond": "<:diamond_league:1247039358591172638>"
+    "Diamond": "<:diamond_league:1247039358591172638>",
 }
 
 cwl_league_emojis = {
-    "CWL Unranked" : icon_emojis.get("unranked"),
+    "CWL Unranked": icon_emojis.get("unranked"),
     "CWL Bronze League I": "<:WarBronzeI:1247044775694041099>",
     "CWL Bronze League II": "<:WarBronzeII:1247044777363509353>",
     "CWL Bronze League III": "<:WarBronzeIII:1247044779292885003>",
@@ -315,14 +315,24 @@ cwl_league_emojis = {
     "CWL Master League III": "<:WarMasterIII:1247044797156294700>",
     "CWL Champion League I": "<:WarChampionI:1247044798989205506>",
     "CWL Champion League II": "<:WarChampionII:1247044800809799720>",
-    "CWL Champion League III": "<:WarChampionIII:1247044801988268073>"
+    "CWL Champion League III": "<:WarChampionIII:1247044801988268073>",
 }
 
 
-
 class SharedEmojis:
-    all_emojis = (townhall_emojis | super_troop_emojis | pet_emojis | hero_equipment_emojis | capital_hall_emojis |
-                      league_emojis | cwl_league_emojis | builder_league_emojis |
-                      builder_base_emojis | siege_machine_emojis | spell_emojis | troop_emojis | hero_emojis | icon_emojis)
-
-
+    all_emojis = (
+        townhall_emojis
+        | super_troop_emojis
+        | pet_emojis
+        | hero_equipment_emojis
+        | capital_hall_emojis
+        | league_emojis
+        | cwl_league_emojis
+        | builder_league_emojis
+        | builder_base_emojis
+        | siege_machine_emojis
+        | spell_emojis
+        | troop_emojis
+        | hero_emojis
+        | icon_emojis
+    )

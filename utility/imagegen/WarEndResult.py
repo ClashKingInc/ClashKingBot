@@ -3,13 +3,32 @@ import disnake
 from PIL import Image, ImageDraw, ImageFont
 import io
 import pytz
+
 utc = pytz.utc
 import aiohttp
 from io import BytesIO
 import asyncio
 import concurrent.futures
 
-th_to_xp = {1:1, 2:1, 3:1, 4:2, 5: 2, 6:2, 7:3, 8:4, 9:5, 10:7, 11:7, 12:10, 13:11, 14:11, 15:12, 16:13}
+th_to_xp = {
+    1: 1,
+    2: 1,
+    3: 1,
+    4: 2,
+    5: 2,
+    6: 2,
+    7: 3,
+    8: 4,
+    9: 5,
+    10: 7,
+    11: 7,
+    12: 10,
+    13: 11,
+    14: 11,
+    15: 12,
+    16: 13,
+}
+
 
 async def generate_war_result_image(war: coc.ClanWar):
     possible_xp = 85
@@ -52,7 +71,7 @@ async def generate_war_result_image(war: coc.ClanWar):
     background = Image.open("utility/imagegen/warbkpng.png")
     clan_name = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 45)
     result_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 65)
-    score_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf",70)
+    score_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 70)
     total_xp_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 35)
     box_xp_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 25)
     destruction_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 25)
@@ -79,24 +98,128 @@ async def generate_war_result_image(war: coc.ClanWar):
             background.paste(badge, (1050, 50), badge.convert("RGBA"))
 
     stroke = 4
-    draw.text((800, 130), f"{war.clan.name}", anchor="rm", fill=(255,255,204), stroke_width=stroke, stroke_fill=(0, 0, 0),font=clan_name)
-    draw.text((1250, 130), f"{war.opponent.name}", anchor="lm", fill=(255,255,204), stroke_width=stroke, stroke_fill=(0, 0, 0),font=clan_name)
+    draw.text(
+        (800, 130),
+        f"{war.clan.name}",
+        anchor="rm",
+        fill=(255, 255, 204),
+        stroke_width=stroke,
+        stroke_fill=(0, 0, 0),
+        font=clan_name,
+    )
+    draw.text(
+        (1250, 130),
+        f"{war.opponent.name}",
+        anchor="lm",
+        fill=(255, 255, 204),
+        stroke_width=stroke,
+        stroke_fill=(0, 0, 0),
+        font=clan_name,
+    )
 
-    draw.text((1040, 290), f"{result_text}", anchor="mm", fill=(255,248,113), stroke_width=stroke, stroke_fill=(0, 0, 0),font=result_font)
-    draw.text((1040, 380), f"{war.clan.stars} - {war.opponent.stars}", anchor="mm", stroke_width=stroke, stroke_fill=(0, 0, 0),fill=(255,255,204), font=score_font)
+    draw.text(
+        (1040, 290),
+        f"{result_text}",
+        anchor="mm",
+        fill=(255, 248, 113),
+        stroke_width=stroke,
+        stroke_fill=(0, 0, 0),
+        font=result_font,
+    )
+    draw.text(
+        (1040, 380),
+        f"{war.clan.stars} - {war.opponent.stars}",
+        anchor="mm",
+        stroke_width=stroke,
+        stroke_fill=(0, 0, 0),
+        fill=(255, 255, 204),
+        font=score_font,
+    )
 
-    draw.text((1600, 585), f"+{actual_war_xp} / {possible_war_xp}", anchor="rm", stroke_width=stroke, stroke_fill=(0, 0, 0),fill=(255, 255, 255), font=box_xp_font)
-    draw.text((1600, 640), f"+{forty_xp} / 10", anchor="rm", fill=(255, 255, 255), stroke_width=stroke, stroke_fill=(0, 0, 0),font=box_xp_font)
-    draw.text((1600, 705), f"+{sixty_xp} / 25", anchor="rm", fill=(255, 255, 255), stroke_width=stroke, stroke_fill=(0, 0, 0),font=box_xp_font)
-    draw.text((1600, 762), f"+{win_xp} / 50", anchor="rm", fill=(255, 255, 255), stroke_width=stroke, stroke_fill=(0, 0, 0), font=box_xp_font)
+    draw.text(
+        (1600, 585),
+        f"+{actual_war_xp} / {possible_war_xp}",
+        anchor="rm",
+        stroke_width=stroke,
+        stroke_fill=(0, 0, 0),
+        fill=(255, 255, 255),
+        font=box_xp_font,
+    )
+    draw.text(
+        (1600, 640),
+        f"+{forty_xp} / 10",
+        anchor="rm",
+        fill=(255, 255, 255),
+        stroke_width=stroke,
+        stroke_fill=(0, 0, 0),
+        font=box_xp_font,
+    )
+    draw.text(
+        (1600, 705),
+        f"+{sixty_xp} / 25",
+        anchor="rm",
+        fill=(255, 255, 255),
+        stroke_width=stroke,
+        stroke_fill=(0, 0, 0),
+        font=box_xp_font,
+    )
+    draw.text(
+        (1600, 762),
+        f"+{win_xp} / 50",
+        anchor="rm",
+        fill=(255, 255, 255),
+        stroke_width=stroke,
+        stroke_fill=(0, 0, 0),
+        font=box_xp_font,
+    )
 
-    draw.text((775, 642), f"{forty_percent}", anchor="mm", fill=(255, 255, 255), stroke_width=stroke, stroke_fill=(0, 0, 0), font=box_xp_font)
-    draw.text((775, 705), f"{sixty_percent}", anchor="mm", fill=(255, 255, 255), stroke_width=stroke, stroke_fill=(0, 0, 0), font=box_xp_font)
+    draw.text(
+        (775, 642),
+        f"{forty_percent}",
+        anchor="mm",
+        fill=(255, 255, 255),
+        stroke_width=stroke,
+        stroke_fill=(0, 0, 0),
+        font=box_xp_font,
+    )
+    draw.text(
+        (775, 705),
+        f"{sixty_percent}",
+        anchor="mm",
+        fill=(255, 255, 255),
+        stroke_width=stroke,
+        stroke_fill=(0, 0, 0),
+        font=box_xp_font,
+    )
 
-    draw.text((850, 452), f"{format(round(war.clan.destruction, 2), '.2f')}%", anchor="rm", fill=(255,255,204), stroke_width=3 ,stroke_fill=(0, 0, 0), font=destruction_font)
-    draw.text((1250, 452), f"{format(round(war.opponent.destruction, 2), '.2f')}%", anchor="lm", fill=(255, 255, 204), stroke_width=3,stroke_fill=(0, 0, 0), font=destruction_font)
+    draw.text(
+        (850, 452),
+        f"{format(round(war.clan.destruction, 2), '.2f')}%",
+        anchor="rm",
+        fill=(255, 255, 204),
+        stroke_width=3,
+        stroke_fill=(0, 0, 0),
+        font=destruction_font,
+    )
+    draw.text(
+        (1250, 452),
+        f"{format(round(war.opponent.destruction, 2), '.2f')}%",
+        anchor="lm",
+        fill=(255, 255, 204),
+        stroke_width=3,
+        stroke_fill=(0, 0, 0),
+        font=destruction_font,
+    )
 
-    draw.text((490, 775), f"{won_xp} / {possible_xp}", anchor="mm", fill=(255, 255, 255), stroke_width=stroke, stroke_fill=(0, 0, 0), font=total_xp_font)
+    draw.text(
+        (490, 775),
+        f"{won_xp} / {possible_xp}",
+        anchor="mm",
+        fill=(255, 255, 255),
+        stroke_width=stroke,
+        stroke_fill=(0, 0, 0),
+        font=total_xp_font,
+    )
 
     def save_im(background):
         # background.show()
@@ -114,7 +237,3 @@ async def generate_war_result_image(war: coc.ClanWar):
         file = await loop.run_in_executor(pool, save_im, background)
 
     return file
-
-
-
-
