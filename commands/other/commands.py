@@ -66,9 +66,7 @@ class misc(commands.Cog, name="Other"):
 
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for(
-                    "message_interaction", check=check, timeout=600
-                )
+                res: disnake.MessageInteraction = await self.bot.wait_for("message_interaction", check=check, timeout=600)
 
             except:
                 try:
@@ -149,9 +147,7 @@ class misc(commands.Cog, name="Other"):
     async def debug(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        server: disnake.Guild = commands.Param(
-            converter=convert.server, default=None, autocomplete=autocomplete.server
-        ),
+        server: disnake.Guild = commands.Param(converter=convert.server, default=None, autocomplete=autocomplete.server),
     ):
         server = server or ctx.guild
         pass
@@ -228,9 +224,7 @@ class misc(commands.Cog, name="Other"):
 
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                "https://fankit.supercell.com/api/assets/search/338?q={query}&limit=25&page=1&requestnewflag=true&order=RELEVANCE".format(
-                    query=query
-                )
+                "https://fankit.supercell.com/api/assets/search/338?q={query}&limit=25&page=1&requestnewflag=true&order=RELEVANCE".format(query=query)
             ) as response:
                 data = await response.json()
 
@@ -303,29 +297,40 @@ class misc(commands.Cog, name="Other"):
 
     @commands.Cog.listener()
     async def on_message(self, message: disnake.Message):
+
         if message.content[:2] == "-/" and self.bot.user.public_flags.verified_bot:
             try:
                 command = self.bot.get_global_command_named(name=message.content.replace("-/", "").split(" ")[0])
                 await message.channel.send(f"</{message.content.replace('-/', '')}:{command.id}>")
             except Exception:
                 pass
-        elif message.channel.id == 1204977978438848522 and self.bot.user.mention in message.content:
-            query = message.content.replace(self.bot.user.mention, "")
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f'https://api.gitbook.com/v1/spaces/iSJhS5UxZkjOhR5eSxhS/search/ask?{urlencode({"query": query})}'
-                ) as response:
-                    if response.status == 200:
-                        answer = await response.json()
-                    else:
-                        answer = None
-            if answer is not None:
-                try:
-                    await message.reply(content=answer.get("answer").get("text"))
-                except Exception:
-                    await message.reply(
-                        content="I dont have the answer to that yet, but you can take a look at my docs <https://docs.clashking.xyz>"
-                    )
+        elif (
+            isinstance(message.channel, disnake.Thread)
+            and message.channel.parent_id == 1253074921311965184
+            and message.channel.total_message_sent == 0
+        ):
+            async with message.channel.typing():
+                query = message.content.replace(self.bot.user.mention, "")
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        f'https://api.gitbook.com/v1/spaces/iSJhS5UxZkjOhR5eSxhS/search/ask?{urlencode({"query": query})}'
+                    ) as response:
+                        if response.status == 200:
+                            answer = await response.json()
+                        else:
+                            answer = None
+                if answer is not None:
+                    try:
+                        embed = disnake.Embed(
+                            title="ClashKing Docs AI",
+                            description="This info is pulled from our [docs](https://docs.clashking.xyz), to try to help assist you. Otherwise, someone should help you shortly :)",
+                            color=disnake.Color.orange(),
+                        )
+                        await message.channel.send(
+                            embed=embed, content=answer.get("answer").get("text"), allowed_mentions=disnake.AllowedMentions.none()
+                        )
+                    except Exception:
+                        pass
 
 
 def setup(bot: CustomClient):

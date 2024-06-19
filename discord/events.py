@@ -235,7 +235,7 @@ class DiscordEvents(commands.Cog):
                             disnake.ui.Button(
                                 label="Server",
                                 style=disnake.ButtonStyle.url,
-                                url="https://discord.clashk.ing",
+                                url="https://discord.gg/clashking",
                             ),
                             disnake.ui.Button(
                                 label="X",
