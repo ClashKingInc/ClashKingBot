@@ -219,12 +219,11 @@ class CustomClient(commands.AutoShardedBot):
         return self.emoji.blank.emoji_string
 
     def get_locale(self, ctx: disnake.Interaction) -> disnake.Locale:
-        # Guild locale > User locale > Default locale
-
-        if loc := ctx.guild_locale:
-            return loc
 
         if loc := ctx.locale:
+            return loc
+
+        if loc := ctx.guild_locale:
             return loc
 
         return disnake.Locale.en_US
@@ -232,7 +231,14 @@ class CustomClient(commands.AutoShardedBot):
     def get_localizator(self, ctx: disnake.Interaction = None, locale: disnake.Locale = None):
         if not locale:
             locale = self.get_locale(ctx)
-        return functools.partial(self.i18n.l10n, locale=locale), locale
+
+        def localizator_func(key, **kwargs):
+            if "values" in kwargs:
+                return functools.partial(self.i18n.l10n, locale=locale, cache=False)(key, **kwargs)
+            else:
+                return functools.partial(self.i18n.l10n, locale=locale, cache=True)(key, **kwargs)
+
+        return localizator_func, locale
 
     def get_server_localizator(self, server: disnake.Guild) -> Callable[[str], str]:
         return functools.partial(self.i18n.l10n, locale=server.preferred_locale or disnake.Locale.en_US)

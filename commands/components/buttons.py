@@ -6,14 +6,10 @@ from classes.bot import CustomClient
 from utility.discord_utils import registered_functions
 
 
-async def button_logic(
-    button_data: str,
-    bot: CustomClient,
-    guild: disnake.Guild,
-    ctx: disnake.MessageInteraction = None,
-):
+async def button_logic(button_data: str, bot: CustomClient, guild: disnake.Guild, locale: disnake.Locale, ctx: disnake.MessageInteraction = None):
     split_data = button_data.split(":")
     lookup_name = button_data.split(":")[0]
+    print(locale)
     # print(registered_functions.keys())
     function, parser, ephemeral, no_embed = registered_functions.get(lookup_name)
     if function is None:
@@ -22,7 +18,7 @@ async def button_logic(
         await ctx.response.defer(ephemeral=ephemeral)
 
     parser_split = parser.split(":")
-    hold_kwargs = {"bot": bot, "server": guild}
+    hold_kwargs = {"bot": bot, "server": guild, "locale": locale}
     for data, name in zip(split_data[1:], parser_split[1:]):
         if data.isdigit():
             data = int(data)
@@ -79,7 +75,8 @@ class ComponentHandler(commands.Cog):
         if ":" not in button_data:
             return
 
-        embed, components = await button_logic(button_data=button_data, bot=self.bot, ctx=ctx, guild=ctx.guild)
+        locale = self.bot.get_locale(ctx=ctx)
+        embed, components = await button_logic(button_data=button_data, bot=self.bot, ctx=ctx, guild=ctx.guild, locale=locale)
 
         # in some cases the handling is done outside this function
         if embed is None:

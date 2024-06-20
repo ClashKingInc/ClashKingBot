@@ -12,6 +12,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pendulum as pend
 
+from babel import Locale
+from babel.dates import get_month_names
 from classes.bot import CustomClient
 from classes.DatabaseClient.Classes.player import LegendPlayer, LegendDay
 from utility.discord_utils import register_button
@@ -38,7 +40,7 @@ async def legend_day_overview(bot: CustomClient, player: coc.Player, embed_color
         + f"- {_('attacks-for-trophies', values={'num_attacks' : int(legend_day.num_attacks), 'attack_sum' : legend_day.attack_sum})}\n"
         + f"- {_('defenses-for-trophies', values={'num_defenses' : int(legend_day.num_defenses), 'defense_sum' : legend_day.defense_sum})}\n"
         + f"- {_('net-trophies', values={'net_gain' : legend_day.net_gain})}\n"
-        + f"- {_('streak', values={'triple_steak' : player.streak})}",
+        + f"- {_('streak', values={'triple_streak' : player.streak})}",
         color=embed_color,
     )
 
@@ -51,11 +53,11 @@ async def legend_day_overview(bot: CustomClient, player: coc.Player, embed_color
             curr_rank = 100
         mid_calc = (curr_rank / lowest_rank) * 100
         perc_of_total = round(mid_calc, 2 if mid_calc < 1 else None)
-        global_ranking_text = f"{player.ranking.global_ranking} (Top {perc_of_total}%)"
+        global_ranking_text = f"{player.ranking.global_ranking} {_('top-ranking', values={'perc_of_total' : perc_of_total})}"
 
     embed.add_field(
-        name="**Rankings**",
-        value=f"- {bot.emoji.earth} {global_ranking_text} | {player.ranking.flag} {player.ranking.local_ranking}\n- Country: {player.ranking.country}",
+        name=f"**{_('rankings')}**",
+        value=f"- {bot.emoji.earth} {global_ranking_text} | {player.ranking.flag} {player.ranking.local_ranking}\n- {_('country')}: {player.ranking.country}",
         inline=False,
     )
 
@@ -88,14 +90,15 @@ async def legend_day_overview(bot: CustomClient, player: coc.Player, embed_color
         defi += f"{bot.emoji.shield.emoji_string} -{d.change} {bot.timestamper(d.timestamp).relative}\n"
 
     if off == "":
-        off = "No Attacks Yet."
+        off = _("no-attacks")
     if defi == "":
-        defi = "No Defenses Yet."
+        defi = _("no-defenses")
     if not gear_text:
-        gear_text = "No Equipment Used"
-    embed.add_field(name="**Offense**", value=off, inline=True)
-    embed.add_field(name="**Defense**", value=defi, inline=True)
-    embed.add_field(name="**Hero Equipment Used**", value=gear_text, inline=False)
+        gear_text = _("no-equipment")
+
+    embed.add_field(name=f"**{_('offense')}**", value=off, inline=True)
+    embed.add_field(name=f"**{_('defense')}**", value=defi, inline=True)
+    embed.add_field(name=f"**{_('equipment-used')}**", value=gear_text, inline=False)
     embed.set_footer(text=player.tag)
 
     link = await legend_poster(bot=bot, player=player)
@@ -105,10 +108,12 @@ async def legend_day_overview(bot: CustomClient, player: coc.Player, embed_color
 
 
 @register_button("legendseason", parser="_:player")
-async def legend_season_overview(bot: CustomClient, player: coc.Player, embed_color: disnake.Color):
+async def legend_season_overview(bot: CustomClient, player: coc.Player, embed_color: disnake.Color, locale: disnake.Locale):
+    _, locale = bot.get_localizator(locale=locale)
+
     player = await bot.ck_client.get_legend_player(player=player)
     season_stats = player.get_legend_season()
-    text = f"**Attacks Won:** {player._.attack_wins} | **Def Won:** {player._.defense_wins}\n"
+    text = f"**{_('attacks-won')}:** {player._.attack_wins} | **{_('defenses-won')}:** {player._.defense_wins}\n"
 
     start = utils.get_season_start().replace(tzinfo=utc).date()
     now = datetime.now(tz=utc).date()
@@ -119,10 +124,10 @@ async def legend_season_overview(bot: CustomClient, player: coc.Player, embed_co
         current_season_progress -= 1
 
     day = 0
-    text += f"```Day     Off  Def  Trophy\n"
+    text += f"```{_('legend-day-headings')}\n"
     for legend_day in season_stats.values():  # type: LegendDay
         day += 1
-        day_text = f"Day {day:<2}"
+        day_text = f"{day:<2}"
         trophy_finish = ""
         if legend_day.finished_trophies is not None:
             trophy_finish = f" {legend_day.finished_trophies:<4}"
@@ -133,10 +138,10 @@ async def legend_season_overview(bot: CustomClient, player: coc.Player, embed_co
             break
 
     if day == 0:
-        text += "\n**No Previous Days Tracked**"
+        text += f"\n**{_('no-previous-days')}**"
     text += "```"
 
-    embed = disnake.Embed(title=f"Season Legends Overview", description=text, color=embed_color)
+    embed = disnake.Embed(title=f"{_('season-legends-overview')}", description=text, color=embed_color)
 
     embed.set_author(
         name=f"{player._.name} | {player.clan_name}",
@@ -147,7 +152,9 @@ async def legend_season_overview(bot: CustomClient, player: coc.Player, embed_co
 
     month = start.month
     month = month if month != 12 else 0
-    month = calendar.month_name[month + 1]
+    month_names = get_month_names("wide", locale=Locale.parse(locale.value.replace("-", "_")))
+    month = month_names[month + 1]
+
     embed.set_footer(text=f"{month} {start.year} Season")
 
     return embed
