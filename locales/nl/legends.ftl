@@ -4,39 +4,39 @@ search-name = zoeken
 search-description = Bekijk legendarische statistieken voor een speler of een discord gebruiker
 clan-name = clan
 clan-description = View a clan's legend day results
-history-name = history
+history-name = geschiedenis
 history-description = View legend history of an account
 today = Vandaag
 legend-overview = Legend Day Overview
-profile = Profile
+profile = Profiel
 start = Start:
-now = Now:
+now = Nu:
 attacks-for-trophies =
     { $num_attacks ->
-        [one] { $num_attacks } attack for +{ $attack_sum } trophies
-       *[other] { $num_attacks } attacks for +{ $attack_sum } trophies
+        [one] { $num_attacks } aanval voor +{ $attack_sum } trofeeën
+       *[other] { $num_attacks } aanvallen voor +{ $attack_sum } trofeeën
     }
 defenses-for-trophies =
     { $num_defenses ->
-        [one] { $num_defenses } defense for -{ $defense_sum } trophies
-       *[other] { $num_defenses } defenses for -{ $defense_sum } trophies
+        [one] { $num_defenses } verdediging voor -{ $defense_sum } trofeeën
+       *[other] { $num_defenses } verdedigingen voor -{ $defense_sum } trofeeën
     }
 net-trophies = Net: { $net_gain } trophies
 streak = Streak: { $triple_streak } triples
 top-ranking = (Top { $perc_of_total }%)
 rankings = Rankings
 country = Country
-no-attacks = No Attacks Yet
-no-defenses = No Defenses Yet
-no-equipment = No Equipment Used Yet
-offense = Offense
-defense = Defense
+no-attacks = Nog geen aanvallen
+no-defenses = Nog geen verdedigingen
+no-equipment = Nog geen uitrusting gebruikt
+offense = Aanvallen
+defense = Verdediging
 equipment-used = Hero Equipment Used
 attacks-won = Attacks Won
 defenses-won = Def Won
 legend-day-headings = Day Off  Def  Trophy
-day = Day
-no-previous-days = No Previous Days Tracked
+day = Dag
+no-previous-days = Geen eerdere dagen bijgehouden
 season-legends-overview = Season Legends Overview
 # month is a string, like December, year is integer like 2024
-legend-season = { $month } { $year } Season
+legend-season = { $month } { $year } Seizoen
