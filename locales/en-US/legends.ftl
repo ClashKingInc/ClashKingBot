@@ -3,10 +3,6 @@ legends-description = Legend League Commands & Stats
 
 search-name = search
 search-description = View legend stats for a player or discord user
-clan-name = clan
-clan-description = View a clan's legend day results
-history-name = history
-history-description = View legend history of an account
 
 today = Today
 legend-overview = Legend Day Overview
