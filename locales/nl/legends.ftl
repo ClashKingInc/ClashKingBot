@@ -3,11 +3,11 @@ legends-description = Legendarische Divisie commando's & statistieken
 search-name = zoeken
 search-description = Bekijk legendarische statistieken voor een speler of een discord gebruiker
 clan-name = clan
-clan-description = View a clan's legend day results
+clan-description = Bekijk de legendarische resultaten van een clan
 history-name = geschiedenis
-history-description = View legend history of an account
+history-description = Bekijk de legendarische geschiedenis van een account
 today = Vandaag
-legend-overview = Legend Day Overview
+legend-overview = Legendarische Dag Overzicht
 profile = Profiel
 start = Start:
 now = Nu:
@@ -21,22 +21,22 @@ defenses-for-trophies =
         [one] { $num_defenses } verdediging voor -{ $defense_sum } trofeeën
        *[other] { $num_defenses } verdedigingen voor -{ $defense_sum } trofeeën
     }
-net-trophies = Net: { $net_gain } trophies
-streak = Streak: { $triple_streak } triples
-top-ranking = (Top { $perc_of_total }%)
-rankings = Rankings
-country = Country
+net-trophies = Netto: { $net_gain } trofeeën
+streak = Reeks: { $triple_streak } drie sterren
+top-ranking = (Bovenste { $perc_of_total }%)
+rankings = Klassement
+country = Land
 no-attacks = Nog geen aanvallen
 no-defenses = Nog geen verdedigingen
 no-equipment = Nog geen uitrusting gebruikt
 offense = Aanvallen
 defense = Verdediging
-equipment-used = Hero Equipment Used
-attacks-won = Attacks Won
-defenses-won = Def Won
+equipment-used = Heldenuitrusting gebruikt
+attacks-won = Aanvallen gewonnen
+defenses-won = Verdedigingen Gewonnen
 legend-day-headings = Day Off  Def  Trophy
 day = Dag
 no-previous-days = Geen eerdere dagen bijgehouden
-season-legends-overview = Season Legends Overview
+season-legends-overview = Overzicht Legendarisch Seizoen
 # month is a string, like December, year is integer like 2024
 legend-season = { $month } { $year } Seizoen
