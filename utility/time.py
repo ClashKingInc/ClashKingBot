@@ -12,8 +12,8 @@ def time_difference(start: datetime, end: datetime):
 
     # Format output based on duration
     if days > 0:
-        return f"{days} day(s) {hours} hrs {minutes} mins"
+        return f'{days} day(s) {hours} hrs {minutes} mins'
     elif diff < timedelta(hours=1):
-        return f"{minutes} mins {seconds} secs"
+        return f'{minutes} mins {seconds} secs'
     else:
-        return f"{hours} hrs {minutes} mins"
+        return f'{hours} hrs {minutes} mins'

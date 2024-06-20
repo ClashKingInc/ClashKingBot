@@ -1,15 +1,16 @@
-import disnake
-import pendulum as pend
-import msgspec
+from typing import List, Optional
 
+import disnake
+import msgspec
+import pendulum as pend
 from disnake.ext import commands
+from msgspec import Struct
+
+from background.logs.events import player_ee
 from classes.bot import CustomClient
 from classes.server import DatabaseClan
-from background.logs.events import player_ee
-from utility.discord_utils import get_webhook_for_channel
 from exceptions.CustomExceptions import MissingWebhookPerms
-from msgspec import Struct
-from typing import Optional, List
+from utility.discord_utils import get_webhook_for_channel
 
 
 class Badges(Struct):
@@ -91,42 +92,41 @@ class Player(Struct):
 
 
 class LegendEvents(commands.Cog):
-
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.player_ee = player_ee
-        self.player_ee.on("legends", self.legend_event)
+        self.player_ee.on('legends', self.legend_event)
 
     async def legend_event(self, event):
-        player = msgspec.convert(event["new_data"], Player)
+        player = msgspec.convert(event['new_data'], Player)
         if player.clan is None:
             return
-        old_player = msgspec.convert(event["old_data"], Player)
+        old_player = msgspec.convert(event['old_data'], Player)
         trophy_change = player.trophies - old_player.trophies
 
         utc_time = pend.now(tz=pend.UTC)
 
         if trophy_change >= 1:
             color = disnake.Color.green()
-            change = f"{self.bot.emoji.sword} +{trophy_change} trophies"
-            type = "logs.legend_log_attacks.webhook"
+            change = f'{self.bot.emoji.sword} +{trophy_change} trophies'
+            type = 'logs.legend_log_attacks.webhook'
         else:  # trophy_change <= -1
             color = disnake.Color.red()
-            change = f"{self.bot.emoji.shield} {trophy_change} trophies"
-            type = "logs.legend_log_defenses.webhook"
+            change = f'{self.bot.emoji.shield} {trophy_change} trophies'
+            type = 'logs.legend_log_defenses.webhook'
 
-        embed = disnake.Embed(description=f"{change} | [profile]({player.share_link()})", color=color)
+        embed = disnake.Embed(description=f'{change} | [profile]({player.share_link()})', color=color)
         embed.set_author(
-            name=f"{player.name} | {player.clan.name}",
+            name=f'{player.name} | {player.clan.name}',
             icon_url=player.clan.badgeUrls.large,
         )
         embed.set_footer(
-            text=f"{player.trophies}",
+            text=f'{player.trophies}',
             icon_url=self.bot.emoji.legends_shield.partial_emoji.url,
         )
         embed.timestamp = utc_time
 
-        tracked = self.bot.clan_db.find({"$and": [{"tag": player.clan.tag}, {f"{type}": {"$ne": None}}]})
+        tracked = self.bot.clan_db.find({'$and': [{'tag': player.clan.tag}, {f'{type}': {'$ne': None}}]})
         for cc in await tracked.to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
             if clan.server_id not in self.bot.OUR_GUILDS:

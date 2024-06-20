@@ -1,12 +1,14 @@
 import os
-import disnake
 import traceback
+
+import disnake
 import sentry_sdk
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from pytz import utc
 
 from classes.bot import CustomClient
 from classes.config import Config
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from pytz import utc
+
 
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
@@ -16,7 +18,7 @@ intents = disnake.Intents(guilds=True, members=True, emojis=True, messages=True,
 
 cluster_id = 0
 total_shards = 6
-cluster_kwargs = {"shard_count": None}
+cluster_kwargs = {'shard_count': None}
 if config.is_main:
     total_shards = 6
     cluster_id = 0
@@ -39,7 +41,7 @@ if config.is_main:
     }"""
 
 bot = CustomClient(
-    command_prefix="??",
+    command_prefix='??',
     help_command=None,
     intents=intents,
     scheduler=scheduler,
@@ -48,16 +50,14 @@ bot = CustomClient(
     **cluster_kwargs,
 )
 
-
 initial_extensions = [
-    "discord.events",
-    "discord.autocomplete",
-    "discord.converters",
+    'discord.events',
+    'discord.autocomplete',
+    'discord.converters',
     # "exceptions.handler",
-    "background.tasks.background_cache",
-    "background.features.link_parsers",
+    'background.tasks.background_cache',
+    'background.features.link_parsers',
 ]
-
 
 disallowed = set()
 
@@ -68,16 +68,16 @@ if config.is_custom:
 
 def load():
     file_list = []
-    for root, _, files in os.walk("commands"):
+    for root, _, files in os.walk('commands'):
         for filename in files:
-            if filename.endswith(".py") and filename.split(".")[0] in [
-                "commands",
-                "buttons",
+            if filename.endswith('.py') and filename.split('.')[0] in [
+                'commands',
+                'buttons',
             ]:
-                path = os.path.join(root, filename)[len("commands/") :][:-3].replace(os.path.sep, ".")
-                if path.split(".")[0] in disallowed:
+                path = os.path.join(root, filename)[len('commands/') :][:-3].replace(os.path.sep, '.')
+                if path.split('.')[0] in disallowed:
                     continue
-                file_list.append(f"commands.{path}")
+                file_list.append(f'commands.{path}')
     return file_list
 
 
@@ -95,25 +95,25 @@ if not config.is_beta and not config.is_custom:
 # only the local version can not run
 if not config.is_beta:
     initial_extensions += [
-        "background.logs.autorefresh",
-        "background.logs.bans",
-        "background.logs.capital",
-        "background.logs.donations",
-        "background.logs.joinleave",
-        "background.logs.legends",
-        "background.logs.playerupgrades",
-        "background.logs.reddit",
-        "background.logs.reminders",
-        "background.features.voicestat_loop",
-        "background.logs.war",
+        'background.logs.autorefresh',
+        'background.logs.bans',
+        'background.logs.capital',
+        'background.logs.donations',
+        'background.logs.joinleave',
+        'background.logs.legends',
+        'background.logs.playerupgrades',
+        'background.logs.reddit',
+        'background.logs.reminders',
+        'background.features.voicestat_loop',
+        'background.logs.war',
     ]
 
 
 def before_send(event, hint):
     try:
         if (
-            "unclosed client session" in str(event["logentry"]["message"]).lower()
-            or "unclosed connector" in str(event["logentry"]["message"]).lower()
+            'unclosed client session' in str(event['logentry']['message']).lower()
+            or 'unclosed connector' in str(event['logentry']['message']).lower()
         ):
             return None
     except:
@@ -121,7 +121,7 @@ def before_send(event, hint):
     return event
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     sentry_sdk.init(
         dsn=config.sentry_dsn,
         # Set traces_sample_rate to 1.0 to capture 100%

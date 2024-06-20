@@ -1,33 +1,35 @@
-import aiohttp
 import calendar
-import coc
-import disnake
 import datetime as dt
 import io
 import random
-
-from coc import utils
 from datetime import datetime
+from typing import Callable, List
+
+import aiohttp
+import coc
+import disnake
+from coc import utils
 from expiring_dict import ExpiringDict
 from pytz import utc
-from typing import List, Callable
-from utility.constants import war_leagues, SUPER_SCRIPTS, placeholders
+
 from utility.clash.other import league_to_emoji
+from utility.constants import SUPER_SCRIPTS, placeholders, war_leagues
+
 
 IMAGE_CACHE = ExpiringDict()
 
 
 async def fetch(url, session, **kwargs):
     async with session.get(url) as response:
-        if kwargs.get("extra") is not None:
-            return [(await response.json()), kwargs.get("extra")]
+        if kwargs.get('extra') is not None:
+            return [(await response.json()), kwargs.get('extra')]
         else:
             return await response.json()
 
 
 def create_superscript(num):
     digits = [int(num) for num in str(num)]
-    new_num = ""
+    new_num = ''
     for d in digits:
         new_num += SUPER_SCRIPTS[d]
 
@@ -35,13 +37,13 @@ def create_superscript(num):
 
 
 async def calculate_time(type, war: coc.ClanWar = None):
-    text = ""
+    text = ''
     now = datetime.utcnow().replace(tzinfo=utc)
     year = now.year
     month = now.month
     day = now.day
     hour = now.hour
-    if type == "CWL":
+    if type == 'CWL':
         is_cwl = True
         if day == 1:
             first = datetime(year, month, 1, hour=8, tzinfo=utc)
@@ -69,11 +71,11 @@ async def calculate_time(type, war: coc.ClanWar = None):
             hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
             mins, secs = divmod(secs, secs_per_min := 60)
             if int(days) == 0:
-                text = f"ends {int(hrs)}H {int(mins)}M"
+                text = f'ends {int(hrs)}H {int(mins)}M'
                 if int(hrs) == 0:
-                    text = f"ends in {int(mins)}M"
+                    text = f'ends in {int(mins)}M'
             else:
-                text = f"ends {int(days)}D {int(hrs)}H"
+                text = f'ends {int(days)}D {int(hrs)}H'
         else:
             time_left = first - now
             secs = time_left.total_seconds()
@@ -81,13 +83,13 @@ async def calculate_time(type, war: coc.ClanWar = None):
             hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
             mins, secs = divmod(secs, secs_per_min := 60)
             if int(days) == 0:
-                text = f"in {int(hrs)}H {int(mins)}M"
+                text = f'in {int(hrs)}H {int(mins)}M'
                 if int(hrs) == 0:
-                    text = f"in {int(mins)}M"
+                    text = f'in {int(mins)}M'
             else:
-                text = f"in {int(days)}D {int(hrs)}H"
+                text = f'in {int(days)}D {int(hrs)}H'
 
-    elif type == "Clan Games":
+    elif type == 'Clan Games':
         is_games = True
         first = datetime(year, month, 22, hour=8, tzinfo=utc)
         end = datetime(year, month, 28, hour=8, tzinfo=utc)
@@ -122,11 +124,11 @@ async def calculate_time(type, war: coc.ClanWar = None):
             hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
             mins, secs = divmod(secs, secs_per_min := 60)
             if int(days) == 0:
-                text = f"ends {int(hrs)}H {int(mins)}M"
+                text = f'ends {int(hrs)}H {int(mins)}M'
                 if int(hrs) == 0:
-                    text = f"ends in {int(mins)}M"
+                    text = f'ends in {int(mins)}M'
             else:
-                text = f"ends {int(days)}D {int(hrs)}H"
+                text = f'ends {int(days)}D {int(hrs)}H'
         else:
             time_left = first - now
             secs = time_left.total_seconds()
@@ -134,13 +136,13 @@ async def calculate_time(type, war: coc.ClanWar = None):
             hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
             mins, secs = divmod(secs, secs_per_min := 60)
             if int(days) == 0:
-                text = f"in {int(hrs)}H {int(mins)}M"
+                text = f'in {int(hrs)}H {int(mins)}M'
                 if int(hrs) == 0:
-                    text = f"in {int(mins)}M"
+                    text = f'in {int(mins)}M'
             else:
-                text = f"in {int(days)}D {int(hrs)}H"
+                text = f'in {int(days)}D {int(hrs)}H'
 
-    elif type == "Raid Weekend":
+    elif type == 'Raid Weekend':
 
         now = datetime.utcnow().replace(tzinfo=utc)
         current_dayofweek = now.weekday()
@@ -164,11 +166,11 @@ async def calculate_time(type, war: coc.ClanWar = None):
             hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
             mins, secs = divmod(secs, secs_per_min := 60)
             if int(days) == 0:
-                text = f"end {int(hrs)}H {int(mins)}M"
+                text = f'end {int(hrs)}H {int(mins)}M'
                 if int(hrs) == 0:
-                    text = f"end in {int(mins)}M"
+                    text = f'end in {int(mins)}M'
             else:
-                text = f"end {int(days)}D {int(hrs)}H"
+                text = f'end {int(days)}D {int(hrs)}H'
         else:
             first = datetime(year, month, day, hour=7, tzinfo=utc) + dt.timedelta(days=(4 - current_dayofweek))
             time_left = first - now
@@ -177,13 +179,13 @@ async def calculate_time(type, war: coc.ClanWar = None):
             hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
             mins, secs = divmod(secs, secs_per_min := 60)
             if int(days) == 0:
-                text = f"in {int(hrs)}H {int(mins)}M"
+                text = f'in {int(hrs)}H {int(mins)}M'
                 if int(hrs) == 0:
-                    text = f"in {int(mins)}M"
+                    text = f'in {int(mins)}M'
             else:
-                text = f"in {int(days)}D {int(hrs)}H"
+                text = f'in {int(days)}D {int(hrs)}H'
 
-    elif type == "EOS":
+    elif type == 'EOS':
         end = utils.get_season_end().replace(tzinfo=utc)
         time_left = end - now
         secs = time_left.total_seconds()
@@ -192,41 +194,41 @@ async def calculate_time(type, war: coc.ClanWar = None):
         mins, secs = divmod(secs, secs_per_min := 60)
 
         if int(days) == 0:
-            text = f"in {int(hrs)}H {int(mins)}M"
+            text = f'in {int(hrs)}H {int(mins)}M'
             if int(hrs) == 0:
-                text = f"in {int(mins)}M"
+                text = f'in {int(mins)}M'
         else:
-            text = f"in {int(days)}D {int(hrs)}H "
+            text = f'in {int(days)}D {int(hrs)}H '
 
-    elif type == "War Score":
+    elif type == 'War Score':
         if war is None:
-            text = "Not in War"
-        elif str(war.state) == "preparation":
+            text = 'Not in War'
+        elif str(war.state) == 'preparation':
             secs = war.start_time.seconds_until
             days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
             hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
             mins, secs = divmod(secs, secs_per_min := 60)
             if int(hrs) == 0:
-                text = f"in {mins}M"
+                text = f'in {mins}M'
             else:
-                text = f"{hrs}H {mins}M"
+                text = f'{hrs}H {mins}M'
         else:
-            text = f"{war.clan.stars}⭐| {war.opponent.stars}⭐"
+            text = f'{war.clan.stars}⭐| {war.opponent.stars}⭐'
 
-    elif type == "War Timer":
+    elif type == 'War Timer':
         if war is None:
-            text = "Not in War"
+            text = 'Not in War'
         else:
             secs = war.end_time.seconds_until
             days, secs = divmod(secs, secs_per_day := 60 * 60 * 24)
             hrs, secs = divmod(secs, secs_per_hr := 60 * 60)
             mins, secs = divmod(secs, secs_per_min := 60)
             if days != 0:
-                text = f"{days}D {hrs}H"
+                text = f'{days}D {hrs}H'
             elif int(hrs) == 0:
-                text = f"in {mins}M"
+                text = f'in {mins}M'
             else:
-                text = f"{hrs}H {mins}M"
+                text = f'{hrs}H {mins}M'
 
     return text
 
@@ -240,48 +242,48 @@ def get_clan_member_tags(clans: List[coc.Clan]) -> List[str]:
 
 
 def response_to_line(response, clan):
-    clans = response["clans"]
-    season = response["season"]
-    tags = [x["tag"] for x in clans]
+    clans = response['clans']
+    season = response['season']
+    tags = [x['tag'] for x in clans]
     stars = {}
     for tag in tags:
         stars[tag] = 0
-    rounds = response["rounds"]
+    rounds = response['rounds']
     for round in rounds:
-        wars = round["wars"]
+        wars = round['wars']
         for war in wars:
-            main_stars = war["clan"]["stars"]
-            main_destruction = war["clan"]["destructionPercentage"]
-            stars[war["clan"]["tag"]] += main_stars
+            main_stars = war['clan']['stars']
+            main_destruction = war['clan']['destructionPercentage']
+            stars[war['clan']['tag']] += main_stars
 
-            opp_stars = war["opponent"]["stars"]
-            opp_destruction = war["opponent"]["destructionPercentage"]
-            stars[war["opponent"]["tag"]] += opp_stars
+            opp_stars = war['opponent']['stars']
+            opp_destruction = war['opponent']['destructionPercentage']
+            stars[war['opponent']['tag']] += opp_stars
 
             if main_stars > opp_stars:
-                stars[war["clan"]["tag"]] += 10
+                stars[war['clan']['tag']] += 10
             elif opp_stars > main_stars:
-                stars[war["opponent"]["tag"]] += 10
+                stars[war['opponent']['tag']] += 10
             elif main_destruction > opp_destruction:
-                stars[war["clan"]["tag"]] += 10
+                stars[war['clan']['tag']] += 10
             elif opp_destruction > main_destruction:
-                stars[war["opponent"]["tag"]] += 10
+                stars[war['opponent']['tag']] += 10
     stars = dict(sorted(stars.items(), key=lambda item: item[1], reverse=True))
     place = list(stars.keys()).index(clan.tag) + 1
-    league = response["leagueId"]
-    league_name = [x["name"] for x in war_leagues["items"] if x["id"] == league][0]
-    promo = [x["promo"] for x in war_leagues["items"] if x["id"] == league][0]
-    demo = [x["demote"] for x in war_leagues["items"] if x["id"] == league][0]
+    league = response['leagueId']
+    league_name = [x['name'] for x in war_leagues['items'] if x['id'] == league][0]
+    promo = [x['promo'] for x in war_leagues['items'] if x['id'] == league][0]
+    demo = [x['demote'] for x in war_leagues['items'] if x['id'] == league][0]
 
     if place <= promo:
-        emoji = "<:warwon:932212939899949176>"
+        emoji = '<:warwon:932212939899949176>'
     elif place >= demo:
-        emoji = "<:warlost:932212154164183081>"
+        emoji = '<:warlost:932212154164183081>'
     else:
-        emoji = "<:dash:933150462818021437>"
+        emoji = '<:dash:933150462818021437>'
 
-    end = "th"
-    ends = {1: "st", 2: "nd", 3: "rd"}
+    end = 'th'
+    ends = {1: 'st', 2: 'nd', 3: 'rd'}
     if place <= 3:
         end = ends[place]
 
@@ -289,32 +291,32 @@ def response_to_line(response, clan):
     month = season[5:]
     month = calendar.month_abbr[int(month)]
     # month = month.ljust(9)
-    date = f"`{month}`"
-    league = str(league_name).replace("League ", "")
+    date = f'`{month}`'
+    league = str(league_name).replace('League ', '')
     league = league.ljust(14)
-    league = f"{league}"
+    league = f'{league}'
 
-    tier = str(league_name).count("I")
+    tier = str(league_name).count('I')
 
     return (
-        f"{emoji} {league_to_emoji(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n",
+        f'{emoji} {league_to_emoji(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n',
         year,
     )
 
 
 def notate_number(number: int, zero=False):
     if number == 0 and not zero:
-        return ""
+        return ''
     if number / 1000000 >= 1:
         rounded = round(number / 1000000, 1)
         if len(str(rounded)) >= 4:
             rounded = round(number / 1000000, None)
-        return f"{rounded}M"
+        return f'{rounded}M'
     elif number / 1000 >= 1:
         rounded = round(number / 1000, 1)
         if len(str(rounded)) >= 4:
             rounded = round(number / 1000, None)
-        return f"{rounded}K"
+        return f'{rounded}K'
     else:
         return number
 
@@ -322,31 +324,31 @@ def notate_number(number: int, zero=False):
 def custom_round(number: int, add_percent=None):
     number = round(number, 1)
     if len(str(number)) <= 3:
-        number = format(number, ".2f")
+        number = format(number, '.2f')
     elif number == 100.0:
         number = 100
     if add_percent:
-        return f"{number}%"
+        return f'{number}%'
     return number
 
 
 def convert_seconds(seconds):
     if seconds is None:
-        return "N/A"
+        return 'N/A'
     seconds = seconds % (24 * 3600)
     hour = seconds // 3600
     seconds %= 3600
     minutes = seconds // 60
     seconds %= 60
-    return "%d:%02d:%02d" % (hour, minutes, seconds)
+    return '%d:%02d:%02d' % (hour, minutes, seconds)
 
 
 def smart_convert_seconds(seconds, granularity=2):
     intervals = (
-        ("w", 604800),  # 60 * 60 * 24 * 7
-        ("d", 86400),  # 60 * 60 * 24
-        ("h", 3600),  # 60 * 60
-        ("m", 60),
+        ('w', 604800),  # 60 * 60 * 24 * 7
+        ('d', 86400),  # 60 * 60 * 24
+        ('h', 3600),  # 60 * 60
+        ('m', 60),
     )
 
     result = []
@@ -356,9 +358,9 @@ def smart_convert_seconds(seconds, granularity=2):
         if value:
             seconds -= value * count
             if value == 1:
-                name = name.rstrip("s")
-            result.append("{}{}".format(int(value), name))
-    return " ".join(result[:granularity])
+                name = name.rstrip('s')
+            result.append('{}{}'.format(int(value), name))
+    return ' '.join(result[:granularity])
 
 
 async def download_image(url: str):
@@ -381,7 +383,7 @@ def acronym(stng):
 
     # iterate over string
     for i in range(1, len(stng)):
-        if stng[i - 1] == " ":
+        if stng[i - 1] == ' ':
             # add letter next to space
             oupt += stng[i]
 

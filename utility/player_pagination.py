@@ -1,18 +1,13 @@
 import disnake
 
+from archived.commands.CommandsOlder.Utils.Player import create_profile_stats, create_profile_troops, history, upgrade_embed
 from classes.bot import CustomClient
 from classes.player.stats import StatsPlayer
-from archived.commands.CommandsOlder.Utils.Player import (
-    create_profile_stats,
-    create_profile_troops,
-    upgrade_embed,
-    history,
-)
 
 
 async def button_pagination(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, msg, results):
     # statTypes
-    profile_pages = ["Info", "Troops", "Upgrades", "History"]
+    profile_pages = ['Info', 'Troops', 'Upgrades', 'History']
     current_stat = 0
     current_page = 0
     history_cache_embed = {}
@@ -26,7 +21,7 @@ async def button_pagination(bot: CustomClient, ctx: disnake.ApplicationCommandIn
 
     while True:
         try:
-            res: disnake.MessageInteraction = await bot.wait_for("message_interaction", check=check, timeout=600)
+            res: disnake.MessageInteraction = await bot.wait_for('message_interaction', check=check, timeout=600)
         except:
             try:
                 await ctx.edit_original_message(components=[])
@@ -46,14 +41,14 @@ async def button_pagination(bot: CustomClient, ctx: disnake.ApplicationCommandIn
                     history_cache_embed,
                     bot,
                 )
-                if profile_pages[current_stat] == "Upgrades":
+                if profile_pages[current_stat] == 'Upgrades':
                     await res.edit_original_message(embeds=embed)
                 else:
                     await res.edit_original_message(embed=embed)
             except:
-                if profile_pages[current_stat] == "History":
+                if profile_pages[current_stat] == 'History':
                     embed = disnake.Embed(
-                        description="This player has made their clash of stats history private.",
+                        description='This player has made their clash of stats history private.',
                         color=disnake.Color.green(),
                     )
                     player = results[current_page]
@@ -69,20 +64,20 @@ async def button_pagination(bot: CustomClient, ctx: disnake.ApplicationCommandIn
                 history_cache_embed,
                 bot,
             )
-            if profile_pages[current_stat] == "Upgrades":
+            if profile_pages[current_stat] == 'Upgrades':
                 await res.edit_original_message(embeds=embed)
             else:
                 await res.edit_original_message(embed=embed)
 
 
 async def display_embed(results, stat_type, current_page, ctx, history_cache_embed, bot: CustomClient):
-    if stat_type == "Info":
+    if stat_type == 'Info':
         return await create_profile_stats(bot, ctx, results[current_page])
-    elif stat_type == "Troops":
+    elif stat_type == 'Troops':
         return await create_profile_troops(bot, results[current_page])
-    elif stat_type == "Upgrades":
+    elif stat_type == 'Upgrades':
         return await upgrade_embed(bot, results[current_page])
-    elif stat_type == "History":
+    elif stat_type == 'History':
         player = results[current_page]
         keys = history_cache_embed.keys()
         if player.tag not in keys:
@@ -94,21 +89,21 @@ def create_components(bot: CustomClient, results):
     length = len(results)
 
     options = [  # the options in your dropdown
-        disnake.SelectOption(label="Overview", emoji=bot.emoji.xp.partial_emoji, value="Info"),
-        disnake.SelectOption(label="Troops", emoji=bot.emoji.troop.partial_emoji, value="Troops"),
+        disnake.SelectOption(label='Overview', emoji=bot.emoji.xp.partial_emoji, value='Info'),
+        disnake.SelectOption(label='Troops', emoji=bot.emoji.troop.partial_emoji, value='Troops'),
         disnake.SelectOption(
-            label="Upgrades/Rushed",
+            label='Upgrades/Rushed',
             emoji=bot.emoji.clock.partial_emoji,
-            value="Upgrades",
+            value='Upgrades',
         ),
         disnake.SelectOption(
-            label="Clan History",
+            label='Clan History',
             emoji=bot.emoji.clan_castle.partial_emoji,
-            value="History",
+            value='History',
         ),
     ]
 
-    stat_select = disnake.ui.Select(options=options, placeholder="Choose a page", max_values=1)
+    stat_select = disnake.ui.Select(options=options, placeholder='Choose a page', max_values=1)
 
     st = disnake.ui.ActionRow()
     st.append_item(stat_select)
@@ -121,13 +116,13 @@ def create_components(bot: CustomClient, results):
         player: StatsPlayer
         player_results.append(
             disnake.SelectOption(
-                label=f"{player.name}",
+                label=f'{player.name}',
                 emoji=player.town_hall_cls.emoji.partial_emoji,
-                value=f"{count}",
+                value=f'{count}',
             )
         )
 
-    profile_select = disnake.ui.Select(options=player_results, placeholder="Accounts", max_values=1)
+    profile_select = disnake.ui.Select(options=player_results, placeholder='Accounts', max_values=1)
 
     st2 = disnake.ui.ActionRow()
     st2.append_item(profile_select)

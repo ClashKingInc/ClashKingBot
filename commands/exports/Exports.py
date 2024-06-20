@@ -1,4 +1,4 @@
-import disnake
+"""import disnake
 import coc
 import calendar
 # import excel2img
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     cog_class = ExportCog
 else:
     cog_class = commands.Cog
-    
+
 # McKnight's imports for testing
 from utility.search import search_results
 from classes.player.stats import StatsPlayerfrom exceptions.CustomExceptions import *
@@ -126,4 +126,4 @@ class ExportCommands(cog_class):
     @export_player.autocomplete("season")
     async def season(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         seasons = self.bot.gen_season_date(seasons_ago=12)[0:]
-        return [season for season in seasons if query.lower() in season.lower()]
+        return [season for season in seasons if query.lower() in season.lower()]"""

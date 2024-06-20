@@ -1,25 +1,24 @@
 import coc
 import disnake
-
 from disnake.ext import commands
+from pymongo import UpdateOne
+
+from background.logs.events import clan_ee
 from classes.bot import CustomClient
 from classes.server import DatabaseClan
-from background.logs.events import clan_ee
-from pymongo import UpdateOne
-from utility.discord_utils import get_webhook_for_channel
 from exceptions.CustomExceptions import MissingWebhookPerms
+from utility.discord_utils import get_webhook_for_channel
 
 
-class Donations(commands.Cog, name="Donations"):
-
+class Donations(commands.Cog, name='Donations'):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.clan_ee = clan_ee
-        self.clan_ee.on("all_member_donations", self.donations)
+        self.clan_ee.on('all_member_donations', self.donations)
 
     async def donations(self, event):
-        clan = coc.Clan(data=event["new_clan"], client=self.bot.coc_client)
-        old_clan = coc.Clan(data=event["old_clan"], client=self.bot.coc_client)
+        clan = coc.Clan(data=event['new_clan'], client=self.bot.coc_client)
+        old_clan = coc.Clan(data=event['old_clan'], client=self.bot.coc_client)
 
         tag_to_member = {member.tag: member for member in clan.members}
         donated = []
@@ -36,28 +35,26 @@ class Donations(commands.Cog, name="Donations"):
             if change_rec > 0:
                 received.append((new_member, change_rec))
 
-        embed = disnake.Embed(description=f"[**{clan.name}**]({clan.share_link})")
+        embed = disnake.Embed(description=f'[**{clan.name}**]({clan.share_link})')
         embed.set_thumbnail(url=clan.badge.url)
 
-        donation_text = ""
+        donation_text = ''
         for member, donation in donated:
-            donation = f"{donation}".ljust(3)
-            donation_text += f"{self.bot.emoji.up_green_arrow}`{donation}` | [**{member.name}**]({member.share_link})\n"
-        if donation_text != "":
-            embed.add_field(name="Donated", value=donation_text, inline=False)
-        received_text = ""
+            donation = f'{donation}'.ljust(3)
+            donation_text += f'{self.bot.emoji.up_green_arrow}`{donation}` | [**{member.name}**]({member.share_link})\n'
+        if donation_text != '':
+            embed.add_field(name='Donated', value=donation_text, inline=False)
+        received_text = ''
         for member, donation in received:
-            donation = f"{donation}".ljust(3)
-            received_text += f"{self.bot.emoji.down_red_arrow}`{donation}` | [**{member.name}**]({member.share_link})\n"
-        if received_text != "":
-            embed.add_field(name="Received", value=received_text, inline=False)
+            donation = f'{donation}'.ljust(3)
+            received_text += f'{self.bot.emoji.down_red_arrow}`{donation}` | [**{member.name}**]({member.share_link})\n'
+        if received_text != '':
+            embed.add_field(name='Received', value=received_text, inline=False)
 
-        if donation_text == "" and received_text == "":
+        if donation_text == '' and received_text == '':
             return
 
-        for cc in await self.bot.clan_db.find(
-            {"$and": [{"tag": clan.tag}, {f"logs.donation_log.webhook": {"$ne": None}}]}
-        ).to_list(length=None):
+        for cc in await self.bot.clan_db.find({'$and': [{'tag': clan.tag}, {f'logs.donation_log.webhook': {'$ne': None}}]}).to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue

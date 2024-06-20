@@ -1,11 +1,12 @@
+from typing import TYPE_CHECKING, TYPE_CHECKINGfrom, import, typing
+
 import disnake
+import emoji as emoji_package
 from disnake.ext import commands
+
+from classes.bot import CustomClient
 from utility.components import create_components
 
-import emoji as emoji_package
-
-from typing import TYPE_CHECKINGfrom typing import TYPE_CHECKING
-from classes.bot import CustomClient
 
 class Awards(commands.Cog):
 

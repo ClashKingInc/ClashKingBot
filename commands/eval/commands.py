@@ -1,34 +1,34 @@
 import disnake
+from disnake.ext import commands
 
 from classes.bot import CustomClient
-from discord.options import convert, autocomplete
-from disnake.ext import commands
+from discord.options import autocomplete, convert
 from exceptions.CustomExceptions import MessageException
-from utility.general import get_guild_icon
-from utility.discord_utils import check_commands
-from utility.constants import DEFAULT_EVAL_ROLE_TYPES
-from utility.discord_utils import interaction_handler
 from utility.components import create_components
-from .utils import logic, family_role_add, family_role_remove
+from utility.constants import DEFAULT_EVAL_ROLE_TYPES
+from utility.discord_utils import check_commands, interaction_handler
+from utility.general import get_guild_icon
+
+from .utils import family_role_add, family_role_remove, logic
 
 
-class eval(commands.Cog, name="Refresh"):
+class eval(commands.Cog, name='Refresh'):
     """A couple of simple commands."""
 
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.slash_command(
-        name="refresh",
-        description="Refresh roles for a user, users in a role, or yourself (no arguments)",
+        name='refresh',
+        description='Refresh roles for a user, users in a role, or yourself (no arguments)',
     )
     async def refresh(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         role_or_user: disnake.Role | disnake.Member = None,
-        test: bool = commands.Param(default=False, converter=convert.basic_bool, choices=["Yes", "No"]),
-        advanced_mode: bool = commands.Param(default=False, converter=convert.basic_bool, choices=["Yes", "No"]),
-        role_treatment: str = commands.Param(default="Both", choices=["Add", "Remove", "Both"]),
+        test: bool = commands.Param(default=False, converter=convert.basic_bool, choices=['Yes', 'No']),
+        advanced_mode: bool = commands.Param(default=False, converter=convert.basic_bool, choices=['Yes', 'No']),
+        role_treatment: str = commands.Param(default='Both', choices=['Add', 'Remove', 'Both']),
     ):
         """
         Parameters
@@ -42,11 +42,9 @@ class eval(commands.Cog, name="Refresh"):
         if role_or_user is None:
             role_or_user = ctx.user
         else:
-            perms = await self.bot.white_list_check(ctx=ctx, command_name="refresh")
+            perms = await self.bot.white_list_check(ctx=ctx, command_name='refresh')
             if not perms and not ctx.author.guild_permissions.manage_guild:
-                raise MessageException(
-                    "Missing Manage Server Permissions and/or not whitelisted for this command (`/whitelist add`"
-                )
+                raise MessageException('Missing Manage Server Permissions and/or not whitelisted for this command (`/whitelist add`')
 
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
 
@@ -55,27 +53,27 @@ class eval(commands.Cog, name="Refresh"):
             for option in DEFAULT_EVAL_ROLE_TYPES:
                 value = option
                 option = option.capitalize()
-                if option == "Not_family":
-                    option = "Not Family"
+                if option == 'Not_family':
+                    option = 'Not Family'
                 options.append(disnake.SelectOption(label=option, value=value))
 
             select = disnake.ui.Select(
                 options=options,
-                placeholder="Eval Options",
+                placeholder='Eval Options',
                 # the placeholder text to show when no options have been chosen
                 min_values=1,  # the minimum number of options a user must select
                 max_values=len(options),  # the maximum number of options a user can select
             )
             dropdown = [disnake.ui.ActionRow(select)]
             embed = disnake.Embed(
-                description="**Choose which role types you would like to eval:**",
+                description='**Choose which role types you would like to eval:**',
                 color=db_server.embed_color,
             )
             await ctx.edit_original_message(embed=embed, components=dropdown)
             res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
             eval_types = res.values
             embed = disnake.Embed(
-                description="**<a:loading:948121999526461440>Role Refresh In Progress**",
+                description='**<a:loading:948121999526461440>Role Refresh In Progress**',
                 color=db_server.embed_color,
             )
             await res.edit_original_message(embed=embed, components=[])
@@ -84,16 +82,16 @@ class eval(commands.Cog, name="Refresh"):
 
         if isinstance(role_or_user, disnake.Role):
             members = role_or_user.members
-            clans = await self.bot.clan_db.distinct("tag", filter={"generalRole": role_or_user.id})
+            clans = await self.bot.clan_db.distinct('tag', filter={'generalRole': role_or_user.id})
             if not clans:
-                result = await self.bot.generalfamroles.find_one({"role": role_or_user.id})
+                result = await self.bot.generalfamroles.find_one({'role': role_or_user.id})
                 if result:
-                    clans = await self.bot.clan_db.distinct("tag", {"server": ctx.guild.id})
+                    clans = await self.bot.clan_db.distinct('tag', {'server': ctx.guild.id})
 
             if clans:
                 clans = await self.bot.get_clans(tags=clans)
                 embed = disnake.Embed(
-                    description="<a:loading:884400064313819146> Adding current clan members to refresh...",
+                    description='<a:loading:884400064313819146> Adding current clan members to refresh...',
                     color=db_server.embed_color,
                 )
                 await ctx.edit_original_message(embed=embed)
@@ -106,9 +104,9 @@ class eval(commands.Cog, name="Refresh"):
             members = await ctx.guild.getch_members([role_or_user.id])
 
         if not members:
-            raise MessageException("No Members Found")
+            raise MessageException('No Members Found')
         elif len(members) > 3000:
-            raise MessageException(f"Max 3000 members can be refreshed at a time ({len(members)} members attempted)")
+            raise MessageException(f'Max 3000 members can be refreshed at a time ({len(members)} members attempted)')
 
         embeds = await logic(
             bot=self.bot,
@@ -118,7 +116,7 @@ class eval(commands.Cog, name="Refresh"):
             role_or_user=role_or_user,
             eval_types=eval_types,
             test=test,
-            role_treatment=([role_treatment] if role_treatment != "Both" else ["Add", "Remove"]),
+            role_treatment=([role_treatment] if role_treatment != 'Both' else ['Add', 'Remove']),
         )
 
         current_page = 0
@@ -127,84 +125,84 @@ class eval(commands.Cog, name="Refresh"):
         while True:
             res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, timeout=3600)
 
-            if res.data.custom_id == "Previous":
+            if res.data.custom_id == 'Previous':
                 current_page -= 1
                 await res.edit_original_message(
                     embed=embeds[current_page],
                     components=create_components(current_page, embeds, True),
                 )
 
-            elif res.data.custom_id == "Next":
+            elif res.data.custom_id == 'Next':
                 current_page += 1
                 await res.edit_original_message(
                     embed=embeds[current_page],
                     components=create_components(current_page, embeds, True),
                 )
 
-            elif res.data.custom_id == "Print":
+            elif res.data.custom_id == 'Print':
                 await res.delete_original_message()
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)
 
-    @commands.slash_command(name="autorefresh")
+    @commands.slash_command(name='autorefresh')
     async def auto_refresh(self, ctx):
         await ctx.response.defer()
 
-    @auto_refresh.sub_command(name="options", description="Set settings for autorefresh")
+    @auto_refresh.sub_command(name='options', description='Set settings for autorefresh')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def auto_refresh_options(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        state: str = commands.Param(choices=["On", "Off"], default=None),
-        role_treatment: str = commands.Param(default=None, choices=["Add", "Remove", "Both"]),
-        nickname_change: str = commands.Param(default=None, choices=["True", "False"]),
+        state: str = commands.Param(choices=['On', 'Off'], default=None),
+        role_treatment: str = commands.Param(default=None, choices=['Add', 'Remove', 'Both']),
+        nickname_change: str = commands.Param(default=None, choices=['True', 'False']),
         blacklist_role_add: disnake.Role = None,
         blacklist_role_remove: disnake.Role = None,
         change_log: disnake.TextChannel | disnake.Thread = None,
     ):
 
         if blacklist_role_add == blacklist_role_remove and isinstance(blacklist_role_add, disnake.Role):
-            raise MessageException("Cannot both remove and add the same role to/from blacklist at the same time")
+            raise MessageException('Cannot both remove and add the same role to/from blacklist at the same time')
 
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
-        changed_text = ""
+        changed_text = ''
 
         if state is not None:
-            await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {"autoeval": state == "On"}})
-            changed_text += f"- **AutoRefresh State:** {state}\n"
+            await self.bot.server_db.update_one({'server': ctx.guild.id}, {'$set': {'autoeval': state == 'On'}})
+            changed_text += f'- **AutoRefresh State:** {state}\n'
 
         if role_treatment is not None:
-            if role_treatment == "Both":
-                choices = ["Add", "Remove"]
+            if role_treatment == 'Both':
+                choices = ['Add', 'Remove']
             else:
                 choices = [role_treatment]
             await db_server.set_role_treatment(treatment=choices)
-            changed_text += f"- **Role Treatment:** {choices}\n"
+            changed_text += f'- **Role Treatment:** {choices}\n'
 
         if nickname_change is not None:
-            await db_server.set_auto_eval_nickname(nickname_change == "True")
-            changed_text += f"- **Nickname Change:** {nickname_change}\n"
+            await db_server.set_auto_eval_nickname(nickname_change == 'True')
+            changed_text += f'- **Nickname Change:** {nickname_change}\n'
 
         if change_log:
             await db_server.set
 
         if blacklist_role_add is not None:
             if blacklist_role_add.id in db_server.blacklisted_roles:
-                raise MessageException(f"{blacklist_role_add.mention} is already in the autoeval blacklisted roles.")
+                raise MessageException(f'{blacklist_role_add.mention} is already in the autoeval blacklisted roles.')
             await db_server.add_blacklisted_role(id=blacklist_role_add.id)
-            changed_text += f"- **BlackList Role Add:** {blacklist_role_add.mention}\n"
+            changed_text += f'- **BlackList Role Add:** {blacklist_role_add.mention}\n'
 
         if blacklist_role_remove is not None:
             if blacklist_role_remove.id not in db_server.blacklisted_roles:
-                raise MessageException(f"{blacklist_role_remove.mention} is not in the autoeval blacklisted roles.")
+                raise MessageException(f'{blacklist_role_remove.mention} is not in the autoeval blacklisted roles.')
             await db_server.remove_blacklisted_role(id=blacklist_role_remove.id)
-            changed_text += f"- **BlackList Role Removed:** {blacklist_role_remove.mention}\n"
+            changed_text += f'- **BlackList Role Removed:** {blacklist_role_remove.mention}\n'
 
-        if changed_text == "":
-            changed_text = "No Changes Made!"
+        if changed_text == '':
+            changed_text = 'No Changes Made!'
 
         embed = disnake.Embed(
-            title=f"{ctx.guild.name} AutoEval Settings Changed",
+            title=f'{ctx.guild.name} AutoEval Settings Changed',
             description=changed_text,
             color=db_server.embed_color,
         )
@@ -212,41 +210,39 @@ class eval(commands.Cog, name="Refresh"):
             embed.set_thumbnail(url=ctx.guild.icon.url)
         await ctx.edit_original_message(embed=embed)
 
-    @auto_refresh.sub_command(name="triggers", description="Set triggers for autorefresh")
+    @auto_refresh.sub_command(name='triggers', description='Set triggers for autorefresh')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def auto_eval_options(self, ctx: disnake.ApplicationCommandInteraction):
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
         choices = []
         for choice in [
-            "Member Join",
-            "Member Leave",
-            "Townhall Change",
-            "League Change",
-            "Role Change",
+            'Member Join',
+            'Member Leave',
+            'Townhall Change',
+            'League Change',
+            'Role Change',
         ]:
-            choices.append(disnake.SelectOption(label=choice, value=choice.replace(" ", "_").lower()))
+            choices.append(disnake.SelectOption(label=choice, value=choice.replace(' ', '_').lower()))
 
-        trigger_select = disnake.ui.ActionRow(
-            disnake.ui.Select(options=choices, placeholder="Choose Trigger Types", max_values=5)
-        )
-        await ctx.edit_original_message(content="**Choose your new triggers below**", components=[trigger_select])
+        trigger_select = disnake.ui.ActionRow(disnake.ui.Select(options=choices, placeholder='Choose Trigger Types', max_values=5))
+        await ctx.edit_original_message(content='**Choose your new triggers below**', components=[trigger_select])
         res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
 
         await db_server.set_auto_eval_triggers(triggers=res.values)
         embed = disnake.Embed(
-            title=f"{ctx.guild.name} AutoRefresh Triggers Updated",
-            description="".join(f'- {r.replace("_", " ").title()}\n' for r in res.values),
+            title=f'{ctx.guild.name} AutoRefresh Triggers Updated',
+            description=''.join(f'- {r.replace("_", " ").title()}\n' for r in res.values),
             color=db_server.embed_color,
         )
         embed.set_thumbnail(url=get_guild_icon(guild=ctx.guild))
         await ctx.edit_original_message(embed=embed, content=None, components=None)
 
-    @commands.slash_command(name="roles")
+    @commands.slash_command(name='roles')
     async def roles(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
 
     # SETTINGS
-    @roles.sub_command(name="category", description="Set a new category role for a server")
+    @roles.sub_command(name='category', description='Set a new category role for a server')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def category_role(
         self,
@@ -261,30 +257,30 @@ class eval(commands.Cog, name="Refresh"):
         role: New role to switch to
         """
 
-        results = await self.bot.clan_db.find_one({"$and": [{"category": category}, {"server": ctx.guild.id}]})
+        results = await self.bot.clan_db.find_one({'$and': [{'category': category}, {'server': ctx.guild.id}]})
 
         if results is None:
-            raise MessageException(f"No category - **{category}** - on this server")
+            raise MessageException(f'No category - **{category}** - on this server')
 
-        await self.bot.server_db.update_one({"server": ctx.guild.id}, {"$set": {f"category_roles.{category}": role.id}})
+        await self.bot.server_db.update_one({'server': ctx.guild.id}, {'$set': {f'category_roles.{category}': role.id}})
 
         embed = disnake.Embed(
-            description=f"Category role set to {role.mention}",
+            description=f'Category role set to {role.mention}',
             color=disnake.Color.green(),
         )
         await ctx.edit_original_message(embed=embed)
 
-    @roles.sub_command(name="family", description="Add/Remove Family Based Eval Roles")
+    @roles.sub_command(name='family', description='Add/Remove Family Based Eval Roles')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def family_roles(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         type: str = commands.Param(
             choices=[
-                "Only-Family Roles",
-                "Family Exclusive Roles",
-                "Not-Family Roles",
-                "Ignored Roles",
+                'Only-Family Roles',
+                'Family Exclusive Roles',
+                'Not-Family Roles',
+                'Ignored Roles',
             ]
         ),
         add: disnake.Role = commands.Param(default=None),
@@ -298,15 +294,15 @@ class eval(commands.Cog, name="Refresh"):
         remove: a role to remove
         """
         if add == remove == None:
-            raise MessageException("Must specify either a role to add or to remove")
+            raise MessageException('Must specify either a role to add or to remove')
 
-        if type == "Only-Family Roles":
+        if type == 'Only-Family Roles':
             database = self.bot.generalfamroles
-        elif type == "Family Exclusive Roles":
+        elif type == 'Family Exclusive Roles':
             database = self.bot.familyexclusiveroles
-        elif type == "Not-Family Roles":
+        elif type == 'Not-Family Roles':
             database = self.bot.notfamroles
-        elif type == "Ignored Roles":
+        elif type == 'Ignored Roles':
             database = self.bot.ignoredroles
 
         if add is not None:
@@ -315,7 +311,7 @@ class eval(commands.Cog, name="Refresh"):
             embed = await family_role_remove(database=database, role=remove, guild=ctx.guild, type=type)
         await ctx.edit_original_message(embed=embed)
 
-    @roles.sub_command(name="townhall", description="Sets roles to add for townhall levels 7 and up")
+    @roles.sub_command(name='townhall', description='Sets roles to add for townhall levels 7 and up')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def townhall_roles(
         self,
@@ -344,21 +340,21 @@ class eval(commands.Cog, name="Refresh"):
             and th15 is None
             and th16 is None
         ):
-            raise MessageException("Please provide a role for at least 1 townhall level.")
+            raise MessageException('Please provide a role for at least 1 townhall level.')
 
-        roles_updated = ""
+        roles_updated = ''
 
         spot_to_text = [
-            "th7",
-            "th8",
-            "th9",
-            "th10",
-            "th11",
-            "th12",
-            "th13",
-            "th14",
-            "th15",
-            "th16",
+            'th7',
+            'th8',
+            'th9',
+            'th10',
+            'th11',
+            'th12',
+            'th13',
+            'th14',
+            'th15',
+            'th16',
         ]
         list_roles = [th7, th8, th9, th10, th11, th12, th13, th14, th15, th16]
 
@@ -366,21 +362,21 @@ class eval(commands.Cog, name="Refresh"):
             if role is None:
                 continue
             role_text = spot_to_text[count]
-            roles_updated += f"{role_text.upper()}: {role.mention}\n"
+            roles_updated += f'{role_text.upper()}: {role.mention}\n'
             await self.bot.townhallroles.update_one(
-                {"$and": [{"th": f"{role_text}"}, {"server": ctx.guild.id}]},
-                {"$set": {"role": role.id}},
+                {'$and': [{'th': f'{role_text}'}, {'server': ctx.guild.id}]},
+                {'$set': {'role': role.id}},
                 upsert=True,
             )
 
         embed = disnake.Embed(
-            title="**Townhall Roles that were set:**",
+            title='**Townhall Roles that were set:**',
             description=roles_updated,
             color=disnake.Color.green(),
         )
         return await ctx.send(embed=embed)
 
-    @roles.sub_command(name="builderhall", description="Sets roles for builderhall levels 3 & up")
+    @roles.sub_command(name='builderhall', description='Sets roles for builderhall levels 3 & up')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def builderhall_roles(
         self,
@@ -394,42 +390,33 @@ class eval(commands.Cog, name="Refresh"):
         bh9: disnake.Role = None,
         bh10: disnake.Role = None,
     ):
-        if (
-            bh3 is None
-            and bh4 is None
-            and bh5 is None
-            and bh6 is None
-            and bh7 is None
-            and bh8 is None
-            and bh9 is None
-            and bh10 is None
-        ):
-            raise MessageException("Please provide a role for at least 1 builderhall level.")
+        if bh3 is None and bh4 is None and bh5 is None and bh6 is None and bh7 is None and bh8 is None and bh9 is None and bh10 is None:
+            raise MessageException('Please provide a role for at least 1 builderhall level.')
 
-        roles_updated = ""
+        roles_updated = ''
 
-        spot_to_text = ["bh3", "bh4", "bh5", "bh6", "bh7", "bh8", "bh9", "bh10"]
+        spot_to_text = ['bh3', 'bh4', 'bh5', 'bh6', 'bh7', 'bh8', 'bh9', 'bh10']
         list_roles = [bh3, bh4, bh5, bh6, bh7, bh8, bh9, bh10]
 
         for count, role in enumerate(list_roles):
             if role is None:
                 continue
             role_text = spot_to_text[count]
-            roles_updated += f"{role_text.upper()}: {role.mention}\n"
+            roles_updated += f'{role_text.upper()}: {role.mention}\n'
             await self.bot.builderhallroles.update_one(
-                {"$and": [{"bh": f"{role_text}"}, {"server": ctx.guild.id}]},
-                {"$set": {"role": role.id}},
+                {'$and': [{'bh': f'{role_text}'}, {'server': ctx.guild.id}]},
+                {'$set': {'role': role.id}},
                 upsert=True,
             )
 
         embed = disnake.Embed(
-            title="**Builderhall Roles that were set:**",
+            title='**Builderhall Roles that were set:**',
             description=roles_updated,
             color=disnake.Color.green(),
         )
         return await ctx.send(embed=embed)
 
-    @roles.sub_command(name="league", description="Sets roles to add for leagues")
+    @roles.sub_command(name='league', description='Sets roles to add for leagues')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def league_roles(
         self,
@@ -455,39 +442,39 @@ class eval(commands.Cog, name="Refresh"):
             legends_league,
         ]
         if len(set(list_roles)) == 1:
-            raise MessageException("Please select at least one role to set.")
+            raise MessageException('Please select at least one role to set.')
 
         spot_to_text = [
-            "bronze_league",
-            "silver_league",
-            "gold_league",
-            "crystal_league",
-            "master_league",
-            "champion_league",
-            "titan_league",
-            "legends_league",
+            'bronze_league',
+            'silver_league',
+            'gold_league',
+            'crystal_league',
+            'master_league',
+            'champion_league',
+            'titan_league',
+            'legends_league',
         ]
 
-        roles_updated = ""
+        roles_updated = ''
         for count, role in enumerate(list_roles):
             if role is None:
                 continue
             role_text = spot_to_text[count]
-            roles_updated += f"{role_text}: {role.mention}\n"
+            roles_updated += f'{role_text}: {role.mention}\n'
             await self.bot.legendleagueroles.update_one(
-                {"$and": [{"type": role_text}, {"server": ctx.guild.id}]},
-                {"$set": {"role": role.id}},
+                {'$and': [{'type': role_text}, {'server': ctx.guild.id}]},
+                {'$set': {'role': role.id}},
                 upsert=True,
             )
 
         embed = disnake.Embed(
-            title="**League Roles that were set:**",
+            title='**League Roles that were set:**',
             description=roles_updated,
             color=disnake.Color.green(),
         )
         return await ctx.send(embed=embed)
 
-    @roles.sub_command(name="builder-league", description="Sets roles to add for builder leagues")
+    @roles.sub_command(name='builder-league', description='Sets roles to add for builder leagues')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def builder_league_roles(
         self,
@@ -522,43 +509,43 @@ class eval(commands.Cog, name="Refresh"):
         ]
 
         if list_roles.count(None) == len(list_roles):
-            raise MessageException("Please select at least one role to set.")
+            raise MessageException('Please select at least one role to set.')
 
         spot_to_text = [
-            "wood_league",
-            "clay_league",
-            "stone_league",
-            "copper_league",
-            "brass_league",
-            "iron_league",
-            "steel_league",
-            "titanium_league",
-            "platinum_league",
-            "emerald_league",
-            "ruby_league",
-            "diamond_league",
+            'wood_league',
+            'clay_league',
+            'stone_league',
+            'copper_league',
+            'brass_league',
+            'iron_league',
+            'steel_league',
+            'titanium_league',
+            'platinum_league',
+            'emerald_league',
+            'ruby_league',
+            'diamond_league',
         ]
 
-        roles_updated = ""
+        roles_updated = ''
         for count, role in enumerate(list_roles):
             if role is None:
                 continue
             role_text = spot_to_text[count]
-            roles_updated += f"{role_text}: {role.mention}\n"
+            roles_updated += f'{role_text}: {role.mention}\n'
             await self.bot.builderleagueroles.update_one(
-                {"$and": [{"type": role_text}, {"server": ctx.guild.id}]},
-                {"$set": {"role": role.id}},
+                {'$and': [{'type': role_text}, {'server': ctx.guild.id}]},
+                {'$set': {'role': role.id}},
                 upsert=True,
             )
 
         embed = disnake.Embed(
-            title="**Builder League Roles that were set:**",
+            title='**Builder League Roles that were set:**',
             description=roles_updated,
             color=disnake.Color.green(),
         )
         return await ctx.send(embed=embed)
 
-    @roles.sub_command(name="status", description="Longevity roles")
+    @roles.sub_command(name='status', description='Longevity roles')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def status_roles(
         self,
@@ -567,139 +554,139 @@ class eval(commands.Cog, name="Refresh"):
         role: disnake.Role,
     ):
         await ctx.response.defer()
-        raise MessageException("Command Under Construction")
+        raise MessageException('Command Under Construction')
 
         if role.is_default():
-            raise MessageException(f"{role.mention} cannot be used as role.")
+            raise MessageException(f'{role.mention} cannot be used as role.')
 
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild.id)
         await db_server.add_status_role(months=months, role_id=role.id)
 
-    @roles.sub_command(name="achievements", description="Set role for top donators/activity & more")
+    @roles.sub_command(name='achievements', description='Set role for top donators/activity & more')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def achievement_roles(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        type: str = commands.Param(choices=["Donation", "Trophies", "Activity", "Total Looted"]),
+        type: str = commands.Param(choices=['Donation', 'Trophies', 'Activity', 'Total Looted']),
         amount_or_rank: int = commands.Param(),
-        season: str = commands.Param(choices=["Current Season", "Previous Season"]),
+        season: str = commands.Param(choices=['Current Season', 'Previous Season']),
     ):
         await ctx.response.defer()
-        raise MessageException("Command Under Construction")
+        raise MessageException('Command Under Construction')
 
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild.id)
         is_rank = amount_or_rank <= 100
         await db_server.add_achievement_role(
-            type=type.lower().replace(" ", "_"),
+            type=type.lower().replace(' ', '_'),
             amount=amount_or_rank,
-            season=season.lower().replace(" ", "_"),
+            season=season.lower().replace(' ', '_'),
         )
 
-    @roles.sub_command(name="list", description="List of refresh affiliated roles for this server")
+    @roles.sub_command(name='list', description='List of refresh affiliated roles for this server')
     async def role_list(self, ctx: disnake.ApplicationCommandInteraction):
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
         # SWITCH THIS COMMAND TO USE THIS OBJECT EVENTUALLY
 
-        family_roles = await self.bot.generalfamroles.find({"server": ctx.guild.id}).to_list(length=100)
-        only_family_roles = await self.bot.familyexclusiveroles.find({"server": ctx.guild.id}).to_list(length=100)
-        not_family_roles = await self.bot.notfamroles.find({"server": ctx.guild.id}).to_list(length=100)
-        ignored_roles = await self.bot.ignoredroles.find({"server": ctx.guild.id}).to_list(length=100)
+        family_roles = await self.bot.generalfamroles.find({'server': ctx.guild.id}).to_list(length=100)
+        only_family_roles = await self.bot.familyexclusiveroles.find({'server': ctx.guild.id}).to_list(length=100)
+        not_family_roles = await self.bot.notfamroles.find({'server': ctx.guild.id}).to_list(length=100)
+        ignored_roles = await self.bot.ignoredroles.find({'server': ctx.guild.id}).to_list(length=100)
 
         list_roles = [family_roles, only_family_roles, not_family_roles, ignored_roles]
         role_names = [
-            "Family Roles",
-            "Only-Family Roles",
-            "Not-Family Roles",
-            "Ignored Roles",
+            'Family Roles',
+            'Only-Family Roles',
+            'Not-Family Roles',
+            'Ignored Roles',
         ]
 
-        embed = disnake.Embed(title=f"{ctx.guild.name} Family Role List", color=db_server.embed_color)
+        embed = disnake.Embed(title=f'{ctx.guild.name} Family Role List', color=db_server.embed_color)
         for role_list, role_name in zip(list_roles, role_names):
-            text = ""
+            text = ''
             for result in role_list:
-                role = ctx.guild.get_role(result.get("role"))
+                role = ctx.guild.get_role(result.get('role'))
                 if role is None:
                     continue
-                text += f"{role.mention}\n"
-            if text == "":
-                text = "No Roles"
-            embed.add_field(name=f"**{role_name}**", value=text)
+                text += f'{role.mention}\n'
+            if text == '':
+                text = 'No Roles'
+            embed.add_field(name=f'**{role_name}**', value=text)
 
-        list_ths = ""
-        all = await self.bot.townhallroles.find({"server": ctx.guild.id}).to_list(length=None)
-        all = sorted(all, key=lambda x: int(x.get("th")[2:]))
+        list_ths = ''
+        all = await self.bot.townhallroles.find({'server': ctx.guild.id}).to_list(length=None)
+        all = sorted(all, key=lambda x: int(x.get('th')[2:]))
         for role in all:
-            roleid = role.get("role")
-            th = role.get("th")
-            list_ths += f"{th.capitalize()}: <@&{roleid}>\n"
+            roleid = role.get('role')
+            th = role.get('th')
+            list_ths += f'{th.capitalize()}: <@&{roleid}>\n'
 
-        if list_ths == "":
-            list_ths = "None Set"
-        embed.add_field(name=f"**Townhall Roles**", value=list_ths)
+        if list_ths == '':
+            list_ths = 'None Set'
+        embed.add_field(name=f'**Townhall Roles**', value=list_ths)
 
-        list_ths = ""
-        all = await self.bot.builderhallroles.find({"server": ctx.guild.id}).to_list(length=None)
-        all = sorted(all, key=lambda x: int(x.get("bh")[2:]))
+        list_ths = ''
+        all = await self.bot.builderhallroles.find({'server': ctx.guild.id}).to_list(length=None)
+        all = sorted(all, key=lambda x: int(x.get('bh')[2:]))
         for role in all:
-            roleid = role.get("role")
-            th = role.get("bh")
-            list_ths += f"{th.capitalize()}: <@&{roleid}>\n"
+            roleid = role.get('role')
+            th = role.get('bh')
+            list_ths += f'{th.capitalize()}: <@&{roleid}>\n'
 
-        if list_ths == "":
-            list_ths = "None Set"
-        embed.add_field(name=f"**Builderhall Roles**", value=list_ths)
+        if list_ths == '':
+            list_ths = 'None Set'
+        embed.add_field(name=f'**Builderhall Roles**', value=list_ths)
 
-        list = ""
-        all = await self.bot.legendleagueroles.find({"server": ctx.guild.id}).to_list(length=None)
+        list = ''
+        all = await self.bot.legendleagueroles.find({'server': ctx.guild.id}).to_list(length=None)
         for role in all:
-            roleid = role.get("role")
-            type = role.get("type")
-            type = type.split("_")[0].capitalize() + " " + type.split("_")[1].capitalize()
-            list += f"{type}: <@&{roleid}>\n"
+            roleid = role.get('role')
+            type = role.get('type')
+            type = type.split('_')[0].capitalize() + ' ' + type.split('_')[1].capitalize()
+            list += f'{type}: <@&{roleid}>\n'
 
-        if list == "":
-            list = "None Set"
-        embed.add_field(name=f"**League & Trophy Roles**", value=list)
+        if list == '':
+            list = 'None Set'
+        embed.add_field(name=f'**League & Trophy Roles**', value=list)
 
-        list = ""
-        all = await self.bot.builderleagueroles.find({"server": ctx.guild.id}).to_list(length=None)
+        list = ''
+        all = await self.bot.builderleagueroles.find({'server': ctx.guild.id}).to_list(length=None)
         for role in all:
-            roleid = role.get("role")
-            type = role.get("type")
-            type = type.split("_")[0].capitalize() + " " + type.split("_")[1].capitalize()
-            list += f"{type}: <@&{roleid}>\n"
+            roleid = role.get('role')
+            type = role.get('type')
+            type = type.split('_')[0].capitalize() + ' ' + type.split('_')[1].capitalize()
+            list += f'{type}: <@&{roleid}>\n'
 
-        if list == "":
-            list = "None Set"
-        embed.add_field(name=f"**Builder League Roles**", value=list)
+        if list == '':
+            list = 'None Set'
+        embed.add_field(name=f'**Builder League Roles**', value=list)
 
-        list = ""
-        all = await self.bot.statusroles.find({"server": ctx.guild.id}).to_list(length=None)
+        list = ''
+        all = await self.bot.statusroles.find({'server': ctx.guild.id}).to_list(length=None)
         for role in all:
-            roleid = role.get("role")
-            type = role.get("type")
-            type = type.split("_")[0].capitalize() + " " + type.split("_")[1].capitalize()
-            list += f"{type}: <@&{roleid}>\n"
+            roleid = role.get('role')
+            type = role.get('type')
+            type = type.split('_')[0].capitalize() + ' ' + type.split('_')[1].capitalize()
+            list += f'{type}: <@&{roleid}>\n'
 
-        if list == "":
-            list = "None Set"
-        embed.add_field(name=f"**Status Roles**", value=list)
+        if list == '':
+            list = 'None Set'
+        embed.add_field(name=f'**Status Roles**', value=list)
 
-        list = ""
-        all = await self.bot.achievementroles.find({"server": ctx.guild.id}).to_list(length=None)
+        list = ''
+        all = await self.bot.achievementroles.find({'server': ctx.guild.id}).to_list(length=None)
         for role in all:
-            roleid = role.get("role")
-            type = role.get("type")
-            type = type.split("_")[0].capitalize() + " " + type.split("_")[1].capitalize()
-            list += f"{type}: <@&{roleid}>\n"
+            roleid = role.get('role')
+            type = role.get('type')
+            type = type.split('_')[0].capitalize() + ' ' + type.split('_')[1].capitalize()
+            list += f'{type}: <@&{roleid}>\n'
 
-        if list == "":
-            list = "None Set"
-        embed.add_field(name=f"**Achievement Roles**", value=list)
+        if list == '':
+            list = 'None Set'
+        embed.add_field(name=f'**Achievement Roles**', value=list)
 
         await ctx.edit_original_message(embed=embed)
 
-    @roles.sub_command(name="remove", description="Remove a refresh affiliated role")
+    @roles.sub_command(name='remove', description='Remove a refresh affiliated role')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def role_remove(
         self,
@@ -707,114 +694,100 @@ class eval(commands.Cog, name="Refresh"):
         townhall: str = commands.Param(
             default=None,
             choices=[
-                "th7",
-                "th8",
-                "th9",
-                "th10",
-                "th11",
-                "th12",
-                "th13",
-                "th14",
-                "th15",
-                "th16",
+                'th7',
+                'th8',
+                'th9',
+                'th10',
+                'th11',
+                'th12',
+                'th13',
+                'th14',
+                'th15',
+                'th16',
             ],
         ),
         builderhall: str = commands.Param(
             default=None,
-            choices=["bh3", "bh4", "bh5", "bh6", "bh7", "bh8", "bh9", "bh10"],
+            choices=['bh3', 'bh4', 'bh5', 'bh6', 'bh7', 'bh8', 'bh9', 'bh10'],
         ),
         league_role: str = commands.Param(
             default=None,
             choices=[
-                "bronze_league",
-                "silver_league",
-                "gold_league",
-                "crystal_league",
-                "master_league",
-                "champion_league",
-                "titan_league",
-                "legends_league",
+                'bronze_league',
+                'silver_league',
+                'gold_league',
+                'crystal_league',
+                'master_league',
+                'champion_league',
+                'titan_league',
+                'legends_league',
             ],
         ),
         builder_league: str = commands.Param(
             default=None,
             choices=[
-                "wood_league",
-                "clay_league",
-                "stone_league",
-                "copper_league",
-                "brass_league",
-                "iron_league",
-                "steel_league",
-                "titanium_league",
-                "platinum_league",
-                "emerald_league",
-                "ruby_league",
-                "diamond_league",
+                'wood_league',
+                'clay_league',
+                'stone_league',
+                'copper_league',
+                'brass_league',
+                'iron_league',
+                'steel_league',
+                'titanium_league',
+                'platinum_league',
+                'emerald_league',
+                'ruby_league',
+                'diamond_league',
             ],
         ),
     ):
         role_types = [townhall, builderhall, league_role, builder_league]
         if role_types.count(None) == len(role_types):
-            raise MessageException("Must provide at least one role type to remove!")
+            raise MessageException('Must provide at least one role type to remove!')
 
-        removed_text = ""
+        removed_text = ''
         if townhall:
-            results = await self.bot.townhallroles.find_one({"$and": [{"th": f"{townhall}"}, {"server": ctx.guild.id}]})
+            results = await self.bot.townhallroles.find_one({'$and': [{'th': f'{townhall}'}, {'server': ctx.guild.id}]})
             if results is None:
-                raise MessageException("That townhall does not have a role assigned to it for eval currently.")
+                raise MessageException('That townhall does not have a role assigned to it for eval currently.')
             else:
-                mention = results.get("role")
-                await self.bot.townhallroles.find_one_and_delete(
-                    {"$and": [{"th": f"{townhall}"}, {"server": ctx.guild.id}]}
-                )
+                mention = results.get('role')
+                await self.bot.townhallroles.find_one_and_delete({'$and': [{'th': f'{townhall}'}, {'server': ctx.guild.id}]})
 
-            removed_text += f"{townhall.capitalize()} eval role removed - <@&{mention}>\n"
+            removed_text += f'{townhall.capitalize()} eval role removed - <@&{mention}>\n'
 
         if builderhall:
-            results = await self.bot.builderhallroles.find_one(
-                {"$and": [{"th": f"{builderhall}"}, {"server": ctx.guild.id}]}
-            )
+            results = await self.bot.builderhallroles.find_one({'$and': [{'th': f'{builderhall}'}, {'server': ctx.guild.id}]})
             if results is None:
-                raise MessageException("That builderhall does not have a role assigned to it for eval currently.")
+                raise MessageException('That builderhall does not have a role assigned to it for eval currently.')
             else:
-                mention = results.get("role")
-                await self.bot.builderhallroles.find_one_and_delete(
-                    {"$and": [{"th": f"{builderhall}"}, {"server": ctx.guild.id}]}
-                )
+                mention = results.get('role')
+                await self.bot.builderhallroles.find_one_and_delete({'$and': [{'th': f'{builderhall}'}, {'server': ctx.guild.id}]})
 
-            removed_text += f"{builderhall.capitalize()} eval role removed - <@&{mention}>\n"
+            removed_text += f'{builderhall.capitalize()} eval role removed - <@&{mention}>\n'
 
         if league_role:
-            results = await self.bot.legendleagueroles.find_one(
-                {"$and": [{"type": f"{league_role}"}, {"server": ctx.guild.id}]}
-            )
+            results = await self.bot.legendleagueroles.find_one({'$and': [{'type': f'{league_role}'}, {'server': ctx.guild.id}]})
             if results is None:
-                raise MessageException("That league role type does not have a role assigned to it for eval currently.")
+                raise MessageException('That league role type does not have a role assigned to it for eval currently.')
             else:
-                mention = results.get("role")
-                await self.bot.legendleagueroles.find_one_and_delete(
-                    {"$and": [{"type": f"{league_role}"}, {"server": ctx.guild.id}]}
-                )
+                mention = results.get('role')
+                await self.bot.legendleagueroles.find_one_and_delete({'$and': [{'type': f'{league_role}'}, {'server': ctx.guild.id}]})
 
-            removed_text += f"{league_role} eval role removed - <@&{mention}>\n"
+            removed_text += f'{league_role} eval role removed - <@&{mention}>\n'
 
         if builder_league:
-            results = await self.bot.builderleagueroles.find_one(
-                {"$and": [{"type": f"{builder_league}"}, {"server": ctx.guild.id}]}
-            )
+            results = await self.bot.builderleagueroles.find_one({'$and': [{'type': f'{builder_league}'}, {'server': ctx.guild.id}]})
             if results is None:
-                raise MessageException("That league role type does not have a role assigned to it for eval currently.")
+                raise MessageException('That league role type does not have a role assigned to it for eval currently.')
             else:
-                mention = results.get("role")
-                await self.bot.builderleagueroles.find_one_and_delete(
-                    {"$and": [{"type": f"{builder_league}"}, {"server": ctx.guild.id}]}
-                )
+                mention = results.get('role')
+                await self.bot.builderleagueroles.find_one_and_delete({'$and': [{'type': f'{builder_league}'}, {'server': ctx.guild.id}]})
 
-            removed_text += f"{builder_league} eval role removed - <@&{mention}>\n"
+            removed_text += f'{builder_league} eval role removed - <@&{mention}>\n'
 
         embed = disnake.Embed(
-            title="Eval Role Removals",
+            title='Eval Role Removals',
             description=removed_text,
             color=disnake.Color.green(),
         )
@@ -956,7 +929,6 @@ class eval(commands.Cog, name="Refresh"):
                     await res.send(
                         content=f"Could not edit {member.mention} name. Permissions error or user is above or equal to the bot's highest role.",
                         ephemeral=True)"""
-
     """@commands.slash_command(name="nickname", description="Change the nickname of a discord user")
     async def nickname(self, ctx: disnake.ApplicationCommandInteraction, user: disnake.User = None):
         await ctx.response.defer(ephemeral=True)

@@ -1,18 +1,18 @@
-from disnake.ext import commands
+import math
+from typing import TYPE_CHECKING
+
 import coc
 import disnake
-import math
-
-from typing import TYPE_CHECKING
-from classes.bot import CustomClient
+from disnake.ext import commands
 from pymongo import InsertOne
+
+from classes.bot import CustomClient
 
 
 class AutoEvalBackground(commands.Cog):
-
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        self.bot.scheduler.add_job(self.autoeval_update, "interval", minutes=60)
+        self.bot.scheduler.add_job(self.autoeval_update, 'interval', minutes=60)
 
     async def autoeval_update(self):
         pass

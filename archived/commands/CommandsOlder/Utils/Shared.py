@@ -1,35 +1,23 @@
-import pytz
-from disnake.ext import commands
-import disnake
-from typing import List, TYPE_CHECKING
-import coc
-from datetime import datetime
-import pandas as pd
-from utility.general import notate_number as B, custom_round
-from typing import TYPE_CHECKING
-from classes.bot import CustomClient
-from classes.player.stats import StatsPlayerfrom collections import defaultdict
-from utility.constants import SHORT_PLAYER_LINK, item_to_name, TOWNHALL_LEVELS
-from utility.graphing import graph_creator
-import stringcase
-from utility.general import convert_seconds, download_image
 import io
-import aiohttp
-import ujson
 import re
+from datetime import datetime
+from typing import TYPE_CHECKING, List
 
+import aiohttp
+import coc
+import disnake
+import pandas as pd
+import pytz
+import stringcase
+import ujson
+from disnake.ext import commands
 
-
-
-
-
-
-
-
-
-
-
-
+from classes.bot import CustomClient
+from classes.player.stats import StatsPlayerfrom, collections, defaultdict, import
+from utility.constants import SHORT_PLAYER_LINK, TOWNHALL_LEVELS, item_to_name
+from utility.general import convert_seconds, custom_round, download_image
+from utility.general import notate_number as B
+from utility.graphing import graph_creator
 
 
 async def trophies_progress(bot: CustomClient, player_tags: List[str], season: str, footer_icon: str, title_name: str, type: str, limit: int = 50, embed_color: disnake.Color = disnake.Color.green()):

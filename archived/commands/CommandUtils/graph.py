@@ -1,17 +1,17 @@
-import disnake
-from typing import TYPE_CHECKING
-from classes.bot import CustomClient
-import coc
-import plotly.express as px
-import plotly.io as pio
-import io
-import pandas as pd
 import datetime as dt
-import plotly.graph_objects as go
+import io
+from collections import Counter, defaultdict
+from typing import TYPE_CHECKING, List
 
-from collections import defaultdict, Counter
-from typing import List
+import coc
+import disnake
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import plotly.io as pio
 from utils.general import create_superscript
+
+from classes.bot import CustomClient
 from classes.player.stats import StatsPlayer
 
 
@@ -24,21 +24,21 @@ async def create_clan_donation_graph(
 ):
     pipeline = [
         {
-            "$match": {
-                "$and": [
-                    {"clan_tag": {"$in": [clan.tag for clan in clans]}},
-                    {"townhall": {"$in": townhalls}},
+            '$match': {
+                '$and': [
+                    {'clan_tag': {'$in': [clan.tag for clan in clans]}},
+                    {'townhall': {'$in': townhalls}},
                 ]
             }
         },
         {
-            "$group": {
-                "_id": "$clan_tag",
-                "total_donated": {"$sum": f"$donations.{season}.donated"},
-                "total_received": {"$sum": f"$donations.{season}.received"},
+            '$group': {
+                '_id': '$clan_tag',
+                'total_donated': {'$sum': f'$donations.{season}.donated'},
+                'total_received': {'$sum': f'$donations.{season}.received'},
             }
         },
-        {"$sort": {f"total_{type}": 1}},
+        {'$sort': {f'total_{type}': 1}},
     ]
     results = await bot.player_stats.aggregate(pipeline).to_list(length=None)
     clan_tags = set([clan.tag for clan in clans])
@@ -46,26 +46,26 @@ async def create_clan_donation_graph(
     y = []
     text = []
     sums = {
-        "total_donated": sum([x["total_donated"] for x in results]),
-        "total_received": sum([x["total_received"] for x in results]),
+        'total_donated': sum([x['total_donated'] for x in results]),
+        'total_received': sum([x['total_received'] for x in results]),
     }
     names_plotted = defaultdict(int)
     nums_zero = 0
     for result in results:
-        if result["_id"] in clan_tags:
-            perc = int((result[f"total_{type}"] / sums[f"total_{type}"]) * 100)
+        if result['_id'] in clan_tags:
+            perc = int((result[f'total_{type}'] / sums[f'total_{type}']) * 100)
             if perc == 0:
                 nums_zero += 1
                 if nums_zero > 5 or len(clan_tags) >= 15:
                     continue
-            x.append(result[f"total_{type}"])
+            x.append(result[f'total_{type}'])
             name = f"{coc.utils.get(clans, tag=result['_id']).name}"
             if names_plotted[name] > 0:
-                y.append(f"{name}{create_superscript(names_plotted[name] + 1)}")
+                y.append(f'{name}{create_superscript(names_plotted[name] + 1)}')
             else:
-                y.append(f"{name}")
-            r = "{:,}".format(result[f"total_{type}"])
-            text.append(f"{r} | {perc}%")
+                y.append(f'{name}')
+            r = '{:,}'.format(result[f'total_{type}'])
+            text.append(f'{r} | {perc}%')
             names_plotted[name] += 1
 
     fig = go.Figure(
@@ -73,20 +73,20 @@ async def create_clan_donation_graph(
             x=x,
             y=y,
             text=text,
-            textposition="inside",
-            textfont=dict(color="white"),
-            orientation="h",
+            textposition='inside',
+            textfont=dict(color='white'),
+            orientation='h',
         )
     )
-    fig.update_layout(uniformtext_minsize=8, uniformtext_mode="hide")
+    fig.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
 
     fig.update_layout(
-        barmode="overlay",
-        template="plotly_white",
+        barmode='overlay',
+        template='plotly_white',
         margin=dict(l=50, r=25, b=25, t=25, pad=4),
         width=750,
         height=500,
     )
-    img = pio.to_image(fig, format="png", scale=3.0)
-    file = disnake.File(fp=io.BytesIO(img), filename="test.png")
-    return file, sums["total_donated"], sums["total_received"]
+    img = pio.to_image(fig, format='png', scale=3.0)
+    file = disnake.File(fp=io.BytesIO(img), filename='test.png')
+    return file, sums['total_donated'], sums['total_received']

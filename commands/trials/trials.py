@@ -1,16 +1,17 @@
-import coc
-from disnake.ext import commands
-import disnake
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
-from classes.bot import CustomClient
-from utility.discord_utils import check_commands
+
+import coc
+import disnake
+from disnake.ext import commands
 from pytz import utc
+
+from classes.bot import CustomClient
 from exceptions.CustomExceptions import MessageException
+from utility.discord_utils import check_commands
 
 
-class Trials(commands.Cog, name="Trials"):
-
+class Trials(commands.Cog, name='Trials'):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
@@ -18,11 +19,11 @@ class Trials(commands.Cog, name="Trials"):
         player = await self.bot.getPlayer(player_tag=player, raise_exceptions=True)
         return player
 
-    @commands.slash_command(name="trial")
+    @commands.slash_command(name='trial')
     async def trial(self, ctx):
         await ctx.response.defer()
 
-    @trial.sub_command(name="create", description="Create a trial for a player")
+    @trial.sub_command(name='create', description='Create a trial for a player')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def trial_create(
         self,
@@ -41,39 +42,37 @@ class Trials(commands.Cog, name="Trials"):
     ):
         result = await self.bot.trials.find_one(
             {
-                "$and": [
-                    {"player_tag": player.tag},
-                    {"server_id": ctx.guild_id},
-                    {"active": True},
+                '$and': [
+                    {'player_tag': player.tag},
+                    {'server_id': ctx.guild_id},
+                    {'active': True},
                 ]
             }
         )
         if result is not None:
-            raise MessageException(
-                f"**An active trial for {player.name} already exists.** Trials can be ended with `/trial end`"
-            )
+            raise MessageException(f'**An active trial for {player.name} already exists.** Trials can be ended with `/trial end`')
 
         await self.bot.track_players(players=[player])
         beginning_store = {
-            "trophies": player.trophies,
-            "attack_wins": player.attack_wins,
-            "combined_hero_level": [hero for hero in player.heroes if hero.is_home_base],
-            "hitrate": 0,
-            "capital_gold_looted": 0,
-            "capital_gold_donated": 0,
-            "clan_hops": 0,
-            "wars_participated": 0,
+            'trophies': player.trophies,
+            'attack_wins': player.attack_wins,
+            'combined_hero_level': [hero for hero in player.heroes if hero.is_home_base],
+            'hitrate': 0,
+            'capital_gold_looted': 0,
+            'capital_gold_donated': 0,
+            'clan_hops': 0,
+            'wars_participated': 0,
         }
 
         requirement_store = {
-            "trophies": trophies,
-            "attack_wins": attack_wins,
-            "combined_hero_level": combined_hero_level,
-            "hitrate": hitrate,
-            "capital_gold_looted": capital_gold_looted,
-            "capital_gold_donated": capital_gold_donated,
-            "allowed_clan_hops": allowed_clan_hops,
-            "num_wars_participated": num_wars_participated,
+            'trophies': trophies,
+            'attack_wins': attack_wins,
+            'combined_hero_level': combined_hero_level,
+            'hitrate': hitrate,
+            'capital_gold_looted': capital_gold_looted,
+            'capital_gold_donated': capital_gold_donated,
+            'allowed_clan_hops': allowed_clan_hops,
+            'num_wars_participated': num_wars_participated,
         }
 
         now = datetime.utcnow().replace(tzinfo=utc)
@@ -82,19 +81,19 @@ class Trials(commands.Cog, name="Trials"):
 
         await self.bot.trials.insert_one(
             {
-                "player_tag": player.tag,
-                "channel": channel.id,
-                "server_id": ctx.guild_id,
-                "active": True,
-                "beginning": beginning_store,
-                "requirements": requirement_store,
-                "end": {},
-                "check_date": check_date,
-                "notes": [],
+                'player_tag': player.tag,
+                'channel': channel.id,
+                'server_id': ctx.guild_id,
+                'active': True,
+                'beginning': beginning_store,
+                'requirements': requirement_store,
+                'end': {},
+                'check_date': check_date,
+                'notes': [],
             }
         )
 
-        text = ""
+        text = ''
         items = [
             trophies,
             attack_wins,
@@ -106,27 +105,27 @@ class Trials(commands.Cog, name="Trials"):
             num_wars_participated,
         ]
         item_text = [
-            "Trophies",
-            "Attack Wins",
-            "Combined Hero Level",
-            "Hitrate",
-            "Capital Gold Looted",
-            "Capital Gold Donated",
-            "Allowed Clan Hops",
-            "\# Wars Participated",
+            'Trophies',
+            'Attack Wins',
+            'Combined Hero Level',
+            'Hitrate',
+            'Capital Gold Looted',
+            'Capital Gold Donated',
+            'Allowed Clan Hops',
+            '\# Wars Participated',
         ]
         for item, text in zip(items, item_text):
             if item is not None:
-                text += f"- **{text}:** {item}\n"
+                text += f'- **{text}:** {item}\n'
 
         embed = disnake.Embed(
-            title=f"{duration} day Trial for {player.name}",
-            description=f"- **Channel:** {channel.mention}" f"{text}",
+            title=f'{duration} day Trial for {player.name}',
+            description=f'- **Channel:** {channel.mention}' f'{text}',
             color=disnake.Color.green(),
         )
         await ctx.edit_original_message(embed=embed)
 
-    @trial.sub_command(name="notate", description="Notate a trial for a player")
+    @trial.sub_command(name='notate', description='Notate a trial for a player')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def trial_notate(
         self,
@@ -135,7 +134,7 @@ class Trials(commands.Cog, name="Trials"):
     ):
         pass
 
-    @trial.sub_command(name="edit", description="Edit a trial for a player")
+    @trial.sub_command(name='edit', description='Edit a trial for a player')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def trial_edit(
         self,
@@ -144,7 +143,7 @@ class Trials(commands.Cog, name="Trials"):
     ):
         pass
 
-    @trial.sub_command(name="end", description="End a trial for a player")
+    @trial.sub_command(name='end', description='End a trial for a player')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def trial_edit(
         self,

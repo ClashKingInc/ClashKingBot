@@ -1,27 +1,29 @@
+import re
+
 import coc
-from utility.constants import SUPER_SCRIPTS, SHORT_CLAN_LINK, SHORT_PLAYER_LINK
-from classes.emoji import EmojiType
+import emoji
+
 from assets.emojis import SharedEmojis
 from assets.thPicDictionary import thDictionary
-import emoji
-import re
+from classes.emoji import EmojiType
+from utility.constants import SHORT_CLAN_LINK, SHORT_PLAYER_LINK, SUPER_SCRIPTS
 
 
 class BasePlayer:
     def __init__(self, data: dict, api_player: coc.Player | coc.ClanMember):
-        self.tag: str = data.get("tag")
+        self.tag: str = data.get('tag')
         self.api_player = api_player
         self._ = api_player
 
     @property
     def clear_name(self):
         name = emoji.replace_emoji(self._.name)
-        name = re.sub("[*_`~/]", "", name)
-        return f"\u200e{name}"
+        name = re.sub('[*_`~/]', '', name)
+        return f'\u200e{name}'
 
     @property
     def share_link(self) -> str:
-        return SHORT_PLAYER_LINK + self.tag.replace("#", "")
+        return SHORT_PLAYER_LINK + self.tag.replace('#', '')
 
     @property
     def townhall(self):
@@ -32,7 +34,7 @@ class BasePlayer:
         try:
             clan_name = self._.clan.name
         except Exception:
-            clan_name = "No Clan"
+            clan_name = 'No Clan'
         return clan_name
 
     @property
@@ -40,25 +42,25 @@ class BasePlayer:
         try:
             clan_badge = self._.clan.badge.url
         except Exception:
-            clan_badge = "https://clashking.b-cdn.net/unranked.png"
+            clan_badge = 'https://clashking.b-cdn.net/unranked.png'
         return clan_badge
 
 
 class BaseClan:
     def __init__(self, data: dict, api_clan: coc.Clan):
-        self.tag: str = data.get("tag")
+        self.tag: str = data.get('tag')
         self.api_clan = api_clan
         self._ = api_clan
 
     @property
     def clear_name(self):
         name = emoji.replace_emoji(self._.name)
-        name = re.sub("[*_`~/]", "", name)
-        return f"\u200e{name}"
+        name = re.sub('[*_`~/]', '', name)
+        return f'\u200e{name}'
 
     @property
     def share_link(self) -> str:
-        return SHORT_PLAYER_LINK + self.tag.replace("#", "")
+        return SHORT_PLAYER_LINK + self.tag.replace('#', '')
 
 
 class CustomTownHall:

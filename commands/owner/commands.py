@@ -1,46 +1,46 @@
-import coc
-import disnake
-from classes.bot import CustomClient
-from disnake.ext import commands
-from datetime import datetime
+import asyncio
+import io
+import json
+import re
 import textwrap
 from contextlib import redirect_stdout
-import io
-import re
-import asyncio
+from datetime import datetime
+
 import aiohttp
-from discord.options import convert, autocomplete
-from assets.emojis import *
-import json
-from classes.DatabaseClient.Classes.settings import DatabaseClan
-from utility.discord_utils import get_webhook_for_channel
-from exceptions.CustomExceptions import MissingWebhookPerms
-from utility.general import calculate_time
-from classes.DatabaseClient.Classes.settings import DatabaseServer
-from utility.constants import DEFAULT_EVAL_ROLE_TYPES, EMBED_COLOR_CLASS
-from ..eval.utils import logic
+import coc
+import disnake
 import pendulum as pend
+from disnake.ext import commands
+
+from assets.emojis import *
+from classes.bot import CustomClient
+from classes.DatabaseClient.Classes.settings import DatabaseClan, DatabaseServer
+from discord.options import autocomplete, convert
+from exceptions.CustomExceptions import MissingWebhookPerms
+from utility.constants import DEFAULT_EVAL_ROLE_TYPES, EMBED_COLOR_CLASS
+from utility.discord_utils import get_webhook_for_channel
+from utility.general import calculate_time
+
+from ..eval.utils import logic
 
 
 class OwnerCommands(commands.Cog):
-
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.count = 0
         self.model = None
 
-    @commands.slash_command(name="exec")
+    @commands.slash_command(name='exec')
     @commands.is_owner()
     async def exec(self, ctx: disnake.ApplicationCommandInteraction):
-
         def cleanup_code(content: str) -> str:
             """Automatically removes code blocks from the code and reformats linebreaks"""
 
             # remove ```py\n```
-            if content.startswith("```") and content.endswith("```"):
-                return "\n".join(content.split("\n")[1:-1])
+            if content.startswith('```') and content.endswith('```'):
+                return '\n'.join(content.split('\n')[1:-1])
 
-            return "\n".join(content.split(";"))
+            return '\n'.join(content.split(';'))
 
         def e_(msg: str) -> str:
             """unescape discord markdown characters
@@ -53,35 +53,35 @@ class OwnerCommands(commands.Cog):
                 the message excluding escape characters
             """
 
-            return re.sub(r"\\(\*|~|_|\||`)", r"\1", msg)
+            return re.sub(r'\\(\*|~|_|\||`)', r'\1', msg)
 
         components = [
             disnake.ui.TextInput(
-                label=f"Code",
-                custom_id=f"code",
+                label=f'Code',
+                custom_id=f'code',
                 required=False,
                 style=disnake.TextInputStyle.paragraph,
                 max_length=750,
             )
         ]
         t_ = int(datetime.now().timestamp())
-        await ctx.response.send_modal(title="Code", custom_id=f"basicembed-{t_}", components=components)
+        await ctx.response.send_modal(title='Code', custom_id=f'basicembed-{t_}', components=components)
 
         def check(res: disnake.ModalInteraction):
-            return ctx.author.id == res.author.id and res.custom_id == f"basicembed-{t_}"
+            return ctx.author.id == res.author.id and res.custom_id == f'basicembed-{t_}'
 
         try:
             modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
-                "modal_submit",
+                'modal_submit',
                 check=check,
                 timeout=300,
             )
         except:
             return None, None
 
-        code = modal_inter.text_values.get("code")
+        code = modal_inter.text_values.get('code')
 
-        embed = disnake.Embed(title="Query", description=f"```py\n{code}```")
+        embed = disnake.Embed(title='Query', description=f'```py\n{code}```')
         await modal_inter.send(embed=embed)
 
         stmts = cleanup_code(e_(code))
@@ -89,27 +89,27 @@ class OwnerCommands(commands.Cog):
 
         to_compile = f'async def func():\n{textwrap.indent(stmts, "  ")}'
 
-        env = {"self": self, "ctx": ctx}
+        env = {'self': self, 'ctx': ctx}
         env.update(globals())
 
         exec(to_compile, env)
 
-        func = env["func"]
+        func = env['func']
 
         with redirect_stdout(stdout):
             ret = await func()
 
         value = stdout.getvalue()
-        values = value.split("\n")
-        buf = f"{len(values)} lines output\n"
+        values = value.split('\n')
+        buf = f'{len(values)} lines output\n'
         buffer = []
         for v in values:
             if len(v) < 4000:
                 if len(buf) + len(v) < 500:
-                    buf += v + "\n"
+                    buf += v + '\n'
                 else:
                     buffer.append(buf)
-                    buf = v + "\n"
+                    buf = v + '\n'
             else:
                 for x in range(0, len(v), 4000):
                     if x + 4000 < len(v):
@@ -118,32 +118,32 @@ class OwnerCommands(commands.Cog):
                         buffer.append(v[x:])
         buffer.append(buf)
         for i, b in enumerate(buffer):
-            await ctx.followup.send(embed=disnake.Embed(description=f"```py\n{b}```"))
+            await ctx.followup.send(embed=disnake.Embed(description=f'```py\n{b}```'))
         if ret is not None:
-            ret = ret.split("\n")
-            buf = f"{len(ret)} lines output\n"
+            ret = ret.split('\n')
+            buf = f'{len(ret)} lines output\n'
             buffer = []
             for v in ret:
                 if len(buf) + len(v) < 500:
-                    buf += v + "\n"
+                    buf += v + '\n'
                 else:
                     buffer.append(buf)
-                    buf = v + "\n"
+                    buf = v + '\n'
             buffer.append(buf)
             for i, b in enumerate(buffer):
-                await ctx.followup.send(embed=disnake.Embed(description=f"```py\n{b}```"))
+                await ctx.followup.send(embed=disnake.Embed(description=f'```py\n{b}```'))
 
-    @commands.slash_command(name="test", guild_ids=[923764211845312533])
+    @commands.slash_command(name='test', guild_ids=[923764211845312533])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
         pass
 
-    @commands.slash_command(name="anniversary", guild_ids=[923764211845312533])
+    @commands.slash_command(name='anniversary', guild_ids=[923764211845312533])
     @commands.is_owner()
     async def anniversary(self, ctx: disnake.ApplicationCommandInteraction):
         guild = ctx.guild
-        await ctx.send(content="Starting")
-        msg = await ctx.channel.send("Editing 0 Members")
+        await ctx.send(content='Starting')
+        msg = await ctx.channel.send('Editing 0 Members')
         x = 0
         eighteen_month = disnake.utils.get(ctx.guild.roles, id=1183978690019864679)
         twelve_month = disnake.utils.get(ctx.guild.roles, id=1029249316981833748)
@@ -154,7 +154,7 @@ class OwnerCommands(commands.Cog):
             if member.bot:
                 continue
             if x % 25 == 0:
-                await msg.edit(f"Editing {x} Members")
+                await msg.edit(f'Editing {x} Members')
             year = member.joined_at.year
             month = member.joined_at.month
             n_year = datetime.now().year
@@ -163,12 +163,7 @@ class OwnerCommands(commands.Cog):
             if num_months >= 18:
                 if eighteen_month not in member.roles:
                     await member.add_roles(*[eighteen_month])
-                if (
-                    twelve_month in member.roles
-                    or nine_month in member.roles
-                    or six_month in member.roles
-                    or three_month in member.roles
-                ):
+                if twelve_month in member.roles or nine_month in member.roles or six_month in member.roles or three_month in member.roles:
                     await member.remove_roles(*[twelve_month, nine_month, six_month, three_month])
             elif num_months >= 12:
                 if twelve_month not in member.roles:
@@ -191,7 +186,7 @@ class OwnerCommands(commands.Cog):
                 if twelve_month in member.roles or nine_month in member.roles or six_month in member.roles:
                     await member.remove_roles(*[twelve_month, nine_month, six_month])
             x += 1
-        await msg.edit(content="Done")
+        await msg.edit(content='Done')
 
     """
     @commands.slash_command(name="raid-map", description="See the live raid map", guild_ids=[923764211845312533])
@@ -426,7 +421,6 @@ class OwnerCommands(commands.Cog):
 
         await self.bot.clan_wars.bulk_write(things)
         print("done")"""
-
     """@testthis.autocomplete("clan")
     @raid_map.autocomplete("clan")
     async def autocomp_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):

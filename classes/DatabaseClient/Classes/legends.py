@@ -1,6 +1,7 @@
-from typing import List
-from .abc import NumChoice
 from datetime import datetime, timedelta
+from typing import List
+
+from .abc import NumChoice
 
 
 class LegendRanking:
@@ -11,35 +12,35 @@ class LegendRanking:
     def country_code(self):
         if self._ranking_result is None:
             return None
-        return self._ranking_result.get("country_code")
+        return self._ranking_result.get('country_code')
 
     @property
     def country(self):
         if self._ranking_result is None:
             return None
-        return self._ranking_result.get("country_name")
+        return self._ranking_result.get('country_name')
 
     @property
     def local_ranking(self):
         if self._ranking_result is None:
-            return "<:status_offline:910938138984206347>"
-        if self._ranking_result.get("local_rank") is None:
-            return "<:status_offline:910938138984206347>"
-        return self._ranking_result.get("local_rank")
+            return '<:status_offline:910938138984206347>'
+        if self._ranking_result.get('local_rank') is None:
+            return '<:status_offline:910938138984206347>'
+        return self._ranking_result.get('local_rank')
 
     @property
     def global_ranking(self):
         if self._ranking_result is None:
-            return "<:status_offline:1247040997045829712>"
-        if self._ranking_result.get("global_rank") is None:
-            return "<:status_offline:1247040997045829712>"
-        return self._ranking_result.get("global_rank")
+            return '<:status_offline:1247040997045829712>'
+        if self._ranking_result.get('global_rank') is None:
+            return '<:status_offline:1247040997045829712>'
+        return self._ranking_result.get('global_rank')
 
     @property
     def flag(self):
         if self.country is None:
-            return "🏳️"
-        return f":flag_{self.country_code.lower()}:"
+            return '🏳️'
+        return f':flag_{self.country_code.lower()}:'
 
 
 class LegendDay:
@@ -49,25 +50,25 @@ class LegendDay:
 
     @property
     def attacks(self):
-        if self.legend_result.get("new_attacks") is None:
+        if self.legend_result.get('new_attacks') is None:
             return []
-        new_data: List = self.legend_result.get("new_attacks", [])
+        new_data: List = self.legend_result.get('new_attacks', [])
         return [LegendAttackInfo(data=data) for data in new_data]
 
     @property
     def defenses(self):
-        if self.legend_result.get("new_defenses") is None:
+        if self.legend_result.get('new_defenses') is None:
             return []
-        new_data: List = self.legend_result.get("new_defenses", [])
+        new_data: List = self.legend_result.get('new_defenses', [])
         return [LegendAttackInfo(data=data) for data in new_data]
 
     @property
     def num_attacks(self):
         if self.legend_result is None:
             return NumChoice(0)
-        if self.legend_result.get("num_attacks") is None:
+        if self.legend_result.get('num_attacks') is None:
             return NumChoice(0)
-        return NumChoice(self.legend_result.get("num_attacks"))
+        return NumChoice(self.legend_result.get('num_attacks'))
 
     @property
     def num_defenses(self):
@@ -94,16 +95,16 @@ class LegendDay:
 class LegendAttackInfo:
     def __init__(self, data):
         self.data = data
-        self.timestamp: int = data.get("time")
-        self.change: int = data.get("change")
-        self.trophies: int = data.get("trophies")
+        self.timestamp: int = data.get('time')
+        self.change: int = data.get('change')
+        self.trophies: int = data.get('trophies')
 
     @property
     def hero_gear(self):
         gears = []
-        for gear in self.data.get("hero_gear", []):
+        for gear in self.data.get('hero_gear', []):
             if isinstance(gear, str):
-                gears.append({"name": gear, "level": 1})
+                gears.append({'name': gear, 'level': 1})
             else:
                 gears.append(gear)
         return [LegendHeroGear(data=gear) for gear in gears]
@@ -111,8 +112,8 @@ class LegendAttackInfo:
 
 class LegendHeroGear:
     def __init__(self, data: dict):
-        self.name = data.get("name")
-        self.level = data.get("level")
+        self.name = data.get('name')
+        self.level = data.get('level')
 
     def __hash__(self):
         return hash(self.name)

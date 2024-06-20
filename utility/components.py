@@ -1,9 +1,10 @@
+from typing import List, Union
+
 import coc
 import disnake
 
 from classes.bot import CustomClient
 from classes.player.stats import StatsPlayer
-from typing import List, Union
 from utility.constants import BOARD_TYPES
 
 
@@ -15,47 +16,47 @@ def create_components(current_page, embeds, print: bool = False):
     if not print:
         page_buttons = [
             disnake.ui.Button(
-                label="",
-                emoji="◀️",
+                label='',
+                emoji='◀️',
                 style=disnake.ButtonStyle.grey,
                 disabled=(current_page == 0),
-                custom_id="Previous",
+                custom_id='Previous',
             ),
             disnake.ui.Button(
-                label=f"Page {current_page + 1}/{length}",
+                label=f'Page {current_page + 1}/{length}',
                 style=disnake.ButtonStyle.grey,
                 disabled=True,
             ),
             disnake.ui.Button(
-                label="",
-                emoji="▶️",
+                label='',
+                emoji='▶️',
                 style=disnake.ButtonStyle.grey,
                 disabled=(current_page == length - 1),
-                custom_id="Next",
+                custom_id='Next',
             ),
         ]
     else:
         page_buttons = [
             disnake.ui.Button(
-                label="",
-                emoji="◀️",
+                label='',
+                emoji='◀️',
                 style=disnake.ButtonStyle.grey,
                 disabled=(current_page == 0),
-                custom_id="Previous",
+                custom_id='Previous',
             ),
             disnake.ui.Button(
-                label=f"Page {current_page + 1}/{length}",
+                label=f'Page {current_page + 1}/{length}',
                 style=disnake.ButtonStyle.grey,
                 disabled=True,
             ),
             disnake.ui.Button(
-                label="",
-                emoji="▶️",
+                label='',
+                emoji='▶️',
                 style=disnake.ButtonStyle.grey,
                 disabled=(current_page == length - 1),
-                custom_id="Next",
+                custom_id='Next',
             ),
-            disnake.ui.Button(label="", emoji="🖨️", style=disnake.ButtonStyle.grey, custom_id="Print"),
+            disnake.ui.Button(label='', emoji='🖨️', style=disnake.ButtonStyle.grey, custom_id='Print'),
         ]
 
     buttons = disnake.ui.ActionRow()
@@ -68,25 +69,25 @@ def create_components(current_page, embeds, print: bool = False):
 def raid_buttons(bot: CustomClient, data):
     page_buttons = [
         disnake.ui.Button(
-            label="Raids",
+            label='Raids',
             emoji=bot.emoji.sword_clash.partial_emoji,
             style=disnake.ButtonStyle.grey,
-            custom_id="raids",
+            custom_id='raids',
         ),
         disnake.ui.Button(
-            label="Donations",
+            label='Donations',
             emoji=bot.emoji.capital_gold.partial_emoji,
             style=disnake.ButtonStyle.grey,
-            custom_id="donations",
+            custom_id='donations',
         ),
     ]
     if data != []:
         page_buttons.append(
             disnake.ui.Button(
-                label="Excel File",
-                emoji="📊",
+                label='Excel File',
+                emoji='📊',
                 style=disnake.ButtonStyle.green,
-                custom_id="capseason",
+                custom_id='capseason',
             )
         )
     buttons = disnake.ui.ActionRow()
@@ -101,13 +102,13 @@ def leaderboard_components(bot: CustomClient, current_page, num_players):
 
     select = disnake.ui.Select(
         options=[  # the options in your dropdown
-            disnake.SelectOption(label="Alphabetic", emoji=bot.emoji.alphabet.partial_emoji, value="0"),
-            disnake.SelectOption(label="Started", emoji=bot.emoji.start.partial_emoji, value="1"),
-            disnake.SelectOption(label="Offense", emoji=bot.emoji.blue_sword.partial_emoji, value="2"),
-            disnake.SelectOption(label="Defense", emoji=bot.emoji.blue_shield.partial_emoji, value="4"),
-            disnake.SelectOption(label="Trophies", emoji=bot.emoji.blue_trophy.partial_emoji, value="6"),
+            disnake.SelectOption(label='Alphabetic', emoji=bot.emoji.alphabet.partial_emoji, value='0'),
+            disnake.SelectOption(label='Started', emoji=bot.emoji.start.partial_emoji, value='1'),
+            disnake.SelectOption(label='Offense', emoji=bot.emoji.blue_sword.partial_emoji, value='2'),
+            disnake.SelectOption(label='Defense', emoji=bot.emoji.blue_shield.partial_emoji, value='4'),
+            disnake.SelectOption(label='Trophies', emoji=bot.emoji.blue_trophy.partial_emoji, value='6'),
         ],
-        placeholder=f"📁 Sort Type",  # the placeholder text to show when no options have been chosen
+        placeholder=f'📁 Sort Type',  # the placeholder text to show when no options have been chosen
         min_values=1,  # the minimum number of options a user must select
         max_values=1,  # the maximum number of options a user can select
     )
@@ -119,23 +120,23 @@ def leaderboard_components(bot: CustomClient, current_page, num_players):
 
     page_buttons = [
         disnake.ui.Button(
-            label="",
+            label='',
             emoji=bot.emoji.back.partial_emoji,
             style=disnake.ButtonStyle.grey,
             disabled=(current_page == 0),
-            custom_id="Previous",
+            custom_id='Previous',
         ),
         disnake.ui.Button(
-            label=f"Page {current_page + 1}/{length}",
+            label=f'Page {current_page + 1}/{length}',
             style=disnake.ButtonStyle.grey,
             disabled=True,
         ),
         disnake.ui.Button(
-            label="",
+            label='',
             emoji=bot.emoji.forward.partial_emoji,
             style=disnake.ButtonStyle.grey,
             disabled=(current_page == length - 1),
-            custom_id="Next",
+            custom_id='Next',
         ),
     ]
 
@@ -153,12 +154,12 @@ def player_components(players: List[StatsPlayer]):
     for count, player in enumerate(players):
         player_results.append(
             disnake.SelectOption(
-                label=f"{player.name}",
+                label=f'{player.name}',
                 emoji=player.town_hall_cls.emoji.partial_emoji,
-                value=f"{count}",
+                value=f'{count}',
             )
         )
-    profile_select = disnake.ui.Select(options=player_results, placeholder="Accounts", max_values=1)
+    profile_select = disnake.ui.Select(options=player_results, placeholder='Accounts', max_values=1)
 
     st2 = disnake.ui.ActionRow()
     st2.append_item(profile_select)
@@ -171,26 +172,26 @@ def clan_board_components(bot: CustomClient, season: Union[str, None], clan_tag:
     if season is None or season == bot.gen_season_date():
         buttons.append_item(
             disnake.ui.Button(
-                label="",
+                label='',
                 emoji=bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f"00_{type}_{season}_{clan_tag}",
+                custom_id=f'00_{type}_{season}_{clan_tag}',
             )
         )
     buttons.append_item(
         disnake.ui.Button(
-            label="",
+            label='',
             emoji=bot.emoji.red_pin.partial_emoji,
             style=disnake.ButtonStyle.grey,
-            custom_id=f"00_FREEZE" if season is None else "00_PIN",
+            custom_id=f'00_FREEZE' if season is None else '00_PIN',
         )
     )
     buttons.append_item(
         disnake.ui.Button(
-            label="",
+            label='',
             emoji=bot.emoji.calendar.partial_emoji,
             style=disnake.ButtonStyle.grey,
-            custom_id=f"00_SEASON_{type}_{season}_{clan_tag}",
+            custom_id=f'00_SEASON_{type}_{season}_{clan_tag}',
         )
     )
 
@@ -204,7 +205,7 @@ def clan_board_components(bot: CustomClient, season: Union[str, None], clan_tag:
         bot.emoji.ratio,
         bot.emoji.discord,
         bot.emoji.opt_in,
-        bot.fetch_emoji("Super Hog Rider"),
+        bot.fetch_emoji('Super Hog Rider'),
         bot.emoji.clan_games,
         bot.emoji.clock,
         bot.emoji.calendar,
@@ -219,7 +220,7 @@ def clan_board_components(bot: CustomClient, season: Union[str, None], clan_tag:
                 value=f"00_{b_type.replace(' ', '-').lower()}_{season}_{clan_tag}",
             )
         )
-    types_select = disnake.ui.Select(options=types_select, placeholder="Board Types", max_values=1)
+    types_select = disnake.ui.Select(options=types_select, placeholder='Board Types', max_values=1)
     types_select = disnake.ui.ActionRow(types_select)
     components = [types_select, buttons]
     return components
@@ -232,19 +233,17 @@ def clan_component(bot: CustomClient, all_clans: List[coc.Clan], clan_page: int 
         length = length - 1
     clans = all_clans[(length * clan_page) : (length * clan_page) + length]
     if clan_page >= 1:
-        clan_options.append(disnake.SelectOption(label=f"< Previous 25 Clans", value=f"clanpage_{clan_page - 1}"))
+        clan_options.append(disnake.SelectOption(label=f'< Previous 25 Clans', value=f'clanpage_{clan_page - 1}'))
     for count, clan in enumerate(clans):
-        clan_options.append(disnake.SelectOption(label=f"{clan.name} ({clan.tag})", value=f"clantag_{clan.tag}"))
+        clan_options.append(disnake.SelectOption(label=f'{clan.name} ({clan.tag})', value=f'clantag_{clan.tag}'))
     if len(clans) == length and (len(all_clans) > (length * clan_page) + length):
-        clan_options.append(disnake.SelectOption(label=f"Next 25 Clans >", value=f"clanpage_{clan_page + 1}"))
+        clan_options.append(disnake.SelectOption(label=f'Next 25 Clans >', value=f'clanpage_{clan_page + 1}'))
 
     clan_select = disnake.ui.Select(
         options=clan_options,
-        placeholder=f"Select Clan(s)",  # the placeholder text to show when no options have been chosen
+        placeholder=f'Select Clan(s)',  # the placeholder text to show when no options have been chosen
         min_values=1,  # the minimum number of options a user must select
-        max_values=(
-            len(clans) if max_choose is None else max_choose
-        ),  # the maximum number of options a user can select
+        max_values=(len(clans) if max_choose is None else max_choose),  # the maximum number of options a user can select
     )
 
     return disnake.ui.ActionRow(clan_select)
@@ -254,11 +253,11 @@ async def basic_clan_dropdown(clans: List[coc.Clan], max_choose=1):
     clan_options = []
     clans.sort(key=lambda x: x.member_count)
     for count, clan in enumerate(clans[:25]):
-        clan_options.append(disnake.SelectOption(label=f"{clan.name} ({clan.tag})", value=f"{clan.tag}"))
+        clan_options.append(disnake.SelectOption(label=f'{clan.name} ({clan.tag})', value=f'{clan.tag}'))
 
     clan_select = disnake.ui.Select(
         options=clan_options,
-        placeholder=f"Select Clan(s)",  # the placeholder text to show when no options have been chosen
+        placeholder=f'Select Clan(s)',  # the placeholder text to show when no options have been chosen
         min_values=1,  # the minimum number of options a user must select
         max_values=max_choose,  # the maximum number of options a user can select
     )
@@ -272,14 +271,14 @@ def townhall_component(bot: CustomClient):
     for num in nums:
         options.append(
             disnake.SelectOption(
-                label=f"Townhall {num}",
+                label=f'Townhall {num}',
                 emoji=bot.fetch_emoji(name=num).partial_emoji,
-                value=f"th_{num}",
+                value=f'th_{num}',
             )
         )
     th_select = disnake.ui.Select(
         options=options,
-        placeholder="(optional) Select Townhalls",  # the placeholder text to show when no options have been chosen
+        placeholder='(optional) Select Townhalls',  # the placeholder text to show when no options have been chosen
         min_values=1,  # the minimum number of options a user must select
         max_values=len(options),  # the maximum number of options a user can select
     )
@@ -288,12 +287,12 @@ def townhall_component(bot: CustomClient):
 
 def role_component():
     options = []
-    role_types = ["Member", "Elder", "Co-Leader", "Leader"]
+    role_types = ['Member', 'Elder', 'Co-Leader', 'Leader']
     for role in role_types:
-        options.append(disnake.SelectOption(label=f"{role}", value=f"{role}"))
+        options.append(disnake.SelectOption(label=f'{role}', value=f'{role}'))
     role_select = disnake.ui.Select(
         options=options,
-        placeholder="(optional) Select Roles",  # the placeholder text to show when no options have been chosen
+        placeholder='(optional) Select Roles',  # the placeholder text to show when no options have been chosen
         min_values=1,  # the minimum number of options a user must select
         max_values=len(options),  # the maximum number of options a user can select
     )

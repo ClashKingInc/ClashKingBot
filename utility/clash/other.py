@@ -1,21 +1,22 @@
-import coc
 import re
-import emoji
-from assets.emojis import SharedEmojis
 from collections import defaultdict
-from utility.discord_utils import fetch_emoji
-from utility.constants import SUPER_TROOPS
+from datetime import datetime, timedelta
+
+import coc
+import emoji
 from pytz import utc
 
-from datetime import datetime, timedelta
+from assets.emojis import SharedEmojis
+from utility.constants import SUPER_TROOPS
+from utility.discord_utils import fetch_emoji
 
 
 def gen_season_date():
     end = coc.utils.get_season_end().replace(tzinfo=utc).date()
     month = end.month
     if end.month <= 9:
-        month = f"0{month}"
-    return f"{end.year}-{month}"
+        month = f'0{month}'
+    return f'{end.year}-{month}'
 
 
 def gen_legend_date():
@@ -48,9 +49,9 @@ async def superTroops(player, asArray=False):
 
 def heros(bot, player: coc.Player):
     def get_level_emoji(hero: coc.Hero):
-        color = "blue"
+        color = 'blue'
         if hero.level == hero.get_max_level_for_townhall(townhall=player.town_hall):
-            color = "gold"
+            color = 'gold'
         return bot.get_number_emoji(color=color, number=hero.level)
 
     gear_to_hero = defaultdict(list)
@@ -58,42 +59,42 @@ def heros(bot, player: coc.Player):
         if gear.hero is not None:
             gear_to_hero[gear.hero].append(gear)
 
-    hero_string = ""
+    hero_string = ''
     for hero in player.heroes:
         if not hero.is_home_base:
             continue
-        gear_text = " | "
+        gear_text = ' | '
         for gear in gear_to_hero.get(hero.name, []):
-            color = "blue"
+            color = 'blue'
             if gear.level == gear.max_level:
-                color = "gold"
+                color = 'gold'
             emoji = bot.get_number_emoji(color=color, number=gear.level)
-            gear_text += f"{SharedEmojis.all_emojis.get(gear.name)}{emoji}"
-        if gear_text == " | ":
-            gear_text = ""
-        hero_string += f"{SharedEmojis.all_emojis.get(hero.name)}{get_level_emoji(hero)}{gear_text}\n"
+            gear_text += f'{SharedEmojis.all_emojis.get(gear.name)}{emoji}'
+        if gear_text == ' | ':
+            gear_text = ''
+        hero_string += f'{SharedEmojis.all_emojis.get(hero.name)}{get_level_emoji(hero)}{gear_text}\n'
 
     if not hero_string:
         return None
 
-    return "".join(hero_string)
+    return ''.join(hero_string)
 
 
 def basic_heros(bot, player: coc.Player):
     def get_level_emoji(hero: coc.Hero):
-        color = "blue"
+        color = 'blue'
         if hero.level == hero.get_max_level_for_townhall(townhall=player.town_hall):
-            color = "gold"
+            color = 'gold'
         return bot.get_number_emoji(color=color, number=hero.level)
 
-    hero_string = ""
+    hero_string = ''
     for hero in player.heroes:
         if not hero.is_home_base:
             continue
-        hero_string += f"{SharedEmojis.all_emojis.get(hero.name)}{get_level_emoji(hero)}"
+        hero_string += f'{SharedEmojis.all_emojis.get(hero.name)}{get_level_emoji(hero)}'
 
     if not hero_string:
-        return ""
+        return ''
 
     return hero_string
 
@@ -102,13 +103,13 @@ def spells(player, bot=None):
     spells = player.spells
     if not spells:
         return None
-    spellList = ""
-    levelList = ""
+    spellList = ''
+    levelList = ''
 
     def get_level_emoji(spell: coc.Spell):
-        color = "blue"
+        color = 'blue'
         if spell.level == spell.get_max_level_for_townhall(townhall=player.town_hall):
-            color = "gold"
+            color = 'gold'
         return bot.get_number_emoji(color=color, number=spell.level)
 
     for x in range(len(spells)):
@@ -116,16 +117,16 @@ def spells(player, bot=None):
         # print(str(regTroop))
         spell = spells[x]
         if spell.name in theSpells:
-            if spell.name == "Poison Spell":
-                spellList += "\n" + levelList + "\n"
-                levelList = ""
-            spellList += f"{SharedEmojis.all_emojis.get(spell.name)} "
+            if spell.name == 'Poison Spell':
+                spellList += '\n' + levelList + '\n'
+                levelList = ''
+            spellList += f'{SharedEmojis.all_emojis.get(spell.name)} '
             levelList += str(get_level_emoji(spell))
 
             if spell.level <= 10:
-                levelList += " "
+                levelList += ' '
 
-    spellList += "\n" + levelList + "\n"
+    spellList += '\n' + levelList + '\n'
 
     return spellList
 
@@ -134,13 +135,13 @@ def troops(player, bot=None):
     troops = player.troops
     if not troops:
         return None
-    troopList = ""
-    levelList = ""
+    troopList = ''
+    levelList = ''
 
     def get_level_emoji(troop: coc.Troop):
-        color = "blue"
+        color = 'blue'
         if troop.level == troop.get_max_level_for_townhall(townhall=player.town_hall):
-            color = "gold"
+            color = 'gold'
         return bot.get_number_emoji(color=color, number=troop.level)
 
     z = 0
@@ -148,38 +149,38 @@ def troops(player, bot=None):
         troop = troops[x]
         if (troop.is_home_base) and (troop.name not in coc.SIEGE_MACHINE_ORDER) and (troop.name not in SUPER_TROOPS):
             z += 1
-            troopList += SharedEmojis.all_emojis.get(troop.name) + " "
+            troopList += SharedEmojis.all_emojis.get(troop.name) + ' '
             levelList += str(get_level_emoji(troop))
 
             if troop.level <= 11:
-                levelList += " "
+                levelList += ' '
 
             if z != 0 and z % 8 == 0:
-                troopList += "\n" + levelList + "\n"
-                levelList = ""
+                troopList += '\n' + levelList + '\n'
+                levelList = ''
 
-    troopList += "\n" + levelList
+    troopList += '\n' + levelList
 
     return troopList
 
 
 def clean_name(name: str):
     name = emoji.replace_emoji(name)
-    name = re.sub("[*_`~/]", "", name)
-    return f"\u200e{name}"
+    name = re.sub('[*_`~/]', '', name)
+    return f'\u200e{name}'
 
 
 def siegeMachines(player, bot=None):
     sieges = player.siege_machines
     if not sieges:
         return None
-    siegeList = ""
-    levelList = ""
+    siegeList = ''
+    levelList = ''
 
     def get_level_emoji(troop: coc.Troop):
-        color = "blue"
+        color = 'blue'
         if troop.level == troop.get_max_level_for_townhall(townhall=player.town_hall):
-            color = "gold"
+            color = 'gold'
         return bot.get_number_emoji(color=color, number=troop.level)
 
     z = 0
@@ -189,13 +190,13 @@ def siegeMachines(player, bot=None):
         siege = sieges[x]
         if siege.name in siegeL:
             z += 1
-            siegeList += SharedEmojis.all_emojis.get(siege.name) + " "
+            siegeList += SharedEmojis.all_emojis.get(siege.name) + ' '
             levelList += str(get_level_emoji(siege))
 
             if siege.level <= 10:
-                levelList += " "
+                levelList += ' '
 
-    siegeList += "\n" + levelList
+    siegeList += '\n' + levelList
 
     # print(heroList)
     # print(troopList)
@@ -207,16 +208,16 @@ def heroPets(bot, player: coc.Player):
         return None
 
     def get_level_emoji(pet: coc.Pet):
-        color = "blue"
+        color = 'blue'
         if pet.level == pet.max_level:
-            color = "gold"
+            color = 'gold'
         return bot.get_number_emoji(color=color, number=pet.level)
 
-    pet_string = ""
+    pet_string = ''
     for count, pet in enumerate(player.pets, 1):
-        pet_string += f"{SharedEmojis.all_emojis.get(pet.name)}{get_level_emoji(pet)}"
+        pet_string += f'{SharedEmojis.all_emojis.get(pet.name)}{get_level_emoji(pet)}'
         if count % 4 == 0:
-            pet_string += "\n"
+            pet_string += '\n'
 
     return pet_string
 
@@ -225,32 +226,32 @@ def hero_gear(bot, player: coc.Player):
     if not player.equipment:
         return None
 
-    gear_string = ""
+    gear_string = ''
     for count, gear in enumerate([g for g in player.equipment if g.hero is None], 1):
-        color = "blue"
+        color = 'blue'
         if gear.level == gear.max_level:
-            color = "gold"
+            color = 'gold'
         emoji = bot.get_number_emoji(color=color, number=gear.level)
-        gear_string += f"{SharedEmojis.all_emojis.get(gear.name)}{emoji}"
+        gear_string += f'{SharedEmojis.all_emojis.get(gear.name)}{emoji}'
         if count % 4 == 0:
-            gear_string += "\n"
+            gear_string += '\n'
     return gear_string
 
 
 def profileSuperTroops(player):
     troops = player.troops
-    boostedTroops = ""
+    boostedTroops = ''
 
     for x in range(len(troops)):
         troop = troops[x]
         if troop.is_active:
             emoji = SharedEmojis.all_emojis.get(troop.name)
-            boostedTroops += f"{emoji} {troop.name}" + "\n"
+            boostedTroops += f'{emoji} {troop.name}' + '\n'
 
     if len(boostedTroops) > 0:
-        boostedTroops = f"\n**Super Troops:**\n{boostedTroops}"
+        boostedTroops = f'\n**Super Troops:**\n{boostedTroops}'
     else:
-        boostedTroops = ""
+        boostedTroops = ''
     return boostedTroops
 
 
@@ -260,10 +261,10 @@ def clan_th_comp(clan_members):
     for player in clan_members:
         thcount[player.town_hall] += 1
 
-    th_comp_string = ""
+    th_comp_string = ''
     for th_level, th_count in sorted(thcount.items(), reverse=True):
         th_emoji = fetch_emoji(th_level)
-        th_comp_string += f"{th_emoji}`{th_count}` "
+        th_comp_string += f'{th_emoji}`{th_count}` '
 
     return th_comp_string
 
@@ -275,41 +276,41 @@ def clan_super_troop_comp(clan_members):
             if troop.is_active:
                 super_troop_comp_dict[troop.name] += 1
 
-    return_string = ""
+    return_string = ''
     for troop, count in super_troop_comp_dict.items():
         super_troop_emoji = fetch_emoji(emoji_name=troop)
-        return_string += f"{super_troop_emoji}`x{count} `"
+        return_string += f'{super_troop_emoji}`x{count} `'
 
-    if return_string == "":
-        return_string = "None"
+    if return_string == '':
+        return_string = 'None'
 
     return return_string
 
 
 def leagueAndTrophies(player):
     league = str(player.league)
-    emoji = SharedEmojis.all_emojis.get(league, SharedEmojis.all_emojis.get("unranked"))
+    emoji = SharedEmojis.all_emojis.get(league, SharedEmojis.all_emojis.get('unranked'))
     return emoji + str(player.trophies)
 
 
 def league_emoji(player):
     league = str(player.league)
-    return SharedEmojis.all_emojis.get(league, SharedEmojis.all_emojis.get("unranked"))
+    return SharedEmojis.all_emojis.get(league, SharedEmojis.all_emojis.get('unranked'))
 
 
 def league_to_emoji(league: str):
 
     emoji = SharedEmojis.all_emojis.get(league)
     if emoji is None:
-        league = league.split(" ")[0]
+        league = league.split(' ')[0]
         emoji = SharedEmojis.all_emojis.get(league)
     if emoji is None:
-        emoji = SharedEmojis.all_emojis.get("unranked")
+        emoji = SharedEmojis.all_emojis.get('unranked')
     return emoji
 
 
 def cwl_league_emojis(league: str):
-    return SharedEmojis.all_emojis.get(f"CWL {league}", SharedEmojis.all_emojis.get("unranked"))
+    return SharedEmojis.all_emojis.get(f'CWL {league}', SharedEmojis.all_emojis.get('unranked'))
 
 
 def is_cwl():
@@ -359,8 +360,8 @@ def gen_season_start_end_as_iso(season: str):
         month=(int(month) - 1 if int(month) != 1 else month == 12),
         year=int(year) if int(month) != 1 else int(year) - 1,
     ).timestamp()
-    SEASON_START = datetime.fromtimestamp(SEASON_START, tz=utc).strftime("%Y%m%dT%H%M%S.000Z")
-    SEASON_END = datetime.fromtimestamp(SEASON_END, tz=utc).strftime("%Y%m%dT%H%M%S.000Z")
+    SEASON_START = datetime.fromtimestamp(SEASON_START, tz=utc).strftime('%Y%m%dT%H%M%S.000Z')
+    SEASON_END = datetime.fromtimestamp(SEASON_END, tz=utc).strftime('%Y%m%dT%H%M%S.000Z')
     return (SEASON_START, SEASON_END)
 
 

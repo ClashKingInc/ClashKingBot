@@ -1,26 +1,30 @@
+import io
+
 import coc
 import disnake
-from PIL import Image, ImageDraw, ImageFont
-import io
 import pytz
+from PIL import Image, ImageDraw, ImageFont
+
 
 utc = pytz.utc
-import aiohttp
-from io import BytesIO
 import asyncio
-from coc.raid import RaidLogEntry
-from utility.clash.capital import calc_raid_medals
 import concurrent.futures
+from io import BytesIO
+
+import aiohttp
+from coc.raid import RaidLogEntry
+
+from utility.clash.capital import calc_raid_medals
 
 
 async def generate_raid_result_image(raid_entry: RaidLogEntry, clan: coc.Clan):
 
-    background = Image.open("utility/imagegen/raidweek.png")
-    clan_name = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 30)
-    total_medal_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 60)
-    boxes_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 30)
+    background = Image.open('utility/imagegen/raidweek.png')
+    clan_name = ImageFont.truetype('utility/imagegen/SCmagic.ttf', 30)
+    total_medal_font = ImageFont.truetype('utility/imagegen/SCmagic.ttf', 60)
+    boxes_font = ImageFont.truetype('utility/imagegen/SCmagic.ttf', 30)
 
-    split_medal_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 25)
+    split_medal_font = ImageFont.truetype('utility/imagegen/SCmagic.ttf', 25)
 
     draw = ImageDraw.Draw(background)
 
@@ -37,7 +41,7 @@ async def generate_raid_result_image(raid_entry: RaidLogEntry, clan: coc.Clan):
 
     for count, image_data in enumerate(responses):
         badge = Image.open(image_data)
-        background.paste(badge, (1125, 135), badge.convert("RGBA"))
+        background.paste(badge, (1125, 135), badge.convert('RGBA'))
 
     if raid_entry.offensive_reward == 0:
         off_medal_reward = calc_raid_medals(raid_entry.attack_log)
@@ -47,8 +51,8 @@ async def generate_raid_result_image(raid_entry: RaidLogEntry, clan: coc.Clan):
     stroke = 2
     draw.text(
         (1225, 117),
-        f"{clan.name}",
-        anchor="mm",
+        f'{clan.name}',
+        anchor='mm',
         fill=(255, 255, 255),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -56,8 +60,8 @@ async def generate_raid_result_image(raid_entry: RaidLogEntry, clan: coc.Clan):
     )
     draw.text(
         (750, 250),
-        f"{off_medal_reward + raid_entry.defensive_reward}",
-        anchor="mm",
+        f'{off_medal_reward + raid_entry.defensive_reward}',
+        anchor='mm',
         fill=(255, 255, 255),
         stroke_width=4,
         stroke_fill=(0, 0, 0),
@@ -66,8 +70,8 @@ async def generate_raid_result_image(raid_entry: RaidLogEntry, clan: coc.Clan):
 
     draw.text(
         (155, 585),
-        f"{raid_entry.total_loot}",
-        anchor="lm",
+        f'{raid_entry.total_loot}',
+        anchor='lm',
         fill=(255, 255, 255),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -75,8 +79,8 @@ async def generate_raid_result_image(raid_entry: RaidLogEntry, clan: coc.Clan):
     )
     draw.text(
         (870, 585),
-        f"{len([log for log in raid_entry.attack_log if log.destroyed_district_count == log.district_count])}",
-        anchor="lm",
+        f'{len([log for log in raid_entry.attack_log if log.destroyed_district_count == log.district_count])}',
+        anchor='lm',
         fill=(255, 255, 255),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -85,8 +89,8 @@ async def generate_raid_result_image(raid_entry: RaidLogEntry, clan: coc.Clan):
 
     draw.text(
         (155, 817),
-        f"{raid_entry.attack_count}",
-        anchor="lm",
+        f'{raid_entry.attack_count}',
+        anchor='lm',
         fill=(255, 255, 255),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -94,8 +98,8 @@ async def generate_raid_result_image(raid_entry: RaidLogEntry, clan: coc.Clan):
     )
     draw.text(
         (870, 817),
-        f"{raid_entry.destroyed_district_count}",
-        anchor="lm",
+        f'{raid_entry.destroyed_district_count}',
+        anchor='lm',
         fill=(255, 255, 255),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -104,8 +108,8 @@ async def generate_raid_result_image(raid_entry: RaidLogEntry, clan: coc.Clan):
 
     draw.text(
         (550, 370),
-        f"{off_medal_reward}",
-        anchor="lm",
+        f'{off_medal_reward}',
+        anchor='lm',
         fill=(255, 255, 255),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -113,8 +117,8 @@ async def generate_raid_result_image(raid_entry: RaidLogEntry, clan: coc.Clan):
     )
     draw.text(
         (1245, 370),
-        f"{raid_entry.defensive_reward}",
-        anchor="lm",
+        f'{raid_entry.defensive_reward}',
+        anchor='lm',
         fill=(255, 255, 255),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -123,8 +127,8 @@ async def generate_raid_result_image(raid_entry: RaidLogEntry, clan: coc.Clan):
 
     draw.text(
         (25, 35),
-        f"{raid_entry.start_time.time.date()}",
-        anchor="lm",
+        f'{raid_entry.start_time.time.date()}',
+        anchor='lm',
         fill=(255, 255, 255),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -136,9 +140,9 @@ async def generate_raid_result_image(raid_entry: RaidLogEntry, clan: coc.Clan):
         temp = io.BytesIO()
         # background = background.resize((869, 637))
         # background = background.resize((1036, 673))
-        background.save(temp, format="png", compress_level=1)
+        background.save(temp, format='png', compress_level=1)
         temp.seek(0)
-        file = disnake.File(fp=temp, filename="filename.png")
+        file = disnake.File(fp=temp, filename='filename.png')
         temp.close()
         return file
 

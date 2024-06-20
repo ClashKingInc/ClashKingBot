@@ -1,14 +1,18 @@
+import io
+
 import coc
 import disnake
-from PIL import Image, ImageDraw, ImageFont
-import io
 import pytz
+from PIL import Image, ImageDraw, ImageFont
+
 
 utc = pytz.utc
-import aiohttp
-from io import BytesIO
 import asyncio
 import concurrent.futures
+from io import BytesIO
+
+import aiohttp
+
 
 th_to_xp = {
     1: 1,
@@ -35,14 +39,14 @@ async def generate_war_result_image(war: coc.ClanWar):
     won_xp = 0
 
     win_xp = 0
-    if war.status == "won":
+    if war.status == 'won':
         won_xp += 50
         win_xp = 50
-        result_text = "Victory"
-    elif war.status == "tie":
-        result_text = "Draw"
+        result_text = 'Victory'
+    elif war.status == 'tie':
+        result_text = 'Draw'
     else:
-        result_text = "Defeat"
+        result_text = 'Defeat'
 
     possible_war_xp = 0
     actual_war_xp = 0
@@ -68,13 +72,13 @@ async def generate_war_result_image(war: coc.ClanWar):
         sixty_xp = 25
         won_xp += 25
 
-    background = Image.open("utility/imagegen/warbkpng.png")
-    clan_name = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 45)
-    result_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 65)
-    score_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 70)
-    total_xp_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 35)
-    box_xp_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 25)
-    destruction_font = ImageFont.truetype("utility/imagegen/SCmagic.ttf", 25)
+    background = Image.open('utility/imagegen/warbkpng.png')
+    clan_name = ImageFont.truetype('utility/imagegen/SCmagic.ttf', 45)
+    result_font = ImageFont.truetype('utility/imagegen/SCmagic.ttf', 65)
+    score_font = ImageFont.truetype('utility/imagegen/SCmagic.ttf', 70)
+    total_xp_font = ImageFont.truetype('utility/imagegen/SCmagic.ttf', 35)
+    box_xp_font = ImageFont.truetype('utility/imagegen/SCmagic.ttf', 25)
+    destruction_font = ImageFont.truetype('utility/imagegen/SCmagic.ttf', 25)
 
     draw = ImageDraw.Draw(background)
 
@@ -93,15 +97,15 @@ async def generate_war_result_image(war: coc.ClanWar):
     for count, image_data in enumerate(responses):
         badge = Image.open(image_data)
         if count == 0:
-            background.paste(badge, (850, 50), badge.convert("RGBA"))
+            background.paste(badge, (850, 50), badge.convert('RGBA'))
         else:
-            background.paste(badge, (1050, 50), badge.convert("RGBA"))
+            background.paste(badge, (1050, 50), badge.convert('RGBA'))
 
     stroke = 4
     draw.text(
         (800, 130),
-        f"{war.clan.name}",
-        anchor="rm",
+        f'{war.clan.name}',
+        anchor='rm',
         fill=(255, 255, 204),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -109,8 +113,8 @@ async def generate_war_result_image(war: coc.ClanWar):
     )
     draw.text(
         (1250, 130),
-        f"{war.opponent.name}",
-        anchor="lm",
+        f'{war.opponent.name}',
+        anchor='lm',
         fill=(255, 255, 204),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -119,8 +123,8 @@ async def generate_war_result_image(war: coc.ClanWar):
 
     draw.text(
         (1040, 290),
-        f"{result_text}",
-        anchor="mm",
+        f'{result_text}',
+        anchor='mm',
         fill=(255, 248, 113),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -128,8 +132,8 @@ async def generate_war_result_image(war: coc.ClanWar):
     )
     draw.text(
         (1040, 380),
-        f"{war.clan.stars} - {war.opponent.stars}",
-        anchor="mm",
+        f'{war.clan.stars} - {war.opponent.stars}',
+        anchor='mm',
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
         fill=(255, 255, 204),
@@ -138,8 +142,8 @@ async def generate_war_result_image(war: coc.ClanWar):
 
     draw.text(
         (1600, 585),
-        f"+{actual_war_xp} / {possible_war_xp}",
-        anchor="rm",
+        f'+{actual_war_xp} / {possible_war_xp}',
+        anchor='rm',
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
         fill=(255, 255, 255),
@@ -147,8 +151,8 @@ async def generate_war_result_image(war: coc.ClanWar):
     )
     draw.text(
         (1600, 640),
-        f"+{forty_xp} / 10",
-        anchor="rm",
+        f'+{forty_xp} / 10',
+        anchor='rm',
         fill=(255, 255, 255),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -156,8 +160,8 @@ async def generate_war_result_image(war: coc.ClanWar):
     )
     draw.text(
         (1600, 705),
-        f"+{sixty_xp} / 25",
-        anchor="rm",
+        f'+{sixty_xp} / 25',
+        anchor='rm',
         fill=(255, 255, 255),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -165,8 +169,8 @@ async def generate_war_result_image(war: coc.ClanWar):
     )
     draw.text(
         (1600, 762),
-        f"+{win_xp} / 50",
-        anchor="rm",
+        f'+{win_xp} / 50',
+        anchor='rm',
         fill=(255, 255, 255),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -175,8 +179,8 @@ async def generate_war_result_image(war: coc.ClanWar):
 
     draw.text(
         (775, 642),
-        f"{forty_percent}",
-        anchor="mm",
+        f'{forty_percent}',
+        anchor='mm',
         fill=(255, 255, 255),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -184,8 +188,8 @@ async def generate_war_result_image(war: coc.ClanWar):
     )
     draw.text(
         (775, 705),
-        f"{sixty_percent}",
-        anchor="mm",
+        f'{sixty_percent}',
+        anchor='mm',
         fill=(255, 255, 255),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -195,7 +199,7 @@ async def generate_war_result_image(war: coc.ClanWar):
     draw.text(
         (850, 452),
         f"{format(round(war.clan.destruction, 2), '.2f')}%",
-        anchor="rm",
+        anchor='rm',
         fill=(255, 255, 204),
         stroke_width=3,
         stroke_fill=(0, 0, 0),
@@ -204,7 +208,7 @@ async def generate_war_result_image(war: coc.ClanWar):
     draw.text(
         (1250, 452),
         f"{format(round(war.opponent.destruction, 2), '.2f')}%",
-        anchor="lm",
+        anchor='lm',
         fill=(255, 255, 204),
         stroke_width=3,
         stroke_fill=(0, 0, 0),
@@ -213,8 +217,8 @@ async def generate_war_result_image(war: coc.ClanWar):
 
     draw.text(
         (490, 775),
-        f"{won_xp} / {possible_xp}",
-        anchor="mm",
+        f'{won_xp} / {possible_xp}',
+        anchor='mm',
         fill=(255, 255, 255),
         stroke_width=stroke,
         stroke_fill=(0, 0, 0),
@@ -226,9 +230,9 @@ async def generate_war_result_image(war: coc.ClanWar):
         temp = io.BytesIO()
         background = background.resize((725, 471))
         # background = background.resize((1036, 673))
-        background.save(temp, format="png", compress_level=1)
+        background.save(temp, format='png', compress_level=1)
         temp.seek(0)
-        file = disnake.File(fp=temp, filename="filename.png")
+        file = disnake.File(fp=temp, filename='filename.png')
         temp.close()
         return file
 

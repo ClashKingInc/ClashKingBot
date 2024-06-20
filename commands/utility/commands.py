@@ -1,35 +1,36 @@
-import coc
-import disnake
 import uuid
 
-from .click import UtilityButtons
+import coc
+import disnake
+from disnake.ext import commands
+
 from classes.bot import CustomClient
 from discord import options
-from disnake.ext import commands
 from exceptions.CustomExceptions import MessageException
-from .utils import army_embed, super_troop_embed, clan_boost_embeds
-from utility.discord_utils import interaction_handler
+from utility.cdn import upload_to_cdn
 from utility.components import create_components
 from utility.constants import SUPER_TROOPS
-from utility.cdn import upload_to_cdn
+from utility.discord_utils import interaction_handler
+
+from .click import UtilityButtons
+from .utils import army_embed, clan_boost_embeds, super_troop_embed
 
 
-class UtilityCommands(UtilityButtons, commands.Cog, name="Utility"):
-
+class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
     def __init__(self, bot: CustomClient):
         super().__init__(bot)
         self.bot = bot
 
     @commands.slash_command(
-        name="army",
-        description="Create a visual message representation of an army link",
+        name='army',
+        description='Create a visual message representation of an army link',
     )
     async def army(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         link: str,
-        nickname: str = "Results",
-        clan_castle: str = "None",
+        nickname: str = 'Results',
+        clan_castle: str = 'None',
     ):
         """
         Parameters
@@ -40,12 +41,12 @@ class UtilityCommands(UtilityButtons, commands.Cog, name="Utility"):
         """
         embed = army_embed(bot=self.bot, nick=nickname, link=link, clan_castle=clan_castle)
         buttons = disnake.ui.ActionRow()
-        buttons.append_item(disnake.ui.Button(label=f"Copy Link", emoji=self.bot.emoji.troop.partial_emoji, url=link))
+        buttons.append_item(disnake.ui.Button(label=f'Copy Link', emoji=self.bot.emoji.troop.partial_emoji, url=link))
         await ctx.send(embed=embed, components=buttons)
 
     @commands.slash_command(
-        name="boosts",
-        description="Get list of troops listed in a certain clan (or all family clans if blank)",
+        name='boosts',
+        description='Get list of troops listed in a certain clan (or all family clans if blank)',
     )
     async def super_troop_boosts(
         self,
@@ -80,21 +81,21 @@ class UtilityCommands(UtilityButtons, commands.Cog, name="Utility"):
         if len(embeds) >= 2:
             await ctx.send(embed=embeds[0], components=create_components(0, embeds, True))
         else:
-            custom_id = f"clan_{uuid.uuid4()}"
+            custom_id = f'clan_{uuid.uuid4()}'
             components = disnake.ui.ActionRow()
             components.append_item(
                 disnake.ui.Button(
-                    label="",
+                    label='',
                     emoji=self.bot.emoji.refresh.partial_emoji,
                     style=disnake.ButtonStyle.grey,
                     custom_id=custom_id,
                 )
             )
             as_dict = {
-                "button_id": custom_id,
-                "command": f"{ctx.application_command.qualified_name}",
-                "clans": [c.tag for c in clans],
-                "fields": ["clans"],
+                'button_id': custom_id,
+                'command': f'{ctx.application_command.qualified_name}',
+                'clans': [c.tag for c in clans],
+                'fields': ['clans'],
             }
             await self.bot.button_store.insert_one(as_dict)
             return await ctx.send(embeds=embeds, components=components)
@@ -102,26 +103,26 @@ class UtilityCommands(UtilityButtons, commands.Cog, name="Utility"):
         current_page = 0
         while True:
             res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, any_run=True)
-            if res.data.custom_id == "Previous":
+            if res.data.custom_id == 'Previous':
                 current_page -= 1
                 await res.edit_original_message(
                     embed=embeds[current_page],
                     components=create_components(current_page, embeds, True),
                 )
 
-            elif res.data.custom_id == "Next":
+            elif res.data.custom_id == 'Next':
                 current_page += 1
                 await res.edit_original_message(
                     embed=embeds[current_page],
                     components=create_components(current_page, embeds, True),
                 )
 
-            elif res.data.custom_id == "Print":
+            elif res.data.custom_id == 'Print':
                 await res.delete_original_message()
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)
 
-    @commands.slash_command(name="base")
+    @commands.slash_command(name='base')
     async def base(
         self,
         ctx: disnake.ApplicationCommandInteraction,
@@ -131,35 +132,35 @@ class UtilityCommands(UtilityButtons, commands.Cog, name="Utility"):
     ):
         await ctx.response.defer()
 
-        if "https://link.clashofclans.com/" not in base_link or "=OpenLayout&id=" not in base_link:
-            raise MessageException("Not a Valid Base Link")
+        if 'https://link.clashofclans.com/' not in base_link or '=OpenLayout&id=' not in base_link:
+            raise MessageException('Not a Valid Base Link')
 
         description = description[0:1900]
-        description = description.replace("&&", "\n")
+        description = description.replace('&&', '\n')
 
         r1 = disnake.ui.ActionRow()
-        link_button = disnake.ui.Button(label="Link", emoji="🔗", style=disnake.ButtonStyle.grey, custom_id="link")
+        link_button = disnake.ui.Button(label='Link', emoji='🔗', style=disnake.ButtonStyle.grey, custom_id='link')
         downloads = disnake.ui.Button(
-            label="0 Downloads",
-            emoji="📈",
+            label='0 Downloads',
+            emoji='📈',
             style=disnake.ButtonStyle.grey,
-            custom_id="who",
+            custom_id='who',
         )
         r1.append_item(link_button)
         r1.append_item(downloads)
 
         r2 = disnake.ui.ActionRow()
         feedback = disnake.ui.Button(
-            label="Feedback",
-            emoji="💬",
+            label='Feedback',
+            emoji='💬',
             style=disnake.ButtonStyle.grey,
-            custom_id="feedback",
+            custom_id='feedback',
         )
         feedback_button = disnake.ui.Button(
-            label="Leave Feedback",
-            emoji="📈",
+            label='Leave Feedback',
+            emoji='📈',
             style=disnake.ButtonStyle.grey,
-            custom_id="leave",
+            custom_id='leave',
         )
         r2.append_item(feedback)
         r2.append_item(feedback_button)
@@ -167,18 +168,18 @@ class UtilityCommands(UtilityButtons, commands.Cog, name="Utility"):
         await upload_to_cdn(picture=photo)
 
         await ctx.edit_original_message(
-            content=f"[➼](https://cdn.clashking.xyz/{photo.id}.png) {description}",
+            content=f'[➼](https://cdn.clashking.xyz/{photo.id}.png) {description}',
             components=[r1, r2],
         )
         msg = await ctx.original_message()
         await self.bot.bases.insert_one(
             {
-                "link": base_link,
-                "message_id": msg.id,
-                "downloads": 0,
-                "downloaders": [],
-                "feedback": [],
-                "new": True,
+                'link': base_link,
+                'message_id': msg.id,
+                'downloads': 0,
+                'downloaders': [],
+                'feedback': [],
+                'new': True,
             }
         )
 

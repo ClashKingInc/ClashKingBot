@@ -1,14 +1,21 @@
-import disnake
 import inspect
 
+import disnake
 from disnake.ext import commands
+
 from classes.bot import CustomClient
 from utility.discord_utils import registered_functions
 
 
-async def button_logic(button_data: str, bot: CustomClient, guild: disnake.Guild, locale: disnake.Locale, ctx: disnake.MessageInteraction = None):
-    split_data = button_data.split(":")
-    lookup_name = button_data.split(":")[0]
+async def button_logic(
+    button_data: str,
+    bot: CustomClient,
+    guild: disnake.Guild,
+    locale: disnake.Locale,
+    ctx: disnake.MessageInteraction = None,
+):
+    split_data = button_data.split(':')
+    lookup_name = button_data.split(':')[0]
     print(locale)
     # print(registered_functions.keys())
     function, parser, ephemeral, no_embed = registered_functions.get(lookup_name)
@@ -17,39 +24,39 @@ async def button_logic(button_data: str, bot: CustomClient, guild: disnake.Guild
     if ctx:
         await ctx.response.defer(ephemeral=ephemeral)
 
-    parser_split = parser.split(":")
-    hold_kwargs = {"bot": bot, "server": guild, "locale": locale}
+    parser_split = parser.split(':')
+    hold_kwargs = {'bot': bot, 'server': guild, 'locale': locale}
     for data, name in zip(split_data[1:], parser_split[1:]):
         if data.isdigit():
             data = int(data)
-        if name == "server":
+        if name == 'server':
             if data == guild.id:
                 continue
             else:
                 data = await bot.getch_guild(data)
-        if data == "None":
+        if data == 'None':
             data = None
-        if name == "clan":
+        if name == 'clan':
             data = await bot.getClan(clan_tag=data)
-        elif name == "ctx":
+        elif name == 'ctx':
             data = ctx
-        elif name == "player":
+        elif name == 'player':
             data = await bot.getPlayer(player_tag=data)
-        elif name == "custom_player":
+        elif name == 'custom_player':
             data = await bot.getPlayer(player_tag=data, custom=True)
-        elif name == "discord_user":
+        elif name == 'discord_user':
             data = await ctx.guild.getch_member(data)
         hold_kwargs[name] = data
 
     embed_color = await bot.ck_client.get_server_embed_color(server_id=guild.id)
-    hold_kwargs["embed_color"] = embed_color
+    hold_kwargs['embed_color'] = embed_color
     hold_kwargs = {key: hold_kwargs[key] for key in inspect.getfullargspec(function).args}
     embed = await function(**hold_kwargs)
 
     components = 0
     components_function = None
     if components_function:
-        hold_kwargs["ctx"] = ctx
+        hold_kwargs['ctx'] = ctx
         components = await components_function(**hold_kwargs)
 
     if no_embed:
@@ -58,7 +65,6 @@ async def button_logic(button_data: str, bot: CustomClient, guild: disnake.Guild
 
 
 class ComponentHandler(commands.Cog):
-
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
@@ -72,11 +78,17 @@ class ComponentHandler(commands.Cog):
         else:
             return
 
-        if ":" not in button_data:
+        if ':' not in button_data:
             return
 
         locale = self.bot.get_locale(ctx=ctx)
-        embed, components = await button_logic(button_data=button_data, bot=self.bot, ctx=ctx, guild=ctx.guild, locale=locale)
+        embed, components = await button_logic(
+            button_data=button_data,
+            bot=self.bot,
+            ctx=ctx,
+            guild=ctx.guild,
+            locale=locale,
+        )
 
         # in some cases the handling is done outside this function
         if embed is None:

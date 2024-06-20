@@ -1,36 +1,35 @@
 import disnake
+from disnake.ext import commands
 
 from background.logs.events import clan_ee, player_ee
-from classes.DatabaseClient.Classes.settings import DatabaseServer
 from classes.bot import CustomClient
+from classes.DatabaseClient.Classes.settings import DatabaseServer
 from commands.eval.utils import logic
-from disnake.ext import commands
 from utility.constants import DEFAULT_EVAL_ROLE_TYPES, EMBED_COLOR_CLASS
 
 
 class AutoEval(commands.Cog):
-
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.clan_ee = clan_ee
         self.player_ee = player_ee
-        self.clan_ee.on("member_join", self.auto_refresh)
-        self.clan_ee.on("member_leave", self.auto_refresh)
-        self.player_ee.on("role", self.auto_refresh)
-        self.player_ee.on("townHallLevel", self.auto_refresh)
-        self.player_ee.on("league", self.auto_refresh)
+        self.clan_ee.on('member_join', self.auto_refresh)
+        self.clan_ee.on('member_leave', self.auto_refresh)
+        self.player_ee.on('role', self.auto_refresh)
+        self.player_ee.on('townHallLevel', self.auto_refresh)
+        self.player_ee.on('league', self.auto_refresh)
 
     async def auto_refresh(self, event):
-        if (clan_data := event.get("clan")) is not None:
-            clan_tag = clan_data.get("tag")
-            player_tag = event.get("member").get("tag")
-            player_name = event.get("member").get("name")
+        if (clan_data := event.get('clan')) is not None:
+            clan_tag = clan_data.get('tag')
+            player_tag = event.get('member').get('tag')
+            player_name = event.get('member').get('name')
         else:
-            player_tag = event.get("new_player").get("tag")
-            clan_tag = event.get("new_player").get("clan", {}).get("tag", "")
-            player_name = event.get("new_player").get("name")
+            player_tag = event.get('new_player').get('tag')
+            clan_tag = event.get('new_player').get('clan', {}).get('tag', '')
+            player_name = event.get('new_player').get('name')
 
-        server_ids = await self.bot.clan_db.distinct("server", filter={"tag": clan_tag})
+        server_ids = await self.bot.clan_db.distinct('server', filter={'tag': clan_tag})
         for server_id in server_ids:
             db_server = await self.bot.ck_client.get_server_settings(server_id=server_id)
 
@@ -38,13 +37,11 @@ class AutoEval(commands.Cog):
                 continue
 
             convert_trigger = {
-                "townHallLevel": "townhall_change",
-                "role": "role_change",
-                "league": "league_change",
+                'townHallLevel': 'townhall_change',
+                'role': 'role_change',
+                'league': 'league_change',
             }
-            if (
-                trigger_name := convert_trigger.get(event.get("trigger"), event.get("trigger"))
-            ) not in db_server.autoeval_triggers:
+            if (trigger_name := convert_trigger.get(event.get('trigger'), event.get('trigger'))) not in db_server.autoeval_triggers:
                 continue
 
             link = await self.bot.link_client.get_link(player_tag)
@@ -68,7 +65,7 @@ class AutoEval(commands.Cog):
                     role_or_user=discord_member,
                     eval_types=DEFAULT_EVAL_ROLE_TYPES,
                     role_treatment=db_server.role_treatment,
-                    reason=f"Triggered by {trigger_name} ({player_name})",
+                    reason=f'Triggered by {trigger_name} ({player_name})',
                 )
 
 

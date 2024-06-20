@@ -1,22 +1,24 @@
+from typing import Dict, List
+
 import disnake
+from disnake.ext import commands
 
 from classes.bot import CustomClient
 from discord.options import autocomplete
-from disnake.ext import commands
 from exceptions.CustomExceptions import MessageException
-from typing import Dict, List
 from utility.discord_utils import interaction_handler
-from .utils import get_command_permissions, get_all_commands
+
+from .utils import get_all_commands, get_command_permissions
 
 
-class HelpCommands(commands.Cog, name="Help"):
+class HelpCommands(commands.Cog, name='Help'):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.slash_command(
-        name="help",
-        description="List of commands & descriptions for ClashKing",
-        extras={"Example Usage": "`/help command: help`"},
+        name='help',
+        description='List of commands & descriptions for ClashKing',
+        extras={'Example Usage': '`/help command: help`'},
     )
     async def help(
         self,
@@ -40,61 +42,57 @@ class HelpCommands(commands.Cog, name="Help"):
         embeds = []
         if not command:
             for cog, commands in all_commands.items():
-                text = ""
+                text = ''
                 for command in commands:
-                    api_command: disnake.APISlashCommand = self.bot.get_global_command_named(
-                        name=command.qualified_name.split(" ")[0]
-                    )
+                    api_command: disnake.APISlashCommand = self.bot.get_global_command_named(name=command.qualified_name.split(' ')[0])
                     permissions = get_command_permissions(command=command)
                     if permissions:
-                        permissions = f"**({', '.join(permissions)})**".replace("Guild", "Server")
+                        permissions = f"**({', '.join(permissions)})**".replace('Guild', 'Server')
                     else:
-                        permissions = ""
+                        permissions = ''
 
-                    text += f"</{command.qualified_name}:{api_command.id}> {permissions}\n{command.description}\n\n"
+                    text += f'</{command.qualified_name}:{api_command.id}> {permissions}\n{command.description}\n\n'
                 embed = disnake.Embed(description=text, color=embed_color)
                 embed.set_author(
-                    name=f"{self.bot.user.name} {cog} Commands",
+                    name=f'{self.bot.user.name} {cog} Commands',
                     icon_url=self.bot.user.avatar.url,
                 )
                 embeds.append(embed)
         else:
             command = [c for command_list in all_commands.values() for c in command_list if command == c.qualified_name]
             if not command:
-                raise MessageException("Command Not Found")
+                raise MessageException('Command Not Found')
             command = command[0]
-            api_command: disnake.APISlashCommand = self.bot.get_global_command_named(
-                name=command.qualified_name.split(" ")[0]
-            )
-            mention = f"</{command.qualified_name}:{api_command.id}>"
+            api_command: disnake.APISlashCommand = self.bot.get_global_command_named(name=command.qualified_name.split(' ')[0])
+            mention = f'</{command.qualified_name}:{api_command.id}>'
 
             embed = disnake.Embed(
-                title="Slash Command Details",
-                description=f"{mention}\n{command.description}",
+                title='Slash Command Details',
+                description=f'{mention}\n{command.description}',
                 color=embed_color,
             )
             permissions = get_command_permissions(command=command)
 
             if permissions:
-                permissions = ", ".join(permissions)
-                embed.add_field(name="Required Permissions", value=permissions, inline=True)
+                permissions = ', '.join(permissions)
+                embed.add_field(name='Required Permissions', value=permissions, inline=True)
 
-            embed.set_footer(text="[ required ] | ( optional )")
+            embed.set_footer(text='[ required ] | ( optional )')
 
             if command.body.options:
-                args: str = ""
+                args: str = ''
                 for option in command.body.options:
                     if option.type in (
                         disnake.OptionType.sub_command,
                         disnake.OptionType.sub_command_group,
                     ):
                         continue
-                    name = f"**[{option.name}]**" if option.required else f"**({option.name})**"
-                    args += f"{name}: *{option.description}*\n"
+                    name = f'**[{option.name}]**' if option.required else f'**({option.name})**'
+                    args += f'{name}: *{option.description}*\n'
 
-                embed.add_field(name="Parameters", value=args, inline=False)
+                embed.add_field(name='Parameters', value=args, inline=False)
             else:
-                embed.add_field(name="Parameters", value="None", inline=True)
+                embed.add_field(name='Parameters', value='None', inline=True)
 
             if command.extras:
                 for title, text in command.extras.items():
@@ -115,10 +113,10 @@ class HelpCommands(commands.Cog, name="Help"):
                     value=cog_name,
                 )
             )
-        select_options.append(disnake.SelectOption(label="Print", emoji="🖨️", value="Print"))
+        select_options.append(disnake.SelectOption(label='Print', emoji='🖨️', value='Print'))
         select = disnake.ui.Select(
             options=select_options,
-            placeholder="Help Modules",  # the placeholder text to show when no options have been chosen
+            placeholder='Help Modules',  # the placeholder text to show when no options have been chosen
             min_values=1,  # the minimum number of options a user must select
             max_values=1,  # the maximum number of options a user can select
         )
@@ -127,7 +125,7 @@ class HelpCommands(commands.Cog, name="Help"):
 
         while True:
             res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
-            if res.values[0] == "Print":
+            if res.values[0] == 'Print':
                 await res.delete_original_message()
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)

@@ -1,26 +1,25 @@
 import coc
 import disnake
+from disnake.ext import commands
 
 from classes.bot import CustomClient
 from discord.options import autocomplete
-from disnake.ext import commands
 from utility.constants import DISCORD_STATUS_TYPES
 from utility.discord_utils import check_commands
 
 
-class Settings(commands.Cog, name="Settings"):
-
+class Settings(commands.Cog, name='Settings'):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @commands.slash_command(name="set")
+    @commands.slash_command(name='set')
     async def set(self, ctx):
         await ctx.response.defer()
         pass
 
     @set.sub_command(
-        name="webhook-profiles",
-        description="Set the profile pictures/name for all CK webhooks in server",
+        name='webhook-profiles',
+        description='Set the profile pictures/name for all CK webhooks in server',
     )
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def set_webhook_profiles(
@@ -29,9 +28,7 @@ class Settings(commands.Cog, name="Settings"):
         picture: disnake.Attachment,
         name: str,
     ):
-        await ctx.edit_original_message(
-            content="<a:loading:948121999526461440> Updating, this can take several minutes."
-        )
+        await ctx.edit_original_message(content='<a:loading:948121999526461440> Updating, this can take several minutes.')
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
         for clan in db_server.clans:
             logs = [
@@ -65,37 +62,37 @@ class Settings(commands.Cog, name="Settings"):
                 webhook = await self.bot.getch_webhook(log)
                 await webhook.edit(name=name, avatar=(await picture.read()))
         await ctx.edit_original_message(
-            content=f"All logs profile pictures set to {name} with the following image:",
+            content=f'All logs profile pictures set to {name} with the following image:',
             file=(await picture.to_file()),
         )
 
     @set.sub_command(
-        name="bot-status",
-        description="Set the bot status for a custom bot (only works if you have one)",
+        name='bot-status',
+        description='Set the bot status for a custom bot (only works if you have one)',
     )
     @commands.is_owner()
     async def set_status(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         activity_text: str = commands.Param(),
-        status: str = commands.Param(choices=["Online", "Offline", "Idle", "DND"]),
+        status: str = commands.Param(choices=['Online', 'Offline', 'Idle', 'DND']),
     ):
 
         await self.bot.change_presence(
-            activity=disnake.CustomActivity(state=activity_text, name="Custom Status"),
+            activity=disnake.CustomActivity(state=activity_text, name='Custom Status'),
             status=DISCORD_STATUS_TYPES.get(status),
         )
         await self.bot.custom_bots.update_one(
-            {"token": self.bot._config.bot_token},
-            {"$set": {"state.activity_text": activity_text, "state.status": status}},
+            {'token': self.bot._config.bot_token},
+            {'$set': {'state.activity_text': activity_text, 'state.status': status}},
         )
-        await ctx.edit_original_message("Status changed")
+        await ctx.edit_original_message('Status changed')
 
-    @commands.slash_command(name="whitelist")
+    @commands.slash_command(name='whitelist')
     async def whitelist(self, ctx: disnake.ApplicationCommandInteraction):
         pass
 
-    @whitelist.sub_command(name="add", description="Adds a role that can run a specific command.")
+    @whitelist.sub_command(name='add', description='Adds a role that can run a specific command.')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def whitelist_add(
         self,
@@ -106,37 +103,37 @@ class Settings(commands.Cog, name="Settings"):
 
         results = await self.bot.whitelist.find_one(
             {
-                "$and": [
-                    {"command": command},
-                    {"server": ctx.guild.id},
-                    {"role_user": ping.id},
+                '$and': [
+                    {'command': command},
+                    {'server': ctx.guild.id},
+                    {'role_user': ping.id},
                 ]
             }
         )
 
         if results is not None:
             embed = disnake.Embed(
-                description=f"{ping.mention} is already whitelisted for `{command}`.",
+                description=f'{ping.mention} is already whitelisted for `{command}`.',
                 color=disnake.Color.red(),
             )
             return await ctx.send(embed=embed)
 
         await self.bot.whitelist.insert_one(
             {
-                "command": command,
-                "server": ctx.guild.id,
-                "role_user": ping.id,
-                "is_role": isinstance(ping, disnake.Role),
+                'command': command,
+                'server': ctx.guild.id,
+                'role_user': ping.id,
+                'is_role': isinstance(ping, disnake.Role),
             }
         )
 
         embed = disnake.Embed(
-            description=f"{ping.mention} added to `{command}` whitelist.",
+            description=f'{ping.mention} added to `{command}` whitelist.',
             color=disnake.Color.green(),
         )
         return await ctx.send(embed=embed)
 
-    @whitelist.sub_command(name="remove", description="Deletes a role/user that can run a specific command")
+    @whitelist.sub_command(name='remove', description='Deletes a role/user that can run a specific command')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def whitelist_remove(
         self,
@@ -147,49 +144,49 @@ class Settings(commands.Cog, name="Settings"):
 
         results = await self.bot.whitelist.find_one(
             {
-                "$and": [
-                    {"command": command},
-                    {"server": ctx.guild.id},
-                    {"role_user": ping.id},
+                '$and': [
+                    {'command': command},
+                    {'server': ctx.guild.id},
+                    {'role_user': ping.id},
                 ]
             }
         )
 
         if results is None:
             embed = disnake.Embed(
-                description=f"{ping.mention} has no active whitelist for `{command}`.",
+                description=f'{ping.mention} has no active whitelist for `{command}`.',
                 color=disnake.Color.red(),
             )
             return await ctx.send(embed=embed)
 
-        await self.bot.whitelist.find_one_and_delete({"command": command, "server": ctx.guild.id, "role_user": ping.id})
+        await self.bot.whitelist.find_one_and_delete({'command': command, 'server': ctx.guild.id, 'role_user': ping.id})
 
         embed = disnake.Embed(
-            description=f"{ping.mention} removed from `{command}` whitelist.",
+            description=f'{ping.mention} removed from `{command}` whitelist.',
             color=disnake.Color.green(),
         )
         return await ctx.send(embed=embed)
 
     @whitelist.sub_command(
-        name="list",
-        description="Displays the list of commands that have whitelist overrides.",
+        name='list',
+        description='Displays the list of commands that have whitelist overrides.',
     )
     async def whitelist_list(self, ctx: disnake.ApplicationCommandInteraction):
-        text = ""
-        results = self.bot.whitelist.find({"server": ctx.guild.id})
-        limit = await self.bot.whitelist.count_documents(filter={"server": ctx.guild.id})
+        text = ''
+        results = self.bot.whitelist.find({'server': ctx.guild.id})
+        limit = await self.bot.whitelist.count_documents(filter={'server': ctx.guild.id})
         for role in await results.to_list(length=limit):
-            r = role.get("role_user")
-            command = role.get("command")
-            if role.get("is_role"):
-                text += f"<@&{r}> | `{command}`\n"
+            r = role.get('role_user')
+            command = role.get('command')
+            if role.get('is_role'):
+                text += f'<@&{r}> | `{command}`\n'
             else:
-                text += f"<@{r}> | `{command}`\n"
+                text += f'<@{r}> | `{command}`\n'
 
-        if text == "":
-            text = "Whitelist is empty."
+        if text == '':
+            text = 'Whitelist is empty.'
 
-        embed = disnake.Embed(title=f"Command Whitelist", description=text, color=disnake.Color.green())
+        embed = disnake.Embed(title=f'Command Whitelist', description=text, color=disnake.Color.green())
 
         await ctx.send(embed=embed)
 

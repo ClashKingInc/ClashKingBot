@@ -1,12 +1,10 @@
-import disnake
 from datetime import datetime
 from typing import TYPE_CHECKING
+
+import disnake
+
 from classes.bot import CustomClient
-from classes.ClashKingAPI.OldCLasses import (
-    ActivityResponse,
-    DonationResponse,
-    ClanGamesResponse,
-)
+from classes.ClashKingAPI.OldCLasses import ActivityResponse, ClanGamesResponse, DonationResponse
 from utility.general import create_superscript
 
 
@@ -17,13 +15,13 @@ def donation_board(
     footer_icon: str,
     embed_color: disnake.Color = disnake.Color.green(),
 ):
-    text = "` # DON     REC    NAME     `\n"
+    text = '` # DON     REC    NAME     `\n'
     for player in result.players:
-        text += f"`{player.rank:2} {player.donations:5} {player.donations_received:5} {player.clear_name[:13]:13}`[{create_superscript(player.townhall)}]({player.share_link})\n"
+        text += f'`{player.rank:2} {player.donations:5} {player.donations_received:5} {player.clear_name[:13]:13}`[{create_superscript(player.townhall)}]({player.share_link})\n'
 
-    embed = disnake.Embed(description=f"{text}", color=embed_color)
+    embed = disnake.Embed(description=f'{text}', color=embed_color)
     embed.set_author(
-        name=f"{title_name} Top {len(result.players)} {result.sort_field.capitalize()}",
+        name=f'{title_name} Top {len(result.players)} {result.sort_field.capitalize()}',
         icon_url=bot.emoji.clan_castle.partial_emoji.url,
     )
     embed.set_footer(
@@ -45,12 +43,12 @@ def activity_board(
     footer_icon: str,
     embed_color: disnake.Color = disnake.Color.green(),
 ):
-    text = "` #  ACT LO      NAME        `\n"
+    text = '` #  ACT LO      NAME        `\n'
     for player in result.players:
-        text += f"`{player.rank:2} {player.activity:4} {player.last_online_text:7} {player.clear_name[:14]:14}`[{create_superscript(player.townhall)}]({player.share_link})\n"
+        text += f'`{player.rank:2} {player.activity:4} {player.last_online_text:7} {player.clear_name[:14]:14}`[{create_superscript(player.townhall)}]({player.share_link})\n'
     embed = disnake.Embed(description=text, color=embed_color)
     embed.set_author(
-        name=f"{title_name} Top {len(result.players)} {result.sort_field.capitalize()}",
+        name=f'{title_name} Top {len(result.players)} {result.sort_field.capitalize()}',
         icon_url=bot.emoji.clock.partial_emoji.url,
     )
     embed.set_footer(
@@ -72,12 +70,12 @@ def games_board(
     footer_icon: str,
     embed_color: disnake.Color = disnake.Color.green(),
 ):
-    text = "` # Point Time      NAME        `\n"
+    text = '` # Point Time      NAME        `\n'
     for player in result.players:
-        text += f"`{player.rank:2} {player.points:4} {player.time_taken_text:7} {player.clear_name[:13]:13}`[{create_superscript(player.townhall)}]({player.share_link})\n"
+        text += f'`{player.rank:2} {player.points:4} {player.time_taken_text:7} {player.clear_name[:13]:13}`[{create_superscript(player.townhall)}]({player.share_link})\n'
     embed = disnake.Embed(description=text, color=embed_color)
     embed.set_author(
-        name=f"{title_name} Top {len(result.players)} {result.sort_field.capitalize()}",
+        name=f'{title_name} Top {len(result.players)} {result.sort_field.capitalize()}',
         icon_url=bot.emoji.clock.partial_emoji.url,
     )
     embed.set_footer(

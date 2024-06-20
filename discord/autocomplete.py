@@ -1,29 +1,25 @@
-import disnake
-import coc
-import pytz
 import re
 
+import coc
+import disnake
+import pytz
 from coc.miscmodels import Timestamp
 from disnake.ext import commands
-from classes.bot import CustomClient
-from utility.clash.capital import gen_raid_weekend_datestrings
-from utility.search import family_names, search_name_with_tag, all_names
-from utility.general import create_superscript
-from utility.constants import TH_FILTER_OPTIONS, TOWNHALL_LEVELS
 from expiring_dict import ExpiringDict
-from commands.reminders.utils import (
-    gen_war_times,
-    gen_capital_times,
-    gen_roster_times,
-    gen_inactivity_times,
-    gen_clan_games_times,
-)
+
+from classes.bot import CustomClient
 from commands.help.utils import get_all_commands
+from commands.reminders.utils import gen_capital_times, gen_clan_games_times, gen_inactivity_times, gen_roster_times, gen_war_times
+from utility.clash.capital import gen_raid_weekend_datestrings
+from utility.constants import TH_FILTER_OPTIONS, TOWNHALL_LEVELS
+from utility.general import create_superscript
+from utility.search import all_names, family_names, search_name_with_tag
+
 
 USER_ACCOUNT_CACHE = ExpiringDict()
 
 
-class Autocomplete(commands.Cog, name="Autocomplete"):
+class Autocomplete(commands.Cog, name='Autocomplete'):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
@@ -32,11 +28,11 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
         return [season for season in seasons if query.lower() in season.lower()]
 
     async def category(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        tracked = self.bot.clan_db.find({"server": ctx.guild.id})
-        limit = await self.bot.clan_db.count_documents(filter={"server": ctx.guild.id})
+        tracked = self.bot.clan_db.find({'server': ctx.guild.id})
+        limit = await self.bot.clan_db.count_documents(filter={'server': ctx.guild.id})
         categories = []
         for tClan in await tracked.to_list(length=limit):
-            category = tClan.get("category")
+            category = tClan.get('category')
             if query.lower() in category.lower() and category not in categories:
                 categories.append(category)
         return categories[:25]
@@ -46,29 +42,29 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
             guild_id = 0
         else:
             guild_id = ctx.guild.id
-        if ctx.filled_options.get("family") is not None:
-            if len(ctx.filled_options.get("family").split("|")) == 2:
-                guild_id = int(ctx.filled_options.get("family").split("|")[-1])
+        if ctx.filled_options.get('family') is not None:
+            if len(ctx.filled_options.get('family').split('|')) == 2:
+                guild_id = int(ctx.filled_options.get('family').split('|')[-1])
 
         clan_list = []
-        if query == "":
+        if query == '':
             pipeline = [
-                {"$match": {"server": guild_id}},
-                {"$sort": {"name": 1}},
-                {"$limit": 25},
+                {'$match': {'server': guild_id}},
+                {'$sort': {'name': 1}},
+                {'$limit': 25},
             ]
         else:
             pipeline = [
                 {
-                    "$search": {
-                        "index": "clan_name",
-                        "autocomplete": {
-                            "query": query,
-                            "path": "name",
+                    '$search': {
+                        'index': 'clan_name',
+                        'autocomplete': {
+                            'query': query,
+                            'path': 'name',
                         },
                     }
                 },
-                {"$match": {"server": guild_id}},
+                {'$match': {'server': guild_id}},
             ]
         results = await self.bot.clan_db.aggregate(pipeline=pipeline).to_list(length=None)
         for document in results:
@@ -82,49 +78,49 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
             if clan is None:
                 results = await self.bot.coc_client.search_clans(name=query, limit=10)
                 for clan in results:
-                    league = str(clan.war_league).replace("League ", "")
-                    clan_list.append(f"{clan.name} | {clan.member_count}/50 | LV{clan.level} | {league} | {clan.tag}")
+                    league = str(clan.war_league).replace('League ', '')
+                    clan_list.append(f'{clan.name} | {clan.member_count}/50 | LV{clan.level} | {league} | {clan.tag}')
             else:
-                clan_list.append(f"{clan.name} | {clan.tag}")
+                clan_list.append(f'{clan.name} | {clan.tag}')
                 return clan_list
         return clan_list[:25]
 
     async def multi_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         guild_id = ctx.guild.id
-        if ctx.filled_options.get("family") is not None:
-            if len(ctx.filled_options.get("family").split("|")) == 2:
-                guild_id = int(ctx.filled_options.get("family").split("|")[-1])
+        if ctx.filled_options.get('family') is not None:
+            if len(ctx.filled_options.get('family').split('|')) == 2:
+                guild_id = int(ctx.filled_options.get('family').split('|')[-1])
 
-        previous_query = ""
+        previous_query = ''
         old_query = query
-        if len(query.split(",")) >= 2:
-            previous_query = ",".join(query.split(",")[:-1]) + ","
-            query = query.split(",")[-1]
-            if query == " ":
-                query = ""
+        if len(query.split(',')) >= 2:
+            previous_query = ','.join(query.split(',')[:-1]) + ','
+            query = query.split(',')[-1]
+            if query == ' ':
+                query = ''
         clan_list = []
-        if query == "":
+        if query == '':
             pipeline = [
-                {"$match": {"server": guild_id}},
-                {"$sort": {"name": 1}},
-                {"$limit": 25},
+                {'$match': {'server': guild_id}},
+                {'$sort': {'name': 1}},
+                {'$limit': 25},
             ]
         else:
             pipeline = [
                 {
-                    "$search": {
-                        "index": "clan_name",
-                        "autocomplete": {
-                            "query": query,
-                            "path": "name",
+                    '$search': {
+                        'index': 'clan_name',
+                        'autocomplete': {
+                            'query': query,
+                            'path': 'name',
                         },
                     }
                 },
-                {"$match": {"server": guild_id}},
+                {'$match': {'server': guild_id}},
             ]
         results = await self.bot.clan_db.aggregate(pipeline=pipeline).to_list(length=None)
         for document in results:
-            previous_split = old_query.split(",")[:-1]
+            previous_split = old_query.split(',')[:-1]
             previous_split = [item.strip() for item in previous_split]
             if f'{document.get("name")} | {document.get("tag")}' in previous_split:
                 continue
@@ -141,14 +137,14 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
 
     async def banned_players(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         query = re.escape(query)
-        if query == "":
-            names = await self.bot.banlist.find({"server": ctx.guild_id}, limit=25).to_list(length=25)
+        if query == '':
+            names = await self.bot.banlist.find({'server': ctx.guild_id}, limit=25).to_list(length=25)
         else:
             names = await self.bot.banlist.find(
                 {
-                    "$and": [
-                        {"server": ctx.guild_id},
-                        {"name": {"$regex": f"^(?i).*{query}.*$"}},
+                    '$and': [
+                        {'server': ctx.guild_id},
+                        {'name': {'$regex': f'^(?i).*{query}.*$'}},
                     ]
                 },
                 limit=25,
@@ -158,21 +154,17 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
     async def legend_players(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         query = re.escape(query)
         results = await search_name_with_tag(bot=self.bot, poster=False, query=query)
-        legend_profile = await self.bot.legend_profile.find_one({"discord_id": ctx.author.id})
+        legend_profile = await self.bot.legend_profile.find_one({'discord_id': ctx.author.id})
         if legend_profile:
-            profile_tags = legend_profile.get("profile_tags", [])
+            profile_tags = legend_profile.get('profile_tags', [])
             documents = await self.bot.player_stats.find(
-                {"$and": [{"tag": {"$in": profile_tags}}, {"league": "Legend League"}]},
-                {"tag": 1, "name": 1, "townhall": 1},
+                {'$and': [{'tag': {'$in': profile_tags}}, {'league': 'Legend League'}]},
+                {'tag': 1, 'name': 1, 'townhall': 1},
             ).to_list(length=None)
             results = [
-                (
-                    f'‡{create_superscript(document.get("townhall", 0))}{document.get("name")}'
-                    + " | "
-                    + document.get("tag")
-                )
+                (f'‡{create_superscript(document.get("townhall", 0))}{document.get("name")}' + ' | ' + document.get('tag'))
                 for document in documents
-                if query.lower() in document.get("name").lower()
+                if query.lower() in document.get('name').lower()
             ] + results
         return results[:25]
 
@@ -182,7 +174,7 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
             if guild.member_count < 250:
                 continue
             if query.lower() in guild.name.lower():
-                matches.append(f"{guild.name} | {guild.id}")
+                matches.append(f'{guild.name} | {guild.id}')
             if len(matches) == 25:
                 break
         return matches
@@ -204,106 +196,102 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
         return matches
 
     async def ticket_panel(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        aliases = await self.bot.tickets.distinct("name", filter={"server_id": ctx.guild.id})
+        aliases = await self.bot.tickets.distinct('name', filter={'server_id': ctx.guild.id})
         alias_list = []
         for alias in aliases:
             if query.lower() in alias.lower():
-                alias_list.append(f"{alias}")
+                alias_list.append(f'{alias}')
         return alias_list[:25]
 
     async def multi_ticket_panel(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        aliases = await self.bot.tickets.distinct("name", filter={"server_id": ctx.guild.id})
+        aliases = await self.bot.tickets.distinct('name', filter={'server_id': ctx.guild.id})
         alias_list = []
-        for alias in ["All Panels"] + aliases:
+        for alias in ['All Panels'] + aliases:
             if query.lower() in alias.lower():
-                alias_list.append(f"{alias}")
+                alias_list.append(f'{alias}')
         return alias_list[:25]
 
     async def new_categories(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        categories = await self.bot.clan_db.distinct("category", filter={"server": ctx.guild.id})
-        starter_categories = ["General", "Feeder", "War", "Esports"]
-        if query != "":
+        categories = await self.bot.clan_db.distinct('category', filter={'server': ctx.guild.id})
+        starter_categories = ['General', 'Feeder', 'War', 'Esports']
+        if query != '':
             starter_categories.insert(0, query)
         categories = starter_categories + [c for c in categories if c not in starter_categories]
         return categories[:25]
 
     async def th_filters(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        always = ["Equal Th Only"] + [str(t) for t in TOWNHALL_LEVELS] + TH_FILTER_OPTIONS
-        if query != "":
+        always = ['Equal Th Only'] + [str(t) for t in TOWNHALL_LEVELS] + TH_FILTER_OPTIONS
+        if query != '':
             always = [a for a in always if query.lower() in a.lower()]
         return always[:25]
 
     async def user_accounts(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        user_option = ctx.filled_options.get("user", ctx.user.id)
+        user_option = ctx.filled_options.get('user', ctx.user.id)
         cached_accounts = USER_ACCOUNT_CACHE.get(user_option)
         if cached_accounts is None:
             accounts = await self.bot.link_client.get_linked_players(user_option)
             if accounts:
                 accounts = await self.bot.get_players(tags=accounts, custom=False, use_cache=True)
                 accounts.sort(key=lambda x: (x.town_hall, x.trophies), reverse=True)
-                accounts = [f"{a.name} | {a.tag}" for a in accounts]
+                accounts = [f'{a.name} | {a.tag}' for a in accounts]
                 USER_ACCOUNT_CACHE.ttl(ctx.user.id, accounts, ttl=120)
         else:
             accounts = cached_accounts
         return [a for a in accounts if query.lower() in a.lower()][:25]
 
     async def embeds(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        server_embeds = await self.bot.custom_embeds.find({"server": ctx.guild_id}, {"name": 1}).to_list(length=None)
-        return [e.get("name") for e in server_embeds if query.lower() in e.get("name").lower()][:25]
+        server_embeds = await self.bot.custom_embeds.find({'server': ctx.guild_id}, {'name': 1}).to_list(length=None)
+        return [e.get('name') for e in server_embeds if query.lower() in e.get('name').lower()][:25]
 
     async def ticket_buttons(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        panel_name = ctx.filled_options["panel_name"]
-        if panel_name == "":
+        panel_name = ctx.filled_options['panel_name']
+        if panel_name == '':
             return []
         aliases = await self.bot.tickets.distinct(
-            "components.label",
-            filter={"$and": [{"server_id": ctx.guild.id}, {"name": panel_name}]},
+            'components.label',
+            filter={'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]},
         )
         alias_list = []
         for alias in aliases:
             if query.lower() in alias.lower():
-                alias_list.append(f"{alias}")
+                alias_list.append(f'{alias}')
         return alias_list[:25]
 
     async def reminder_times(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        if ctx.filled_options["type"] == "War & CWL":
+        if ctx.filled_options['type'] == 'War & CWL':
             all_times = gen_war_times()
-        elif ctx.filled_options["type"] == "Clan Capital":
+        elif ctx.filled_options['type'] == 'Clan Capital':
             all_times = gen_capital_times()
-        elif ctx.filled_options["type"] == "Clan Games":
+        elif ctx.filled_options['type'] == 'Clan Games':
             all_times = gen_clan_games_times()
-        elif ctx.filled_options["type"] == "Inactivity":
+        elif ctx.filled_options['type'] == 'Inactivity':
             all_times = gen_inactivity_times()
-        elif ctx.filled_options["type"] == "Roster":
+        elif ctx.filled_options['type'] == 'Roster':
             all_times = gen_roster_times()
         else:
-            return ["Not a valid reminder type"]
-        if len(query.split(",")) >= 2:
-            new_query = query.split(",")[-1]
-            previous_split = query.split(",")[:-1]
+            return ['Not a valid reminder type']
+        if len(query.split(',')) >= 2:
+            new_query = query.split(',')[-1]
+            previous_split = query.split(',')[:-1]
             previous_split = [item.strip() for item in previous_split]
-            previous = ", ".join(previous_split)
-            return [
-                f"{previous}, {time}"
-                for time in all_times
-                if new_query.lower().strip() in time.lower() and time not in previous_split
-            ][:25]
+            previous = ', '.join(previous_split)
+            return [f'{previous}, {time}' for time in all_times if new_query.lower().strip() in time.lower() and time not in previous_split][:25]
         else:
             return [time for time in all_times if query.lower() in time.lower()][:25]
 
     async def previous_wars(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        if ctx.filled_options["clan"] != "":
-            clan = await self.bot.getClan(ctx.filled_options["clan"])
+        if ctx.filled_options['clan'] != '':
+            clan = await self.bot.getClan(ctx.filled_options['clan'])
             results = (
                 await self.bot.clan_wars.find(
                     {
-                        "$or": [
-                            {"data.clan.tag": clan.tag},
-                            {"data.opponent.tag": clan.tag},
+                        '$or': [
+                            {'data.clan.tag': clan.tag},
+                            {'data.opponent.tag': clan.tag},
                         ]
                     }
                 )
-                .sort("data.endTime", -1)
+                .sort('data.endTime', -1)
                 .limit(25)
                 .to_list(length=25)
             )
@@ -325,13 +313,13 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
             ]
 
             for result in results:
-                custom_id = result.get("custom_id")
-                clan_name = result.get("data").get("clan").get("name")
-                clan_tag = result.get("data").get("clan").get("tag")
-                opponent_name = result.get("data").get("opponent").get("name")
-                end_time = result.get("data").get("endTime")
+                custom_id = result.get('custom_id')
+                clan_name = result.get('data').get('clan').get('name')
+                clan_tag = result.get('data').get('clan').get('tag')
+                opponent_name = result.get('data').get('opponent').get('name')
+                end_time = result.get('data').get('endTime')
                 end_time = Timestamp(data=end_time)
-                unique_id = result.get("war_id")
+                unique_id = result.get('war_id')
                 if unique_id in previous:
                     continue
                 previous.add(unique_id)
@@ -339,49 +327,46 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
                 if days_ago == 0:
                     t = days_ago % (24 * 3600)
                     hour = t // 3600
-                    time_text = f"{hour}H ago"
+                    time_text = f'{hour}H ago'
                 else:
-                    time_text = f"{days_ago}D ago"
+                    time_text = f'{days_ago}D ago'
 
-                if result.get("data").get("tag") is not None:
-                    type = "CWL"
+                if result.get('data').get('tag') is not None:
+                    type = 'CWL'
                 elif (
-                    Timestamp(data=result.get("data").get("startTime")).time
-                    - Timestamp(data=result.get("data").get("preparationStartTime")).time
+                    Timestamp(data=result.get('data').get('startTime')).time - Timestamp(data=result.get('data').get('preparationStartTime')).time
                 ).seconds in prep_list:
-                    type = "FW"
+                    type = 'FW'
                 else:
-                    type = "REG"
+                    type = 'REG'
 
                 if clan_tag == clan.tag:
-                    text = f"{opponent_name} | {time_text} | {type} | {custom_id}"
+                    text = f'{opponent_name} | {time_text} | {type} | {custom_id}'
                 else:
-                    text = f"{clan_name} | \u200e{time_text} | {type} | {custom_id}"
+                    text = f'{clan_name} | \u200e{time_text} | {type} | {custom_id}'
                 if query.lower() in text.lower():
                     options.append(text)
             return options
 
     async def roster_alias(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        aliases = await self.bot.rosters.distinct("alias", filter={"server_id": ctx.guild_id})
+        aliases = await self.bot.rosters.distinct('alias', filter={'server_id': ctx.guild_id})
         alias_list = []
-        if ctx.data.focused_option.name == "roster_" or ctx.options.get("role-refresh"):
-            if ctx.options.get("columns"):
-                alias_list.append("SET ALL")
+        if ctx.data.focused_option.name == 'roster_' or ctx.options.get('role-refresh'):
+            if ctx.options.get('columns'):
+                alias_list.append('SET ALL')
             else:
-                alias_list.append("REFRESH ALL")
+                alias_list.append('REFRESH ALL')
         for alias in aliases:
             if query.lower() in alias.lower():
-                alias_list.append(f"{alias}")
+                alias_list.append(f'{alias}')
         return alias_list[:25]
 
     async def strike_ids(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        if selected := ctx.options.get("remove", {}).get("player"):
-            tag: str = selected.split("|")[-1]
-            results = await self.bot.strikelist.find(
-                {"$and": [{"tag": tag.replace(" ", "")}, {"server": ctx.guild.id}]}
-            ).to_list(length=None)
+        if selected := ctx.options.get('remove', {}).get('player'):
+            tag: str = selected.split('|')[-1]
+            results = await self.bot.strikelist.find({'$and': [{'tag': tag.replace(' ', '')}, {'server': ctx.guild.id}]}).to_list(length=None)
         else:
-            results = await self.bot.strikelist.find({"server": ctx.guild.id}).to_list(length=None)
+            results = await self.bot.strikelist.find({'server': ctx.guild.id}).to_list(length=None)
         return_text = []
         for result in results:
             text = f"{result.get('strike_id')} | {result.get('reason')}"
@@ -393,12 +378,7 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
 
     async def command_autocomplete(self, ctx: disnake.ApplicationCommandInteraction, query: str) -> list[str]:
         commands: dict[str, list[disnake.ext.commands.InvokableSlashCommand]] = get_all_commands(bot=self.bot)
-        return [
-            c.qualified_name
-            for command_list in commands.values()
-            for c in command_list
-            if query.lower() in c.qualified_name.lower()
-        ][:25]
+        return [c.qualified_name for command_list in commands.values() for c in command_list if query.lower() in c.qualified_name.lower()][:25]
 
     async def command_category_autocomplete(self, ctx: disnake.ApplicationCommandInteraction, query: str) -> list[str]:
         commands: dict[str, list[disnake.ext.commands.InvokableSlashCommand]] = get_all_commands(bot=self.bot)
@@ -408,11 +388,11 @@ class Autocomplete(commands.Cog, name="Autocomplete"):
     async def country_names(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         locations = await self.bot.get_country_names()
         results = []
-        if query.lower() in "Global":
-            results.append("Global")
+        if query.lower() in 'Global':
+            results.append('Global')
         for location in locations:
             if query.lower() in location.name.lower():
-                ignored = ["Africa", "Europe", "North America", "South America", "Asia"]
+                ignored = ['Africa', 'Europe', 'North America', 'South America', 'Asia']
                 if location.name not in ignored:
                     if location.name not in results:
                         results.append(location.name)

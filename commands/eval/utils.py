@@ -1,17 +1,16 @@
-import disnake
-import time
-import coc
 import asyncio
-
+import time
 from collections import defaultdict, namedtuple
-from typing import List
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
+
+import coc
+import disnake
+
 from classes.bot import CustomClient
-from utility.constants import DEFAULT_EVAL_ROLE_TYPES, ROLE_TREATMENT_TYPES
-from utility.general import get_clan_member_tags, create_superscript
-from exceptions.CustomExceptions import ExpiredComponents, MessageException
 from classes.DatabaseClient.Classes.settings import DatabaseServer
-from utility.general import get_guild_icon
+from exceptions.CustomExceptions import ExpiredComponents, MessageException
+from utility.constants import DEFAULT_EVAL_ROLE_TYPES, ROLE_TREATMENT_TYPES
+from utility.general import create_superscript, get_clan_member_tags, get_guild_icon
 
 
 async def logic(
@@ -22,7 +21,7 @@ async def logic(
     role_or_user: disnake.Role | disnake.User,
     eval_types: List = DEFAULT_EVAL_ROLE_TYPES,
     test: bool = False,
-    reason: str = "Refresh Roles",
+    reason: str = 'Refresh Roles',
     **kwargs,
 ):
     time_start = time.time()
@@ -32,9 +31,9 @@ async def logic(
         else:
             bot.STARTED_CHUNK.add(guild.id)
 
-    IS_AUTOEVAL = kwargs.pop("auto_eval", False)
-    auto_eval_tag = kwargs.pop("auto_eval_tag", None)
-    role_treatment = kwargs.pop("role_treatment", ROLE_TREATMENT_TYPES)
+    IS_AUTOEVAL = kwargs.pop('auto_eval', False)
+    auto_eval_tag = kwargs.pop('auto_eval_tag', None)
+    role_treatment = kwargs.pop('role_treatment', ROLE_TREATMENT_TYPES)
 
     ignored_roles = {r.id for r in db_server.ignored_roles}
     family_roles = {r.id for r in db_server.family_roles}
@@ -44,13 +43,12 @@ async def logic(
     clan_member_roles = {c.tag: c.member_role for c in db_server.clans}
     clan_leadership_roles = {c.tag: c.leader_role for c in db_server.clans}
     clan_tags = {c.tag for c in db_server.clans}
-    townhall_roles = {int(r.townhall.replace("th", "")): r.id for r in db_server.townhall_roles}
-    builderhall_roles = {int(r.builderhall.replace("bh", "")): r.id for r in db_server.builderhall_roles}
+    townhall_roles = {int(r.townhall.replace('th', '')): r.id for r in db_server.townhall_roles}
+    builderhall_roles = {int(r.builderhall.replace('bh', '')): r.id for r in db_server.builderhall_roles}
     league_roles = {r.type: r.id for r in db_server.league_roles}
     builder_league_roles = {r.type: r.id for r in db_server.builder_league_roles}
     clan_category_roles = {c.tag: db_server.category_roles.get(c.category) for c in db_server.clans}
     clan_abbreviations = {c.tag: c.abbreviation for c in db_server.clans}
-
     """
     How to find roles:
     clan: by clan tag
@@ -67,30 +65,30 @@ async def logic(
         all_tags.append(player_tag)
 
     type_to_roles = {
-        "family": list(family_roles),
-        "not_family": list(not_family_roles),
-        "only_family": list(only_family_roles),
-        "clan": list(clan_member_roles.values()),
-        "leadership": [r for r in clan_leadership_roles.values() if r is not None],
-        "townhall": list(townhall_roles.values()),
-        "builderhall": list(builderhall_roles.values()),
-        "league": list(league_roles.values()),
-        "category": [r for r in clan_category_roles.values() if r is not None],
-        "builder_league": list(builder_league_roles.values()),
+        'family': list(family_roles),
+        'not_family': list(not_family_roles),
+        'only_family': list(only_family_roles),
+        'clan': list(clan_member_roles.values()),
+        'leadership': [r for r in clan_leadership_roles.values() if r is not None],
+        'townhall': list(townhall_roles.values()),
+        'builderhall': list(builderhall_roles.values()),
+        'league': list(league_roles.values()),
+        'category': [r for r in clan_category_roles.values() if r is not None],
+        'builder_league': list(builder_league_roles.values()),
     }
 
     for eval_type in DEFAULT_EVAL_ROLE_TYPES:
         if eval_type not in eval_types:
             type_to_roles.pop(eval_type, None)
 
-    ALL_CLASH_ROLES = {inner for type, outer in type_to_roles.items() for inner in outer if type != "leadership"}
+    ALL_CLASH_ROLES = {inner for type, outer in type_to_roles.items() for inner in outer if type != 'leadership'}
     bot_member = await guild.getch_member(bot.user.id)
 
     if not bot_member.guild_permissions.manage_roles:
-        raise MessageException("Missing Manage Roles Permission, Cannot Edit Roles")
+        raise MessageException('Missing Manage Roles Permission, Cannot Edit Roles')
 
     if db_server.change_nickname and not bot_member.guild_permissions.manage_nicknames:
-        raise MessageException("Missing Change Nicknames Permission, Cannot Edit Nicknames")
+        raise MessageException('Missing Change Nicknames Permission, Cannot Edit Nicknames')
 
     for role in ALL_CLASH_ROLES:
         role = guild.get_role(role)
@@ -101,8 +99,8 @@ async def logic(
                 f"{role.mention} is higher than {bot_member.mention}'s top role ({bot_member.top_role}), cannot assign that role to users."
             )
 
-    if "leadership" in eval_types and db_server.leadership_eval:
-        ALL_CLASH_ROLES = ALL_CLASH_ROLES | set(type_to_roles.get("leadership", []))
+    if 'leadership' in eval_types and db_server.leadership_eval:
+        ALL_CLASH_ROLES = ALL_CLASH_ROLES | set(type_to_roles.get('leadership', []))
 
     fresh_tags = []
     if auto_eval_tag is not None:
@@ -112,27 +110,25 @@ async def logic(
 
     player_dict = {p.tag: p for p in all_players}
 
-    user_settings = await bot.user_settings.find({"discord_user": {"$in": [m.id for m in members]}}).to_list(
-        length=None
-    )
+    user_settings = await bot.user_settings.find({'discord_user': {'$in': [m.id for m in members]}}).to_list(length=None)
     main_account_lookup = {
-        settings.get("discord_user"): (
-            settings.get("server_main_account", {}).get(str(guild.id))
-            if settings.get("server_main_account", {}).get(str(guild.id)) is not None
-            else settings.get("main_account")
+        settings.get('discord_user'): (
+            settings.get('server_main_account', {}).get(str(guild.id))
+            if settings.get('server_main_account', {}).get(str(guild.id)) is not None
+            else settings.get('main_account')
         )
         for settings in user_settings
     }
 
     changed = 0
     num_changes = 0
-    text = ""
+    text = ''
     embeds = []
     for member in members:
         if member.bot:
             continue
 
-        EvalResult = namedtuple("EvalResult", ["is_family", "roles_to_add"])
+        EvalResult = namedtuple('EvalResult', ['is_family', 'roles_to_add'])
 
         member_accounts = discord_link_dict.get(member.id, [])
         member_accounts = [player_dict.get(tag) for tag in member_accounts if player_dict.get(tag) is not None]
@@ -150,33 +146,33 @@ async def logic(
                 do_eval = False
 
             ROLES_TO_ADD = set()
-            if "townhall" in eval_types and do_eval:
+            if 'townhall' in eval_types and do_eval:
                 ROLES_TO_ADD.add(townhall_roles.get(player.town_hall))
 
-            if "builderhall" in eval_types and do_eval:
+            if 'builderhall' in eval_types and do_eval:
                 ROLES_TO_ADD.add(builderhall_roles.get(player.builder_hall))
 
-            if "league" in eval_types and do_eval:
-                league = player.league.name.split(" ")[0].lower()
-                if player.league.name != "Unranked":
-                    if player.league.name == "Legend League":
-                        lookup = "legends_league"
+            if 'league' in eval_types and do_eval:
+                league = player.league.name.split(' ')[0].lower()
+                if player.league.name != 'Unranked':
+                    if player.league.name == 'Legend League':
+                        lookup = 'legends_league'
                     else:
-                        lookup = f"{league}_league"
+                        lookup = f'{league}_league'
                     ROLES_TO_ADD.add(league_roles.get(lookup))
 
-            if "builder_league" in eval_types and do_eval:
-                league = player.builder_base_league.name.split(" ")[0].lower()
-                ROLES_TO_ADD.add(builder_league_roles.get(f"{league}_league"))
+            if 'builder_league' in eval_types and do_eval:
+                league = player.builder_base_league.name.split(' ')[0].lower()
+                ROLES_TO_ADD.add(builder_league_roles.get(f'{league}_league'))
 
-            if player.clan is not None and "clan" in eval_types:
+            if player.clan is not None and 'clan' in eval_types:
                 ROLES_TO_ADD.add(clan_member_roles.get(player.clan.tag))
 
-            if player.clan is not None and "category" in eval_types:
+            if player.clan is not None and 'category' in eval_types:
                 ROLES_TO_ADD.add(clan_category_roles.get(player.clan.tag))
 
-            if player.clan is not None and db_server.leadership_eval and ("leadership" in eval_types):
-                if player.role.in_game_name in ["Co-Leader", "Leader"]:
+            if player.clan is not None and db_server.leadership_eval and ('leadership' in eval_types):
+                if player.role.in_game_name in ['Co-Leader', 'Leader']:
                     ROLES_TO_ADD.add(clan_leadership_roles.get(player.clan.tag))
 
             return EvalResult(is_family=is_family, roles_to_add=ROLES_TO_ADD)
@@ -196,12 +192,12 @@ async def logic(
         for result in results:
             ROLES_TO_ADD = ROLES_TO_ADD | result.roles_to_add
 
-        if has_family_account and "family" in eval_types:
+        if has_family_account and 'family' in eval_types:
             ROLES_TO_ADD = ROLES_TO_ADD | family_roles
-        elif "not_family" in eval_types:
+        elif 'not_family' in eval_types:
             ROLES_TO_ADD = ROLES_TO_ADD | not_family_roles
 
-        if all_family_accounts and "family" in eval_types:
+        if all_family_accounts and 'family' in eval_types:
             ROLES_TO_ADD = ROLES_TO_ADD | only_family_roles
 
         ROLES_TO_ADD.discard(None)
@@ -209,27 +205,27 @@ async def logic(
         NON_CLASH_ROLES = [r for r in member.roles if r.id not in ALL_CLASH_ROLES]
         CLASH_ROLES = {r.id for r in member.roles if r.id in ALL_CLASH_ROLES}
 
-        removed = ""
+        removed = ''
         for role in CLASH_ROLES.copy():
             """
             if they have a role they shouldnt have remove
             unless its an ignored role
             but if it is and they have a family account, ignore by skipping
             """
-            if role not in ROLES_TO_ADD and "Remove" in role_treatment:
+            if role not in ROLES_TO_ADD and 'Remove' in role_treatment:
                 if role in ignored_roles:
                     if has_family_account:
                         continue
                 CLASH_ROLES.discard(role)
-                removed += f"<@&{role}> "
+                removed += f'<@&{role}> '
 
-        if "Add" not in role_treatment:
+        if 'Add' not in role_treatment:
             ROLES_TO_ADD = set()
 
-        added = ""
+        added = ''
         for role in ROLES_TO_ADD:
             if role not in CLASH_ROLES:
-                added += f"<@&{role}> "
+                added += f'<@&{role}> '
 
         CLASH_ROLES = CLASH_ROLES | ROLES_TO_ADD
         FINAL_CLASH_ROLES = []
@@ -242,10 +238,10 @@ async def logic(
             FINAL_CLASH_ROLES.append(role)
 
         new_name = None
-        if db_server.change_nickname and "nicknames" in eval_types:
+        if db_server.change_nickname and 'nicknames' in eval_types:
             # if they have a family account or the server allows non family to change nickname, then change it
             if member.top_role > bot_member.top_role or guild.owner_id == member.id:
-                new_name = "`Cannot Change`"
+                new_name = '`Cannot Change`'
             else:
                 if has_family_account:
                     local_nickname_convention = db_server.family_nickname_convention
@@ -269,19 +265,17 @@ async def logic(
                         )[0]
 
                 types = {
-                    "{discord_name}": member.global_name,
-                    "{discord_display_name}": member.display_name,
-                    "{player_name}": main_account.name,
-                    "{player_tag}": main_account.tag,
-                    "{player_townhall}": main_account.town_hall,
-                    "{player_townhall_small}": create_superscript(main_account.town_hall),
-                    "{player_warstars}": main_account.war_stars,
-                    "{player_role}": (main_account.role if main_account.role is not None else ""),
-                    "{player_clan}": (main_account.clan.name if main_account.clan is not None else ""),
-                    "{player_clan_abbreviation}": (
-                        clan_abbreviations.get(main_account.clan.tag) if main_account.clan is not None else ""
-                    ),
-                    "{player_league}": main_account.league.name,
+                    '{discord_name}': member.global_name,
+                    '{discord_display_name}': member.display_name,
+                    '{player_name}': main_account.name,
+                    '{player_tag}': main_account.tag,
+                    '{player_townhall}': main_account.town_hall,
+                    '{player_townhall_small}': create_superscript(main_account.town_hall),
+                    '{player_warstars}': main_account.war_stars,
+                    '{player_role}': (main_account.role if main_account.role is not None else ''),
+                    '{player_clan}': (main_account.clan.name if main_account.clan is not None else ''),
+                    '{player_clan_abbreviation}': (clan_abbreviations.get(main_account.clan.tag) if main_account.clan is not None else ''),
+                    '{player_league}': main_account.league.name,
                 }
                 for type, replace in types.items():
                     local_nickname_convention = local_nickname_convention.replace(type, str(replace))
@@ -290,55 +284,55 @@ async def logic(
         FINAL_ROLES = FINAL_CLASH_ROLES + NON_CLASH_ROLES
 
         if new_name is None or new_name == member.display_name:
-            new_name = "None"
+            new_name = 'None'
         if not added:
-            added = "None"
+            added = 'None'
         if not removed:
-            removed = "None"
+            removed = 'None'
         if not test:
             try:
-                if new_name != "`Cannot Change`" and new_name != "None":
+                if new_name != '`Cannot Change`' and new_name != 'None':
                     await member.edit(nick=new_name[:32], roles=FINAL_ROLES, reason=reason)
                 else:
                     await member.edit(roles=FINAL_ROLES, reason=reason)
             except Exception as e:
                 if new_name is not None:
-                    new_name = "Error"
+                    new_name = 'Error'
                 added = str(e)[:1000]
-                removed = "Error"
+                removed = 'Error'
 
         had_change = False
-        for change_text, change in zip(["Added", "Removed", "Name Change"], [added, removed, new_name]):
-            if len(members) >= 2 and change == "None":
+        for change_text, change in zip(['Added', 'Removed', 'Name Change'], [added, removed, new_name]):
+            if len(members) >= 2 and change == 'None':
                 continue
             if not had_change:
-                text += f"**{member.display_name}** | {member.mention}"
+                text += f'**{member.display_name}** | {member.mention}'
             had_change = True
-            if change_text == "Name Change":
-                text += f"\n- {change_text}: `{change}`"
+            if change_text == 'Name Change':
+                text += f'\n- {change_text}: `{change}`'
             else:
-                text += f"\n- {change_text}: {change}"
+                text += f'\n- {change_text}: {change}'
 
         if had_change and len(members) >= 2 and changed != 9:
-            text += f"\n<:blanke:838574915095101470>\n"
+            text += f'\n<:blanke:838574915095101470>\n'
         if had_change:
             changed += 1
             num_changes += 1
 
         if changed == 10 or member == members[-1]:
             embed = disnake.Embed(
-                title=f"Eval Complete for {role_or_user.name}",
+                title=f'Eval Complete for {role_or_user.name}',
                 description=text,
                 color=db_server.embed_color,
             )
             embeds.append(embed)
-            text = ""
+            text = ''
             changed = 0
 
-    if text != "":
+    if text != '':
         text = text[:-30]
         embed = disnake.Embed(
-            title=f"Eval Complete for {role_or_user.name}",
+            title=f'Eval Complete for {role_or_user.name}',
             description=text,
             color=db_server.embed_color,
         )
@@ -346,61 +340,61 @@ async def logic(
 
     if not embeds:
         embed = disnake.Embed(
-            title=f"Eval Complete for {role_or_user.name}",
-            description="No evals needed.",
+            title=f'Eval Complete for {role_or_user.name}',
+            description='No evals needed.',
             color=db_server.embed_color,
         )
         embeds.append(embed)
 
     time_elapsed = int(time.time() - time_start)
     for embed in embeds:
-        embed.set_footer(text=f"Time Elapsed: {time_elapsed} seconds, {num_changes} changes | Test: {test}")
+        embed.set_footer(text=f'Time Elapsed: {time_elapsed} seconds, {num_changes} changes | Test: {test}')
         if guild.icon is not None:
-            embed.set_author(name=f"{guild.name}", icon_url=get_guild_icon(guild))
+            embed.set_author(name=f'{guild.name}', icon_url=get_guild_icon(guild))
 
     return embeds
 
 
 async def family_role_add(database, type: str, role: disnake.Role, guild: disnake.Guild) -> disnake.Embed:
-    results = await database.find_one({"$and": [{"role": role.id}, {"server": guild.id}]})
+    results = await database.find_one({'$and': [{'role': role.id}, {'server': guild.id}]})
     if results is not None:
         return disnake.Embed(
-            description=f"{role.mention} is already in the {type} list.",
+            description=f'{role.mention} is already in the {type} list.',
             color=disnake.Color.red(),
         )
 
     if role.is_default():
         return disnake.Embed(
-            description=f"Cannot use the @everyone role for {type}",
+            description=f'Cannot use the @everyone role for {type}',
             color=disnake.Color.red(),
         )
 
-    await database.insert_one({"server": guild.id, "role": role.id})
+    await database.insert_one({'server': guild.id, 'role': role.id})
 
     embed = disnake.Embed(
-        description=f"{role.mention} added to the {type} list.",
+        description=f'{role.mention} added to the {type} list.',
         color=disnake.Color.green(),
     )
     return embed
 
 
 async def family_role_remove(database, type: str, role: disnake.Role, guild: disnake.Guild) -> disnake.Embed:
-    results = await database.find_one({"$and": [{"role": role.id}, {"server": guild.id}]})
+    results = await database.find_one({'$and': [{'role': role.id}, {'server': guild.id}]})
     if results is None:
         return disnake.Embed(
-            description=f"{role.mention} is not currently in the {type} list.",
+            description=f'{role.mention} is not currently in the {type} list.',
             color=disnake.Color.red(),
         )
 
     if role.is_default():
         return disnake.Embed(
-            description=f"Cannot use the @everyone role for {type}",
+            description=f'Cannot use the @everyone role for {type}',
             color=disnake.Color.red(),
         )
 
-    await database.find_one_and_delete({"role": role.id})
+    await database.find_one_and_delete({'role': role.id})
 
     return disnake.Embed(
-        description=f"{role.mention} removed from the {type} list.",
+        description=f'{role.mention} removed from the {type} list.',
         color=disnake.Color.green(),
     )

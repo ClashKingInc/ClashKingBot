@@ -8,6 +8,6 @@ class TrophySort(Enum):
 
 
 class LinkParseTypes(Enum):
-    army = "army"
-    player = "player"
-    clan = "clan"
+    army = 'army'
+    player = 'player'
+    clan = 'clan'

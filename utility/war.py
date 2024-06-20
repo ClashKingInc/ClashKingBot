@@ -12,7 +12,7 @@ async def update_war_message(bot: CustomClient, war: coc.ClanWar, db_clan: Datab
     log = db_clan.war_panel
     webhook_id = log.webhook
     message_id = log.message_id
-    if log.war_id != f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}":
+    if log.war_id != f'{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}':
         message_id = None
 
     war_league = clan.war_league if clan is not None else None
@@ -52,14 +52,14 @@ async def update_war_message(bot: CustomClient, war: coc.ClanWar, db_clan: Datab
         else:
             message = await webhook.send(embed=embed, components=button, thread=thread, wait=True)
 
-        war_id = f"{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}"
+        war_id = f'{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}'
         await bot.clan_db.update_one(
-            {"$and": [{"tag": war.clan.tag}, {"server": db_clan.server_id}]},
+            {'$and': [{'tag': war.clan.tag}, {'server': db_clan.server_id}]},
             {
-                "$set": {
-                    "logs.war_panel.war_message": message.id,
-                    "logs.war_panel.war_id": war_id,
-                    "logs.war_panel.war_channel": message.channel.id,
+                '$set': {
+                    'logs.war_panel.war_message': message.id,
+                    'logs.war_panel.war_id': war_id,
+                    'logs.war_panel.war_channel': message.channel.id,
                 }
             },
         )
@@ -67,49 +67,47 @@ async def update_war_message(bot: CustomClient, war: coc.ClanWar, db_clan: Datab
 
 def war_start_embed(new_war: coc.ClanWar):
     embed = disnake.Embed(
-        description=f"[**{new_war.clan.name}**]({new_war.clan.share_link})",
+        description=f'[**{new_war.clan.name}**]({new_war.clan.share_link})',
         color=disnake.Color.yellow(),
     )
     embed.add_field(
-        name=f"**War Started Against**",
-        value=f"[**{new_war.opponent.name}**]({new_war.opponent.share_link})\n­",
+        name=f'**War Started Against**',
+        value=f'[**{new_war.opponent.name}**]({new_war.opponent.share_link})\n­',
         inline=False,
     )
     embed.set_thumbnail(url=new_war.clan.badge.large)
-    embed.set_footer(text=f"{new_war.type.capitalize()} War")
+    embed.set_footer(text=f'{new_war.type.capitalize()} War')
     return embed
 
 
 def war_buttons(bot: CustomClient, new_war: coc.ClanWar):
-    war_unique_id = (
-        "-".join([new_war.clan_tag, new_war.opponent.tag]) + f"-{int(new_war.preparation_start_time.time.timestamp())}"
-    )
+    war_unique_id = '-'.join([new_war.clan_tag, new_war.opponent.tag]) + f'-{int(new_war.preparation_start_time.time.timestamp())}'
     button = [
         disnake.ui.ActionRow(
             disnake.ui.Button(
-                label="",
+                label='',
                 emoji=bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f"warpanelrefresh_{new_war.clan.tag}_{war_unique_id}",
+                custom_id=f'warpanelrefresh_{new_war.clan.tag}_{war_unique_id}',
             ),
             disnake.ui.Button(
-                label="",
+                label='',
                 emoji=bot.emoji.sword_clash.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f"listwarattacks_{new_war.clan.tag}_{war_unique_id}",
+                custom_id=f'listwarattacks_{new_war.clan.tag}_{war_unique_id}',
             ),
             disnake.ui.Button(
-                label="",
+                label='',
                 emoji=bot.emoji.shield.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f"listwardefenses_{new_war.clan.tag}_{war_unique_id}",
+                custom_id=f'listwardefenses_{new_war.clan.tag}_{war_unique_id}',
             ),
             disnake.ui.Button(
-                label="",
+                label='',
                 emoji=bot.emoji.menu.partial_emoji,
                 style=disnake.ButtonStyle.green,
                 disabled=False,
-                custom_id=f"menuforwar_{new_war.clan.tag}_{war_unique_id}",
+                custom_id=f'menuforwar_{new_war.clan.tag}_{war_unique_id}',
             ),
         )
     ]

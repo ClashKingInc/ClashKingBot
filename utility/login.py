@@ -1,7 +1,10 @@
-import coc
 import asyncio
-from classes.config import Config
 from itertools import islice
+
+import coc
+
+from classes.config import Config
+
 
 config = Config()
 
@@ -13,7 +16,7 @@ async def coc_login(bot):
     coc_client: coc.Client = coc.Client(
         loop=asyncio.get_event_loop_policy().get_event_loop(),
         key_count=10,
-        key_names="test",
+        key_names='test',
         throttle_limit=500,
         cache_max_size=1000,
         load_game_data=coc.LoadGameData(always=False),
@@ -21,7 +24,7 @@ async def coc_login(bot):
         stats_max_size=10000,
     )
     if config.min_coc_email == 1:
-        tokens = await bot.new_looper.get_collection("api_tokens").distinct("token")
+        tokens = await bot.new_looper.get_collection('api_tokens').distinct('token')
     else:
         for email, password in zip(emails, passwords):
             await coc_client.login(email=email, password=password)

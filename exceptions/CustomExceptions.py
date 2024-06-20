@@ -8,7 +8,7 @@ class RosterDoesNotExist(Exception):
 
 class PlayerAlreadyInRoster(Exception):
     def __str__(self):
-        return "Already in Roster"
+        return 'Already in Roster'
 
 
 class PlayerNotInRoster(Exception):
@@ -17,7 +17,7 @@ class PlayerNotInRoster(Exception):
 
 class RosterSizeLimit(Exception):
     def __str__(self):
-        return "Roster Size Limit Hit"
+        return 'Roster Size Limit Hit'
 
 
 class ExpiredComponents(Exception):

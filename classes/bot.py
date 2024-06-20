@@ -1,36 +1,37 @@
-import snappy
-import ujson
-import dateutil.relativedelta
-import coc
-import motor.motor_asyncio
-import disnake
-import io
-import re
 import asyncio
 import calendar
-import aiohttp
-import emoji
-import pendulum as pend
 import functools
+import io
+import re
+from datetime import datetime, timedelta
+from functools import lru_cache
+from math import ceil
+from typing import Callable, Dict, List
 
+import aiohttp
+import coc
+import dateutil.relativedelta
+import disnake
+import emoji
+import motor.motor_asyncio
+import pendulum as pend
+import snappy
+import ujson
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from coc.ext import discordlinks
+from disnake.ext import commands, fluent
+from expiring_dict import ExpiringDict
+from redis import asyncio as redis
+
 from assets.emojis import SharedEmojis
 from background.logs.events import kafka_events
 from classes.clashofstats import COSPlayerHistory
 from classes.config import Config
 from classes.DatabaseClient.familyclient import FamilyClient
 from classes.emoji import Emojis, EmojiType
-from classes.player.stats import StatsPlayer, CustomClanClass
-from coc.ext import discordlinks
-from datetime import datetime, timedelta
-from disnake.ext import commands, fluent
-from expiring_dict import ExpiringDict
-from functools import lru_cache
-from math import ceil
-from redis import asyncio as redis
-from typing import Dict, List, Callable
-from utility.constants import locations, BADGE_GUILDS
-from utility.general import fetch, create_superscript
+from classes.player.stats import CustomClanClass, StatsPlayer
+from utility.constants import BADGE_GUILDS, locations
+from utility.general import create_superscript, fetch
 from utility.login import coc_login
 
 
@@ -56,7 +57,7 @@ class CustomClient(commands.AutoShardedBot):
         )
 
         self.i18n = fluent.FluentStore()
-        self.i18n.load("locales/")
+        self.i18n.load('locales/')
 
         self._config = config
 
@@ -69,12 +70,12 @@ class CustomClient(commands.AutoShardedBot):
         self.scheduler = scheduler
         self.ck_client: FamilyClient = None
 
-        self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(self._config.stats_mongodb, compressors="snappy")
-        self.new_looper = self.looper_db.get_database("new_looper")
-        self.stats = self.looper_db.get_database(name="stats")
-        self.cache = self.looper_db.get_database(name="cache")
+        self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(self._config.stats_mongodb, compressors='snappy')
+        self.new_looper = self.looper_db.get_database('new_looper')
+        self.stats = self.looper_db.get_database(name='stats')
+        self.cache = self.looper_db.get_database(name='cache')
 
-        self.user_db = self.new_looper.get_collection("user_db")
+        self.user_db = self.new_looper.get_collection('user_db')
         collection_class = self.user_db.__class__
 
         # NEW STATS
@@ -90,7 +91,7 @@ class CustomClient(commands.AutoShardedBot):
         self.history_db: collection_class = self.looper_db.looper.legend_history
         self.warhits: collection_class = self.looper_db.looper.warhits
         self.webhook_message_db: collection_class = self.looper_db.looper.webhook_messages
-        self.user_name = "admin"
+        self.user_name = 'admin'
         self.cwl_db: collection_class = self.looper_db.looper.cwl_db
         self.leveling: collection_class = self.new_looper.leveling
         self.clan_wars: collection_class = self.looper_db.looper.clan_war
@@ -201,17 +202,17 @@ class CustomClient(commands.AutoShardedBot):
 
     def clean_string(self, text: str):
         text = emoji.replace_emoji(text)
-        text = re.sub("[*_`~/]", "", text)
-        return f"\u200e{text}"
+        text = re.sub('[*_`~/]', '', text)
+        return f'\u200e{text}'
 
     def timestamper(self, unix_time: int):
         class TimeStamp:
             def __init__(self, unix_time):
-                self.slash_date = f"<t:{int(unix_time)}:d>"
-                self.text_date = f"<t:{int(unix_time)}:D>"
-                self.time_only = f"<t:{int(unix_time)}:t>"
-                self.cal_date = f"<t:{int(unix_time)}:F>"
-                self.relative = f"<t:{int(unix_time)}:R>"
+                self.slash_date = f'<t:{int(unix_time)}:d>'
+                self.text_date = f'<t:{int(unix_time)}:D>'
+                self.time_only = f'<t:{int(unix_time)}:t>'
+                self.cal_date = f'<t:{int(unix_time)}:F>'
+                self.relative = f'<t:{int(unix_time)}:R>'
 
         return TimeStamp(unix_time)
 
@@ -233,7 +234,7 @@ class CustomClient(commands.AutoShardedBot):
             locale = self.get_locale(ctx)
 
         def localizator_func(key, **kwargs):
-            if "values" in kwargs:
+            if 'values' in kwargs:
                 return functools.partial(self.i18n.l10n, locale=locale, cache=False)(key, **kwargs)
             else:
                 return functools.partial(self.i18n.l10n, locale=locale, cache=True)(key, **kwargs)
@@ -245,41 +246,41 @@ class CustomClient(commands.AutoShardedBot):
 
     def get_number_emoji(self, color: str, number: int) -> EmojiType:
         if not self.user.id == 808566437199216691 and not self.user.public_flags.verified_bot:
-            color = "gold"
+            color = 'gold'
         guild = None
         if number <= 50:
-            if color == "white":
+            if color == 'white':
                 guild = self.get_guild(1042301258167484426)
-            elif color == "blue":
+            elif color == 'blue':
                 guild = self.get_guild(1042222078302109779)
-            elif color == "gold":
+            elif color == 'gold':
                 guild = self.get_guild(1042301195240357958)
         elif number >= 51:
-            if color == "white":
+            if color == 'white':
                 guild = self.get_guild(1042635651562086430)
-            elif color == "blue":
+            elif color == 'blue':
                 guild = self.get_guild(1042635521890992158)
-            elif color == "gold":
+            elif color == 'gold':
                 guild = self.get_guild(1042635608088125491)
         all_emojis = guild.emojis
-        emoji = disnake.utils.get(all_emojis, name=f"{number}_")
-        return EmojiType(emoji_string=f"<:{emoji.name}:{emoji.id}>")
+        emoji = disnake.utils.get(all_emojis, name=f'{number}_')
+        return EmojiType(emoji_string=f'<:{emoji.name}:{emoji.id}>')
 
     async def track_clans(self, tags: list):
-        result = await self.user_db.find_one({"username": self.user_name})
-        tracked_list = result.get("tracked_clans")
+        result = await self.user_db.find_one({'username': self.user_name})
+        tracked_list = result.get('tracked_clans')
         if tracked_list is None:
             tracked_list = []
         tracked_list = list(set(tracked_list + tags))
-        await self.user_db.update_one({"username": self.user_name}, {"$set": {"tracked_clans": tracked_list}})
+        await self.user_db.update_one({'username': self.user_name}, {'$set': {'tracked_clans': tracked_list}})
         return tracked_list
 
     async def get_tags(self, ping):
         ping = str(ping)
-        if ping.startswith("<@") and ping.endswith(">"):
+        if ping.startswith('<@') and ping.endswith('>'):
             ping = ping[2 : len(ping) - 1]
 
-        if ping.startswith("!"):
+        if ping.startswith('!'):
             ping = ping[1 : len(ping)]
         id = ping
         try:
@@ -312,34 +313,34 @@ class CustomClient(commands.AutoShardedBot):
             end = coc.utils.get_season_end().replace(tzinfo=pend.UTC).date()
             month = end.month
             if end.month <= 9:
-                month = f"0{month}"
-            return f"{end.year}-{month}"
+                month = f'0{month}'
+            return f'{end.year}-{month}'
         else:
             dates = []
             for x in range(0, seasons_ago + 1):
                 end = coc.utils.get_season_end().replace(tzinfo=pend.UTC) - dateutil.relativedelta.relativedelta(months=x)
                 if as_text:
-                    dates.append(f"{calendar.month_name[end.date().month]} {end.date().year}")
+                    dates.append(f'{calendar.month_name[end.date().month]} {end.date().year}')
                 else:
                     month = end.month
                     if end.month <= 9:
-                        month = f"0{month}"
-                    dates.append(f"{end.year}-{month}")
+                        month = f'0{month}'
+                    dates.append(f'{end.year}-{month}')
             return dates
 
     def gen_games_season(self):
         now = datetime.utcnow()
         month = now.month
         if month <= 9:
-            month = f"0{month}"
-        return f"{now.year}-{month}"
+            month = f'0{month}'
+        return f'{now.year}-{month}'
 
     def gen_previous_season_date(self):
         end = coc.utils.get_season_start().replace(tzinfo=pend.UTC).date()
         month = end.month
         if end.month <= 9:
-            month = f"0{month}"
-        return f"{end.year}-{month}"
+            month = f'0{month}'
+        return f'{end.year}-{month}'
 
     def gen_legend_date(self):
         now = datetime.utcnow()
@@ -351,11 +352,11 @@ class CustomClient(commands.AutoShardedBot):
         return str(date)
 
     async def get_reminder_times(self, clan_tag):
-        all_reminders = self.reminders.find({"$and": [{"clan": clan_tag}, {"type": "War"}]})
-        limit = await self.reminders.count_documents(filter={"$and": [{"clan": clan_tag}, {"type": "War"}]})
+        all_reminders = self.reminders.find({'$and': [{'clan': clan_tag}, {'type': 'War'}]})
+        limit = await self.reminders.count_documents(filter={'$and': [{'clan': clan_tag}, {'type': 'War'}]})
         times = set()
         for reminder in await all_reminders.to_list(length=limit):
-            time = reminder.get("time")
+            time = reminder.get('time')
             times.add(time)
         times = list(times)
         return times
@@ -363,7 +364,7 @@ class CustomClient(commands.AutoShardedBot):
     def get_times_in_range(self, reminder_times, war_end_time: coc.Timestamp):
         accepted_times = []
         for time in reminder_times:
-            time = time.replace("hr", "")
+            time = time.replace('hr', '')
             time = int(float(time) * 3600)
             if war_end_time.seconds_until >= time:
                 reminder_time = war_end_time.time - timedelta(seconds=time)
@@ -371,56 +372,56 @@ class CustomClient(commands.AutoShardedBot):
         return accepted_times
 
     async def get_family_member_tags(self, guild_id, th_filter: int = None):
-        clan_tags = await self.clan_db.distinct("tag", filter={"server": guild_id})
+        clan_tags = await self.clan_db.distinct('tag', filter={'server': guild_id})
         if th_filter is None:
-            member_tags = await self.basic_clan.distinct("memberList.tag", filter={"tag": {"$in": clan_tags}})
+            member_tags = await self.basic_clan.distinct('memberList.tag', filter={'tag': {'$in': clan_tags}})
         else:
-            basic_clans = await self.basic_clan.find({"tag": {"$in": clan_tags}}, projection={"memberList": 1}).to_list(length=None)
-            member_tags = [m.get("tag") for clan in basic_clans for m in clan.get("memberList", []) if m.get("townhall") == th_filter]
+            basic_clans = await self.basic_clan.find({'tag': {'$in': clan_tags}}, projection={'memberList': 1}).to_list(length=None)
+            member_tags = [m.get('tag') for clan in basic_clans for m in clan.get('memberList', []) if m.get('townhall') == th_filter]
         return member_tags
 
     async def get_clan_member_tags(self, clan_tags: list[str], legends_only=False):
         if not legends_only:
-            member_tags = await self.basic_clan.distinct("memberList.tag", filter={"tag": {"$in": clan_tags}})
+            member_tags = await self.basic_clan.distinct('memberList.tag', filter={'tag': {'$in': clan_tags}})
         else:
-            basic_clans = await self.basic_clan.find({"tag": {"$in": clan_tags}}, projection={"memberList": 1}).to_list(length=None)
-            member_tags = [m.get("tag") for clan in basic_clans for m in clan.get("memberList", []) if m.get("league") == "Legend League"]
+            basic_clans = await self.basic_clan.find({'tag': {'$in': clan_tags}}, projection={'memberList': 1}).to_list(length=None)
+            member_tags = [m.get('tag') for clan in basic_clans for m in clan.get('memberList', []) if m.get('league') == 'Legend League']
         return member_tags
 
     async def get_mapped_clan_member_tags(self, clan_tags: List[str]) -> Dict[str, str]:
         basic_clans = await self.basic_clan.find(
-            {"tag": {"$in": clan_tags}},
-            projection={"tag": 1, "memberList": 1, "_id": 0},
+            {'tag': {'$in': clan_tags}},
+            projection={'tag': 1, 'memberList': 1, '_id': 0},
         ).to_list(length=None)
         mapped = {}
         for c in basic_clans:
-            for m in c.get("memberList", []):
-                mapped[m.get("tag")] = c.get("tag")
+            for m in c.get('memberList', []):
+                mapped[m.get('tag')] = c.get('tag')
         return mapped
 
     async def get_guild_clans(self, guild_id):
-        clan_tags = await self.clan_db.distinct("tag", filter={"server": guild_id})
+        clan_tags = await self.clan_db.distinct('tag', filter={'server': guild_id})
         return clan_tags
 
     async def get_clan_name_mapping(self, clans: list[str]):
-        basic_clans = await self.basic_clan.find({"tag": {"$in": clans}}, projection={"tag": 1, "_id": 0, "name": 1}).to_list(length=None)
+        basic_clans = await self.basic_clan.find({'tag': {'$in': clans}}, projection={'tag': 1, '_id': 0, 'name': 1}).to_list(length=None)
         names = {}
         mapping = {}
         for c in basic_clans:
-            name = c.get("name")
+            name = c.get('name')
             if names.get(name) is not None:
                 num_found = names.get(name, 0)
                 names[name] += 1
                 name = name + create_superscript(num_found + 1)
             else:
                 names[name] = 0
-            mapping[c.get("tag")] = name
+            mapping[c.get('tag')] = name
         return mapping
 
     # DISCORD HELPERS
     def partial_emoji_gen(self, emoji_string: str):
-        emoji = emoji_string.split(":")
-        animated = "<a:" in emoji_string
+        emoji = emoji_string.split(':')
+        animated = '<a:' in emoji_string
         return disnake.PartialEmoji(name=emoji[1], id=int(str(emoji[2])[:-1]), animated=animated)
 
     def fetch_emoji(self, name: str | int):
@@ -465,7 +466,7 @@ class CustomClient(commands.AutoShardedBot):
         return webhook
 
     async def webhook_send(self, webhook: disnake.Webhook, **kwargs):
-        thread = kwargs.pop("thread", None)
+        thread = kwargs.pop('thread', None)
         if thread is None:
             msg = await webhook.send(**kwargs)
         else:
@@ -473,8 +474,8 @@ class CustomClient(commands.AutoShardedBot):
         return msg
 
     async def get_screenshot(self, player: coc.Player):
-        tag = player.tag.replace("#", "")
-        url = f"https://api.clashking.xyz/ss/{tag}/706149153431879760"
+        tag = player.tag.replace('#', '')
+        url = f'https://api.clashking.xyz/ss/{tag}/706149153431879760'
 
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5 * 60)) as session:
             async with session.get(url) as response:
@@ -484,12 +485,12 @@ class CustomClient(commands.AutoShardedBot):
         image_file = io.BytesIO(image_data)
         image_file.seek(0)
 
-        return disnake.File(fp=image_file, filename="screenshot.png")
+        return disnake.File(fp=image_file, filename='screenshot.png')
 
     # CLASH HELPERS
     async def getPlayer(self, player_tag, custom=False, raise_exceptions=False, cache_data=False):
-        if "|" in player_tag:
-            player_tag = player_tag.split("|")[-1]
+        if '|' in player_tag:
+            player_tag = player_tag.split('|')[-1]
         use_cache = cache_data
         player_tag = coc.utils.correct_tag(player_tag)
         if use_cache:
@@ -501,7 +502,7 @@ class CustomClient(commands.AutoShardedBot):
 
         try:
             if custom is True:
-                results = await self.player_stats.find_one({"tag": player_tag})
+                results = await self.player_stats.find_one({'tag': player_tag})
                 if results is None:
                     results = {}
                 if cache_data is None:
@@ -548,13 +549,13 @@ class CustomClient(commands.AutoShardedBot):
         if custom is not False and not fake_results:
             if custom is True:
                 player_class = StatsPlayer
-                results_list = await self.player_stats.find({"tag": {"$in": tags}}).to_list(length=None)
+                results_list = await self.player_stats.find({'tag': {'$in': tags}}).to_list(length=None)
             else:
                 player_class = custom
         elif custom is not False and fake_results:
             player_class = StatsPlayer
             results_dict = {tag: {} for tag in tags}
-        results_dict.update({item.get("tag") or item.get("VillageTag"): item for item in results_list})
+        results_dict.update({item.get('tag') or item.get('VillageTag'): item for item in results_list})
 
         players = []
         tag_set = set(tags)
@@ -563,7 +564,7 @@ class CustomClient(commands.AutoShardedBot):
         if use_cache:
             redis_cache_data = await self.redis.mget(keys=[tag for tag in tag_set if tag not in fresh_tags])
             for data in (ujson.loads(snappy.uncompress(data)) for data in redis_cache_data if data is not None):
-                tag_set.discard(data.get("tag"))
+                tag_set.discard(data.get('tag'))
                 cache_data.append(data)
 
         players.extend(
@@ -571,18 +572,18 @@ class CustomClient(commands.AutoShardedBot):
                 data=data,
                 client=self.coc_client,
                 bot=self,
-                results=results_dict.get(data["tag"], {}),
+                results=results_dict.get(data['tag'], {}),
             )
             for data in cache_data
         )
         headers = {
-            "Authorization": "Bearer test",
-            "Content-Type": "application/json",
-            "Accept-Encoding": "gzip",
+            'Authorization': 'Bearer test',
+            'Content-Type': 'application/json',
+            'Accept-Encoding': 'gzip',
         }
         data = [f"players/{t.replace('#', '%23')}" for t in tag_set]
         async with aiohttp.ClientSession() as session:
-            async with session.post("https://api.clashking.xyz/ck/bulk", json=data, headers=headers) as response:
+            async with session.post('https://api.clashking.xyz/ck/bulk', json=data, headers=headers) as response:
                 data = await response.read()
         player_data: dict = ujson.loads(data)
         players.extend(
@@ -590,7 +591,7 @@ class CustomClient(commands.AutoShardedBot):
                 data=data,
                 client=self.coc_client,
                 bot=self,
-                results=results_dict.get(data["tag"], {}),
+                results=results_dict.get(data['tag'], {}),
             )
             for data in player_data
         )
@@ -600,13 +601,13 @@ class CustomClient(commands.AutoShardedBot):
         tag_set = set(tags)
 
         if use_cache:
-            cache_data = await self.clan_cache.find({"tag": {"$in": tags}}).to_list(length=2500)
+            cache_data = await self.clan_cache.find({'tag': {'$in': tags}}).to_list(length=2500)
         else:
             cache_data = []
         clans = []
         for data in cache_data:
-            tag_set.remove(data.get("tag"))
-            clans.append(CustomClanClass(data=data.get("data"), client=self.coc_client))
+            tag_set.remove(data.get('tag'))
+            clans.append(CustomClanClass(data=data.get('data'), client=self.coc_client))
 
         tasks = []
         for tag in tag_set:
@@ -619,8 +620,8 @@ class CustomClient(commands.AutoShardedBot):
         return [clan for clan in clans if clan is not None]
 
     async def getClan(self, clan_tag, raise_exceptions=False):
-        if "|" in clan_tag:
-            search = clan_tag.split("|")
+        if '|' in clan_tag:
+            search = clan_tag.split('|')
             try:
                 clan_tag = search[4]
             except:
@@ -658,22 +659,22 @@ class CustomClient(commands.AutoShardedBot):
         if not next_war:
             try:
                 war = await self.coc_client.get_current_war(clanTag)
-                if not war or war.state == "notInWar":
+                if not war or war.state == 'notInWar':
                     return None
                 return war
             except coc.PrivateWarLog:
                 now = datetime.utcnow().timestamp()
                 result = await self.clan_war.find_one(
                     {
-                        "$and": [
-                            {"endTime": {"$gte": now}},
-                            {"opponent": coc.utils.correct_tag(clanTag)},
+                        '$and': [
+                            {'endTime': {'$gte': now}},
+                            {'opponent': coc.utils.correct_tag(clanTag)},
                         ]
                     }
                 )
                 if result is None:
                     return None
-                clan_to_use = result.get("clan")
+                clan_to_use = result.get('clan')
                 war = await self.coc_client.get_current_war(clan_tag=clan_to_use)
                 raw_data = war._raw_data
                 war = coc.ClanWar(client=self.coc_client, data=raw_data, clan_tag=war.opponent.tag)
@@ -681,7 +682,7 @@ class CustomClient(commands.AutoShardedBot):
         else:
             try:
                 war = await self.coc_client.get_current_war(clanTag, cwl_round=coc.WarRound.current_preparation)
-                if war.state == "notInWar":
+                if war.state == 'notInWar':
                     return None
                 return war
             except:
@@ -701,15 +702,15 @@ class CustomClient(commands.AutoShardedBot):
 
         diff = ceil((datetime.now().date() - date(2020, 12, 1)).days / 30)
         dates = self.gen_season_date(seasons_ago=diff, as_text=False)
-        names = await self.cwl_db.distinct("season", filter={"clan_tag": clan.tag})
-        await self.cwl_db.delete_many({"data.statusCode": 404})
-        await self.cwl_db.delete_many({"data": None})
+        names = await self.cwl_db.distinct('season', filter={'clan_tag': clan.tag})
+        await self.cwl_db.delete_many({'data.statusCode': 404})
+        await self.cwl_db.delete_many({'data': None})
         missing = set(dates) - set(names)
         tasks = []
         async with aiohttp.ClientSession() as session:
-            tag = clan.tag.replace("#", "")
+            tag = clan.tag.replace('#', '')
             for date in missing:
-                url = f"https://api.clashofstats.com/clans/{tag}/cwl/seasons/{date}"
+                url = f'https://api.clashofstats.com/clans/{tag}/cwl/seasons/{date}'
                 task = asyncio.ensure_future(fetch(url, session, extra=date))
                 tasks.append(task)
             responses = await asyncio.gather(*tasks, return_exceptions=True)
@@ -717,10 +718,10 @@ class CustomClient(commands.AutoShardedBot):
 
         for response, date in responses:
             try:
-                if "Not Found" not in str(response) and "'status': 500" not in str(response) and response is not None:
-                    await self.cwl_db.insert_one({"clan_tag": clan.tag, "season": date, "data": response})
+                if 'Not Found' not in str(response) and "'status': 500" not in str(response) and response is not None:
+                    await self.cwl_db.insert_one({'clan_tag': clan.tag, 'season': date, 'data': response})
                 else:
-                    await self.cwl_db.insert_one({"clan_tag": clan.tag, "season": date, "data": None})
+                    await self.cwl_db.insert_one({'clan_tag': clan.tag, 'season': date, 'data': None})
             except Exception:
                 pass
 
@@ -744,19 +745,19 @@ class CustomClient(commands.AutoShardedBot):
             return True
 
         member = await ctx.guild.getch_member(member_id=ctx.author.id)
-        if disnake.utils.get(member.roles, name="ClashKing Perms") is not None:
+        if disnake.utils.get(member.roles, name='ClashKing Perms') is not None:
             return True
 
         guild = ctx.guild.id
-        results = self.whitelist.find({"$and": [{"command": command_name}, {"server": guild}]})
+        results = self.whitelist.find({'$and': [{'command': command_name}, {'server': guild}]})
 
         if results is None:
             return False
 
         perms = False
         for role in await results.to_list(length=None):
-            role_ = role.get("role_user")
-            is_role = role.get("is_role")
+            role_ = role.get('role_user')
+            is_role = role.get('is_role')
             if is_role:
                 if disnake.utils.get(member.roles, id=int(role_)) is not None:
                     return True
@@ -774,7 +775,7 @@ class CustomClient(commands.AutoShardedBot):
             if children != {}:
                 for child in children:
                     command = children[child]
-                    full_name = f"{base_command} {command.name}"
+                    full_name = f'{base_command} {command.name}'
                     commands.append(full_name)
             else:
                 full_name = base_command

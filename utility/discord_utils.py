@@ -1,13 +1,15 @@
+import os
+from typing import Callable, List, Union
+
 import disnake
 import motor.motor_asyncio
-import os
+from disnake.ext import commands
 
 from assets.emojis import SharedEmojis
-from disnake.ext import commands
 from exceptions.CustomExceptions import *
-from typing import Callable, Union, List
 
-db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("STATIC_MONGODB"))
+
+db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv('STATIC_MONGODB'))
 whitelist = db_client.usafam.whitelist
 server_settings = db_client.usafam.server
 
@@ -20,32 +22,32 @@ def check_commands():
 
         # check for clashking perms role
         member = await ctx.guild.getch_member(member_id=ctx.author.id)
-        server_setup = await server_settings.find_one({"server": ctx.guild.id}, {"_id": 0, "full_whitelist_role": 1})
+        server_setup = await server_settings.find_one({'server': ctx.guild.id}, {'_id': 0, 'full_whitelist_role': 1})
 
-        if server_setup is not None and server_setup.get("full_whitelist_role") is not None:
-            if disnake.utils.get(member.roles, id=server_setup.get("full_whitelist_role")) is not None:
+        if server_setup is not None and server_setup.get('full_whitelist_role') is not None:
+            if disnake.utils.get(member.roles, id=server_setup.get('full_whitelist_role')) is not None:
                 return True
         else:
-            if disnake.utils.get(member.roles, name="ClashKing Perms") is not None:
+            if disnake.utils.get(member.roles, name='ClashKing Perms') is not None:
                 return True
 
         full_command_name = ctx.application_command.qualified_name
         # idk why this is, find out later
-        if full_command_name == "unlink":
+        if full_command_name == 'unlink':
             return True
 
-        base_command_name = full_command_name.split(" ")[0]
+        base_command_name = full_command_name.split(' ')[0]
 
         results = await whitelist.find(
             {
-                "$and": [
+                '$and': [
                     {
-                        "$or": [
-                            {"command": full_command_name},
-                            {"command": base_command_name},
+                        '$or': [
+                            {'command': full_command_name},
+                            {'command': base_command_name},
                         ]
                     },
-                    {"server": ctx.guild.id},
+                    {'server': ctx.guild.id},
                 ]
             }
         ).to_list(length=None)
@@ -54,11 +56,11 @@ def check_commands():
             return False
 
         for result in results:
-            if result.get("is_role"):
-                if disnake.utils.get(member.roles, id=int(result.get("role_user"))) is not None:
+            if result.get('is_role'):
+                if disnake.utils.get(member.roles, id=int(result.get('role_user'))) is not None:
                     return True
             else:
-                if member.id == result.get("role_user"):
+                if member.id == result.get('role_user'):
                     return True
 
         return False
@@ -67,7 +69,7 @@ def check_commands():
 
 
 def partial_emoji_gen(bot, emoji_string, animated=False):
-    emoji = "".join(filter(str.isdigit, emoji_string))
+    emoji = ''.join(filter(str.isdigit, emoji_string))
     emoji = bot.emoji_holder.all_emojis.get(int(emoji))
     emoji = disnake.PartialEmoji(name=emoji.name, id=emoji.id, animated=animated)
     return emoji
@@ -107,18 +109,18 @@ async def interaction_handler(
     valid_value = None
     while valid_value is None:
         try:
-            res: disnake.MessageInteraction = await bot.wait_for("message_interaction", check=check, timeout=timeout)
+            res: disnake.MessageInteraction = await bot.wait_for('message_interaction', check=check, timeout=timeout)
         except Exception:
             raise ExpiredComponents
 
         if any_run is False and res.author.id != ctx.author.id:
             await res.send(
-                content="You must run the command to interact with components.",
+                content='You must run the command to interact with components.',
                 ephemeral=True,
             )
             continue
 
-        if not no_defer and "modal" not in res.data.custom_id:
+        if not no_defer and 'modal' not in res.data.custom_id:
             if ephemeral:
                 await res.response.defer(ephemeral=True)
             else:
@@ -210,15 +212,15 @@ async def interaction_handler(
 def iter_embed_creation(base_embed: disnake.Embed, iter: List, scheme: str, brk: int = 50) -> List[disnake.Embed]:
 
     embeds = []
-    text = ""
+    text = ''
     for count, x in enumerate(iter, 1):
         text += scheme.format(**locals())
         if count % brk == 0:
             embed = base_embed
             embed.description = text
             embeds.append(embed)
-            text = ""
-    if text != "":
+            text = ''
+    if text != '':
         embed = base_embed
         embed.description = text
         embeds.append(embed)
@@ -251,13 +253,9 @@ async def get_webhook_for_channel(bot, channel: Union[disnake.TextChannel, disna
         webhook = next((w for w in webhooks if w.user.id == bot.user.id), None)
         if webhook is None:
             if isinstance(channel, disnake.Thread):
-                webhook = await channel.parent.create_webhook(
-                    name=bot.user.name, avatar=bot.user.avatar, reason="Log Creation"
-                )
+                webhook = await channel.parent.create_webhook(name=bot.user.name, avatar=bot.user.avatar, reason='Log Creation')
             else:
-                webhook = await channel.create_webhook(
-                    name=bot.user.name, avatar=bot.user.avatar, reason="Log Creation"
-                )
+                webhook = await channel.create_webhook(name=bot.user.name, avatar=bot.user.avatar, reason='Log Creation')
         return webhook
     except Exception:
         raise MissingWebhookPerms

@@ -1,39 +1,41 @@
-import disnake
 import calendar
-import coc
-
-from disnake.ext import commands
-from typing import List
-from classes.player.stats import StatsPlayer
-from classes.bot import CustomClient
-from exceptions.CustomExceptions import *
+from datetime import date, datetime, timedelta
 from operator import attrgetter
-from datetime import date, timedelta, datetime
+from typing import List
 
+import coc
+import disnake
+from disnake.ext import commands
+
+from classes.bot import CustomClient
+from classes.player.stats import StatsPlayer
+from discord.options import autocomplete, convert
+from exceptions.CustomExceptions import *
+from utility.components import player_components
 from utility.discord_utils import interaction_handler
 from utility.player_pagination import button_pagination
-from utility.components import player_components
 from utility.search import search_results
-from discord.options import convert, autocomplete
-from .utils import detailed_player_board, to_do_embed, player_accounts
+
+from .utils import detailed_player_board, player_accounts, to_do_embed
+
 
 # from CommandsOlder.Utils.Player import create_profile_troops
 
 
-class PlayerCommands(commands.Cog, name="Player Commands"):
+class PlayerCommands(commands.Cog, name='Player Commands'):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.slash_command(
-        name=disnake.Localized("player", key="player-name"),
-        description=disnake.Localized(key="player-description"),
+        name=disnake.Localized('player', key='player-name'),
+        description=disnake.Localized(key='player-description'),
     )
     async def player(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
 
     @player.sub_command(
-        name=disnake.Localized("lookup", key="lookup-name"),
-        description="Lookup a player or discord user",
+        name=disnake.Localized('lookup', key='lookup-name'),
+        description='Lookup a player or discord user',
     )
     async def lookup(
         self,
@@ -88,19 +90,19 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
         results = await search_results(self.bot, search_query)
         results = results[:25]
         if not results:
-            raise MessageException(f"{discord_user.name} has no accounts linked.")
+            raise MessageException(f'{discord_user.name} has no accounts linked.')
 
         msg = await ctx.original_message()
         await button_pagination(self.bot, ctx, msg, results)
 
-    @player.sub_command(name="upgrades", description="Show upgrades left for an account")
+    @player.sub_command(name='upgrades', description='Show upgrades left for an account')
     async def upgrades(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         player_tag: str = None,
         discord_user: disnake.Member = None,
     ):
-        raise MessageException("Command under construction")
+        raise MessageException('Command under construction')
         if player_tag is None and discord_user is None:
             search_query = str(ctx.author.id)
         elif player_tag is not None:
@@ -129,9 +131,7 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
 
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for(
-                    "message_interaction", check=check, timeout=600
-                )
+                res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', check=check, timeout=600)
             except:
                 try:
                     await ctx.edit_original_message(components=[])
@@ -144,7 +144,7 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
             embed = await create_profile_troops(self.bot, players[current_page])
             await res.edit_original_message(embeds=embed)
 
-    @player.sub_command(name="accounts", description="List of accounts a user has & combined stats")
+    @player.sub_command(name='accounts', description='List of accounts a user has & combined stats')
     async def accounts(
         self,
         ctx: disnake.ApplicationCommandInteraction,
@@ -157,18 +157,18 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
 
         buttons = disnake.ui.ActionRow(
             disnake.ui.Button(
-                label="",
+                label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f"playeraccounts:{discord_user.id}",
+                custom_id=f'playeraccounts:{discord_user.id}',
             )
         )
 
         await ctx.edit_original_message(embed=embed, components=buttons)
 
     @player.sub_command(
-        name="to-do",
-        description="Get a list of things to be done (war attack, legends hits, capital raids etc)",
+        name='to-do',
+        description='Get a list of things to be done (war attack, legends hits, capital raids etc)',
     )
     async def to_do(
         self,
@@ -181,16 +181,16 @@ class PlayerCommands(commands.Cog, name="Player Commands"):
 
         buttons = disnake.ui.ActionRow(
             disnake.ui.Button(
-                label="",
+                label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f"playertodo:{discord_user.id}",
+                custom_id=f'playertodo:{discord_user.id}',
             ),
             disnake.ui.Button(
-                label="",
+                label='',
                 emoji=self.bot.emoji.gear.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f"playertodosettings:ctx",
+                custom_id=f'playertodosettings:ctx',
             ),
         )
         embed = await to_do_embed(bot=self.bot, discord_user=discord_user, embed_color=embed_color)

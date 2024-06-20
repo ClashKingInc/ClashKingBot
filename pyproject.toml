@@ -1,0 +1,13 @@
+[tool.blue]
+# Blue uses Black's defaults, you can add additional configurations if needed
+line-length = 150
+
+[tool.isort]
+profile = "black"  # Blue uses Black's defaults, so this will ensure compatibility
+line_length = 150  # Ensure the line length matches Blue's default
+multi_line_output = 3  # Optional, to customize how multi-line imports are handled
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+lines_after_imports = 2

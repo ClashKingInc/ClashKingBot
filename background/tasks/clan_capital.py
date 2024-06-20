@@ -1,54 +1,45 @@
-import coc
 import asyncio
-import disnake
-
-from disnake.ext import commands
-
-
 from typing import TYPE_CHECKING
-from classes.bot import CustomClient
-from utility.clash.capital import get_raidlog_entry, gen_raid_weekend_datestrings
-from BoardCommands.Utils.Clan import (
-    clan_raid_weekend_raid_stats,
-    clan_raid_weekend_donation_stats,
-)
+
+import coc
+import disnake
+from BoardCommands.Utils.Clan import clan_raid_weekend_donation_stats, clan_raid_weekend_raid_stats
+from coc.raid import RaidLogEntry
+from disnake.ext import commands
 from ImageGen.ClanCapitalResult import generate_raid_result_image
 from pymongo import UpdateOne
-from coc.raid import RaidLogEntry
+
+from classes.bot import CustomClient
 from classes.server import DatabaseClan
-from utility.discord_utils import get_webhook_for_channel
 from exceptions.CustomExceptions import MissingWebhookPerms
+from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
+from utility.discord_utils import get_webhook_for_channel
 
 
 class StoreClanCapital(commands.Cog):
-
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.bot.scheduler.add_job(
             self.store_cc,
-            "cron",
-            day_of_week="mon",
+            'cron',
+            day_of_week='mon',
             hour=7,
             minute=45,
             misfire_grace_time=None,
         )
         self.bot.scheduler.add_job(
             self.send_boards,
-            "cron",
-            day_of_week="mon",
+            'cron',
+            day_of_week='mon',
             hour=11,
             minute=30,
             misfire_grace_time=None,
         )
 
     async def send_boards(self):
-        clan_tags = await self.bot.clan_db.distinct(
-            "tag", filter={"logs.capital_weekly_summary.webhook": {"$ne": None}}
-        )
+        clan_tags = await self.bot.clan_db.distinct('tag', filter={'logs.capital_weekly_summary.webhook': {'$ne': None}})
         clans = await self.bot.get_clans(tags=clan_tags)
-        for cc in await self.bot.clan_db.find({"logs.capital_weekly_summary.webhook": {"$ne": None}}).to_list(
-            length=None
-        ):
+        for cc in await self.bot.clan_db.find({'logs.capital_weekly_summary.webhook': {'$ne': None}}).to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=cc)
             log = db_clan.capital_weekly_summary
 
@@ -90,7 +81,7 @@ class StoreClanCapital(commands.Cog):
     async def store_cc(self):
         if not self.bot.user.public_flags.verified_bot:
             return
-        tags = await self.bot.clan_db.distinct("tag")
+        tags = await self.bot.clan_db.distinct('tag')
         tasks = []
         date = self.bot.gen_raid_date()
 
@@ -125,40 +116,36 @@ class StoreClanCapital(commands.Cog):
                     continue
                 updates.append(
                     UpdateOne(
-                        {"tag": member.tag},
-                        {"$set": {f"capital_gold.{date}.raided_clan": clan.tag}},
+                        {'tag': member.tag},
+                        {'$set': {f'capital_gold.{date}.raided_clan': clan.tag}},
                         upsert=True,
                     )
                 )
                 updates.append(
                     UpdateOne(
-                        {"tag": member.tag},
-                        {"$set": {f"capital_gold.{date}.raid": [member.capital_resources_looted]}},
+                        {'tag': member.tag},
+                        {'$set': {f'capital_gold.{date}.raid': [member.capital_resources_looted]}},
                         upsert=True,
                     )
                 )
                 updates.append(
                     UpdateOne(
-                        {"tag": member.tag},
-                        {
-                            "$set": {
-                                f"capital_gold.{date}.limit_hits": (member.attack_limit + member.bonus_attack_limit)
-                            }
-                        },
+                        {'tag': member.tag},
+                        {'$set': {f'capital_gold.{date}.limit_hits': (member.attack_limit + member.bonus_attack_limit)}},
                         upsert=True,
                     )
                 )
                 updates.append(
                     UpdateOne(
-                        {"tag": member.tag},
-                        {"$set": {f"capital_gold.{date}.attack_count": member.attack_count}},
+                        {'tag': member.tag},
+                        {'$set': {f'capital_gold.{date}.attack_count': member.attack_count}},
                         upsert=True,
                     )
                 )
                 updates.append(
                     UpdateOne(
-                        {"tag": member.tag},
-                        {"$inc": {"points": member.capital_resources_looted * 0.25}},
+                        {'tag': member.tag},
+                        {'$inc': {'points': member.capital_resources_looted * 0.25}},
                         upsert=True,
                     )
                 )

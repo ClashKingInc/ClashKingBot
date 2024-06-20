@@ -1,31 +1,31 @@
 import coc
 import disnake
+from disnake.ext import commands
 
 from classes.bot import CustomClient
 from discord.options import autocomplete, convert
-from disnake.ext import commands
 from exceptions.CustomExceptions import MessageException
 from utility.components import create_components
 from utility.discord_utils import check_commands
-from .utils import create_embeds, add_ban, remove_ban
+
+from .utils import add_ban, create_embeds, remove_ban
 
 
-class Bans(commands.Cog, name="Bans"):
-
+class Bans(commands.Cog, name='Bans'):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @commands.slash_command(name="ban", description="ban related commands")
+    @commands.slash_command(name='ban', description='ban related commands')
     async def ban(self, ctx):
         await ctx.response.defer()
 
-    @ban.sub_command(name="add", description="Add player to server ban list")
+    @ban.sub_command(name='add', description='Add player to server ban list')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ban_add(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         player: coc.Player = commands.Param(autocomplete=autocomplete.family_players, converter=convert.player),
-        reason: str = "No Notes",
+        reason: str = 'No Notes',
         dm_player: str = commands.Param(default=None),
     ):
         """
@@ -46,7 +46,7 @@ class Bans(commands.Cog, name="Bans"):
         )
         await ctx.edit_original_message(embed=embed)
 
-    @ban.sub_command(name="remove", description="Remove player from server ban list")
+    @ban.sub_command(name='remove', description='Remove player from server ban list')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ban_remove(
         self,
@@ -62,13 +62,13 @@ class Bans(commands.Cog, name="Bans"):
         embed = await remove_ban(bot=self.bot, player=player, removed_by=ctx.user, guild=ctx.guild)
         await ctx.edit_original_message(embed=embed)
 
-    @ban.sub_command(name="list", description="List of server banned players")
+    @ban.sub_command(name='list', description='List of server banned players')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ban_list(self, ctx: disnake.ApplicationCommandInteraction):
 
-        bans = await self.bot.banlist.find({"server": ctx.guild.id}).to_list(length=None)
+        bans = await self.bot.banlist.find({'server': ctx.guild.id}).to_list(length=None)
         if not bans:
-            raise MessageException("No banned players on this servers. Use `/ban add` to get started.")
+            raise MessageException('No banned players on this servers. Use `/ban add` to get started.')
 
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
         embeds = await create_embeds(bot=self.bot, bans=bans, guild=ctx.guild, embed_color=embed_color)
@@ -82,28 +82,26 @@ class Bans(commands.Cog, name="Bans"):
 
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for(
-                    "message_interaction", check=check, timeout=600
-                )
+                res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', check=check, timeout=600)
             except:
                 await msg.edit(components=[])
                 break
 
-            if res.data.custom_id == "Previous":
+            if res.data.custom_id == 'Previous':
                 current_page -= 1
                 await res.response.edit_message(
                     embed=embeds[current_page],
                     components=create_components(current_page, embeds, True),
                 )
 
-            elif res.data.custom_id == "Next":
+            elif res.data.custom_id == 'Next':
                 current_page += 1
                 await res.response.edit_message(
                     embed=embeds[current_page],
                     components=create_components(current_page, embeds, True),
                 )
 
-            elif res.data.custom_id == "Print":
+            elif res.data.custom_id == 'Print':
                 await msg.delete()
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)
