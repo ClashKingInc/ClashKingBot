@@ -1,2 +1,2 @@
-player-autocomplete-description = Search for a player by name or player tag
-clan-autocomplete-description = Search for a clan by name or clan tag
+player-autocomplete-description = Suche einen Spieler nach Namen oder Spielerkürzel
+clan-autocomplete-description = Suche einen Clan nach Namen oder Clankürzel
