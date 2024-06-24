@@ -3,6 +3,7 @@ import io
 import json
 import re
 import textwrap
+from collections import Counter
 from contextlib import redirect_stdout
 from datetime import datetime
 

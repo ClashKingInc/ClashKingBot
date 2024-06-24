@@ -1,6 +1,8 @@
 import os
 import traceback
+import weakref
 
+import aiohttp
 import disnake
 import sentry_sdk
 from apscheduler.schedulers.asyncio import AsyncIOScheduler

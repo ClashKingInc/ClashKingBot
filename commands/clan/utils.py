@@ -207,7 +207,7 @@ async def basic_clan_board(
         winstreak = clan.war_win_streak
         winrate = 'Hidden Log'
 
-    if str(clan.location) == 'International' or clan.location.country_code is None:
+    if str(clan.location) == 'International' or clan.location is None:
         flag = bot.emoji.earth.emoji_string
     else:
         flag = f':flag_{clan.location.country_code.lower()}:'

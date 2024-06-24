@@ -153,7 +153,13 @@ async def war_reminder(
                 pass
 
 
-async def clan_capital_reminder(bot: CustomClient, reminder_time):
+async def clan_capital_reminder(bot: CustomClient,
+                                raid_log_entry: coc.RaidLogEntry,
+                                clan: coc.Clan,
+                                reminder_time: str,
+                                manual_send: bool = False,
+                                channel: disnake.TextChannel = None):
+
     for reminder in await bot.reminders.find({'$and': [{'type': 'Clan Capital'}, {'time': reminder_time}]}).to_list(length=None):
         try:
             reminder = Reminder(bot=bot, data=reminder)

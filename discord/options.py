@@ -16,6 +16,20 @@ clan = commands.Param(
     description=disnake.Localized(key='clan-autocomplete-description'),
 )
 
+family_player = commands.Param(
+    name=disnake.Localized(key='player-autocomplete-name'),
+    converter=convert.player,
+    autocomplete=autocomplete.family_players,
+    description=disnake.Localized(key='player-autocomplete-description'),
+)
+
+banned_player = commands.Param(
+    name=disnake.Localized(key='player-autocomplete-name'),
+    converter=convert.player,
+    autocomplete=autocomplete.banned_players,
+    description=disnake.Localized(key='player-autocomplete-description'),
+)
+
 optional_season = commands.Param(default=None, converter=convert.season, autocomplete=autocomplete.season)
 season = commands.Param(converter=convert.season, autocomplete=autocomplete.season)
 

@@ -85,13 +85,13 @@ def army_embed(
     if townhall_lv == 'TH7-8' and isEight:
         townhall_lv = 'TH8'
 
-    army += townhall_lv + f' Army Composition\n<:blanke:838574915095101470>'
+    army += townhall_lv + f' Army Composition\n{bot.emoji.blank}'
 
-    army += f'\n<:troop:861797310224400434> {troopSpace} <:spell:861797310282727484> {spell_space}\n<:blanke:838574915095101470>\n'
+    army += f'\n{bot.emoji.troop} {troopSpace} {bot.emoji.spells} {spell_space}\n{bot.emoji.blank}\n'
 
-    army += troop_string + '<:blanke:838574915095101470>\n'
-    army += spell_string + '<:blanke:838574915095101470>\n'
-    army += sieges + '<:blanke:838574915095101470>\n'
+    army += troop_string + f'{bot.emoji.blank}\n'
+    army += spell_string + f'{bot.emoji.blank}\n'
+    army += sieges + f'{bot.emoji.blank}\n'
     army += f'**Clan Castle:**\n{bot.emoji.clan_castle.emoji_string} {clan_castle}'
     embed = disnake.Embed(title=nick, description=army, color=embed_color)
     embed.timestamp = pd.now(pd.UTC).now()

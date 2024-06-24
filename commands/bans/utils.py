@@ -18,7 +18,10 @@ async def add_ban(
     reason: str,
     rollover_days: int = None,
     dm_player: str = None,
+    locale: disnake.Locale = disnake.Locale.en_US
 ):
+    _, locale = bot.get_localizator(locale=locale)
+
     now = pend.now(tz=pend.UTC)
     dt_string = now.strftime('%Y-%m-%d %H:%M:%S')
 
@@ -59,14 +62,15 @@ async def add_ban(
         )
         ban_type = 'added'
 
-    if rollover_days is not None:
-        rollover_days = f'<t:{rollover_days}:f>'
-    else:
-        rollover_days = 'Never'
+    clan_text = _('no-clan')
+    if player.clan:
+        clan_text = f'[{player.clan.name}]({player.clan.share_link})'
+
     embed = disnake.Embed(
-        description=f"**Ban {ban_type} for [{player.name}]({player.share_link}) [{player.clan.name if player.clan else 'No Clan'}] by {added_by.mention}.**\n"
-        f'Rollover: {rollover_days}\n'
-        f'Reason: {reason}',
+        description=f"**{bot.fetch_emoji(player.town_hall)}[{player.name}]({player.share_link}) | {player.tag}\n"
+                    f"{clan_text}\n"
+                    f"{_('ban-details', key={'ban_type' : ban_type, 'date' : dt_string, 'discord_mention' : added_by.mention})}"
+                    f'{_("reason-notes")}: {reason}',
         color=disnake.Color.brand_red(),
     )
 
@@ -78,9 +82,9 @@ async def add_ban(
             if server_member:
                 try:
                     await server_member.send(content=dm_player, embed=embed)
-                    embed.set_footer(text=f'Notified in DM')
+                    embed.set_footer(text=_('Notified in DM'))
                 except:
-                    embed.set_footer(text=f'DM Notification Failed')
+                    embed.set_footer(text=_('DM Notification Failed'))
     await send_ban_log(bot=bot, guild=guild, reason=embed)
 
     return embed
@@ -91,15 +95,18 @@ async def remove_ban(
     player: coc.Player,
     removed_by: disnake.User,
     guild: disnake.Guild,
+    locale: disnake.Locale
 ):
+    _, locale = bot.get_localizator(locale=locale)
+
     results = await bot.banlist.find_one({'$and': [{'VillageTag': player.tag}, {'server': guild.id}]})
     if not results:
-        raise MessageException(f'{player.name} is not banned on this server.')
+        raise MessageException(_('not-banned', key={'player_name' : player.name}))
 
     await bot.banlist.find_one_and_delete({'$and': [{'VillageTag': player.tag}, {'server': guild.id}]})
 
     embed = disnake.Embed(
-        description=f'[{player.name}]({player.share_link}) removed from the banlist by {removed_by.mention}.',
+        description=_('unbanned', key={'player_name' : player.name, 'player_link' : player.share_link, 'discord_mention' : removed_by.mention}),
         color=disnake.Color.orange(),
     )
 
@@ -115,7 +122,9 @@ async def send_ban_log(bot: CustomClient, guild: disnake.Guild, reason: disnake.
             await safe_run(func=ban_log_channel.send, embed=reason)
 
 
-async def create_embeds(bot: CustomClient, bans: list, guild: disnake.Guild, embed_color: disnake.Color):
+async def create_embeds(bot: CustomClient, bans: list, guild: disnake.Guild, embed_color: disnake.Color, locale: disnake.Locale):
+    _, locale = bot.get_localizator(locale=locale)
+
     embeds = []
     banned_tags = [b.get('VillageTag') for b in bans]
     discord_links = await bot.link_client.get_links(*banned_tags)
@@ -127,31 +136,31 @@ async def create_embeds(bot: CustomClient, bans: list, guild: disnake.Guild, emb
         date = banned_player.date_created[0:10]
         notes = banned_player.notes
 
+        clan = _('no-clan')
         if banned_player.clan is not None:
             clan = f'{banned_player.clan.name}, {banned_player.role}'
-        else:
-            clan = 'No Clan'
+
         discord = ''
         if discord_id := discord_links.get(banned_player.tag):
             if discord_id is not None:
                 discord_user = guild.get_member(int(discord_id))
                 if discord_user:
-                    discord = f'Discord: {discord_user.mention} ({discord_user.name})\n'
+                    discord = f'{_("banned-discord")} {discord_user.mention} ({discord_user.name})\n'
         added_by = ''
         if banned_player.added_by is not None:
             user = await bot.getch_user(banned_player.added_by)
-            added_by = f'\nAdded by: {user}'
+            added_by = f'\n{_("ban-added-by")} {user}'
         hold += (
             f'{bot.fetch_emoji(banned_player.town_hall)}[{banned_player.name}]({banned_player.share_link}) | {banned_player.tag}\n'
             f'{discord}'
             f'{clan}\n'
-            f'Added on: {date}\n'
-            f'Notes: *{notes}*{added_by}\n\n'
+            f'{_("ban-added-on")} {date}\n'
+            f'{_("reason-notes")}: *{notes}*{added_by}\n\n'
         )
 
         if count % 10 == 0 or count == len(banned_players):
             embed = disnake.Embed(description=hold, color=embed_color)
-            embed.set_author(name=f'{guild.name} Ban List', icon_url=get_guild_icon(guild=guild))
+            embed.set_author(name=_('server-ban-list', key={'server_name' : guild.name}), icon_url=get_guild_icon(guild=guild))
             embeds.append(embed)
             hold = ''
 
