@@ -10,7 +10,7 @@ from ImageGen.ClanCapitalResult import generate_raid_result_image
 from pymongo import UpdateOne
 
 from classes.bot import CustomClient
-from classes.server import DatabaseClan
+from classes.DatabaseClient.Classes.settings import DatabaseClan
 from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
 from utility.discord_utils import get_webhook_for_channel

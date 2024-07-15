@@ -4,7 +4,7 @@ from disnake.ext import commands
 
 from background.logs.events import clan_ee
 from classes.bot import CustomClient
-from classes.server import DatabaseClan
+from classes.DatabaseClient.Classes.settings import DatabaseClan
 
 
 class clan_events(commands.Cog, name='Clan Events'):
