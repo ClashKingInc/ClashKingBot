@@ -53,7 +53,7 @@ initial_extensions = [
     'discord.events',
     'discord.autocomplete',
     'discord.converters',
-    # "exceptions.handler",
+    "exceptions.handler",
     'background.tasks.background_cache',
     'background.features.link_parsers',
 ]
