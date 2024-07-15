@@ -79,7 +79,6 @@ def load():
                 file_list.append(f'commands.{path}')
     return file_list
 
-
 """#dont let custom or local run
 if not config.is_beta and not config.is_custom:
     initial_extensions += [
