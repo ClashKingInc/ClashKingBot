@@ -1,3 +1,4 @@
+import ast
 import coc
 import disnake
 import ujson
@@ -124,9 +125,11 @@ class Linking(LinkButtonExtended, commands.Cog):
                     )
                     if greet_message is None:
                         greet_message = {
-                            'content': 'Welcome {user_mention} to **{clan_name}**',
+                            'content': 'Welcome {user_mention} to **{clan_name}**!',
                             'embeds': [],
                         }
+                    else:
+                        greet_message = greet_message.get('data', {})
 
                     clan = await player.get_detailed_clan()
                     local_greet_message = str(greet_message)
@@ -144,11 +147,10 @@ class Linking(LinkButtonExtended, commands.Cog):
                         '{player_league_emoji}': self.bot.fetch_emoji(player.league.name).emoji_string,
                         '{player_trophies}': player.trophies,
                     }
-
                     for type, replace in types.items():
                         local_greet_message = local_greet_message.replace(type, str(replace))
 
-                    local_greet_message = ujson.loads(local_greet_message)
+                    local_greet_message = ast.literal_eval(local_greet_message)
 
                     await channel.send(
                         content=local_greet_message.get('content', ''),

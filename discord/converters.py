@@ -97,6 +97,7 @@ class Convert(commands.Cog, name='Convert'):
     async def multi_player(self, player_tags: str):
         player_tags = player_tags.split(',')[:50]
         players = await self.bot.get_players(tags=player_tags, use_cache=True, custom=False)
+        print(players)
         if not players:
             raise coc.errors.NotFound
         return players
@@ -111,6 +112,13 @@ class Convert(commands.Cog, name='Convert'):
         if statement in ['Yes', 'True', 'Add']:
             return True
         return False
+
+    async def ticket_button(self, text: str) -> tuple[str, str]:
+        text = text[:-1]
+        split_text = text.split('(')
+        button_name = split_text[0].strip()
+        panel_name = split_text[1].strip()
+        return (button_name, panel_name)
 
 
 def setup(bot: CustomClient):

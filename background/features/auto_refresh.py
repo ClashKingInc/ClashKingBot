@@ -14,7 +14,6 @@ class AutoEvalBackground(commands.Cog):
         self.bot = bot
         self.bot.scheduler.add_job(self.status_roles, 'interval', minutes=60)
 
-
     async def status_roles(self):
         pass
 

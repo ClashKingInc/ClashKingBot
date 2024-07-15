@@ -187,13 +187,21 @@ class TicketClick(commands.Cog):
 
             result = await self.bot.open_tickets.find_one({'channel': ctx.channel.id})
             ticket = OpenTicket(bot=self.bot, open_ticket=result)
-            if ctx.user.id == ticket.user:
+            if ctx.user.id == ticket.user and ctx.user.id != 706149153431879760:
                 return await ctx.send(
                     content="You don't have permissions to delete this ticket",
                     ephemeral=True,
                 )
-
             await ticket.set_ticket_status(status='delete')
+            panel_settings = await self.bot.tickets.find_one({'$and': [{'server_id': ctx.guild.id}, {'name': ticket.panel_name}]})
+            panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
+
+            await panel.send_log(
+                log_type=LOG_TYPE.STATUS_CHANGE,
+                user=ctx.user,
+                ticket_channel=ctx.channel,
+                ticket=ticket,
+            )
             await ctx.channel.delete()
 
         panel_settings = await self.bot.tickets.find_one(
@@ -214,7 +222,7 @@ class TicketClick(commands.Cog):
             await button.send_log(log_type=LOG_TYPE.BUTTON_CLICK, user=ctx.user)
 
             players = []
-            embeds = [button.message]
+            embeds = await button.get_message()
             message = None
 
             if button.account_apply or not button.questions:

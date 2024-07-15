@@ -1,3 +1,4 @@
+import coc
 import disnake
 from disnake.ext import commands
 
@@ -13,21 +14,16 @@ class AutoEval(commands.Cog):
         self.bot = bot
         self.clan_ee = clan_ee
         self.player_ee = player_ee
-        self.clan_ee.on('member_join', self.auto_refresh)
-        self.clan_ee.on('member_leave', self.auto_refresh)
-        self.player_ee.on('role', self.auto_refresh)
-        self.player_ee.on('townHallLevel', self.auto_refresh)
-        self.player_ee.on('league', self.auto_refresh)
+        self.clan_ee.on('members_join_leave', self.clan_auto_refresh)
+        self.player_ee.on('role', self.player_auto_refresh)
+        self.player_ee.on('townHallLevel', self.player_auto_refresh)
+        self.player_ee.on('league', self.player_auto_refresh)
 
-    async def auto_refresh(self, event):
-        if (clan_data := event.get('clan')) is not None:
-            clan_tag = clan_data.get('tag')
-            player_tag = event.get('member').get('tag')
-            player_name = event.get('member').get('name')
-        else:
-            player_tag = event.get('new_player').get('tag')
-            clan_tag = event.get('new_player').get('clan', {}).get('tag', '')
-            player_name = event.get('new_player').get('name')
+    async def player_auto_refresh(self, event):
+
+        player_tag = event.get('new_player').get('tag')
+        clan_tag = event.get('new_player').get('clan', {}).get('tag', '')
+        player_name = event.get('new_player').get('name')
 
         server_ids = await self.bot.clan_db.distinct('server', filter={'tag': clan_tag})
         for server_id in server_ids:
@@ -68,6 +64,55 @@ class AutoEval(commands.Cog):
                     reason=f'Triggered by {trigger_name} ({player_name})',
                 )
 
+
+    async def clan_auto_refresh(self, event):
+
+        clan = coc.Clan(data=event['new_clan'], client=self.bot.coc_client)
+
+        server_ids = await self.bot.clan_db.distinct('server', filter={'tag': clan.tag})
+        for server_id in server_ids:
+            db_server = await self.bot.ck_client.get_server_settings(server_id=server_id)
+
+            if db_server.server_id not in self.bot.OUR_GUILDS or not db_server.auto_eval_status:
+                continue
+
+            joined = event.get('joined', [])
+            left = event.get('left', [])
+
+            to_run = []
+            if 'member_join' in db_server.autoeval_triggers:
+                to_run.extend(joined)
+
+            if 'member_leave' in db_server.autoeval_triggers:
+                to_run.extend(left)
+
+            if not to_run:
+                continue
+
+            links = await self.bot.link_client.get_links(*to_run)
+            discord_users = set(id for _, id in links if id is not None)
+
+            server = await self.bot.getch_guild(server_id)
+            if server is None:
+                continue
+            discord_members = await server.getch_members(list(discord_users))
+            if not discord_members:
+                continue
+
+            if db_server.blacklisted_roles:
+                discord_members = [member for member in discord_members
+                                   if not any(role.id in db_server.blacklisted_roles for role in member.roles)]
+
+            await logic(
+                bot=self.bot,
+                guild=server,
+                db_server=db_server,
+                members=discord_members,
+                role_or_user=clan,
+                eval_types=DEFAULT_EVAL_ROLE_TYPES,
+                role_treatment=db_server.role_treatment,
+                reason=f'Triggered by clan join/leave ({clan.name})',
+            )
 
 def setup(bot: CustomClient):
     bot.add_cog(AutoEval(bot))

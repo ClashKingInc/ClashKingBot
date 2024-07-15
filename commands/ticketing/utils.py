@@ -59,6 +59,12 @@ async def open_ticket(
     ctx: disnake.MessageInteraction,
     coc_account: StatsPlayer = None,
 ):
+    category = None
+    if ticket_panel.open_category is not None:
+        category = await bot.getch_channel(ticket_panel.open_category)
+    if category is None:
+        category: disnake.CategoryChannel = ctx.channel.category
+
     overwrite = disnake.PermissionOverwrite()
     overwrite.view_channel = False
     overwrite.external_emojis = True
@@ -96,12 +102,6 @@ async def open_ticket(
     member = await ctx.guild.getch_member(ctx.user.id)
     overwrite_dict.update({member: user_overwrite})
 
-    category = None
-    if ticket_panel.open_category is not None:
-        category = await bot.getch_channel(ticket_panel.open_category)
-    if category is None:
-        category: disnake.CategoryChannel = ctx.channel.category
-
     channel_name = await naming_convention_convertor(
         bot=bot,
         user=ctx.user,
@@ -110,10 +110,7 @@ async def open_ticket(
         guild=ctx.guild,
     )
     channel = await ctx.guild.create_text_channel(
-        name=channel_name,
-        reason=channel_name,
-        overwrites=overwrite_dict,
-        category=category,
+        name=channel_name, reason=channel_name, overwrites=overwrite_dict, category=category, topic='Ticketing powered by ClashKing!'
     )
 
     text = ' '.join([role.mention for role in ping_roles if role is not None]) + member.mention

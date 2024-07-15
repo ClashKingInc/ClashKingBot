@@ -243,6 +243,19 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
         server_embeds = await self.bot.custom_embeds.find({'server': ctx.guild_id}, {'name': 1}).to_list(length=None)
         return [e.get('name') for e in server_embeds if query.lower() in e.get('name').lower()][:25]
 
+    async def ticket_panel_buttons(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+
+        ticket_panels = await self.bot.tickets.find({'server_id': ctx.guild.id}, {'name': 1, '_id': 0, 'components.label': 1}).to_list(length=None)
+        alias_list = []
+        for panel in ticket_panels:
+            panel_name = panel.get('name')
+            for component in panel.get('components', []):
+                alias = f"{component.get('label')} ({panel_name})"
+                if query.lower() in alias.lower():
+                    alias_list.append(alias)
+
+        return alias_list[:25]
+
     async def ticket_buttons(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         panel_name = ctx.filled_options['panel_name']
         if panel_name == '':

@@ -739,3 +739,11 @@ DISCORD_STATUS_TYPES = {
     'Idle': disnake.Status.idle,
     'DND': disnake.Status.do_not_disturb,
 }
+
+AUTOREFRESH_TRIGGERS = [
+            'Member Join',
+            'Member Leave',
+            'Townhall Change',
+            'League Change',
+            'Role Change',
+        ]

@@ -135,6 +135,14 @@ class BaseClient:
                 },
                 {
                     '$lookup': {
+                        'from': 'family_roles',
+                        'localField': 'server',
+                        'foreignField': 'server',
+                        'as': 'eval.family_position_roles',
+                    }
+                },
+                {
+                    '$lookup': {
                         'from': 'linkrole',
                         'localField': 'server',
                         'foreignField': 'server',

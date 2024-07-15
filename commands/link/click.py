@@ -4,7 +4,6 @@ from disnake.ext import commands
 from archived.commands.CommandsOlder.Utils.Player import to_do_embed
 from classes.bot import CustomClient
 from classes.player.stats import StatsPlayer
-from classes.server import CustomServer
 from exceptions.CustomExceptions import InvalidAPIToken
 from utility.search import search_results
 

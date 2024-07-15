@@ -29,6 +29,7 @@ class Bans(commands.Cog, name='Bans'):
         reason: str = commands.Param(name=Loc(key='reason-option'), description=Loc(key='reason-description'), default=Loc(key='reason-default')),
         dm_player: str = commands.Param(name=Loc(key='dm-player-option'), description=Loc(key='dm-player-description'), default=None),
     ):
+        _, locale = self.bot.get_localizator(ctx=ctx)
         embed = await add_ban(
             bot=self.bot,
             player=player,
@@ -37,17 +38,19 @@ class Bans(commands.Cog, name='Bans'):
             reason=reason,
             rollover_days=None,
             dm_player=dm_player,
+            locale=locale
         )
         await ctx.edit_original_message(embed=embed)
 
-    @ban.sub_command(name=Loc('remove', key='remove-name'), description=Loc('remove-description'))
+    @ban.sub_command(name=Loc('remove', key='remove-name'), description=Loc(key='remove-description'))
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ban_remove(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         player: coc.Player = options.banned_player,
     ):
-        embed = await remove_ban(bot=self.bot, player=player, removed_by=ctx.user, guild=ctx.guild)
+        _, locale = self.bot.get_localizator(ctx=ctx)
+        embed = await remove_ban(bot=self.bot, player=player, removed_by=ctx.user, guild=ctx.guild, locale=locale)
         await ctx.edit_original_message(embed=embed)
 
     @ban.sub_command(name=Loc('list', key='list-name'), description=Loc(key='list-description'))
@@ -87,7 +90,6 @@ class Bans(commands.Cog, name='Bans'):
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)
                 await ctx.delete_original_message()
-
 
 
 def setup(bot: CustomClient):

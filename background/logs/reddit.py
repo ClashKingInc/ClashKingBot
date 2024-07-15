@@ -10,9 +10,10 @@ class reddit_feed(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.reddit_ee = reddit_ee
-        self.reddit_ee.on('reddit', self.reddit_task)
+        self.reddit_ee.on('reddit', self.post_stream)
+        self.reddit_ee.on("redditcomment", self.comment_stream)
 
-    async def reddit_task(self, event: dict):
+    async def post_stream(self, event: dict):
         player = None
         event = event.get('data')
         if tags := event.get('tags'):
@@ -31,7 +32,7 @@ class reddit_feed(commands.Cog):
                 role = r.get('reddit_role')
                 embed = disnake.Embed(
                     title=event.get('title'),
-                    description=f'{event.get("selftext")}\n{event.get("score")} points | [Link]({event.get("url")}) | '
+                    description=f'{event.get("selftext")}\n{event.get("score")} upvotes | [Link]({event.get("url")}) | '
                     f'[Comments]({event.get("comments_link")})',
                     color=disnake.Color.green(),
                 )
@@ -61,6 +62,33 @@ class reddit_feed(commands.Cog):
                     {'server': r.get('server')},
                     {'$set': {'reddit_feed': None, 'reddit_role': None}},
                 )
+
+    async def comment_stream(self, event: dict):
+
+        results = await self.bot.server_db.find({"$and" : [{'reddit_feed': {'$ne': None}}, {'reddit_accounts' : {"$ne" : None}}]}).to_list(length=None)
+        for r in results:
+            server_id = r.get('server')
+            if server_id not in self.bot.OUR_GUILDS:
+                continue
+            try:
+                channel = await self.bot.getch_channel(r.get('reddit_feed'), raise_exception=True)
+                role = r.get('reddit_role')
+                embed = disnake.Embed(
+                    title=f"New Comment on post by u/{event.get('submission_author')}",
+                    description=f'{event.get("body")} | [link](https://reddit.com{event.get("url")})',
+                    color=disnake.Color.green(),
+                )
+                embed.set_footer(icon_url=self.bot.emoji.reddit_icon.partial_emoji.url, text=f"u/{event.get('author')} | {event.get('score')} upvotes")
+                if role is not None:
+                    await channel.send(content=f'<@&{role}>', embed=embed)
+                else:
+                    await channel.send(embed=embed)
+            except (disnake.NotFound, disnake.Forbidden):
+                await self.bot.server_db.update_one(
+                    {'server': r.get('server')},
+                    {'$set': {'reddit_feed': None, 'reddit_role': None}},
+                )
+
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):

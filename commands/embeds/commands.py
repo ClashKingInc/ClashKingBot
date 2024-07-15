@@ -107,11 +107,12 @@ class Embeds(commands.Cog):
         ctx: disnake.ApplicationCommandInteraction,
         name: str = commands.Param(autocomplete=autocomplete.embeds),
     ):
-        await ctx.response.defer()
+        await ctx.response.defer(ephemeral=True)
         lookup = await self.bot.custom_embeds.find_one({'$and': [{'server': ctx.guild_id}, {'name': name}]})
         lookup = lookup.get('data')
         embeds = [disnake.Embed.from_dict(data=e) for e in lookup.get('embeds', [])]
-        await ctx.send(content=lookup.get('content', ''), embeds=embeds)
+        await ctx.send('Embed Created', ephemeral=True)
+        await ctx.channel.send(content=lookup.get('content', ''), embeds=embeds)
 
     @embed.sub_command(name='delete', description='Delete an embed')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())

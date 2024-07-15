@@ -1,8 +1,5 @@
 import os
 import traceback
-import weakref
-
-import aiohttp
 import disnake
 import sentry_sdk
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -48,7 +45,7 @@ bot = CustomClient(
     intents=intents,
     scheduler=scheduler,
     config=config,
-    chunk_guilds_at_startup=(config.is_main),
+    chunk_guilds_at_startup=(not config.is_main),
     **cluster_kwargs,
 )
 
@@ -64,7 +61,7 @@ initial_extensions = [
 disallowed = set()
 
 if config.is_custom:
-    # disallowed.add("owner")
+    disallowed.add("owner")
     pass
 
 

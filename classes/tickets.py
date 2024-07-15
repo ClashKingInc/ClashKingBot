@@ -2,7 +2,7 @@ import asyncio
 import io
 from datetime import datetime
 from enum import Enum
-from typing import List
+from typing import List, Any
 
 import chat_exporter
 import disnake
@@ -92,7 +92,7 @@ class BaseTicket:
         log_type: LOG_TYPE,
         user: disnake.User,
         ticket: OpenTicket = None,
-        ticket_channel: disnake.TextChannel = None,
+        ticket_channel: disnake.TextChannel | Any = None,
     ):
         components = []
         if log_type == LOG_TYPE.BUTTON_CLICK:
@@ -237,17 +237,20 @@ class TicketPanel(BaseTicket):
             style=text_style_conversion[new_color],
             custom_id=button.custom_id,
         )
+
+        # Retrieve the index of the button to be updated
+        button_index = button.count_spot
+
+        # Update the specific button at the retrieved index
         await self.bot.tickets.update_one(
-            {'$and': [{'server_id': self.panel_server.id}, {'name': self.panel_name}]},
-            {'$unset': {f'components.{button.count_spot}': 1}},
-        )
-        await self.bot.tickets.update_one(
-            {'$and': [{'server_id': self.panel_server.id}, {'name': self.panel_name}]},
-            {'$pull': {f'components': None}},
-        )
-        await self.bot.tickets.update_one(
-            {'$and': [{'server_id': self.panel_server.id}, {'name': self.panel_name}]},
-            {'$push': {'components': new_button.to_component_dict()}},
+            {'server_id': self.panel_server.id, 'name': self.panel_name},
+            {
+                '$set': {
+                    f'components.{button_index}.label': new_text,
+                    f'components.{button_index}.emoji': new_emoji,
+                    f'components.{button_index}.style': new_button.to_component_dict()['style'],
+                }
+            },
         )
 
     def get_button(self, label: str = None, custom_id: str = None):
@@ -281,14 +284,6 @@ class Ticket_Buttons(BaseTicket):
         self.label = button_data.get('label')
         self.count_spot = button_data.get('count')
         self.settings = panel_settings.get(f'{self.custom_id}_settings')
-        self.message: Embed = (
-            Embed.from_dict(data=self.settings.get('message'))
-            if self.settings.get('message') is not None
-            else Embed(
-                description='This ticket will be handled shortly!\nPlease be patient.',
-                color=disnake.Color.green(),
-            )
-        )
 
         self.roles_to_add: List[int] = self.settings.get('roles_to_add', []) if self.settings.get('roles_to_add') is not None else []
         self.roles_to_remove: List[int] = self.settings.get('roles_to_remove', []) if self.settings.get('roles_to_remove') is not None else []
@@ -306,6 +301,26 @@ class Ticket_Buttons(BaseTicket):
         self.no_ping_staff_roles: List[int] = self.settings.get('no_ping_mod_role', []) if self.settings.get('no_ping_mod_role') is not None else []
 
         self.naming_convention: str = self.settings.get('naming', '{ticket_count}-{user}')
+
+    async def get_message(self) -> List[Embed]:
+        new_message = self.settings.get('new_message')
+
+        if new_message:
+            lookup = await self.bot.custom_embeds.find_one({'$and': [{'server': self.panel_server.id}, {'name': new_message}]})
+            embed_data = lookup.get('data')
+            embeds = [disnake.Embed.from_dict(data=e) for e in embed_data.get('embeds', [])]
+            return embeds
+
+        else:
+            old_style_embed: Embed = (
+                Embed.from_dict(data=self.settings.get('message'))
+                if self.settings.get('message') is not None
+                else Embed(
+                    description='This ticket will be handled shortly!\nPlease be patient.',
+                    color=disnake.Color.green(),
+                )
+            )
+            return [old_style_embed]
 
     def get_townhall_requirement(self, townhall_level: int):
         specific_townhall_requirement = self.townhall_requirements.get(str(townhall_level), {'TH': townhall_level})

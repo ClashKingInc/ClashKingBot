@@ -108,7 +108,7 @@ async def detailed_player_board(bot: CustomClient, custom_player: StatsPlayer, s
 	    f"Tag: [{player.tag}]({player.share_link})\n"
 	    f"Clan: {clan} {role}\n"
 	    f"Last Seen: {last_online}\n"
-	    f"[Clash Of Stats Profile](https://www.clashofstats.com/players/{player.tag.strip('#')})\n\n"
+	    f"[Clash Of Stats](https://www.clashofstats.com/players/{player.tag.strip('#')}) [Chocolate Clash](https://fwa.chocolateclash.com/cc_n/member.php?tag={player.tag.strip('#')})\n\n"
 	    f"**Season Stats:**\n"
 	    f"__Attacks__\n"
 	    f"- {SharedEmojis.all_emojis.get(player.league.name)}Trophies: {player.trophies}\n"

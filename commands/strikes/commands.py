@@ -130,13 +130,9 @@ class Strikes(commands.Cog, name='Strikes'):
     async def strike_remove(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        player: coc.Player = commands.Param(
-            converter=convert.player,
-            autocomplete=autocomplete.family_players,
-            default=None,
-        ),
         strike_id: str = commands.Param(converter=None, autocomplete=autocomplete.strike_ids, default=None),
     ):
+        strike_id = strike_id.split("|")[0].strip()
         strike_id = strike_id.upper()
         result_ = await self.bot.strikelist.find_one({'$and': [{'strike_id': strike_id}, {'server': ctx.guild.id}]})
         if result_ is None:
@@ -149,7 +145,7 @@ class Strikes(commands.Cog, name='Strikes'):
         embed = disnake.Embed(description=f'Strike {strike_id} removed.', color=disnake.Color.green())
         return await ctx.send(embed=embed)
 
-    @commands.slash_command(name='autostrike', description='stuff')
+    '''@commands.slash_command(name='autostrike', description='stuff')
     async def autostrikes(self, ctx):
         pass
 
@@ -162,7 +158,7 @@ class Strikes(commands.Cog, name='Strikes'):
         rollover_days: int = commands.Param(ge=1, le=365, default=None),
         clan: coc.Clan = commands.Param(default=None, autocomplete=autocomplete.clan, converter=convert.clan),
     ):
-        raise MessageException('Command under construction')
+        raise MessageException('Command under construction')'''
 
     '''@autostrikes.sub_command(name="add", description="Create autostrikes for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())

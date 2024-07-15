@@ -6,7 +6,7 @@ from disnake.ext import commands
 
 from background.logs.events import player_ee
 from classes.bot import CustomClient
-from classes.server import DatabaseClan
+from classes.DatabaseClient.Classes.settings import DatabaseClan
 from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.clash.other import league_emoji
 from utility.constants import ROLES
@@ -113,6 +113,10 @@ class UpgradeEvent(commands.Cog):
 
         new_name = re.sub('[*_`~/]', '', new_player.name)
         old_player = coc.Player(data=event['old_player'], client=self.bot.coc_client)
+
+        if old_player.role is None:
+            return
+
         for cc in await self.bot.clan_db.find(
             {
                 '$and': [

@@ -54,7 +54,6 @@ class DiscordEvents(commands.Cog):
                     }
                 )
 
-
             logger.info('We have connected')
 
     @commands.Cog.listener()

@@ -227,7 +227,7 @@ async def legend_poster(bot: CustomClient, player: coc.Player | LegendPlayer, ba
     if background is None:
         poster = Image.open(f'assets/backgrounds/{random.choice(list(POSTER_LIST.values()))}.png')
     else:
-        poster = Image.open(f'assets/backgrounds/{random.choice(list(POSTER_LIST.get(background)))}.png')
+        poster = Image.open(f'assets/backgrounds/{POSTER_LIST.get(background)}.png')
 
     poster.paste(graph, (1175, 475), graph.convert('RGBA'))
 

@@ -5,7 +5,7 @@ from classes.bot import CustomClient
 from discord.options import autocomplete, convert
 from exceptions.CustomExceptions import MessageException
 from utility.components import create_components
-from utility.constants import DEFAULT_EVAL_ROLE_TYPES
+from utility.constants import DEFAULT_EVAL_ROLE_TYPES, AUTOREFRESH_TRIGGERS
 from utility.discord_utils import check_commands, interaction_handler
 from utility.general import get_guild_icon
 
@@ -215,13 +215,7 @@ class eval(commands.Cog, name='Refresh'):
     async def auto_eval_options(self, ctx: disnake.ApplicationCommandInteraction):
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
         choices = []
-        for choice in [
-            'Member Join',
-            'Member Leave',
-            'Townhall Change',
-            'League Change',
-            'Role Change',
-        ]:
+        for choice in AUTOREFRESH_TRIGGERS:
             choices.append(disnake.SelectOption(label=choice, value=choice.replace(' ', '_').lower()))
 
         trigger_select = disnake.ui.ActionRow(disnake.ui.Select(options=choices, placeholder='Choose Trigger Types', max_values=5))
@@ -277,9 +271,12 @@ class eval(commands.Cog, name='Refresh'):
         ctx: disnake.ApplicationCommandInteraction,
         type: str = commands.Param(
             choices=[
-                'Only-Family Roles',
-                'Family Exclusive Roles',
-                'Not-Family Roles',
+                'Exclusive Family Member Roles',
+                'Family Member Roles',
+                'Family Elder Roles',
+                'Family Co-Leader Roles',
+                'Family Leader Roles',
+                'Non Family Member Roles',
                 'Ignored Roles',
             ]
         ),
@@ -293,22 +290,24 @@ class eval(commands.Cog, name='Refresh'):
         add: role to set
         remove: a role to remove
         """
-        if add == remove == None:
-            raise MessageException('Must specify either a role to add or to remove')
-
-        if type == 'Only-Family Roles':
+        if type == 'Exclusive Family Member Roles':
             database = self.bot.generalfamroles
-        elif type == 'Family Exclusive Roles':
+        elif type == 'Family Member Roles':
             database = self.bot.familyexclusiveroles
-        elif type == 'Not-Family Roles':
+        elif type == 'Non Family Member Roles':
             database = self.bot.notfamroles
         elif type == 'Ignored Roles':
             database = self.bot.ignoredroles
+        else:
+            database = self.bot.family_position_roles
 
         if add is not None:
             embed = await family_role_add(database=database, role=add, guild=ctx.guild, type=type)
         elif remove is not None:
             embed = await family_role_remove(database=database, role=remove, guild=ctx.guild, type=type)
+        else:
+            raise MessageException('Must specify either a role to add or to remove')
+
         await ctx.edit_original_message(embed=embed)
 
     @roles.sub_command(name='townhall', description='Sets roles to add for townhall levels 7 and up')

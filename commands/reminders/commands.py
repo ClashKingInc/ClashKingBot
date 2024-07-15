@@ -11,8 +11,9 @@ from exceptions.CustomExceptions import MessageException, NotValidReminderTime
 from utility.components import clan_component
 from utility.discord_utils import check_commands, interaction_handler
 from utility.time import time_difference
+from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
 
-from .send import war_reminder
+from .send import war_reminder, clan_capital_reminder
 from .utils import (
     create_capital_reminder,
     create_games_reminder,
@@ -159,21 +160,43 @@ class ReminderCommands(commands.Cog, name='Reminders'):
         self,
         ctx: disnake.ApplicationCommandInteraction,
         clan: coc.Clan = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan),
-        type=commands.Param(choices=['War & CWL']),
+        type=commands.Param(choices=['War & CWL', 'Raid Weekend']),
+        custom_text: str = '',
         channel: disnake.TextChannel | disnake.Thread = None,
     ):
         await ctx.response.defer(ephemeral=True)
         channel = channel or ctx.channel
-        war = await self.bot.coc_client.get_current_war(clan_tag=clan.tag)
-        event = {
-            'time': time_difference(
-                start=pend.now(tz=pend.UTC),
-                end=war.end_time.time.replace(tzinfo=pend.UTC),
-            ),
-            'clan_tag': clan.tag,
-            'data': war._raw_data,
-        }
-        await war_reminder(bot=self.bot, event=event, manual_send=True, channel=channel)
+
+        if type == 'War & CWL':
+            war = await self.bot.coc_client.get_current_war(clan_tag=clan.tag)
+            event = {
+                'time': time_difference(
+                    start=pend.now(tz=pend.UTC),
+                    end=war.end_time.time.replace(tzinfo=pend.UTC),
+                ),
+                'clan_tag': clan.tag,
+                'data': war._raw_data,
+            }
+            await war_reminder(bot=self.bot, event=event, manual_send=True, channel=channel)
+        elif type == 'Raid Weekend':
+            weekend = gen_raid_weekend_datestrings(1)[0]
+            raid_log_entry = await get_raidlog_entry(clan=clan, weekend=weekend, bot=self.bot, limit=1)
+            if raid_log_entry is None:
+                raise MessageException('Raid Weekend is not ongoing')
+            await clan_capital_reminder(
+                bot=self.bot,
+                server=ctx.guild,
+                reminder_time=time_difference(
+                    start=pend.now(tz=pend.UTC),
+                    end=raid_log_entry.end_time.time.replace(tzinfo=pend.UTC),
+                ),
+                attack_threshold=5,
+                raid_log_entry=raid_log_entry,
+                clan=clan,
+                custom_text=custom_text,
+                manual_send=True,
+                channel=channel,
+            )
         await ctx.edit_original_message(content=f'Reminder sent to {channel.mention}')
 
     @reminders.sub_command(

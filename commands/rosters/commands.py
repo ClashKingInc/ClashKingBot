@@ -1,7 +1,8 @@
 import asyncio
 import datetime
 from typing import List
-
+import uuid
+import base64
 import coc
 import disnake
 import pytz
@@ -27,95 +28,43 @@ class RosterCommands(commands.Cog, name='Rosters'):
     async def roster(self, ctx: disnake.ApplicationCommandInteraction):
         pass
 
-    @roster.sub_command(name='create', description='Create a roster')
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_create(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        clan: coc.Clan = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan),
-        roster_alias: str = commands.Param(autocomplete=autocomplete.roster_alias, max_length=100),
-        add_members_to_roster: str = commands.Param(default='No', choices=['Yes', 'No']),
+    @roster.sub_command(name='post', description='Post a roster')
+    async def roster_post(
+            self,
+            ctx: disnake.ApplicationCommandInteraction,
+            roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
+            type: str = commands.Param(choices=["Signup", "Post"])
     ):
-        await ctx.response.defer()
-        roster = Roster(bot=self.bot)
-        await roster.create_roster(
-            guild=ctx.guild,
-            clan=clan,
-            alias=roster_alias[:100],
-            add_members=(add_members_to_roster == 'Yes'),
-        )
-        embed = disnake.Embed(
-            description=f"**{roster.roster_result.get('alias')}** Roster created & tied to {roster.roster_result.get('clan_name')}",
-            color=disnake.Color.green(),
-        )
-        embed.set_thumbnail(url=clan.badge.url)
-        await ctx.edit_original_message(embed=embed)
-
-    @roster.sub_command(name='delete', description='Delete a roster')
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_delete(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
-    ):
-        await ctx.response.defer()
-        _roster = Roster(self.bot)
-        await _roster.find_roster(guild=ctx.guild, alias=roster)
-        await _roster.delete()
-        embed = disnake.Embed(
-            description=f"Roster - **{_roster.roster_result.get('alias')}** that was tied to {_roster.roster_result.get('clan_name')} has been **deleted**.",
-            color=disnake.Color.red(),
-        )
-        await ctx.edit_original_message(embed=embed)
-
-    @roster.sub_command(name='clear', description='Clear a roster')
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_clear(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
-    ):
-        await ctx.response.defer()
-        _roster = Roster(self.bot)
-        await _roster.find_roster(guild=ctx.guild, alias=roster)
-        await _roster.clear_roster()
-        embed = disnake.Embed(
-            description=f"Roster - **{_roster.roster_result.get('alias')}** that was tied to {_roster.roster_result.get('clan_name')} has been **cleared**.",
-            color=disnake.Color.red(),
-        )
-        await ctx.edit_original_message(embed=embed)
-
-    @roster.sub_command(name='signup', description='Create a signup for a roster')
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_create_signups(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
-    ):
-        await ctx.response.defer()
-        _roster = Roster(self.bot)
+        await ctx.response.defer(ephemeral=True)
+        _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
         embed = await _roster.embed()
-        signup_buttons = [
-            disnake.ui.Button(
-                label='Add',
-                emoji=self.bot.emoji.yes.partial_emoji,
-                style=disnake.ButtonStyle.green,
-                custom_id=f'Signup_{roster}',
-            ),
-            disnake.ui.Button(
-                label='Remove',
-                emoji=self.bot.emoji.no.partial_emoji,
-                style=disnake.ButtonStyle.red,
-                custom_id=f'RemoveMe_{roster}',
-            ),
-            disnake.ui.Button(
-                label='Sub',
-                emoji=self.bot.emoji.switch.partial_emoji,
-                style=disnake.ButtonStyle.blurple,
-                custom_id=f'SubMe_{roster}',
-            ),
-        ]
+        all_buttons = []
+        if type == "Signup":
+            signup_buttons = [
+                disnake.ui.Button(
+                    label='Add',
+                    emoji=self.bot.emoji.yes.partial_emoji,
+                    style=disnake.ButtonStyle.green,
+                    custom_id=f'Signup_{roster}',
+                ),
+                disnake.ui.Button(
+                    label='Remove',
+                    emoji=self.bot.emoji.no.partial_emoji,
+                    style=disnake.ButtonStyle.red,
+                    custom_id=f'RemoveMe_{roster}',
+                ),
+                disnake.ui.Button(
+                    label='Sub',
+                    emoji=self.bot.emoji.switch.partial_emoji,
+                    style=disnake.ButtonStyle.blurple,
+                    custom_id=f'SubMe_{roster}',
+                ),
+            ]
+            buttons = disnake.ui.ActionRow()
+            for button in signup_buttons:
+                buttons.append_item(button)
+            all_buttons.append(buttons)
         ad_buttons = [
             disnake.ui.Button(
                 label='',
@@ -137,12 +86,64 @@ class RosterCommands(commands.Cog, name='Rosters'):
             ),
         ]
         buttons = disnake.ui.ActionRow()
-        for button in signup_buttons:
-            buttons.append_item(button)
-        buttons2 = disnake.ui.ActionRow()
         for button in ad_buttons:
-            buttons2.append_item(button)
-        await ctx.edit_original_message(embed=embed, components=[buttons, buttons2])
+            buttons.append_item(button)
+        all_buttons.append(buttons)
+        await ctx.channel.send(embed=embed, components=all_buttons)
+        await ctx.send(content="Roster Sent", ephemeral=True)
+
+
+    @roster.sub_command(name='create', description='Create a roster')
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def roster_create(
+        self,
+        ctx: disnake.ApplicationCommandInteraction,
+        clan: coc.Clan = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan),
+        roster_alias: str = commands.Param(autocomplete=autocomplete.roster_alias, max_length=100),
+        add_members_to_roster: str = commands.Param(default='No', choices=['Yes', 'No']),
+    ):
+        await ctx.response.defer()
+        roster = Roster(bot=self.bot)
+        await roster.create_roster(
+            guild=ctx.guild,
+            clan=clan,
+            alias=roster_alias[:100],
+            add_members=(add_members_to_roster == 'Yes'),
+        )
+        embed = disnake.Embed(
+            description=f"**{roster.roster_result.get('alias')}** Roster created & tied to {roster.roster_result.get('clan_name')}, View with `/roster post`",
+            color=disnake.Color.green(),
+        )
+        embed.set_thumbnail(url=clan.badge.url)
+        await ctx.edit_original_message(embed=embed)
+
+
+    @roster.sub_command(name='delete', description='Delete members from a roster (or the roster itself)')
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def roster_delete(
+        self,
+        ctx: disnake.ApplicationCommandInteraction,
+        roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
+        type: str = commands.Param(choices=["Clear Members", "Delete Roster"])
+    ):
+        await ctx.response.defer()
+        _roster = Roster(self.bot)
+        await _roster.find_roster(guild=ctx.guild, alias=roster)
+        if type == "Delete Roster":
+            await _roster.delete()
+            embed = disnake.Embed(
+                description=f"Roster - **{_roster.roster_result.get('alias')}** that was tied to {_roster.roster_result.get('clan_name')} has been **deleted**.",
+                color=disnake.Color.red(),
+            )
+        elif type == "Clear Members":
+            await _roster.clear_roster()
+            embed = disnake.Embed(
+                description=f"Roster - **{_roster.roster_result.get('alias')}** that was tied to {_roster.roster_result.get('clan_name')} has been **cleared**.",
+                color=disnake.Color.red(),
+            )
+        await ctx.edit_original_message(embed=embed)
+
+
 
     @roster.sub_command(name='add-player', description='Add a player to a roster')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -412,40 +413,6 @@ class RosterCommands(commands.Cog, name='Rosters'):
         embed = disnake.Embed(title='Roster Group Changes', description=text, color=disnake.Color.green())
         return await ctx.edit_original_message(embed=embed)
 
-    @roster.sub_command(name='post', description='Post a roster')
-    async def roster_post(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
-    ):
-        await ctx.response.defer()
-        _roster = Roster(bot=self.bot)
-        await _roster.find_roster(guild=ctx.guild, alias=roster)
-        embed = await _roster.embed()
-        ad_buttons = [
-            disnake.ui.Button(
-                label='',
-                emoji=self.bot.emoji.refresh.partial_emoji,
-                style=disnake.ButtonStyle.grey,
-                custom_id=f'Refresh_{roster}',
-            ),
-            disnake.ui.Button(
-                label='Clan Link',
-                emoji='🔗',
-                style=disnake.ButtonStyle.url,
-                url=f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{_roster.roster_result.get('clan_tag').strip('#')}",
-            ),
-            disnake.ui.Button(
-                label='',
-                emoji=self.bot.emoji.menu.partial_emoji,
-                style=disnake.ButtonStyle.grey,
-                custom_id=f'Menu_{roster}',
-            ),
-        ]
-        buttons = disnake.ui.ActionRow()
-        for button in ad_buttons:
-            buttons.append_item(button)
-        await ctx.edit_original_message(embed=embed, components=[buttons])
 
     @roster.sub_command(
         name='refresh',
@@ -499,6 +466,7 @@ class RosterCommands(commands.Cog, name='Rosters'):
             if ctx.guild.icon is not None:
                 embed.set_thumbnail(url=ctx.guild.icon.url)
             await ctx.edit_original_message(content=None, embed=embed)
+
 
     @roster.sub_command(name='missing', description="Players that aren't in the clan tied to the roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -563,383 +531,28 @@ class RosterCommands(commands.Cog, name='Rosters'):
         await msg.edit(components=[])
         await res.send(content=f'{_roster.missing_text}{missing_text}')
 
+
     @roster.sub_command(
-        name='restrict',
-        description='Set restrictions for a roster - th level & max roster size',
+        name='settings',
+        description='Edit settings for a roster',
     )
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_restrict(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
-        th_min: int = None,
-        th_max: int = None,
-        max_roster_size: int = None,
+
     ):
-        """
-        Parameters
-        ----------
-        roster: roster to edit
-        th_min: set a th minimum that can sign up
-        th_max: set a th maximum that can sign up
-        max_roster_size: set a max roster size (largest is 60 including subs)
-        """
-        if th_min is None and th_max is None and max_roster_size is None:
-            embed = disnake.Embed(
-                description=f'**Please enter at least one field**.',
-                color=disnake.Color.red(),
-            )
-            return await ctx.send(embed=embed)
-        _roster = Roster(bot=self.bot)
-        await _roster.find_roster(guild=ctx.guild, alias=roster)
-        old_th_min = _roster.th_min
-        old_th_max = _roster.th_max
-        if th_min is not None or th_max is not None:
-            if th_min is None:
-                th_min = old_th_min
-            if th_max is None:
-                th_max = old_th_max
-            await _roster.restrict_th(min=th_min, max=th_max)
+        await ctx.response.defer(ephemeral=True)
+        random_uuid = uuid.uuid4()
+        uuid_bytes = random_uuid.bytes
+        base64_uuid = base64.urlsafe_b64encode(uuid_bytes).rstrip(b'=')
+        url_safe_uuid = base64_uuid.decode('utf-8')
+        await self.bot.rosters.update_one({'$and': [{'server_id': ctx.guild.id}, {'alias': roster}]}, {"$set" : {"token" : url_safe_uuid}})
+        await ctx.send(content=f"Edit your roster here -> https://api.clashking.xyz/roster/?token={url_safe_uuid}", ephemeral=True)
 
-        if max_roster_size is not None:
-            if max_roster_size > 60:
-                max_roster_size = 60
-            if max_roster_size == 0:
-                max_roster_size = 1
-            await _roster.restrict_size(roster_size=max_roster_size)
 
-        embed = disnake.Embed(
-            description=f"**{_roster.roster_result.get('alias')}** restrictions have been updated.",
-            color=disnake.Color.green(),
-        )
-        embed.set_thumbnail(url=_roster.roster_result.get('clan_badge'))
-        await ctx.send(embed=embed)
 
-    @roster.sub_command(name='layout', description='Edit roster name, description')
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_edit_layout(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
-        clear: str | None = commands.Param(default=None, choices=['Description', 'Image']),
-    ):
-        if clear is not None:
-            await ctx.response.defer()
-            if clear == 'Image':
-                _roster = Roster(bot=self.bot)
-                await _roster.find_roster(guild=ctx.guild, alias=roster)
-                await _roster.set_image(url='https://cdn.discordapp.com/attachments/1028905437300531271/1028905577662922772/unknown.png')
-                embed = disnake.Embed(
-                    description=f'{roster} Roster image removed',
-                    colour=disnake.Color.green(),
-                )
-                return await ctx.edit_original_message(embed=embed)
-            elif clear == 'Description':
-                _roster = Roster(bot=self.bot)
-                await _roster.find_roster(guild=ctx.guild, alias=roster)
-                await _roster.set_description(description=None)
-                embed = disnake.Embed(
-                    description=f'{roster} Roster description removed',
-                    colour=disnake.Color.green(),
-                )
-                return await ctx.edit_original_message(embed=embed)
-
-        components = [
-            disnake.ui.TextInput(
-                label=f'New Roster Name',
-                placeholder='New Name to Set',
-                custom_id=f'name',
-                required=False,
-                style=disnake.TextInputStyle.single_line,
-                max_length=75,
-            ),
-            disnake.ui.TextInput(
-                label=f'New Roster Description',
-                placeholder='New Description to Set',
-                custom_id=f'description',
-                required=False,
-                style=disnake.TextInputStyle.single_line,
-                max_length=100,
-            ),
-            disnake.ui.TextInput(
-                label=f'New Roster Image',
-                placeholder='Link to New Image to Set',
-                custom_id=f'image',
-                required=False,
-                style=disnake.TextInputStyle.single_line,
-                max_length=250,
-            ),
-        ]
-        await ctx.response.send_modal(
-            title='Edit Layout',
-            custom_id=f'layout-{int(datetime.datetime.now().timestamp())}',
-            components=components,
-        )
-
-        def check(res):
-            return ctx.author.id == res.author.id
-
-        try:
-            modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
-                'modal_submit',
-                check=check,
-                timeout=300,
-            )
-        except:
-            return
-        await modal_inter.response.defer()
-        new_name = modal_inter.text_values['name']
-        description = modal_inter.text_values['description']
-        image = modal_inter.text_values['image']
-
-        _roster = Roster(bot=self.bot)
-        await _roster.find_roster(guild=ctx.guild, alias=roster)
-
-        text = ''
-        if new_name != '':
-            await _roster.rename(new_name=new_name)
-            await _roster.find_roster(guild=ctx.guild, alias=new_name)
-            text += f'Roster renamed to **{new_name}**\n'
-
-        if description != '':
-            await _roster.set_description(description=description)
-            text += f'Roster description set to `{description}`\n'
-
-        if image != '':
-            pic = await _roster.set_image(url=image)
-            text += 'Roster image set to the below (if not showing, image was invalid)'
-
-        if text == '':
-            text = 'No Changes Made.'
-        embed = disnake.Embed(description=text, color=disnake.Color.green())
-
-        if image != '':
-            embed.set_image(url=pic)
-
-        embed.set_thumbnail(url=_roster.roster_result.get('clan_badge'))
-        await modal_inter.edit_original_message(embed=embed)
-
-    @roster.sub_command(name='time', description='Set a time for roster/event')
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_time(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
-        timezone: str = commands.Param(autocomplete=autocomplete.timezone),
-        remove=commands.Param(default=None, choices=['Yes']),
-    ):
-        if remove == 'Yes':
-            await ctx.response.defer()
-            _roster = Roster(bot=self.bot)
-            await _roster.find_roster(guild=ctx.guild, alias=roster)
-            await _roster.set_time(time=None)
-            embed = disnake.Embed(
-                description=f'{roster} Roster time removed',
-                colour=disnake.Color.green(),
-            )
-            return await ctx.edit_original_message(embed=embed)
-
-        components = [
-            disnake.ui.TextInput(
-                label=f'Enter the Date (2002-03-12)',
-                placeholder='YYYY-MM-DD',
-                custom_id=f'date',
-                required=True,
-                style=disnake.TextInputStyle.single_line,
-                max_length=50,
-            ),
-            disnake.ui.TextInput(
-                label=f'Enter the Time (21:30)',
-                placeholder='HH:MM',
-                custom_id=f'time',
-                required=True,
-                style=disnake.TextInputStyle.single_line,
-                max_length=50,
-            ),
-        ]
-        # await ctx.send(content="Modal Opened", ephemeral=True)
-        await ctx.response.send_modal(
-            title='Enter Date & Time',
-            custom_id=f'date-time-{int(datetime.datetime.now().timestamp())}',
-            components=components,
-        )
-
-        def check(res):
-            return ctx.author.id == res.author.id
-
-        try:
-            modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
-                'modal_submit',
-                check=check,
-                timeout=300,
-            )
-        except:
-            return
-
-        date = modal_inter.text_values['date']
-        time = modal_inter.text_values['time']
-
-        tz = pytz.timezone(timezone)
-        try:
-            timestamp = pytz.timezone(timezone).localize(datetime.datetime.strptime(f'{date}T{time}', '%Y-%m-%dT%H:%M'))
-            timestamp = int(timestamp.timestamp())
-        except:
-            return await modal_inter.send(content='**Invalid Date/Time**', ephemeral=True)
-
-        await modal_inter.response.defer()
-        _roster = Roster(bot=self.bot)
-        await _roster.find_roster(guild=ctx.guild, alias=roster)
-        await _roster.set_time(time=timestamp)
-        embed = disnake.Embed(
-            description=f'{roster} Roster time set to <t:{timestamp}:F>',
-            color=disnake.Color.green(),
-        )
-        await modal_inter.edit_original_message(embed=embed)
-
-    @roster.sub_command(name='change-link', description='Change linked clan for roster')
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_change_link(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
-        clan: coc.Clan = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan),
-    ):
-        _roster = Roster(bot=self.bot)
-        await ctx.response.defer()
-        await _roster.find_roster(guild=ctx.guild, alias=roster)
-        await _roster.change_linked_clan(new_clan=clan)
-        embed = disnake.Embed(
-            description=f"Roster **{_roster.roster_result.get('alias')}** linked clan has been changed to **{clan.name}**",
-            color=disnake.Color.green(),
-        )
-        embed.set_thumbnail(url=clan.badge.url)
-        await ctx.edit_original_message(embed=embed)
-
-    @roster.sub_command(name='sort', description='Choose how to sort your roster')
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_sort(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
-    ):
-        _roster = Roster(bot=self.bot)
-        await ctx.response.defer()
-        await _roster.find_roster(guild=ctx.guild, alias=roster)
-        column_choices = [
-            'Name',
-            'Player Tag',
-            'Heroes',
-            'Townhall Level',
-            'Discord',
-            '30 Day Hitrate',
-            'Current Clan',
-            'Clan Tag',
-            'War Opt Status',
-            'Trophies',
-        ]
-        select_options = []
-        for category in column_choices:
-            select_options.append(disnake.SelectOption(label=category, value=category))
-        select = disnake.ui.Select(
-            options=select_options,
-            placeholder='Categories',  # the placeholder text to show when no options have been chosen
-            min_values=1,  # the minimum number of options a user must select
-            max_values=4,  # the maximum number of options a user can select
-        )
-        dropdown = [disnake.ui.ActionRow(select)]
-        embed = disnake.Embed(
-            description='**Select from the column choices below\nNOTE: The order you pick them is the order they will be sorted in..**',
-            color=disnake.Color.green(),
-        )
-        await ctx.edit_original_message(embed=embed, components=dropdown)
-        msg = await ctx.original_message()
-
-        def check(res: disnake.MessageInteraction):
-            return res.message.id == msg.id
-
-        try:
-            res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', check=check, timeout=600)
-        except:
-            return await msg.edit(components=[])
-
-        await res.response.defer()
-        await _roster.set_sort(columns=res.values)
-        embed = disnake.Embed(
-            description=f"{roster} roster sort by : `{', '.join(res.values)}`",
-            color=disnake.Color.green(),
-        )
-        await res.edit_original_message(embed=embed, components=[])
-
-    @roster.sub_command(name='columns', description='Choose the columns of your roster')
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_columns(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        roster: str = commands.Param(name='roster_', autocomplete=autocomplete.roster_alias),
-    ):
-        await ctx.response.defer()
-        column_choices = [
-            'Name',
-            'Player Tag',
-            'Heroes',
-            'Townhall Level',
-            'Discord',
-            '30 Day Hitrate',
-            'Current Clan',
-            'Clan Tag',
-            'War Opt Status',
-            'Trophies',
-        ]
-        roster_list = []
-        if roster != 'SET ALL':
-            _roster = Roster(bot=self.bot)
-            await _roster.find_roster(guild=ctx.guild, alias=roster)
-            roster_list.append(_roster)
-        else:
-            results = await self.bot.rosters.find({'server_id': ctx.guild.id}).to_list(length=None)
-            for count, roster in enumerate(results, 1):
-                _roster = Roster(bot=self.bot, roster_result=roster)
-                roster_list.append(_roster)
-            roster = "All Roster's"
-        select_options = []
-        for category in column_choices:
-            select_options.append(disnake.SelectOption(label=category, value=category))
-        select = disnake.ui.Select(
-            options=select_options,
-            placeholder='Categories',  # the placeholder text to show when no options have been chosen
-            min_values=1,  # the minimum number of options a user must select
-            max_values=4,  # the maximum number of options a user can select
-        )
-        dropdown = [disnake.ui.ActionRow(select)]
-        embed = disnake.Embed(
-            description='**Select from the column choices below\nNOTE: The order you pick them is the order they will appear on your roster from left to right.**',
-            color=disnake.Color.green(),
-        )
-        await ctx.edit_original_message(embed=embed, components=dropdown)
-        msg = await ctx.original_message()
-
-        def check(res: disnake.MessageInteraction):
-            return res.message.id == msg.id
-
-        try:
-            res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', check=check, timeout=600)
-        except:
-            return await msg.edit(components=[])
-
-        await res.response.defer()
-        if 'Name' not in res.values:
-            embed = disnake.Embed(
-                description=f'Name is a required column field.',
-                color=disnake.Color.red(),
-            )
-            return await res.edit_original_message(embed=embed, components=[])
-        for r in roster_list:
-            await r.set_columns(columns=res.values)
-        embed = disnake.Embed(
-            description=f"{roster} columns set to : `{', '.join(res.values)}`",
-            color=disnake.Color.green(),
-        )
-        await res.edit_original_message(embed=embed, components=[])
 
     @roster.sub_command(name='list', description='List of rosters on this server')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())

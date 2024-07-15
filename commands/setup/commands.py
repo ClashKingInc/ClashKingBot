@@ -10,7 +10,7 @@ from aiohttp import TCPConnector
 from disnake.ext import commands
 
 from classes.bot import CustomClient
-from classes.server import DatabaseClan
+from classes.DatabaseClient.Classes.settings import DatabaseClan
 from discord import autocomplete, convert, options
 from exceptions.CustomExceptions import *
 from utility.components import clan_component
@@ -133,6 +133,7 @@ class SetupCommands(commands.Cog, name='Setup'):
             lookup = await self.bot.custom_embeds.find_one({'$and': [{'server': ctx.guild_id}, {'name': greeting}]})
             if lookup is None:
                 raise MessageException('No embed/message with that name found on this server')
+            await db_clan.set_greeting(text=greeting)
             changed_text += f'- **Greeting set to the embed/message:** {greeting}'
         if member_role is not None:
             await db_clan.set_member_role(id=member_role.id)

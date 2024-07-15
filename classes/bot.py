@@ -130,6 +130,8 @@ class CustomClient(commands.AutoShardedBot):
         self.ignoredroles: collection_class = self.db_client.usafam.evalignore
         self.generalfamroles: collection_class = self.db_client.usafam.generalrole
         self.familyexclusiveroles: collection_class = self.db_client.usafam.familyexclusiveroles
+        self.family_position_roles: collection_class = self.db_client.usafam.family_roles
+
         self.notfamroles: collection_class = self.db_client.usafam.linkrole
         self.townhallroles: collection_class = self.db_client.usafam.townhallroles
         self.builderhallroles: collection_class = self.db_client.usafam.builderhallroles
@@ -542,6 +544,8 @@ class CustomClient(commands.AutoShardedBot):
         found_results=None,
     ):
         fresh_tags = fresh_tags or []
+
+        tags = [p.split('|')[-1].strip() for p in tags]
 
         results_dict = {}
         results_list = found_results if found_results else []

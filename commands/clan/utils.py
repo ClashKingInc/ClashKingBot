@@ -194,17 +194,12 @@ async def basic_clan_board(
 ):
     leader = coc.utils.get(clan.members, role=coc.Role.leader)
 
+    warwin = clan.war_wins
+    warloss = clan.war_losses or 'Hidden Log'
+    winstreak = clan.war_win_streak
     if clan.public_war_log:
-        warwin = clan.war_wins
-        warloss = clan.war_losses
-        if warloss == 0:
-            warloss = 1
-        winstreak = clan.war_win_streak
-        winrate = round((warwin / warloss), 2)
+        winrate = round((warwin / (warloss if clan.war_losses != 0 else 1)), 2)
     else:
-        warwin = clan.war_wins
-        warloss = 'Hidden Log'
-        winstreak = clan.war_win_streak
         winrate = 'Hidden Log'
 
     if str(clan.location) == 'International' or clan.location is None:
@@ -1293,6 +1288,8 @@ async def clan_summary(
     # we dont want results w/ no name
     results = await bot.player_stats.find({'$and': [{'tag': {'$in': member_tags}}, {'name': {'$ne': None}}]}).to_list(length=None)
 
+    if not results:
+        raise MessageException("No stats for this clan found. If you haven't already, add it with `/addclan`")
     text = ''
     for option, emoji in zip(
         ['gold', 'elixir', 'dark_elixir'],

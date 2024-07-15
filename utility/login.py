@@ -20,7 +20,7 @@ async def coc_login(bot):
         cache_max_size=1000,
         load_game_data=coc.LoadGameData(always=False),
         raw_attribute=True,
-        stats_max_size=10000,
+        stats_max_size=10_000,
     )
     if config.min_coc_email == 1:
         tokens = await bot.new_looper.get_collection('api_tokens').distinct('token')

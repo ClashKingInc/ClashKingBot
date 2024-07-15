@@ -162,6 +162,7 @@ troop_emojis = {
     'Headhunter': '<:Headhunter:1247040033664532512>',
     'Electro Titan': '<:ElectroTitan:1247040035036074060>',
     'Apprentice Warden': '<:Apprentice:1247040036617060404>',
+    'Druid' : '<:Druid:1252828329971552256>'
 }
 
 hero_emojis = {

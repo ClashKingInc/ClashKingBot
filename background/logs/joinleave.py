@@ -1,11 +1,11 @@
 import coc
 import disnake
-import ujson
+import ast
 from disnake.ext import commands
 
 from background.logs.events import clan_ee
 from classes.bot import CustomClient
-from classes.server import DatabaseClan
+from classes.DatabaseClient.Classes.settings import DatabaseClan
 from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.clash.other import basic_heros, leagueAndTrophies
 from utility.discord_utils import get_webhook_for_channel
@@ -63,9 +63,11 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
                         )
                         if greet_message is None:
                             greet_message = {
-                                'content': 'Welcome {user_mention} to **{clan_name}**',
+                                'content': 'Welcome {user_mention} to **{clan_name}**!',
                                 'embeds': [],
                             }
+                        else:
+                            greet_message = greet_message.get('data', {})
 
                         for player in player_pull:
                             send = True
@@ -99,7 +101,7 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
                                 for type, replace in types.items():
                                     local_greet_message = local_greet_message.replace(type, str(replace))
 
-                                local_greet_message = ujson.loads(local_greet_message)
+                                local_greet_message = ast.literal_eval(local_greet_message)
 
                                 channel = await self.bot.getch_channel(db_clan.clan_channel)
                                 if channel is not None:

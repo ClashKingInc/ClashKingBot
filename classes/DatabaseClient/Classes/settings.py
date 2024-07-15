@@ -3,8 +3,7 @@ from typing import TYPE_CHECKING, List, Union
 import coc
 import disnake
 
-from utility.constants import ROLE_TREATMENT_TYPES
-
+from utility.constants import ROLE_TREATMENT_TYPES, AUTOREFRESH_TRIGGERS
 
 if TYPE_CHECKING:
     from classes.bot import CustomClient
@@ -32,6 +31,9 @@ class DatabaseServer:
         self.family_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('family_roles', [])]
         self.not_family_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('not_family_roles', [])]
         self.only_family_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('only_family_roles', [])]
+        self.family_elder_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('family_position_roles', []) if d.get("type") == "family_elder_roles"]
+        self.family_coleader_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('family_position_roles', []) if d.get("type") == "family_co-leader_roles"]
+        self.family_leader_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('family_position_roles', []) if d.get("type") == "family_leader_roles"]
 
         self.townhall_roles = [TownhallRole(bot=bot, data=d) for d in data.get('eval', {}).get('townhall_roles', [])]
         self.builderhall_roles = [BuilderHallRole(bot=bot, data=d) for d in data.get('eval', {}).get('builderhall_roles', [])]
@@ -46,7 +48,7 @@ class DatabaseServer:
         self.blacklisted_roles: List[int] = data.get('blacklisted_roles', [])
         self.role_treatment: List[str] = data.get('role_treatment', ROLE_TREATMENT_TYPES)
         self.auto_eval_nickname: bool = data.get('auto_eval_nickname', False)
-        self.autoeval_triggers = set(data.get('autoeval_triggers', []))
+        self.autoeval_triggers = set(data.get('autoeval_triggers', AUTOREFRESH_TRIGGERS))
         self.auto_eval_log = data.get('autoeval_log')
         self.auto_eval_status = data.get('autoeval', False)
 
@@ -312,6 +314,12 @@ class DatabaseClan:
             {'$set': {'warCountdown': id}},
         )
 
+    async def set_war_timer_countdown(self, id: Union[int, None]):
+        await self.bot.clan_db.update_one(
+            {'$and': [{'tag': self.tag}, {'server': self.server_id}]},
+            {'$set': {'warTimerCountdown': id}},
+        )
+
     async def set_clan_channel(self, id: Union[int, None]):
         await self.bot.clan_db.update_one(
             {'$and': [{'tag': self.tag}, {'server': self.server_id}]},
@@ -340,6 +348,12 @@ class DatabaseClan:
         await self.bot.clan_db.update_one(
             {'$and': [{'tag': self.tag}, {'server': self.server_id}]},
             {'$set': {'greeting': text}},
+        )
+
+    async def set_auto_greet(self, option: str):
+        await self.bot.clan_db.update_one(
+            {'$and': [{'tag': self.tag}, {'server': self.server_id}]},
+            {'$set': {'auto_greet_option': option}},
         )
 
     async def set_category(self, category: str):

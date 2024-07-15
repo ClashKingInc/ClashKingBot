@@ -39,6 +39,9 @@ async def logic(
     family_roles = {r.id for r in db_server.family_roles}
     not_family_roles = {r.id for r in db_server.not_family_roles}
     only_family_roles = {r.id for r in db_server.only_family_roles}
+    family_elder_roles = {r.id for r in db_server.family_elder_roles}
+    family_coleader_roles = {r.id for r in db_server.family_coleader_roles}
+    family_leader_roles = {r.id for r in db_server.family_leader_roles}
 
     clan_member_roles = {c.tag: c.member_role for c in db_server.clans}
     clan_leadership_roles = {c.tag: c.leader_role for c in db_server.clans}
@@ -65,7 +68,7 @@ async def logic(
         all_tags.append(player_tag)
 
     type_to_roles = {
-        'family': list(family_roles),
+        'family': list(family_roles) + list(family_elder_roles) + list(family_coleader_roles) + list(family_leader_roles),
         'not_family': list(not_family_roles),
         'only_family': list(only_family_roles),
         'clan': list(clan_member_roles.values()),
@@ -175,6 +178,16 @@ async def logic(
                 if player.role.in_game_name in ['Co-Leader', 'Leader']:
                     ROLES_TO_ADD.add(clan_leadership_roles.get(player.clan.tag))
 
+            if is_family:
+                if player.role.in_game_name == "Elder":
+                    for role_id in family_elder_roles:
+                        ROLES_TO_ADD.add(role_id)
+                elif player.role.in_game_name == "Co-Leader":
+                    for role_id in family_coleader_roles:
+                        ROLES_TO_ADD.add(role_id)
+                elif player.role.in_game_name == "Leader":
+                    for role_id in family_leader_roles:
+                        ROLES_TO_ADD.add(role_id)
             return EvalResult(is_family=is_family, roles_to_add=ROLES_TO_ADD)
 
         results = []
@@ -356,20 +369,31 @@ async def logic(
 
 
 async def family_role_add(database, type: str, role: disnake.Role, guild: disnake.Guild) -> disnake.Embed:
-    results = await database.find_one({'$and': [{'role': role.id}, {'server': guild.id}]})
+    internal_type = type.lower().replace(' ', '_')
+
+    # we do this because the newer roles types are all in one database & need to be accessed a certain way
+    if database.name == 'family_roles':
+        results = await database.find_one({'$and': [{'role': role.id}, {'type': internal_type}, {'server': guild.id}]})
+    else:
+        results = await database.find_one({'$and': [{'role': role.id}, {'server': guild.id}]})
+
     if results is not None:
         return disnake.Embed(
             description=f'{role.mention} is already in the {type} list.',
             color=disnake.Color.red(),
         )
 
+    # don't like this...
     if role.is_default():
         return disnake.Embed(
             description=f'Cannot use the @everyone role for {type}',
             color=disnake.Color.red(),
         )
 
-    await database.insert_one({'server': guild.id, 'role': role.id})
+    if database.name == 'family_roles':
+        await database.insert_one({'role': role.id, 'type': internal_type, 'server': guild.id})
+    else:
+        await database.insert_one({'server': guild.id, 'role': role.id})
 
     embed = disnake.Embed(
         description=f'{role.mention} added to the {type} list.',
@@ -379,20 +403,24 @@ async def family_role_add(database, type: str, role: disnake.Role, guild: disnak
 
 
 async def family_role_remove(database, type: str, role: disnake.Role, guild: disnake.Guild) -> disnake.Embed:
-    results = await database.find_one({'$and': [{'role': role.id}, {'server': guild.id}]})
+    internal_type = type.lower().replace(' ', '_')
+
+    # we do this because the newer roles types are all in one database & need to be accessed a certain way
+    if database.name == 'family_roles':
+        results = await database.find_one({'$and': [{'role': role.id}, {'type': internal_type}, {'server': guild.id}]})
+    else:
+        results = await database.find_one({'$and': [{'role': role.id}, {'server': guild.id}]})
+
     if results is None:
         return disnake.Embed(
             description=f'{role.mention} is not currently in the {type} list.',
             color=disnake.Color.red(),
         )
 
-    if role.is_default():
-        return disnake.Embed(
-            description=f'Cannot use the @everyone role for {type}',
-            color=disnake.Color.red(),
-        )
-
-    await database.find_one_and_delete({'role': role.id})
+    if database.name == 'family_roles':
+        await database.delete_one({'$and': [{'role': role.id}, {'type': internal_type}]})
+    else:
+        await database.delete_one({'role': role.id})
 
     return disnake.Embed(
         description=f'{role.mention} removed from the {type} list.',
