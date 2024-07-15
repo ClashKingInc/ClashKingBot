@@ -5,7 +5,7 @@ from pymongo import UpdateOne
 
 from background.logs.events import clan_ee
 from classes.bot import CustomClient
-from classes.server import DatabaseClan
+from classes.DatabaseClient.Classes.settings import DatabaseClan
 from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.discord_utils import get_webhook_for_channel
 

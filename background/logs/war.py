@@ -6,7 +6,7 @@ from disnake.ext import commands
 from background.logs.events import war_ee
 from classes.bot import CustomClient
 from classes.DatabaseClient.Classes.settings import DatabaseClan
-from classes.server import DatabaseClan
+from classes.DatabaseClient.Classes.settings import DatabaseClan
 from commands.war.utils import attacks_embed, defenses_embed, main_war_page, missed_hits
 from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.discord_utils import get_webhook_for_channel

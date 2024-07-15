@@ -9,7 +9,7 @@ from pytz import utc
 
 from background.logs.events import player_ee, raid_ee
 from classes.bot import CustomClient
-from classes.server import DatabaseClan
+from classes.DatabaseClient.Classes.settings import DatabaseClan
 from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.clash.capital import calc_raid_medals
 
