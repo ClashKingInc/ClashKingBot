@@ -1,6 +1,6 @@
 player-name = player
 player-description = Commands for player accounts & stats
-lookup-name = lookup
+lookup-name = tra cứu
 player-lookup-description = Lookup a player or discord user.
 upgrades-name = upgrades
 player-upgrades-description = Show upgrades left for an account.
