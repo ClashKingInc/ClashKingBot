@@ -307,6 +307,11 @@ class DatabaseClan:
         self.war_countdown = data.get('warCountdown')
         self.war_timer_countdown = data.get('warTimerCountdown')
         self.member_count_warning = MemberCountWarning(parent=self)
+        self.clan_achievement_log = ClanLog(parent=self, type='clan_achievement_log')
+        self.clan_requirements_log = ClanLog(parent=self, type='clan_requirements_log')
+        self.clan_description_log = ClanLog(parent=self, type='clan_description_log')
+        self.cwl_lineup_change_log = ClanLog(parent=self, type='cwl_lineup_change')
+        self.auto_greet_option = data.get('auto_greet_option', 'First Join')
 
     async def set_war_countdown(self, id: Union[int, None]):
         await self.bot.clan_db.update_one(
