@@ -1,4 +1,4 @@
-player-name = player
+player-name = gracz
 player-description = Commands for player accounts & stats
 lookup-name = lookup
 player-lookup-description = Lookup a player or discord user.
