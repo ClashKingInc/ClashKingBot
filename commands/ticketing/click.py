@@ -197,7 +197,7 @@ class TicketClick(commands.Cog):
             panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
 
             await panel.send_log(
-                log_type=LOG_TYPE.STATUS_CHANGE,
+                log_type=LOG_TYPE.TICKET_CLOSE,
                 user=ctx.user,
                 ticket_channel=ctx.channel,
                 ticket=ticket,
