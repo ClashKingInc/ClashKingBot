@@ -126,7 +126,8 @@ async def open_ticket(
         )
         text = ' '.join([role.mention for role in no_ping_roles + ping_roles if role is not None])
         if text.replace(' ', '') != '':
-            await thread.send(content=text)
+            msg = await thread.send(content="Thread Created")
+            await msg.edit(content=text)
         channels.append(thread)
 
     return channels
