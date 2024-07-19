@@ -314,7 +314,7 @@ class DatabaseClan:
         self.war_countdown = data.get('warCountdown')
         self.war_timer_countdown = data.get('warTimerCountdown')
         self.member_count_warning = MemberCountWarning(parent=self)
-        self.auto_greet_option = data.get('auto_greet_option', 'First Join')
+        self.auto_greet_option = data.get('auto_greet_option', 'Never')
 
 
     async def set_war_countdown(self, id: Union[int, None]):
