@@ -464,7 +464,9 @@ class SetupCommands(commands.Cog, name='Setup'):
         name: this purely an identifier, is not the name the bot will actually have
         bot_token: token as found on the discord developer website
         """
-
+        
+        await ctx.response.defer(ephemeral=True)
+        
         if not self.bot.user.public_flags.verified_bot:
             raise MessageException('This command can only be run on the main ClashKing bot')
 
@@ -474,9 +476,9 @@ class SetupCommands(commands.Cog, name='Setup'):
         premium_users = my_server.get_role(1018316361241477212)
         find = disnake.utils.get(premium_users.members, id=ctx.user.id)
 
-        if not find:
+        if not find and ctx.guild.member_count < 250:
             raise MessageException(
-                'Must have a current ClashKing subscription to create a custom bot. Visit our discord server to learn more: discord.gg/clashking'
+                'Must have a current ClashKing subscription or have 250+ discord members, to create a custom bot. Visit our discord server to learn more: discord.gg/clashking'
             )
         name = re.sub(r'[^a-zA-Z]', '', name)
         name = name.replace(' ', '').lower()
@@ -486,7 +488,6 @@ class SetupCommands(commands.Cog, name='Setup'):
         if name in ['clashking', 'clashking_beta', 'portainer', 'watchtower'] or 'aa_' in name:
             raise MessageException('Name is not allowed, those names are reserved.')
 
-        await ctx.response.defer(ephemeral=True)
         # make sure they have only created one before and that the name is not taken and check that they themselves or this server dont have one already
         result = await self.bot.custom_bots.find_one({'$and': [{'name': name}, {'user': {'$ne': ctx.user.id}}]})
         if result is not None:
