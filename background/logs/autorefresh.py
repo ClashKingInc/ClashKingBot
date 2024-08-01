@@ -53,16 +53,19 @@ class AutoEval(commands.Cog):
                     if role.id in db_server.blacklisted_roles:
                         return
 
-                await logic(
-                    bot=self.bot,
-                    guild=server,
-                    db_server=db_server,
-                    members=[discord_member],
-                    role_or_user=discord_member,
-                    eval_types=DEFAULT_EVAL_ROLE_TYPES,
-                    role_treatment=db_server.role_treatment,
-                    reason=f'Triggered by {trigger_name} ({player_name})',
-                )
+                try:
+                    await logic(
+                        bot=self.bot,
+                        guild=server,
+                        db_server=db_server,
+                        members=[discord_member],
+                        role_or_user=discord_member,
+                        eval_types=DEFAULT_EVAL_ROLE_TYPES,
+                        role_treatment=db_server.role_treatment,
+                        reason=f'Triggered by {trigger_name} ({player_name})',
+                    )
+                except:
+                    pass
 
 
     async def clan_auto_refresh(self, event):
@@ -89,7 +92,7 @@ class AutoEval(commands.Cog):
             if not to_run:
                 continue
 
-            links = await self.bot.link_client.get_links(*to_run)
+            links = await self.bot.link_client.get_links(*[n.get("tag") for n in to_run])
             discord_users = set(id for _, id in links if id is not None)
 
             server = await self.bot.getch_guild(server_id)
@@ -103,16 +106,20 @@ class AutoEval(commands.Cog):
                 discord_members = [member for member in discord_members
                                    if not any(role.id in db_server.blacklisted_roles for role in member.roles)]
 
-            await logic(
-                bot=self.bot,
-                guild=server,
-                db_server=db_server,
-                members=discord_members,
-                role_or_user=clan,
-                eval_types=DEFAULT_EVAL_ROLE_TYPES,
-                role_treatment=db_server.role_treatment,
-                reason=f'Triggered by clan join/leave ({clan.name})',
-            )
+            try:
+                await logic(
+                    bot=self.bot,
+                    guild=server,
+                    db_server=db_server,
+                    members=discord_members,
+                    role_or_user=clan,
+                    eval_types=DEFAULT_EVAL_ROLE_TYPES,
+                    role_treatment=db_server.role_treatment,
+                    reason=f'Triggered by clan join/leave ({clan.name})',
+                )
+            except:
+                #message exceptions can happen
+                pass
 
 def setup(bot: CustomClient):
     bot.add_cog(AutoEval(bot))

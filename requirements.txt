@@ -1,3 +1,4 @@
+aiocache==0.12.2
 aiofiles==0.6.0
 aiokafka==0.10.0
 APScheduler==3.9.1

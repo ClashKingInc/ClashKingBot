@@ -4,7 +4,6 @@ import functools
 import io
 import re
 from datetime import datetime, timedelta
-from functools import lru_cache
 from math import ceil
 from typing import Callable, Dict, List
 
@@ -22,6 +21,7 @@ from coc.ext import discordlinks
 from disnake.ext import commands, fluent
 from expiring_dict import ExpiringDict
 from redis import asyncio as redis
+from aiocache import cached, SimpleMemoryCache
 
 from assets.emojis import SharedEmojis
 from background.logs.events import kafka_events
@@ -69,8 +69,10 @@ class CustomClient(commands.AutoShardedBot):
 
         self.scheduler = scheduler
         self.ck_client: FamilyClient = None
+        self.max_pool_size = 100 if not config.is_beta else 1
 
         self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(self._config.stats_mongodb, compressors='snappy')
+
         self.new_looper = self.looper_db.get_database('new_looper')
         self.stats = self.looper_db.get_database(name='stats')
         self.cache = self.looper_db.get_database(name='cache')
@@ -122,7 +124,7 @@ class CustomClient(commands.AutoShardedBot):
         self.war_timers: collection_class = self.looper_db.looper.war_timer
         self.number_emojis: collection_class = self.looper_db.clashking.number_emojis
 
-        self.db_client = motor.motor_asyncio.AsyncIOMotorClient(self._config.static_mongodb)
+        self.db_client = motor.motor_asyncio.AsyncIOMotorClient(self._config.static_mongodb, compressors='snappy', maxPoolSize=self.max_pool_size)
         self.clan_db: collection_class = self.db_client.usafam.clans
         self.banlist: collection_class = self.db_client.usafam.banlist
         self.server_db: collection_class = self.db_client.usafam.server
@@ -668,16 +670,10 @@ class CustomClient(commands.AutoShardedBot):
                 return war
             except coc.PrivateWarLog:
                 now = datetime.utcnow().timestamp()
-                result = await self.clan_war.find_one(
-                    {
-                        '$and': [
-                            {'endTime': {'$gte': now}},
-                            {'opponent': coc.utils.correct_tag(clanTag)},
-                        ]
-                    }
-                )
-                if result is None:
+                result = await self.clan_wars.find({"$and" : [{"clans" : clanTag}, {"custom_id": None}, {"endTime" : {"$gte" : now}}]}).sort({"endTime" : -1}).to_list(length=None)
+                if not result:
                     return None
+                result = result[0]
                 clan_to_use = result.get('clan')
                 war = await self.coc_client.get_current_war(clan_tag=clan_to_use)
                 raw_data = war._raw_data
@@ -737,7 +733,7 @@ class CustomClient(commands.AutoShardedBot):
                 await session.close()
                 return COSPlayerHistory(data=history)
 
-    @lru_cache(maxsize=None)
+    @cached(ttl=None, cache=SimpleMemoryCache)
     async def get_country_names(self):
         locations = await self.coc_client.search_locations()
         return locations

@@ -70,24 +70,26 @@ class reddit_feed(commands.Cog):
             server_id = r.get('server')
             if server_id not in self.bot.OUR_GUILDS:
                 continue
-            try:
-                channel = await self.bot.getch_channel(r.get('reddit_feed'), raise_exception=True)
-                role = r.get('reddit_role')
-                embed = disnake.Embed(
-                    title=f"New Comment on post by u/{event.get('submission_author')}",
-                    description=f'{event.get("body")} | [link](https://reddit.com{event.get("url")})',
-                    color=disnake.Color.green(),
-                )
-                embed.set_footer(icon_url=self.bot.emoji.reddit_icon.partial_emoji.url, text=f"u/{event.get('author')} | {event.get('score')} upvotes")
-                if role is not None:
-                    await channel.send(content=f'<@&{role}>', embed=embed)
-                else:
-                    await channel.send(embed=embed)
-            except (disnake.NotFound, disnake.Forbidden):
-                await self.bot.server_db.update_one(
-                    {'server': r.get('server')},
-                    {'$set': {'reddit_feed': None, 'reddit_role': None}},
-                )
+
+            if event.get('submission_author') in r.get('reddit_accounts', []):
+                try:
+                    channel = await self.bot.getch_channel(r.get('reddit_feed'), raise_exception=True)
+                    role = r.get('reddit_role')
+                    embed = disnake.Embed(
+                        title=f"New Comment on post by u/{event.get('submission_author')}",
+                        description=f'{event.get("body")} | [link](https://reddit.com{event.get("url")})',
+                        color=disnake.Color.green(),
+                    )
+                    embed.set_footer(icon_url=self.bot.emoji.reddit_icon.partial_emoji.url, text=f"u/{event.get('author')} | {event.get('score')} upvotes")
+                    if role is not None:
+                        await channel.send(content=f'<@&{role}>', embed=embed)
+                    else:
+                        await channel.send(embed=embed)
+                except (disnake.NotFound, disnake.Forbidden):
+                    await self.bot.server_db.update_one(
+                        {'server': r.get('server')},
+                        {'$set': {'reddit_feed': None, 'reddit_role': None}},
+                    )
 
 
     @commands.Cog.listener()

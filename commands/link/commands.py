@@ -55,7 +55,7 @@ class Linking(LinkButtonExtended, commands.Cog):
         is_linked = linked is not None  # is linked to someone already
 
         # if it is already linked to them, let them know
-        if is_linked == user.id:
+        if is_linked and linked == user.id:
             raise MessageException(f'[{player.name}]({player.share_link}) is linked to {user.mention} already!')
 
         if is_linked:

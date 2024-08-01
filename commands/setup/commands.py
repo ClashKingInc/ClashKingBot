@@ -42,6 +42,8 @@ class SetupCommands(commands.Cog, name='Setup'):
         leadership_eval: str = commands.Param(default=None, choices=['True', 'False']),
         full_whitelist_role: disnake.Role = None,
         embed_color: str = commands.Param(default=None, converter=convert.hex_code),
+        followed_reddit_accounts: str = None,
+
     ):
         """
         Parameters
@@ -49,6 +51,7 @@ class SetupCommands(commands.Cog, name='Setup'):
         banlist_channel: channel where auto_update ban list goes
         change_nicknames: whether or not the bot should change nicknames
         full_whitelist_role: role that can run any command on the bot in your server
+        followed_reddit_accounts: must have reddit feed set up, a comma seperated list of reddit accounts to follow
         """
 
         await ctx.response.defer()
@@ -86,6 +89,13 @@ class SetupCommands(commands.Cog, name='Setup'):
                 raise MessageException('Full Whitelist Role cannot be `@everyone`')
             await db_server.set_full_whitelist_role(id=full_whitelist_role.id)
             changed_text += f'- **Full Whitelist Role:** `{full_whitelist_role.mention}`\n'
+        if followed_reddit_accounts is not None:
+            reddit_accounts = followed_reddit_accounts.split(",")
+            await self.bot.server_db.update_one(
+                {'server': ctx.guild.id},
+                {'$set': {'reddit_accounts': reddit_accounts}},
+            )
+            changed_text += f'- **Followed Reddit Accounts:** `{followed_reddit_accounts}`\n'
 
         if changed_text == '':
             changed_text = 'No Changes Made!'
@@ -466,6 +476,10 @@ class SetupCommands(commands.Cog, name='Setup'):
         """
         
         await ctx.response.defer(ephemeral=True)
+
+        token_check = re.compile(r'[MNO][a-zA-Z\d_-]{23,25}\.[a-zA-Z\d_-]{6}\.[a-zA-Z\d_-]{27}')
+        if not bool(token_check.match(bot_token)):
+            raise MessageException('Not a valid bot token')
         
         if not self.bot.user.public_flags.verified_bot:
             raise MessageException('This command can only be run on the main ClashKing bot')
@@ -476,14 +490,20 @@ class SetupCommands(commands.Cog, name='Setup'):
         premium_users = my_server.get_role(1018316361241477212)
         find = disnake.utils.get(premium_users.members, id=ctx.user.id)
 
-        if not find and ctx.guild.member_count < 250:
+        await ctx.edit_original_message("Looking for premium membership & server count")
+
+        clans_on_server = await self.bot.clan_db.count_documents({"server" : ctx.guild_id})
+        free_tier = ctx.guild.member_count >= 250 and clans_on_server >= 2
+        if not find and not free_tier:
             raise MessageException(
-                'Must have a current ClashKing subscription or have 250+ discord members, to create a custom bot. Visit our discord server to learn more: discord.gg/clashking'
+                'Must have a current ClashKing subscription or have 250+ discord members & 2+ clans, to create a custom bot. Visit our discord server to learn more: discord.gg/clashking'
             )
         name = re.sub(r'[^a-zA-Z]', '', name)
         name = name.replace(' ', '').lower()
         if name == '':
             raise MessageException('Name cannot be empty')
+
+        await ctx.edit_original_message("Checking name validity")
 
         if name in ['clashking', 'clashking_beta', 'portainer', 'watchtower'] or 'aa_' in name:
             raise MessageException('Name is not allowed, those names are reserved.')
@@ -496,6 +516,8 @@ class SetupCommands(commands.Cog, name='Setup'):
         result = await self.bot.custom_bots.find_one({'user': ctx.user.id})
         # if they have created a bot before, find their container (if one), then delete it
         if result is not None:
+            await ctx.edit_original_message("Removing previously created bot")
+
             # if they have done this before, we need to remove any dead bots they might have
             connector = TCPConnector(ssl=False)
             async with aiohttp.ClientSession(connector=connector) as session:
@@ -514,7 +536,7 @@ class SetupCommands(commands.Cog, name='Setup'):
                 connector = TCPConnector(ssl=False)
                 async with aiohttp.ClientSession(connector=connector) as session:
                     headers = {'Authorization': f'Bearer {jwt}'}
-                    containers_url = f'https://85.10.200.219:9443/api/endpoints/2/docker/containers/json'
+                    containers_url = f'https://85.10.200.219:9443/api/endpoints/2/docker/containers/json?all=true'
                     async with session.get(containers_url, headers=headers) as response:
                         if response.status == 200:
                             containers = await response.json()
@@ -526,7 +548,6 @@ class SetupCommands(commands.Cog, name='Setup'):
                             return None
 
             their_container = await get_container(n=name, jwt=jwt)
-
             if their_container is not None:
                 their_id = their_container.get('Id')
                 connector = TCPConnector(ssl=False)
@@ -537,7 +558,8 @@ class SetupCommands(commands.Cog, name='Setup'):
                     async with session.delete(delete_url, headers=headers) as response:
                         await response.text()
 
-        await asyncio.sleep(10)
+        await ctx.edit_original_message("Creating Custom Bot")
+
         connector = TCPConnector(ssl=False)
         async with aiohttp.ClientSession(connector=connector) as session:
             async with session.post(
@@ -618,8 +640,8 @@ class SetupCommands(commands.Cog, name='Setup'):
                 'Ports': {},
                 'SandboxID': 'cff30522306cbdc39c326b5be3dbd0335ae545bc12aa5e86eb31ebbee5fd4ccb',
                 'SandboxKey': '/var/run/docker/netns/default',
-                'SecondaryIPAddresses': null,
-                'SecondaryIPv6Addresses': null,
+                'SecondaryIPAddresses': None,
+                'SecondaryIPv6Addresses': None,
             },
             'Image': 'docker.io/matthewvanderson/clashking:latest',
         }
@@ -647,7 +669,34 @@ class SetupCommands(commands.Cog, name='Setup'):
             ) as response:
                 await response.read()
 
-        await ctx.edit_original_message(content='Bot created, will be online shortly')
+        await ctx.edit_original_message("Checking status of custom bot, please wait 30 seconds")
+        await asyncio.sleep(30)
+        connector = TCPConnector(ssl=False)
+        async with aiohttp.ClientSession(connector=connector) as session:
+            # Check the status of the container every 5 seconds until it's running
+            while True:
+                async with session.get(f"https://85.10.200.219:9443/api/endpoints/2/docker/containers/{id}/json", headers=headers) as status_response:
+                    if status_response.status == 200:
+                        container_info = await status_response.json()
+                        container_state = container_info['State']['Status']
+
+                        if container_state == "running":
+                            await ctx.edit_original_message("Custom bot is running!")
+                            break
+                        elif container_state == "exited":
+                            async with session.get(f"https://85.10.200.219:9443/api/endpoints/2/docker/containers/{id}/logs?stdout=true&stderr=true", headers=headers) as logs_response:
+                                if logs_response.status == 200:
+                                    logs = await logs_response.text()
+                                else:
+                                    logs = ""
+                            logs = logs[-1000:]
+                            await ctx.edit_original_message(f"Custom bot could not start up, ensure you followed the guide correctly - have entered a valid token & turned on the needed intents.\n"
+                                                            f"Relevant Logs:\n```{logs}```")
+                            break
+                        else:
+                            await ctx.edit_original_message(f"Custom bot is not running yet. Current status: {container_state}. Checking again in 5 seconds...")
+                            await asyncio.sleep(5)
+
         my_server = await self.bot.getch_guild(923764211845312533)
         premium_users = my_server.get_role(1018316361241477212)
         find = disnake.utils.get(premium_users.members, id=ctx.user.id)

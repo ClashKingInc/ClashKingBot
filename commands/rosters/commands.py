@@ -33,7 +33,7 @@ class RosterCommands(commands.Cog, name='Rosters'):
             self,
             ctx: disnake.ApplicationCommandInteraction,
             roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
-            type: str = commands.Param(choices=["Signup", "Post"])
+            type: str = commands.Param(choices=["Signup", "Post", "Static"])
     ):
         await ctx.response.defer(ephemeral=True)
         _roster = Roster(bot=self.bot)
@@ -41,54 +41,65 @@ class RosterCommands(commands.Cog, name='Rosters'):
         embed = await _roster.embed()
         all_buttons = []
         if type == "Signup":
-            signup_buttons = [
+            top_row = disnake.ui.ActionRow(
                 disnake.ui.Button(
-                    label='Add',
-                    emoji=self.bot.emoji.yes.partial_emoji,
+                    label='Join',
                     style=disnake.ButtonStyle.green,
                     custom_id=f'Signup_{roster}',
                 ),
                 disnake.ui.Button(
                     label='Remove',
-                    emoji=self.bot.emoji.no.partial_emoji,
                     style=disnake.ButtonStyle.red,
                     custom_id=f'RemoveMe_{roster}',
                 ),
                 disnake.ui.Button(
-                    label='Sub',
-                    emoji=self.bot.emoji.switch.partial_emoji,
-                    style=disnake.ButtonStyle.blurple,
-                    custom_id=f'SubMe_{roster}',
+                    label='',
+                    emoji=self.bot.emoji.refresh.partial_emoji,
+                    style=disnake.ButtonStyle.grey,
+                    custom_id=f'Refresh_{roster}',
+                ),
+                disnake.ui.Button(
+                    label='',
+                    emoji=self.bot.emoji.gear.partial_emoji,
+                    style=disnake.ButtonStyle.grey,
+                    custom_id=f'RosterMenu_{roster}',
+                ),
+            )
+            all_buttons.append(top_row)
+
+            bottom_row = disnake.ui.ActionRow(
+                disnake.ui.Button(
+                    label='Open Clan',
+                    style=disnake.ButtonStyle.url,
+                    url=f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{_roster.roster_result.get('clan_tag').strip('#')}",
+                ),
+            )
+            all_buttons.append(bottom_row)
+        elif type == "Post":
+            top_row_buttons = [
+                disnake.ui.Button(
+                    label='',
+                    emoji=self.bot.emoji.refresh.partial_emoji,
+                    style=disnake.ButtonStyle.grey,
+                    custom_id=f'Refresh_{roster}',
+                ),
+                disnake.ui.Button(
+                    label='',
+                    emoji=self.bot.emoji.gear.partial_emoji,
+                    style=disnake.ButtonStyle.grey,
+                    custom_id=f'RosterMenu_{roster}',
+                ),
+                disnake.ui.Button(
+                    label='Open Clan',
+                    style=disnake.ButtonStyle.url,
+                    url=f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{_roster.roster_result.get('clan_tag').strip('#')}",
                 ),
             ]
-            buttons = disnake.ui.ActionRow()
-            for button in signup_buttons:
-                buttons.append_item(button)
-            all_buttons.append(buttons)
-        ad_buttons = [
-            disnake.ui.Button(
-                label='',
-                emoji=self.bot.emoji.refresh.partial_emoji,
-                style=disnake.ButtonStyle.grey,
-                custom_id=f'Refresh_{roster}',
-            ),
-            disnake.ui.Button(
-                label='Clan Link',
-                emoji='🔗',
-                style=disnake.ButtonStyle.url,
-                url=f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{_roster.roster_result.get('clan_tag').strip('#')}",
-            ),
-            disnake.ui.Button(
-                label='',
-                emoji=self.bot.emoji.menu.partial_emoji,
-                style=disnake.ButtonStyle.grey,
-                custom_id=f'Menu_{roster}',
-            ),
-        ]
-        buttons = disnake.ui.ActionRow()
-        for button in ad_buttons:
-            buttons.append_item(button)
-        all_buttons.append(buttons)
+            top_row = disnake.ui.ActionRow()
+            for button in top_row_buttons:
+                top_row.append_item(button)
+            all_buttons.append(top_row)
+
         await ctx.channel.send(embed=embed, components=all_buttons)
         await ctx.send(content="Roster Sent", ephemeral=True)
 
@@ -571,8 +582,8 @@ class RosterCommands(commands.Cog, name='Rosters'):
             _roster = Roster(bot=self.bot)
             await _roster.find_roster(guild=ctx.guild, alias=roster.get('alias'))
             text += f"- {_roster.roster_result.get('alias')} | {_roster.roster_result.get('clan_name')} | {len(_roster.roster_result.get('members'))}/{_roster.roster_size}"
-            if _roster.role is not None:
-                text += f' | <@&{_roster.role}>\n'
+            if _roster.time is not None:
+                text += f' | {self.bot.timestamper(_roster.time).cal_date}\n'
             else:
                 text += '\n'
 
@@ -787,207 +798,25 @@ class RosterCommands(commands.Cog, name='Rosters'):
             embed = await roster.embed()
             await ctx.edit_original_message(embed=embed)
 
-        elif 'Menu_' in str(ctx.data.custom_id):
+        elif 'RosterMenu_' in str(ctx.data.custom_id):
             alias = str(ctx.data.custom_id).split('_')[1]
             roster = Roster(bot=self.bot)
             await roster.find_roster(guild=ctx.guild, alias=alias)
-            message = ctx.message
-            perms = ctx.permissions.manage_guild
-            if ctx.author.id == self.bot.owner.id:
-                perms = True
-            if not perms:
+
+            whitelist_check = await self.bot.white_list_check(ctx=ctx, command_name='roster settings')
+            manage_guild_perms = ctx.user.guild_permissions.manage_guild
+
+            if not whitelist_check and not manage_guild_perms:
                 return await ctx.send(
-                    content='Must have `Manage Guild` perms to use the menu',
+                    content='Must have `Manage Guild` perms or be whitelisted for `/roster settings` to use the settings menu',
                     ephemeral=True,
                 )
-            options = [
-                disnake.SelectOption(label='Remove Signup Buttons', value='remove_buttons'),
-                disnake.SelectOption(label='Refresh Components', value='re_comp'),
-                disnake.SelectOption(label='Add Discord User', value='add_discord'),
-                disnake.SelectOption(label='Remove Discord User', value='remove_discord'),
-            ]
-            select = disnake.ui.Select(
-                options=options,
-                placeholder='Menu Options',
-                # the placeholder text to show when no options have been chosen
-                min_values=1,  # the minimum number of options a user must select
-                max_values=1,  # the maximum number of options a user can select
-            )
-            dropdown = [disnake.ui.ActionRow(select)]
-            await ctx.send(content='Menu Options', components=dropdown, ephemeral=True)
-
-            try:
-                res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', timeout=600)
-            except:
-                return
-
-            if res.values[0] == 'remove_buttons':
-                await message.edit(components=[])
-                await res.send(content='Components Removed', ephemeral=True)
-            elif res.values[0] == 're_comp':
-                signup_buttons = [
-                    disnake.ui.Button(
-                        label='Add',
-                        emoji=self.bot.emoji.yes.partial_emoji,
-                        style=disnake.ButtonStyle.green,
-                        custom_id=f'Signup_{alias}',
-                    ),
-                    disnake.ui.Button(
-                        label='Remove',
-                        emoji=self.bot.emoji.no.partial_emoji,
-                        style=disnake.ButtonStyle.red,
-                        custom_id=f'RemoveMe_{alias}',
-                    ),
-                    disnake.ui.Button(
-                        label='Sub',
-                        emoji=self.bot.emoji.switch.partial_emoji,
-                        style=disnake.ButtonStyle.blurple,
-                        custom_id=f'SubMe_{alias}',
-                    ),
-                    disnake.ui.Button(
-                        label='',
-                        emoji=self.bot.emoji.refresh.partial_emoji,
-                        style=disnake.ButtonStyle.grey,
-                        custom_id=f'Refresh_{alias}',
-                    ),
-                    disnake.ui.Button(
-                        label='',
-                        emoji=self.bot.emoji.menu.partial_emoji,
-                        style=disnake.ButtonStyle.grey,
-                        custom_id=f'Menu_{alias}',
-                    ),
-                ]
-                buttons = disnake.ui.ActionRow()
-                for button in signup_buttons:
-                    buttons.append_item(button)
-                await message.edit(components=[buttons])
-                await res.send(content='Components Refreshed', ephemeral=True)
-
-            elif res.values[0] == 'add_discord':
-
-                carryover_text = ''
-                await res.response.defer()
-                while True:
-                    role_select = disnake.ui.UserSelect(placeholder='Choose User', max_values=1)
-                    dropdown = [disnake.ui.ActionRow(role_select)]
-                    await res.edit_original_message(
-                        content=f'{carryover_text}Choose Member to add Accounts for',
-                        components=dropdown,
-                    )
-                    res = await interaction_handler(bot=self.bot, ctx=res)
-                    linked_accounts = await self.bot.link_client.get_linked_players(res.values[0])
-                    if not linked_accounts:
-                        carryover_text = '**No accounts linked to that user**\n'
-                        continue
-                    accounts = await self.bot.get_players(tags=linked_accounts)
-                    options = []
-                    player_dict = {}
-                    roster_tags = [member.get('tag') for member in roster.players]
-                    for account in accounts:
-                        account: coc.Player
-                        if account.town_hall > roster.th_max or account.town_hall < roster.th_min:
-                            continue
-                        if account.tag in roster_tags:
-                            continue
-                        player_dict[account.tag] = account
-                        options.append(
-                            disnake.SelectOption(
-                                label=account.name,
-                                emoji=self.bot.fetch_emoji(name=account.town_hall).partial_emoji,
-                                value=f'{account.tag}',
-                            )
-                        )
-
-                    if not options:
-                        carryover_text = "**All of that user's accounts are already on the roster**\n"
-                        continue
-
-                    options = options[:25]
-                    select = disnake.ui.Select(
-                        options=options,
-                        placeholder='Select Account(s)',
-                        # the placeholder text to show when no options have been chosen
-                        min_values=1,  # the minimum number of options a user must select
-                        max_values=len(options),  # the maximum number of options a user can select
-                    )
-                    dropdown = [disnake.ui.ActionRow(select)]
-                    await res.edit_original_message(content='Select Account(s) to Add', components=dropdown)
-
-                    res = await interaction_handler(bot=self.bot, ctx=res)
-
-                    await roster.find_roster(guild=ctx.guild, alias=alias)
-                    accounts_to_add = res.values
-                    added = []
-                    for account in accounts_to_add:
-                        added.append(player_dict[account].name)
-                        await roster.add_member(player_dict[account])
-                    carryover_text = f"**Added {', '.join(added)}**\n"
-                    await roster.refresh_roster()
-                    embed = await roster.embed()
-                    await message.edit(embed=embed)
-
-            elif res.values[0] == 'remove_discord':
-
-                carryover_text = ''
-                await res.response.defer()
-                while True:
-                    role_select = disnake.ui.UserSelect(placeholder='Choose User', max_values=1)
-                    dropdown = [disnake.ui.ActionRow(role_select)]
-                    await res.edit_original_message(
-                        content=f'{carryover_text}Choose Member to remove Accounts for',
-                        components=dropdown,
-                    )
-                    res = await interaction_handler(bot=self.bot, ctx=res)
-                    linked_accounts = await self.bot.link_client.get_linked_players(res.values[0])
-                    if not linked_accounts:
-                        carryover_text = '**No accounts linked to that user**\n'
-                        continue
-                    accounts = await self.bot.get_players(tags=linked_accounts)
-                    options = []
-                    player_dict = {}
-                    roster_tags = [member.get('tag') for member in roster.players]
-                    for account in accounts:
-                        account: coc.Player
-                        if account.town_hall > roster.th_max or account.town_hall < roster.th_min:
-                            continue
-                        if account.tag not in roster_tags:
-                            continue
-                        player_dict[account.tag] = account
-                        options.append(
-                            disnake.SelectOption(
-                                label=account.name,
-                                emoji=self.bot.fetch_emoji(name=account.town_hall).partial_emoji,
-                                value=f'{account.tag}',
-                            )
-                        )
-
-                    if not options:
-                        carryover_text = "**None of that user's accounts are on this roster**\n"
-                        continue
-
-                    options = options[:25]
-                    select = disnake.ui.Select(
-                        options=options,
-                        placeholder='Select Account(s)',
-                        # the placeholder text to show when no options have been chosen
-                        min_values=1,  # the minimum number of options a user must select
-                        max_values=len(options),  # the maximum number of options a user can select
-                    )
-                    dropdown = [disnake.ui.ActionRow(select)]
-                    await res.edit_original_message(content='Select Account(s) to Remove', components=dropdown)
-
-                    res = await interaction_handler(bot=self.bot, ctx=res)
-
-                    await roster.find_roster(guild=ctx.guild, alias=alias)
-                    accounts_to_add = res.values
-                    added = []
-                    for account in accounts_to_add:
-                        added.append(player_dict[account].name)
-                        await roster.remove_member(player_dict[account])
-                    carryover_text = f"**Removed: {', '.join(added)}**\n"
-                    await roster.refresh_roster()
-                    embed = await roster.embed()
-                    await message.edit(embed=embed)
+            random_uuid = uuid.uuid4()
+            uuid_bytes = random_uuid.bytes
+            base64_uuid = base64.urlsafe_b64encode(uuid_bytes).rstrip(b'=')
+            url_safe_uuid = base64_uuid.decode('utf-8')
+            await self.bot.rosters.update_one({'$and': [{'server_id': ctx.guild.id}, {'alias': roster.alias}]}, {"$set": {"token": url_safe_uuid}})
+            await ctx.send(content=f"Edit your roster here -> https://api.clashking.xyz/roster/?token={url_safe_uuid}", ephemeral=True)
 
         elif 'Signup_' in str(ctx.data.custom_id):
             alias = str(ctx.data.custom_id).split('_')[1]
@@ -1018,12 +847,29 @@ class RosterCommands(commands.Cog, name='Rosters'):
                     disnake.SelectOption(
                         label=account.name,
                         emoji=self.bot.fetch_emoji(name=account.town_hall).partial_emoji,
-                        value=f'{account.tag}',
+                        value=f'player_{account.tag}',
                     )
                 )
 
             if not options:
                 return await ctx.send(content='No accounts to add', ephemeral=True)
+
+            button_options = [disnake.SelectOption(label="Main Group",value=f'signup_No Group')]
+            for button in roster.buttons:
+                button_options.append(
+                    disnake.SelectOption(
+                        label=button,
+                        value=f'signup_{button}',
+                    )
+                )
+            placement_select = disnake.ui.Select(
+                options=button_options[:25],
+                placeholder='Select Roster Group',
+                # the placeholder text to show when no options have been chosen
+                min_values=1,  # the minimum number of options a user must select
+                max_values=1,  # the maximum number of options a user can select
+            )
+
             options = options[:25]
             select = disnake.ui.Select(
                 options=options,
@@ -1032,33 +878,41 @@ class RosterCommands(commands.Cog, name='Rosters'):
                 min_values=1,  # the minimum number of options a user must select
                 max_values=len(options),  # the maximum number of options a user can select
             )
-            dropdown = [disnake.ui.ActionRow(select)]
-            msg = await ctx.followup.send(content='Select Account(s) to Add', components=dropdown, ephemeral=True)
+            dropdown = [disnake.ui.ActionRow(select),
+                        disnake.ui.ActionRow(placement_select),
+                        disnake.ui.ActionRow(disnake.ui.Button(label='Submit',style=disnake.ButtonStyle.green,custom_id='Save'))
+                        ]
+            msg = await ctx.followup.send(content='Select Account(s) to Add & Where to add them', components=dropdown, ephemeral=True)
 
-            def check(res: disnake.MessageInteraction):
-                return res.message.id == msg.id
+            save = False
+            accounts_to_add = []
+            group = None
+            while not save:
+                res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, msg=msg)
+                if 'button' in str(res.data.component_type):
+                    if not accounts_to_add and not group:
+                        await res.send("Must select accounts & group to submit")
+                    else:
+                        save = True
+                elif any('player_' in s for s in res.values):
+                    accounts_to_add = [value.split("_")[-1] for value in res.values]
+                elif any('signup_' in s for s in res.values):
+                    group = res.values[0].split("_")[-1]
 
-            try:
-                res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', check=check, timeout=600)
-            except:
-                return await msg.edit(components=[])
-
-            await res.response.defer()
             await roster.find_roster(guild=ctx.guild, alias=alias)
-            accounts_to_add = res.values
             added = []
             for account in accounts_to_add:
                 added.append(player_dict[account].name)
-                await roster.add_member(player_dict[account])
+                await roster.add_member(player_dict[account], group=group)
 
             if roster.role is not None:
                 try:
                     role = ctx.guild.get_role(roster.role)
-                    await res.user.add_roles(*[role])
+                    await ctx.user.add_roles(*[role])
                 except:
                     pass
 
-            await res.edit_original_message(content=f"Added {', '.join(added)}", components=[])
+            await msg.edit(content=f"Added {', '.join(added)} to {group} Group", components=[])
             embed = await roster.embed()
             await main_message.edit(embed=embed)
 

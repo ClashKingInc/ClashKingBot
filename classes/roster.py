@@ -21,6 +21,10 @@ class Roster:
         self.bot = bot
 
     @property
+    def buttons(self):
+        return self.roster_result.get("buttons", [])
+
+    @property
     def _id(self):
         return self.roster_result.get('_id')
 

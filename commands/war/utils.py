@@ -102,10 +102,9 @@ async def roster_embed(bot: CustomClient, war: coc.ClanWar):
 	roster = ""
 	tags = []
 	lineup = []
-	for player in war.members:
-		if player not in war.opponent.members:
-			tags.append(player.tag)
-			lineup.append(player.map_position)
+	for player in war.clan.members:
+		tags.append(player.tag)
+		lineup.append(player.map_position)
 
 	x = 0
 	async for player in bot.coc_client.get_players(tags):

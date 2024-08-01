@@ -40,7 +40,7 @@ class DatabaseServer:
 
         self.achievement_roles = [AchievementRole(data=d) for d in data.get('achievement_roles', [])]
 
-        self.status_roles = [StatusRole(data=d) for d in data.get('status_roles', [])]
+        self.status_roles = [StatusRole(data=d) for d in data.get('status_roles', {}).get("discord", [])]
 
         self.clans = [DatabaseClan(bot=bot, data=d) for d in data.get('clans', [])]
         self.category_roles = data.get('category_roles', {})
@@ -154,10 +154,34 @@ class DatabaseServer:
             },
         )
 
-    async def add_status_role(self, months: int, role_id: int):
+    async def add_status_role(self, months: int, role_id: int, type: str):
+        # Retrieve the current set of status roles
+        current_roles = await self.bot.server_db.find_one(
+            {'server': self.server_id},
+            {f'status_roles.{type}': 1}
+        )
+
+        # Extract the current roles for the given type
+        current_roles_set = current_roles.get('status_roles', {}).get(type, [])
+
+        # Check if the months value already exists in the set
+        if any(role['months'] == months for role in current_roles_set):
+            # Update the existing role with the same months value
+            await self.bot.server_db.update_one(
+                {'server': self.server_id, f'status_roles.{type}.months': months},
+                {'$set': {f'status_roles.{type}.$.id': role_id}},
+            )
+        else:
+            # Add the new role if the months value does not exist
+            await self.bot.server_db.update_one(
+                {'server': self.server_id},
+                {'$addToSet': {f'status_roles.{type}': {'months': months, 'id': role_id}}},
+            )
+
+    async def remove_status_role(self, months: int, type: str):
         await self.bot.server_db.update_one(
             {'server': self.server_id},
-            {'$addToSet': {f'status_roles': {'months': months, 'id': role_id}}},
+            {'$pull': {f'status_roles.{type}': {'months': months}}},
         )
 
     def get_clan(self, clan_tag: str, silent=False):

@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime
-from typing import Union
-
+import uuid
+import base64
 import disnake
 from disnake import ButtonStyle
 from disnake.ext import commands
@@ -10,8 +10,6 @@ from classes.bot import CustomClient
 from classes.tickets import LOG_TYPE, OpenTicket, TicketPanel
 from discord import autocomplete, convert
 from exceptions.CustomExceptions import *
-from utility.cdn import upload_to_cdn
-from utility.constants import TOWNHALL_LEVELS
 from utility.discord_utils import check_commands, interaction_handler
 
 from .click import TicketClick
@@ -223,227 +221,7 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
         await self.bot.tickets.delete_one({'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]})
         await ctx.send(content=f'**{panel_name} Panel Deleted**')
 
-    # BUTTONS
-    @ticket.sub_command(name='button-add', description='Add a button to a ticket panel')
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def ticket_button_add(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        panel_name: str = commands.Param(autocomplete=autocomplete.ticket_panel),
-        button_text: str = commands.Param(),
-        button_color=commands.Param(choices=['Blue', 'Green', 'Grey', 'Red']),
-        button_emoji: str = None,
-    ):
-        """
-        Parameters
-        ----------
-        panel_name: name of panel
-        button_text: Text that shows up on button
-        button_color: Color for button
-        button_emoji: (optional) default discord emoji or one from *your* server
-        """
-        await ctx.response.defer()
-        panel_settings = await self.bot.tickets.find_one({'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]})
-        if panel_settings is None:
-            raise PanelNotFound
-        panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
-        await panel.create_button(label=button_text, color=button_color, emoji=button_emoji)
-        await ctx.edit_original_message(content='**Button Created!**', components=[])
 
-    @ticket.sub_command(name='button-edit', description='Edit a button on a ticket panel')
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def ticket_button_edit(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        ticket_button: tuple[str, str] = commands.Param(autocomplete=autocomplete.ticket_panel_buttons, converter=convert.ticket_button),
-        new_text: str = commands.Param(),
-        new_color=commands.Param(choices=['Blue', 'Green', 'Grey', 'Red']),
-        new_emoji: str = None,
-    ):
-        """
-        Parameters
-        ----------
-        panel_name: name of panel
-        button: button to edit
-        new_text: Text that shows up on button
-        new_color: Color for button
-        new_emoji: (optional) default discord emoji or one from *your* server
-        """
-        await ctx.response.defer()
-        button_name, panel_name = ticket_button
-        panel_settings = await self.bot.tickets.find_one({'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]})
-        if panel_settings is None:
-            raise PanelNotFound
-        panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
-        await panel.edit_button(button=button_name, new_text=new_text, new_color=new_color, new_emoji=new_emoji)
-        await ctx.edit_original_message(content='**Button Edited!**', components=[])
-
-    @ticket.sub_command(name='button-remove', description='Remove a button from a ticket panel')
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def ticket_button_remove(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        ticket_button: tuple[str, str] = commands.Param(autocomplete=autocomplete.ticket_panel_buttons, converter=convert.ticket_button),
-    ):
-        """
-        Parameters
-        ----------
-        panel_name: name of panel
-        button: button to remove
-        """
-        await ctx.response.defer()
-        button_name, panel_name = ticket_button
-
-        result = await self.bot.tickets.find_one({'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]})
-        if result is None:
-            raise PanelNotFound
-        button_id = next((x for x in result.get('components') if x.get('label') == button_name), None)
-        if button_id is None:
-            raise ButtonNotFound
-
-        await self.bot.tickets.update_one(
-            {'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]},
-            {'$pull': {'components': {'label': button_name}}},
-        )
-        await self.bot.tickets.update_one(
-            {'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]},
-            {'$unset': {f"{button_id.get('custom_id')}_settings": {}}},
-        )
-
-        await ctx.send(
-            embed=disnake.Embed(
-                description=f'{button_name} button removed from {panel_name} panel',
-                color=disnake.Color.red(),
-            )
-        )
-
-    # ACTIONS
-    @ticket.sub_command(name='add-ons', description='Turn/set questions & private thread usage')
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def ticket_settings(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        ticket_button: tuple[str, str] = commands.Param(autocomplete=autocomplete.ticket_panel_buttons, converter=convert.ticket_button),
-        choice: str = commands.Param(choices=['Questions', 'Private Thread']),
-        option=commands.Param(default='On', choices=['Off']),
-    ):
-        """
-        Parameters
-        ----------
-        panel_name: name of panel
-        button: name of button
-        choice: thing you are setting
-        remove: (optional) remove questions from this button
-        """
-
-        button_name, panel_name = ticket_button
-
-        if choice == 'Questions':
-            if option == 'Off':
-                await ctx.response.defer()
-            result = await self.bot.tickets.find_one({'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]})
-            if result is None:
-                raise PanelNotFound
-            button_id = next((x for x in result.get('components') if x.get('label') == button_name), None)
-            if button_id is None:
-                raise ButtonNotFound
-
-            if option == 'Off':
-                await self.bot.tickets.update_one(
-                    {'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]},
-                    {'$set': {f"{button_id.get('custom_id')}_settings.questions": []}},
-                )
-                return await ctx.send(
-                    embed=disnake.Embed(
-                        description=f'Questionnaire removed for {button_name} button on {panel_name} panel',
-                        color=disnake.Color.green(),
-                    )
-                )
-
-            components = [
-                disnake.ui.TextInput(
-                    label=f'Question {x}',
-                    placeholder='Question (under 100 characters)',
-                    custom_id=f'question_{x}',
-                    required=(x == 1),
-                    style=disnake.TextInputStyle.single_line,
-                    max_length=99,
-                )
-                for x in range(1, 6)
-            ]
-            # await ctx.send(content="Modal Opened", ephemeral=True)
-            await ctx.response.send_modal(
-                title='Questionnaire ',
-                custom_id='questionnaire-',
-                components=components,
-            )
-
-            def check(res):
-                return ctx.author.id == res.author.id
-
-            try:
-                modal_inter: disnake.ModalInteraction = await self.bot.wait_for(
-                    'modal_submit',
-                    check=check,
-                    timeout=300,
-                )
-            except:
-                return
-            await modal_inter.response.defer()
-            questions = [modal_inter.text_values[f'question_{x}'] for x in range(1, 6)]
-            text = '\n'.join([f'{count}. {question}' for count, question in enumerate(questions, 1) if question != ''])
-            await self.bot.tickets.update_one(
-                {'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]},
-                {'$set': {f"{button_id.get('custom_id')}_settings.questions": questions}},
-            )
-            await modal_inter.send(
-                embed=disnake.Embed(
-                    title=f'Questionnaire Created - {button_name}',
-                    description=f'Questions:\n{text}',
-                )
-            )
-
-        elif choice == 'Private Thread':
-            await ctx.response.defer()
-
-            result = await self.bot.tickets.find_one({'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]})
-            if result is None:
-                raise PanelNotFound
-            button_id = next((x for x in result.get('components') if x.get('label') == button_name), None)
-            if button_id is None:
-                raise ButtonNotFound
-
-            await self.bot.tickets.update_one(
-                {'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]},
-                {'$set': {f"{button_id.get('custom_id')}_settings.private_thread": (option == 'On')}},
-            )
-            return await ctx.send(
-                embed=disnake.Embed(
-                    description=f'Private Thread Settings Updated!',
-                    color=disnake.Color.green(),
-                )
-            )
-
-        elif choice == 'Close On Leave':
-            await ctx.response.defer()
-
-            result = await self.bot.tickets.find_one({'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]})
-            if result is None:
-                raise PanelNotFound
-            button_id = next((x for x in result.get('components') if x.get('label') == button_name), None)
-            if button_id is None:
-                raise ButtonNotFound
-
-            await self.bot.tickets.update_one(
-                {'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]},
-                {'$set': {f"{button_id.get('custom_id')}_settings.close_on_leave": (option == 'On')}},
-            )
-            return await ctx.send(
-                embed=disnake.Embed(
-                    description=f'Close on Leave Setting Updated!',
-                    color=disnake.Color.green(),
-                )
-            )
 
     @ticket.sub_command(
         name='open-message',
@@ -484,57 +262,6 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
             embeds=embeds,
         )
 
-    @ticket.sub_command(
-        name='staff',
-        description='Set staff roles, that get added to tickets created with this button',
-    )
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def ticket_mods(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        ticket_button: tuple[str, str] = commands.Param(autocomplete=autocomplete.ticket_panel_buttons, converter=convert.ticket_button),
-        type: str = commands.Param(choices=['Ping', 'No Ping']),
-        remove=commands.Param(default='False', choices=['True']),
-    ):
-        await ctx.response.defer()
-        button_name, panel_name = ticket_button
-
-        result = await self.bot.tickets.find_one({'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]})
-        if result is None:
-            raise PanelNotFound
-        button_id = next((x for x in result.get('components') if x.get('label') == button_name), None)
-        if button_id is None:
-            raise ButtonNotFound
-
-        change_type = 'no_ping_mod_role' if type == 'No Ping' else 'mod_role'
-        if remove == 'True':
-            await self.bot.tickets.update_one(
-                {'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]},
-                {'$set': {f"{button_id.get('custom_id')}_settings.{change_type}": None}},
-            )
-            return await ctx.send(
-                embed=disnake.Embed(
-                    description=f'{type} Staff Roles removed for {button_name} button on {panel_name} panel',
-                    color=disnake.Color.green(),
-                )
-            )
-
-        role_select = disnake.ui.RoleSelect(placeholder='Choose Roles (max 10)', max_values=10)
-        dropdown = [disnake.ui.ActionRow(role_select)]
-
-        await ctx.send(
-            content=f'**Choose {type} Staff Roles to be Added to Tickets created using this button**',
-            components=dropdown,
-        )
-
-        res: disnake.MessageInteraction = await interaction_handler(ctx=ctx, function=None, bot=self.bot)
-        ticket_roles = res.values
-
-        await self.bot.tickets.update_one(
-            {'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]},
-            {'$set': {f"{button_id.get('custom_id')}_settings.{change_type}": ticket_roles}},
-        )
-        await res.edit_original_message(content=f'**{button_name} {type} Staff Roles Saved!**', components=[])
 
     @ticket.sub_command(name='roles', description='Manage Roles around Tickets being opened')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -594,121 +321,21 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
         )
         await res.edit_original_message(content=f'**{button_name} Button {mode} Saved!**', components=[])
 
-    @ticket.sub_command(name='settings', description='Set settings regarding accounts applying')
+    @ticket.sub_command(name='settings', description='Set settings for ticket panel & buttons')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ticket_account_apply(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        ticket_button: tuple[str, str] = commands.Param(autocomplete=autocomplete.ticket_panel_buttons, converter=convert.ticket_button),
+        ticket_panel: str = commands.Param(autocomplete=autocomplete.ticket_panel),
     ):
-        await ctx.response.defer()
+        await ctx.response.defer(ephemeral=True)
+        random_uuid = uuid.uuid4()
+        uuid_bytes = random_uuid.bytes
+        base64_uuid = base64.urlsafe_b64encode(uuid_bytes).rstrip(b'=')
+        url_safe_uuid = base64_uuid.decode('utf-8')
+        await self.bot.tickets.update_one({'$and': [{'server_id': ctx.guild.id}, {'name': ticket_panel}]}, {"$set": {"token": url_safe_uuid}})
+        await ctx.send(content=f"Edit your roster here -> https://api.clashking.xyz/ticketing?token={url_safe_uuid}", ephemeral=True)
 
-        button_name, panel_name = ticket_button
-
-        panel_settings = await self.bot.tickets.find_one({'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]})
-        if panel_settings is None:
-            raise PanelNotFound
-        panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
-        button = panel.get_button(label=button_name)
-
-        number_allowed_to_apply = button.number_allowed_to_apply
-        account_apply = button.account_apply
-        send_player_info = button.send_player_info
-        townhall_minimum = button.townhall_minimum
-
-        def create_components(
-            account_apply: bool,
-            send_player_info: bool,
-            townhall_minimum: int,
-            number_allowed_to_apply: int,
-        ):
-            account_select = disnake.ui.Select(
-                options=[
-                    disnake.SelectOption(
-                        label=f'{x} Accounts',
-                        value=f'numaccounts_{x}',
-                        emoji=(self.bot.emoji.green_tick.partial_emoji if x == number_allowed_to_apply else None),
-                    )
-                    for x in range(1, 26)
-                ],
-                placeholder=f'# of Accounts Allowed to Apply',  # the placeholder text to show when no options have been chosen
-                min_values=1,  # the minimum number of options a user must select
-                max_values=1,  # the maximum number of options a user can select
-            )
-
-            townhall_min = disnake.ui.Select(
-                options=[
-                    disnake.SelectOption(
-                        label=f'Townhall {x}',
-                        value=f'townhall_{x}',
-                        emoji=(self.bot.fetch_emoji(x).partial_emoji if x != townhall_minimum else self.bot.emoji.green_tick.partial_emoji),
-                    )
-                    for x in reversed(TOWNHALL_LEVELS)
-                ],
-                placeholder=f'Minimum Townhall Allowed',  # the placeholder text to show when no options have been chosen
-                min_values=1,  # the minimum number of options a user must select
-                max_values=1,  # the maximum number of options a user can select
-            )
-
-            dropdowns = [
-                disnake.ui.ActionRow(account_select),
-                disnake.ui.ActionRow(townhall_min),
-            ]
-            buttons = disnake.ui.ActionRow()
-            for b in [
-                disnake.ui.Button(
-                    label='On/Off',
-                    style=ButtonStyle.green if account_apply else ButtonStyle.red,
-                    custom_id='account_apply',
-                ),
-                disnake.ui.Button(
-                    label=f'Send Player Info',
-                    style=ButtonStyle.green if send_player_info else ButtonStyle.red,
-                    custom_id='send_player_info',
-                ),
-            ]:
-                buttons.append_item(b)
-            dropdowns.append(buttons)
-            return dropdowns
-
-        await ctx.edit_original_message(
-            content='**Edit Account Apply Settings**\n(Settings Saved As You Go)',
-            components=create_components(
-                account_apply,
-                send_player_info,
-                townhall_minimum,
-                number_allowed_to_apply,
-            ),
-        )
-
-        while True:
-            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, no_defer=True)
-            if res.data.component_type.value == 2:
-                if 'send_player_info' in res.data.custom_id:
-                    send_player_info = not send_player_info
-                    await button.set_player_info(state=send_player_info)
-
-                elif 'account_apply' in res.data.custom_id:
-                    account_apply = not account_apply
-                    await button.set_account_apply(state=account_apply)
-            else:
-                select_value = res.values[0]
-                if 'townhall_' in select_value:
-                    townhall_minimum = int(select_value.split('_')[-1])
-                    await button.set_townhall_minimum(level=townhall_minimum)
-
-                elif 'numaccounts_' in select_value:
-                    number_allowed_to_apply = int(select_value.split('_')[-1])
-                    await button.set_number_allowed_to_apply(num=number_allowed_to_apply)
-
-            await res.response.edit_message(
-                components=create_components(
-                    account_apply,
-                    send_player_info,
-                    townhall_minimum,
-                    number_allowed_to_apply,
-                )
-            )
 
     @ticket.sub_command(
         name='apply-rules',
@@ -878,106 +505,7 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
         await ticket.add_edit_approve_messages(name=name, message=modal_inter.text_values['approve_msg'])
         await modal_inter.send(content='Message Added/Edited/Updated')
 
-    @ticket.sub_command(name='naming', description='Creating a naming convention for channels')
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def ticket_name(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        ticket_button: tuple[str, str] = commands.Param(autocomplete=autocomplete.ticket_panel_buttons, converter=convert.ticket_button),
-        naming_convention: str = commands.Param(),
-    ):
-        await ctx.response.defer()
-        button_name, panel_name = ticket_button
 
-        result = await self.bot.tickets.find_one({'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]})
-        if result is None:
-            raise PanelNotFound
-        button_id = next((x for x in result.get('components') if x.get('label') == button_name), None)
-        if button_id is None:
-            raise ButtonNotFound
-
-        await self.bot.tickets.update_one(
-            {'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]},
-            {'$set': {f"{button_id.get('custom_id')}_settings.naming": naming_convention[0:100]}},
-        )
-
-        await ctx.send(content=f'Naming Convention Saved : `{naming_convention}`')
-
-    @ticket.sub_command(
-        name='category',
-        description='Category where you want different types of tickets',
-    )
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def ticket_categories(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        panel_name: str = commands.Param(autocomplete=autocomplete.ticket_panel),
-        status: str = commands.Param(choices=['all', 'open', 'sleep', 'closed']),
-        category: disnake.CategoryChannel = commands.Param(name='category'),
-    ):
-
-        await ctx.response.defer()
-        result = await self.bot.tickets.find_one({'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]})
-        if result is None:
-            raise PanelNotFound
-
-        if status == 'all':
-            status_types = ['open', 'sleep', 'closed']
-        else:
-            status_types = [status]
-        text = ''
-        for status in status_types:
-            await self.bot.tickets.update_one(
-                {'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]},
-                {'$set': {f'{status}-category': category.id}},
-            )
-            text += f'{status} tickets will now go to {category.mention}\n'
-
-        await ctx.send(content=text)
-
-    # TO-DO add all panels as an option
-    @ticket.sub_command(name='logging', description='Loggin Channels for ticket actions')
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def ticket_logging(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        panel_name: str = commands.Param(autocomplete=autocomplete.ticket_panel),
-        types: str = commands.Param(choices=['All', 'Ticket Button Click', 'Ticket Close', 'Status Change']),
-        channel: Union[disnake.TextChannel, disnake.Thread] = None,
-    ):
-        """
-        Parameters
-        ----------
-        panel_name: name of panel
-        types: types of logging
-        channel: Channel to set up logging in
-        """
-        await ctx.response.defer()
-        if channel is None:
-            channel = ctx.channel
-
-        if panel_name != 'All Panels':
-            result = await self.bot.tickets.find_one({'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]})
-            if result is None:
-                raise PanelNotFound
-
-        types = types.lower().replace(' ', '_') + '_log'
-        updater_list = {
-            'ticket_button_click_log': channel.id,
-            'ticket_close_log': channel.id,
-            'status_change_log': channel.id,
-        }
-        if types != 'all_log':
-            updater_list = {types: updater_list.get(types)}
-
-        if panel_name != 'All Panels':
-            await self.bot.tickets.update_one(
-                {'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]},
-                {'$set': updater_list},
-            )
-        else:
-            await self.bot.tickets.update_many({'server_id': ctx.guild.id}, {'$set': updater_list})
-        await ctx.send(content=f'Logging channel for {panel_name} panel set to {channel.mention}')
 
     @ticket.sub_command(name='status', description='Change status of ticket')
     @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())
@@ -1078,16 +606,17 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
     @commands.Cog.listener()
     async def on_message(self, message: disnake.Message):
         if not message.author.bot and isinstance(message.channel, disnake.TextChannel) and message.channel.topic == 'Ticketing powered by ClashKing!':
-            result = await self.bot.open_tickets.find_one({'channel': message.channel.id})
-            if result is not None:
-                if message.author.id != result.get('user'):
-                    return
-                opted_in = result.get('opted_in')
-                if opted_in is not None:
-                    text = ''
-                    for user in opted_in:
-                        text += f'<@{user}> '
-                    await message.channel.send(content=text)
+            if message.guild.id in self.bot.OUR_GUILDS:
+                result = await self.bot.open_tickets.find_one({'channel': message.channel.id})
+                if result is not None:
+                    if message.author.id != result.get('user'):
+                        return
+                    opted_in = result.get('opted_in')
+                    if opted_in is not None:
+                        text = ''
+                        for user in opted_in:
+                            text += f'<@{user}> '
+                        await message.channel.send(content=text, delete_after=1)
 
 
 def setup(bot):

@@ -548,3 +548,6 @@ def is_clan_games():
 	else:
 		is_games = False
 	return is_games
+
+
+

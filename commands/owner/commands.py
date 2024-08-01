@@ -137,22 +137,7 @@ class OwnerCommands(commands.Cog):
     @commands.slash_command(name='test', guild_ids=[923764211845312533])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
-        event =  {
-            "author": "daknation",
-            "avatar": "https://styles.redditmedia.com/t5_xm4gj/styles/profileIcon_snoo84dcd4be-1ef5-4037-af06-e8c863eb146e-headshot-f.png?width=256&height=256&crop=256:256,smart&s=c629cce2d9e0b94e1aab85afcfca4af456748f84",
-            "body": "Hey, want to join?j",
-            "url": "/r/ClashOfClansRecruit/comments/1e2zyli/searching_townhall_1614_lvl_224182_min_clan_level/ld51uda/",
-            "score": 1,
-            "submission_author": "petermbrl",
-            "submission_title": "[Searching] Townhall 16/14 | LVL 224/182 | Min. Clan Level 10 | CWL/looking for a competitive war clan with regular wars"
-        }
-        embed = disnake.Embed(
-            title=f"New Comment on post by u/{event.get('submission_author')}",
-            description=f'{event.get("body")} | [link](https://reddit.com{event.get("url")})',
-            color=disnake.Color.green(),
-        )
-        embed.set_footer(icon_url=event.get("avatar"), text=f"u/{event.get('author')} | {event.get('score')} upvotes")
-        await ctx.channel.send(embed=embed)
+        pass
 
 
     @commands.slash_command(name='anniversary', guild_ids=[923764211845312533])

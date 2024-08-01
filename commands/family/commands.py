@@ -367,7 +367,7 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
         )
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
-    @family.sub_command(
+'''    @family.sub_command(
         name='leaderboard',
         description='Family Image LeaderBoard for Activity, Legends, Trophies, & War Stars!',
     )
@@ -388,7 +388,7 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
 
         await ctx.edit_original_message(content='Image Board Created!')
 
-        await ctx.channel.send(content=file, components=[])
+        await ctx.channel.send(content=file, components=[])'''
 
 
 def setup(bot):

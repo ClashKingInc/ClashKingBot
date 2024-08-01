@@ -315,6 +315,10 @@ class eval(commands.Cog, name='Refresh'):
     async def townhall_roles(
         self,
         ctx: disnake.ApplicationCommandInteraction,
+        th3: disnake.Role = None,
+        th4: disnake.Role = None,
+        th5: disnake.Role = None,
+        th6: disnake.Role = None,
         th7: disnake.Role = None,
         th8: disnake.Role = None,
         th9: disnake.Role = None,
@@ -328,6 +332,7 @@ class eval(commands.Cog, name='Refresh'):
     ):
 
         if (
+            th3 is None and th4 is None and th5 is None and th6 is None and
             th7 is None
             and th8 is None
             and th9 is None
@@ -344,6 +349,10 @@ class eval(commands.Cog, name='Refresh'):
         roles_updated = ''
 
         spot_to_text = [
+            "th3",
+            "th4",
+            "th5",
+            "th6",
             'th7',
             'th8',
             'th9',
@@ -355,7 +364,7 @@ class eval(commands.Cog, name='Refresh'):
             'th15',
             'th16',
         ]
-        list_roles = [th7, th8, th9, th10, th11, th12, th13, th14, th15, th16]
+        list_roles = [th3, th4, th5, th6, th7, th8, th9, th10, th11, th12, th13, th14, th15, th16]
 
         for count, role in enumerate(list_roles):
             if role is None:
@@ -544,22 +553,38 @@ class eval(commands.Cog, name='Refresh'):
         )
         return await ctx.send(embed=embed)
 
-    @roles.sub_command(name='status', description='Longevity roles')
+    @roles.sub_command(name='tenure', description='Role for how long the member has been in your discord')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def status_roles(
+    async def longevity_roles(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        months: int,
-        role: disnake.Role,
+        mode: str = commands.Param(choices=["Add", "Remove"]),
+        months: int = commands.Param(),
+        role: disnake.Role = None,
     ):
-        await ctx.response.defer()
-        raise MessageException('Command Under Construction')
+        if mode == "Add" and role is None:
+            raise MessageException("Role field is required when adding a new tenure role")
 
         if role.is_default():
             raise MessageException(f'{role.mention} cannot be used as role.')
 
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild.id)
-        await db_server.add_status_role(months=months, role_id=role.id)
+
+        if mode == "Add":
+            await db_server.add_status_role(months=months, role_id=role.id, type="discord")
+            embed = disnake.Embed(
+                description=f'**Tenure role for {months} months added: {role.mention}**',
+                color=disnake.Color.green(),
+            )
+        elif mode == "Remove":
+            await db_server.remove_status_role(months=months, type="discord")
+            embed = disnake.Embed(
+                description=f'**Tenure role for {months} months removed**',
+                color=disnake.Color.green(),
+            )
+        await ctx.send(embed=embed)
+
+
 
     @roles.sub_command(name='achievements', description='Set role for top donators/activity & more')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -580,6 +605,7 @@ class eval(commands.Cog, name='Refresh'):
             amount=amount_or_rank,
             season=season.lower().replace(' ', '_'),
         )
+
 
     @roles.sub_command(name='list', description='List of refresh affiliated roles for this server')
     async def role_list(self, ctx: disnake.ApplicationCommandInteraction):

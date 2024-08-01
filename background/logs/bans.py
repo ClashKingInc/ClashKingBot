@@ -118,7 +118,7 @@ class BanEvents(commands.Cog):
 
             if whitelist_check or manage_guild_perms:
                 await self.bot.server_db.update_one(
-                    {'server': self.server_id},
+                    {'server': ctx.guild.id},
                     {'$addToSet': {'dismissed_warns': ctx.data.custom_id.split('_')[-1]}},
                 )
                 await ctx.message.edit(components=[])
