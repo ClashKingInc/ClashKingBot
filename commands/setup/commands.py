@@ -481,8 +481,8 @@ class SetupCommands(commands.Cog, name='Setup'):
         if not bool(token_check.match(bot_token)):
             raise MessageException('Not a valid bot token')
         
-        if not self.bot.user.public_flags.verified_bot:
-            raise MessageException('This command can only be run on the main ClashKing bot')
+        '''if not self.bot.user.public_flags.verified_bot:
+            raise MessageException('This command can only be run on the main ClashKing bot')'''
 
         my_server = await self.bot.getch_guild(923764211845312533)
         if not my_server.chunked:
@@ -674,37 +674,38 @@ class SetupCommands(commands.Cog, name='Setup'):
         connector = TCPConnector(ssl=False)
         async with aiohttp.ClientSession(connector=connector) as session:
             # Check the status of the container every 5 seconds until it's running
-            while True:
-                async with session.get(f"https://85.10.200.219:9443/api/endpoints/2/docker/containers/{id}/json", headers=headers) as status_response:
-                    if status_response.status == 200:
-                        container_info = await status_response.json()
-                        container_state = container_info['State']['Status']
+            async with session.get(f"https://85.10.200.219:9443/api/endpoints/2/docker/containers/{id}/json", headers={
+                    'Content-Type': 'application/json',
+                    'Authorization': f'Bearer {jwt}',
+                }) as status_response:
+                if status_response.status == 200:
+                    container_info = await status_response.json()
+                    container_state = container_info['State']['Status']
 
-                        if container_state == "running":
-                            await ctx.edit_original_message("Custom bot is running!")
-                            break
-                        elif container_state == "exited":
-                            async with session.get(f"https://85.10.200.219:9443/api/endpoints/2/docker/containers/{id}/logs?stdout=true&stderr=true", headers=headers) as logs_response:
-                                if logs_response.status == 200:
-                                    logs = await logs_response.text()
-                                else:
-                                    logs = ""
-                            logs = logs[-1000:]
-                            await ctx.edit_original_message(f"Custom bot could not start up, ensure you followed the guide correctly - have entered a valid token & turned on the needed intents.\n"
-                                                            f"Relevant Logs:\n```{logs}```")
-                            break
-                        else:
-                            await ctx.edit_original_message(f"Custom bot is not running yet. Current status: {container_state}. Checking again in 5 seconds...")
-                            await asyncio.sleep(5)
+                    if container_state == "running":
+                        await ctx.edit_original_message("Custom bot is running!")
+                    elif container_state == "exited":
+                        async with session.get(f"https://85.10.200.219:9443/api/endpoints/2/docker/containers/{id}/logs?stdout=true&stderr=true", headers={
+                    'Content-Type': 'application/json',
+                    'Authorization': f'Bearer {jwt}',
+                }) as logs_response:
+                            if logs_response.status == 200:
+                                logs = await logs_response.text()
+                            else:
+                                logs = ""
+                        logs = logs[-1000:]
+                        await ctx.edit_original_message(f"Custom bot could not start up, ensure you followed the guide correctly - have entered a valid token & turned on the needed intents.\n"
+                                                        f"Relevant Logs:\n```{logs}```")
+
 
         my_server = await self.bot.getch_guild(923764211845312533)
         premium_users = my_server.get_role(1018316361241477212)
         find = disnake.utils.get(premium_users.members, id=ctx.user.id)
-        await self.bot.custom_bots.update_one(
+        '''await self.bot.custom_bots.update_one(
             {'user': ctx.user.id},
             {'$set': {'token': bot_token, 'premium': (find is not None), 'name': name}},
             upsert=True,
-        )
+        )'''
 
     @setup.sub_command(name='logs', description='Set a variety of different clan logs for your server!')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
