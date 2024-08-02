@@ -315,19 +315,17 @@ def cwl_league_emojis(league: str):
 
 def is_cwl():
     now = datetime.utcnow().replace(tzinfo=utc)
-    current_dayofweek = now.weekday()
-    if (
-        (current_dayofweek == 4 and now.hour >= 7)
-        or (current_dayofweek == 5)
-        or (current_dayofweek == 6)
-        or (current_dayofweek == 0 and now.hour < 7)
-    ):
-        if current_dayofweek == 0:
-            current_dayofweek = 7
-        is_raids = True
+    day = now.day
+    hour = now.hour
+    if day >= 1 and day <= 10:
+        if (day == 1 and hour < 8) or (day == 11 and hour >= 8):
+            is_cwl = False
+        else:
+            is_cwl = True
     else:
-        is_raids = False
-    return is_raids
+        is_cwl = False
+
+    return is_cwl
 
 
 def is_games():

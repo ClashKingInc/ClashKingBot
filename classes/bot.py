@@ -32,6 +32,7 @@ from classes.emoji import Emojis, EmojiType
 from classes.player.stats import CustomClanClass, StatsPlayer
 from utility.constants import BADGE_GUILDS, locations
 from utility.general import create_superscript, fetch
+from utility.clash.other import is_cwl
 from utility.login import coc_login
 
 
@@ -665,6 +666,8 @@ class CustomClient(commands.AutoShardedBot):
         if not next_war:
             try:
                 war = await self.coc_client.get_current_war(clanTag)
+                if war is None and is_cwl():
+                    war = await self.coc_client.get_current_war(clanTag, cwl_round=coc.WarRound.current_preparation)
                 if not war or war.state == 'notInWar':
                     return None
                 return war

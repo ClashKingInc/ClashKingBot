@@ -1182,8 +1182,6 @@ async def family_wars(bot: CustomClient, server: disnake.Guild, embed_color: dis
     for war in war_list:
         if war.clan.name is None:
             continue
-        emoji = await bot.create_new_badge_emoji(url=war.clan.badge.url)
-
         war_time = war.start_time.seconds_until
         if war_time < -172800:
             continue
@@ -1202,7 +1200,7 @@ async def family_wars(bot: CustomClient, server: disnake.Guild, embed_color: dis
         team_hits = f'{len(war.attacks) - len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}'.ljust(7)
         opp_hits = f'{len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}'.rjust(7)
         embed.add_field(
-            name=f'{emoji}{war.clan.name} vs {war.opponent.name}',
+            name=f'{war.clan.name} vs {war.opponent.name}',
             value=f'> `{team_hits}`{bot.emoji.wood_swords}`{opp_hits}`\n'
             f'> `{war.clan.stars:<7}`{bot.emoji.war_star}`{war.opponent.stars:>7}`\n'
             f"> `{str(round(war.clan.destruction, 2)) + '%':<7}`<:broken_sword:944896241429540915>`{str(round(war.opponent.destruction, 2)) + '%':>7}`\n"
