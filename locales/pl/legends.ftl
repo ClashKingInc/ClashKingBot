@@ -1,42 +1,42 @@
-legends-name = legends
-legends-description = Legend League Commands & Stats
-search-name = search
-search-description = View legend stats for a player or discord user
-clan-name = clan
-clan-description = View a clan's legend day results
-history-name = history
-history-description = View legend history of an account
-today = Today
-legend-overview = Legend Day Overview
-profile = Profile
+legends-name = legenda
+legends-description = Polecenia i Statystyki Ligi Legendarnej
+search-name = wyszukaj
+search-description = Wyświetl statystyki legend dla gracza lub użytkownika Discorda
+clan-name = klan
+clan-description = Wyświetl wyniki legendarnego dnia klanu
+history-name = historia
+history-description = Wyświetl historię legendy konta
+today = Dzisiaj
+legend-overview = Legenda Dnia Przegląd
+profile = Profil
 start = Start:
-now = Now:
+now = Teraz:
 attacks-for-trophies =
     { $num_attacks ->
-        [one] { $num_attacks } attack for +{ $attack_sum } trophies
-       *[other] { $num_attacks } attacks for +{ $attack_sum } trophies
+        [one] { $num_attacks } atak za +{ $attack_sum } pucharów 
+       *[other] { $num_attacks } ataki za +{ $attack_sum } pucharów 
     }
 defenses-for-trophies =
     { $num_defenses ->
-        [one] { $num_defenses } defense for -{ $defense_sum } trophies
-       *[other] { $num_defenses } defenses for -{ $defense_sum } trophies
+        [one] { $num_defenses } obrona za -{ $defense_sum } pucharów 
+       *[other] { $num_defenses } obron za -{ $defense_sum } pucharów 
     }
-net-trophies = Net: { $net_gain } trophies
-streak = Streak: { $triple_streak } triples
+net-trophies = Net: { $net_gain } pucharów
+streak = Seria: { $triple_streak } trzech gwiazd
 top-ranking = (Top { $perc_of_total }%)
-rankings = Rankings
-country = Country
-no-attacks = No Attacks Yet
-no-defenses = No Defenses Yet
-no-equipment = No Equipment Used Yet
-offense = Offense
-defense = Defense
-equipment-used = Hero Equipment Used
-attacks-won = Attacks Won
-defenses-won = Def Won
-legend-day-headings = Day Off  Def  Trophy
-day = Day
-no-previous-days = No Previous Days Tracked
-season-legends-overview = Season Legends Overview
+rankings = Rankingi
+country = Kraj
+no-attacks = Nie było jeszcze ataków
+no-defenses = Nie ma jeszcze obrony
+no-equipment = Nie użyto jeszcze żadnego wyposażenia
+offense = Ofensywa
+defense = Obrona
+equipment-used = Użyte Wyposażenie Bohatera
+attacks-won = Wygrane ataki
+defenses-won = Wygrana Obrona
+legend-day-headings = Wolny dzień   Def    Puchar
+day = Dzień
+no-previous-days = Brak poprzednich dni
+season-legends-overview = Przegląd Sezonu Legendy
 # month is a string, like December, year is integer like 2024
-legend-season = { $month } { $year } Season
+legend-season = Sezon { $month } { $year }
