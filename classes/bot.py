@@ -70,7 +70,7 @@ class CustomClient(commands.AutoShardedBot):
 
         self.scheduler = scheduler
         self.ck_client: FamilyClient = None
-        self.max_pool_size = 100 if not config.is_beta else 1
+        self.max_pool_size = 1 if config.is_custom else 100
 
         self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(self._config.stats_mongodb, compressors='snappy')
 
