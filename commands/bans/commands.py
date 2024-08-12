@@ -26,7 +26,7 @@ class Bans(commands.Cog, name='Bans'):
         self,
         ctx: disnake.ApplicationCommandInteraction,
         player: coc.Player = options.family_player,
-        reason: str = commands.Param(name=Loc(key='reason-option'), description=Loc(key='reason-description'), default=Loc(key='reason-default')),
+        reason: str = commands.Param(name=Loc(key='reason-option'), description=Loc(key='reason-description'), default=None),
         dm_player: str = commands.Param(name=Loc(key='dm-player-option'), description=Loc(key='dm-player-description'), default=None),
     ):
         _, locale = self.bot.get_localizator(ctx=ctx)
@@ -64,7 +64,7 @@ class Bans(commands.Cog, name='Bans'):
             raise MessageException(_('no-banned-players'))
 
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
-        embeds = await create_embeds(bot=self.bot, bans=bans, guild=ctx.guild, embed_color=embed_color)
+        embeds = await create_embeds(bot=self.bot, bans=bans, guild=ctx.guild, embed_color=embed_color, locale=locale)
 
         current_page = 0
         await ctx.edit_original_message(embed=embeds[0], components=create_components(current_page, embeds, True))

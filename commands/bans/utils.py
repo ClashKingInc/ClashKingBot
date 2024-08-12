@@ -25,6 +25,9 @@ async def add_ban(
     now = pend.now(tz=pend.UTC)
     dt_string = now.strftime('%Y-%m-%d %H:%M:%S')
 
+    if reason is None:
+        reason = _('reason-default')
+
     if rollover_days is not None:
         now = pend.now(tz=pend.UTC)
         rollover_days = now + timedelta(rollover_days)
@@ -49,6 +52,15 @@ async def add_ban(
         )
         ban_type = 'updated'
     else:
+        print({
+                'VillageTag': player.tag,
+                'DateCreated': dt_string,
+                'Notes': reason,
+                'server': guild.id,
+                'added_by': added_by.id,
+                'rollover_date': rollover_days,
+                'name': player.name,
+            })
         await bot.banlist.insert_one(
             {
                 'VillageTag': player.tag,
@@ -67,9 +79,9 @@ async def add_ban(
         clan_text = f'[{player.clan.name}]({player.clan.share_link})'
 
     embed = disnake.Embed(
-        description=f'**{bot.fetch_emoji(player.town_hall)}[{player.name}]({player.share_link}) | {player.tag}\n'
+        description=f'**{bot.fetch_emoji(player.town_hall)}[{player.name}]({player.share_link})** | {player.tag}'
         f'{clan_text}\n'
-        f"{_('ban-details', values={'ban_type' : ban_type, 'date' : dt_string, 'discord_mention' : added_by.mention})}"
+        f"{_('ban-details', values={'ban_type' : ban_type, 'date' : dt_string, 'discord_mention' : added_by.mention})}\n"
         f'{_("reason-notes")}: {reason}',
         color=disnake.Color.brand_red(),
     )
