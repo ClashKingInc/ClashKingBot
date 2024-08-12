@@ -11,7 +11,6 @@ from utility.discord_utils import check_commands, interaction_handler
 
 from .utils import add_ban, create_embeds, remove_ban
 
-
 class Bans(commands.Cog, name='Bans'):
     def __init__(self, bot: CustomClient):
         self.bot = bot
