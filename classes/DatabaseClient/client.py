@@ -19,7 +19,7 @@ class BaseClient:
         self.bot = bot
 
     async def get_clan_servers(self, clan_tag: int, cached=False):
-        if cached and (s := self.bot.SETTINGS_CACHE.get(f"{clan_tag}-clan-servers") is not None):
+        if cached and (s := self.bot.SETTINGS_CACHE.get(f"{clan_tag}-clan-servers")) is not None:
             servers = s
         else:
             servers = await self.bot.clan_db.distinct('server', filter={'tag': clan_tag})
@@ -28,7 +28,7 @@ class BaseClient:
 
     async def get_server_settings(self, server_id: int, cached=False):
 
-        if cached and (d := self.bot.SETTINGS_CACHE.get(f"{server_id}-server-settings") is not None):
+        if cached and (d := self.bot.SETTINGS_CACHE.get(f"{server_id}-server-settings")) is not None:
             data = d
         else:
             pipeline = [
