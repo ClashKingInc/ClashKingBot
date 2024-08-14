@@ -25,9 +25,9 @@ class AutoEval(commands.Cog):
         clan_tag = event.get('new_player').get('clan', {}).get('tag', '')
         player_name = event.get('new_player').get('name')
 
-        server_ids = await self.bot.clan_db.distinct('server', filter={'tag': clan_tag})
+        server_ids = await self.bot.ck_client.get_clan_servers(clan_tag=clan_tag, cached=True)
         for server_id in server_ids:
-            db_server = await self.bot.ck_client.get_server_settings(server_id=server_id)
+            db_server = await self.bot.ck_client.get_server_settings(server_id=server_id, cached=True)
 
             if db_server.server_id not in self.bot.OUR_GUILDS or not db_server.auto_eval_status:
                 continue
@@ -72,9 +72,9 @@ class AutoEval(commands.Cog):
 
         clan = coc.Clan(data=event['new_clan'], client=self.bot.coc_client)
 
-        server_ids = await self.bot.clan_db.distinct('server', filter={'tag': clan.tag})
+        server_ids = await self.bot.ck_client.get_clan_servers(clan_tag=clan.tag, cached=True)
         for server_id in server_ids:
-            db_server = await self.bot.ck_client.get_server_settings(server_id=server_id)
+            db_server = await self.bot.ck_client.get_server_settings(server_id=server_id, cached=True)
 
             if db_server.server_id not in self.bot.OUR_GUILDS or not db_server.auto_eval_status:
                 continue
