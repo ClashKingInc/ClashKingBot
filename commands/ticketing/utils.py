@@ -29,7 +29,7 @@ async def ask_questions(bot: CustomClient, ctx: disnake.MessageInteraction, ques
         if question != ''
     ]
     made_id = f'Answers-{ctx.user.id}-{int(datetime.now().timestamp())}'
-    await ctx.response.send_modal(title='Questionnaire ', custom_id=made_id, components=components)
+    await ctx.response.send_modal(title='Questionnaire', custom_id=made_id, components=components)
 
     def check(res: disnake.ModalInteraction):
         return ctx.author.id == res.author.id and res.custom_id == made_id
@@ -91,6 +91,7 @@ async def open_ticket(
     user_overwrite.read_message_history = True
     user_overwrite.send_messages = True
     user_overwrite.attach_files = True
+    user_overwrite.embed_links = True
 
     no_ping_roles = [disnake.utils.get(ctx.guild.roles, id=int(role)) for role in button.no_ping_staff_roles]
     ping_roles = [disnake.utils.get(ctx.guild.roles, id=int(role)) for role in button.ping_staff_roles]

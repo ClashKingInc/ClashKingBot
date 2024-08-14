@@ -481,8 +481,8 @@ class SetupCommands(commands.Cog, name='Setup'):
         if not bool(token_check.match(bot_token)):
             raise MessageException('Not a valid bot token')
         
-        '''if not self.bot.user.public_flags.verified_bot:
-            raise MessageException('This command can only be run on the main ClashKing bot')'''
+        if not self.bot.user.public_flags.verified_bot:
+            raise MessageException('This command can only be run on the main ClashKing bot')
 
         my_server = await self.bot.getch_guild(923764211845312533)
         if not my_server.chunked:
@@ -701,11 +701,11 @@ class SetupCommands(commands.Cog, name='Setup'):
         my_server = await self.bot.getch_guild(923764211845312533)
         premium_users = my_server.get_role(1018316361241477212)
         find = disnake.utils.get(premium_users.members, id=ctx.user.id)
-        '''await self.bot.custom_bots.update_one(
+        await self.bot.custom_bots.update_one(
             {'user': ctx.user.id},
             {'$set': {'token': bot_token, 'premium': (find is not None), 'name': name}},
             upsert=True,
-        )'''
+        )
 
     @setup.sub_command(name='logs', description='Set a variety of different clan logs for your server!')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -988,7 +988,7 @@ class SetupCommands(commands.Cog, name='Setup'):
                 overwrite.connect = False
                 await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
                 results_list.append((type, channel))
-            except disnake.Forbidden:
+            except:
                 embed = disnake.Embed(
                     description='Bot requires admin to create & set permissions for channel. **Channel will not update**',
                     color=disnake.Color.red(),

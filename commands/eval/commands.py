@@ -184,7 +184,7 @@ class eval(commands.Cog, name='Refresh'):
             changed_text += f'- **Nickname Change:** {nickname_change}\n'
 
         if change_log:
-            await db_server.set
+           pass
 
         if blacklist_role_add is not None:
             if blacklist_role_add.id in db_server.blacklisted_roles:

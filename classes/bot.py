@@ -194,6 +194,8 @@ class CustomClient(commands.AutoShardedBot):
         self.clan_list = []
         self.IMAGE_CACHE = ExpiringDict()
 
+        self.SETTINGS_CACHE = ExpiringDict()
+
         self.OUR_GUILDS = set()
 
         self.EXTENSION_LIST = []
