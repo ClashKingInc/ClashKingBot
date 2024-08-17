@@ -15,13 +15,12 @@ scheduler.start()
 config = Config()
 intents = disnake.Intents(guilds=True, members=True, emojis=True, messages=True, message_content=True)
 
-cluster_id = 0
-total_shards = 6
+
 cluster_kwargs = {'shard_count': None}
 if config.is_main:
     total_shards = 6
     #cluster_id = config.cluster_id + 1
-    offset = cluster_id  # As we start at 0
+    offset = config.cluster_id  # As we start at 0
     number_of_shards_per_cluster = 2
     # Calculate the shard id's this cluster should handle
     # For example on cluster 1 this would be equal to
