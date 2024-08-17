@@ -20,8 +20,8 @@ total_shards = 6
 cluster_kwargs = {'shard_count': None}
 if config.is_main:
     total_shards = 6
-    cluster_id = 0
-    """offset = cluster_id - 1  # As we start at 1
+    #cluster_id = config.cluster_id + 1
+    offset = cluster_id  # As we start at 0
     number_of_shards_per_cluster = 2
     # Calculate the shard id's this cluster should handle
     # For example on cluster 1 this would be equal to
@@ -37,7 +37,7 @@ if config.is_main:
     cluster_kwargs = {
         "shard_ids": shard_ids,
         "shard_count": total_shards,
-    }"""
+    }
 
 bot = CustomClient(
     command_prefix='??',
@@ -45,7 +45,7 @@ bot = CustomClient(
     intents=intents,
     scheduler=scheduler,
     config=config,
-    chunk_guilds_at_startup=(not config.is_main),
+    chunk_guilds_at_startup=True,
     **cluster_kwargs,
 )
 
@@ -57,6 +57,7 @@ initial_extensions = [
     'background.tasks.background_cache',
     'background.features.link_parsers',
 ]
+
 
 disallowed = set()
 

@@ -23,6 +23,7 @@ async def kafka_events(bot):
         await asyncio.sleep(0)
         await f
 
+    background_tasks = set()
     while True:
         clans = set()
         while not bot.CLANS_LOADED:
@@ -72,7 +73,9 @@ async def kafka_events(bot):
                                 elif topic == 'reddit':
                                     awaitable = reddit_ee.emit_async(field, value)
                                 if awaitable is not None:
-                                    asyncio.create_task(wrap_task(awaitable))
+                                    task = asyncio.create_task(wrap_task(awaitable))
+                                    background_tasks.add(task)
+                                    task.add_done_callback(background_tasks.discard)
                         except Exception:
                             pass
         except Exception as e:
