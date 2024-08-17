@@ -24,31 +24,38 @@ bot_settings = db_client["bot"]["settings"].find_one({"type": "bot"})
 cluster_kwargs = {'shard_count': None}
 if config.is_main:
 
-    total_shards = TOTAL_SHARDS = int(requests.get(f"https://{config.discord_proxy_url}/shard-count", timeout=5).text)
-    #cluster_id = config.cluster_id + 1
+    def calculate_shard_distribution(total_shards, total_clusters):
+        base_shard_count = total_shards // total_clusters
+        extra_shards = total_shards % total_clusters
+
+        shard_distribution = [base_shard_count] * total_clusters
+
+        # Distribute the extra shards to the first few clusters
+        for i in range(extra_shards):
+            shard_distribution[i] += 1
+
+        return shard_distribution
+
+    TOTAL_SHARDS = int(requests.get(f"https://{config.discord_proxy_url}/shard-count", timeout=5).text)
     TOTAL_CLUSTERS = bot_settings.get("total_clusters")
 
-    CURRENT_CLUSTER = int(config.cluster_id) + 1  # As we start at 0
+    shard_distribution = calculate_shard_distribution(TOTAL_SHARDS, TOTAL_CLUSTERS)
 
-    SHARD_COUNT = TOTAL_SHARDS // TOTAL_CLUSTERS
-    shard_ids = list(
-        range(
-            SHARD_COUNT * (CURRENT_CLUSTER - 1),
-            SHARD_COUNT * (CURRENT_CLUSTER),
-        )
-    )
+    CURRENT_CLUSTER = int(config.cluster_id)
 
-    if CURRENT_CLUSTER == TOTAL_CLUSTERS:
-        shard_ids.extend(
-            range(
-                SHARD_COUNT * TOTAL_CLUSTERS,
-                TOTAL_SHARDS,
-            )
-        )
+    # Determine the start and end of shards for the current cluster
+    start_shard = sum(shard_distribution[:CURRENT_CLUSTER])
+    end_shard = start_shard + shard_distribution[CURRENT_CLUSTER]
+
+    # Generate shard_ids for the current cluster
+    shard_ids = list(range(start_shard, end_shard))
+
     cluster_kwargs = {
         "shard_ids": shard_ids,
-        "shard_count": total_shards,
+        "shard_count": TOTAL_SHARDS,
     }
+
+
 
 bot = CustomClient(
     command_prefix='??',

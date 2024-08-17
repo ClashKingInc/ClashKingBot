@@ -41,18 +41,21 @@ class DiscordEvents(commands.Cog):
             database_guilds: set = set(database_guilds)
             missing_guilds = [guild.id for guild in self.bot.guilds if guild.id not in database_guilds]
             for guild in missing_guilds:
-                await self.bot.server_db.insert_one(
-                    {
-                        'server': guild,
-                        'banlist': None,
-                        'greeting': None,
-                        'cwlcount': None,
-                        'topboardchannel': None,
-                        'tophour': None,
-                        'lbboardChannel': None,
-                        'lbhour': None,
-                    }
-                )
+                try:
+                    await self.bot.server_db.insert_one(
+                        {
+                            'server': guild,
+                            'banlist': None,
+                            'greeting': None,
+                            'cwlcount': None,
+                            'topboardchannel': None,
+                            'tophour': None,
+                            'lbboardChannel': None,
+                            'lbhour': None,
+                        }
+                    )
+                except:
+                    continue
 
             logger.info('We have connected')
 
