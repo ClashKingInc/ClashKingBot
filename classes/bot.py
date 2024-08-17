@@ -208,7 +208,7 @@ class CustomClient(commands.AutoShardedBot):
         if self._config.is_main:
             # Custom behavior if is_main is True
             return await super().launch_shard(
-                self._config.discord_proxy_url, shard_id, initial=initial
+                f"wss://{self._config.discord_proxy_url}", shard_id, initial=initial
             )
         else:
             # Default behavior if is_main is False

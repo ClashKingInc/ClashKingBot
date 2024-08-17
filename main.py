@@ -1,9 +1,11 @@
 import os
 import traceback
 import disnake
+import requests
 import sentry_sdk
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
+from pymongo import MongoClient
 
 from classes.bot import CustomClient
 from classes.config import Config
@@ -15,24 +17,34 @@ scheduler.start()
 config = Config()
 intents = disnake.Intents(guilds=True, members=True, emojis=True, messages=True, message_content=True)
 
+db_client = MongoClient(config.static_mongodb)
+
+bot_settings = db_client["bot"]["settings"].find_one({"type": "bot"})
 
 cluster_kwargs = {'shard_count': None}
 if config.is_main:
-    total_shards = 6
+
+    total_shards = TOTAL_SHARDS = int(requests.get(f"https://{config.discord_proxy_url}/shard-count", timeout=5).text)
     #cluster_id = config.cluster_id + 1
-    offset = int(config.cluster_id)  # As we start at 0
-    number_of_shards_per_cluster = 2
-    # Calculate the shard id's this cluster should handle
-    # For example on cluster 1 this would be equal to
-    # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    shard_ids = [
-        i
-        for i in range(
-            offset * number_of_shards_per_cluster,
-            (offset * number_of_shards_per_cluster) + number_of_shards_per_cluster,
+    TOTAL_CLUSTERS = bot_settings.get("total_clusters")
+
+    CURRENT_CLUSTER = int(config.cluster_id) + 1  # As we start at 0
+
+    SHARD_COUNT = TOTAL_SHARDS // TOTAL_CLUSTERS
+    shard_ids = list(
+        range(
+            SHARD_COUNT * (CURRENT_CLUSTER - 1),
+            SHARD_COUNT * (CURRENT_CLUSTER),
         )
-        if i < total_shards
-    ]
+    )
+
+    if CURRENT_CLUSTER == TOTAL_CLUSTERS:
+        shard_ids.extend(
+            range(
+                SHARD_COUNT * TOTAL_CLUSTERS,
+                TOTAL_SHARDS,
+            )
+        )
     cluster_kwargs = {
         "shard_ids": shard_ids,
         "shard_count": total_shards,
