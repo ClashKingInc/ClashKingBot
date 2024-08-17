@@ -105,7 +105,6 @@ if not config.is_beta:
         'background.logs.reminders',
         'background.features.voicestat_loop',
         'background.logs.war',
-        'background.features.auto_refresh'
     ]
 
 
