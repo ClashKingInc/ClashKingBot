@@ -204,27 +204,6 @@ class CustomClient(commands.AutoShardedBot):
         self.BADGE_GUILDS = BADGE_GUILDS
 
 
-    async def launch_shard(self, _gateway: str, shard_id: int, *, initial: bool = False) -> None:
-        if self._config.is_main:
-            # Custom behavior if is_main is True
-            return await super().launch_shard(
-                f"wss://{self._config.discord_proxy_url}", shard_id, initial=initial
-            )
-        else:
-            # Default behavior if is_main is False
-            return await super().launch_shard(_gateway, shard_id, initial=initial)
-
-    async def before_identify_hook(
-            self, _shard_id: int | None, *, initial: bool = False  # noqa: ARG002
-    ) -> None:
-        if self._config.is_main:
-            # Custom behavior if is_main is True
-            return
-        else:
-            # Default behavior if is_main is False
-            return await super().before_identify_hook(_shard_id, initial=initial)
-
-
     @property
     def emoji(self):
         return Emojis()

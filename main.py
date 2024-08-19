@@ -36,7 +36,7 @@ if config.is_main:
 
         return shard_distribution
 
-    TOTAL_SHARDS = int(requests.get(f"https://{config.discord_proxy_url}/shard-count", timeout=5).text)
+    TOTAL_SHARDS = 7
     TOTAL_CLUSTERS = bot_settings.get("total_clusters")
 
     shard_distribution = calculate_shard_distribution(TOTAL_SHARDS, TOTAL_CLUSTERS)
