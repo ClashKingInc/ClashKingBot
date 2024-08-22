@@ -58,7 +58,6 @@ def get_cluster_breakdown(config: 'Config'):
                     break
                 line = file.readline().strip()
 
-        print(HOSTNAME)
         our_container = [c for c in all_containers if c['Id'][:12] == HOSTNAME[:12]][0]
         container_name = our_container['Names'][0].strip('/')
         config.cluster_id = CURRENT_CLUSTER = int(container_name.split('_')[-1])
@@ -75,7 +74,7 @@ def get_cluster_breakdown(config: 'Config'):
 
             return shard_distribution
 
-        TOTAL_SHARDS = int(requests.get(f'https://{config.discord_proxy_url}/shard-count', timeout=5).text)
+        TOTAL_SHARDS = config.total_clusters
 
         shard_distribution = calculate_shard_distribution(TOTAL_SHARDS, config.total_clusters)
 
