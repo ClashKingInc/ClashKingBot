@@ -348,13 +348,13 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
         page_buttons = [
             disnake.ui.Button(
                 label='',
-                emoji=self.bot.emoji.menu.partial_emoji,
+                emoji=self.bot.emoji.wrench.partial_emoji,
                 style=disnake.ButtonStyle.grey,
                 custom_id=f'clancapoverview:{clan.tag}:{weekend}',
             ),
             disnake.ui.Button(
                 label='Raids',
-                emoji=self.bot.emoji.sword_clash.partial_emoji,
+                emoji=self.bot.emoji.animated_clash_swords.partial_emoji,
                 style=disnake.ButtonStyle.grey,
                 custom_id=f'clancapraids:{clan.tag}:{weekend}',
             ),

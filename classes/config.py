@@ -1,40 +1,41 @@
-from dataclasses import dataclass
-from os import getenv
-
 from dotenv import load_dotenv
 
 
 load_dotenv()
 
 
-@dataclass(frozen=True, slots=True)
 class Config:
-    coc_email = getenv('COC_EMAIL')
-    coc_password = getenv('COC_PASSWORD')
+    def __init__(self, remote_settings: dict):
+        self.discord_proxy_url: str = remote_settings.get('discord_proxy_url')
 
-    min_coc_email = 51
-    max_coc_email = 52
+        self.link_api_username: str = remote_settings.get('link_api_user')
+        self.link_api_password: str = remote_settings.get('link_api_pw')
 
-    discord_proxy_url = getenv('DISCORD_PROXY_URL')
-    static_mongodb = getenv('STATIC_MONGODB')
-    stats_mongodb = getenv('STATS_MONGODB')
-    link_api_username = getenv('LINK_API_USER')
-    link_api_password = getenv('LINK_API_PW')
-    bot_token = getenv('BOT_TOKEN')
-    sentry_dsn = getenv('SENTRY_DSN')
-    redis_ip = getenv('REDIS_IP')
-    redis_pw = getenv('REDIS_PW')
-    bunny_api_token = getenv('BUNNY_ACCESS_KEY')
-    portainer_ip = getenv('PORTAINER_IP')
-    portainer_api_token = getenv('PORTAINER_API_TOKEN')
-    reddit_user_secret = getenv('REDDIT_SECRET')
-    reddit_user_password = getenv('REDDIT_PW')
-    open_ai_api_token = getenv('OPENAI_API_KEY')
+        self.static_mongodb: str = remote_settings.get('static_db')
+        self.stats_mongodb: str = remote_settings.get('stats_db')
 
-    is_beta = getenv('BETA') == 'TRUE'
-    is_custom = getenv('IS_CUSTOM') == 'TRUE'
-    is_main = getenv('IS_MAIN') == 'TRUE'
-    cluster_id = getenv('CLUSTER_ID')
+        self.bot_token: str = ''
 
-    portainer_user = getenv('PORTAINER_USER')
-    portainer_pw = getenv('PORTAINER_PASSWORD')
+        self.sentry_dsn: str = remote_settings.get('sentry_dsn')
+
+        self.redis_ip = remote_settings.get('redis_ip')
+        self.redis_pw = remote_settings.get('redis_pw')
+
+        self.bunny_api_token = remote_settings.get('bunny_api_token')
+
+        self.portainer_ip = remote_settings.get('portainer_ip')
+        self.portainer_api_token = remote_settings.get('portainer_api_token')
+        self.portainer_user = remote_settings.get('portainer_user')
+        self.portainer_pw = remote_settings.get('portainer_password')
+
+        self.reddit_user_secret = remote_settings.get('reddit_secret')
+        self.reddit_user_password = remote_settings.get('reddit_pw')
+
+        self.is_beta = remote_settings.get('is_beta')
+        self.is_custom = remote_settings.get('is_custom')
+        self.is_main = remote_settings.get('is_main')
+
+        self.cluster_id = 0
+        self.total_clusters = remote_settings.get('total_clusters')
+
+        self.emoji_url = remote_settings.get('emoji_url')

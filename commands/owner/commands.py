@@ -1,28 +1,13 @@
-import asyncio
 import io
-import json
 import re
 import textwrap
-from collections import Counter
 from contextlib import redirect_stdout
 from datetime import datetime
 
-import aiohttp
-import coc
 import disnake
-import pendulum as pend
 from disnake.ext import commands
 
-from assets.emojis import *
 from classes.bot import CustomClient
-from classes.DatabaseClient.Classes.settings import DatabaseClan, DatabaseServer
-from discord.options import autocomplete, convert
-from exceptions.CustomExceptions import MissingWebhookPerms
-from utility.constants import DEFAULT_EVAL_ROLE_TYPES, EMBED_COLOR_CLASS
-from utility.discord_utils import get_webhook_for_channel
-from utility.general import calculate_time
-
-from ..eval.utils import logic
 
 
 class OwnerCommands(commands.Cog):
@@ -137,8 +122,47 @@ class OwnerCommands(commands.Cog):
     @commands.slash_command(name='test', guild_ids=[923764211845312533])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
-        pass
+        import os
 
+        import requests
+
+        # Directory to save the downloaded emojis
+        save_dir = '/assets/hold/'
+
+        # Ensure the directory exists
+        os.makedirs(save_dir, exist_ok=True)
+
+        hold_emojis = {}
+
+        for x in range(1, 100):
+            gold_emoji = self.bot.get_number_emoji(color="gold", number=x)
+            hold_emojis[f"gold_{x}"] = gold_emoji.emoji_string
+
+
+        # Function to download emoji
+        def download_emoji(name, emoji_str):
+            # Extract the emoji ID and determine if it is animated
+            emoji_id = emoji_str.split(':')[-1].strip('>')
+            is_animated = emoji_str.startswith('<a:')
+
+            # Determine the file extension
+            extension = 'gif' if is_animated else 'png'
+            url = f'https://cdn.discordapp.com/emojis/{emoji_id}.{extension}'
+
+            # Download the emoji
+            response = requests.get(url)
+            if response.status_code == 200:
+                with open(os.path.join(save_dir, f'{name.replace(" ", "")}.{extension}'), 'wb') as file:
+                    print(f'Saving files to: {os.path.abspath(save_dir)}')
+                    file.write(response.content)
+                print(f'Downloaded {name}.{extension}')
+            else:
+                print(f'Failed to download {name}.{extension} from {url}')
+
+        # Iterate through the emoji dictionary and download each one
+        for name, emoji_str in hold_emojis.items():
+
+            download_emoji(name, emoji_str)
 
     @commands.slash_command(name='anniversary', guild_ids=[923764211845312533])
     @commands.is_owner()

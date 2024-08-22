@@ -5,8 +5,9 @@ from classes.bot import CustomClient
 from classes.DatabaseClient.Classes.player import LegendPlayer
 
 
-
-async def hv_player_leaderboard(bot: CustomClient, country_name: str, rankings: list[coc.RankedPlayer], location_emoji: str, embed_color: disnake.Color):
+async def hv_player_leaderboard(
+    bot: CustomClient, country_name: str, rankings: list[coc.RankedPlayer], location_emoji: str, embed_color: disnake.Color
+):
     tag_map = {m.tag: m for m in rankings}
     tags = list(tag_map.keys())
 
@@ -57,12 +58,14 @@ async def hv_player_leaderboard(bot: CustomClient, country_name: str, rankings: 
 
     for i, player in enumerate(player_list, start=1):
         legend_day = player.get_legend_day()
-        emoji = player.ranking.flag if player.ranking.country is not None and country_name == "Global" else bot.emoji.trophy
+        emoji = player.ranking.flag if player.ranking.country is not None and country_name == 'Global' else bot.emoji.trophy
         text += f'\u200e**{emoji}\u200e{player._.trophies} | \u200e{player._.name}**\n'
         if player._legend_data:
-            text += f'-# (#{i}) | {bot.emoji.sword}{legend_day.attack_sum}{legend_day.num_attacks.superscript}'\
-                    f' {bot.emoji.shield}{legend_day.defense_sum}{legend_day.num_defenses.superscript}'\
-                    f' {bot.emoji.ratio}{player.streak}\n'
+            text += (
+                f'-# (#{i}) | {bot.emoji.clash_sword}{legend_day.attack_sum}{legend_day.num_attacks.superscript}'
+                f' {bot.emoji.shield}{legend_day.defense_sum}{legend_day.num_defenses.superscript}'
+                f' {bot.emoji.ratio}{player.streak}\n'
+            )
         else:
             text += f'-# (#{i}) | {player.tag}\n'
         if i % 25 == 0:
@@ -79,7 +82,9 @@ async def hv_player_leaderboard(bot: CustomClient, country_name: str, rankings: 
     return embeds
 
 
-async def hv_clan_leaderboard(bot: CustomClient, country_name: str, rankings: list[coc.RankedClan], location_emoji: str, family_clan_tags: list[str], embed_color: disnake.Color):
+async def hv_clan_leaderboard(
+    bot: CustomClient, country_name: str, rankings: list[coc.RankedClan], location_emoji: str, family_clan_tags: list[str], embed_color: disnake.Color
+):
     embeds = []
     text_chunks = []
     text = ''
@@ -106,7 +111,9 @@ async def hv_clan_leaderboard(bot: CustomClient, country_name: str, rankings: li
     return embeds
 
 
-async def clan_capital_leaderboard(bot: CustomClient, country_name: str, rankings: list[coc.RankedClan], location_emoji: str, family_clan_tags: list[str], embed_color: disnake.Color):
+async def clan_capital_leaderboard(
+    bot: CustomClient, country_name: str, rankings: list[coc.RankedClan], location_emoji: str, family_clan_tags: list[str], embed_color: disnake.Color
+):
     embeds = []
     text_chunks = []
     text = ''
@@ -133,7 +140,14 @@ async def clan_capital_leaderboard(bot: CustomClient, country_name: str, ranking
     return embeds
 
 
-async def bb_player_leaderboard(bot: CustomClient, country_name: str, rankings: list[coc.RankedPlayer], location_emoji: str, family_clan_tags: list[str], embed_color: disnake.Color):
+async def bb_player_leaderboard(
+    bot: CustomClient,
+    country_name: str,
+    rankings: list[coc.RankedPlayer],
+    location_emoji: str,
+    family_clan_tags: list[str],
+    embed_color: disnake.Color,
+):
     embeds = []
     text_chunks = []
     text = ''
@@ -160,12 +174,13 @@ async def bb_player_leaderboard(bot: CustomClient, country_name: str, rankings: 
     return embeds
 
 
-async def bb_clan_leaderboard(bot: CustomClient, country_name: str, rankings: list[coc.RankedClan], location_emoji: str, family_clan_tags: list[str], embed_color: disnake.Color):
+async def bb_clan_leaderboard(
+    bot: CustomClient, country_name: str, rankings: list[coc.RankedClan], location_emoji: str, family_clan_tags: list[str], embed_color: disnake.Color
+):
     embeds = []
     text_chunks = []
     text = ''
     family_clan_tags = set(family_clan_tags)
-
 
     for i, clan in enumerate(rankings, start=1):
         page_start = (i - 1) // 50 * 50 + 1
@@ -186,6 +201,7 @@ async def bb_clan_leaderboard(bot: CustomClient, country_name: str, rankings: li
         embeds.append(embed)
 
     return embeds
+
 
 '''
 async def image_board(
@@ -281,4 +297,3 @@ async def image_board(
 
 async def location_components(bot: CustomClient, loc_type: str, **kwargs):
     return None'''
-

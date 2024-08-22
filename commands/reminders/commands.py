@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Union
 
 import coc
 import disnake
@@ -8,12 +8,11 @@ from disnake.ext import commands
 from classes.bot import CustomClient
 from discord.options import autocomplete, convert
 from exceptions.CustomExceptions import MessageException, NotValidReminderTime
+from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
 from utility.components import clan_component
 from utility.discord_utils import check_commands, interaction_handler
 from utility.time import time_difference
-from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
-
-from .send import war_reminder, clan_capital_reminder
+from .send import clan_capital_reminder, war_reminder
 from .utils import (
     create_capital_reminder,
     create_games_reminder,
@@ -199,7 +198,7 @@ class ReminderCommands(commands.Cog, name='Reminders'):
             )
         await ctx.edit_original_message(content=f'Reminder sent to {channel.mention}')
 
-    @reminders.sub_command(
+    """@reminders.sub_command(
         name='personal',
         description='Reminders for your own accounts (custom bots only)',
     )
@@ -212,7 +211,7 @@ class ReminderCommands(commands.Cog, name='Reminders'):
     ):
 
         reminder_type = type.lower().replace(' ', '_')
-        await self.bot.personal_reminders.update_one({'user_id': ctx.author.id}, {f'type.{reminder_type}': 'test'})
+        await self.bot.personal_reminders.update_one({'user_id': ctx.author.id}, {f'type.{reminder_type}': 'test'})"""
 
     @reminders.sub_command(name='list', description='Get the list of reminders set up on the server')
     async def reminder_list(self, ctx: disnake.ApplicationCommandInteraction):

@@ -1,7 +1,8 @@
 import asyncio
-from datetime import datetime
-import uuid
 import base64
+import uuid
+from datetime import datetime
+
 import disnake
 from disnake import ButtonStyle
 from disnake.ext import commands
@@ -221,8 +222,6 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
         await self.bot.tickets.delete_one({'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]})
         await ctx.send(content=f'**{panel_name} Panel Deleted**')
 
-
-
     @ticket.sub_command(
         name='open-message',
         description='Customize the message that is sent when a ticket is opened',
@@ -261,7 +260,6 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
             content=f'`Custom message set for {button_name} button on {panel_name} panel`\n' f'{embed_data.get("content", "") or ""}',
             embeds=embeds,
         )
-
 
     @ticket.sub_command(name='roles', description='Manage Roles around Tickets being opened')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -333,9 +331,8 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
         uuid_bytes = random_uuid.bytes
         base64_uuid = base64.urlsafe_b64encode(uuid_bytes).rstrip(b'=')
         url_safe_uuid = base64_uuid.decode('utf-8')
-        await self.bot.tickets.update_one({'$and': [{'server_id': ctx.guild.id}, {'name': ticket_panel}]}, {"$set": {"token": url_safe_uuid}})
-        await ctx.send(content=f"Edit your roster here -> https://api.clashking.xyz/ticketing?token={url_safe_uuid}", ephemeral=True)
-
+        await self.bot.tickets.update_one({'$and': [{'server_id': ctx.guild.id}, {'name': ticket_panel}]}, {'$set': {'token': url_safe_uuid}})
+        await ctx.send(content=f'Edit your roster here -> https://api.clashking.xyz/ticketing?token={url_safe_uuid}', ephemeral=True)
 
     @ticket.sub_command(
         name='apply-rules',
@@ -504,8 +501,6 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
         await modal_inter.response.defer(ephemeral=True)
         await ticket.add_edit_approve_messages(name=name, message=modal_inter.text_values['approve_msg'])
         await modal_inter.send(content='Message Added/Edited/Updated')
-
-
 
     @ticket.sub_command(name='status', description='Change status of ticket')
     @commands.check_any(commands.has_permissions(manage_channels=True), check_commands())

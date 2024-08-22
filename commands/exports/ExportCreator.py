@@ -1,10 +1,9 @@
 import calendar
 import io
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Dict, List
+from typing import Dict, List
 
 import coc
-import disnake
 import openpyxl.worksheet.worksheet
 from coc import utils
 from disnake.ext import commands

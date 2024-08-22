@@ -13,22 +13,21 @@ from utility.constants import EMBED_COLOR
 from .Classes.settings import DatabaseServer
 
 
-
 class BaseClient:
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
     async def get_clan_servers(self, clan_tag: int, cached=False):
-        if cached and (s := self.bot.SETTINGS_CACHE.get(f"{clan_tag}-clan-servers")) is not None:
+        if cached and (s := self.bot.SETTINGS_CACHE.get(f'{clan_tag}-clan-servers')) is not None:
             servers = s
         else:
             servers = await self.bot.clan_db.distinct('server', filter={'tag': clan_tag})
-            self.bot.SETTINGS_CACHE.ttl(f"{clan_tag}-clan-servers", servers, 60 * 60)
+            self.bot.SETTINGS_CACHE.ttl(f'{clan_tag}-clan-servers', servers, 60 * 60)
         return servers
 
     async def get_server_settings(self, server_id: int, cached=False):
 
-        if cached and (d := self.bot.SETTINGS_CACHE.get(f"{server_id}-server-settings")) is not None:
+        if cached and (d := self.bot.SETTINGS_CACHE.get(f'{server_id}-server-settings')) is not None:
             data = d
         else:
             pipeline = [
@@ -204,9 +203,8 @@ class BaseClient:
                     },
                 ]
                 data = await self.bot.server_db.aggregate(pipeline).to_list(length=1)
-            self.bot.SETTINGS_CACHE.ttl(f"{server_id}-server-settings", data, 60 * 60 * 24)
+            self.bot.SETTINGS_CACHE.ttl(f'{server_id}-server-settings', data, 60 * 60 * 24)
         return DatabaseServer(bot=self.bot, data=data[0])
-
 
     async def get_server_embed_color(self, server_id: int) -> disnake.Color:
         server_data = await self.bot.server_db.find_one({'server': server_id}, {'server': 1, 'embed_color': 1})

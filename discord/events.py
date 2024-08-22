@@ -1,21 +1,17 @@
 import asyncio
 import datetime
-import random
-from collections import deque
 
-import aiohttp
 import disnake
 import pendulum as pend
 from disnake.ext import commands
 from loguru import logger
-
-from assets.emojis import SharedEmojis
+from classes.emoji import Emojis
 from classes.bot import CustomClient
 from classes.DatabaseClient.familyclient import FamilyClient
 from classes.tickets import LOG_TYPE, OpenTicket, TicketPanel
-from commands.reminders.send import clan_capital_reminder, clan_games_reminder, inactivity_reminder, roster_reminder
-from utility.constants import DISCORD_STATUS_TYPES, USE_CODE_TEXT
+from utility.constants import DISCORD_STATUS_TYPES
 from utility.discord_utils import get_webhook_for_channel
+from utility.startup import fetch_emoji_dict
 
 
 has_started = False
@@ -28,6 +24,9 @@ class DiscordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_connect(self):
+        emojis = await fetch_emoji_dict(bot=self.bot)
+        self.bot.loaded_emojis = emojis
+        self.bot.emoji = Emojis(bot=self.bot)
         self.bot.ck_client = FamilyClient(bot=self.bot)
 
         if self.bot.user.id == 808566437199216691:
@@ -299,7 +298,7 @@ class DiscordEvents(commands.Cog):
                 buttons.append_item(
                     disnake.ui.Button(
                         label='To-Do List',
-                        emoji=self.bot.emoji.yes.partial_emoji,
+                        emoji=self.bot.emoji.green_check.partial_emoji,
                         style=button_color_cls,
                         custom_id='MyToDoList',
                     )

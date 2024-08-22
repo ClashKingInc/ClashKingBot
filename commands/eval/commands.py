@@ -5,7 +5,7 @@ from classes.bot import CustomClient
 from discord.options import autocomplete, convert
 from exceptions.CustomExceptions import MessageException
 from utility.components import create_components
-from utility.constants import DEFAULT_EVAL_ROLE_TYPES, AUTOREFRESH_TRIGGERS
+from utility.constants import AUTOREFRESH_TRIGGERS, DEFAULT_EVAL_ROLE_TYPES
 from utility.discord_utils import check_commands, interaction_handler
 from utility.general import get_guild_icon
 
@@ -184,7 +184,7 @@ class eval(commands.Cog, name='Refresh'):
             changed_text += f'- **Nickname Change:** {nickname_change}\n'
 
         if change_log:
-           pass
+            pass
 
         if blacklist_role_add is not None:
             if blacklist_role_add.id in db_server.blacklisted_roles:
@@ -332,8 +332,11 @@ class eval(commands.Cog, name='Refresh'):
     ):
 
         if (
-            th3 is None and th4 is None and th5 is None and th6 is None and
-            th7 is None
+            th3 is None
+            and th4 is None
+            and th5 is None
+            and th6 is None
+            and th7 is None
             and th8 is None
             and th9 is None
             and th10 is None
@@ -349,10 +352,10 @@ class eval(commands.Cog, name='Refresh'):
         roles_updated = ''
 
         spot_to_text = [
-            "th3",
-            "th4",
-            "th5",
-            "th6",
+            'th3',
+            'th4',
+            'th5',
+            'th6',
             'th7',
             'th8',
             'th9',
@@ -558,33 +561,31 @@ class eval(commands.Cog, name='Refresh'):
     async def longevity_roles(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        mode: str = commands.Param(choices=["Add", "Remove"]),
+        mode: str = commands.Param(choices=['Add', 'Remove']),
         months: int = commands.Param(),
         role: disnake.Role = None,
     ):
-        if mode == "Add" and role is None:
-            raise MessageException("Role field is required when adding a new tenure role")
+        if mode == 'Add' and role is None:
+            raise MessageException('Role field is required when adding a new tenure role')
 
         if role.is_default():
             raise MessageException(f'{role.mention} cannot be used as role.')
 
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild.id)
 
-        if mode == "Add":
-            await db_server.add_status_role(months=months, role_id=role.id, type="discord")
+        if mode == 'Add':
+            await db_server.add_status_role(months=months, role_id=role.id, type='discord')
             embed = disnake.Embed(
                 description=f'**Tenure role for {months} months added: {role.mention}**',
                 color=disnake.Color.green(),
             )
-        elif mode == "Remove":
-            await db_server.remove_status_role(months=months, type="discord")
+        elif mode == 'Remove':
+            await db_server.remove_status_role(months=months, type='discord')
             embed = disnake.Embed(
                 description=f'**Tenure role for {months} months removed**',
                 color=disnake.Color.green(),
             )
         await ctx.send(embed=embed)
-
-
 
     @roles.sub_command(name='achievements', description='Set role for top donators/activity & more')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -605,7 +606,6 @@ class eval(commands.Cog, name='Refresh'):
             amount=amount_or_rank,
             season=season.lower().replace(' ', '_'),
         )
-
 
     @roles.sub_command(name='list', description='List of refresh affiliated roles for this server')
     async def role_list(self, ctx: disnake.ApplicationCommandInteraction):

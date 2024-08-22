@@ -1,5 +1,5 @@
 from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING, List
+from typing import List
 
 import coc
 import disnake
@@ -8,7 +8,7 @@ import pendulum as pend
 from classes.bot import CustomClient
 from exceptions.CustomExceptions import MessageException
 from utility.clash.other import gen_season_start_end_as_iso
-from utility.general import create_superscript, get_guild_icon
+from utility.general import get_guild_icon
 
 
 def war_type_convert(war_types: str) -> List[str]:

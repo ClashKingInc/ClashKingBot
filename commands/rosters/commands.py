@@ -1,14 +1,13 @@
 import asyncio
-import datetime
-from typing import List
-import uuid
 import base64
+import datetime
+import uuid
+from typing import List
+
 import coc
 import disnake
-import pytz
 from disnake.ext import commands
 
-from assets.emojis import SharedEmojis
 from classes.bot import CustomClient
 from classes.roster import Roster
 from discord.options import autocomplete, convert
@@ -30,17 +29,17 @@ class RosterCommands(commands.Cog, name='Rosters'):
 
     @roster.sub_command(name='post', description='Post a roster')
     async def roster_post(
-            self,
-            ctx: disnake.ApplicationCommandInteraction,
-            roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
-            type: str = commands.Param(choices=["Signup", "Post", "Static"])
+        self,
+        ctx: disnake.ApplicationCommandInteraction,
+        roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
+        type: str = commands.Param(choices=['Signup', 'Post', 'Static']),
     ):
         await ctx.response.defer(ephemeral=True)
         _roster = Roster(bot=self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
         embed = await _roster.embed()
         all_buttons = []
-        if type == "Signup":
+        if type == 'Signup':
             top_row = disnake.ui.ActionRow(
                 disnake.ui.Button(
                     label='Join',
@@ -75,7 +74,7 @@ class RosterCommands(commands.Cog, name='Rosters'):
                 ),
             )
             all_buttons.append(bottom_row)
-        elif type == "Post":
+        elif type == 'Post':
             top_row_buttons = [
                 disnake.ui.Button(
                     label='',
@@ -101,8 +100,7 @@ class RosterCommands(commands.Cog, name='Rosters'):
             all_buttons.append(top_row)
 
         await ctx.channel.send(embed=embed, components=all_buttons)
-        await ctx.send(content="Roster Sent", ephemeral=True)
-
+        await ctx.send(content='Roster Sent', ephemeral=True)
 
     @roster.sub_command(name='create', description='Create a roster')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -128,33 +126,30 @@ class RosterCommands(commands.Cog, name='Rosters'):
         embed.set_thumbnail(url=clan.badge.url)
         await ctx.edit_original_message(embed=embed)
 
-
     @roster.sub_command(name='delete', description='Delete members from a roster (or the roster itself)')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def roster_delete(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
-        type: str = commands.Param(choices=["Clear Members", "Delete Roster"])
+        type: str = commands.Param(choices=['Clear Members', 'Delete Roster']),
     ):
         await ctx.response.defer()
         _roster = Roster(self.bot)
         await _roster.find_roster(guild=ctx.guild, alias=roster)
-        if type == "Delete Roster":
+        if type == 'Delete Roster':
             await _roster.delete()
             embed = disnake.Embed(
                 description=f"Roster - **{_roster.roster_result.get('alias')}** that was tied to {_roster.roster_result.get('clan_name')} has been **deleted**.",
                 color=disnake.Color.red(),
             )
-        elif type == "Clear Members":
+        elif type == 'Clear Members':
             await _roster.clear_roster()
             embed = disnake.Embed(
                 description=f"Roster - **{_roster.roster_result.get('alias')}** that was tied to {_roster.roster_result.get('clan_name')} has been **cleared**.",
                 color=disnake.Color.red(),
             )
         await ctx.edit_original_message(embed=embed)
-
-
 
     @roster.sub_command(name='add-player', description='Add a player to a roster')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -173,9 +168,9 @@ class RosterCommands(commands.Cog, name='Rosters'):
         for player in players:
             try:
                 await _roster.add_member(player=player, sub=(sub == 'Yes'))
-                added_text += f'{SharedEmojis.all_emojis.get(player.town_hall)}{player.name}\n'
+                added_text += f'{self.bot.fetch_emoji(player.town_hall)}{player.name}\n'
             except Exception as e:
-                messed_text += f'{SharedEmojis.all_emojis.get(player.town_hall)}{player.name} - {e}\n'
+                messed_text += f'{self.bot.fetch_emoji(player.town_hall)}{player.name} - {e}\n'
         if added_text == '':
             added_text = f'No Players'
         embed = disnake.Embed(
@@ -424,7 +419,6 @@ class RosterCommands(commands.Cog, name='Rosters'):
         embed = disnake.Embed(title='Roster Group Changes', description=text, color=disnake.Color.green())
         return await ctx.edit_original_message(embed=embed)
 
-
     @roster.sub_command(
         name='refresh',
         description='Refresh the data in a roster (townhall levels, hero levels)',
@@ -477,7 +471,6 @@ class RosterCommands(commands.Cog, name='Rosters'):
             if ctx.guild.icon is not None:
                 embed.set_thumbnail(url=ctx.guild.icon.url)
             await ctx.edit_original_message(content=None, embed=embed)
-
 
     @roster.sub_command(name='missing', description="Players that aren't in the clan tied to the roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -542,7 +535,6 @@ class RosterCommands(commands.Cog, name='Rosters'):
         await msg.edit(components=[])
         await res.send(content=f'{_roster.missing_text}{missing_text}')
 
-
     @roster.sub_command(
         name='settings',
         description='Edit settings for a roster',
@@ -552,18 +544,14 @@ class RosterCommands(commands.Cog, name='Rosters'):
         self,
         ctx: disnake.ApplicationCommandInteraction,
         roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
-
     ):
         await ctx.response.defer(ephemeral=True)
         random_uuid = uuid.uuid4()
         uuid_bytes = random_uuid.bytes
         base64_uuid = base64.urlsafe_b64encode(uuid_bytes).rstrip(b'=')
         url_safe_uuid = base64_uuid.decode('utf-8')
-        await self.bot.rosters.update_one({'$and': [{'server_id': ctx.guild.id}, {'alias': roster}]}, {"$set" : {"token" : url_safe_uuid}})
-        await ctx.send(content=f"Edit your roster here -> https://api.clashking.xyz/roster/?token={url_safe_uuid}", ephemeral=True)
-
-
-
+        await self.bot.rosters.update_one({'$and': [{'server_id': ctx.guild.id}, {'alias': roster}]}, {'$set': {'token': url_safe_uuid}})
+        await ctx.send(content=f'Edit your roster here -> https://api.clashking.xyz/roster/?token={url_safe_uuid}', ephemeral=True)
 
     @roster.sub_command(name='list', description='List of rosters on this server')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -815,8 +803,8 @@ class RosterCommands(commands.Cog, name='Rosters'):
             uuid_bytes = random_uuid.bytes
             base64_uuid = base64.urlsafe_b64encode(uuid_bytes).rstrip(b'=')
             url_safe_uuid = base64_uuid.decode('utf-8')
-            await self.bot.rosters.update_one({'$and': [{'server_id': ctx.guild.id}, {'alias': roster.alias}]}, {"$set": {"token": url_safe_uuid}})
-            await ctx.send(content=f"Edit your roster here -> https://api.clashking.xyz/roster/?token={url_safe_uuid}", ephemeral=True)
+            await self.bot.rosters.update_one({'$and': [{'server_id': ctx.guild.id}, {'alias': roster.alias}]}, {'$set': {'token': url_safe_uuid}})
+            await ctx.send(content=f'Edit your roster here -> https://api.clashking.xyz/roster/?token={url_safe_uuid}', ephemeral=True)
 
         elif 'Signup_' in str(ctx.data.custom_id):
             alias = str(ctx.data.custom_id).split('_')[1]
@@ -854,7 +842,7 @@ class RosterCommands(commands.Cog, name='Rosters'):
             if not options:
                 return await ctx.send(content='No accounts to add', ephemeral=True)
 
-            button_options = [disnake.SelectOption(label="Main Group",value=f'signup_No Group')]
+            button_options = [disnake.SelectOption(label='Main Group', value=f'signup_No Group')]
             for button in roster.buttons:
                 button_options.append(
                     disnake.SelectOption(
@@ -878,10 +866,11 @@ class RosterCommands(commands.Cog, name='Rosters'):
                 min_values=1,  # the minimum number of options a user must select
                 max_values=len(options),  # the maximum number of options a user can select
             )
-            dropdown = [disnake.ui.ActionRow(select),
-                        disnake.ui.ActionRow(placement_select),
-                        disnake.ui.ActionRow(disnake.ui.Button(label='Submit',style=disnake.ButtonStyle.green,custom_id='Save'))
-                        ]
+            dropdown = [
+                disnake.ui.ActionRow(select),
+                disnake.ui.ActionRow(placement_select),
+                disnake.ui.ActionRow(disnake.ui.Button(label='Submit', style=disnake.ButtonStyle.green, custom_id='Save')),
+            ]
             msg = await ctx.followup.send(content='Select Account(s) to Add & Where to add them', components=dropdown, ephemeral=True)
 
             save = False
@@ -891,13 +880,13 @@ class RosterCommands(commands.Cog, name='Rosters'):
                 res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, msg=msg)
                 if 'button' in str(res.data.component_type):
                     if not accounts_to_add and not group:
-                        await res.send("Must select accounts & group to submit")
+                        await res.send('Must select accounts & group to submit')
                     else:
                         save = True
                 elif any('player_' in s for s in res.values):
-                    accounts_to_add = [value.split("_")[-1] for value in res.values]
+                    accounts_to_add = [value.split('_')[-1] for value in res.values]
                 elif any('signup_' in s for s in res.values):
-                    group = res.values[0].split("_")[-1]
+                    group = res.values[0].split('_')[-1]
 
             await roster.find_roster(guild=ctx.guild, alias=alias)
             added = []

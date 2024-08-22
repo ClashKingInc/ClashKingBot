@@ -115,8 +115,8 @@ class Legends(commands.Cog):
         player: coc.Player = commands.Param(autocomplete=autocomplete.legend_players, converter=convert.player),
         background: str = commands.Param(default=None, choices=list(POSTER_LIST.keys())),
     ):
-        poster_link: str = await legend_poster(bot=self.bot, player=player, background=background)
-        await ctx.send(content=poster_link)
+        poster: disnake.File = await legend_poster(bot=self.bot, player=player, background=background)
+        await ctx.send(file=poster)
 
     @legends.sub_command(name='stats', description='View various legend related stats')
     async def legend_stats(

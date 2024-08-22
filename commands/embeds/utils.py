@@ -1,6 +1,6 @@
 import base64
 import json
-from urllib.parse import quote, unquote
+from urllib.parse import unquote
 
 import aiohttp
 

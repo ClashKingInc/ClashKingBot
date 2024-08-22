@@ -1,8 +1,7 @@
-import io
 from datetime import datetime
-from typing import TYPE_CHECKING, List
+from datetime import datetime
+from typing import List
 
-import chat_exporter
 import coc
 import disnake
 import pytz
@@ -11,10 +10,8 @@ from disnake.ext import commands
 from classes.bot import CustomClient
 from classes.player.stats import StatsPlayer
 from classes.tickets import LOG_TYPE, OpenTicket, TicketPanel
-from utility.discord_utils import check_commands, interaction_handler
-
+from utility.discord_utils import interaction_handler
 from .utils import ask_questions, message_convertor, open_ticket
-
 
 tiz = pytz.utc
 from utility.player_pagination import button_pagination

@@ -2,15 +2,14 @@ from datetime import datetime
 
 import coc
 import disnake
-from coc.raid import RaidAttack, RaidLogEntry, RaidMember
+from coc.raid import RaidLogEntry
 from disnake.ext import commands
 from numerize import numerize
 from pytz import utc
 
 from background.logs.events import player_ee, raid_ee
-from classes.bot import CustomClient
 from classes.DatabaseClient.Classes.settings import DatabaseClan
-from exceptions.CustomExceptions import MissingWebhookPerms
+from classes.bot import CustomClient
 from utility.clash.capital import calc_raid_medals
 
 

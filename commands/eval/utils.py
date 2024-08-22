@@ -1,16 +1,15 @@
-import asyncio
 import time
 from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING, List
+from typing import List
 
 import coc
 import disnake
 
-from classes.bot import CustomClient
 from classes.DatabaseClient.Classes.settings import DatabaseServer
-from exceptions.CustomExceptions import ExpiredComponents, MessageException
+from classes.bot import CustomClient
+from exceptions.CustomExceptions import MessageException
 from utility.constants import DEFAULT_EVAL_ROLE_TYPES, ROLE_TREATMENT_TYPES
-from utility.general import create_superscript, get_clan_member_tags, get_guild_icon
+from utility.general import create_superscript, get_guild_icon
 
 
 async def logic(
@@ -179,13 +178,13 @@ async def logic(
                     ROLES_TO_ADD.add(clan_leadership_roles.get(player.clan.tag))
 
             if is_family:
-                if player.role.in_game_name == "Elder":
+                if player.role.in_game_name == 'Elder':
                     for role_id in family_elder_roles:
                         ROLES_TO_ADD.add(role_id)
-                elif player.role.in_game_name == "Co-Leader":
+                elif player.role.in_game_name == 'Co-Leader':
                     for role_id in family_coleader_roles:
                         ROLES_TO_ADD.add(role_id)
-                elif player.role.in_game_name == "Leader":
+                elif player.role.in_game_name == 'Leader':
                     for role_id in family_leader_roles:
                         ROLES_TO_ADD.add(role_id)
             return EvalResult(is_family=is_family, roles_to_add=ROLES_TO_ADD)

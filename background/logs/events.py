@@ -1,4 +1,5 @@
 import asyncio
+from typing import TYPE_CHECKING
 
 import orjson
 import ujson
@@ -6,10 +7,11 @@ import websockets
 from loguru import logger
 from pymitter import EventEmitter
 
-from classes.config import Config
+
+if TYPE_CHECKING:
+    from classes.bot import CustomClient
 
 
-config = Config()
 player_ee = EventEmitter()
 clan_ee = EventEmitter()
 war_ee = EventEmitter()
@@ -18,7 +20,7 @@ reminder_ee = EventEmitter()
 reddit_ee = EventEmitter()
 
 
-async def kafka_events(bot):
+async def kafka_events(bot: 'CustomClient'):
     async def wrap_task(f: callable):
         await asyncio.sleep(0)
         await f

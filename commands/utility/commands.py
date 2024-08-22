@@ -7,11 +7,9 @@ from disnake.ext import commands
 from classes.bot import CustomClient
 from discord import options
 from exceptions.CustomExceptions import MessageException
-from utility.cdn import upload_to_cdn
 from utility.components import create_components
 from utility.constants import SUPER_TROOPS
 from utility.discord_utils import interaction_handler
-
 from .click import UtilityButtons
 from .utils import army_embed, clan_boost_embeds, super_troop_embed
 
@@ -165,10 +163,11 @@ class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
         r2.append_item(feedback)
         r2.append_item(feedback_button)
 
-        await upload_to_cdn(picture=photo)
+        attachment = await photo.to_file(use_cached=True)
 
         await ctx.edit_original_message(
-            content=f'[➼](https://cdn.clashking.xyz/{photo.id}.png) {description}',
+            file=attachment,
+            content=f'{description}',
             components=[r1, r2],
         )
         msg = await ctx.original_message()

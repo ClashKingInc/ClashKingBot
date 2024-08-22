@@ -1,7 +1,3 @@
-import coc
-
-from exceptions.CustomExceptions import MessageException
-
 from .playerclient import PlayerClient
 
 

@@ -1,9 +1,7 @@
 import asyncio
-import random
 
 import coc
 import disnake
-import pendulum as pend
 from disnake.ext import commands
 from pymongo import UpdateOne
 
@@ -11,7 +9,6 @@ from classes.bot import CustomClient
 from discord.options import autocomplete, convert
 from utility.constants import leagues
 from utility.discord_utils import interaction_handler
-
 from .utils import (
     attacks_embed,
     component_handler,
@@ -126,7 +123,7 @@ class War(commands.Cog):
                 ),
                 disnake.SelectOption(
                     label='Opponent Clan Overview',
-                    emoji=self.bot.emoji.magnify_glass.partial_emoji,
+                    emoji=self.bot.emoji.search.partial_emoji,
                     value='opp_over',
                 ),
             ],

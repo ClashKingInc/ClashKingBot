@@ -1,6 +1,7 @@
 import disnake
-from disnake.ext import commands
 import pendulum as pend
+from disnake.ext import commands
+
 from classes.bot import CustomClient
 
 
@@ -65,8 +66,6 @@ class AutoEvalBackground(commands.Cog):
                         await member.remove_roles(*roles_to_remove)
                 except:
                     continue
-
-
 
 
 def setup(bot: CustomClient):

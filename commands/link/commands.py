@@ -1,7 +1,7 @@
 import ast
+
 import coc
 import disnake
-import ujson
 from disnake.ext import commands
 
 from classes.bot import CustomClient
@@ -9,9 +9,8 @@ from discord import autocomplete, convert
 from exceptions.CustomExceptions import APITokenRequired, InvalidAPIToken, MessageException
 from utility.discord_utils import check_commands, get_webhook_for_channel, interaction_handler
 from utility.general import get_guild_icon
-
-from ..eval.utils import logic
 from .click import LinkButtonExtended
+from ..eval.utils import logic
 
 
 class Linking(LinkButtonExtended, commands.Cog):
@@ -71,7 +70,7 @@ class Linking(LinkButtonExtended, commands.Cog):
                     + '\n- Scroll down to the bottom and copy the api token.\n- View the picture below for reference.',
                     color=disnake.Color.red(),
                 )
-                embed.set_image(url='https://cdn.clashking.xyz/clash-assets/bot/api_token_help.png')
+                embed.set_image(url='https://assets.clashk.ing/bot/images/api_token_help.png')
                 return await ctx.edit_original_message(embed=embed)
             elif not verified:  # if just a case of wrong api token when required
                 raise InvalidAPIToken
@@ -367,7 +366,7 @@ class Linking(LinkButtonExtended, commands.Cog):
                 buttons.append_item(
                     disnake.ui.Button(
                         label='To-Do List',
-                        emoji=self.bot.emoji.yes.partial_emoji,
+                        emoji=self.bot.emoji.green_check.partial_emoji,
                         style=button_color_cls,
                         custom_id='MyToDoList',
                     )

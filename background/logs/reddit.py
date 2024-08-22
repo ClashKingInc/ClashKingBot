@@ -11,7 +11,7 @@ class reddit_feed(commands.Cog):
         self.bot = bot
         self.reddit_ee = reddit_ee
         self.reddit_ee.on('reddit', self.post_stream)
-        self.reddit_ee.on("redditcomment", self.comment_stream)
+        self.reddit_ee.on('redditcomment', self.comment_stream)
 
     async def post_stream(self, event: dict):
         player = None
@@ -65,7 +65,7 @@ class reddit_feed(commands.Cog):
 
     async def comment_stream(self, event: dict):
 
-        results = await self.bot.server_db.find({"$and" : [{'reddit_feed': {'$ne': None}}, {'reddit_accounts' : {"$ne" : None}}]}).to_list(length=None)
+        results = await self.bot.server_db.find({'$and': [{'reddit_feed': {'$ne': None}}, {'reddit_accounts': {'$ne': None}}]}).to_list(length=None)
         for r in results:
             server_id = r.get('server')
             if server_id not in self.bot.OUR_GUILDS:
@@ -80,7 +80,9 @@ class reddit_feed(commands.Cog):
                         description=f'{event.get("body")} | [link](https://reddit.com{event.get("url")})',
                         color=disnake.Color.green(),
                     )
-                    embed.set_footer(icon_url=self.bot.emoji.reddit_icon.partial_emoji.url, text=f"u/{event.get('author')} | {event.get('score')} upvotes")
+                    embed.set_footer(
+                        icon_url=self.bot.emoji.reddit_icon.partial_emoji.url, text=f"u/{event.get('author')} | {event.get('score')} upvotes"
+                    )
                     if role is not None:
                         await channel.send(content=f'<@&{role}>', embed=embed)
                     else:
@@ -90,7 +92,6 @@ class reddit_feed(commands.Cog):
                         {'server': r.get('server')},
                         {'$set': {'reddit_feed': None, 'reddit_role': None}},
                     )
-
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):

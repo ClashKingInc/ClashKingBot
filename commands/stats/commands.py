@@ -1,14 +1,10 @@
-from typing import TYPE_CHECKING
-
 import coc
 import disnake
 from disnake.ext import commands
 
 from classes.bot import CustomClient
-from discord import autocomplete, convert, options
-from exceptions.CustomExceptions import MessageException
-
-from .utils import war_hitcount, war_hitrate
+from discord import autocomplete, options
+from .utils import war_hitrate
 
 
 class StatCommands(commands.Cog, name='Stat Commands'):

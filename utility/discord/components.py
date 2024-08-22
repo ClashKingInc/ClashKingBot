@@ -70,7 +70,7 @@ def raid_buttons(bot: CustomClient, data):
     page_buttons = [
         disnake.ui.Button(
             label='Raids',
-            emoji=bot.emoji.sword_clash.partial_emoji,
+            emoji=bot.emoji.animated_clash_swords.partial_emoji,
             style=disnake.ButtonStyle.grey,
             custom_id='raids',
         ),

@@ -22,7 +22,7 @@ class Roster:
 
     @property
     def buttons(self):
-        return self.roster_result.get("buttons", [])
+        return self.roster_result.get('buttons', [])
 
     @property
     def _id(self):
@@ -765,7 +765,7 @@ class Roster:
         try:
             req = Request(url=url, headers={'User-Agent': 'Mozilla/5.0'})
             f = io.BytesIO(urlopen(req).read())
-            pic = await general_upload_to_cdn(bytes_=f, id=self.roster_result.get('_id'))
+            pic = await general_upload_to_cdn(config=self.bot._config, bytes_=f, id=self.roster_result.get('_id'))
         except:
             pic = 'https://cdn.discordapp.com/attachments/1028905437300531271/1028905577662922772/unknown.png'
         await self.bot.rosters.update_one(

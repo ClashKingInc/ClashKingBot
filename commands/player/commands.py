@@ -1,9 +1,3 @@
-import calendar
-from datetime import date, datetime, timedelta
-from operator import attrgetter
-from typing import List
-
-import coc
 import disnake
 from disnake.ext import commands
 
@@ -11,12 +5,9 @@ from classes.bot import CustomClient
 from classes.player.stats import StatsPlayer
 from discord.options import autocomplete, convert
 from exceptions.CustomExceptions import *
-from utility.components import player_components
-from utility.discord_utils import interaction_handler
 from utility.player_pagination import button_pagination
 from utility.search import search_results
-
-from .utils import detailed_player_board, player_accounts, to_do_embed
+from .utils import player_accounts, to_do_embed
 
 
 # from CommandsOlder.Utils.Player import create_profile_troops
@@ -53,32 +44,6 @@ class PlayerCommands(commands.Cog, name='Player Commands'):
         player: (optional) player to lookup
         discord_user: (optional) discord user to lookup
         """
-        """players = [player]
-        if discord_user:
-            user_accounts = await self.bot.link_client.get_linked_players(discord_id=discord_user.id)
-            players = await self.bot.get_players(tags=user_accounts, custom=True)
-            if not players:
-                raise MessageException(f"{discord_user.name} has no accounts linked.")
-            players.sort(key=lambda l: l.trophies, reverse=True)
-            player = players[0]
-
-        options = [  # the options in your dropdown
-            disnake.SelectOption(label="Overview", value=f"playerdetailed:{player.tag}"),
-            # disnake.SelectOption(label="Troops", emoji=bot.emoji.troop.partial_emoji, value="Troops"),
-            # disnake.SelectOption(label="Upgrades/Rushed", emoji=bot.emoji.clock.partial_emoji, value="Upgrades"),
-            # disnake.SelectOption(label="Clan History", emoji=bot.emoji.clan_castle.partial_emoji, value="History"),
-        ]
-        row_one = disnake.ui.ActionRow(disnake.ui.Select(options=options, placeholder="Choose a page", max_values=1))
-
-        player_results = []
-        for count, player in enumerate(players):
-            player: StatsPlayer
-            player_results.append(disnake.SelectOption(label=f"{player.name}", emoji=self.bot.fetch_emoji(player.town_hall).partial_emoji, value=f"{count}"))
-        row_two = disnake.ui.ActionRow(disnake.ui.Select(options=player_results, placeholder="Accounts", max_values=1))
-
-
-        embed = await detailed_player_board(bot=self.bot, custom_player=player, server=ctx.guild)
-        await ctx.send(embed=embed, components=[row_one, row_two])"""
 
         if player is None and discord_user is None:
             discord_user = ctx.author

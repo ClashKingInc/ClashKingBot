@@ -741,9 +741,9 @@ DISCORD_STATUS_TYPES = {
 }
 
 AUTOREFRESH_TRIGGERS = [
-            'Member Join',
-            'Member Leave',
-            'Townhall Change',
-            'League Change',
-            'Role Change',
-        ]
+    'Member Join',
+    'Member Leave',
+    'Townhall Change',
+    'League Change',
+    'Role Change',
+]

@@ -6,7 +6,6 @@ from disnake.ext import commands
 from background.logs.events import war_ee
 from classes.bot import CustomClient
 from classes.DatabaseClient.Classes.settings import DatabaseClan
-from classes.DatabaseClient.Classes.settings import DatabaseClan
 from commands.war.utils import attacks_embed, defenses_embed, main_war_page, missed_hits
 from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.discord_utils import get_webhook_for_channel
@@ -62,7 +61,7 @@ class War_Log(commands.Cog):
 
             if attack.attacker.clan.tag == war.clan.tag:
                 hit_text += (
-                    f'{self.bot.emoji.thick_sword} {self.bot.fetch_emoji(attack.attacker.town_hall)}**{attack.attacker.name}{create_superscript(num=attack.attacker.map_position)}**'
+                    f'{self.bot.emoji.thick_capital_sword} {self.bot.fetch_emoji(attack.attacker.town_hall)}**{attack.attacker.name}{create_superscript(num=attack.attacker.map_position)}**'
                     f' {star_str} **{attack.destruction}%** {self.bot.fetch_emoji(attack.defender.town_hall)}{create_superscript(num=attack.defender.map_position)}\n'
                 )
             else:

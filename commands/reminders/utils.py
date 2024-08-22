@@ -32,7 +32,7 @@ def buttons(bot: CustomClient, delete=False):
     page_buttons = [
         disnake.ui.Button(
             label='Save',
-            emoji=bot.emoji.yes.partial_emoji,
+            emoji=bot.emoji.green_check.partial_emoji,
             style=disnake.ButtonStyle.green,
             custom_id='Save',
         ),
@@ -47,7 +47,7 @@ def buttons(bot: CustomClient, delete=False):
         page_buttons.append(
             disnake.ui.Button(
                 label='Delete',
-                emoji=bot.emoji.no.partial_emoji,
+                emoji=bot.emoji.square_x_deny.partial_emoji,
                 style=disnake.ButtonStyle.red,
                 custom_id='Delete',
             )

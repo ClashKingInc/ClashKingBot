@@ -55,7 +55,7 @@ class ExceptionHandler(commands.Cog):
                 '- View the picture below for reference.',
                 color=disnake.Color.red(),
             )
-            embed.set_image(url='https://cdn.clashking.xyz/clash-assets/bot/api_token_help.png')
+            embed.set_image(url='https://assets.clashk.ing/bot/images/api_token_help.png')
             if not ctx.response.is_done():
                 return await ctx.edit_original_message(embed=embed)
             else:
@@ -70,7 +70,7 @@ class ExceptionHandler(commands.Cog):
                 '- View the picture below for reference.',
                 color=disnake.Color.red(),
             )
-            embed.set_image(url='https://cdn.clashking.xyz/clash-assets/bot/api_token_help.png')
+            embed.set_image(url='https://assets.clashk.ing/bot/images/api_token_help.png')
             if not ctx.response.is_done():
                 return await ctx.edit_original_message(embed=embed)
             else:

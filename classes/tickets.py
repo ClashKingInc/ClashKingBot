@@ -1,8 +1,7 @@
-import asyncio
 import io
 from datetime import datetime
 from enum import Enum
-from typing import List, Any
+from typing import Any, List
 
 import chat_exporter
 import disnake
@@ -12,7 +11,6 @@ from disnake.ui import Button
 from classes.bot import CustomClient
 from exceptions.CustomExceptions import ButtonAlreadyExists, ButtonNotFound
 from utility.cdn import upload_html_to_cdn
-
 
 text_style_conversion = {
     'Blue': disnake.ButtonStyle.primary,
@@ -139,6 +137,7 @@ class BaseTicket:
                 if thread_channel is not None:
                     transcript = await chat_exporter.export(thread_channel)
                     link = await upload_html_to_cdn(
+                        config=self.bot._config,
                         bytes_=io.BytesIO(transcript.encode()),
                         id=f'transcript-{thread_channel.id}',
                     )
@@ -148,6 +147,7 @@ class BaseTicket:
 
             transcript = await chat_exporter.export(ticket_channel)
             link = await upload_html_to_cdn(
+                config=self.bot._config,
                 bytes_=io.BytesIO(transcript.encode()),
                 id=f'transcript-{ticket_channel.id}',
             )

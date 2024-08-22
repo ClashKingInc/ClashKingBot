@@ -92,7 +92,7 @@ def war_buttons(bot: CustomClient, new_war: coc.ClanWar):
             ),
             disnake.ui.Button(
                 label='',
-                emoji=bot.emoji.sword_clash.partial_emoji,
+                emoji=bot.emoji.animated_clash_swords.partial_emoji,
                 style=disnake.ButtonStyle.grey,
                 custom_id=f'listwarattacks_{new_war.clan.tag}_{war_unique_id}',
             ),
@@ -104,7 +104,7 @@ def war_buttons(bot: CustomClient, new_war: coc.ClanWar):
             ),
             disnake.ui.Button(
                 label='',
-                emoji=bot.emoji.menu.partial_emoji,
+                emoji=bot.emoji.wrench.partial_emoji,
                 style=disnake.ButtonStyle.green,
                 disabled=False,
                 custom_id=f'menuforwar_{new_war.clan.tag}_{war_unique_id}',

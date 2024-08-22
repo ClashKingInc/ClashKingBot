@@ -1,15 +1,8 @@
-import uuid
-from typing import TYPE_CHECKING, List
-
-import coc
-import disnake
 from disnake.ext import commands
 
-from classes.bot import CustomClient
-from discord import autocomplete, convert, options
-from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entry
-from utility.constants import item_to_name
+from disnake.ext import commands
 
+from discord import options
 from .utils import *
 
 

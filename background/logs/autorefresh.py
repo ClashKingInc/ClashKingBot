@@ -67,7 +67,6 @@ class AutoEval(commands.Cog):
                 except:
                     pass
 
-
     async def clan_auto_refresh(self, event):
 
         clan = coc.Clan(data=event['new_clan'], client=self.bot.coc_client)
@@ -92,7 +91,7 @@ class AutoEval(commands.Cog):
             if not to_run:
                 continue
 
-            links = await self.bot.link_client.get_links(*[n.get("tag") for n in to_run])
+            links = await self.bot.link_client.get_links(*[n.get('tag') for n in to_run])
             discord_users = set(id for _, id in links if id is not None)
 
             server = await self.bot.getch_guild(server_id)
@@ -103,8 +102,7 @@ class AutoEval(commands.Cog):
                 continue
 
             if db_server.blacklisted_roles:
-                discord_members = [member for member in discord_members
-                                   if not any(role.id in db_server.blacklisted_roles for role in member.roles)]
+                discord_members = [member for member in discord_members if not any(role.id in db_server.blacklisted_roles for role in member.roles)]
 
             try:
                 await logic(
@@ -118,8 +116,9 @@ class AutoEval(commands.Cog):
                     reason=f'Triggered by clan join/leave ({clan.name})',
                 )
             except:
-                #message exceptions can happen
+                # message exceptions can happen
                 pass
+
 
 def setup(bot: CustomClient):
     bot.add_cog(AutoEval(bot))

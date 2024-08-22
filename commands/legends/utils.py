@@ -8,7 +8,7 @@ import coc
 import disnake
 import emoji
 import matplotlib
-
+import concurrent.futures
 
 matplotlib.use('Agg')
 from datetime import datetime
@@ -44,7 +44,7 @@ async def legend_day_overview(
     _, locale = bot.get_localizator(locale=locale)
     embed = disnake.Embed(
         description=f"**{_('legend-overview')}** | [{_('profile')}]({player.share_link})\n"
-        + f"{_('start')} {bot.emoji.legends_shield} {player.trophy_start} | {_('now')}  {bot.emoji.legends_shield} {player._.trophies}\n"
+        + f"{_('start')} {bot.fetch_emoji('Legend League')} {player.trophy_start} | {_('now')}  {bot.fetch_emoji('Legend League')} {player._.trophies}\n"
         + f"- {_('attacks-for-trophies', values={'num_attacks' : int(legend_day.num_attacks), 'attack_sum' : legend_day.attack_sum})}\n"
         + f"- {_('defenses-for-trophies', values={'num_defenses' : int(legend_day.num_defenses), 'defense_sum' : legend_day.defense_sum})}\n"
         + f"- {_('net-trophies', values={'net_gain' : legend_day.net_gain})}\n"
@@ -76,11 +76,11 @@ async def legend_day_overview(
     gears_used = set()
     for hit in legend_day.attacks:
         if hit.timestamp is None:
-            off += f'{bot.emoji.sword} +{hit.change}\n'
+            off += f'{bot.emoji.clash_sword} +{hit.change}\n'
         else:
             for gear in hit.hero_gear:
                 gears_used.add(gear)
-            off += f'{bot.emoji.sword} +{hit.change} {bot.timestamper(hit.timestamp).relative}\n'
+            off += f'{bot.emoji.clash_sword} +{hit.change} {bot.timestamper(hit.timestamp).relative}\n'
 
     gear_text = ''
 
@@ -109,8 +109,8 @@ async def legend_day_overview(
     embed.add_field(name=f"**{_('equipment-used')}**", value=gear_text, inline=False)
     embed.set_footer(text=player.tag)
 
-    link = await legend_poster(bot=bot, player=player)
-    embed.set_image(url=link)
+    poster = await legend_poster(bot=bot, player=player)
+    embed.set_image(file=poster)
 
     return embed
 
@@ -173,7 +173,7 @@ async def legend_season_overview(
     return embed
 
 
-async def legend_poster(bot: CustomClient, player: coc.Player | LegendPlayer, background: str = None):
+async def legend_poster(bot: CustomClient, player: coc.Player | LegendPlayer, background: str = None) -> disnake.File:
     if isinstance(player, coc.Player):
         player = await bot.ck_client.get_legend_player(player=player)
     start = utils.get_season_start().replace(tzinfo=utc).date()
@@ -401,14 +401,19 @@ async def legend_poster(bot: CustomClient, player: coc.Player | LegendPlayer, ba
                 font=font6,
             )
 
-    # poster.show()
-    temp = io.BytesIO()
-    poster = poster.resize((960, 540))
-    poster.save(temp, format='png', compress_level=1)
-    temp.seek(0)
-    link = await general_upload_to_cdn(bytes_=temp.read(), id=f"legend_poster_{player.tag.strip('#')}")
+    def save_im(poster):
+        temp = io.BytesIO()
+        poster = poster.resize((960, 540))
+        poster.save(temp, format='PNG', optimize=True)
+        temp.seek(0)
+        file = disnake.File(fp=temp, filename="legends_poster.png")
+        return file
 
-    return link
+    with concurrent.futures.ThreadPoolExecutor() as pool:
+        loop = asyncio.get_event_loop()
+        file = await loop.run_in_executor(pool, save_im, poster)
+
+    return file
 
 
 @register_button('legendhistory', parser='_:player')
@@ -537,7 +542,7 @@ async def legend_cutoff(bot: CustomClient, embed_color: disnake.Color):
         rank = f"#{result.get('rank')}"
         text += f"`{rank:>7} `{bot.emoji.trophy}`{result.get('trophies')}`\n"
     embed = disnake.Embed(description=text, color=embed_color)
-    embed.set_author(name='Legend Rank Cutoffs', icon_url=bot.emoji.legends_shield.partial_emoji.url)
+    embed.set_author(name='Legend Rank Cutoffs', icon_url=bot.fetch_emoji('Legend League').partial_emoji.url)
     embed.timestamp = pend.now(tz=pend.UTC)
     return embed
 
@@ -554,7 +559,7 @@ async def legend_streaks(bot: CustomClient, limit: int, embed_color: disnake.Col
     embed = disnake.Embed(description=text, color=embed_color)
     embed.set_author(
         name='Legend Triple Streak Leaders',
-        icon_url=bot.emoji.legends_shield.partial_emoji.url,
+        icon_url=bot.fetch_emoji('Legend League').partial_emoji.url,
     )
     embed.timestamp = pend.now(tz=pend.UTC)
     return embed
@@ -613,7 +618,7 @@ async def legend_buckets(bot: CustomClient, embed_color: disnake.Color):
     embed = disnake.Embed(description=text, color=embed_color)
     embed.set_author(
         name='Legend Trophy Buckets',
-        icon_url=bot.emoji.legends_shield.partial_emoji.url,
+        icon_url=bot.fetch_emoji('Legend League').partial_emoji.url,
     )
     embed.timestamp = pend.now(tz=pend.UTC)
     return embed
@@ -639,7 +644,7 @@ async def legend_eos_finishers(bot: CustomClient, embed_color: disnake.Color):
         embed.add_field(name=f'{old_year}', value=text, inline=False)
     embed.set_author(
         name='Legend EOS Finishers (last 4 years)',
-        icon_url=bot.emoji.legends_shield.partial_emoji.url,
+        icon_url=bot.fetch_emoji('Legend League').partial_emoji.url,
     )
     embed.timestamp = pend.now(tz=pend.UTC)
     return embed

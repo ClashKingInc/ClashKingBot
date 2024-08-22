@@ -8,7 +8,6 @@ from classes.bot import CustomClient
 from commands.clan.utils import basic_clan_board
 from commands.player.utils import basic_player_board
 from commands.utility.utils import army_embed
-from utility.cdn import upload_to_cdn
 from utility.general import safe_run
 
 
@@ -107,7 +106,6 @@ class LinkParsing(commands.Cog):
                     return
                 base_url = self.extract_url(text=message.content, url_only=True)
                 description = message.content.replace(base_url, '')
-                await upload_to_cdn(picture=message.attachments[0])
                 row_one = disnake.ui.ActionRow(
                     disnake.ui.Button(
                         label='Link',
@@ -122,9 +120,10 @@ class LinkParsing(commands.Cog):
                         custom_id='who',
                     ),
                 )
-
+                attachment = await message.attachments[0].to_file(use_cached=True)
                 sent_message = await message.channel.send(
-                    content=f'[➼](https://cdn.clashking.xyz/{message.attachments[0].id}.png) {description}',
+                    file=attachment,
+                    content=f'{description}',
                     components=[row_one],
                 )
                 await safe_run(func=message.delete)

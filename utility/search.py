@@ -1,5 +1,3 @@
-from typing import TYPE_CHECKING
-
 from classes.bot import CustomClient
 from utility.general import create_superscript
 

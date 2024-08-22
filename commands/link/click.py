@@ -1,10 +1,9 @@
 import disnake
 from disnake.ext import commands
 
-from archived.commands.CommandsOlder.Utils.Player import to_do_embed
+from ..player.utils import to_do_embed
 from classes.bot import CustomClient
 from classes.player.stats import StatsPlayer
-from exceptions.CustomExceptions import InvalidAPIToken
 from utility.search import search_results
 
 from ..eval.utils import logic

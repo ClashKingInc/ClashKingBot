@@ -18,7 +18,6 @@ from utility.constants import EMBED_COLOR_CLASS, SUPER_SCRIPTS, item_to_name
 from utility.discord_utils import register_button
 from utility.general import create_superscript, response_to_line, smart_convert_seconds
 from utility.imagegen.ClanCapitalResult import generate_raid_result_image
-
 from ..graphs.utils import daily_graph
 
 
@@ -72,15 +71,15 @@ async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake
     else:
         rank_text = f'Rankings: {rank_text}\n'
 
-    cwl_league_emoji = cwl_league_emojis(str(clan.war_league))
-    capital_league_emoji = cwl_league_emojis(str(clan.capital_league))
+    cwl_league_emoji = cwl_league_emojis(bot=bot, league=str(clan.war_league))
+    capital_league_emoji = cwl_league_emojis(bot=bot, league=str(clan.capital_league))
 
     hall_level = 0 if coc.utils.get(clan.capital_districts, id=70000000) is None else coc.utils.get(clan.capital_districts, id=70000000).hall_level
     hall_level_emoji = 1 if hall_level == 0 else hall_level
     clan_capital_text = (
         f'Capital League: {capital_league_emoji}{clan.capital_league}\n'
         f'Capital Points: {bot.emoji.capital_trophy}{clan.capital_points}\n'
-        f"Capital Hall: {fetch_emoji(f'Capital_Hall{hall_level_emoji}')} Level {hall_level}\n"
+        f"Capital Hall: {bot.fetch_emoji(f'Capital_Hall{hall_level_emoji}')} Level {hall_level}\n"
     )
 
     clan_type_converter = {
@@ -94,7 +93,7 @@ async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake
             f'Tag: [{clan.tag}]({clan.share_link})\n'
             f'Trophies: {bot.emoji.trophy} {clan.points} | '
             f'{bot.emoji.versus_trophy} {clan.builder_base_points}\n'
-            f'Requirements: {bot.emoji.trophy}{clan.required_trophies} | {fetch_emoji(clan.required_townhall)}{clan.required_townhall}\n'
+            f'Requirements: {bot.emoji.trophy}{clan.required_trophies} | {bot.fetch_emoji(clan.required_townhall)}{clan.required_townhall}\n'
             f'Type: {clan_type_converter[clan.type]}\n'
             f'Location: {flag} {location_name}\n'
             f'{rank_text}\n'
@@ -104,7 +103,7 @@ async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake
             f'CWL: {cwl_league_emoji}{str(clan.war_league)}\n'
             f'Wars Won: {bot.emoji.up_green_arrow}{warwin}\n'
             f'Wars Lost: {bot.emoji.down_red_arrow}{warloss}\n'
-            f'War Streak: {bot.emoji.win_streak}{winstreak}\n'
+            f'War Streak: {bot.emoji.double_up_arrow}{winstreak}\n'
             f'Winratio: {bot.emoji.ratio}{winrate}\n\n'
             f'{clan_capital_text}\n'
             f'Description: {clan.description}'
@@ -170,8 +169,8 @@ async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake
         f"Donos: {bot.emoji.up_green_arrow}{'{:,}'.format(total_donated)}, {bot.emoji.down_red_arrow}{'{:,}'.format(total_received)}\n"
         f'Active Daily: {avg_players} players/avg',
     )
-    th_comp = clan_th_comp(clan_members=clan_members)
-    super_troop_comp = clan_super_troop_comp(clan_members=clan_members)
+    th_comp = clan_th_comp(bot=bot, clan_members=clan_members)
+    super_troop_comp = clan_super_troop_comp(bot=bot, clan_members=clan_members)
 
     embed.add_field(name='**Townhall Composition:**', value=th_comp, inline=False)
     embed.add_field(name='**Boosted Super Troops:**', value=super_troop_comp, inline=False)
@@ -215,10 +214,10 @@ async def basic_clan_board(
         f'Location: {flag} {clan.location}\n\n'
         f'Leader: {leader.name}\n'
         f'Level: {clan.level} \n'
-        f'Members: {bot.emoji.person}{clan.member_count}/50\n\n'
-        f'CWL: {cwl_league_emojis(str(clan.war_league))}{str(clan.war_league)}\n'
+        f'Members: {bot.emoji.people}{clan.member_count}/50\n\n'
+        f'CWL: {cwl_league_emojis(bot=bot, league=str(clan.war_league))}{str(clan.war_league)}\n'
         f'Wars Won: {bot.emoji.up_green_arrow}{warwin}\nWars Lost: {bot.emoji.down_red_arrow}{warloss}\n'
-        f'War Streak: {bot.emoji.win_streak}{winstreak}\nWin Ratio: {bot.emoji.ratio}{winrate}\n\n'
+        f'War Streak: {bot.emoji.ratio}{winstreak}\nWin Ratio: {bot.emoji.ratio}{winrate}\n\n'
         f'Description: {clan.description}',
         color=embed_color,
     )
@@ -293,7 +292,7 @@ async def clan_composition(bot: CustomClient, clan: coc.Clan, type: str, embed_c
         elif type == 'Location':
             icon = f':flag_{location_name_to_code.get(key).lower()}:'
         elif type == 'League':
-            icon = league_to_emoji(key)
+            icon = league_to_emoji(bot=bot, league=key)
 
         formats = {
             'Townhall': '`{value:2}` {icon}`TH{key} `\n',
@@ -658,7 +657,7 @@ async def clan_sorted(
         elif sort_by in ['trophies', 'ach_Sweet Victory!']:
             emoji = bot.emoji.trophy
         elif sort_by in ['season_rank']:
-            emoji = bot.emoji.legends_shield
+            emoji = bot.fetch_emoji("Legend League")
         elif sort_by in ['clan_capital_contributions', 'ach_Aggressive Capitalism']:
             emoji = bot.emoji.capital_gold
         elif sort_by in ['exp_level']:
@@ -670,7 +669,7 @@ async def clan_sorted(
         elif sort_by in ['ach_War League Legend', 'war_stars']:
             emoji = bot.emoji.war_star
         elif sort_by in ['ach_Conqueror', 'attack_wins']:
-            emoji = bot.emoji.thick_sword
+            emoji = bot.emoji.thick_capital_sword
         elif sort_by in ['ach_Unbreakable']:
             emoji = bot.emoji.shield
         elif sort_by in ['ach_Games Champion']:
@@ -990,8 +989,8 @@ async def clan_capital_overview(bot: CustomClient, clan: coc.Clan, weekend: str,
         name='Overview',
         value=f"- {bot.emoji.capital_gold}{'{:,}'.format(raid_log_entry.total_loot)} Looted\n"
         f"- {bot.fetch_emoji('District_Hall5')}{raid_log_entry.destroyed_district_count} Districts Destroyed\n"
-        f'- {bot.emoji.thick_sword}{attack_count}/300 Attacks Complete\n'
-        f'- {bot.emoji.person}{len(raid_log_entry.members)}/50 Participants\n'
+        f'- {bot.emoji.thick_capital_sword}{attack_count}/300 Attacks Complete\n'
+        f'- {bot.emoji.people}{len(raid_log_entry.members)}/50 Participants\n'
         f'- Start {bot.timestamper(raid_log_entry.start_time.time.timestamp()).relative}, End {bot.timestamper(raid_log_entry.end_time.time.timestamp()).relative}\n',
         inline=False,
     )
@@ -1090,7 +1089,7 @@ async def clan_raid_weekend_donation_stats(bot: CustomClient, clan: coc.Clan, we
         if player.tag in member_tags:
             donation_text += f'{bot.emoji.capital_gold}`{sum_donated:6} {player.clear_name[:15]:15}`\n'
         else:
-            donation_text += f'{bot.emoji.deny_mark}`{sum_donated:6} {player.clear_name[:15]:15}`\n'
+            donation_text += f'{bot.emoji.square_x_deny}`{sum_donated:6} {player.clear_name[:15]:15}`\n'
 
     donation_embed = Embed(
         title=f'**{clan.name} Donation Totals**',
@@ -1154,7 +1153,7 @@ async def clan_raid_weekend_raid_stats(bot: CustomClient, clan: coc.Clan, weeken
         else:
             raid_text.append(
                 [
-                    f'\u200e{bot.emoji.deny_mark}`' f'{total_attacks[tag]}/{attack_limit[tag]} ' f'{amount} {name[:15]:15}`',
+                    f'\u200e{bot.emoji.square_x_deny}`' f'{total_attacks[tag]}/{attack_limit[tag]} ' f'{amount} {name[:15]:15}`',
                     amount,
                 ]
             )
@@ -1255,7 +1254,7 @@ async def cwl_performance(bot: CustomClient, clan: coc.Clan, embed_color: disnak
     year_text = ''
     not_empty = False
     for response in responses:
-        text, year = response_to_line(response.get('data'), clan)
+        text, year = response_to_line(bot, response.get('data'), clan)
         if year != old_year:
             if year_text != '':
                 not_empty = True
@@ -1590,7 +1589,7 @@ def stat_components(bot: CustomClient):
     )
     options = []
     emojis = [
-        bot.emoji.sword_clash.partial_emoji,
+        bot.emoji.animated_clash_swords.partial_emoji,
         bot.emoji.shield.partial_emoji,
         bot.emoji.war_star.partial_emoji,
     ]

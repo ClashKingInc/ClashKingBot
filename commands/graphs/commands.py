@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List
+from typing import List
 
 import disnake
 from disnake.ext import commands
@@ -7,7 +7,6 @@ from classes.bot import CustomClient
 from discord import autocomplete, convert, options
 from exceptions.CustomExceptions import MessageException
 from utility.clash.other import gen_season_date
-
 from .utils import daily_graph, monthly_bar_graph, season_line_graph
 
 

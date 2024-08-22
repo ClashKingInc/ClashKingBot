@@ -1,7 +1,3 @@
-import coc
-
-from exceptions.CustomExceptions import NoLegendStatsFound
-
 from .clanclient import ClanClient
 
 

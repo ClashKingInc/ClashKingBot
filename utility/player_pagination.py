@@ -1,130 +1,97 @@
 import disnake
 
-from archived.commands.CommandsOlder.Utils.Player import create_profile_stats, create_profile_troops, history, upgrade_embed
+from commands.player.utils import detailed_player_board, create_profile_troops, history, upgrade_embed
+
 from classes.bot import CustomClient
 from classes.player.stats import StatsPlayer
 
 
-async def button_pagination(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, msg, results):
-    # statTypes
-    profile_pages = ['Info', 'Troops', 'Upgrades', 'History']
-    current_stat = 0
-    current_page = 0
-    history_cache_embed = {}
+class ProfileView(disnake.ui.View):
+    def __init__(self, bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, results):
+        super().__init__(timeout=600)
+        self.bot = bot
+        self.ctx = ctx
+        self.results: list[StatsPlayer] = results
+        self.profile_pages = ['Info', 'Troops', 'Upgrades', 'History']
+        self.current_stat = 0
+        self.current_page = 0
+        self.history_cache_embed = {}
 
-    embed = await create_profile_stats(bot, ctx, results[0])
+        # Initialize the components
+        self.add_item(self.create_stat_select())
+        if len(results) > 1:
+            self.add_item(self.create_profile_select())
 
-    await msg.edit(embed=embed, components=create_components(bot, results))
-
-    def check(res: disnake.MessageInteraction):
-        return res.message.id == msg.id
-
-    while True:
+    async def on_timeout(self):
         try:
-            res: disnake.MessageInteraction = await bot.wait_for('message_interaction', check=check, timeout=600)
+            await self.ctx.edit_original_message(components=[])
         except:
-            try:
-                await ctx.edit_original_message(components=[])
-            except:
-                pass
-            break
+            pass
 
-        await res.response.defer()
-        if res.values[0] in profile_pages:
-            current_stat = profile_pages.index(res.values[0])
-            try:
-                embed = await display_embed(
-                    results,
-                    profile_pages[current_stat],
-                    current_page,
-                    ctx,
-                    history_cache_embed,
-                    bot,
-                )
-                if profile_pages[current_stat] == 'Upgrades':
-                    await res.edit_original_message(embeds=embed)
-                else:
-                    await res.edit_original_message(embed=embed)
-            except:
-                if profile_pages[current_stat] == 'History':
-                    embed = disnake.Embed(
-                        description='This player has made their clash of stats history private.',
-                        color=disnake.Color.green(),
-                    )
-                    player = results[current_page]
-                    history_cache_embed[player.tag] = embed
-                    await res.edit_original_message(embed=embed)
+    def create_stat_select(self):
+        options = [
+            disnake.SelectOption(label='Overview', emoji=self.bot.emoji.xp.partial_emoji, value='Info'),
+            disnake.SelectOption(label='Troops', emoji=self.bot.emoji.troop.partial_emoji, value='Troops'),
+            disnake.SelectOption(label='Upgrades/Rushed', emoji=self.bot.emoji.clock.partial_emoji, value='Upgrades'),
+            disnake.SelectOption(label='Clan History', emoji=self.bot.emoji.clan_castle.partial_emoji, value='History'),
+        ]
+
+        return StatSelect(self.bot, options)
+
+    def create_profile_select(self):
+        player_results = [
+            disnake.SelectOption(label=f'{player.name}', emoji=self.bot.fetch_emoji(player.town_hall).partial_emoji, value=f'{count}')
+            for count, player in enumerate(self.results)
+        ]
+
+        return ProfileSelect(self.bot, player_results)
+
+    async def update_embed(self):
+        embed = await self.display_embed(self.profile_pages[self.current_stat])
+        if isinstance(embed, list):
+            await self.ctx.edit_original_message(embeds=embed, view=self)
         else:
-            current_page = int(res.values[0])
-            embed = await display_embed(
-                results,
-                profile_pages[current_stat],
-                current_page,
-                ctx,
-                history_cache_embed,
-                bot,
-            )
-            if profile_pages[current_stat] == 'Upgrades':
-                await res.edit_original_message(embeds=embed)
-            else:
-                await res.edit_original_message(embed=embed)
+            await self.ctx.edit_original_message(embed=embed, view=self)
+
+    async def display_embed(self, stat_type):
+        if stat_type == 'Info':
+            return await detailed_player_board(self.bot, self.results[self.current_page], server=self.ctx.guild)
+        elif stat_type == 'Troops':
+            return await create_profile_troops(self.bot, self.results[self.current_page])
+        elif stat_type == 'Upgrades':
+            return await upgrade_embed(self.bot, self.results[self.current_page])
+        elif stat_type == 'History':
+            player = self.results[self.current_page]
+            if player.tag not in self.history_cache_embed:
+                self.history_cache_embed[player.tag] = await history(self.bot, self.results[self.current_page])
+            return self.history_cache_embed[player.tag]
 
 
-async def display_embed(results, stat_type, current_page, ctx, history_cache_embed, bot: CustomClient):
-    if stat_type == 'Info':
-        return await create_profile_stats(bot, ctx, results[current_page])
-    elif stat_type == 'Troops':
-        return await create_profile_troops(bot, results[current_page])
-    elif stat_type == 'Upgrades':
-        return await upgrade_embed(bot, results[current_page])
-    elif stat_type == 'History':
-        player = results[current_page]
-        keys = history_cache_embed.keys()
-        if player.tag not in keys:
-            history_cache_embed[player.tag] = await history(bot, ctx, results[current_page])
-        return history_cache_embed[player.tag]
+class StatSelect(disnake.ui.Select):
+    def __init__(self, bot: CustomClient, options):
+        self.bot = bot
+        super().__init__(placeholder='Choose a page', min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: disnake.MessageInteraction):
+        view: ProfileView = self.view  # Retrieve the view object automatically set by disnake
+        view.current_stat = view.profile_pages.index(self.values[0])
+        await interaction.response.edit_message(view=view)
+        await view.update_embed()
 
 
-def create_components(bot: CustomClient, results):
-    length = len(results)
+class ProfileSelect(disnake.ui.Select):
+    def __init__(self, bot: CustomClient, options):
+        self.bot = bot
+        super().__init__(placeholder='Accounts', min_values=1, max_values=1, options=options)
 
-    options = [  # the options in your dropdown
-        disnake.SelectOption(label='Overview', emoji=bot.emoji.xp.partial_emoji, value='Info'),
-        disnake.SelectOption(label='Troops', emoji=bot.emoji.troop.partial_emoji, value='Troops'),
-        disnake.SelectOption(
-            label='Upgrades/Rushed',
-            emoji=bot.emoji.clock.partial_emoji,
-            value='Upgrades',
-        ),
-        disnake.SelectOption(
-            label='Clan History',
-            emoji=bot.emoji.clan_castle.partial_emoji,
-            value='History',
-        ),
-    ]
+    async def callback(self, interaction: disnake.MessageInteraction):
+        view: ProfileView = self.view  # Retrieve the view object automatically set by disnake
+        view.current_page = int(self.values[0])
+        await interaction.response.edit_message(view=view)
+        await view.update_embed()
 
-    stat_select = disnake.ui.Select(options=options, placeholder='Choose a page', max_values=1)
 
-    st = disnake.ui.ActionRow()
-    st.append_item(stat_select)
-
-    if length == 1:
-        return st
-
-    player_results = []
-    for count, player in enumerate(results):
-        player: StatsPlayer
-        player_results.append(
-            disnake.SelectOption(
-                label=f'{player.name}',
-                emoji=player.town_hall_cls.emoji.partial_emoji,
-                value=f'{count}',
-            )
-        )
-
-    profile_select = disnake.ui.Select(options=player_results, placeholder='Accounts', max_values=1)
-
-    st2 = disnake.ui.ActionRow()
-    st2.append_item(profile_select)
-
-    return [st, st2]
+async def button_pagination(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction, msg, results):
+    view = ProfileView(bot, ctx, results)
+    embed = await detailed_player_board(bot, results[0], server=ctx.guild)
+    await msg.edit(embed=embed, view=view)

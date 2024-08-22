@@ -3,7 +3,6 @@ import datetime
 import coc
 import disnake
 import pendulum as pend
-import sentry_sdk
 from pytz import utc
 
 from classes.bot import CustomClient

@@ -7,11 +7,10 @@ import disnake
 import pendulum as pd
 
 from assets.army_ids import size, spell_ids, troop_ids
-from assets.emojis import SharedEmojis
 from classes.bot import CustomClient
 from exceptions.CustomExceptions import MessageException
 from utility.constants import EMBED_COLOR_CLASS, MAX_ARMY_CAMP, MAX_NUM_SPELLS
-from utility.discord_utils import iter_embed_creation, register_button
+from utility.discord_utils import iter_embed_creation
 
 
 def army_embed(
@@ -46,7 +45,7 @@ def army_embed(
             troop_name = troop_ids(int(id))
             if troop_name in eightTroops:
                 isEight = True
-            troop_emoji = SharedEmojis.all_emojis.get(troop_name)
+            troop_emoji = bot.fetch_emoji(troop_name)
             if troop_name not in coc.SIEGE_MACHINE_ORDER:
                 troopSpace += size(troop_name) * int(num)
                 troop_string += f'{troop_emoji}`x {str(num)}` {troop_name}\n'
@@ -70,7 +69,7 @@ def army_embed(
             id = split_num_and_id[1]
             spells_used.append(id)
             spell_name = spell_ids(int(id))
-            spell_emoji = SharedEmojis.all_emojis.get(spell_name)
+            spell_emoji = bot.fetch_emoji(spell_name)
             spell_space += size(spell_name) * int(num)
             spell_string += f'{spell_emoji}`x {str(num)}` {spell_name}\n'
     else:
@@ -231,7 +230,7 @@ async def clan_boost_embeds(
             for troop, members in clan_boosted.items():
                 text = ''.join([f'- {member}\n' for member in members])
                 embed.add_field(
-                    name=f'{SharedEmojis.all_emojis.get(troop)} {troop}',
+                    name=f'{bot.fetch_emoji(troop)} {troop}',
                     value=text,
                     inline=False,
                 )

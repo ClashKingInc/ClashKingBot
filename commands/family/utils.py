@@ -79,7 +79,7 @@ async def family_composition(bot: CustomClient, server: disnake.Guild, type: str
         elif type == 'Location':
             return f':flag_{location_name_to_code.get(key).lower()}:'
         elif type == 'League':
-            return league_to_emoji(key)
+            return league_to_emoji(bot=bot, league=key)
         return ''
 
     text = ''
@@ -380,7 +380,7 @@ async def family_overview(bot: CustomClient, server: disnake.Guild, embed_color:
     top_ten_clans = sorted(basic_clans, key=lambda x: leagues.index(x.get('warLeague', 'Unranked')))[:10]
     clan_text = ''
     for clan in top_ten_clans:
-        clan_text += f'{cwl_league_emojis(clan.get("warLeague", "Unranked"))}`{clan.get("name"):<15} ({clan.get("members")}/50)`\n'
+        clan_text += f'{cwl_league_emojis(bot=bot, league=clan.get("warLeague", "Unranked"))}`{clan.get("name"):<15} ({clan.get("members")}/50)`\n'
     first_embed.add_field(name='Top 10 Clans', value=clan_text, inline=False)
 
     th_comp_string = ''
@@ -729,7 +729,7 @@ async def family_sorted(
         elif sort_by in ['trophies', 'ach_Sweet Victory!']:
             emoji = bot.emoji.trophy
         elif sort_by in ['season_rank']:
-            emoji = bot.emoji.legends_shield
+            emoji = bot.fetch_emoji("Legend Shield")
         elif sort_by in ['clan_capital_contributions', 'ach_Aggressive Capitalism']:
             emoji = bot.emoji.capital_gold
         elif sort_by in ['exp_level']:
@@ -741,7 +741,7 @@ async def family_sorted(
         elif sort_by in ['ach_War League Legend', 'war_stars']:
             emoji = bot.emoji.war_star
         elif sort_by in ['ach_Conqueror', 'attack_wins']:
-            emoji = bot.emoji.thick_sword
+            emoji = bot.emoji.thick_capital_sword
         elif sort_by in ['ach_Unbreakable']:
             emoji = bot.emoji.shield
         elif sort_by in ['ach_Games Champion']:
@@ -1095,7 +1095,7 @@ async def family_clans(bot: CustomClient, server: disnake.Guild, type: str, embe
         elif type == 'location':
             location_code = clan_result[0].location.country_code
             if not clan_result[0].location.is_country:
-                category_name = f'{bot.emoji.globe} {category_name}'
+                category_name = f'{bot.emoji.earth} {category_name}'
             else:
                 category_name = f':flag_{location_code.lower()}: {category_name}'
         elif type == 'th':
@@ -1151,8 +1151,8 @@ async def family_raids(bot: CustomClient, server: disnake.Guild, weekend: str, e
         )
         embed.add_field(
             name=f'{clan.name} | CH{hall_level}',
-            value=f'> {bot.emoji.thick_sword} {raid.attack_count}/300 | '
-            f'{bot.emoji.person} {len(raid.members)}/50\n'
+            value=f'> {bot.emoji.thick_capital_sword} {raid.attack_count}/300 | '
+            f'{bot.emoji.people} {len(raid.members)}/50\n'
             f"> {bot.emoji.capital_gold} {'{:,}'.format(raid.total_loot)} | "
             f'{bot.emoji.raid_medal} {medals}',
             inline=False,

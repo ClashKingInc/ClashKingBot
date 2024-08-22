@@ -3,13 +3,10 @@ import math
 import disnake
 from disnake.ext import commands
 
-from assets.thPicDictionary import thDictionary
 from classes.bot import CustomClient
 from classes.player.stats import LegendRanking
 from exceptions.CustomExceptions import ExpiredComponents, NoLinkedAccounts
 from utility.components import create_components
-from utility.general import create_superscript
-from utility.search import search_results
 
 
 class FamilyStats(commands.Cog, name='Family Trophy Stats'):
@@ -25,7 +22,7 @@ class FamilyStats(commands.Cog, name='Family Trophy Stats'):
         """
         Parameters
         ----------
-        tag_or_user: Player tag or discord user to search for
+        user: Player tag or discord user to search for
         """
         await ctx.response.defer()
         tags = await self.bot.get_tags(user.id)
@@ -63,7 +60,7 @@ class FamilyStats(commands.Cog, name='Family Trophy Stats'):
                 color=embed_color,
             )
             embed.set_footer(text=f'Ranks for {user.display_name}', icon_url=user.display_avatar.url)
-            embed.set_thumbnail(url=thDictionary(player.town_hall))
+            embed.set_thumbnail(url=f'https://assets.clashk.ing/home-base/town-hall-pics/town-hall-{player.town_hall}.png')
             embeds.append(embed)
 
         current_page = 0

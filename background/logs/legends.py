@@ -108,7 +108,7 @@ class LegendEvents(commands.Cog):
 
         if trophy_change >= 1:
             color = disnake.Color.green()
-            change = f'{self.bot.emoji.sword} +{trophy_change} trophies'
+            change = f'{self.bot.emoji.clash_sword} +{trophy_change} trophies'
             type = 'logs.legend_log_attacks.webhook'
         else:  # trophy_change <= -1
             color = disnake.Color.red()
@@ -122,7 +122,7 @@ class LegendEvents(commands.Cog):
         )
         embed.set_footer(
             text=f'{player.trophies}',
-            icon_url=self.bot.emoji.legends_shield.partial_emoji.url,
+            icon_url=self.bot.fetch_emoji("Legend League").partial_emoji.url,
         )
         embed.timestamp = utc_time
 

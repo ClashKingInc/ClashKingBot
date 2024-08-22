@@ -16,8 +16,7 @@ async def button_logic(
 ):
     split_data = button_data.split(':')
     lookup_name = button_data.split(':')[0]
-    print(locale)
-    # print(registered_functions.keys())
+
     function, parser, ephemeral, no_embed = registered_functions.get(lookup_name)
     if function is None:
         return None, 0  # maybe change this
@@ -103,7 +102,7 @@ class ComponentHandler(commands.Cog):
             if components != 0:
                 await ctx.edit_original_message(embed=embed, components=components)
             else:
-                await ctx.edit_original_message(embed=embed)
+                await ctx.edit_original_message(embed=embed, attachments=[])
 
 
 def setup(bot):

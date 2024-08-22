@@ -3,7 +3,8 @@ from typing import TYPE_CHECKING, List, Union
 import coc
 import disnake
 
-from utility.constants import ROLE_TREATMENT_TYPES, AUTOREFRESH_TRIGGERS
+from utility.constants import AUTOREFRESH_TRIGGERS, ROLE_TREATMENT_TYPES
+
 
 if TYPE_CHECKING:
     from classes.bot import CustomClient
@@ -31,16 +32,22 @@ class DatabaseServer:
         self.family_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('family_roles', [])]
         self.not_family_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('not_family_roles', [])]
         self.only_family_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('only_family_roles', [])]
-        self.family_elder_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('family_position_roles', []) if d.get("type") == "family_elder_roles"]
-        self.family_coleader_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('family_position_roles', []) if d.get("type") == "family_co-leader_roles"]
-        self.family_leader_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('family_position_roles', []) if d.get("type") == "family_leader_roles"]
+        self.family_elder_roles = [
+            EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('family_position_roles', []) if d.get('type') == 'family_elder_roles'
+        ]
+        self.family_coleader_roles = [
+            EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('family_position_roles', []) if d.get('type') == 'family_co-leader_roles'
+        ]
+        self.family_leader_roles = [
+            EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('family_position_roles', []) if d.get('type') == 'family_leader_roles'
+        ]
 
         self.townhall_roles = [TownhallRole(bot=bot, data=d) for d in data.get('eval', {}).get('townhall_roles', [])]
         self.builderhall_roles = [BuilderHallRole(bot=bot, data=d) for d in data.get('eval', {}).get('builderhall_roles', [])]
 
         self.achievement_roles = [AchievementRole(data=d) for d in data.get('achievement_roles', [])]
 
-        self.status_roles = [StatusRole(data=d) for d in data.get('status_roles', {}).get("discord", [])]
+        self.status_roles = [StatusRole(data=d) for d in data.get('status_roles', {}).get('discord', [])]
 
         self.clans = [DatabaseClan(bot=bot, data=d) for d in data.get('clans', [])]
         self.category_roles = data.get('category_roles', {})
@@ -156,10 +163,7 @@ class DatabaseServer:
 
     async def add_status_role(self, months: int, role_id: int, type: str):
         # Retrieve the current set of status roles
-        current_roles = await self.bot.server_db.find_one(
-            {'server': self.server_id},
-            {f'status_roles.{type}': 1}
-        )
+        current_roles = await self.bot.server_db.find_one({'server': self.server_id}, {f'status_roles.{type}': 1})
 
         # Extract the current roles for the given type
         current_roles_set = current_roles.get('status_roles', {}).get(type, [])
@@ -339,7 +343,6 @@ class DatabaseClan:
         self.war_timer_countdown = data.get('warTimerCountdown')
         self.member_count_warning = MemberCountWarning(parent=self)
         self.auto_greet_option = data.get('auto_greet_option', 'Never')
-
 
     async def set_war_countdown(self, id: Union[int, None]):
         await self.bot.clan_db.update_one(

@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
 
 import coc
 import disnake

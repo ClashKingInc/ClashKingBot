@@ -5,15 +5,10 @@ from typing import TYPE_CHECKING, List
 
 import coc
 import emoji
-import pytz
 from coc import utils
 
-from assets.emojis import SharedEmojis
-from assets.thPicDictionary import thDictionary
-from classes.emoji import EmojiType
 from utility.clash.capital import gen_raid_weekend_datestrings
 from utility.constants import HOME_VILLAGE_HEROES, SHORT_PLAYER_LINK
-
 
 if TYPE_CHECKING:
     from classes.bot import CustomClient
@@ -31,10 +26,6 @@ class CustomClanClass(coc.Clan):
 
 class StatsPlayer(coc.Player):
     def __init__(self, **kwargs):
-        self.troop_cls = MyCustomTroops
-        self.hero_cls = MyCustomHeros
-        self.spell_cls = MyCustomSpells
-        self.pet_cls = MyCustomPets
         super().__init__(**kwargs)
         self.bot: CustomClient = kwargs.pop('bot')
         self.role_as_string = str(self.role)
@@ -138,7 +129,7 @@ class StatsPlayer(coc.Player):
 
     def attack_wins(self, season=None):
         if season is None:
-            season = self.bot.gen_season_data()
+            season = self.bot.gen_season_date()
         if self.results is None:
             return 0
         season_wins = self.results.get('attack_wins', {}).get(f'{season}', [0])
@@ -1114,44 +1105,14 @@ class NumChoice:
         return SUPER_SCRIPTS[self.integer]
 
 
-class MyCustomTroops(coc.Troop):
-    @property
-    def emoji(self):
-        return EmojiType(SharedEmojis.all_emojis.get(self.name))
-
-
-class MyCustomHeros(coc.Hero):
-    @property
-    def emoji(self):
-        return EmojiType(SharedEmojis.all_emojis.get(self.name))
-
-
-class MyCustomSpells(coc.Spell):
-    @property
-    def emoji(self):
-        return EmojiType(SharedEmojis.all_emojis.get(self.name))
-
-
-class MyCustomPets(coc.Pet):
-    @property
-    def emoji(self):
-        return EmojiType(SharedEmojis.all_emojis.get(self.name))
-
-
 class CustomTownHall:
     def __init__(self, th_level):
         self.level = th_level
         self.str_level = str(th_level)
 
     @property
-    def emoji(self):
-        return EmojiType(SharedEmojis.all_emojis.get(self.level))
-
-    @property
     def image_url(self):
-        if self.level <= 4:
-            self.level = 5
-        return thDictionary(self.level)
+        return f'https://assets.clashk.ing/home-base/town-hall-pics/town-hall-{self.level}.png'
 
 
 class Donations:

@@ -241,7 +241,7 @@ def get_clan_member_tags(clans: List[coc.Clan]) -> List[str]:
     return clan_member_tags
 
 
-def response_to_line(response, clan):
+def response_to_line(bot, response, clan):
     clans = response['clans']
     season = response['season']
     tags = [x['tag'] for x in clans]
@@ -299,7 +299,7 @@ def response_to_line(response, clan):
     tier = str(league_name).count('I')
 
     return (
-        f'{emoji} {league_to_emoji(league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n',
+        f'{emoji} {league_to_emoji(bot=bot, league=league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n',
         year,
     )
 

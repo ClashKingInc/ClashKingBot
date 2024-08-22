@@ -1,15 +1,15 @@
 import coc
 import disnake
+from disnake import Localized as Loc
 from disnake.ext import commands
 
 from classes.bot import CustomClient
-from discord import autocomplete, convert, options
-from disnake import Localized as Loc
+from discord import options
 from exceptions.CustomExceptions import MessageException
 from utility.components import create_components
 from utility.discord_utils import check_commands, interaction_handler
-
 from .utils import add_ban, create_embeds, remove_ban
+
 
 class Bans(commands.Cog, name='Bans'):
     def __init__(self, bot: CustomClient):
@@ -30,14 +30,7 @@ class Bans(commands.Cog, name='Bans'):
     ):
         _, locale = self.bot.get_localizator(ctx=ctx)
         embed = await add_ban(
-            bot=self.bot,
-            player=player,
-            added_by=ctx.user,
-            guild=ctx.guild,
-            reason=reason,
-            rollover_days=None,
-            dm_player=dm_player,
-            locale=locale
+            bot=self.bot, player=player, added_by=ctx.user, guild=ctx.guild, reason=reason, rollover_days=None, dm_player=dm_player, locale=locale
         )
         await ctx.edit_original_message(embed=embed)
 

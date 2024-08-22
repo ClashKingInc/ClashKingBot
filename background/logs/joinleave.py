@@ -1,6 +1,7 @@
+import ast
+
 import coc
 import disnake
-import ast
 from disnake.ext import commands
 
 from background.logs.events import clan_ee
@@ -37,7 +38,7 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
                     th_emoji = self.bot.fetch_emoji(player.town_hall)
                     embed = disnake.Embed(
                         description=f'[**{player.name}** ({player.tag})]({player.share_link})\n'
-                        + f'**{th_emoji}{player.town_hall}{leagueAndTrophies(player)}<:star:825571962699907152>{player.war_stars}{hero}**\n',
+                        + f'**{th_emoji}{player.town_hall}{leagueAndTrophies(bot=self.bot, player=player)}<:star:825571962699907152>{player.war_stars}{hero}**\n',
                         color=disnake.Color.green(),
                     )
                     embed.set_footer(
@@ -173,7 +174,7 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
                     th_emoji = self.bot.fetch_emoji(player.town_hall)
                     embed = disnake.Embed(
                         description=f'[**{player.name}** ({player.tag})]({player.share_link})\n'
-                        + f'**{th_emoji}{player.town_hall}{leagueAndTrophies(player)}<:star:825571962699907152>{player.war_stars}{hero}**\n',
+                        + f'**{th_emoji}{player.town_hall}{leagueAndTrophies(bot=bot, player=player)}<:star:825571962699907152>{player.war_stars}{hero}**\n',
                         color=disnake.Color.red(),
                     )
                     if player.clan is not None and player.clan.tag != clan.tag:

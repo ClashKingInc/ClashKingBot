@@ -8,8 +8,7 @@ import pytz
 
 from classes.bot import CustomClient
 from classes.player.stats import StatsPlayer
-from classes.tickets import ApproveMessages, OpenTicket, Ticket_Buttons, TicketPanel
-
+from classes.tickets import OpenTicket, Ticket_Buttons, TicketPanel
 
 tiz = pytz.utc
 from utility.clash.other import heros
@@ -127,7 +126,7 @@ async def open_ticket(
         )
         text = ' '.join([role.mention for role in no_ping_roles + ping_roles if role is not None])
         if text.replace(' ', '') != '':
-            msg = await thread.send(content="Thread Created")
+            msg = await thread.send(content='Thread Created')
             await msg.edit(content=text)
         channels.append(thread)
 

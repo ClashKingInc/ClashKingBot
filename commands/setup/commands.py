@@ -9,12 +9,12 @@ import disnake
 from aiohttp import TCPConnector
 from disnake.ext import commands
 
-from classes.bot import CustomClient
 from classes.DatabaseClient.Classes.settings import DatabaseClan
+from classes.bot import CustomClient
 from discord import autocomplete, convert, options
 from exceptions.CustomExceptions import *
 from utility.components import clan_component
-from utility.discord_utils import check_commands, get_webhook_for_channel, interaction_handler, registered_functions
+from utility.discord_utils import check_commands, get_webhook_for_channel, interaction_handler
 from utility.general import calculate_time, get_guild_icon
 
 
@@ -43,12 +43,10 @@ class SetupCommands(commands.Cog, name='Setup'):
         full_whitelist_role: disnake.Role = None,
         embed_color: str = commands.Param(default=None, converter=convert.hex_code),
         followed_reddit_accounts: str = None,
-
     ):
         """
         Parameters
         ----------
-        banlist_channel: channel where auto_update ban list goes
         change_nicknames: whether or not the bot should change nicknames
         full_whitelist_role: role that can run any command on the bot in your server
         followed_reddit_accounts: must have reddit feed set up, a comma seperated list of reddit accounts to follow
@@ -90,7 +88,7 @@ class SetupCommands(commands.Cog, name='Setup'):
             await db_server.set_full_whitelist_role(id=full_whitelist_role.id)
             changed_text += f'- **Full Whitelist Role:** `{full_whitelist_role.mention}`\n'
         if followed_reddit_accounts is not None:
-            reddit_accounts = followed_reddit_accounts.split(",")
+            reddit_accounts = followed_reddit_accounts.split(',')
             await self.bot.server_db.update_one(
                 {'server': ctx.guild.id},
                 {'$set': {'reddit_accounts': reddit_accounts}},
@@ -474,13 +472,13 @@ class SetupCommands(commands.Cog, name='Setup'):
         name: this purely an identifier, is not the name the bot will actually have
         bot_token: token as found on the discord developer website
         """
-        
+
         await ctx.response.defer(ephemeral=True)
 
         token_check = re.compile(r'[MNO][a-zA-Z\d_-]{23,25}\.[a-zA-Z\d_-]{6}\.[a-zA-Z\d_-]{27}')
         if not bool(token_check.match(bot_token)):
             raise MessageException('Not a valid bot token')
-        
+
         if not self.bot.user.public_flags.verified_bot:
             raise MessageException('This command can only be run on the main ClashKing bot')
 
@@ -490,9 +488,9 @@ class SetupCommands(commands.Cog, name='Setup'):
         premium_users = my_server.get_role(1018316361241477212)
         find = disnake.utils.get(premium_users.members, id=ctx.user.id)
 
-        await ctx.edit_original_message("Looking for premium membership & server count")
+        await ctx.edit_original_message('Looking for premium membership & server count')
 
-        clans_on_server = await self.bot.clan_db.count_documents({"server" : ctx.guild_id})
+        clans_on_server = await self.bot.clan_db.count_documents({'server': ctx.guild_id})
         free_tier = ctx.guild.member_count >= 250 and clans_on_server >= 2
         if not find and not free_tier:
             raise MessageException(
@@ -503,7 +501,7 @@ class SetupCommands(commands.Cog, name='Setup'):
         if name == '':
             raise MessageException('Name cannot be empty')
 
-        await ctx.edit_original_message("Checking name validity")
+        await ctx.edit_original_message('Checking name validity')
 
         if name in ['clashking', 'clashking_beta', 'portainer', 'watchtower'] or 'aa_' in name:
             raise MessageException('Name is not allowed, those names are reserved.')
@@ -516,7 +514,7 @@ class SetupCommands(commands.Cog, name='Setup'):
         result = await self.bot.custom_bots.find_one({'user': ctx.user.id})
         # if they have created a bot before, find their container (if one), then delete it
         if result is not None:
-            await ctx.edit_original_message("Removing previously created bot")
+            await ctx.edit_original_message('Removing previously created bot')
 
             # if they have done this before, we need to remove any dead bots they might have
             connector = TCPConnector(ssl=False)
@@ -558,7 +556,7 @@ class SetupCommands(commands.Cog, name='Setup'):
                     async with session.delete(delete_url, headers=headers) as response:
                         await response.text()
 
-        await ctx.edit_original_message("Creating Custom Bot")
+        await ctx.edit_original_message('Creating Custom Bot')
 
         connector = TCPConnector(ssl=False)
         async with aiohttp.ClientSession(connector=connector) as session:
@@ -580,32 +578,7 @@ class SetupCommands(commands.Cog, name='Setup'):
             'Domainname': '',
             'Entrypoint': '',
             'Env': [
-                f'COC_EMAIL={self.bot._config.coc_email}',
-                f'COC_PASSWORD={self.bot._config.coc_password}',
-                f'STATIC_MONGODB={self.bot._config.static_mongodb}',
-                f'STATS_MONGODB={self.bot._config.stats_mongodb}',
-                f'LINK_API_USER={self.bot._config.link_api_username}',
-                f'LINK_API_PW={self.bot._config.link_api_password}',
                 f'BOT_TOKEN={bot_token}',
-                'IS_BETA=TRUE',
-                'IS_CUSTOM=TRUE',
-                f'SENTRY_DSN={self.bot._config.sentry_dsn}',
-                f'REDIS_IP={self.bot._config.redis_ip}',
-                f'REDIS_PW={self.bot._config.redis_pw}',
-                f'BUNNY_ACCESS_KEY={self.bot._config.bunny_api_token}',
-                f'PORTAINER_IP={self.bot._config.portainer_ip}',
-                f'PORTAINER_API_TOKEN={self.bot._config.portainer_api_token}',
-                f'REDDIT_SECRET={self.bot._config.reddit_user_secret}',
-                f'REDDIT_PW={self.bot._config.reddit_user_password}',
-                f'OPENAI_API_KEY={self.bot._config.open_ai_api_token}',
-                'PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
-                'LANG=C.UTF-8',
-                'GPG_KEY=A035C8C19219BA821ECEA86B64E628F8D684696D',
-                'PYTHON_VERSION=3.11.7',
-                'PYTHON_PIP_VERSION=23.2.1',
-                'PYTHON_SETUPTOOLS_VERSION=65.5.1',
-                'PYTHON_GET_PIP_URL=https://github.com/pypa/get-pip/raw/049c52c665e8c5fd1751f942316e0a5c777d304f/public/get-pip.py',
-                'PYTHON_GET_PIP_SHA256=7cfd4bdc4d475ea971f1c0710a5953bcc704d171f83c797b9529d9974502fcc6',
             ],
             'NetworkSettings': {
                 'Bridge': '',
@@ -628,18 +601,18 @@ class SetupCommands(commands.Cog, name='Setup'):
                         'Gateway': '',
                         'GlobalIPv6Address': '',
                         'GlobalIPv6PrefixLen': 0,
-                        'IPAMConfig': {},
+                        'IPAMConfig': None,
                         'IPAddress': '',
                         'IPPrefixLen': 0,
                         'IPv6Gateway': '',
                         'Links': None,
                         'MacAddress': '',
-                        'NetworkID': '04309af25ed26308771ffe8535853dc3bbe7ace652a5cdb3cc1953e73e72f569',
+                        'NetworkID': 'host',
                     }
                 },
                 'Ports': {},
-                'SandboxID': 'cff30522306cbdc39c326b5be3dbd0335ae545bc12aa5e86eb31ebbee5fd4ccb',
-                'SandboxKey': '/var/run/docker/netns/default',
+                'SandboxID': '',
+                'SandboxKey': '',
                 'SecondaryIPAddresses': None,
                 'SecondaryIPv6Addresses': None,
             },
@@ -669,34 +642,41 @@ class SetupCommands(commands.Cog, name='Setup'):
             ) as response:
                 await response.read()
 
-        await ctx.edit_original_message("Checking status of custom bot, please wait 30 seconds")
+        await ctx.edit_original_message('Checking status of custom bot, please wait 30 seconds')
         await asyncio.sleep(30)
         connector = TCPConnector(ssl=False)
         async with aiohttp.ClientSession(connector=connector) as session:
             # Check the status of the container every 5 seconds until it's running
-            async with session.get(f"https://85.10.200.219:9443/api/endpoints/2/docker/containers/{id}/json", headers={
+            async with session.get(
+                f'https://85.10.200.219:9443/api/endpoints/2/docker/containers/{id}/json',
+                headers={
                     'Content-Type': 'application/json',
                     'Authorization': f'Bearer {jwt}',
-                }) as status_response:
+                },
+            ) as status_response:
                 if status_response.status == 200:
                     container_info = await status_response.json()
                     container_state = container_info['State']['Status']
 
-                    if container_state == "running":
-                        await ctx.edit_original_message("Custom bot is running!")
-                    elif container_state == "exited":
-                        async with session.get(f"https://85.10.200.219:9443/api/endpoints/2/docker/containers/{id}/logs?stdout=true&stderr=true", headers={
-                    'Content-Type': 'application/json',
-                    'Authorization': f'Bearer {jwt}',
-                }) as logs_response:
+                    if container_state == 'running':
+                        await ctx.edit_original_message('Custom bot is running!')
+                    elif container_state == 'exited':
+                        async with session.get(
+                            f'https://85.10.200.219:9443/api/endpoints/2/docker/containers/{id}/logs?stdout=true&stderr=true',
+                            headers={
+                                'Content-Type': 'application/json',
+                                'Authorization': f'Bearer {jwt}',
+                            },
+                        ) as logs_response:
                             if logs_response.status == 200:
                                 logs = await logs_response.text()
                             else:
-                                logs = ""
+                                logs = ''
                         logs = logs[-1000:]
-                        await ctx.edit_original_message(f"Custom bot could not start up, ensure you followed the guide correctly - have entered a valid token & turned on the needed intents.\n"
-                                                        f"Relevant Logs:\n```{logs}```")
-
+                        await ctx.edit_original_message(
+                            f'Custom bot could not start up, ensure you followed the guide correctly - have entered a valid token & turned on the needed intents.\n'
+                            f'Relevant Logs:\n```{logs}```'
+                        )
 
         my_server = await self.bot.getch_guild(923764211845312533)
         premium_users = my_server.get_role(1018316361241477212)
@@ -797,7 +777,7 @@ class SetupCommands(commands.Cog, name='Setup'):
                 disnake.ui.ActionRow(
                     disnake.ui.Button(
                         label='Save',
-                        emoji=self.bot.emoji.yes.partial_emoji,
+                        emoji=self.bot.emoji.green_check.partial_emoji,
                         style=disnake.ButtonStyle.green,
                         custom_id='Save',
                     )
@@ -837,11 +817,11 @@ class SetupCommands(commands.Cog, name='Setup'):
                 await log.set_webhook(id=webhook.id)
                 await log.set_thread(id=thread)
                 mention = webhook.channel.mention if thread is None else f'<#{thread}>'
-                text += f'{self.bot.emoji.yes}{value} | {mention}\n'
+                text += f'{self.bot.emoji.green_check}{value} | {mention}\n'
             elif mode == 'Remove':
                 await log.set_webhook(id=None)
                 await log.set_thread(id=None)
-                text += f'{self.bot.emoji.yes}{value} Removed\n'
+                text += f'{self.bot.emoji.green_check}{value} Removed\n'
 
         embed = disnake.Embed(title=f'Logs for {clan.name}', description=text, color=disnake.Color.green())
         await ctx.edit_original_message(embed=embed, components=[])
@@ -920,7 +900,7 @@ class SetupCommands(commands.Cog, name='Setup'):
             self.bot.emoji.clan_games,
             self.bot.emoji.raid_medal,
             self.bot.emoji.trophy,
-            self.bot.emoji.person,
+            self.bot.emoji.people,
             self.bot.emoji.war_star,
             self.bot.emoji.war_star,
         ]
@@ -1113,7 +1093,7 @@ class SetupCommands(commands.Cog, name='Setup'):
         """
         Parameters
         ----------
-        clan_tag: clan to add to server
+        clan: clan to add to server
         category: choose a category or type your own
         member_role: role that all members of this clan receive
         leadership_role: role that co & leaders of this clan would receive

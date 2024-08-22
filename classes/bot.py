@@ -14,25 +14,23 @@ import disnake
 import emoji
 import motor.motor_asyncio
 import pendulum as pend
-import snappy
 import ujson
+from aiocache import SimpleMemoryCache, cached
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from coc.ext import discordlinks
 from disnake.ext import commands, fluent
 from expiring_dict import ExpiringDict
 from redis import asyncio as redis
-from aiocache import cached, SimpleMemoryCache
 
-from assets.emojis import SharedEmojis
 from background.logs.events import kafka_events
 from classes.clashofstats import COSPlayerHistory
 from classes.config import Config
 from classes.DatabaseClient.familyclient import FamilyClient
 from classes.emoji import Emojis, EmojiType
 from classes.player.stats import CustomClanClass, StatsPlayer
+from utility.clash.other import is_cwl
 from utility.constants import BADGE_GUILDS, locations
 from utility.general import create_superscript, fetch
-from utility.clash.other import is_cwl
 from utility.login import coc_login
 
 
@@ -60,13 +58,13 @@ class CustomClient(commands.AutoShardedBot):
         self.i18n = fluent.FluentStore()
         self.i18n.load('locales/')
 
+        if not config.is_beta:
+            self.loop.create_task(kafka_events(self))
+
         self._config = config
 
         self.OUR_CLANS = set()
         self.CLANS_LOADED = False
-
-        if not config.is_beta:
-            self.loop.create_task(kafka_events(self))
 
         self.scheduler = scheduler
         self.ck_client: FamilyClient = None
@@ -173,7 +171,9 @@ class CustomClient(commands.AutoShardedBot):
         self.autoboard_db: collection_class = self.db_client.usafam.autoboard_db
         self.player_search: collection_class = self.db_client.usafam.player_search
 
-        self.coc_client: coc.Client = asyncio.get_event_loop().run_until_complete(coc_login(bot=self))
+        self.coc_client: coc.Client = asyncio.get_event_loop().run_until_complete(coc_login())
+
+        self.loaded_emojis: dict = {}
 
         self.redis = redis.Redis(
             host=self._config.redis_ip,
@@ -187,6 +187,7 @@ class CustomClient(commands.AutoShardedBot):
 
         self.locations = locations
 
+        self.emoji: Emojis = None
         self.MAX_FEED_LEN = 5
         self.FAQ_CHANNEL_ID = 1010727127806648371
 
@@ -203,10 +204,6 @@ class CustomClient(commands.AutoShardedBot):
 
         self.BADGE_GUILDS = BADGE_GUILDS
 
-
-    @property
-    def emoji(self):
-        return Emojis()
 
     def clean_string(self, text: str):
         text = emoji.replace_emoji(text)
@@ -253,26 +250,8 @@ class CustomClient(commands.AutoShardedBot):
         return functools.partial(self.i18n.l10n, locale=server.preferred_locale or disnake.Locale.en_US)
 
     def get_number_emoji(self, color: str, number: int) -> EmojiType:
-        if not self.user.id == 808566437199216691 and not self.user.public_flags.verified_bot:
-            color = 'gold'
-        guild = None
-        if number <= 50:
-            if color == 'white':
-                guild = self.get_guild(1042301258167484426)
-            elif color == 'blue':
-                guild = self.get_guild(1042222078302109779)
-            elif color == 'gold':
-                guild = self.get_guild(1042301195240357958)
-        elif number >= 51:
-            if color == 'white':
-                guild = self.get_guild(1042635651562086430)
-            elif color == 'blue':
-                guild = self.get_guild(1042635521890992158)
-            elif color == 'gold':
-                guild = self.get_guild(1042635608088125491)
-        all_emojis = guild.emojis
-        emoji = disnake.utils.get(all_emojis, name=f'{number}_')
-        return EmojiType(emoji_string=f'<:{emoji.name}:{emoji.id}>')
+        emoji = self.fetch_emoji(f"gold_{number}")
+        return emoji
 
     async def track_clans(self, tags: list):
         result = await self.user_db.find_one({'username': self.user_name})
@@ -433,7 +412,9 @@ class CustomClient(commands.AutoShardedBot):
         return disnake.PartialEmoji(name=emoji[1], id=int(str(emoji[2])[:-1]), animated=animated)
 
     def fetch_emoji(self, name: str | int):
-        emoji = SharedEmojis.all_emojis.get(name)
+        if name == 'Unranked':
+            name = 'unranked'
+        emoji = self.loaded_emojis.get(name)
         if emoji is None:
             return None
         return EmojiType(emoji_string=emoji)
@@ -571,12 +552,6 @@ class CustomClient(commands.AutoShardedBot):
         tag_set = set(tags)
         cache_data = []
 
-        if use_cache:
-            redis_cache_data = await self.redis.mget(keys=[tag for tag in tag_set if tag not in fresh_tags])
-            for data in (ujson.loads(snappy.uncompress(data)) for data in redis_cache_data if data is not None):
-                tag_set.discard(data.get('tag'))
-                cache_data.append(data)
-
         players.extend(
             (player_class)(
                 data=data,
@@ -676,7 +651,11 @@ class CustomClient(commands.AutoShardedBot):
                 return war
             except coc.PrivateWarLog:
                 now = datetime.utcnow().timestamp()
-                result = await self.clan_wars.find({"$and" : [{"clans" : clanTag}, {"custom_id": None}, {"endTime" : {"$gte" : now}}]}).sort({"endTime" : -1}).to_list(length=None)
+                result = (
+                    await self.clan_wars.find({'$and': [{'clans': clanTag}, {'custom_id': None}, {'endTime': {'$gte': now}}]})
+                    .sort({'endTime': -1})
+                    .to_list(length=None)
+                )
                 if not result:
                     return None
                 result = result[0]
@@ -745,6 +724,9 @@ class CustomClient(commands.AutoShardedBot):
         return locations
 
     # SERVER HELPERS
+    def get_command_mention(self, name: str):
+        command = self.get_global_command_named(name=name.split(' ')[0])
+        return f"</{name}:{command.id}>"
 
     async def white_list_check(self, ctx, command_name):
         if ctx.author.id == 706149153431879760:

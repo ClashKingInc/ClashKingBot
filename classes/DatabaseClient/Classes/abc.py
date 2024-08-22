@@ -3,10 +3,7 @@ import re
 import coc
 import emoji
 
-from assets.emojis import SharedEmojis
-from assets.thPicDictionary import thDictionary
-from classes.emoji import EmojiType
-from utility.constants import SHORT_CLAN_LINK, SHORT_PLAYER_LINK, SUPER_SCRIPTS
+from utility.constants import SHORT_PLAYER_LINK, SUPER_SCRIPTS
 
 
 class BasePlayer:
@@ -65,7 +62,7 @@ class BaseClan:
 
 class CustomTownHall:
     def __init__(self, level):
-        self._level = level if level >= 5 else 5
+        self._level = level
 
     def __str__(self):
         return str(self._level)
@@ -74,12 +71,8 @@ class CustomTownHall:
         return self._level
 
     @property
-    def emoji(self):
-        return EmojiType(SharedEmojis.all_emojis.get(self.level))
-
-    @property
     def image_url(self):
-        return thDictionary(self._level)
+        return f'https://assets.clashk.ing/home-base/town-hall-pics/town-hall-{self._level}.png'
 
 
 class NumChoice:

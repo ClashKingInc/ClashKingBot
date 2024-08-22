@@ -1,18 +1,11 @@
-import random
-import string
-from datetime import timedelta
-
 import coc
 import disnake
-import pendulum as pend
 from disnake.ext import commands
 
 from classes.bot import CustomClient
 from discord.options import autocomplete, convert
-from exceptions.CustomExceptions import MessageException
-from utility.components import clan_component, create_components, role_component, townhall_component
-from utility.discord_utils import check_commands, interaction_handler
-
+from utility.components import create_components
+from utility.discord_utils import check_commands
 from .utils import add_strike, create_embeds
 
 
@@ -72,7 +65,6 @@ class Strikes(commands.Cog, name='Strikes'):
         ----------
         view: show in strike view (each strike individually) or by player
         clan: clan to pull strikes for
-        player: player to pull strikes for
         user: discord user to pull strikes for
         strike_amount: only show those with more strikes than this amount (only for player view)
         view_expired_strikes: view strikes that have rolled over
@@ -132,7 +124,7 @@ class Strikes(commands.Cog, name='Strikes'):
         ctx: disnake.ApplicationCommandInteraction,
         strike_id: str = commands.Param(converter=None, autocomplete=autocomplete.strike_ids, default=None),
     ):
-        strike_id = strike_id.split("|")[0].strip()
+        strike_id = strike_id.split('|')[0].strip()
         strike_id = strike_id.upper()
         result_ = await self.bot.strikelist.find_one({'$and': [{'strike_id': strike_id}, {'server': ctx.guild.id}]})
         if result_ is None:
@@ -145,7 +137,7 @@ class Strikes(commands.Cog, name='Strikes'):
         embed = disnake.Embed(description=f'Strike {strike_id} removed.', color=disnake.Color.green())
         return await ctx.send(embed=embed)
 
-    '''@commands.slash_command(name='autostrike', description='stuff')
+    """@commands.slash_command(name='autostrike', description='stuff')
     async def autostrikes(self, ctx):
         pass
 
@@ -158,7 +150,7 @@ class Strikes(commands.Cog, name='Strikes'):
         rollover_days: int = commands.Param(ge=1, le=365, default=None),
         clan: coc.Clan = commands.Param(default=None, autocomplete=autocomplete.clan, converter=convert.clan),
     ):
-        raise MessageException('Command under construction')'''
+        raise MessageException('Command under construction')"""
 
     '''@autostrikes.sub_command(name="add", description="Create autostrikes for your server")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())

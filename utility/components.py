@@ -70,7 +70,7 @@ def raid_buttons(bot: CustomClient, data):
     page_buttons = [
         disnake.ui.Button(
             label='Raids',
-            emoji=bot.emoji.sword_clash.partial_emoji,
+            emoji=bot.emoji.animated_clash_swords.partial_emoji,
             style=disnake.ButtonStyle.grey,
             custom_id='raids',
         ),
@@ -197,7 +197,7 @@ def clan_board_components(bot: CustomClient, season: Union[str, None], clan_tag:
 
     types_select = []
     emojis = [
-        bot.emoji.globe,
+        bot.emoji.earth,
         bot.emoji.globe,
         bot.emoji.magnify_glass,
         bot.emoji.troop,

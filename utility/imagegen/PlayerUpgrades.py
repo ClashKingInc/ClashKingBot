@@ -1,6 +1,8 @@
+from io import BytesIO
+
 import requests
 from PIL import Image, ImageDraw, ImageFont, ImageOps
-from io import BytesIO
+
 
 # Configuration
 background_path = 'warbkpng.png'  # Path to your background image
@@ -10,7 +12,7 @@ font_size = 20
 overlay_opacity = 128  # 0 (transparent) to 255 (opaque)
 
 # Load background image
-background = Image.open(background_path).convert("RGBA")
+background = Image.open(background_path).convert('RGBA')
 background = background.resize((1920, 1080))
 
 # Create overlay
@@ -30,8 +32,8 @@ start_y = 50
 
 for i, section in enumerate(sections):
     y = start_y + i * (section_height + padding)
-    draw.rectangle([padding, y, 1920 - padding, y + section_height], outline="white", width=2)
-    draw.text((padding + 10, y + 10), section, fill="white", font=font)
+    draw.rectangle([padding, y, 1920 - padding, y + section_height], outline='white', width=2)
+    draw.text((padding + 10, y + 10), section, fill='white', font=font)
 
 # Memory cache for images
 image_cache = {}
@@ -46,7 +48,7 @@ def fetch_image(url):
             img = Image.open(BytesIO(response.content))
             image_cache[url] = img
         except (requests.RequestException, Image.UnidentifiedImageError) as e:
-            print(f"Error fetching image from {url}: {e}")
+            print(f'Error fetching image from {url}: {e}')
             img = Image.new('RGBA', (100, 100), (255, 0, 0, 0))  # Placeholder image in case of error
     else:
         img = image_cache[url]
@@ -73,13 +75,13 @@ def draw_item(draw, x, y, url, item_name, item_level, item_state, item_cost, fon
 
     combined.paste(border, (x, y), border)
 
-    draw.text((x, y + 110), item_name, fill="white", font=font)
-    draw.text((x + 70, y), str(item_level), fill="white", font=font)
+    draw.text((x, y + 110), item_name, fill='white', font=font)
+    draw.text((x + 70, y), str(item_level), fill='white', font=font)
 
     if item_cost:
         cost_image = fetch_image(item_cost['image']).resize((20, 20))
         combined.paste(cost_image, (x, y - 25), cost_image)
-        draw.text((x + 25, y - 25), f"{item_cost['amount']}M", fill="white", font=font)
+        draw.text((x + 25, y - 25), f"{item_cost['amount']}M", fill='white', font=font)
 
 
 # Example usage
@@ -89,7 +91,7 @@ item_data = [
         'name': 'Barbarian',
         'level': 5,
         'state': 'upgradeable',  # Options: 'max_th', 'max_game', 'rushed', 'upgradeable'
-        'cost': {'image': 'https://static.wikia.nocookie.net/clashofclans/images/4/43/Elixir.png', 'amount': 1.5}  # Replace with actual URL
+        'cost': {'image': 'https://static.wikia.nocookie.net/clashofclans/images/4/43/Elixir.png', 'amount': 1.5},  # Replace with actual URL
     },
     # Add more items as needed
 ]

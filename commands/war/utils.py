@@ -9,10 +9,9 @@ import disnake
 from dateutil.relativedelta import relativedelta
 from pytz import utc
 
-from assets.emojis import SharedEmojis
 from classes.bot import CustomClient
 from classes.misc import WarPlan
-from utility.clash.other import cwl_league_emojis, leagueAndTrophies
+from utility.clash.other import cwl_league_emojis
 from utility.constants import SUPER_SCRIPTS, leagues, war_leagues
 from utility.general import create_superscript
 
@@ -52,14 +51,14 @@ async def main_war_page(bot: CustomClient, war: coc.ClanWar, war_league=None):
 
 	state_text = f"{war_state} ({war.team_size} vs {war.team_size})\n" f"{war_pos}: <t:{int(war_time)}:R>\n­\n"
 	if war.type == "cwl":
-		state_text = (f"{cwl_league_emojis(str(war_league))}{str(war_league)}\n" + state_text)  # clearer than equivalent f-string
+		state_text = (f"{cwl_league_emojis(bot=bot, league=str(war_league))}{str(war_league)}\n" + state_text)  # clearer than equivalent f-string
 	embed.add_field(name=f"**War State**", value=state_text, inline=False)
 
 	team_hits = f"{len(war.attacks) - len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".ljust(7)
 	opp_hits = f"{len(war.opponent.attacks)}/{war.team_size * war.attacks_per_member}".rjust(7)
 	embed.add_field(
 	    name="**War Stats**",
-	    value=f"`{team_hits}`{bot.emoji.sword_clash}`{opp_hits}`\n"
+	    value=f"`{team_hits}`{bot.emoji.animated_clash_swords}`{opp_hits}`\n"
 	    f"`{war.clan.stars:<7}`<:star:825571962699907152>`{war.opponent.stars:>7}`\n"
 	    f"`{str(round(war.clan.destruction, 2)) + '%':<7}`<:broken_sword:944896241429540915>`{str(round(war.opponent.destruction, 2)) + '%':>7}`"
 	    f"\n­\n",
@@ -86,7 +85,7 @@ async def main_war_page(bot: CustomClient, war: coc.ClanWar, war_league=None):
 				emoji = bot.emoji.shield
 				name = attack.defender.name
 			else:
-				emoji = bot.emoji.sword
+				emoji = bot.emoji.clash_sword
 				name = attack.attacker.name
 			destruction = f"{attack.destruction}".rjust(3)
 			text += f"{emoji}`{destruction}%`{star_str}`{name}`\n"
@@ -108,7 +107,7 @@ async def roster_embed(bot: CustomClient, war: coc.ClanWar):
 
 	x = 0
 	async for player in bot.coc_client.get_players(tags):
-		th_emoji = SharedEmojis.all_emojis.get(player.town_hall)
+		th_emoji = bot.fetch_emoji(player.town_hall)
 		place = str(lineup[x]) + "."
 		place = place.ljust(3)
 		hero_total = 0
@@ -146,7 +145,7 @@ async def opp_roster_embed(bot: CustomClient, war):
 
 	x = 0
 	async for player in bot.coc_client.get_players(tags):
-		th_emoji = SharedEmojis.all_emojis.get(player.town_hall)
+		th_emoji = bot.fetch_emoji(player.town_hall)
 		place = str(lineup[x]) + "."
 		place = place.ljust(3)
 		hero_total = 0
@@ -302,10 +301,10 @@ async def opp_overview(bot: CustomClient, war: coc.ClanWar):
 	    f"Location: {flag} {clan.location}\n\n"
 	    f"Leader: {leader.name}\n"
 	    f"Level: {clan.level} \n"
-	    f"Members: {bot.emoji.person}{clan.member_count}/50\n\n"
-	    f"CWL: {cwl_league_emojis(str(clan.war_league))}{str(clan.war_league)}\n"
+	    f"Members: {bot.emoji.people}{clan.member_count}/50\n\n"
+	    f"CWL: {cwl_league_emojis(bot=bot,league=str(clan.war_league))}{str(clan.war_league)}\n"
 	    f"Wars Won: {bot.emoji.up_green_arrow}{warwin}\nWars Lost: {bot.emoji.down_red_arrow}{warloss}\n"
-	    f"War Streak: {bot.emoji.win_streak}{winstreak}\nWinratio: {bot.emoji.ratio}{winrate}\n\n"
+	    f"War Streak: {bot.emoji.double_up_arrow}{winstreak}\nWinratio: {bot.emoji.ratio}{winrate}\n\n"
 	    f"Description: {clan.description}",
 	    color=disnake.Color.green(),
 	)
@@ -498,7 +497,7 @@ async def missed_hits(bot: CustomClient, war: coc.ClanWar):
 	return embed
 
 
-async def league_missed_hits(league_wars: List[coc.ClanWar], clan: coc.clans):
+async def league_missed_hits(bot: CustomClient, league_wars: List[coc.ClanWar], clan: coc.clans):
 	missed_hits = defaultdict(int)
 	tag_to_member = {}
 	for war in league_wars:
@@ -514,7 +513,7 @@ async def league_missed_hits(league_wars: List[coc.ClanWar], clan: coc.clans):
 	for tag, number_missed in missed_hits.items():
 		member = tag_to_member[tag]
 		name = re.sub("[*_`~/]", "", member.name)
-		th_emoji = SharedEmojis.all_emojis.get(member.town_hall)
+		th_emoji = bot.fetch_emoji(member.town_hall)
 		text += f"{th_emoji}{name} - {number_missed} hits\n"
 
 	if text == "":
@@ -784,7 +783,7 @@ async def all_members(bot: CustomClient, group: coc.ClanWarLeagueGroup, clan: co
 	for player in await bot.get_players(tags):
 		if player is None:
 			continue
-		th_emoji = SharedEmojis.all_emojis.get(player.town_hall)
+		th_emoji = bot.fetch_emoji(player.town_hall)
 		place = str(x) + "."
 		place = place.ljust(3)
 		hero_total = 0
@@ -864,7 +863,7 @@ async def page_manager(
 		embed = await opp_overview(bot=bot, war=war)
 		return [embed]
 	elif page == "missedhits":
-		embed = await league_missed_hits(league_wars, clan)
+		embed = await league_missed_hits(bot, league_wars, clan)
 		return [embed]
 
 
@@ -914,12 +913,12 @@ async def overall_stat_components(bot: CustomClient):
 	    disnake.SelectOption(label="Clan Rankings", emoji=up,
 	                         value="rankings"),
 	    disnake.SelectOption(label="Missed Hits",
-	                         emoji=bot.emoji.no.partial_emoji,
+	                         emoji=bot.emoji.square_x_deny.partial_emoji,
 	                         value="missedhits"),
 	    disnake.SelectOption(label="All Rounds", emoji=map, value="allrounds"),
 	    disnake.SelectOption(
 	        label="All Members",
-	        emoji=bot.emoji.alphabet.partial_emoji,
+	        emoji=bot.emoji.people.partial_emoji,
 	        value="all_members",
 	    ),
 	    disnake.SelectOption(label="Excel Export",
@@ -937,8 +936,8 @@ async def overall_stat_components(bot: CustomClient):
 
 
 async def stat_components(bot: CustomClient, war: coc.ClanWar, next_war: coc.ClanWar):
-	swords = bot.partial_emoji_gen("<a:swords:944894455633297418>")
-	troop = bot.partial_emoji_gen("<:troop:861797310224400434>")
+	swords = bot.emoji.animated_clash_swords
+	troop = bot.emoji.troop
 	options = []
 
 	# on first round - only next round
@@ -948,7 +947,7 @@ async def stat_components(bot: CustomClient, war: coc.ClanWar, next_war: coc.Cla
 		    0,
 		    disnake.SelectOption(
 		        label="Next Round",
-		        emoji=bot.emoji.right_green_arrow.partial_emoji,
+		        emoji=bot.emoji.forward.partial_emoji,
 		        value="nextround",
 		    ),
 		)
@@ -966,7 +965,7 @@ async def stat_components(bot: CustomClient, war: coc.ClanWar, next_war: coc.Cla
 		    2,
 		    disnake.SelectOption(
 		        label="Attacks",
-		        emoji=bot.emoji.thick_sword.partial_emoji,
+		        emoji=bot.emoji.thick_capital_sword.partial_emoji,
 		        value="attacks",
 		    ),
 		)
@@ -984,7 +983,7 @@ async def stat_components(bot: CustomClient, war: coc.ClanWar, next_war: coc.Cla
 		    2,
 		    disnake.SelectOption(
 		        label="Attacks",
-		        emoji=bot.emoji.thick_sword.partial_emoji,
+		        emoji=bot.emoji.thick_capital_sword.partial_emoji,
 		        value="attacks",
 		    ),
 		)
@@ -997,7 +996,7 @@ async def stat_components(bot: CustomClient, war: coc.ClanWar, next_war: coc.Cla
 		    4,
 		    disnake.SelectOption(
 		        label="Next Round",
-		        emoji=bot.emoji.right_green_arrow.partial_emoji,
+		        emoji=bot.emoji.forward.partial_emoji,
 		        value="nextround",
 		    ),
 		)
@@ -1009,7 +1008,7 @@ async def stat_components(bot: CustomClient, war: coc.ClanWar, next_war: coc.Cla
 		    6,
 		    disnake.SelectOption(
 		        label="Next Opponent Overview",
-		        emoji=bot.emoji.magnify_glass.partial_emoji,
+		        emoji=bot.emoji.search.partial_emoji,
 		        value="nextopp_overview",
 		    ),
 		)
@@ -1189,5 +1188,5 @@ async def cwl_ranking_create(bot: CustomClient, clan: coc.Clan):
 			rank = f"{place}th"
 		if tag == clan.tag:
 			tier = str(clan.war_league.name).count("I")
-			return {clan.tag: f"{emoji}`{rank}` {cwl_league_emojis(clan.war_league.name)}{SUPER_SCRIPTS[tier]}"}
+			return {clan.tag: f"{emoji}`{rank}` {cwl_league_emojis(bot=bot, league=clan.war_league.name)}{SUPER_SCRIPTS[tier]}"}
 		place += 1

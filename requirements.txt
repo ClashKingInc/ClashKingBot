@@ -11,6 +11,7 @@ coc.py==3.4.1
 disnake @ git+https://github.com/MagicTheDev/disnake.git
 disnake-ext-fluent @ git+https://github.com/MagicTheDev/disnake-ext-fluent.git
 dnspython==2.1.0
+docker==7.1.0
 emoji==1.6.3
 expiring-dict==1.1.0
 fluent.runtime==0.4.0

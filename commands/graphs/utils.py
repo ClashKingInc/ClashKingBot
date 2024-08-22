@@ -76,7 +76,7 @@ async def daily_graph(
         elif attribute == 'heroupgrades':
             lookup = list(coc.enums.HERO_ORDER + coc.enums.PETS_ORDER)
         elif attribute == 'heroequipment':
-            lookup = list(coc.enums.HERO_EQUIPMENT)
+            lookup = list(coc.enums.EQUIPMENT)
         else:
             if attribute in ['clanCapitalContributions', 'bestTrophies']:
                 do_count = False
@@ -152,6 +152,7 @@ async def daily_graph(
 
     img = await loop.run_in_executor(None, get_img, fig)
     web_version = None
+    html = False
     if html:
         html_content = pio.to_html(fig)
         buffer = io.BytesIO()
@@ -315,6 +316,7 @@ async def season_line_graph(
 
     img = await loop.run_in_executor(None, get_img, fig)
     web_version = None
+    html = False
     if html:
         html_content = pio.to_html(fig)
         buffer = io.BytesIO()
@@ -526,6 +528,7 @@ async def monthly_bar_graph(
 
     img = await loop.run_in_executor(None, get_img, fig)
     web_version = None
+    html = False
     if html:
         html_content = pio.to_html(fig)
         buffer = io.BytesIO()

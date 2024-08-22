@@ -1,11 +1,8 @@
-from typing import TYPE_CHECKING
-
 import coc
 import disnake
 import pendulum as pd
 
 from classes.bot import CustomClient
-from exceptions.CustomExceptions import MessageException
 from utility.components import basic_clan_dropdown
 from utility.discord_utils import interaction_handler, register_button
 
@@ -35,7 +32,7 @@ async def linked_players(bot: CustomClient, clan: coc.Clan, server: disnake.Guil
         if member is None:
             member = ''
 
-        embed_description += f'\u200e{bot.emoji.green_tick}`{name:14}` \u200e{member}\n'
+        embed_description += f'\u200e{bot.emoji.green_check}`{name:14}` \u200e{member}\n'
 
     # no players were linked
     if player_link_count == 0:

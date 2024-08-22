@@ -4,8 +4,6 @@ from typing import Callable, List, Union
 import disnake
 import motor.motor_asyncio
 from disnake.ext import commands
-
-from assets.emojis import SharedEmojis
 from exceptions.CustomExceptions import *
 
 
@@ -77,11 +75,6 @@ def partial_emoji_gen(bot, emoji_string, animated=False):
 
 def embed_parse(string):
     return 0
-
-
-def fetch_emoji(emoji_name):
-    emoji = SharedEmojis.all_emojis.get(emoji_name)
-    return emoji
 
 
 async def interaction_handler(

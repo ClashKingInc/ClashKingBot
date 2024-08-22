@@ -58,7 +58,7 @@ class BanEvents(commands.Cog):
                             embed.add_field(
                                 name='Banned Player.',
                                 value=f'Player {member.name} [{member.tag}] has joined {clan.name} and is on the {server.name} BAN list!\n\n'
-                                      f'Banned on: {date}\nReason: {notes}',
+                                f'Banned on: {date}\nReason: {notes}',
                             )
                             embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/843624785560993833/932701461614313562/2EdQ9Cx.png')
 
@@ -72,32 +72,34 @@ class BanEvents(commands.Cog):
                                     await db_clan.set_ban_alert_channel(id=None)
                                 continue
                 else:
-                    small_server_result = await self.bot.server_db.find_one({'server' : db_clan.server_id}, {'server' : 1, 'dismissed_warns' : 1})
+                    small_server_result = await self.bot.server_db.find_one({'server': db_clan.server_id}, {'server': 1, 'dismissed_warns': 1})
                     players_set = set()
                     for ban_result in ban_results:
                         member = coc.utils.get(members_joined, tag=ban_result.get('VillageTag'))
                         if member.tag in players_set or member.tag in small_server_result.get('dismissed_warns', []):
                             continue
                         players_set.add(member.tag)
-                        servers_banned_in = await self.bot.banlist.distinct("server", filter={"VillageTag": member.tag})
+                        servers_banned_in = await self.bot.banlist.distinct('server', filter={'VillageTag': member.tag})
                         server_list = []
                         if self.bot.user.public_flags.verified_bot:
                             for banned_server in servers_banned_in:
                                 banned_server = self.bot.get_guild(banned_server)
                                 if banned_server is not None:
-                                    server_list.append(f"{banned_server.name} ({banned_server.member_count} members)")
-                            server_list = ":\n" + '\n'.join(server_list)
+                                    server_list.append(f'{banned_server.name} ({banned_server.member_count} members)')
+                            server_list = ':\n' + '\n'.join(server_list)
                         if not server_list:
-                            server_list = ""
+                            server_list = ''
                         embed = disnake.Embed(
                             description=f'[WARNING! {member.name} JOINED]({member.share_link})\n'
-                                        f'This player has been banned in {len(servers_banned_in)} other server(s){server_list}\n'
-                                        f'This is just a warning, purely for informational purposes & can be dismissed with the button below.',
+                            f'This player has been banned in {len(servers_banned_in)} other server(s){server_list}\n'
+                            f'This is just a warning, purely for informational purposes & can be dismissed with the button below.',
                             color=disnake.Color.yellow(),
                         )
                         embed.set_thumbnail(url='https://clashkingfiles.b-cdn.net/bot/warning.jpg')
                         try:
-                            buttons = disnake.ui.ActionRow(disnake.ui.Button(label='Dismiss', style=disnake.ButtonStyle.grey, custom_id=f'DismissWarn_{member.tag}'))
+                            buttons = disnake.ui.ActionRow(
+                                disnake.ui.Button(label='Dismiss', style=disnake.ButtonStyle.grey, custom_id=f'DismissWarn_{member.tag}')
+                            )
                             channel = await self.bot.getch_channel(channel_id=db_clan.ban_alert_channel or db_clan.clan_channel)
                             await channel.send(embed=embed, components=[buttons])
                         except (disnake.NotFound, disnake.Forbidden):
@@ -125,10 +127,6 @@ class BanEvents(commands.Cog):
                 return await ctx.send(content='Player warning now dismissed!', ephemeral=True)
 
             await ctx.send(content='You do not have permissions to dismiss this warning! Permissions tied to `/ban remove`.', ephemeral=True)
-
-
-
-
 
 
 def setup(bot: CustomClient):
