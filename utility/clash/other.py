@@ -293,7 +293,7 @@ def clan_super_troop_comp(bot: 'CustomClient', clan_members):
 def leagueAndTrophies(bot: 'CustomClient', player):
     league = str(player.league)
     emoji = bot.fetch_emoji(league)
-    return emoji + str(player.trophies)
+    return emoji.emoji_string + str(player.trophies)
 
 
 def league_emoji(bot: 'CustomClient', player):
