@@ -49,13 +49,14 @@ def get_cluster_breakdown(config: 'Config'):
             raise Exception(f"Failed to fetch containers: {response.text}")
         all_containers = response.json()
 
-        with open('/proc/self/cgroup', 'r') as f:
-            for line in f:
-                if '/docker/' in line:
-                    HOSTNAME = line.strip().split('/')[-1]
+        with open('/proc/self/mountinfo') as file:
+            line = file.readline().strip()
+            while line:
+                if '/docker/containers/' in line:
+                    containerID = line.split('/docker/containers/')[-1]  # Take only text to the right
+                    HOSTNAME = containerID.split('/')[0]  # Take only text to the left
                     break
-            else:
-                raise Exception("Could not find Docker container ID in /proc/self/cgroup")
+                line = file.readline().strip()
 
         print(HOSTNAME)
         our_container = [c for c in all_containers if c['Id'][:12] == HOSTNAME[:12]][0]
