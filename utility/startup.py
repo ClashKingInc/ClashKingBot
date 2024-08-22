@@ -50,6 +50,7 @@ def get_cluster_breakdown(config: 'Config'):
         all_containers = response.json()
 
         HOSTNAME = os.environ['HOSTNAME']
+        print(HOSTNAME)
         our_container = [c for c in all_containers if c['Id'][:12] == HOSTNAME[:12]][0]
         container_name = our_container['Names'][0].strip('/')
         config.cluster_id = CURRENT_CLUSTER = int(container_name.split('_')[-1])
