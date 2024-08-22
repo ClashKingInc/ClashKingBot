@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import os
 from io import BytesIO
@@ -105,6 +106,8 @@ def create_config() -> 'Config':
 async def fetch_emoji_dict(bot: 'CustomClient'):
     config = bot._config
 
+    if config.is_main and config.cluster_id != 1:
+        await asyncio.sleep(30)
     response = requests.get(config.emoji_url).json()
 
     assets_url = response.pop('assets_url')
