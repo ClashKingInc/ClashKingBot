@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 def get_portainer_token(config: 'Config'):
-    url = 'https://85.10.200.219:9443/api/auth'
+    url = 'https://hosting.clashk.ing/api/auth'
     payload = {
         'Username': config.portainer_user,
         'Password': config.portainer_pw,
@@ -44,7 +44,7 @@ def get_cluster_breakdown(config: 'Config'):
             'Authorization': f'Bearer {portainer_token}',
             'Content-Type': 'application/json'
         }
-        response = requests.get(f"https://85.10.200.219:9443/api/endpoints/1/docker/containers/json", headers=headers)
+        response = requests.get(f"http://hosting.clashk.ing/api/endpoints/1/docker/containers/json", headers=headers)
         if response.status_code != 200:
             raise Exception(f"Failed to fetch containers: {response.text}")
         all_containers = response.json()
