@@ -14,12 +14,42 @@ if TYPE_CHECKING:
     from classes.bot import CustomClient
 
 
+def get_portainer_token(config: 'Config'):
+    url = 'https://85.10.200.219:9443/api/auth'
+    payload = {
+        'Username': config.portainer_user,
+        'Password': config.portainer_pw,
+    }
+    headers = {
+        'Content-Type': 'application/json'
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+
+    if response.status_code != 200:
+        raise Exception(f"Failed to authenticate with Portainer: {response.text}")
+
+    # Extract the JWT token from the response
+    token = response.json().get('jwt')
+    if not token:
+        raise Exception("Failed to retrieve Portainer token")
+
+    return token
+
 def get_cluster_breakdown(config: 'Config'):
     cluster_kwargs = {'shard_count': None}
     if config.is_main:
-        client = docker.APIClient(base_url='unix:///var/run/docker.sock')
+        portainer_token = get_portainer_token(config)
+        headers = {
+            'Authorization': f'Bearer {portainer_token}',
+            'Content-Type': 'application/json'
+        }
+        response = requests.get(f"https://85.10.200.219:9443/api/endpoints/1/docker/containers/json", headers=headers)
+        if response.status_code != 200:
+            raise Exception(f"Failed to fetch containers: {response.text}")
+        all_containers = response.json()
+
         HOSTNAME = os.environ['HOSTNAME']
-        all_containers = client.containers()
         our_container = [c for c in all_containers if c['Id'][:12] == HOSTNAME[:12]][0]
         container_name = our_container['Names'][0].strip('/')
         config.cluster_id = CURRENT_CLUSTER = int(container_name.split('_')[-1])
