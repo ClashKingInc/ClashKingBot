@@ -222,7 +222,7 @@ class ExceptionHandler(commands.Cog):
             color=disnake.Color.red(),
         )
 
-        if self.bot.user.public_flags.verified_bot:
+        if self.bot.user.public_flags.verified_bot or self.bot.user.id == 808566437199216691:
             buttons = disnake.ui.ActionRow(
                 disnake.ui.Button(
                     label='Sentry',
