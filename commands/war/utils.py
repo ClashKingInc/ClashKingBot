@@ -953,13 +953,13 @@ async def stat_components(bot: CustomClient, war: coc.ClanWar, next_war: coc.Cla
 		)
 		options.insert(
 		    1,
-		    disnake.SelectOption(label="Next Round Lineup", emoji=troop, value="lineup"),
+		    disnake.SelectOption(label="Next Round Lineup", emoji=troop.partial_emoji, value="lineup"),
 		)
 	elif next_war is None:
-		options.insert(0, disnake.SelectOption(label="Current Round", emoji=swords, value="round"))
+		options.insert(0, disnake.SelectOption(label="Current Round", emoji=swords.partial_emoji, value="round"))
 		options.insert(
 		    1,
-		    disnake.SelectOption(label="Current Lineup", emoji=troop, value="current_lineup"),
+		    disnake.SelectOption(label="Current Lineup", emoji=troop.partial_emoji, value="current_lineup"),
 		)
 		options.insert(
 		    2,
@@ -974,10 +974,10 @@ async def stat_components(bot: CustomClient, war: coc.ClanWar, next_war: coc.Cla
 		    disnake.SelectOption(label="Defenses", emoji=bot.emoji.shield.partial_emoji, value="defenses"),
 		)
 	else:
-		options.insert(0, disnake.SelectOption(label="Current Round", emoji=swords, value="round"))
+		options.insert(0, disnake.SelectOption(label="Current Round", emoji=swords.partial_emoji, value="round"))
 		options.insert(
 		    1,
-		    disnake.SelectOption(label="Current Lineup", emoji=troop, value="current_lineup"),
+		    disnake.SelectOption(label="Current Lineup", emoji=troop.partial_emoji, value="current_lineup"),
 		)
 		options.insert(
 		    2,
@@ -1002,7 +1002,7 @@ async def stat_components(bot: CustomClient, war: coc.ClanWar, next_war: coc.Cla
 		)
 		options.insert(
 		    5,
-		    disnake.SelectOption(label="Next Round Lineup", emoji=troop, value="lineup"),
+		    disnake.SelectOption(label="Next Round Lineup", emoji=troop.partial_emoji, value="lineup"),
 		)
 		options.insert(
 		    6,
