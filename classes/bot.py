@@ -659,7 +659,9 @@ class CustomClient(commands.AutoShardedBot):
                 if not result:
                     return None
                 result = result[0]
-                clan_to_use = result.get('clan')
+                clans: list = result.get('clans')
+                clans.remove(clanTag)
+                clan_to_use = clans[0]
                 war = await self.coc_client.get_current_war(clan_tag=clan_to_use)
                 raw_data = war._raw_data
                 war = coc.ClanWar(client=self.coc_client, data=raw_data, clan_tag=war.opponent.tag)
