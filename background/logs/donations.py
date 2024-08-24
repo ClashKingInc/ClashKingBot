@@ -40,13 +40,13 @@ class Donations(commands.Cog, name='Donations'):
         donation_text = ''
         for member, donation in donated:
             donation = f'{donation}'.ljust(3)
-            donation_text += f'{self.bot.emoji.up_green_arrow}`{donation}` | [**{member.name}**]({SHORT_PLAYER_LINK + member.tag.replace("#","")})\n'
+            donation_text += f'{self.bot.emoji.up_green_arrow}`{donation}` [**{member.name}**]({SHORT_PLAYER_LINK + member.tag.replace("#","")})\n'
         if donation_text != '':
             embed.add_field(name='Donated', value=donation_text, inline=False)
         received_text = ''
         for member, donation in received:
             donation = f'{donation}'.ljust(3)
-            received_text += f'{self.bot.emoji.down_red_arrow}`{donation}` | [**{member.name}**]({SHORT_PLAYER_LINK + member.tag.replace("#","")})\n'
+            received_text += f'{self.bot.emoji.down_red_arrow}`{donation}` [**{member.name}**]({SHORT_PLAYER_LINK + member.tag.replace("#","")})\n'
         if received_text != '':
             embed.add_field(name='Received', value=received_text, inline=False)
 
@@ -65,7 +65,7 @@ class Donations(commands.Cog, name='Donations'):
                     webhook = await get_webhook_for_channel(bot=self.bot, channel=webhook.channel)
                     await log.set_webhook(id=webhook.id)
                 if log.thread is not None:
-                    thread = await self.bot.getch_channel(log.thread)
+                    thread = await self.bot.getch_channel(log.thread, raise_exception=True)
                     if thread.locked:
                         continue
                     await webhook.send(embed=embed, thread=thread)

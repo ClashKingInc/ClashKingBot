@@ -44,8 +44,8 @@ MAX_ARMY_CAMP = 320
 MAX_NUM_SPELLS = 11
 
 MAX_NUM_SUPERS = 2
-SHORT_PLAYER_LINK = 'https://api.clashking.xyz/p/'
-SHORT_CLAN_LINK = 'https://api.clashking.xyz/c/'
+SHORT_PLAYER_LINK = 'https://p.clashk.ing/'
+SHORT_CLAN_LINK = 'https://c.clashk.ing/'
 
 item_to_name = {
     'Player Tag': 'tag',
