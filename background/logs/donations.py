@@ -7,7 +7,7 @@ from classes.DatabaseClient.Classes.settings import DatabaseClan
 from classes.bot import CustomClient
 from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.discord_utils import get_webhook_for_channel
-
+from utility.constants import SHORT_PLAYER_LINK
 
 class Donations(commands.Cog, name='Donations'):
     def __init__(self, bot: CustomClient):
@@ -40,13 +40,13 @@ class Donations(commands.Cog, name='Donations'):
         donation_text = ''
         for member, donation in donated:
             donation = f'{donation}'.ljust(3)
-            donation_text += f'{self.bot.emoji.up_green_arrow}`{donation}` | [**{member.name}**]({member.share_link})\n'
+            donation_text += f'{self.bot.emoji.up_green_arrow}`{donation}` | [**{member.name}**]({SHORT_PLAYER_LINK + member.tag.replace("#","")})\n'
         if donation_text != '':
             embed.add_field(name='Donated', value=donation_text, inline=False)
         received_text = ''
         for member, donation in received:
             donation = f'{donation}'.ljust(3)
-            received_text += f'{self.bot.emoji.down_red_arrow}`{donation}` | [**{member.name}**]({member.share_link})\n'
+            received_text += f'{self.bot.emoji.down_red_arrow}`{donation}` | [**{member.name}**]({SHORT_PLAYER_LINK + member.tag.replace("#","")})\n'
         if received_text != '':
             embed.add_field(name='Received', value=received_text, inline=False)
 

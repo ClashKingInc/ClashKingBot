@@ -149,7 +149,7 @@ class clan_capital_events(commands.Cog, name='Clan Capital Events'):
                 else:
                     for embed_chunk in embeds:
                         await webhook.send(embeds=embed_chunk)
-            except (disnake.NotFound, disnake.Forbidden):
+            except (disnake.NotFound, disnake.Forbidden, disnake.Forbidden):
                 await log.set_thread(id=None)
                 await log.set_webhook(id=None)
                 continue

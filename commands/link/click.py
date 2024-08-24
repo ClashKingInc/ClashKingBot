@@ -91,8 +91,7 @@ class LinkButtonExtended(commands.Cog):
         elif ctx.data.custom_id == 'MyToDoList':
             await ctx.response.defer(ephemeral=True)
             discord_user = ctx.author
-            linked_accounts = await search_results(self.bot, str(discord_user.id))
-            embed = await to_do_embed(bot=self.bot, discord_user=discord_user, linked_accounts=linked_accounts)
+            embed = await to_do_embed(bot=self.bot, discord_user=discord_user, embed_color=disnake.Color.green())
             await ctx.send(embed=embed, ephemeral=True)
 
         elif ctx.data.custom_id == 'MyRosters':
