@@ -532,6 +532,7 @@ class CustomClient(commands.AutoShardedBot):
     ):
         fresh_tags = fresh_tags or []
 
+        tags = [coc.utils.correct_tag(tag) for tag in tags]
         tags = [p.split('|')[-1].strip() for p in tags]
 
         results_dict = {}
@@ -550,17 +551,7 @@ class CustomClient(commands.AutoShardedBot):
 
         players = []
         tag_set = set(tags)
-        cache_data = []
 
-        players.extend(
-            (player_class)(
-                data=data,
-                client=self.coc_client,
-                bot=self,
-                results=results_dict.get(data['tag'], {}),
-            )
-            for data in cache_data
-        )
         headers = {
             'Authorization': 'Bearer test',
             'Content-Type': 'application/json',
