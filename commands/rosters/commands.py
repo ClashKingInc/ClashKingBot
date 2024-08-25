@@ -634,16 +634,11 @@ class RosterCommands(commands.Cog, name='Rosters'):
         roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
     ):
         await ctx.response.defer()
-        if not ctx.guild.chunked:
-            embed = disnake.Embed(
-                description=f'The bot is pulling your member info from the discord API, please try again in a few minutes.',
-                color=disnake.Color.green(),
-            )
-            await ctx.edit_original_message(embed=embed)
-            if ctx.guild.id not in self.bot.STARTED_CHUNK:
-                await ctx.guild.chunk(cache=True)
-            else:
-                self.bot.STARTED_CHUNK.add(ctx.guild.id)
+
+        if ctx.guild.id not in self.bot.STARTED_CHUNK:
+            await ctx.guild.chunk(cache=True)
+        else:
+            self.bot.STARTED_CHUNK.add(ctx.guild.id)
             return
         if roster != 'REFRESH ALL':
             _roster = Roster(bot=self.bot)
