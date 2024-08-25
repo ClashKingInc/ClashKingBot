@@ -23,10 +23,17 @@ class AutoEvalBackground(commands.Cog):
             if guild is None:
                 continue
 
+            if not guild.chunked:
+                if guild.id not in self.bot.STARTED_CHUNK:
+                    await guild.chunk(cache=True)
+                else:
+                    self.bot.STARTED_CHUNK.add(guild.id)
+
             status_roles.sort(key=lambda role: role['months'], reverse=True)
+            status_roles_map: dict[int, tuple[dict, disnake.Role]] = {role['id']: (role, disnake.utils.get(guild.roles, id=role['id'])) for role in status_roles}
 
             bot_member = guild.me
-            for x, member in enumerate(guild.members):
+            for member in guild.members:
                 if member.bot:
                     continue
 
@@ -35,35 +42,30 @@ class AutoEvalBackground(commands.Cog):
                 now = pend.now(tz=pend.UTC)
                 num_months = (now.year - joined_at.year) * 12 + (now.month - joined_at.month)
 
-                # Sort the status roles by months in descending order
-
                 current_roles = set(member.roles)
 
-                # Determine which roles to add and remove
-                roles_to_add = []
+                role_to_add = None
                 roles_to_remove = []
-
-                for role in status_roles:
-                    role_obj = disnake.utils.get(guild.roles, id=role['id'])
-                    if role_obj is None:
-                        continue
-
+                for role, role_obj in status_roles_map.values():
                     if bot_member.top_role <= role_obj:
                         continue
 
-                    if num_months >= role['months']:
+                    # if they have earned it, and role to be added leads to false, but they dont have it yet
+                    if num_months >= role['months'] and not role_to_add:
                         if role_obj not in current_roles:
-                            roles_to_add.append(role_obj)
-                    else:
+                            role_to_add = role_to_add
+                        else:
+                            role_to_add = True
+                    # once it has found 1 role to add, any others should be removed, if they have them
+                    elif role_obj in current_roles:
                         if role_obj in current_roles:
                             roles_to_remove.append(role_obj)
 
-                # Add and remove roles accordingly
                 try:
-                    if roles_to_add:
-                        await member.add_roles(*roles_to_add)
+                    if isinstance(role_to_add, disnake.Role):
+                        await member.add_roles(*[role_to_add], reason="Tenure Roles")
                     if roles_to_remove:
-                        await member.remove_roles(*roles_to_remove)
+                        await member.remove_roles(*roles_to_remove, reason="Tenure Roles")
                 except:
                     continue
 
