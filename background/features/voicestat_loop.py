@@ -117,6 +117,9 @@ class VoiceStatCron(commands.Cog):
             except Exception:
                 continue
 
+        war_tags = await self.bot.clan_db.distinct("tag", filter={'warTimerCountdown': {'$ne': None}})
+        wars = await self.bot.get_clan_wars(tags=war_tags)
+        war_map = {w.tag : w for w in wars if w is not None}
         for clan_result in await self.bot.clan_db.find({'warTimerCountdown': {'$ne': None}}).to_list(length=None):
             try:
                 db_clan = DatabaseClan(bot=self.bot, data=clan_result)
@@ -125,7 +128,7 @@ class VoiceStatCron(commands.Cog):
 
                 try:
                     channel = await self.bot.getch_channel(channel_id=db_clan.war_timer_countdown, raise_exception=True)
-                    war = await self.bot.get_clanwar(clanTag=db_clan.tag)
+                    war = war_map.get(db_clan.tag)
                     time_ = await calculate_time('War Timer', war=war)
                     prev_name = channel.name
                     if ':' not in prev_name:
