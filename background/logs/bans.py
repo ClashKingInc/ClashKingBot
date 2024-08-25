@@ -63,7 +63,7 @@ class BanEvents(commands.Cog):
                             embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/843624785560993833/932701461614313562/2EdQ9Cx.png')
 
                             try:
-                                channel = await self.bot.getch_channel(channel_id=db_clan.ban_alert_channel or db_clan.clan_channel)
+                                channel = await self.bot.getch_channel(channel_id=db_clan.ban_alert_channel or db_clan.clan_channel, raise_exception=True)
                                 await channel.send(content=role, embed=embed)
                             except (disnake.NotFound, disnake.Forbidden):
                                 if db_clan.ban_alert_channel is None:
