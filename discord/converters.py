@@ -97,7 +97,6 @@ class Convert(commands.Cog, name='Convert'):
     async def multi_player(self, player_tags: str):
         player_tags = player_tags.split(',')[:50]
         players = await self.bot.get_players(tags=player_tags, use_cache=True, custom=False)
-        print(players)
         if not players:
             raise coc.errors.NotFound
         return players
