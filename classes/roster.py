@@ -463,11 +463,15 @@ class Roster:
         assigned_by_other_group = defaultdict(list)
         default = all_roles.get('No Group')
         for group, role in all_roles.items():
+            groups = {group,}
+            if group == "No Group":
+                groups.add(None)
             if role is None:
                 role = default
             if role is None:
                 continue
-            tags = [player.get('tag') for player in self.players if player.get('group') == group]
+
+            tags = [player.get('tag') for player in self.players if player.get('group') in groups]
             tag_to_id = await self.bot.link_client.get_links(*tags)
             tag_to_id = dict(tag_to_id)
             role = self.guild.get_role(role)
@@ -490,6 +494,7 @@ class Roster:
                     try:
                         await member.add_roles(*[role])
                     except:
+                        print("error happened")
                         pass
 
     async def add_member(self, player: coc.Player, sub=False, group='No Group'):
