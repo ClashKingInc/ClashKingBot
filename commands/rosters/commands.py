@@ -158,7 +158,6 @@ class RosterCommands(commands.Cog, name='Rosters'):
         ctx: disnake.ApplicationCommandInteraction,
         roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
         players: List[coc.Player] = commands.Param(converter=convert.multi_player, autocomplete=autocomplete.family_players),
-        sub=commands.Param(name='sub', default=False, choices=['Yes']),
     ):
         await ctx.response.defer(ephemeral=True)
         _roster = Roster(bot=self.bot)
@@ -167,7 +166,7 @@ class RosterCommands(commands.Cog, name='Rosters'):
         messed_text = ''
         for player in players:
             try:
-                await _roster.add_member(player=player, sub=(sub == 'Yes'))
+                await _roster.add_member(player=player, sub=False)
                 added_text += f'{self.bot.fetch_emoji(player.town_hall)}{player.name}\n'
             except Exception as e:
                 messed_text += f'{self.bot.fetch_emoji(player.town_hall)}{player.name} - {e}\n'

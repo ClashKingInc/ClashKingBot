@@ -532,8 +532,8 @@ class CustomClient(commands.AutoShardedBot):
     ):
         fresh_tags = fresh_tags or []
 
-        tags = [coc.utils.correct_tag(tag) for tag in tags]
         tags = [p.split('|')[-1].strip() for p in tags]
+        tags = [coc.utils.correct_tag(tag) for tag in tags]
 
         results_dict = {}
         results_list = found_results if found_results else []
