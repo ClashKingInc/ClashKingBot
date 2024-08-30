@@ -483,8 +483,8 @@ class SetupCommands(commands.Cog, name='Setup'):
             raise MessageException('This command can only be run on the main ClashKing bot')
 
         my_server = await self.bot.getch_guild(923764211845312533)
-        if not my_server.chunked:
-            await my_server.chunk(cache=True)
+        await my_server.chunk(cache=True)
+        
         premium_users = my_server.get_role(1018316361241477212)
         find = disnake.utils.get(premium_users.members, id=ctx.user.id)
 
