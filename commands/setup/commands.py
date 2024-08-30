@@ -635,7 +635,7 @@ class SetupCommands(commands.Cog, name='Setup'):
                     container_state = container_info['State']['Status']
 
                     if container_state == 'running':
-                        await ctx.edit_original_message('Custom bot is running!')
+                        await ctx.edit_original_message('Custom bot is running! Please give it a few minutes for initial start up & emoji creation')
                     elif container_state == 'exited':
                         async with session.get(
                             f'https://85.10.200.219:9443/api/endpoints/2/docker/containers/{id}/logs?stdout=true&stderr=true',
