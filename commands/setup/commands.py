@@ -482,11 +482,14 @@ class SetupCommands(commands.Cog, name='Setup'):
         if not self.bot.user.public_flags.verified_bot:
             raise MessageException('This command can only be run on the main ClashKing bot')
 
-        my_server = await self.bot.getch_guild(923764211845312533)
-        await my_server.chunk(cache=True)
-        
-        premium_users = my_server.get_role(1018316361241477212)
-        find = disnake.utils.get(premium_users.members, id=ctx.user.id)
+        my_server = await self.bot.fetch_guild(923764211845312533)
+
+        try:
+            server_member = await my_server.fetch_member(ctx.user.id)
+        except:
+            raise MessageException("You must be present on the ClashKing discord server. https://discord.gg/clashking")
+
+        find = disnake.utils.get(server_member.roles, id=1018316361241477212) or disnake.utils.get(server_member.roles, id=1277739158978170975)
 
         await ctx.edit_original_message('Looking for premium membership & server count')
 
@@ -494,7 +497,7 @@ class SetupCommands(commands.Cog, name='Setup'):
         free_tier = ctx.guild.member_count >= 250 and clans_on_server >= 2
         if not find and not free_tier:
             raise MessageException(
-                'Must have a current ClashKing subscription or have 250+ discord members & 2+ clans, to create a custom bot. Visit our discord server to learn more: discord.gg/clashking'
+                'Must have a current ClashKing subscription **or** have 250+ discord members & 2+ clans, to create a custom bot. Visit our discord server to learn more: discord.gg/clashking'
             )
         name = re.sub(r'[^a-zA-Z]', '', name)
         name = name.replace(' ', '').lower()
