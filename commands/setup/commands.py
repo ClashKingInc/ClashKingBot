@@ -589,41 +589,8 @@ class SetupCommands(commands.Cog, name='Setup'):
             'Env': [
                 f'BOT_TOKEN={bot_token}',
             ],
-            'NetworkSettings': {
-                'Bridge': '',
-                'EndpointID': '',
-                'Gateway': '',
-                'GlobalIPv6Address': '',
-                'GlobalIPv6PrefixLen': 0,
-                'HairpinMode': False,
-                'IPAddress': '',
-                'IPPrefixLen': 0,
-                'IPv6Gateway': '',
-                'LinkLocalIPv6Address': '',
-                'LinkLocalIPv6PrefixLen': 0,
-                'MacAddress': '',
-                'Networks': {
-                    'host': {
-                        'Aliases': [],
-                        'DNSNames': None,
-                        'DriverOpts': None,
-                        'Gateway': '',
-                        'GlobalIPv6Address': '',
-                        'GlobalIPv6PrefixLen': 0,
-                        'IPAMConfig': None,
-                        'IPAddress': '',
-                        'IPPrefixLen': 0,
-                        'IPv6Gateway': '',
-                        'Links': None,
-                        'MacAddress': '',
-                        'NetworkID': 'host',
-                    }
-                },
-                'Ports': {},
-                'SandboxID': '',
-                'SandboxKey': '',
-                'SecondaryIPAddresses': None,
-                'SecondaryIPv6Addresses': None,
+            'HostConfig': {
+                'NetworkMode': 'host',
             },
             'Image': 'docker.io/matthewvanderson/clashking:latest',
         }
