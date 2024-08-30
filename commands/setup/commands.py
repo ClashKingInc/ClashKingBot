@@ -561,6 +561,12 @@ class SetupCommands(commands.Cog, name='Setup'):
 
         await ctx.edit_original_message('Creating Custom Bot')
 
+        await self.bot.custom_bots.update_one(
+            {'user': ctx.user.id},
+            {'$set': {'token': bot_token, 'premium': (find is not None), 'name': name}},
+            upsert=True,
+        )
+
         connector = TCPConnector(ssl=False)
         async with aiohttp.ClientSession(connector=connector) as session:
             async with session.post(
@@ -681,14 +687,7 @@ class SetupCommands(commands.Cog, name='Setup'):
                             f'Relevant Logs:\n```{logs}```'
                         )
 
-        my_server = await self.bot.getch_guild(923764211845312533)
-        premium_users = my_server.get_role(1018316361241477212)
-        find = disnake.utils.get(premium_users.members, id=ctx.user.id)
-        await self.bot.custom_bots.update_one(
-            {'user': ctx.user.id},
-            {'$set': {'token': bot_token, 'premium': (find is not None), 'name': name}},
-            upsert=True,
-        )
+
 
     @setup.sub_command(name='logs', description='Set a variety of different clan logs for your server!')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
