@@ -6,6 +6,7 @@ from datetime import datetime
 
 import disnake
 from disnake.ext import commands
+import pendulum as pend
 
 from classes.bot import CustomClient
 
@@ -122,47 +123,64 @@ class OwnerCommands(commands.Cog):
     @commands.slash_command(name='test', guild_ids=[923764211845312533])
     @commands.is_owner()
     async def test(self, ctx: disnake.ApplicationCommandInteraction):
-        import os
+        servers_with_status_roles = await self.bot.server_db.find({'status_roles.discord': {'$exists': True, '$ne': {}}}).to_list(length=None)
 
-        import requests
+        print(len(servers_with_status_roles), "servers")
+        for server_config in servers_with_status_roles:
+            if server_config.get('server') != 923764211845312533:
+                continue
 
-        # Directory to save the downloaded emojis
-        save_dir = '/assets/hold/'
+            status_roles = server_config.get('status_roles', {}).get('discord', [])
 
-        # Ensure the directory exists
-        os.makedirs(save_dir, exist_ok=True)
+            guild = await self.bot.getch_guild(guild_id=server_config.get('server'))
+            if guild is None:
+                continue
 
-        hold_emojis = {}
+            if not guild.chunked:
+                if guild.id not in self.bot.STARTED_CHUNK:
+                    await guild.chunk(cache=True)
+                else:
+                    self.bot.STARTED_CHUNK.add(guild.id)
 
-        for x in range(1, 100):
-            gold_emoji = self.bot.get_number_emoji(color="gold", number=x)
-            hold_emojis[f"gold_{x}"] = gold_emoji.emoji_string
+            status_roles.sort(key=lambda role: role['months'], reverse=True)
+            status_roles_map: dict[int, tuple[dict, disnake.Role]] = {role['id']: (role, disnake.utils.get(guild.roles, id=role['id'])) for role in status_roles}
 
+            bot_member = guild.me
+            for member in guild.members:
+                if member.bot:
+                    continue
 
-        # Function to download emoji
-        def download_emoji(name, emoji_str):
-            # Extract the emoji ID and determine if it is animated
-            emoji_id = emoji_str.split(':')[-1].strip('>')
-            is_animated = emoji_str.startswith('<a:')
+                # Calculate the number of months the member has been in the server
+                joined_at = member.joined_at
+                now = pend.now(tz=pend.UTC)
+                num_months = (now.year - joined_at.year) * 12 + (now.month - joined_at.month)
 
-            # Determine the file extension
-            extension = 'gif' if is_animated else 'png'
-            url = f'https://cdn.discordapp.com/emojis/{emoji_id}.{extension}'
+                current_roles = set(member.roles)
 
-            # Download the emoji
-            response = requests.get(url)
-            if response.status_code == 200:
-                with open(os.path.join(save_dir, f'{name.replace(" ", "")}.{extension}'), 'wb') as file:
-                    print(f'Saving files to: {os.path.abspath(save_dir)}')
-                    file.write(response.content)
-                print(f'Downloaded {name}.{extension}')
-            else:
-                print(f'Failed to download {name}.{extension} from {url}')
+                role_to_add = None
+                roles_to_remove = []
+                for role, role_obj in status_roles_map.values():
+                    if bot_member.top_role <= role_obj:
+                        continue
 
-        # Iterate through the emoji dictionary and download each one
-        for name, emoji_str in hold_emojis.items():
+                    #if they have earned it, and role to be added leads to false, but they dont have it yet
+                    if num_months >= role['months'] and not role_to_add:
+                        if role_obj not in current_roles:
+                            role_to_add = role_to_add
+                        else:
+                            role_to_add = True
+                    #once it has found 1 role to add, any others should be removed, if they have them
+                    elif role_obj in current_roles:
+                        if role_obj in current_roles:
+                            roles_to_remove.append(role_obj)
 
-            download_emoji(name, emoji_str)
+                try:
+                    if isinstance(role_to_add, disnake.Role):
+                        await member.add_roles(*[role_to_add], reason="Tenure Roles")
+                    if roles_to_remove:
+                        await member.remove_roles(*roles_to_remove, reason="Tenure Roles")
+                except:
+                    continue
 
     @commands.slash_command(name='anniversary', guild_ids=[923764211845312533])
     @commands.is_owner()
