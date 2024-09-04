@@ -5,3 +5,4 @@ venv
 /venv/Lib/site-packages
 /venv/
 .idea
+*.iml
