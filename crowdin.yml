@@ -1,0 +1,37 @@
+files:
+  - source: locales/en-US/*.ftl
+    translation: /locales/%locale%/%file_name%.ftl
+
+    languages_mapping:
+      locale:
+        vi: vi
+        tr: tr
+        cs: cs
+        el: el
+        bg: bg
+        ru: ru
+        uk: uk
+        hi: hi
+        th: th
+        zh-CN: zh-CN
+        ja: ja
+        zh-TW: zh-TW
+        ko: ko
+        id: id
+        da: da
+        de: de
+        en-GB: en-GB
+        es-ES: es-ES
+        es-419: es-419
+        fr: fr
+        hr: hr
+        it: it
+        lt: lt
+        hu: hu
+        nl: nl
+        no: no
+        pl: pl
+        pt-BR: pt-BR
+        ro: ro
+        fi: fi
+        sv-SE: sv-SE

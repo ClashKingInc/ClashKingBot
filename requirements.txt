@@ -1,0 +1,44 @@
+aiocache==0.12.2
+aiofiles==0.6.0
+aiokafka==0.10.0
+APScheduler==3.9.1
+Babel==2.13.1
+ballpark @ git+https://github.com/Mee6/python-ballpark.git@5ab86393ba8cb2f306187f393aca8ec5b3bbbbae
+beautifulsoup4==4.10.0
+bs4==0.0.1
+chat-exporter @ git+https://github.com/MagicTheDev/DiscordChatExporterPy@42ff2ae12628e62ace81e7f69205729c115a5ba6
+coc.py==3.7.1
+disnake @ git+https://github.com/MagicTheDev/disnake.git
+disnake-ext-fluent @ git+https://github.com/MagicTheDev/disnake-ext-fluent.git
+dnspython==2.1.0
+docker==7.1.0
+emoji==1.6.3
+expiring-dict==1.1.0
+fluent.runtime==0.4.0
+ipython==8.13.0
+kafka-python==2.0.2
+kaleido==0.2.1
+loguru==0.7.2
+matplotlib==3.7.1
+motor==3.3.2
+msgspec==0.18.6
+numerize==0.12
+numpy==1.26.4
+openai==0.27.8
+openpyxl==3.1.2
+orjson==3.10.0
+pandas==2.0.3
+pendulum==2.1.2
+plotly==5.14.1
+public-ip==0.12
+pymitter==0.4.0
+python-dateutil==2.8.2
+python-dotenv==0.19.2
+python-snappy==0.6.1
+pytz==2021.3
+redis==4.6.0
+sentry_sdk==1.25.0
+stringcase==1.2.0
+Wand==0.6.7
+websockets==10.3
+XlsxWriter==3.0.3
