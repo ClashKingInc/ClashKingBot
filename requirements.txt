@@ -10,7 +10,7 @@ chat-exporter @ git+https://github.com/MagicTheDev/DiscordChatExporterPy@42ff2ae
 coc.py==3.7.1
 disnake @ git+https://github.com/MagicTheDev/disnake.git
 disnake-ext-fluent @ git+https://github.com/MagicTheDev/disnake-ext-fluent.git
-dnspython==2.1.0
+dnspython==2.6.1
 docker==7.1.0
 emoji==1.6.3
 expiring-dict==1.1.0
@@ -20,7 +20,7 @@ kafka-python==2.0.2
 kaleido==0.2.1
 loguru==0.7.2
 matplotlib==3.7.1
-motor==3.3.2
+motor==3.5.1
 msgspec==0.18.6
 numerize==0.12
 numpy==1.26.4
@@ -32,8 +32,10 @@ pendulum==3.0.0
 plotly==5.14.1
 public-ip==0.12
 pymitter==0.4.0
+pymongo==4.8.0
 python-dateutil==2.8.2
 python-dotenv==0.19.2
+python-snappy==0.6.1
 pytz==2021.3
 redis==4.6.0
 sentry_sdk==1.25.0

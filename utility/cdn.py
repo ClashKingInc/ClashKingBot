@@ -14,11 +14,10 @@ async def upload_to_cdn(config: Config, picture: disnake.Attachment):
     payload = await picture.read()
     async with aiohttp.ClientSession() as session:
         async with session.put(
-            url=f'https://storage.bunnycdn.com/clashking/{picture.id}.png',
+            url=f'https://storage.bunnycdn.com/clashking-files/{picture.id}.png',
             headers=headers,
             data=payload,
         ) as response:
-            r = await response.read()
             await session.close()
 
 
@@ -30,7 +29,7 @@ async def general_upload_to_cdn(config: Config, bytes_, id):
     payload = bytes_
     async with aiohttp.ClientSession() as session:
         async with session.put(
-            url=f'https://storage.bunnycdn.com/clashking/{id}.png',
+            url=f'https://storage.bunnycdn.com/clashking-files/{id}.png',
             headers=headers,
             data=payload,
         ) as response:
@@ -43,10 +42,11 @@ async def upload_html_to_cdn(config: Config, bytes_, id):
         'content-type': 'application/octet-stream',
         'AccessKey': config.bunny_api_token,
     }
+
     payload = bytes_
     async with aiohttp.ClientSession() as session:
         async with session.put(
-            url=f'https://storage.bunnycdn.com/clashking/{id}.html',
+            url=f'https://storage.bunnycdn.com/clashking-files/{id}.html',
             headers=headers,
             data=payload,
         ) as response:
