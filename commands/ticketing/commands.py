@@ -552,7 +552,8 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
             await channel.set_permissions(member, overwrite=user_overwrite)
 
         if 'status' in ticket.naming_convention:
-            await ticket.rename_ticket()
+            new_name = await ticket.rename_ticket()
+            await ctx.channel.edit(name=new_name)
 
         category = None
         if panel_settings.get(f'{status}-category') is not None:
