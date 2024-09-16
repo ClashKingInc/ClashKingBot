@@ -147,7 +147,7 @@ async def naming_convention_convertor(
         if not all_ticket_nums:
             all_ticket_nums = [0]
         number = max(all_ticket_nums) + 1
-    status_emoji = {'open': '✅', 'sleep': '🌙', 'closed': '❌'}
+    status_emoji = {'open': '✅', 'sleep': '💤', 'closed': '❌'}
     types = {
         '{ticket_count}': number,
         '{user}': user.name,
@@ -169,7 +169,7 @@ async def message_convertor(
     message: str,
     custom_field: dict = None,
 ):
-    status_emoji = {'open': '✅', 'sleep': '🌙', 'closed': '❌'}
+    status_emoji = {'open': '✅', 'sleep': '💤', 'closed': '❌'}
     user = await bot.getch_user(ticket.user)
 
     coc_account = None
