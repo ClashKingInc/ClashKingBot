@@ -88,7 +88,7 @@ def get_cluster_breakdown(config: 'Config'):
 
         cluster_kwargs = {
             'shard_ids': shard_ids,
-            'shard_count': len(shard_ids),
+            'shard_count': TOTAL_SHARDS,
         }
 
     return cluster_kwargs
