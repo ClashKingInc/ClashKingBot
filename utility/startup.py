@@ -75,7 +75,7 @@ def get_cluster_breakdown(config: 'Config'):
 
             return shard_distribution
 
-        TOTAL_SHARDS = config.total_clusters
+        TOTAL_SHARDS = config.total_clusters * 2
 
         shard_distribution = calculate_shard_distribution(TOTAL_SHARDS, config.total_clusters)
 
