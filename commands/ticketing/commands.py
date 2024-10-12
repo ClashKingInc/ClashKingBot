@@ -267,7 +267,7 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
         self,
         ctx: disnake.ApplicationCommandInteraction,
         ticket_button: tuple[str, str] = commands.Param(autocomplete=autocomplete.ticket_panel_buttons, converter=convert.ticket_button),
-        mode=commands.Param(choices=['Add to', 'Remove Roles']),
+        mode=commands.Param(choices=['Add Roles', 'Remove Roles']),
         remove=commands.Param(default='False', choices=['True']),
     ):
 
