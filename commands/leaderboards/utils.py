@@ -68,7 +68,7 @@ async def hv_player_leaderboard(
             )
         else:
             text += f'-# (#{i}) | {player.tag}\n'
-        if i % 25 == 0:
+        if i % 20 == 0:
             text_chunks.append(text)
             text = ''
 
