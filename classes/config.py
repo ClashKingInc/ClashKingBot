@@ -39,3 +39,5 @@ class Config:
         self.total_clusters = remote_settings.get('total_clusters')
 
         self.emoji_url = remote_settings.get('emoji_url')
+
+        self.clashofstats_user_agent = remote_settings.get('clashofstats_user_agent')

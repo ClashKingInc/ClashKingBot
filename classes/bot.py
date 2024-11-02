@@ -705,7 +705,7 @@ class CustomClient(commands.AutoShardedBot):
 
     async def get_player_history(self, player_tag: str):
         url = f"https://api.clashofstats.com/players/{player_tag.replace('#', '')}/history/clans"
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(headers={"User-Agent" : self._config.clashofstats_user_agent}) as session:
             async with session.get(url) as resp:
                 history = await resp.json()
                 await session.close()

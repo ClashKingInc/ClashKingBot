@@ -215,7 +215,6 @@ class TicketClick(commands.Cog):
             button = panel.get_button(custom_id=ctx.data.custom_id)
             if button is None:
                 return await ctx.send('Button No Longer Exists', ephemeral=True)
-
             await button.send_log(log_type=LOG_TYPE.BUTTON_CLICK, user=ctx.user)
 
             players = []
@@ -321,12 +320,14 @@ class TicketClick(commands.Cog):
                     else:
                         await res.response.send_message(content='Done!', components=[], ephemeral=True)
 
+            print(button.questions)
             if button.questions:
                 if message:
                     await message.delete()
                 (message, questionaire_embed) = await ask_questions(bot=self.bot, ctx=ctx, questions=button.questions)
                 embeds.append(questionaire_embed)
 
+            print("here again")
             channels = await open_ticket(
                 bot=self.bot,
                 ticket_panel=panel,
