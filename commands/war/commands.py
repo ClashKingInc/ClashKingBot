@@ -42,10 +42,11 @@ class War(commands.Cog):
     async def war_search(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        clan: str = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan),
+        clan: coc.Clan = commands.Param(converter=convert.clan, autocomplete=autocomplete.clan),
         previous_wars: str = commands.Param(default=None, autocomplete=autocomplete.previous_wars),
     ):
         await ctx.response.defer()
+
         if previous_wars is not None:
             war_data = await self.bot.clan_wars.find_one(
                 {

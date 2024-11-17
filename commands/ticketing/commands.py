@@ -21,7 +21,8 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
         super().__init__(bot)
         self.bot = bot
 
-    @commands.slash_command(name='ticket')
+
+    @commands.slash_command(name='ticketfudge')
     async def ticket(self, ctx: disnake.ApplicationCommandInteraction):
         pass
 
