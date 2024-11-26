@@ -1060,7 +1060,7 @@ class Roster:
         restriction = self.roster_result.get('th_restriction')
         restriction = restriction.split('-')
         if restriction[1] == 'max':
-            max = 16
+            max = 17
         else:
             max = int(restriction[1])
 

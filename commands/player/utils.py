@@ -430,6 +430,7 @@ async def create_player_hr(bot: CustomClient, player: StatsPlayer, start_date, e
         text = 'No attacks/defenses yet.\n'
     embed.add_field(name="**Star Count %'s**", value=text + '­\n', inline=False)
 
+
     fresh_hr = await player.hit_rate(fresh_type=[True], start_timestamp=start_date, end_timestamp=end_date)
     nonfresh_hr = await player.hit_rate(fresh_type=[False], start_timestamp=start_date, end_timestamp=end_date)
     fresh_dr = await player.hit_rate(fresh_type=[True], start_timestamp=start_date, end_timestamp=end_date)

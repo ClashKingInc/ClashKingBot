@@ -37,7 +37,7 @@ BOARD_TYPES = [
     'War Log',
     'CWL History',
 ]
-TOWNHALL_LEVELS = [x for x in range(1, 17)]
+TOWNHALL_LEVELS = [x for x in range(1, 18)]
 TOP_TOWNHALL = TOWNHALL_LEVELS[-1]
 
 MAX_ARMY_CAMP = 320
@@ -78,6 +78,7 @@ HOME_VILLAGE_HEROES = [
     'Archer Queen',
     'Royal Champion',
     'Grand Warden',
+    "Minion Prince"
 ]
 EMBED_COLOR = 2829617
 EMBED_COLOR_CLASS = disnake.Color(EMBED_COLOR)
@@ -102,6 +103,12 @@ HERO_EQUIPMENT = {
     'Hog Rider Puppet': 'Royal Champion',
     'Haste Vial': 'Royal Champion',
     'Fireball': 'Grand Warden',
+    "Lavaloon Puppet": "Grand Warden",
+    "Spiky Ball" : "Barbarian King",
+    "Magic Mirror"  : "Archer Queen",
+    "Rocket Spear" : "Royal Champion",
+    "Henchmen Puppet" : "Minion Prince",
+    "Dark Orb" : "Minion Prince",
 }
 
 POSTER_LIST = {
@@ -421,6 +428,7 @@ DARK_ELIXIR = [
     'Bowler',
     'Ice Golem',
     'Headhunter',
+    "Druid"
 ]
 SUPER_TROOPS = [
     'Super Barbarian',

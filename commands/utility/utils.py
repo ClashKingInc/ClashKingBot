@@ -122,7 +122,7 @@ def townhall_army(size: int):
         return ['TH12', 12]
     elif size <= 300:
         return ['TH13-14', 13]
-    elif size <= 320:
+    else:
         return ['TH15+', 15]
 
 

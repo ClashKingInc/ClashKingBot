@@ -13,6 +13,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
     async def clan(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
 
+
     @clan.sub_command(name='compo', description='Composition of values in a clan')
     async def compo(
         self,

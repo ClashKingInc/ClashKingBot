@@ -44,6 +44,8 @@ def troop_ids(troop_id):
         98: 'Super Hog Rider',
         110: 'Root Rider',
         123: 'Druid',
+        132: 'Thrower',
+
         51: 'Wall Wrecker',
         52: 'Battle Blimp',
         62: 'Stone Slammer',
@@ -73,6 +75,7 @@ def spell_ids(spell_id):
         35: 'Invisibility Spell',
         53: 'Recall Spell',
         70: 'Overgrowth Spell',
+        98: 'Revive Spell',
     }
 
     spell_name = switcher.get(spell_id, 'Lightning Spell')
@@ -125,6 +128,8 @@ def size(troop_or_spell):
         'Root Rider': 20,
         'Apprentice Warden': 20,
         'Druid': 16,
+        'Thrower': 16,
+
         'Lightning Spell': 1,
         'Healing Spell': 2,
         'Rage Spell': 2,
@@ -139,6 +144,7 @@ def size(troop_or_spell):
         'Invisibility Spell': 1,
         'Recall Spell': 2,
         'Overgrowth Spell': 2,
+        'Revive Spell': 2,
     }
 
     size = switcher.get(troop_or_spell, 0)
