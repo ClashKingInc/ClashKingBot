@@ -110,7 +110,7 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
         await asyncio.sleep(30)
     response = requests.get(config.emoji_url).json()
 
-    assets_url = response.pop('assets_url')
+    assets_url = "https://assets.clashk.ing"
 
     full_emoji_dict = {}
     for emoji_type, emoji_dict in response.items():
