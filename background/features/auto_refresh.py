@@ -30,10 +30,12 @@ class AutoEvalBackground(commands.Cog):
                     self.bot.STARTED_CHUNK.add(guild.id)
 
             status_roles.sort(key=lambda role: role['months'], reverse=True)
-            status_roles_map: dict[int, tuple[dict, disnake.Role]] = {role['id']: (role, disnake.utils.get(guild.roles, id=role['id'])) for role in status_roles}
+            status_roles_map: dict[int, tuple[dict, disnake.Role]] = {
+                role['id']: (role, disnake.utils.get(guild.roles, id=role['id'])) for role in status_roles}
 
             bot_member = guild.me
-            for member in guild.members:
+
+            for count, member in enumerate(guild.members, start=1):
                 if member.bot:
                     continue
 
@@ -51,9 +53,9 @@ class AutoEvalBackground(commands.Cog):
                         continue
 
                     # if they have earned it, and role to be added leads to false, but they dont have it yet
-                    if num_months >= role['months'] and not role_to_add:
+                    if num_months >= role['months'] and role_to_add is None:
                         if role_obj not in current_roles:
-                            role_to_add = role_to_add
+                            role_to_add = role_obj
                         else:
                             role_to_add = True
                     # once it has found 1 role to add, any others should be removed, if they have them
@@ -66,7 +68,7 @@ class AutoEvalBackground(commands.Cog):
                         await member.add_roles(*[role_to_add], reason="Tenure Roles")
                     if roles_to_remove:
                         await member.remove_roles(*roles_to_remove, reason="Tenure Roles")
-                except:
+                except Exception as e:
                     continue
 
 
