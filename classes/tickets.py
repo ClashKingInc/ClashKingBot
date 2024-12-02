@@ -53,7 +53,7 @@ class OpenTicket:
             coc_account = await self.bot.getPlayer(player_tag=self.apply_account, custom=False, cache_data=False)
 
         user = await self.bot.getch_user(self.user)
-        status_emoji = {'open': '✅', 'sleep': '🌙', 'closed': '❌'}
+        status_emoji = {'open': '✅', 'sleep': '💤', 'closed': '❌'}
         types = {
             '{ticket_count}': self.number,
             '{user}': user.name if user is not None else '',
