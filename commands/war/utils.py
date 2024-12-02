@@ -1089,19 +1089,19 @@ async def create_cwl_status(bot: CustomClient, guild: disnake.Guild):
 			league = await bot.coc_client.get_league_group(clan.tag)
 			state = league.state
 			if str(state) == "preparation":
-				c.append("<a:CheckAccept:992611802561134662>")
+				c.append(bot.emoji.green_check.emoji_string)
 				c.append(1)
 			elif str(state) == "ended":
-				c.append("<:dash:933150462818021437>")
+				c.append(bot.emoji.square_x_deny.emoji_string)
 				c.append(3)
 			elif str(state) == "inWar":
-				c.append("<a:swords:944894455633297418>")
+				c.append(bot.emoji.wood_swords.emoji_string)
 				c.append(0)
 			elif str(state) == "notInWar":
-				c.append("<a:spinning:992612297048588338>")
+				c.append(bot.emoji.animated_clash_swords.emoji_string)
 				c.append(2)
 		except coc.NotFound:
-			c.append("<:dash:933150462818021437>")
+			c.append(bot.emoji.square_x_deny.emoji_string)
 			c.append(3)
 		spin_list.append(c)
 
@@ -1120,7 +1120,7 @@ async def create_cwl_status(bot: CustomClient, guild: disnake.Guild):
 
 	main_embed.add_field(
 	    name="Legend",
-	    value=f"<a:spinning:992612297048588338> Spinning | <:dash:933150462818021437> Not Spun | <a:CheckAccept:992611802561134662> Prep |  <a:swords:944894455633297418> War",
+	    value=f"{bot.emoji.animated_clash_swords.emoji_string} Spinning | {bot.emoji.square_x_deny} Not Spun | {bot.emoji.green_check} Prep |  {bot.emoji.wood_swords} War",
 	)
 	main_embed.timestamp = now
 	main_embed.set_footer(text="Last Refreshed:")

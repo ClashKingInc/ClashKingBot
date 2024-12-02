@@ -310,7 +310,7 @@ class eval(commands.Cog, name='Refresh'):
 
         await ctx.edit_original_message(embed=embed)
 
-    @roles.sub_command(name='townhall', description='Sets roles to add for townhall levels 7 and up')
+    @roles.sub_command(name='townhall', description='Sets roles to add for townhall levels 3 and up')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def townhall_roles(
         self,
@@ -329,6 +329,7 @@ class eval(commands.Cog, name='Refresh'):
         th14: disnake.Role = None,
         th15: disnake.Role = None,
         th16: disnake.Role = None,
+        th17: disnake.Role = None,
     ):
 
         if (
@@ -346,6 +347,7 @@ class eval(commands.Cog, name='Refresh'):
             and th14 is None
             and th15 is None
             and th16 is None
+            and th17 is None
         ):
             raise MessageException('Please provide a role for at least 1 townhall level.')
 
@@ -366,8 +368,9 @@ class eval(commands.Cog, name='Refresh'):
             'th14',
             'th15',
             'th16',
+            'th17'
         ]
-        list_roles = [th3, th4, th5, th6, th7, th8, th9, th10, th11, th12, th13, th14, th15, th16]
+        list_roles = [th3, th4, th5, th6, th7, th8, th9, th10, th11, th12, th13, th14, th15, th16, th17]
 
         for count, role in enumerate(list_roles):
             if role is None:
