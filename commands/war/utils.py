@@ -902,20 +902,17 @@ async def component_handler(
 
 
 async def overall_stat_components(bot: CustomClient):
-	map = bot.partial_emoji_gen("<:map:944913638500761600>")
-	star = bot.partial_emoji_gen("<:star:825571962699907152>")
-	up = bot.partial_emoji_gen("<:warwon:932212939899949176>")
 
 	options = [  # the options in your dropdown
 	    disnake.SelectOption(label="Star Leaderboard",
-	                         emoji=star,
+	                         emoji=bot.emoji.war_star.partial_emoji,
 	                         value="stars"),
-	    disnake.SelectOption(label="Clan Rankings", emoji=up,
+	    disnake.SelectOption(label="Clan Rankings", emoji=bot.emoji.up_green_arrow.partial_emoji,
 	                         value="rankings"),
 	    disnake.SelectOption(label="Missed Hits",
 	                         emoji=bot.emoji.square_x_deny.partial_emoji,
 	                         value="missedhits"),
-	    disnake.SelectOption(label="All Rounds", emoji=map, value="allrounds"),
+	    disnake.SelectOption(label="All Rounds", emoji=bot.emoji.wrench.partial_emoji, value="allrounds"),
 	    disnake.SelectOption(
 	        label="All Members",
 	        emoji=bot.emoji.people.partial_emoji,
