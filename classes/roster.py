@@ -1145,6 +1145,11 @@ class Roster:
             return ['No Group', 'Sub']
         return ['No Group', 'Sub'] + groups
 
+
+    @property
+    def members(self):
+        return self.roster_result.get('members', [])
+
     async def missing_list(self, reverse: bool):
         roster_members = self.roster_result.get('members')
         roster_member_tags = [member.get('tag') for member in roster_members]

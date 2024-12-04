@@ -6,6 +6,8 @@ from typing import List
 
 import coc
 import disnake
+from IPython import embed
+from babel.util import missing
 from disnake.ext import commands
 
 from classes.bot import CustomClient
@@ -471,30 +473,34 @@ class RosterCommands(commands.Cog, name='Rosters'):
                 embed.set_thumbnail(url=ctx.guild.icon.url)
             await ctx.edit_original_message(content=None, embed=embed)
 
-    @roster.sub_command(name='missing', description="Players that aren't in the clan tied to the roster")
+    @roster.sub_command(name='missing', description="Ping missing, out of place, or all players on roster")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def roster_missing(
+    async def roster_ping(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
         message: str = '',
-        reverse=commands.Param(
-            description="Instead ping those in clan who shouldn't be, i.e. not on roster.",
-            default='False',
-            choices=['True'],
-        ),
+        type: str = commands.Param(choices=["Ping Missing", "Ping Out of Place", "Ping All"])
     ):
         _roster = Roster(bot=self.bot)
         await ctx.response.defer()
         await _roster.find_roster(guild=ctx.guild, alias=roster)
-        reverse = reverse == 'True'
-        embed = await _roster.missing_embed(reverse=reverse)
-        miss_text = 'Missing'
-        if reverse:
-            miss_text = 'Out of Place'
+
+
+        if type == 'Ping Missing' or type == "Ping Out of Place":
+            reverse = type == 'Ping Out of Place'
+            embed = await _roster.missing_embed(reverse=reverse)
+            miss_text = 'Missing'
+            if reverse:
+                miss_text = 'Out of Place'
+        else:
+            embed = await _roster.embed()
+            miss_text = 'All Roster'
+
+
         ping_buttons = [
             disnake.ui.Button(
-                label=f'Ping {miss_text}',
+                label=f'Ping {miss_text} Members',
                 emoji=self.bot.emoji.pin.partial_emoji,
                 style=disnake.ButtonStyle.green,
                 custom_id=f'ping',
@@ -517,7 +523,11 @@ class RosterCommands(commands.Cog, name='Rosters'):
             return await msg.edit(components=[])
 
         await res.response.defer()
-        missing = await _roster.missing_list(reverse=reverse)
+        if type == 'Ping Missing' or type == "Ping Out of Place":
+            missing = await _roster.missing_list(reverse=reverse)
+        else:
+            missing = _roster.members
+
         tags = [member.get('tag') for member in missing]
         names = {}
         for member in missing:
@@ -531,8 +541,18 @@ class RosterCommands(commands.Cog, name='Rosters'):
                 missing_text += f'{name} | {player_tag}\n'
             else:
                 missing_text += f'{name} | {member.mention}\n'
-        await msg.edit(components=[])
-        await res.send(content=f'{_roster.missing_text}{missing_text}')
+        await msg.delete()
+        top_text = (f"**Pinging {miss_text} Members**\n"
+                    f"{_roster.clan_name} | {_roster.alias} | {'' if not _roster.time else self.bot.timestamper(_roster.time).relative}\n")
+        button = disnake.ui.Button(
+            label='Clan Link',
+            emoji='🔗',
+            style=disnake.ButtonStyle.url,
+            url=f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{_roster.roster_result.get('clan_tag').strip('#')}",
+        )
+        buttons = [disnake.ui.ActionRow(button)]
+        await res.channel.send(content=f'{top_text}{_roster.missing_text}{missing_text}', components=buttons)
+        await res.send(content="Done, Notified!", ephemeral=True, delete_after=5)
 
     @roster.sub_command(
         name='settings',
