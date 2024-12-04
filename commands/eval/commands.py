@@ -761,8 +761,8 @@ class eval(commands.Cog, name='Refresh'):
                 'champion_league',
                 'titan_league',
                 'legends_league',
-                '5000+_personal_best',
-                '6000+_personal_best'
+                '5000_personal_best',
+                '6000_personal_best'
             ],
         ),
         builder_league: str = commands.Param(
@@ -780,8 +780,8 @@ class eval(commands.Cog, name='Refresh'):
                 'emerald_league',
                 'ruby_league',
                 'diamond_league',
-                '5000+_personal_best',
-                '6000+_personal_best'
+                '5000_personal_best',
+                '6000_personal_best'
             ],
         ),
     ):
