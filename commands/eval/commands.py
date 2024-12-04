@@ -1,4 +1,5 @@
 import disnake
+from bson.json_util import default
 from disnake.ext import commands
 
 from classes.bot import CustomClient
@@ -443,6 +444,8 @@ class eval(commands.Cog, name='Refresh'):
         champion_league: disnake.Role = None,
         titan_league: disnake.Role = None,
         legends_league: disnake.Role = None,
+        lower_personal_best: disnake.Role = commands.Param(default=None, name="5000+_personal_best"),
+        upper_personal_best: disnake.Role = commands.Param(default=None, name="6000+_personal_best"),
     ):
 
         list_roles = [
@@ -454,6 +457,8 @@ class eval(commands.Cog, name='Refresh'):
             champion_league,
             titan_league,
             legends_league,
+            lower_personal_best,
+            upper_personal_best
         ]
         if len(set(list_roles)) == 1:
             raise MessageException('Please select at least one role to set.')
@@ -467,6 +472,8 @@ class eval(commands.Cog, name='Refresh'):
             'champion_league',
             'titan_league',
             'legends_league',
+            'lower_personal_best',
+            'upper_personal_best'
         ]
 
         roles_updated = ''
@@ -505,6 +512,8 @@ class eval(commands.Cog, name='Refresh'):
         emerald_league: disnake.Role = None,
         ruby_league: disnake.Role = None,
         diamond_league: disnake.Role = None,
+        lower_personal_best: disnake.Role = commands.Param(default=None, name="5000+_personal_best"),
+        upper_personal_best: disnake.Role = commands.Param(default=None, name="6000+_personal_best"),
     ):
 
         list_roles = [
@@ -520,6 +529,8 @@ class eval(commands.Cog, name='Refresh'):
             emerald_league,
             ruby_league,
             diamond_league,
+            lower_personal_best,
+            upper_personal_best
         ]
 
         if list_roles.count(None) == len(list_roles):
@@ -538,6 +549,8 @@ class eval(commands.Cog, name='Refresh'):
             'emerald_league',
             'ruby_league',
             'diamond_league',
+            "5000+_personal_best",
+            "6000+_personal_best"
         ]
 
         roles_updated = ''
@@ -590,14 +603,13 @@ class eval(commands.Cog, name='Refresh'):
             )
         await ctx.send(embed=embed)
 
-    @roles.sub_command(name='achievements', description='Set role for top donators/activity & more')
+    '''@roles.sub_command(name='achievements', description='Set role for one time personal bests')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def achievement_roles(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        type: str = commands.Param(choices=['Donation', 'Trophies', 'Activity', 'Total Looted']),
-        amount_or_rank: int = commands.Param(),
-        season: str = commands.Param(choices=['Current Season', 'Previous Season']),
+        home_village_legend: disnake.Role = commands.Param(default=None, description="Has hit a personal best of 5000 trophies"),
+        builder_base_legend: disnake.Role = commands.Param(default=None, description="Has hit a personal best of 5000 builder base trophies"),
     ):
         await ctx.response.defer()
         raise MessageException('Command Under Construction')
@@ -608,7 +620,7 @@ class eval(commands.Cog, name='Refresh'):
             type=type.lower().replace(' ', '_'),
             amount=amount_or_rank,
             season=season.lower().replace(' ', '_'),
-        )
+        )'''
 
     @roles.sub_command(name='list', description='List of refresh affiliated roles for this server')
     async def role_list(self, ctx: disnake.ApplicationCommandInteraction):
@@ -749,6 +761,8 @@ class eval(commands.Cog, name='Refresh'):
                 'champion_league',
                 'titan_league',
                 'legends_league',
+                '5000+_personal_best',
+                '6000+_personal_best'
             ],
         ),
         builder_league: str = commands.Param(
@@ -766,6 +780,8 @@ class eval(commands.Cog, name='Refresh'):
                 'emerald_league',
                 'ruby_league',
                 'diamond_league',
+                '5000+_personal_best',
+                '6000+_personal_best'
             ],
         ),
     ):
