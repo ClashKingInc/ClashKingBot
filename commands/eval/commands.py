@@ -444,8 +444,8 @@ class eval(commands.Cog, name='Refresh'):
         champion_league: disnake.Role = None,
         titan_league: disnake.Role = None,
         legends_league: disnake.Role = None,
-        lower_personal_best: disnake.Role = commands.Param(default=None, name="5000+_personal_best"),
-        upper_personal_best: disnake.Role = commands.Param(default=None, name="6000+_personal_best"),
+        lower_personal_best: disnake.Role = commands.Param(default=None, name="5000_personal_best"),
+        upper_personal_best: disnake.Role = commands.Param(default=None, name="6000_personal_best"),
     ):
 
         list_roles = [
@@ -472,8 +472,8 @@ class eval(commands.Cog, name='Refresh'):
             'champion_league',
             'titan_league',
             'legends_league',
-            'lower_personal_best',
-            'upper_personal_best'
+            '5000_personal_best',
+            '6000_personal_best'
         ]
 
         roles_updated = ''
@@ -512,8 +512,8 @@ class eval(commands.Cog, name='Refresh'):
         emerald_league: disnake.Role = None,
         ruby_league: disnake.Role = None,
         diamond_league: disnake.Role = None,
-        lower_personal_best: disnake.Role = commands.Param(default=None, name="5000+_personal_best"),
-        upper_personal_best: disnake.Role = commands.Param(default=None, name="6000+_personal_best"),
+        lower_personal_best: disnake.Role = commands.Param(default=None, name="5000_personal_best"),
+        upper_personal_best: disnake.Role = commands.Param(default=None, name="6000_personal_best"),
     ):
 
         list_roles = [
@@ -549,8 +549,8 @@ class eval(commands.Cog, name='Refresh'):
             'emerald_league',
             'ruby_league',
             'diamond_league',
-            "5000+_personal_best",
-            "6000+_personal_best"
+            "5000_personal_best",
+            "6000_personal_best"
         ]
 
         roles_updated = ''
