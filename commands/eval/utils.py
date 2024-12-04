@@ -173,9 +173,9 @@ async def logic(
                 ROLES_TO_ADD.add(builder_league_roles.get(f'{league}_league'))
 
                 if player.best_builder_base_trophies >= 6000:
-                    ROLES_TO_ADD.add(league_roles.get("6000_personal_best"))
+                    ROLES_TO_ADD.add(builder_league_roles.get("6000_personal_best"))
                 elif player.best_builder_base_trophies >= 5000:
-                    ROLES_TO_ADD.add(league_roles.get("5000_personal_best"))
+                    ROLES_TO_ADD.add(builder_league_roles.get("5000_personal_best"))
 
             if player.clan is not None and 'clan' in eval_types:
                 ROLES_TO_ADD.add(clan_member_roles.get(player.clan.tag))
