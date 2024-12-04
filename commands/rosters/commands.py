@@ -486,6 +486,11 @@ class RosterCommands(commands.Cog, name='Rosters'):
         await ctx.response.defer()
         await _roster.find_roster(guild=ctx.guild, alias=roster)
 
+        if not ctx.guild.chunked:
+            if ctx.guild.id not in self.bot.STARTED_CHUNK:
+                await ctx.guild.chunk(cache=True)
+            else:
+                self.bot.STARTED_CHUNK.add(ctx.guild.id)
 
         if type == 'Ping Missing' or type == "Ping Out of Place":
             reverse = type == 'Ping Out of Place'
