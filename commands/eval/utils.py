@@ -172,7 +172,9 @@ async def logic(
                 league = player.builder_base_league.name.split(' ')[0].lower()
                 ROLES_TO_ADD.add(builder_league_roles.get(f'{league}_league'))
 
-                if player.best_builder_base_trophies >= 6000:
+                if player.best_builder_base_trophies >= 7000:
+                    ROLES_TO_ADD.add(builder_league_roles.get("7000_personal_best"))
+                elif player.best_builder_base_trophies >= 6000:
                     ROLES_TO_ADD.add(builder_league_roles.get("6000_personal_best"))
                 elif player.best_builder_base_trophies >= 5000:
                     ROLES_TO_ADD.add(builder_league_roles.get("5000_personal_best"))
