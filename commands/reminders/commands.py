@@ -217,6 +217,8 @@ class ReminderCommands(commands.Cog, name='Reminders'):
     async def reminder_list(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
         all_reminders_tags = await self.bot.reminders.distinct('clan', filter={'$and': [{'server': ctx.guild.id}]})
+        if not all_reminders_tags:
+            raise MessageException("No reminders set up on server")
         clans = await self.bot.get_clans(tags=all_reminders_tags)
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
 
