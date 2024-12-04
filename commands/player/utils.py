@@ -634,14 +634,7 @@ async def player_accounts(bot: CustomClient, discord_user: disnake.Member, embed
     for count, player in enumerate(players):
         if count < 20:
             opt_emoji = bot.emoji.opt_in if player.war_opted_in else bot.emoji.opt_out
-            heros = ''
-            for hero in player.heroes:
-                if hero.is_home_base:
-                    level = f'{hero.level}' if hero.is_max_for_townhall else f'{hero.level}'
-                    heros += f'{acronym(hero.name)}{level} '
-            if heros != '' and len([h for h in player.heroes if h.is_home_base]) >= 2:
-                heros += f'{sum([h.level for h in player.heroes if h.is_home_base])}'
-
+            
             text += (
                 f'{opt_emoji}**[{player.clear_name}{create_superscript(player.town_hall)}]({player.share_link})**\n'
                 f'{bot.fetch_emoji(player.league_as_string)}{player.trophies}'
