@@ -32,7 +32,7 @@ class Embeds(commands.Cog):
         if lookup is not None:
             raise MessageException('Cannot have 2 embeds with the same name')
 
-        if discohook_url_or_messsage_link.startswith('https://share.discohook.app'):
+        if 'discohook.app' in discohook_url_or_messsage_link:
             async with aiohttp.ClientSession() as session:
                 async with session.get(discohook_url_or_messsage_link, allow_redirects=True) as response:
                     discohook_url = str(response.url)
