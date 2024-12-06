@@ -112,15 +112,26 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
 
     assets_url = "https://assets.clashk.ing"
 
+    original_name_map = {}
     full_emoji_dict = {}
     for emoji_type, emoji_dict in response.items():
-        full_emoji_dict = full_emoji_dict | emoji_dict
+        emoji_dict: dict
+        hold_dict = emoji_dict.copy()
+        for key, value in emoji_dict.items():
+            key: str
+            prev_value = hold_dict.pop(key)
+            prev_key = key.replace(".", "").replace(" ", "").lower()
+            if prev_key.isnumeric():
+                prev_key = f"{prev_key}xx"
+            original_name_map[prev_key] = key
+            hold_dict[prev_key] = prev_value
+        full_emoji_dict = full_emoji_dict | hold_dict
 
     current_emoji = discord_get(f'https://discord.com/api/v10/applications/{bot.application_id}/emojis', bot_token=config.bot_token).get('items', [])
-    current_emoji_names = [emoji['name'].replace('____', '').replace('xx', ' ').replace('__', '.') for emoji in current_emoji]
+    current_emoji_names = [emoji['name'] for emoji in current_emoji]
 
     emoji_to_be_deleted = [
-        emoji for emoji in current_emoji if emoji['name'].replace('____', '').replace('xx', ' ').replace('__', '.') not in full_emoji_dict.keys()
+        emoji for emoji in current_emoji if emoji['name'] not in full_emoji_dict.keys()
     ]
 
     for emoji in emoji_to_be_deleted:
@@ -137,10 +148,6 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
 
     for name in emoji_to_be_added:   # type: str
         image_path = full_emoji_dict[name]
-        if name.isnumeric():
-            name = f'{name}____'
-        name = name.replace(' ', 'xx')
-        name = name.replace('.', '__')
         image_url = f'{assets_url}{image_path}'
         try:
             # Fetch the image
@@ -176,8 +183,7 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
         is_animated = emoji.get('animated')
         start = '<:' if not is_animated else '<a:'
         name = emoji.get('name')
-        # ____ for int, __ for ., ___ for space
-        name = name.replace('____', '').replace('xx', ' ').replace('__', '.')
+        name = original_name_map.get(name)
         name = int(name) if name.isnumeric() else name
         id = emoji.get('id')
         combined_emojis[name] = f'{start}{emoji.get("name")}:{id}>'

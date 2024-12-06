@@ -1167,11 +1167,11 @@ async def cwl_ranking_create(bot: CustomClient, clan: coc.Clan):
 		promo = [x["promo"] for x in war_leagues["items"] if x["name"] == clan.war_league.name][0]
 		demo = [x["demote"] for x in war_leagues["items"] if x["name"] == clan.war_league.name][0]
 		if place <= promo:
-			emoji = "<:warwon:932212939899949176>"
+			emoji = bot.emoji.up_green_arrow
 		elif place >= demo:
-			emoji = "<:warlost:932212154164183081>"
+			emoji = bot.emoji.down_red_arrow
 		else:
-			emoji = "<:dash:933150462818021437>"
+			emoji = bot.emoji.grey_dash
 		tag = item[0]
 		stars = str(item[1])
 		dest = str(item[2])

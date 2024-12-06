@@ -50,6 +50,7 @@ class Emojis:
         self.green_check = EmojiType(bot.loaded_emojis.get('green_check'))
         self.green_circle = EmojiType(bot.loaded_emojis.get('green_circle'))
         self.grey_circle = EmojiType(bot.loaded_emojis.get('grey_circle'))
+        self.grey_dash = EmojiType(bot.loaded_emojis.get('grey_dash'))
         self.hand_coins = EmojiType(bot.loaded_emojis.get('hand_coins'))
         self.hashmark = EmojiType(bot.loaded_emojis.get('hashmark'))
         self.heart = EmojiType(bot.loaded_emojis.get('heart'))
