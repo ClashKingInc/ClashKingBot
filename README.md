@@ -19,7 +19,7 @@
   <p align="center">  
     Clash of Clans family management bot for roles, player info, rankings, leaderboards, and more!  
     <br />  
-    <a href="https://github.com/ClashKingInc/ClashKingBot"><strong>Explore the docs »</strong></a>  
+    <a href="https://docs.clashking.xyz"><strong>Explore the docs »</strong></a>  
     <br />  
     <br />  
     <a href="https://discord.gg/clashking">View Demo</a>  
