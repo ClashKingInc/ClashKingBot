@@ -70,7 +70,7 @@ class CustomClient(commands.AutoShardedBot):
         self.ck_client: FamilyClient = None
         self.max_pool_size = 1 if config.is_custom else 100
 
-        self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(self._config.stats_mongodb, compressors='snappy')
+        self.looper_db = motor.motor_asyncio.AsyncIOMotorClient(self._config.stats_mongodb, compressors='snappy' if config.is_main else "zlib")
 
         self.new_looper = self.looper_db.get_database('new_looper')
         self.stats = self.looper_db.get_database(name='stats')
@@ -114,16 +114,17 @@ class CustomClient(commands.AutoShardedBot):
         self.clan_join_leave: collection_class = self.looper_db.looper.join_leave_history
 
         self.base_stats: collection_class = self.looper_db.looper.base_stats
-        self.autoboards: collection_class = self.looper_db.clashking.autoboards
         self.clan_war: collection_class = self.looper_db.looper.clan_war
         self.cwl_groups: collection_class = self.looper_db.looper.cwl_group
         self.basic_clan: collection_class = self.looper_db.looper.clan_tags
-        self.button_store: collection_class = self.looper_db.clashking.button_store
+
+        self.autoboards: collection_class = self.looper_db.clashking.autoboards
+
         self.legend_rankings: collection_class = self.new_looper.legend_rankings
         self.war_timers: collection_class = self.looper_db.looper.war_timer
         self.number_emojis: collection_class = self.looper_db.clashking.number_emojis
 
-        self.db_client = motor.motor_asyncio.AsyncIOMotorClient(self._config.static_mongodb, compressors='snappy', maxPoolSize=self.max_pool_size)
+        self.db_client = motor.motor_asyncio.AsyncIOMotorClient(self._config.static_mongodb, compressors='snappy' if config.is_main else "zlib", maxPoolSize=self.max_pool_size)
         self.clan_db: collection_class = self.db_client.usafam.clans
         self.banlist: collection_class = self.db_client.usafam.banlist
         self.server_db: collection_class = self.db_client.usafam.server

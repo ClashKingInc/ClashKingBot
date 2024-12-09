@@ -670,6 +670,7 @@ class SetupCommands(commands.Cog, name='Setup'):
             'Raid Weekend',
             'EOS',
             'Clan Member Count',
+            "Season Day",
             'War Score',
             'War Timer',
         ]
@@ -679,6 +680,7 @@ class SetupCommands(commands.Cog, name='Setup'):
             self.bot.emoji.raid_medal,
             self.bot.emoji.trophy,
             self.bot.emoji.people,
+            self.bot.emoji.trophy,
             self.bot.emoji.war_star,
             self.bot.emoji.war_star,
         ]
@@ -729,6 +731,9 @@ class SetupCommands(commands.Cog, name='Setup'):
                 elif type == 'EOS':
                     time_ = await calculate_time(type)
                     channel = await ctx.guild.create_voice_channel(name=f'EOS {time_}')
+                elif type == 'Season Day':
+                    time_ = await calculate_time(type)
+                    channel = await ctx.guild.create_voice_channel(name=f'Day {time_}')
                 elif type == 'War Score':
                     war = await self.bot.get_clanwar(clanTag=clan.tag)
                     time_ = await calculate_time(type, war=war)
@@ -772,6 +777,9 @@ class SetupCommands(commands.Cog, name='Setup'):
                     {'$and': [{'tag': clan.tag}, {'server': ctx.guild.id}]},
                     {'$set': {'warTimerCountdown': channel.id}},
                 )
+            elif type == "Season Day":
+                await self.bot.server_db.update_one({'server': ctx.guild.id}, {'$set': {'eosDayCountdown': channel.id}})
+
             else:
                 await self.bot.server_db.update_one({'server': ctx.guild.id}, {'$set': {'eosCountdown': channel.id}})
 
@@ -810,22 +818,6 @@ class SetupCommands(commands.Cog, name='Setup'):
             embed.set_thumbnail(url=ctx.guild.icon.url)
         await ctx.edit_original_message(content='', embed=embed, components=[])
 
-    @setup.sub_command(
-        name='api-token',
-        description='Create an api token for use in the clashking api to access server resources',
-    )
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def api_token(self, ctx: disnake.ApplicationCommandInteraction):
-        await ctx.response.defer(ephemeral=True)
-        token = secrets.token_urlsafe(20)
-        pattern = '[^0-9a-zA-Z\s]+'
-        token = re.sub(pattern, '', token)
-        await self.bot.server_db.update_one({'server': ctx.guild.id}, {'$set': {'ck_api_token': token}})
-        await ctx.send(token, ephemeral=True)
-        await ctx.followup.send(
-            content='Store the above token somewhere safe, token will be regenerated each time command is run',
-            ephemeral=True,
-        )
 
     @setup.sub_command(name='link-parse', description='Turn link parsing types on/off')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())

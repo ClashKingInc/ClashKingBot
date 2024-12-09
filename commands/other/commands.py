@@ -7,6 +7,10 @@ import disnake
 from disnake.ext import commands
 from PIL import Image, ImageDraw, ImageFont
 
+from disnake import ButtonStyle, MessageInteraction
+from disnake.ui import Button, ActionRow
+from emoji.unicode_codes.data_dict import component
+
 from classes.bot import CustomClient
 from discord import autocomplete, convert
 from exceptions.CustomExceptions import MessageException
@@ -304,36 +308,70 @@ class misc(commands.Cog, name='Other'):
                 await message.channel.send(f"</{message.content.replace('-/', '')}:{command.id}>")
             except Exception:
                 pass
-        elif (
-            isinstance(message.channel, disnake.Thread)
-            and message.channel.parent_id == 1253074921311965184
-            and message.channel.total_message_sent == 0
-        ):
+        elif message.content.startswith(self.bot.user.mention):
             async with message.channel.typing():
-                query = message.content.replace(self.bot.user.mention, '')
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(
-                        f'https://api.gitbook.com/v1/spaces/iSJhS5UxZkjOhR5eSxhS/search/ask?{urlencode({"query": query})}'
-                    ) as response:
-                        if response.status == 200:
-                            answer = await response.json()
-                        else:
-                            answer = None
-                if answer is not None:
-                    try:
-                        embed = disnake.Embed(
-                            title='ClashKing Docs AI',
-                            description='This info is pulled from our [docs](https://docs.clashking.xyz), to try to help assist you. Otherwise, someone should help you shortly :)',
-                            color=disnake.Color.orange(),
-                        )
-                        await message.channel.send(
-                            embed=embed,
-                            content=answer.get('answer').get('text'),
-                            allowed_mentions=disnake.AllowedMentions.none(),
-                        )
-                    except Exception:
-                        pass
+                query = message.content.replace(self.bot.user.mention, '').strip()
 
+                # Fetch the answer from GitBook API
+                gitbook_url = "https://api.gitbook.com/v1/spaces/iSJhS5UxZkjOhR5eSxhS/search/ask"
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(gitbook_url, params={"query": query}) as response:
+                        answer = await response.json() if response.status == 200 else None
+
+                if not answer:
+                    return
+
+                pages_to_find = {source["page"] for source in answer.get("answer", {}).get("sources", [])}
+
+                # Fetch GitBook content
+                content_url = "https://api.gitbook.com/v1/spaces/iSJhS5UxZkjOhR5eSxhS/content"
+                headers = {"Authorization": f"Bearer {self.bot._config.gitbook_token}"}
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(content_url, headers=headers) as response:
+                        content = await response.json() if response.status == 200 else None
+
+                if not content or "pages" not in content:
+                    return
+
+                # Extract page URLs
+                gitbook_urls = []
+                base_url = "https://docs.clashking.xyz"
+
+                def recurse_pages(pages):
+                    for page in pages:
+                        if page["id"] in pages_to_find:
+                            gitbook_urls.append(f"{base_url}/{page['path']}")
+                        if "pages" in page:
+                            recurse_pages(page["pages"])
+
+                recurse_pages(content["pages"])
+
+                if gitbook_urls:
+                    # Create buttons for each URL
+                    buttons = [
+                        Button(label=f"Source {i + 1}", url=url, style=ButtonStyle.link)
+                        for i, url in enumerate(gitbook_urls)
+                    ]
+
+                    # Group buttons into rows (max 5 per row)
+                    action_rows = [
+                        ActionRow(*buttons[i:i + 5]) for i in range(0, len(buttons), 5)
+                    ]
+
+                    # Send reply
+                    embed = disnake.Embed(
+                        description='This info is pulled from our [docs](https://docs.clashking.xyz), to try to help assist you.',
+                        color=disnake.Color.orange(),
+                    )
+                    if answer.get("answer", {}).get("text") is None:
+                        embed = None
+                        action_rows = None
+                    await message.reply(
+                        embed=embed,
+                        content=answer.get("answer", {}).get("text", "No answer found sorry, you can browse our docs [here](https://docs.clashk.ing) though."),
+                        components=action_rows,
+                        allowed_mentions=disnake.AllowedMentions.none(),
+                    )
 
 def setup(bot: CustomClient):
     bot.add_cog(misc(bot))

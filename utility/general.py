@@ -8,6 +8,7 @@ from typing import Callable, List
 import aiohttp
 import coc
 import disnake
+import pendulum as pend
 from coc import utils
 from expiring_dict import ExpiringDict
 from pytz import utc
@@ -199,6 +200,19 @@ async def calculate_time(type, war: coc.ClanWar = None):
                 text = f'in {int(mins)}M'
         else:
             text = f'in {int(days)}D {int(hrs)}H '
+
+    elif type == 'Season Day':
+        start = utils.get_season_start().replace(tzinfo=utc)
+        end = utils.get_season_end().replace(tzinfo=utc)
+
+        start_pendulum = pend.instance(start)
+        end_pendulum = pend.instance(end)
+        now = pend.now("UTC")
+
+        days_since_start = now.diff(start_pendulum).in_days()
+        days_from_start_to_end = start_pendulum.diff(end_pendulum).in_days()
+
+        text = f"{days_since_start}/{days_from_start_to_end}"
 
     elif type == 'War Score':
         if war is None:

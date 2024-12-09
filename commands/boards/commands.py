@@ -2,6 +2,8 @@ import disnake
 from disnake.ext import commands
 
 from classes.bot import CustomClient
+from disnake import ButtonStyle
+from disnake.ui import Button, ActionRow
 from exceptions.CustomExceptions import *
 from utility.discord_utils import check_commands, get_webhook_for_channel, interaction_handler
 
@@ -45,101 +47,44 @@ mapping = {
 }
 
 
+
+
 class MessageCommands(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @commands.message_command(name='Refresh Board', dm_permission=False)
-    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def refresh_board(self, ctx: disnake.MessageCommandInteraction, message: disnake.Message):
-        check = await self.bot.white_list_check(ctx, 'setup server-settings')
-        await ctx.response.defer(ephemeral=True)
-        if not check and not ctx.author.guild_permissions.manage_guild:
-            return await ctx.send(
-                content='You cannot use this command. Missing Permissions. Must have `Manage Server` permissions or be whitelisted for `/setup server-settings`',
-                ephemeral=True,
-            )
-        if not message.components:
-            raise MessageException('This message has no components')
-
-        options = []
-        for child in message.components[0].children:
-            if child.custom_id is None:
-                continue
-            name = child.custom_id.split(':')[0]
-            if mapping.get(name) is not None:
-                options.append(disnake.SelectOption(label=mapping.get(name), value=child.custom_id))
-
-        if not options:
-            raise MessageException('This command does not support auto refreshing currently')
-
-        if len(options) >= 2:
-            option_select = disnake.ui.Select(
-                options=options,
-                placeholder=f'Select Board Type',  # the placeholder text to show when no options have been chosen
-                min_values=1,  # the minimum number of options a user must select
-                max_values=1,  # the maximum number of options a user can select
-            )
-            await ctx.edit_original_message(
-                content='Choose which button to make an auto refreshing board for',
-                components=[disnake.ui.ActionRow(option_select)],
-            )
-            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, ephemeral=True)
-            custom_id = res.values[0]
-        else:
-            custom_id = options[0].value
-
-        webhook = await get_webhook_for_channel(channel=message.channel, bot=self.bot)
-        thread = None
-        if isinstance(message.channel, disnake.Thread):
-            await message.channel.add_user(self.bot.user)
-            thread = message.channel.id
-
-        placeholder = disnake.Embed(
-            description='Placeholder Embed, will update momentarily!',
-            color=disnake.Color.green(),
-        )
-        if thread is not None:
-            thread = await self.bot.getch_channel(thread)
-            webhook_message = await webhook.send(embed=placeholder, thread=thread, wait=True)
-            thread = thread.id
-        else:
-            webhook_message = await webhook.send(embed=placeholder, wait=True)
-        await self.bot.button_store.update_one(
-            {'$and': [{'button_id': custom_id}, {'server': ctx.guild_id}]},
-            {
-                '$set': {
-                    'webhook_id': webhook.id,
-                    'thread_id': thread,
-                    'message_id': webhook_message.id,
-                }
-            },
-            upsert=True,
-        )
-        await message.delete()
-        await ctx.edit_original_message('Refresh Board Created', components=[])
-
-    @commands.message_command(name='Auto Board', dm_permission=False)
+    @commands.message_command(name='AutoBoard', dm_permission=False)
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def auto_board(self, ctx: disnake.MessageCommandInteraction, message: disnake.Message):
-        check = await self.bot.white_list_check(ctx, 'setup server-settings')
+        check = await self.bot.white_list_check(ctx, 'setup server')
         await ctx.response.defer(ephemeral=True)
         if not check and not ctx.author.guild_permissions.manage_guild:
             return await ctx.send(
                 content='You cannot use this command. Missing Permissions. Must have `Manage Server` permissions or be whitelisted for `/setup server-settings`',
                 ephemeral=True,
             )
+
         if not message.components:
             raise MessageException('This message has no components')
 
         options = []
+        options_added = set() #this is to let us force page 0 on pagination
         for child in message.components[0].children:
             if child.custom_id is None:
                 continue
             name = child.custom_id.split(':')[0]
             if mapping.get(name) is not None:
-                options.append(disnake.SelectOption(label=mapping.get(name), value=child.custom_id))
+                mapped_name = mapping.get(name)
+                custom_id = child.custom_id
+                if "page=" in child.custom_id:
+                    split_view = child.custom_id.split(":")
+                    split_view[-1] = "page=0"
+                    custom_id = ":".join(split_view)
+                if custom_id not in options_added:
+                    options.append(disnake.SelectOption(label=mapped_name, value=custom_id))
+                    options_added.add(custom_id)
 
+        options.sort(key=lambda x: x.label)
         if not options:
             raise MessageException('This command does not support auto refreshing currently')
 
@@ -159,35 +104,85 @@ class MessageCommands(commands.Cog):
         else:
             custom_id = options[0].value
 
-        webhook = await get_webhook_for_channel(channel=message.channel, bot=self.bot)
-        thread = None
-        if isinstance(message.channel, disnake.Thread):
-            await message.channel.add_user(self.bot.user)
-            thread = message.channel.id
+        components = [
+            ActionRow(
+                Button(style=ButtonStyle.grey, label="Auto Post", custom_id="auto_post"),
+                Button(style=ButtonStyle.grey, label="Auto Refresh", custom_id="auto_refresh")
+            )
+        ]
 
-        placeholder = disnake.Embed(
-            description='Placeholder Embed, will update momentarily!',
-            color=disnake.Color.green(),
-        )
-        if thread is not None:
-            thread = await self.bot.getch_channel(thread)
-            webhook_message = await webhook.send(embed=placeholder, thread=thread, wait=True)
-            thread = thread.id
-        else:
-            webhook_message = await webhook.send(embed=placeholder, wait=True)
-        await self.bot.button_store.update_one(
-            {'$and': [{'button_id': custom_id}, {'server': ctx.guild_id}]},
-            {
-                '$set': {
-                    'webhook_id': webhook.id,
-                    'thread_id': thread,
-                    'message_id': webhook_message.id,
-                }
-            },
-            upsert=True,
-        )
-        await message.delete()
-        await ctx.edit_original_message('Refresh Board Created', components=[])
+        await ctx.edit_original_response(content="How would you like to automate this board?\n"
+                                                 "- Auto Post: post on days of your choice at the daily reset (5 AM UTC)\n"
+                                                 "- Auto Refresh: Refresh this board every 30-60 minutes", components=components)
+
+        res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
+
+        if res.data.custom_id == "auto_post":
+            select = disnake.ui.Select(
+                placeholder="Select days",
+                min_values=1,
+                max_values=12,
+                options=[
+                    disnake.SelectOption(label="Monday", value="monday"),
+                    disnake.SelectOption(label="Tuesday", value="tuesday"),
+                    disnake.SelectOption(label="Wednesday", value="wednesday"),
+                    disnake.SelectOption(label="Thursday", value="thursday"),
+                    disnake.SelectOption(label="Friday", value="friday"),
+                    disnake.SelectOption(label="Saturday", value="saturday"),
+                    disnake.SelectOption(label="Sunday", value="sunday"),
+                    disnake.SelectOption(label="End of Season", value="end_of_season"),
+                    disnake.SelectOption(label="Clan Games End", value="clan_games_end"),
+                    disnake.SelectOption(label="Raid Weekend End", value="raid_weekend_end"),
+                    disnake.SelectOption(label="CWL End", value="cwl_end"),
+                    disnake.SelectOption(label="End of Month", value="end_of_month"),
+                ]
+            )
+            await ctx.edit_original_response(content="When would you like to autopost?\n"
+                                                     "You can choose as many options as you would like, if any 2 days overlap (like friday + cwl end), it will still only send once",
+                                             components=[disnake.ui.ActionRow(select)]
+                                             )
+            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
+            await self.bot.autoboards.insert_one({
+                'type': "post",
+                'server_id': ctx.guild.id,
+                'button_id': custom_id,
+                'days' : res.values
+            })
+            await message.delete()
+            await ctx.edit_original_message('Auto Post Board Created', components=[])
+
+        elif res.data.custom_id == "auto_refresh":
+            webhook = await get_webhook_for_channel(channel=message.channel, bot=self.bot)
+            thread = None
+            if isinstance(message.channel, disnake.Thread):
+                await message.channel.add_user(self.bot.user)
+                thread = message.channel.id
+
+            placeholder = disnake.Embed(
+                description='Placeholder Embed, will update momentarily!',
+                color=disnake.Color.green(),
+            )
+            if thread is not None:
+                thread = await self.bot.getch_channel(thread)
+                webhook_message = await webhook.send(embed=placeholder, thread=thread, wait=True)
+                thread = thread.id
+            else:
+                webhook_message = await webhook.send(embed=placeholder, wait=True)
+            await self.bot.autoboards.update_one(
+                {'$and': [{'button_id': custom_id}, {'server': ctx.guild_id}, {'type' : "refresh"}]},
+                {
+                    '$set': {
+                        'webhook_id': webhook.id,
+                        'thread_id': thread,
+                        'message_id': webhook_message.id,
+                    }
+                },
+                upsert=True,
+            )
+            await message.delete()
+            await ctx.edit_original_message('Refresh Board Created', components=[])
+
+
 
 
 def setup(bot: CustomClient):

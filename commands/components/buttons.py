@@ -5,6 +5,7 @@ from disnake.ext import commands
 
 from classes.bot import CustomClient
 from utility.discord_utils import registered_functions
+from utility.components import button_generator
 
 
 async def button_logic(
@@ -13,15 +14,27 @@ async def button_logic(
     guild: disnake.Guild,
     locale: disnake.Locale,
     ctx: disnake.MessageInteraction = None,
+    autoboard: bool = False,
 ):
     split_data = button_data.split(':')
     lookup_name = button_data.split(':')[0]
 
-    function, parser, ephemeral, no_embed = registered_functions.get(lookup_name)
+    function, parser, ephemeral, no_embed, pagination = registered_functions.get(lookup_name, (None, "", False, False, False))
+
     if function is None:
         return None, 0  # maybe change this
     if ctx:
         await ctx.response.defer(ephemeral=ephemeral)
+
+    page = 0
+    if pagination and "page=" in split_data[-1]:
+        page = int(split_data.pop(-1).replace("page=", ""))
+
+    if ctx is not None and not autoboard and pagination and ctx.author.id != ctx.message.interaction.author.id and page != -1:
+        await ctx.send("Must run the command to interact with pagination", ephemeral=True)
+        return None, 0
+
+    page = max(page, 0)
 
     parser_split = parser.split(':')
     hold_kwargs = {'bot': bot, 'server': guild, 'locale': locale}
@@ -53,10 +66,9 @@ async def button_logic(
     embed = await function(**hold_kwargs)
 
     components = 0
-    components_function = None
-    if components_function:
-        hold_kwargs['ctx'] = ctx
-        components = await components_function(**hold_kwargs)
+    if pagination and isinstance(embed, list):
+        components = button_generator(button_id=":".join(split_data), current_page=page, max_page=len(embed), bot=bot)
+        embed = embed[min(len(embed) - 1, page)]
 
     if no_embed:
         return None, 0

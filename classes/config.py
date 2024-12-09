@@ -41,3 +41,5 @@ class Config:
         self.emoji_url = "https://assets.clashk.ing/bot/emojis.json"
 
         self.clashofstats_user_agent = remote_settings.get('clashofstats_user_agent')
+
+        self.gitbook_token = remote_settings.get('gitbook_token')

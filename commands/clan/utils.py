@@ -44,7 +44,7 @@ async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake
         winrate = 'Hidden Log'
 
     if str(clan.location) == 'International':
-        flag = '<a:earth:861321402909327370>'
+        flag = bot.emoji.earth
     else:
         try:
             flag = f':flag_{clan.location.country_code.lower()}:'
@@ -52,7 +52,7 @@ async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake
             flag = 'ðŸ�³ï¸�'
 
     ranking = LegendRanking(clan_legend_ranking)
-    rank_text = f'<a:earth:861321402909327370> {ranking.global_ranking} | '
+    rank_text = f'{bot.emoji.earth} {ranking.global_ranking} | '
 
     try:
         location_name = clan.location.name

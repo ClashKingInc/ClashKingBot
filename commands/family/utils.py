@@ -644,7 +644,7 @@ async def family_troop_progress(
     return [embed, totals_embed]
 
 
-@register_button('familysorted', parser='_:server:sort_by:limit:townhall')
+@register_button('familysorted', parser='_:server:sort_by:limit:townhall', pagination=True)
 async def family_sorted(
     bot: CustomClient,
     server: disnake.Guild,
@@ -716,55 +716,70 @@ async def family_sorted(
     players = players[:limit]
     longest = get_longest(players=players, attribute=sort_by)
 
-    text = ''
-    for count, player in enumerate(players, 1):
-        if sort_by in ['role', 'tag', 'heroes', 'ach_Friend in Need', 'town_hall']:
-            emoji = bot.fetch_emoji(player.town_hall)
-        elif sort_by in [
-            'versus_trophies',
-            'versus_attack_wins',
-            'ach_Champion Builder',
-        ]:
-            emoji = bot.emoji.versus_trophy
-        elif sort_by in ['trophies', 'ach_Sweet Victory!']:
-            emoji = bot.emoji.trophy
-        elif sort_by in ['season_rank']:
-            emoji = bot.fetch_emoji("Legend Shield")
-        elif sort_by in ['clan_capital_contributions', 'ach_Aggressive Capitalism']:
-            emoji = bot.emoji.capital_gold
-        elif sort_by in ['exp_level']:
-            emoji = bot.emoji.xp
-        elif sort_by in ['ach_Nice and Tidy']:
-            emoji = bot.emoji.clock
-        elif sort_by in ['ach_Heroic Heist']:
-            emoji = bot.emoji.dark_elixir
-        elif sort_by in ['ach_War League Legend', 'war_stars']:
-            emoji = bot.emoji.war_star
-        elif sort_by in ['ach_Conqueror', 'attack_wins']:
-            emoji = bot.emoji.thick_capital_sword
-        elif sort_by in ['ach_Unbreakable']:
-            emoji = bot.emoji.shield
-        elif sort_by in ['ach_Games Champion']:
-            emoji = bot.emoji.clan_games
+    embeds = []
+    chunk_size = 50
+    current_index = 1  # Keep track of global numbering
 
-        spot = f'{count}.'
-        if 'ach_' not in sort_by and sort_by not in ['season_rank', 'heroes']:
-            text += f'`{spot:3}`{emoji}`{player.__getattribute__(sort_by):{longest}} {player.name[:15]}`\n'
-        elif 'ach_' in sort_by:
-            text += f"`{spot:3}`{emoji}`{player.get_achievement(name=sort_by.split('_')[-1], default_value=0).value:{longest}} {player.name[:13]}`\n"
-        elif sort_by == 'season_rank':
-            try:
-                rank = player.legend_statistics.best_season.rank
-            except:
-                rank = ' N/A'
-            text += f'`{spot:3}`{emoji}`#{rank:<{longest}} {player.name[:15]}`\n'
-        else:
-            cum_heroes = sum([hero.level for hero in player.heroes if hero.is_home_base])
-            text += f'`{spot:3}`{emoji}`{cum_heroes:3} {player.name[:15]}`\n'
+    # Split players into chunks of 50
+    for chunk in [players[i:i + chunk_size] for i in range(0, len(players), chunk_size)]:
+        text = ''
+        for player in chunk:
+            if sort_by in ['role', 'tag', 'heroes', 'ach_Friend in Need', 'town_hall']:
+                emoji = bot.fetch_emoji(player.town_hall)
+            elif sort_by in [
+                'versus_trophies',
+                'versus_attack_wins',
+                'ach_Champion Builder',
+            ]:
+                emoji = bot.emoji.versus_trophy
+            elif sort_by in ['trophies', 'ach_Sweet Victory!']:
+                emoji = bot.emoji.trophy
+            elif sort_by in ['season_rank']:
+                emoji = bot.fetch_emoji("Legend Shield")
+            elif sort_by in ['clan_capital_contributions', 'ach_Aggressive Capitalism']:
+                emoji = bot.emoji.capital_gold
+            elif sort_by in ['exp_level']:
+                emoji = bot.emoji.xp
+            elif sort_by in ['ach_Nice and Tidy']:
+                emoji = bot.emoji.clock
+            elif sort_by in ['ach_Heroic Heist']:
+                emoji = bot.emoji.dark_elixir
+            elif sort_by in ['ach_War League Legend', 'war_stars']:
+                emoji = bot.emoji.war_star
+            elif sort_by in ['ach_Conqueror', 'attack_wins']:
+                emoji = bot.emoji.thick_capital_sword
+            elif sort_by in ['ach_Unbreakable']:
+                emoji = bot.emoji.shield
+            elif sort_by in ['ach_Games Champion']:
+                emoji = bot.emoji.clan_games
 
-    embed = disnake.Embed(title=f'{server.name} sorted by {og_sort}', description=text, color=embed_color)
-    embed.timestamp = pend.now(tz=pend.UTC)
-    return embed
+            spot = f'{current_index}.'
+            if 'ach_' not in sort_by and sort_by not in ['season_rank', 'heroes']:
+                text += f'`{spot:3}`{emoji}`{player.__getattribute__(sort_by):{longest}} {player.name[:15]}`\n'
+            elif 'ach_' in sort_by:
+                text += f"`{spot:3}`{emoji}`{player.get_achievement(name=sort_by.split('_')[-1], default_value=0).value:{longest}} {player.name[:13]}`\n"
+            elif sort_by == 'season_rank':
+                try:
+                    rank = player.legend_statistics.best_season.rank
+                except:
+                    rank = ' N/A'
+                text += f'`{spot:3}`{emoji}`#{rank:<{longest}} {player.name[:15]}`\n'
+            else:
+                cum_heroes = sum([hero.level for hero in player.heroes if hero.is_home_base])
+                text += f'`{spot:3}`{emoji}`{cum_heroes:3} {player.name[:15]}`\n'
+
+            current_index += 1  # Increment the global numbering
+
+        # Create an embed for this chunk
+        embed = disnake.Embed(
+            title=f'{server.name} sorted by {og_sort}',
+            description=text,
+            color=embed_color
+        )
+        embed.timestamp = pend.now(tz=pend.UTC)
+        embeds.append(embed)
+
+    return embeds
 
 
 @register_button('familydonos', parser='_:server:season:townhall:limit:sort_by:sort_order')

@@ -8,6 +8,45 @@ from classes.player.stats import StatsPlayer
 from utility.constants import BOARD_TYPES
 
 
+def button_generator(bot: CustomClient, button_id: str, current_page: int, max_page: int):
+    if max_page == 1:
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(
+                label='',
+                emoji=bot.emoji.refresh.partial_emoji,
+                style=disnake.ButtonStyle.grey,
+                custom_id=f'{button_id}:page=-1',
+            )
+        )
+        return [buttons]
+
+    page_buttons = [
+        disnake.ui.Button(
+            label='Prev',
+            style=disnake.ButtonStyle.grey,
+            disabled=(current_page == 0),
+            custom_id=f'{button_id}:page={current_page - 1}',
+        ),
+        disnake.ui.Button(
+            label=f'{current_page + 1}/{max_page}',
+            style=disnake.ButtonStyle.grey,
+            disabled=True,
+        ),
+        disnake.ui.Button(
+            label='Next',
+            style=disnake.ButtonStyle.grey,
+            disabled=(current_page == max_page - 1),
+            custom_id=f'{button_id}:page={current_page + 1}',
+        ),
+    ]
+
+    buttons = disnake.ui.ActionRow()
+    for button in page_buttons:
+        buttons.append_item(button)
+
+    return [buttons]
+
 def create_components(current_page, embeds, print: bool = False):
     length = len(embeds)
     if length == 1:

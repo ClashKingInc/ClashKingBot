@@ -1,6 +1,7 @@
 from disnake.ext import commands
 
 from discord import options
+from utility.components import button_generator
 from .utils import *
 
 
@@ -235,7 +236,7 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
         ctx: disnake.ApplicationCommandInteraction,
         sort_by: str = commands.Param(choices=sorted(item_to_name.keys())),
         townhall: int = None,
-        limit: int = commands.Param(default=50, min_value=1, max_value=50),
+        limit: int = commands.Param(default=50, min_value=1, max_value=1000),
         server: disnake.Guild = options.optional_family,
     ):
         """
@@ -246,7 +247,7 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
         """
         server = server or ctx.guild
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
-        embed = await family_sorted(
+        embeds = await family_sorted(
             bot=self.bot,
             server=server,
             sort_by=sort_by,
@@ -255,16 +256,12 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
             embed_color=embed_color,
         )
 
-        buttons = disnake.ui.ActionRow()
-        buttons.append_item(
-            disnake.ui.Button(
-                label='',
-                emoji=self.bot.emoji.refresh.partial_emoji,
-                style=disnake.ButtonStyle.grey,
-                custom_id=f'familysorted:{server.id}:{sort_by}:{limit}:{townhall}',
-            )
-        )
-        await ctx.edit_original_message(embed=embed, components=[buttons])
+        components = button_generator(button_id=f'familysorted:{server.id}:{sort_by}:{limit}:{townhall}',
+                                      current_page=0, max_page=len(embeds), bot=self.bot)
+
+        await ctx.edit_original_message(embed=embeds[0], components=components)
+
+
 
     @family.sub_command(name='donations', description='Donation stats for a family')
     async def donations(

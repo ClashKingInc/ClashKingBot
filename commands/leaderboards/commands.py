@@ -53,7 +53,11 @@ class Leaderboards(commands.Cog, name='Leaderboards'):
 
         if type == 'HV Players':
             embeds = await hv_player_leaderboard(
-                bot=self.bot, country_name=country.capitalize(), rankings=rankings, location_emoji=location_emoji, embed_color=embed_color
+                bot=self.bot,
+                country_name=country.capitalize(),
+                rankings=rankings,
+                location_emoji=location_emoji,
+                embed_color=embed_color
             )
         elif type == 'HV Clans':
             embeds = await hv_clan_leaderboard(

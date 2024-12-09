@@ -1,5 +1,5 @@
 import os
-from typing import Callable, List, Union
+from typing import Callable, List, Union, Dict, Tuple, Any
 
 import disnake
 import motor.motor_asyncio
@@ -202,6 +202,7 @@ async def interaction_handler(
     return (modal_inter, embed)"""
 
 
+#jesus what is this trash lmao
 def iter_embed_creation(base_embed: disnake.Embed, iter: List, scheme: str, brk: int = 50) -> List[disnake.Embed]:
 
     embeds = []
@@ -220,7 +221,7 @@ def iter_embed_creation(base_embed: disnake.Embed, iter: List, scheme: str, brk:
     return embeds
 
 
-registered_functions = {}
+registered_functions: Dict[str, Tuple[Callable[..., None] | None, str, bool, bool, bool]] = {}
 
 
 def register_button(
@@ -228,10 +229,10 @@ def register_button(
     parser: str,
     ephemeral: bool = False,
     no_embed: bool = False,
-    components: Callable = None,
+    pagination: bool = True
 ):
-    def decorator(func):
-        registered_functions[command_name] = (func, parser, ephemeral, no_embed)
+    def decorator(func: Callable[..., None]) -> Callable[..., None]:
+        registered_functions[command_name] = (func, parser, ephemeral, no_embed, pagination)
         return func
 
     return decorator

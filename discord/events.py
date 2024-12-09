@@ -171,62 +171,72 @@ class DiscordEvents(commands.Cog):
     @commands.Cog.listener()
     async def on_application_command(self, ctx: disnake.ApplicationCommandInteraction):
         sent_support_msg = False
+
         try:
             msg = await ctx.original_message()
             if not msg.flags.ephemeral:
+                # Check the last support message sent
                 last_run = await self.bot.command_stats.find_one(
                     filter={'$and': [{'user': ctx.author.id}, {'sent_support_msg': True}]},
-                    sort=[('time', -1)],
+                    sort=[('time', -1)]
                 )
-                if last_run is None or int(pend.now(tz=pend.UTC).timestamp()) - last_run.get('time') >= 7 * 86400:
-                    tries = 0
-                    while msg.flags.loading:
-                        tries += 1
+                current_time = int(pend.now(tz=pend.UTC).timestamp())
+                week_in_seconds = 7 * 86400
+
+                if last_run is None or current_time - last_run.get('time', 0) >= week_in_seconds:
+                    # Wait until the message is no longer loading
+                    for _ in range(10):
+                        if not msg.flags.loading:
+                            break
                         await asyncio.sleep(1.5)
                         msg = await ctx.channel.fetch_message(msg.id)
-                        if tries == 10:
-                            break
-                    if tries != 10:
+
+                    if not msg.flags.loading:
                         commands_run_by_user = await self.bot.command_stats.count_documents({'user': ctx.author.id})
                         sent_support_msg = True
+
                         file = disnake.File('assets/support.png')
                         buttons = disnake.ui.ActionRow(
                             disnake.ui.Button(
                                 label='Creator Code',
                                 style=disnake.ButtonStyle.url,
-                                url='https://code.clashk.ing',
+                                url='https://code.clashk.ing'
                             ),
                             disnake.ui.Button(
                                 label='Server',
                                 style=disnake.ButtonStyle.url,
-                                url='https://discord.gg/clashking',
+                                url='https://discord.gg/clashking'
                             ),
                             disnake.ui.Button(
                                 label='X',
                                 style=disnake.ButtonStyle.url,
-                                url='https://x.clashk.ing',
+                                url='https://x.clashk.ing'
                             ),
                             disnake.ui.Button(
                                 label='Patreon',
                                 style=disnake.ButtonStyle.url,
-                                url='https://support.clashk.ing',
+                                url='https://support.clashk.ing'
                             ),
                             disnake.ui.Button(
                                 label='Github',
                                 style=disnake.ButtonStyle.url,
-                                url='https://git.clashk.ing',
-                            ),
+                                url='https://git.clashk.ing'
+                            )
                         )
+
                         await ctx.followup.send(
-                            content=f'You have run {commands_run_by_user} commands on ClashKing!\n'
-                            f'- This message is only sent once weekly\n'
-                            f'- Your support means a lot! Use our creator code for your purchases, star us on GitHub, or follow us on Twitter. ',
+                            content=(
+                                f'You have run {commands_run_by_user} commands on ClashKing!\n'
+                                f'- This message is only sent once weekly\n'
+                                f'- Your support means a lot! Use our creator code for your purchases, star us on GitHub, or follow us on Twitter.'
+                            ),
                             file=file,
                             components=[buttons],
-                            ephemeral=True,
+                            ephemeral=True
                         )
-        except Exception:
-            pass
+                        sent_support_msg = True
+        except Exception as e:
+            print(f"Error in sending weekly support message: {e}")
 
         await self.bot.command_stats.insert_one(
             {
@@ -242,6 +252,8 @@ class DiscordEvents(commands.Cog):
                 'is_bot_dev': ctx.user.public_flags.verified_bot_developer,
                 'bot': ctx.bot.user.id,
                 'sent_support_msg': sent_support_msg,
+                'interaction_id' : ctx.id,
+                'options' : ctx.filled_options
             }
         )
 
