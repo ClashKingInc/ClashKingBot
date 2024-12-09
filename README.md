@@ -34,7 +34,6 @@
 ## ClashKing  
   
 An open-source Clash of Clans Discord Bot pushing the boundaries of what is possible!  
-It provides tools for managing clans, tracking player stats, and much more, ensuring seamless clan operations and engaging Discord interactions.  
   
 ### Features  
   
