@@ -10,21 +10,25 @@ class BackgroundCache(commands.Cog):
 
     @tasks.loop(seconds=60)
     async def guilds_store(self):
-        if not self.bot.user.public_flags.verified_bot and self.bot.user.id != 808566437199216691:
-            guild_id_list = [guild.id for guild in self.bot.guilds]
-            await self.bot.custom_bots.update_one(
-                {'token': self.bot._config.bot_token},
-                {'$set': {'server_ids': guild_id_list}},
-            )
-        else:
-            guild_id_list = [guild.id for guild in self.bot.guilds]
-            custom_bot_guilds = set(await self.bot.custom_bots.distinct('server_ids'))
-            guild_id_list = [id for id in guild_id_list if id not in custom_bot_guilds]
+        guild_id_list = set()
+        total_members = 0
+        server_names = []
+        for guild in self.bot.guilds:
+            guild_id_list.add(guild.id)
+            total_members += guild.member_count
+            server_names.append(f"{guild.name} | {guild.id}")
 
-        self.bot.OUR_GUILDS = set(guild_id_list)
-        clan_tags = await self.bot.clan_db.distinct('tag', filter={'server': {'$in': guild_id_list}})
+        self.bot.OUR_GUILDS = guild_id_list
+        clan_tags = await self.bot.clan_db.distinct('tag', filter={'server': {'$in': list(guild_id_list)}})
         self.bot.OUR_CLANS = set(clan_tags)
-        self.bot.CLANS_LOADED = True
+
+        await self.bot.bot_sync.update_one({"$and" : [{"type" : "server_counts", "bot_id" : self.bot.user.id, "cluster_id" : self.bot._config.cluster_id}]},
+                                           {"$set" : {"server_count" : len(guild_id_list), "member_count" : total_members,
+                                                      "shards" : self.bot.shard_ids, "clan_count" : len(clan_tags)}}, upsert=True)
+
+        await self.bot.bot_sync.update_one(
+            {"$and": [{"type": "servers", "bot_id": self.bot.user.id, "cluster_id": self.bot._config.cluster_id}]},
+            {"$set": {"names" : server_names}}, upsert=True)
 
     @guilds_store.before_loop
     async def before_guilds_store(self):

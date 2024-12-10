@@ -64,7 +64,6 @@ class CustomClient(commands.AutoShardedBot):
         self._config = config
 
         self.OUR_CLANS = set()
-        self.CLANS_LOADED = False
 
         self.scheduler = scheduler
         self.ck_client: FamilyClient = None
@@ -102,6 +101,8 @@ class CustomClient(commands.AutoShardedBot):
         self.clan_cache: collection_class = self.new_looper.clan_cache
         self.excel_templates: collection_class = self.looper_db.clashking.excel_templates
         self.lineups: collection_class = self.looper_db.clashking.lineups
+        self.bot_sync: collection_class = self.looper_db.clashking.bot_sync
+
         self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(
             discordlinks.login(self._config.link_api_username, self._config.link_api_password)
         )

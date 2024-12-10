@@ -14,7 +14,7 @@ server_settings = db_client.usafam.server
 
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
-        # if owner, allow to run
+        # if dev, allow to run
         if ctx.author.id == 706149153431879760:
             return True
 

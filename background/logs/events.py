@@ -28,7 +28,7 @@ async def kafka_events(bot: 'CustomClient'):
     background_tasks = set()
     while True:
         clans = set()
-        while not bot.CLANS_LOADED:
+        while not bot.OUR_CLANS:
             await asyncio.sleep(15)
         try:
             async with websockets.connect(
