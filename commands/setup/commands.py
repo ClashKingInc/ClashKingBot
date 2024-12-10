@@ -1,12 +1,8 @@
-import asyncio
-import re
-import secrets
+
 from typing import Union
 
-import aiohttp
 import coc
 import disnake
-from aiohttp import TCPConnector
 from disnake.ext import commands
 
 from classes.DatabaseClient.Classes.settings import DatabaseClan
@@ -16,6 +12,7 @@ from exceptions.CustomExceptions import *
 from utility.components import clan_component
 from utility.discord_utils import check_commands, get_webhook_for_channel, interaction_handler
 from utility.general import calculate_time, get_guild_icon
+from .utils import add_clan
 
 
 class SetupCommands(commands.Cog, name='Setup'):
@@ -106,15 +103,16 @@ class SetupCommands(commands.Cog, name='Setup'):
             embed.set_thumbnail(url=ctx.guild.icon.url)
         await ctx.edit_original_message(embed=embed)
 
+
     @setup.sub_command(name='clan', description='Set settings for a clan')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def clan_settings(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         clan: coc.Clan = options.clan,
-        member_role: disnake.Role = None,
-        leadership_role: disnake.Role = None,
-        clan_channel: Union[disnake.TextChannel, disnake.Thread] = None,
+        member_role: disnake.Role = commands.Param(description="Role assigned to clan members", default=None),
+        leadership_role: disnake.Role = commands.Param(description="Role assigned to clan coleads + leader", default=None),
+        clan_channel: Union[disnake.TextChannel, disnake.Thread] = commands.Param(description="Channel where ban & welcome messages go"),
         greeting: str = commands.Param(autocomplete=autocomplete.embeds, default=None),
         auto_greet: str = commands.Param(choices=['Never', 'First Join', 'Every Join'], default=None),
         category: str = commands.Param(default=None, autocomplete=autocomplete.category),

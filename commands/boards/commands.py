@@ -121,7 +121,7 @@ class MessageCommands(commands.Cog):
             select = disnake.ui.Select(
                 placeholder="Select days",
                 min_values=1,
-                max_values=12,
+                max_values=7,
                 options=[
                     disnake.SelectOption(label="Monday", value="monday"),
                     disnake.SelectOption(label="Tuesday", value="tuesday"),
@@ -130,11 +130,6 @@ class MessageCommands(commands.Cog):
                     disnake.SelectOption(label="Friday", value="friday"),
                     disnake.SelectOption(label="Saturday", value="saturday"),
                     disnake.SelectOption(label="Sunday", value="sunday"),
-                    disnake.SelectOption(label="End of Season", value="end_of_season"),
-                    disnake.SelectOption(label="Clan Games End", value="clan_games_end"),
-                    disnake.SelectOption(label="Raid Weekend End", value="raid_weekend_end"),
-                    disnake.SelectOption(label="CWL End", value="cwl_end"),
-                    disnake.SelectOption(label="End of Month", value="end_of_month"),
                 ]
             )
             await ctx.edit_original_response(content="When would you like to autopost?\n"
@@ -142,11 +137,20 @@ class MessageCommands(commands.Cog):
                                              components=[disnake.ui.ActionRow(select)]
                                              )
             res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
+            webhook = await get_webhook_for_channel(channel=message.channel, bot=self.bot)
+            thread = None
+            if isinstance(message.channel, disnake.Thread):
+                await message.channel.add_user(self.bot.user)
+                thread = message.channel.id
+
             await self.bot.autoboards.insert_one({
                 'type': "post",
                 'server_id': ctx.guild.id,
                 'button_id': custom_id,
-                'days' : res.values
+                "webhook_id" : webhook.id,
+                "thread_id" : thread,
+                'days' : res.values,
+                'locale' : str(ctx.locale)
             })
             await message.delete()
             await ctx.edit_original_message('Auto Post Board Created', components=[])
@@ -169,12 +173,13 @@ class MessageCommands(commands.Cog):
             else:
                 webhook_message = await webhook.send(embed=placeholder, wait=True)
             await self.bot.autoboards.update_one(
-                {'$and': [{'button_id': custom_id}, {'server': ctx.guild_id}, {'type' : "refresh"}]},
+                {'$and': [{'button_id': custom_id}, {'server_id': ctx.guild_id}, {'type' : "refresh"}]},
                 {
                     '$set': {
                         'webhook_id': webhook.id,
                         'thread_id': thread,
                         'message_id': webhook_message.id,
+                        'locale': str(ctx.locale)
                     }
                 },
                 upsert=True,
