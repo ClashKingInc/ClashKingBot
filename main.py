@@ -33,7 +33,6 @@ initial_extensions = [
     'discord.events',
     'discord.autocomplete',
     'discord.converters',
-    "exceptions.handler",
     'background.tasks.background_cache',
     'background.features.link_parsers',
 ]
@@ -41,6 +40,7 @@ initial_extensions = [
 # only the local version can not run
 if not config.is_beta:
     initial_extensions += [
+        "exceptions.handler",
         'background.logs.autorefresh',
         'background.logs.bans',
         'background.logs.capital',

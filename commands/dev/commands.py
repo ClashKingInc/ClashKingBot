@@ -14,6 +14,7 @@ import aiohttp
 import uuid
 import random
 from classes.bot import CustomClient
+import os
 
 
 class OwnerCommands(commands.Cog):
@@ -22,7 +23,48 @@ class OwnerCommands(commands.Cog):
         self.count = 0
         self.model = None
 
-    @commands.slash_command(name="dev", guild_ids=[923764211845312533])
+    @commands.command(name="reload_all", help="Reload all cogs automatically.", guild_ids=[923764211845312533, 1210616106448978001])
+    @commands.is_owner()  # Restrict to the bot owner
+    async def reload_all(self, ctx):
+        """
+        Reloads all cogs found in the `commands` directory with 'commands' in their path.
+        """
+        disallowed = set()  # Add cogs to ignore here if necessary
+        reloaded_cogs = []
+        failed_cogs = []
+
+        # Dynamically find all cogs in the `commands` directory
+        for root, _, files in os.walk("commands"):
+            for filename in files:
+                if filename.endswith(".py"):  # Only include Python files
+                    path = os.path.join(root, filename)[len("commands/"):][:-3].replace(os.path.sep, ".")
+
+                    # Check if 'commands' is part of the path to filter utils and other submodules
+                    if not path.endswith("commands"):
+                        continue
+
+                    if path.split(".")[0] in disallowed:  # Exclude disallowed cogs
+                        continue
+
+                    cog = f"commands.{path}"
+                    try:
+                        self.bot.reload_extension(cog)
+                        reloaded_cogs.append(cog)
+                    except Exception as e:
+                        failed_cogs.append((cog, str(e)))
+
+        # Format the response
+        success_msg = "\n".join([f"✅ {cog}" for cog in reloaded_cogs]) or "No cogs were reloaded."
+        error_msg = "\n".join([f"❌ {cog}: {error}" for cog, error in failed_cogs]) or "No errors occurred."
+
+        embed = disnake.Embed(
+            title="🔄 Reload All Cogs",
+            description=f"**Reloaded Cogs:**\n{success_msg}\n\n**Errors:**\n{error_msg}",
+            color=disnake.Color.blurple(),
+        )
+        await ctx.send(embed=embed)
+
+    @commands.slash_command(name="dev", guild_ids=[923764211845312533, 1210616106448978001])
     @commands.is_owner()
     async def dev(self, ctx: ApplicationCommandInteraction):
         pass
@@ -109,7 +151,7 @@ class OwnerCommands(commands.Cog):
             else:
                 for x in range(0, len(v), 4000):
                     if x + 4000 < len(v):
-                        buffer.append(v[x : x + 4000])
+                        buffer.append(v[x: x + 4000])
                     else:
                         buffer.append(v[x:])
         buffer.append(buf)
@@ -129,19 +171,13 @@ class OwnerCommands(commands.Cog):
             for i, b in enumerate(buffer):
                 await ctx.followup.send(embed=disnake.Embed(description=f'```py\n{b}```'))
 
-
     @dev.sub_command(name='test', description="Arbitrary command")
     async def test(self, ctx: ApplicationCommandInteraction):
         pass
 
-
     @dev.sub_command(name='autoboard-limit', description="Set a new autoboard limit for a server")
     async def autoboard_limit(self, ctx: ApplicationCommandInteraction, server, limit: int):
         pass
-
-
-
-
 
 
 
