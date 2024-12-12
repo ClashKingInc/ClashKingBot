@@ -66,6 +66,7 @@ class CustomClient(commands.AutoShardedBot):
         self.OUR_CLANS = set()
 
         self.SHARD_DATA: list[ShardData] = []
+        self.SERVER_MAP: dict[int, ShardServers] = {}
 
         self.scheduler = scheduler
         self.ck_client: FamilyClient = None

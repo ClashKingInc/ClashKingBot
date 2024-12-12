@@ -83,31 +83,31 @@ class BanEvents(commands.Cog):
                         server_list = []
                         if self.bot.user.public_flags.verified_bot:
                             for banned_server in servers_banned_in:
-                                banned_server = self.bot.get_guild(banned_server)
+                                banned_server = self.bot.SERVER_MAP.get(banned_server)
                                 if banned_server is not None:
                                     server_list.append(f'{banned_server.name} ({banned_server.member_count} members)')
                             server_list = ':\n' + '\n'.join(server_list)
-                        if not server_list:
-                            server_list = ''
-                        embed = disnake.Embed(
-                            description=f'[WARNING! {member.name} JOINED]({member.share_link})\n'
-                            f'This player has been banned in {len(servers_banned_in)} other server(s){server_list}\n'
-                            f'This is just a warning, purely for informational purposes & can be dismissed with the button below.',
-                            color=disnake.Color.yellow(),
-                        )
-                        embed.set_thumbnail(url='https://clashkingfiles.b-cdn.net/bot/warning.jpg')
-                        try:
-                            buttons = disnake.ui.ActionRow(
-                                disnake.ui.Button(label='Dismiss', style=disnake.ButtonStyle.grey, custom_id=f'DismissWarn_{member.tag}')
+
+                        if server_list:
+                            embed = disnake.Embed(
+                                description=f'[WARNING! {member.name} JOINED]({member.share_link})\n'
+                                f'This player has been banned in {len(servers_banned_in)} other server(s){server_list}\n'
+                                f'This is just a warning, purely for informational purposes & can be dismissed with the button below.',
+                                color=disnake.Color.yellow(),
                             )
-                            channel = await self.bot.getch_channel(channel_id=db_clan.ban_alert_channel or db_clan.clan_channel)
-                            await channel.send(embed=embed, components=[buttons])
-                        except (disnake.NotFound, disnake.Forbidden):
-                            if db_clan.ban_alert_channel is None:
-                                await db_clan.set_clan_channel(id=None)
-                            else:
-                                await db_clan.set_ban_alert_channel(id=None)
-                            continue
+                            embed.set_thumbnail(url='https://clashkingfiles.b-cdn.net/bot/warning.jpg')
+                            try:
+                                buttons = disnake.ui.ActionRow(
+                                    disnake.ui.Button(label='Dismiss', style=disnake.ButtonStyle.grey, custom_id=f'DismissWarn_{member.tag}')
+                                )
+                                channel = await self.bot.getch_channel(channel_id=db_clan.ban_alert_channel or db_clan.clan_channel)
+                                await channel.send(embed=embed, components=[buttons])
+                            except (disnake.NotFound, disnake.Forbidden):
+                                if db_clan.ban_alert_channel is None:
+                                    await db_clan.set_clan_channel(id=None)
+                                else:
+                                    await db_clan.set_ban_alert_channel(id=None)
+                                continue
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):

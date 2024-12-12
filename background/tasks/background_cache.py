@@ -29,6 +29,7 @@ class BackgroundCache(commands.Cog):
         shard_data = await self.bot.bot_sync.find({"bot_id" : self.bot.user.id}).to_list(length=None)
         self.bot.SHARD_DATA = [ShardData(data=d) for d in shard_data]
 
+        self.bot.SERVER_MAP = {g.id : g for shard in self.bot.SHARD_DATA for g in shard.servers}
 
     @guilds_store.before_loop
     async def before_guilds_store(self):
