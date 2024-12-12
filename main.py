@@ -33,14 +33,15 @@ initial_extensions = [
     'discord.events',
     'discord.autocomplete',
     'discord.converters',
-    "exceptions.handler",
     'background.tasks.background_cache',
     'background.features.link_parsers',
+    "background.features.refresh_boards",
 ]
 
 # only the local version can not run
 if not config.is_beta:
     initial_extensions += [
+        "exceptions.handler",
         'background.logs.autorefresh',
         'background.logs.bans',
         'background.logs.capital',
@@ -53,11 +54,9 @@ if not config.is_beta:
         'background.features.voicestat_loop',
         "background.features.auto_refresh",
         'background.logs.war',
+        "background.features.refresh_boards"
     ]
 
-disallowed = set()
-if config.is_custom:
-    disallowed.add('owner')
 
 if __name__ == '__main__':
     sentry_sdk.init(
@@ -66,7 +65,7 @@ if __name__ == '__main__':
         profiles_sample_rate=1.0,
         before_send=sentry_filter,
     )
-    initial_extensions += load_cogs(disallowed=disallowed)
+    initial_extensions += load_cogs(disallowed=set())
     for count, extension in enumerate(initial_extensions):
         try:
             bot.load_extension(extension)

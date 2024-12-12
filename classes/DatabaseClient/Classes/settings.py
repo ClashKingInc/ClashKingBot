@@ -22,6 +22,9 @@ class DatabaseServer:
         self.__data = data
         self._data = data
         self.server_id = data.get('server')
+
+        self.autoboard_limit = data.get('autoboard_limit', 0)
+
         self.leadership_eval = data.get('leadership_eval', True)
         self.prefix = data.get('prefix', 'do ')
         self.greeting = data.get('greeting')
@@ -114,6 +117,9 @@ class DatabaseServer:
 
     async def set_api_token(self, status: bool):
         await self.bot.server_db.update_one({'server': self.server_id}, {'$set': {'api_token': status}})
+
+    async def set_autoboard_limit(self, limit: int):
+        await self.bot.server_db.update_one({'server': self.server_id}, {'$set': {'autoboard_limit': limit}})
 
     async def set_leadership_eval(self, status: bool):
         await self.bot.server_db.update_one({'server': self.server_id}, {'$set': {'leadership_eval': status}})

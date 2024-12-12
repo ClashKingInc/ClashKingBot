@@ -170,13 +170,14 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
 
     async def server(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         matches = []
-        for guild in self.bot.guilds:
-            if guild.member_count < 250:
-                continue
-            if query.lower() in guild.name.lower():
-                matches.append(f'{guild.name} | {guild.id}')
-            if len(matches) == 25:
-                break
+        for shard in self.bot.SHARD_DATA:
+            for server in shard.servers:
+                if server.member_count < 250:
+                    continue
+                if query.lower() in server.name.lower():
+                    matches.append(f'{server.name} | {server.id}')
+                if len(matches) == 25:
+                    break
         return matches
 
     async def timezone(self, ctx: disnake.ApplicationCommandInteraction, query: str):

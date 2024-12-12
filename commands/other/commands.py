@@ -97,39 +97,151 @@ class misc(commands.Cog, name='Other'):
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)
 
-    @commands.slash_command(name='bot-stats', description='Stats about bots uptime & ping')
+    @commands.slash_command(name='bot', description='View detailed bot statistics, both global and per-shard.')
     async def stat(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
-        uptime = time.time() - self.up
-        uptime = time.strftime('%H hours %M minutes %S seconds', time.gmtime(uptime))
+
+        # Use cluster_id from config
+        cluster_id = self.bot._config.cluster_id
+
+        # Calculate uptime
+        uptime_seconds = time.time() - self.up
+        uptime_str = time.strftime('%H hours %M minutes %S seconds', time.gmtime(uptime_seconds))
+
+        # If the bot is running locally without shards, shard_count could be None or 1
+        # Similarly, ctx.guild.shard_id might not exist if there is only one shard (or no shards).
+        shard_count = self.bot.shard_count if self.bot.shard_count else 1
+        current_shard_id = getattr(ctx.guild, "shard_id", 0)
+
+        # Gather global stats from SHARD_DATA
+        total_servers = sum(d.server_count for d in self.bot.SHARD_DATA)
+        total_members = sum(d.member_count for d in self.bot.SHARD_DATA)
+        total_clans = sum(d.clan_count for d in self.bot.SHARD_DATA)
+
+        # Get this cluster's data from SHARD_DATA if available
+        cluster_data = [d for d in self.bot.SHARD_DATA if d.cluster_id == cluster_id]
+        if cluster_data:
+            c_data = cluster_data[0]
+        else:
+            c_data = None
+
+        # Local stats from the current shard/guild list
         me = self.bot.user.mention
+        inservers = len(self.bot.guilds)
+        chunked_guilds = len([g for g in self.bot.guilds if g.chunked])
+        members_local = sum(guild.member_count - 1 for guild in self.bot.guilds)
+        latency_ms = round(self.bot.latency * 1000, 2)
 
         num_clans = await self.bot.clan_db.count_documents({})
         num_tickets = await self.bot.open_tickets.count_documents({})
-        inservers = len(self.bot.guilds)
-        chunked_guilds = len([g for g in self.bot.guilds if g.chunked])
-        members = sum(guild.member_count - 1 for guild in self.bot.guilds)
-        if ctx.guild.shard_id in [1, 2]:
-            cluster_id = 1
-        elif ctx.guild.shard_id in [3, 4]:
-            cluster_id = 2
-        else:
-            cluster_id = 3
-        embed = disnake.Embed(
-            title=f'{self.bot.user.name} Stats',
-            description=f'<:bot:862911608140333086> Bot: {me}\n'
-            + f'<:discord:840749695466864650> Discord Api Ping: {round(self.bot.latency * 1000, 2)} ms\n'
-            + f'<:server:863148364006031422> In {str(inservers)} servers (Cluster {cluster_id})\n'
-            + f'<:server:863148364006031422> {str(chunked_guilds)} servers loaded\n'
-            + f'<:server:863148364006031422> Shard Count: {self.bot.shard_count}\n'
-            + f'<:server:863148364006031422> You are on shard {ctx.guild.shard_id}\n'
-            + f'<a:num:863149480819949568> Watching {members} users\n'
-            + f'🕐 Uptime: {uptime}\n'
-            f'Tracking {num_clans} clans\n'
-            f'{num_tickets} tickets opened\n',
-            color=disnake.Color.green(),
+
+        # Build the embed
+        embed = disnake.Embed(title=f"{self.bot.user.name} Statistics", color=disnake.Color.green())
+
+        # Basic bot stats
+        embed.add_field(
+            name="🤖 Bot",
+            value=f"{me}",
+            inline=True
         )
 
+        # Latency and uptime
+        embed.add_field(
+            name="🏓 Latency",
+            value=f"{latency_ms} ms",
+            inline=True
+        )
+
+        embed.add_field(
+            name="⏰ Uptime",
+            value=uptime_str,
+            inline=True
+        )
+
+        # Global stats across all shards
+        embed.add_field(
+            name="🌐 Global Servers",
+            value=f"{total_servers:,}",
+            inline=True
+        )
+
+        embed.add_field(
+            name="👥 Global Members",
+            value=f"{total_members:,}",
+            inline=True
+        )
+
+        embed.add_field(
+            name="🏆 Global Clans",
+            value=f"{total_clans:,}",
+            inline=True
+        )
+
+        # Stats for the current cluster
+        if c_data:
+            embed.add_field(
+                name=f"🏠 Cluster {c_data.cluster_id} Servers",
+                value=f"{c_data.server_count:,}",
+                inline=True
+            )
+
+            embed.add_field(
+                name=f"👥 Cluster {c_data.cluster_id} Members",
+                value=f"{c_data.member_count:,}",
+                inline=True
+            )
+
+            embed.add_field(
+                name=f"🏆 Cluster {c_data.cluster_id} Clans",
+                value=f"{c_data.clan_count:,}",
+                inline=True
+            )
+        else:
+            # If we don't have cluster data (local?), show shard-local info
+            embed.add_field(
+                name=f"🏠 Local Servers",
+                value=f"{inservers:,}",
+                inline=True
+            )
+
+            embed.add_field(
+                name=f"👥 Local Members",
+                value=f"{members_local:,}",
+                inline=True
+            )
+
+            embed.add_field(
+                name=f"🏆 Local Clans",
+                value=f"{num_clans:,}",
+                inline=True
+            )
+
+        # Shard info (gracefully handle no shards)
+        shard_info = f"**Total Shards:** {shard_count}"
+        if shard_count > 1:
+            shard_info += f"\n**Current Shard:** {current_shard_id}"
+        shard_info += f"\n**Cluster:** {cluster_id}"
+
+        embed.add_field(
+            name="🔧 Shard Info",
+            value=shard_info,
+            inline=False
+        )
+
+        # Additional stats
+        embed.add_field(
+            name="📂 Tickets Opened",
+            value=f"{num_tickets:,}",
+            inline=True
+        )
+
+        embed.add_field(
+            name="🗃️ Loaded Servers",
+            value=f"{chunked_guilds:,}",
+            inline=True
+        )
+
+        # Add buttons
         page_buttons = [
             disnake.ui.Button(
                 label='Bot Invite',
@@ -145,7 +257,9 @@ class misc(commands.Cog, name='Other'):
         buttons = disnake.ui.ActionRow()
         for button in page_buttons:
             buttons.append_item(button)
+
         await ctx.edit_original_message(embed=embed, components=[buttons])
+
 
     @commands.slash_command(name='debug', description='Debug issues on your server')
     async def debug(
@@ -308,70 +422,7 @@ class misc(commands.Cog, name='Other'):
                 await message.channel.send(f"</{message.content.replace('-/', '')}:{command.id}>")
             except Exception:
                 pass
-        elif message.content.startswith(self.bot.user.mention):
-            async with message.channel.typing():
-                query = message.content.replace(self.bot.user.mention, '').strip()
 
-                # Fetch the answer from GitBook API
-                gitbook_url = "https://api.gitbook.com/v1/spaces/iSJhS5UxZkjOhR5eSxhS/search/ask"
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(gitbook_url, params={"query": query}) as response:
-                        answer = await response.json() if response.status == 200 else None
-
-                if not answer:
-                    return
-
-                pages_to_find = {source["page"] for source in answer.get("answer", {}).get("sources", [])}
-
-                # Fetch GitBook content
-                content_url = "https://api.gitbook.com/v1/spaces/iSJhS5UxZkjOhR5eSxhS/content"
-                headers = {"Authorization": f"Bearer {self.bot._config.gitbook_token}"}
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(content_url, headers=headers) as response:
-                        content = await response.json() if response.status == 200 else None
-
-                if not content or "pages" not in content:
-                    return
-
-                # Extract page URLs
-                gitbook_urls = []
-                base_url = "https://docs.clashking.xyz"
-
-                def recurse_pages(pages):
-                    for page in pages:
-                        if page["id"] in pages_to_find:
-                            gitbook_urls.append(f"{base_url}/{page['path']}")
-                        if "pages" in page:
-                            recurse_pages(page["pages"])
-
-                recurse_pages(content["pages"])
-
-                if gitbook_urls:
-                    # Create buttons for each URL
-                    buttons = [
-                        Button(label=f"Source {i + 1}", url=url, style=ButtonStyle.link)
-                        for i, url in enumerate(gitbook_urls)
-                    ]
-
-                    # Group buttons into rows (max 5 per row)
-                    action_rows = [
-                        ActionRow(*buttons[i:i + 5]) for i in range(0, len(buttons), 5)
-                    ]
-
-                    # Send reply
-                    embed = disnake.Embed(
-                        description='This info is pulled from our [docs](https://docs.clashking.xyz), to try to help assist you.',
-                        color=disnake.Color.orange(),
-                    )
-                    if answer.get("answer", {}).get("text") is None:
-                        embed = None
-                        action_rows = None
-                    await message.reply(
-                        embed=embed,
-                        content=answer.get("answer", {}).get("text", "No answer found sorry, you can browse our docs [here](https://docs.clashk.ing) though."),
-                        components=action_rows,
-                        allowed_mentions=disnake.AllowedMentions.none(),
-                    )
 
 def setup(bot: CustomClient):
     bot.add_cog(misc(bot))

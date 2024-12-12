@@ -14,7 +14,7 @@ class RefreshBoards(commands.Cog):
         self.bot.scheduler.add_job(self.refresh, 'interval', minutes=30, misfire_grace_time=None)
         self.position_check: bool = False
         self.bot.scheduler.add_job(self.set_check_state, 'interval', hours=12, misfire_grace_time=None)
-        self.bot.scheduler.add_job(self.post, 'cron', hour=5, minute=0, misfire_grace_time=None)
+        self.bot.scheduler.add_job(self.post, 'cron', hour=4, minute=50, misfire_grace_time=None)
 
 
     async def set_check_state(self):
