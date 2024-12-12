@@ -139,7 +139,8 @@ class OwnerCommands(commands.Cog):
     async def autoboard_limit(self, ctx: ApplicationCommandInteraction,
                               server: disnake.Guild =commands.Param(converter=convert.server, default=None, autocomplete=autocomplete.all_server),
                               new_limit: int = commands.Param()):
-        db_server = await self.bot.ck_client.get_server_settings(server_id=server.guild_id)
+        await ctx.response.defer()
+        db_server = await self.bot.ck_client.get_server_settings(server_id=server.id)
         await db_server.set_autoboard_limit(limit=new_limit)
         await ctx.send(f"{server.name} autoboard limit set to {new_limit}")
 
