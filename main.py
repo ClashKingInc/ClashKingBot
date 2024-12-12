@@ -35,7 +35,6 @@ initial_extensions = [
     'discord.converters',
     'background.tasks.background_cache',
     'background.features.link_parsers',
-    "background.features.refresh_boards",
 ]
 
 # only the local version can not run
