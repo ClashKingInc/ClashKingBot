@@ -14,7 +14,7 @@ import aiohttp
 import uuid
 import random
 from classes.bot import CustomClient
-
+from discord import convert, autocomplete
 
 class OwnerCommands(commands.Cog):
     def __init__(self, bot: CustomClient):
@@ -136,8 +136,12 @@ class OwnerCommands(commands.Cog):
 
 
     @dev.sub_command(name='autoboard-limit', description="Set a new autoboard limit for a server")
-    async def autoboard_limit(self, ctx: ApplicationCommandInteraction, server, limit: int):
-        pass
+    async def autoboard_limit(self, ctx: ApplicationCommandInteraction,
+                              server: disnake.Guild =commands.Param(converter=convert.server, default=None, autocomplete=autocomplete.all_server),
+                              new_limit: int = commands.Param()):
+        db_server = await self.bot.ck_client.get_server_settings(server_id=server.guild_id)
+        await db_server.set_autoboard_limit(limit=new_limit)
+        await ctx.send(f"{server.name} autoboard limit set to {new_limit}")
 
 
 

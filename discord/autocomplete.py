@@ -180,6 +180,16 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
                     break
         return matches
 
+    async def all_server(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        matches = []
+        for shard in self.bot.SHARD_DATA:
+            for server in shard.servers:
+                if query.lower() in server.name.lower():
+                    matches.append(f'{server.name} | {server.id}')
+                if len(matches) == 25:
+                    break
+        return matches
+
     async def timezone(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         all_tz = pytz.common_timezones
         return_list = []
