@@ -11,10 +11,10 @@ from utility.discord_utils import get_webhook_for_channel
 class RefreshBoards(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
-        self.bot.scheduler.add_job(self.refresh, 'interval', minutes=30, misfire_grace_time=None)
+        self.bot.scheduler.add_job(self.refresh, 'interval', minutes=5, misfire_grace_time=None, max_instances=1)
         self.position_check: bool = False
         self.bot.scheduler.add_job(self.set_check_state, 'interval', hours=12, misfire_grace_time=None)
-        self.bot.scheduler.add_job(self.post, 'cron', hour=5, minute=0, misfire_grace_time=None)
+        self.bot.scheduler.add_job(self.post, 'cron', hour=4, minute=50, misfire_grace_time=None)
 
 
     async def set_check_state(self):
@@ -29,9 +29,11 @@ class RefreshBoards(commands.Cog):
             thread_id = board.get('thread_id')
             message_id = board.get('message_id')
             button_id = board.get('button_id')
-            '''if board.get('server_id') not in self.bot.OUR_GUILDS:
-                continue'''
+            if board.get('server_id') not in self.bot.OUR_GUILDS:
+                continue
             guild = await self.bot.getch_guild(board.get('server_id'))
+            if guild is None:
+                continue
             embed, components = await button_logic(button_data=button_id, bot=self.bot, guild=guild, locale=disnake.Locale(board.get('locale')))
             if embed is None:
                 continue
@@ -90,11 +92,8 @@ class RefreshBoards(commands.Cog):
 
 
     async def post(self):
-        print("here")
         current_day_name = pend.now(tz=pend.UTC).format('dddd').lower()
         day_set = {current_day_name}
-
-        print(day_set)
 
         all_post_boards = await self.bot.autoboards.find({"$and" : [{'webhook_id': {'$ne': None}}, {"type" : "post"}]}).to_list(length=None)
         for board in all_post_boards:
@@ -102,8 +101,8 @@ class RefreshBoards(commands.Cog):
             thread_id = board.get('thread_id')
             button_id = board.get('button_id')
             days = board.get('days', [])
-            '''if board.get('server_id') not in self.bot.OUR_GUILDS:
-                continue'''
+            if board.get('server_id') not in self.bot.OUR_GUILDS:
+                continue
             guild = await self.bot.getch_guild(board.get('server_id'))
             if guild is None:
                 continue

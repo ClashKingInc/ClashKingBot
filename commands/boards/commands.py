@@ -8,7 +8,7 @@ from exceptions.CustomExceptions import *
 from utility.discord_utils import check_commands, get_webhook_for_channel, interaction_handler
 
 
-mapping = {
+full_mapping = {
     'clandetailed': 'Clan Detailed',
     'clanbasic': 'Clan Basic',
     'clanmini': 'Clan Minimalistic',
@@ -46,6 +46,13 @@ mapping = {
     'discordlinks': 'Discord Links',
 }
 
+mapping = {
+    'clandetailed': 'Clan Detailed',
+    'clanbasic': 'Clan Basic',
+    'clanmini': 'Clan Minimalistic',
+    'clancompo': 'Clan Composition',
+    'clandonos': 'Clan Donations',
+}
 
 
 
@@ -66,6 +73,11 @@ class MessageCommands(commands.Cog):
 
         if not message.components:
             raise MessageException('This message has no components')
+
+        db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
+        autoboard_count = await self.bot.autoboards.count_documents({"$and" : [{'webhook_id': {'$ne': None}}, {"server_id" : ctx.guild_id}]})
+        if autoboard_count >= db_server.autoboard_limit:
+            raise MessageException('You have reached your autoboard limit, this feature is in beta, please reach out to support.')
 
         options = []
         options_added = set() #this is to let us force page 0 on pagination

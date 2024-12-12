@@ -16,6 +16,7 @@ import random
 from classes.bot import CustomClient
 import os
 
+from discord import convert, autocomplete
 
 class OwnerCommands(commands.Cog):
     def __init__(self, bot: CustomClient):
@@ -151,7 +152,7 @@ class OwnerCommands(commands.Cog):
             else:
                 for x in range(0, len(v), 4000):
                     if x + 4000 < len(v):
-                        buffer.append(v[x: x + 4000])
+                        buffer.append(v[x : x + 4000])
                     else:
                         buffer.append(v[x:])
         buffer.append(buf)
@@ -176,8 +177,13 @@ class OwnerCommands(commands.Cog):
         pass
 
     @dev.sub_command(name='autoboard-limit', description="Set a new autoboard limit for a server")
-    async def autoboard_limit(self, ctx: ApplicationCommandInteraction, server, limit: int):
-        pass
+    async def autoboard_limit(self, ctx: ApplicationCommandInteraction,
+                              server: disnake.Guild =commands.Param(converter=convert.server, default=None, autocomplete=autocomplete.all_server),
+                              new_limit: int = commands.Param()):
+        await ctx.response.defer()
+        db_server = await self.bot.ck_client.get_server_settings(server_id=server.id)
+        await db_server.set_autoboard_limit(limit=new_limit)
+        await ctx.send(f"{server.name} autoboard limit set to {new_limit}")
 
 
 

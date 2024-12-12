@@ -33,7 +33,7 @@ class OpenTicket:
         self.channel = open_ticket.get('channel')
         self.thread = open_ticket.get('thread')
         self.number: int = open_ticket.get('number', 1)
-        self.apply_account: str = open_ticket.get('account_apply')
+        self.apply_account: str = open_ticket.get('apply_account')
         self.naming_convention: str = open_ticket.get('naming')
         self.panel_name: str = open_ticket.get('panel')
         self.status: str = open_ticket.get('status')

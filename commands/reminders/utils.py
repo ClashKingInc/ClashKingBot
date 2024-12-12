@@ -459,6 +459,8 @@ async def create_war_reminder(
                 await message.edit(embed=embed)
             elif 'th_' in res.values[0]:
                 ths = [int(th.split('_')[-1]) for th in res.values]
+                if set(ths) == set(TOWNHALL_LEVELS):
+                    ths = None
                 embed.description = chosen_text(
                     clans=clans_chosen,
                     war_types=war_types,
@@ -1136,6 +1138,8 @@ async def edit_reminder(
                     roles_chosen = res.values
                 elif 'th_' in res.values[0]:
                     ths = [int(th.split('_')[-1]) for th in res.values]
+                    if set(ths) == set(TOWNHALL_LEVELS):
+                        ths = None
                 elif res.values[0] in ['Random', 'Friendly', 'CWL']:
                     war_types = res.values
                 elif res.values[0] in [

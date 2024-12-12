@@ -65,6 +65,9 @@ class CustomClient(commands.AutoShardedBot):
 
         self.OUR_CLANS = set()
 
+        self.SHARD_DATA: list[ShardData] = []
+        self.SERVER_MAP: dict[int, ShardServers] = {}
+
         self.scheduler = scheduler
         self.ck_client: FamilyClient = None
         self.max_pool_size = 1 if config.is_custom else 100
@@ -774,3 +777,25 @@ class CustomClient(commands.AutoShardedBot):
                 full_name = base_command
                 commands.append(full_name)
         return commands
+
+
+class ShardServers():
+    def __init__(self, data: dict):
+        self._data = data
+        self.id: int = data.get("id")
+        self.name: str = data.get("name")
+        self.member_count: int = data.get("members")
+
+class ShardData():
+    def __init__(self, data: dict):
+        self._data = data
+        self.bot_id: int = data.get("bot_id")
+        self.cluster_id: int = data.get("cluster_id")
+
+        self.server_count: int = data.get("server_count")
+        self.member_count: int = data.get("member_count")
+        self.shards: list | None = data.get("shards")
+        self.clan_count: int = data.get("clan_count")
+        self.servers: list[ShardServers] = [ShardServers(data=s) for s in data.get("servers")]
+
+

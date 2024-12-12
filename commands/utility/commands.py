@@ -147,28 +147,13 @@ class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
         r1.append_item(link_button)
         r1.append_item(downloads)
 
-        r2 = disnake.ui.ActionRow()
-        feedback = disnake.ui.Button(
-            label='Feedback',
-            emoji='💬',
-            style=disnake.ButtonStyle.grey,
-            custom_id='feedback',
-        )
-        feedback_button = disnake.ui.Button(
-            label='Leave Feedback',
-            emoji='📈',
-            style=disnake.ButtonStyle.grey,
-            custom_id='leave',
-        )
-        r2.append_item(feedback)
-        r2.append_item(feedback_button)
 
         attachment = await photo.to_file(use_cached=True)
 
         await ctx.edit_original_message(
             file=attachment,
             content=f'{description}',
-            components=[r1, r2],
+            components=[r1],
         )
         msg = await ctx.original_message()
         await self.bot.bases.insert_one(

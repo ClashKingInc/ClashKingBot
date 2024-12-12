@@ -13,6 +13,13 @@ class ExceptionHandler(commands.Cog):
 
     @commands.Cog.listener()
     async def on_slash_command_error(self, ctx: disnake.ApplicationCommandInteraction, error):
+        await self.error_handler(ctx, error)
+
+    @commands.Cog.listener()
+    async def on_message_command_error(self, ctx: disnake.ApplicationCommandInteraction, error):
+        await self.error_handler(ctx, error)
+
+    async def error_handler(self, ctx: disnake.ApplicationCommandInteraction | disnake.MessageCommandInteraction, error):
         if isinstance(error, disnake.ext.commands.ConversionError):
             error = error.original
 
@@ -259,6 +266,7 @@ class ExceptionHandler(commands.Cog):
             await ctx.edit_original_message(embed=embed)
         else:
             await ctx.send(embed=embed)
+
 
 
 def setup(bot: CustomClient):

@@ -1,6 +1,6 @@
 from disnake.ext import commands, tasks
 
-from classes.bot import CustomClient
+from classes.bot import CustomClient, ShardData
 
 
 class BackgroundCache(commands.Cog):
@@ -12,11 +12,11 @@ class BackgroundCache(commands.Cog):
     async def guilds_store(self):
         guild_id_list = set()
         total_members = 0
-        server_names = []
+        servers = []
         for guild in self.bot.guilds:
             guild_id_list.add(guild.id)
             total_members += guild.member_count
-            server_names.append(f"{guild.name} | {guild.id}")
+            servers.append({"id": guild.id, "name": guild.name, "members": guild.member_count})
 
         self.bot.OUR_GUILDS = guild_id_list
         clan_tags = await self.bot.clan_db.distinct('tag', filter={'server': {'$in': list(guild_id_list)}})
@@ -24,11 +24,12 @@ class BackgroundCache(commands.Cog):
 
         await self.bot.bot_sync.update_one({"$and" : [{"type" : "server_counts", "bot_id" : self.bot.user.id, "cluster_id" : self.bot._config.cluster_id}]},
                                            {"$set" : {"server_count" : len(guild_id_list), "member_count" : total_members,
-                                                      "shards" : self.bot.shard_ids, "clan_count" : len(clan_tags)}}, upsert=True)
+                                                      "shards" : self.bot.shard_ids, "clan_count" : len(clan_tags), "servers" : servers}}, upsert=True)
 
-        await self.bot.bot_sync.update_one(
-            {"$and": [{"type": "servers", "bot_id": self.bot.user.id, "cluster_id": self.bot._config.cluster_id}]},
-            {"$set": {"names" : server_names}}, upsert=True)
+        shard_data = await self.bot.bot_sync.find({"bot_id" : self.bot.user.id}).to_list(length=None)
+        self.bot.SHARD_DATA = [ShardData(data=d) for d in shard_data]
+
+        self.bot.SERVER_MAP = {g.id : g for shard in self.bot.SHARD_DATA for g in shard.servers}
 
     @guilds_store.before_loop
     async def before_guilds_store(self):
