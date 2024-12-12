@@ -2,6 +2,8 @@ import io
 import time
 from urllib.parse import urlencode
 
+import platform
+import sys
 import aiohttp
 import disnake
 from disnake.ext import commands
@@ -97,35 +99,28 @@ class misc(commands.Cog, name='Other'):
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)
 
-    @commands.slash_command(name='bot', description='View detailed bot statistics, both global and per-shard.')
+
+
+    @commands.slash_command(name='bot', description='View detailed bot statistics, total and per cluster.')
     async def stat(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
 
-        # Use cluster_id from config
         cluster_id = self.bot._config.cluster_id
 
         # Calculate uptime
         uptime_seconds = time.time() - self.up
         uptime_str = time.strftime('%H hours %M minutes %S seconds', time.gmtime(uptime_seconds))
 
-        # If the bot is running locally without shards, shard_count could be None or 1
-        # Similarly, ctx.guild.shard_id might not exist if there is only one shard (or no shards).
+        # Shard info (if any)
         shard_count = self.bot.shard_count if self.bot.shard_count else 1
         current_shard_id = getattr(ctx.guild, "shard_id", 0)
 
-        # Gather global stats from SHARD_DATA
+        # Total stats from SHARD_DATA
         total_servers = sum(d.server_count for d in self.bot.SHARD_DATA)
         total_members = sum(d.member_count for d in self.bot.SHARD_DATA)
         total_clans = sum(d.clan_count for d in self.bot.SHARD_DATA)
 
-        # Get this cluster's data from SHARD_DATA if available
-        cluster_data = [d for d in self.bot.SHARD_DATA if d.cluster_id == cluster_id]
-        if cluster_data:
-            c_data = cluster_data[0]
-        else:
-            c_data = None
-
-        # Local stats from the current shard/guild list
+        # Local stats
         me = self.bot.user.mention
         inservers = len(self.bot.guilds)
         chunked_guilds = len([g for g in self.bot.guilds if g.chunked])
@@ -135,113 +130,56 @@ class misc(commands.Cog, name='Other'):
         num_clans = await self.bot.clan_db.count_documents({})
         num_tickets = await self.bot.open_tickets.count_documents({})
 
-        # Build the embed
+        # Environment info
+        python_version = sys.version.split(" ")[0]
+        system_info = platform.system() + " " + platform.release()
+
         embed = disnake.Embed(title=f"{self.bot.user.name} Statistics", color=disnake.Color.green())
 
         # Basic bot stats
-        embed.add_field(
-            name="🤖 Bot",
-            value=f"{me}",
-            inline=True
-        )
+        embed.add_field(name="🤖 Bot", value=f"{me}", inline=True)
+        embed.add_field(name="🏓 Latency", value=f"{latency_ms} ms", inline=True)
+        embed.add_field(name="⏰ Uptime", value=uptime_str, inline=True)
 
-        # Latency and uptime
-        embed.add_field(
-            name="🏓 Latency",
-            value=f"{latency_ms} ms",
-            inline=True
-        )
+        # Total stats
+        embed.add_field(name="🌐 Total Servers", value=f"{total_servers:,}", inline=True)
+        embed.add_field(name="👥 Total Members", value=f"{total_members:,}", inline=True)
+        embed.add_field(name="🏆 Total Clans", value=f"{total_clans:,}", inline=True)
 
-        embed.add_field(
-            name="⏰ Uptime",
-            value=uptime_str,
-            inline=True
-        )
-
-        # Global stats across all shards
-        embed.add_field(
-            name="🌐 Global Servers",
-            value=f"{total_servers:,}",
-            inline=True
-        )
-
-        embed.add_field(
-            name="👥 Global Members",
-            value=f"{total_members:,}",
-            inline=True
-        )
-
-        embed.add_field(
-            name="🏆 Global Clans",
-            value=f"{total_clans:,}",
-            inline=True
-        )
-
-        # Stats for the current cluster
-        if c_data:
-            embed.add_field(
-                name=f"🏠 Cluster {c_data.cluster_id} Servers",
-                value=f"{c_data.server_count:,}",
-                inline=True
-            )
-
-            embed.add_field(
-                name=f"👥 Cluster {c_data.cluster_id} Members",
-                value=f"{c_data.member_count:,}",
-                inline=True
-            )
-
-            embed.add_field(
-                name=f"🏆 Cluster {c_data.cluster_id} Clans",
-                value=f"{c_data.clan_count:,}",
-                inline=True
-            )
-        else:
-            # If we don't have cluster data (local?), show shard-local info
-            embed.add_field(
-                name=f"🏠 Local Servers",
-                value=f"{inservers:,}",
-                inline=True
-            )
-
-            embed.add_field(
-                name=f"👥 Local Members",
-                value=f"{members_local:,}",
-                inline=True
-            )
-
-            embed.add_field(
-                name=f"🏆 Local Clans",
-                value=f"{num_clans:,}",
-                inline=True
-            )
-
-        # Shard info (gracefully handle no shards)
+        # Shard info
         shard_info = f"**Total Shards:** {shard_count}"
         if shard_count > 1:
             shard_info += f"\n**Current Shard:** {current_shard_id}"
-        shard_info += f"\n**Cluster:** {cluster_id}"
+        shard_info += f"\n**Your Cluster:** {cluster_id}"
+        embed.add_field(name="🔧 Shard Info", value=shard_info, inline=False)
 
-        embed.add_field(
-            name="🔧 Shard Info",
-            value=shard_info,
-            inline=False
+        # Additional local stats
+        embed.add_field(name="📂 Tickets Opened", value=f"{num_tickets:,}", inline=True)
+        embed.add_field(name="🗃️ Loaded Servers", value=f"{chunked_guilds:,}", inline=True)
+
+        # Cluster stats
+        cluster_lines = []
+        for d in sorted(self.bot.SHARD_DATA, key=lambda x: x.cluster_id):
+            star = "⭐" if d.cluster_id == cluster_id else ""
+            line = f"{star} **Cluster {d.cluster_id}**: {d.server_count:,} Servers | {d.member_count:,} Members | {d.clan_count:,} Clans"
+            cluster_lines.append(line)
+
+        if not cluster_lines:
+            cluster_lines.append(
+                f"Cluster {cluster_id}: {inservers:,} Servers | {members_local:,} Members | {num_clans:,} Clans")
+
+        embed.add_field(name="📂 Cluster Stats", value="\n".join(cluster_lines), inline=False)
+
+        # Environment info
+        env_info = (
+            f"**Python:** {python_version}\n"
+            f"**System:** {system_info}\n"
+            f"**Containerized:** Yes (Docker)"
         )
 
-        # Additional stats
-        embed.add_field(
-            name="📂 Tickets Opened",
-            value=f"{num_tickets:,}",
-            inline=True
-        )
+        embed.add_field(name="🏗 Environment", value=env_info, inline=False)
 
-        embed.add_field(
-            name="🗃️ Loaded Servers",
-            value=f"{chunked_guilds:,}",
-            inline=True
-        )
-
-        # Add buttons
+        # Action buttons
         page_buttons = [
             disnake.ui.Button(
                 label='Bot Invite',
