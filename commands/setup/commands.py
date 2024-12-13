@@ -71,9 +71,13 @@ class SetupCommands(commands.Cog, name='Setup'):
             await db_server.set_change_nickname(status=(change_nicknames == 'On'))
             changed_text += f'- **Change Nicknames:** `{change_nicknames}`\n'
         if family_nickname_convention is not None:
+            if "{discord_display_name}" in family_nickname_convention and family_nickname_convention != "{discord_display_name}":
+                raise MessageException("{discord_display_name} must be used by itself in a convention}")
             await db_server.set_family_nickname_convention(rule=family_nickname_convention)
             changed_text += f'- **Family Nickname Convention:** `{family_nickname_convention}`\n'
         if non_family_nickname_convention is not None:
+            if "{discord_display_name}" in non_family_nickname_convention and non_family_nickname_convention != "{discord_display_name}":
+                raise MessageException("{discord_display_name} must be used by itself in a convention}")
             await db_server.set_non_family_nickname_convention(rule=non_family_nickname_convention)
             changed_text += f'- **Non Family Nickname Convention:** `{non_family_nickname_convention}`\n'
         if flair_non_family is not None:
