@@ -105,6 +105,7 @@ class CustomClient(commands.AutoShardedBot):
         self.clan_cache: collection_class = self.new_looper.clan_cache
         self.excel_templates: collection_class = self.looper_db.clashking.excel_templates
         self.giveaways: collection_class = self.looper_db.clashking.giveaways
+        self.tokens_db: collection_class = self.looper_db.clashking.tokens
         self.lineups: collection_class = self.looper_db.clashking.lineups
         self.bot_sync: collection_class = self.looper_db.clashking.bot_sync
 
