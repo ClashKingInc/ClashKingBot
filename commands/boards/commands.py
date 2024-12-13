@@ -2,6 +2,7 @@ import disnake
 from disnake.ext import commands
 
 from classes.bot import CustomClient
+from commands.components.buttons import button_logic
 from disnake import ButtonStyle
 from disnake.ui import Button, ActionRow
 from exceptions.CustomExceptions import *
@@ -47,11 +48,19 @@ full_mapping = {
 }
 
 mapping = {
+    #day 1
     'clandetailed': 'Clan Detailed',
     'clanbasic': 'Clan Basic',
     'clanmini': 'Clan Minimalistic',
     'clancompo': 'Clan Composition',
     'clandonos': 'Clan Donations',
+
+    #day 2
+    'clanactivity': 'Clan Activity',
+    'clancapoverview': 'Clan Capital Overview',
+    'clancapdonos': 'Clan Capital Donations',
+    'clancapraids': 'Clan Capital Raids',
+    'familysummary': 'Family Summary',
 }
 
 
@@ -142,6 +151,7 @@ class MessageCommands(commands.Cog):
                     disnake.SelectOption(label="Friday", value="friday"),
                     disnake.SelectOption(label="Saturday", value="saturday"),
                     disnake.SelectOption(label="Sunday", value="sunday"),
+                    disnake.SelectOption(label="End of Season", value="endofseason"),
                 ]
             )
             await ctx.edit_original_response(content="When would you like to autopost?\n"
@@ -174,10 +184,8 @@ class MessageCommands(commands.Cog):
                 await message.channel.add_user(self.bot.user)
                 thread = message.channel.id
 
-            placeholder = disnake.Embed(
-                description='Placeholder Embed, will update momentarily!',
-                color=disnake.Color.green(),
-            )
+            placeholder, components = await button_logic(button_data=custom_id, bot=self.bot, guild=ctx.guild, locale=ctx.locale)
+
             if thread is not None:
                 thread = await self.bot.getch_channel(thread)
                 webhook_message = await webhook.send(embed=placeholder, thread=thread, wait=True)
