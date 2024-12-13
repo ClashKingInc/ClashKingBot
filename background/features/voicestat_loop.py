@@ -104,9 +104,8 @@ class VoiceStatCron(commands.Cog):
             if channel is not None:
                 try:
                     channel = await self.bot.getch_channel(channel_id=channel, raise_exception=True)
-                    clan_tags = await self.bot.clan_db.distinct('tag', filter={'server': server})
-                    results = await self.bot.player_stats.count_documents(filter={'clan_tag': {'$in': clan_tags}})
-                    await channel.edit(name=f'{results} Clan Members')
+                    member_tags = await self.bot.get_family_member_tags(guild_id=server)
+                    await channel.edit(name=f'{len(member_tags)} Clan Members')
                 except (disnake.NotFound, disnake.Forbidden):
                     await self.bot.server_db.update_one({'server': server}, {'$set': {'memberCount': None}})
 
