@@ -52,7 +52,13 @@ async def add_strike(
         }
     )
 
-    results = await bot.strikelist.find({'$and': [{'tag': player.tag}, {'server': guild.id}]}).to_list(length=100)
+    gte = int(pend.now(tz=pend.UTC).timestamp())
+    results = await bot.strikelist.find({'$and': [{'tag': player.tag}, {'server': guild.id}, {
+                            '$or': [
+                                {'rollover_date': None},
+                                {'rollover_date': {'$gte': gte}},
+                            ]
+                        }]}).to_list(length=None)
     num_strikes = sum([result.get('strike_weight') for result in results])
 
     if rollover_days is not None:
