@@ -60,7 +60,8 @@ mapping = {
     'clancapoverview': 'Clan Capital Overview',
     'clancapdonos': 'Clan Capital Donations',
     'clancapraids': 'Clan Capital Raids',
-    'familysummary': 'Family Summary',
+    'familyoverview': 'Family Overview',
+    'familyclans': 'Family Clans',
 }
 
 
@@ -69,9 +70,9 @@ class MessageCommands(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @commands.message_command(name='AutoBoard', dm_permission=False)
+    @commands.message_command(name='Automation', dm_permission=False)
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def auto_board(self, ctx: disnake.MessageCommandInteraction, message: disnake.Message):
+    async def automation(self, ctx: disnake.MessageCommandInteraction, message: disnake.Message):
         check = await self.bot.white_list_check(ctx, 'setup server')
         await ctx.response.defer(ephemeral=True)
         if not check and not ctx.author.guild_permissions.manage_guild:
@@ -86,7 +87,7 @@ class MessageCommands(commands.Cog):
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
         autoboard_count = await self.bot.autoboards.count_documents({"$and" : [{'webhook_id': {'$ne': None}}, {"server_id" : ctx.guild_id}]})
         if autoboard_count >= db_server.autoboard_limit:
-            raise MessageException('You have reached your autoboard limit, this feature is in beta, please reach out to support.')
+            raise MessageException('You have reached your automation limit, this feature is in beta, please reach out to support.')
 
         options = []
         options_added = set() #this is to let us force page 0 on pagination
@@ -112,12 +113,12 @@ class MessageCommands(commands.Cog):
         if len(options) >= 2:
             option_select = disnake.ui.Select(
                 options=options,
-                placeholder=f'Select Board Type',  # the placeholder text to show when no options have been chosen
+                placeholder=f'Select Type',  # the placeholder text to show when no options have been chosen
                 min_values=1,  # the minimum number of options a user must select
                 max_values=1,  # the maximum number of options a user can select
             )
             await ctx.edit_original_message(
-                content='Choose which button to make an auto refreshing board for',
+                content='Choose which button to make an auto refreshing automation for?',
                 components=[disnake.ui.ActionRow(option_select)],
             )
             res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, ephemeral=True)
@@ -132,9 +133,9 @@ class MessageCommands(commands.Cog):
             )
         ]
 
-        await ctx.edit_original_response(content="How would you like to automate this board?\n"
+        await ctx.edit_original_response(content="How would you like to automate this?\n"
                                                  "- Auto Post: post on days of your choice at the daily reset (5 AM UTC)\n"
-                                                 "- Auto Refresh: Refresh this board every 30-60 minutes", components=components)
+                                                 "- Auto Refresh: Refresh every 30-60 minutes", components=components)
 
         res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
 
@@ -175,7 +176,7 @@ class MessageCommands(commands.Cog):
                 'locale' : str(ctx.locale)
             })
             await message.delete()
-            await ctx.edit_original_message('Auto Post Board Created', components=[])
+            await ctx.edit_original_message('Auto Post Automation Created', components=[])
 
         elif res.data.custom_id == "auto_refresh":
             webhook = await get_webhook_for_channel(channel=message.channel, bot=self.bot)
@@ -213,7 +214,7 @@ class MessageCommands(commands.Cog):
                 upsert=True,
             )
             await message.delete()
-            await ctx.edit_original_message('Refresh Board Created', components=[])
+            await ctx.edit_original_message('Refresh Automation Created!', components=[])
 
 
 
