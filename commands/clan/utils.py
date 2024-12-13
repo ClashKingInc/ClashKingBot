@@ -72,7 +72,7 @@ async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake
         rank_text = f'Rankings: {rank_text}\n'
 
     cwl_league_emoji = cwl_league_emojis(bot=bot, league=str(clan.war_league))
-    capital_league_emoji = cwl_league_emojis(bot=bot, league=str(clan.capital_league))
+    capital_league_emoji = league_to_emoji(bot=bot, league=str(clan.capital_league))
 
     hall_level = 0 if coc.utils.get(clan.capital_districts, id=70000000) is None else coc.utils.get(clan.capital_districts, id=70000000).hall_level
     hall_level_emoji = 1 if hall_level == 0 else hall_level
