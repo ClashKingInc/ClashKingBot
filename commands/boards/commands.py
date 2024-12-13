@@ -185,13 +185,21 @@ class MessageCommands(commands.Cog):
                 thread = message.channel.id
 
             placeholder, components = await button_logic(button_data=custom_id, bot=self.bot, guild=ctx.guild, locale=ctx.locale)
-
+            buttons = disnake.ui.ActionRow()
+            buttons.append_item(
+                disnake.ui.Button(
+                    label='',
+                    emoji=self.bot.emoji.refresh.partial_emoji,
+                    style=disnake.ButtonStyle.grey,
+                    custom_id=f'{custom_id}:page=-1',
+                )
+            )
             if thread is not None:
                 thread = await self.bot.getch_channel(thread)
-                webhook_message = await webhook.send(embed=placeholder, thread=thread, wait=True)
+                webhook_message = await webhook.send(embed=placeholder, components=[buttons], thread=thread, wait=True)
                 thread = thread.id
             else:
-                webhook_message = await webhook.send(embed=placeholder, wait=True)
+                webhook_message = await webhook.send(embed=placeholder, components=[buttons], wait=True)
             await self.bot.autoboards.update_one(
                 {'$and': [{'button_id': custom_id}, {'server_id': ctx.guild_id}, {'type' : "refresh"}]},
                 {
