@@ -90,7 +90,15 @@ class Legends(commands.Cog):
     async def legends_clan(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = options.clan):
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
         embed = await legend_clan(bot=self.bot, clan=clan, embed_color=embed_color)
-        await ctx.send(embed=embed)
+        buttons = disnake.ui.ActionRow(
+            disnake.ui.Button(
+                label='',
+                emoji=self.bot.emoji.refresh.partial_emoji,
+                style=disnake.ButtonStyle.grey,
+                custom_id=f"legendclan:{clan.tag}",
+            ),
+        )
+        await ctx.send(embed=embed, components=[buttons])
 
     @legends.sub_command(
         name=disnake.Localized('history', key='history-name'),

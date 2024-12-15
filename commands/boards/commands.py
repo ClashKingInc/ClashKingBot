@@ -62,6 +62,9 @@ mapping = {
     'clancapraids': 'Clan Capital Raids',
     'familyoverview': 'Family Overview',
     'familyclans': 'Family Clans',
+
+    #day 3
+    'legendclan': 'Legend Clan',
 }
 
 
