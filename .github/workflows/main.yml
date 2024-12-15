@@ -25,4 +25,4 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: ghcr.io/clashking/clashking_bot:latest
+          tags: ghcr.io/clashkinginc/clashkingbot:latest
