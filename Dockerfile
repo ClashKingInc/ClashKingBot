@@ -9,6 +9,9 @@ COPY --from=ghcr.io/astral-sh/uv:0.5.9 /uv /bin/uv
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 WORKDIR /app
 
+# Create a virtual environment with uv
+RUN uv venv
+
 # Copy dependency files into the container
 COPY requirements.txt /app/
 
