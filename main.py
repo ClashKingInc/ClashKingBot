@@ -35,6 +35,7 @@ initial_extensions = [
     'discord.converters',
     'background.tasks.background_cache',
     'background.features.link_parsers',
+    "background.logs.giveaway",
 ]
 
 # only the local version can not run
@@ -45,7 +46,6 @@ if not config.is_beta:
         'background.logs.bans',
         'background.logs.capital',
         'background.logs.donations',
-        "background.logs.giveaway",
         'background.logs.joinleave',
         'background.logs.legends',
         'background.logs.playerupgrades',
@@ -56,7 +56,6 @@ if not config.is_beta:
         'background.logs.war',
         "background.features.refresh_boards"
     ]
-
 
 if __name__ == '__main__':
     sentry_sdk.init(

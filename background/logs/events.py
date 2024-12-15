@@ -76,6 +76,7 @@ async def kafka_events(bot: 'CustomClient'):
                                 elif topic == 'reddit':
                                     awaitable = reddit_ee.emit_async(field, value)
                                 elif topic == 'giveaway':
+                                    print('giveaway')
                                     awaitable = giveaway_ee.emit_async(field, value)
                                 if awaitable is not None:
                                     task = asyncio.create_task(wrap_task(awaitable))

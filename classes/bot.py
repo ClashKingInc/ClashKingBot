@@ -58,8 +58,7 @@ class CustomClient(commands.AutoShardedBot):
         self.i18n = fluent.FluentStore()
         self.i18n.load('locales/')
 
-        if not config.is_beta:
-            self.loop.create_task(kafka_events(self))
+        self.loop.create_task(kafka_events(self))
 
         self._config = config
 
