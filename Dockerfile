@@ -3,9 +3,14 @@ FROM python:3.12-slim-bookworm AS base
 
 # Builder stage
 FROM base AS builder
-# Install necessary build tools and libraries
-RUN apt-get update && \
-    apt-get install -y git gcc libsnappy-dev python3-dev && \
+# Install git, gcc, g++, and other necessary tools
+RUN apt-get update && apt-get install -y \
+    git \
+    gcc \
+    g++ \
+    libsnappy-dev \
+    build-essential \
+    python3-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy uv binary directly from its prebuilt Docker image
