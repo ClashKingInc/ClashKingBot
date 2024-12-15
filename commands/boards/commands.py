@@ -146,7 +146,7 @@ class MessageCommands(commands.Cog):
             select = disnake.ui.Select(
                 placeholder="Select days",
                 min_values=1,
-                max_values=7,
+                max_values=8,
                 options=[
                     disnake.SelectOption(label="Monday", value="monday"),
                     disnake.SelectOption(label="Tuesday", value="tuesday"),
