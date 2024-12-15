@@ -2,10 +2,21 @@ name: Image Builder
 
 on:
   workflow_dispatch:
+    # Allow manual builds for master branch only
+    inputs:
+      branch:
+        description: 'Branch to build'
+        default: 'master'
+  push:
+    branches-ignore:
+      - master # Exclude master branch from auto-builds
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' && github.event.inputs.branch == 'master' ||
+      github.event_name == 'push'
 
     steps:
       - name: Checkout code
@@ -26,6 +37,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/clashkinginc/clashkingbot:latest
+          tags: |
+            ghcr.io/clashkinginc/clashkingbot:latest${{ github.ref_name == 'master' && 'latest' || github.ref_name }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
