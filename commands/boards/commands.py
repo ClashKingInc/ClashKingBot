@@ -106,7 +106,7 @@ class MessageCommands(commands.Cog):
                     split_view[-1] = "page=0"
                     custom_id = ":".join(split_view)
                 if custom_id not in options_added:
-                    options.append(disnake.SelectOption(label=mapped_name, value=custom_id))
+                    options.append(disnake.SelectOption(label=mapped_name, value=f"choosecustom_{custom_id}"))
                     options_added.add(custom_id)
 
         options.sort(key=lambda x: x.label)
@@ -125,7 +125,7 @@ class MessageCommands(commands.Cog):
                 components=[disnake.ui.ActionRow(option_select)],
             )
             res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, ephemeral=True)
-            custom_id = res.values[0]
+            custom_id = res.values[0].split("_")[-1]
         else:
             custom_id = options[0].value
 
@@ -188,7 +188,7 @@ class MessageCommands(commands.Cog):
                 await message.channel.add_user(self.bot.user)
                 thread = message.channel.id
 
-            placeholder, components = await button_logic(button_data=custom_id, bot=self.bot, guild=ctx.guild, locale=ctx.locale)
+            placeholder, _ = await button_logic(button_data=custom_id, bot=self.bot, guild=ctx.guild, locale=ctx.locale)
             if thread is not None:
                 thread = await self.bot.getch_channel(thread)
                 webhook_message = await webhook.send(embed=placeholder, components=[], thread=thread, wait=True)
