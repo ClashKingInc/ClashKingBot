@@ -18,6 +18,7 @@ war_ee = EventEmitter()
 raid_ee = EventEmitter()
 reminder_ee = EventEmitter()
 reddit_ee = EventEmitter()
+giveaway_ee = EventEmitter()
 
 
 async def kafka_events(bot: 'CustomClient'):
@@ -74,6 +75,8 @@ async def kafka_events(bot: 'CustomClient'):
                                     awaitable = reminder_ee.emit_async(field, value)
                                 elif topic == 'reddit':
                                     awaitable = reddit_ee.emit_async(field, value)
+                                elif topic == 'giveaway':
+                                    awaitable = giveaway_ee.emit_async(field, value)
                                 if awaitable is not None:
                                     task = asyncio.create_task(wrap_task(awaitable))
                                     background_tasks.add(task)

@@ -45,6 +45,7 @@ if not config.is_beta:
         'background.logs.bans',
         'background.logs.capital',
         'background.logs.donations',
+        "background.logs.giveaway",
         'background.logs.joinleave',
         'background.logs.legends',
         'background.logs.playerupgrades',
