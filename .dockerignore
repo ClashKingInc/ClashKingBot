@@ -1,0 +1,26 @@
+# Exclude Python cache files
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Exclude virtual environments
+venv/
+env/
+.venv/
+.env/
+
+# Exclude version control directories
+.git
+.gitignore
+
+# Exclude Dockerfile and Docker-related files if not needed
+Dockerfile
+docker-compose.yml
+
+# Exclude other unnecessary files and directories
+node_modules/
+dist/
+build/
+*.log
+*.md
