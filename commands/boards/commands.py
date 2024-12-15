@@ -163,6 +163,7 @@ class MessageCommands(commands.Cog):
                                              components=[disnake.ui.ActionRow(select)]
                                              )
             res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
+
             webhook = await get_webhook_for_channel(channel=message.channel, bot=self.bot)
             thread = None
             if isinstance(message.channel, disnake.Thread):
