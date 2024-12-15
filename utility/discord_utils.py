@@ -229,7 +229,7 @@ def register_button(
     parser: str,
     ephemeral: bool = False,
     no_embed: bool = False,
-    pagination: bool = True
+    pagination: bool = False
 ):
     def decorator(func: Callable[..., None]) -> Callable[..., None]:
         registered_functions[command_name] = (func, parser, ephemeral, no_embed, pagination)
