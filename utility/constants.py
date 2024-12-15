@@ -109,6 +109,7 @@ HERO_EQUIPMENT = {
     "Rocket Spear" : "Royal Champion",
     "Henchmen Puppet" : "Minion Prince",
     "Dark Orb" : "Minion Prince",
+    "Electro Boots" : "Royal Champion",
 }
 
 POSTER_LIST = {

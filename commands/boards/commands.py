@@ -127,7 +127,7 @@ class MessageCommands(commands.Cog):
             res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, ephemeral=True)
             custom_id = res.values[0].split("_")[-1]
         else:
-            custom_id = options[0].value
+            custom_id = options[0].value.split("_")[-1]
 
         components = [
             ActionRow(
