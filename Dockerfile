@@ -3,10 +3,15 @@ FROM python:3.12-slim-bookworm AS base
 
 # Builder stage
 FROM base AS builder
+# Install git for dependencies that need it
+RUN apt-get update && apt-get install -y git && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Copy uv binary directly from its prebuilt Docker image
 COPY --from=ghcr.io/astral-sh/uv:0.5.9 /uv /bin/uv
+
 # Enable bytecode compilation and use link mode as "copy"
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
+
 WORKDIR /app
 
 # Create a virtual environment with uv
