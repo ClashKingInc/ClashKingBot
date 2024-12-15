@@ -1,32 +1,30 @@
-# Use an updated Python image
-FROM python:3.12-bookworm
+# Base Python image
+FROM python:3.12-slim-bookworm AS base
 
-# Set environment variables to prevent Python from writing .pyc files and buffering stdout/stderr
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-# Install dependencies in one layer for faster builds
-RUN apt-get update && \
-    apt-get install -y libsnappy-dev && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install uv package manager
-RUN pip install --no-cache-dir uv
-
-# Set the working directory in the container
+# Builder stage
+FROM base AS builder
+# Copy uv binary directly from its prebuilt Docker image
+COPY --from=ghcr.io/astral-sh/uv:0.5.9 /uv /bin/uv
+# Enable bytecode compilation and use link mode as "copy"
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 WORKDIR /app
 
-# Copy only requirements.txt first to leverage caching
-COPY requirements.txt ./
+# Copy dependency files into the container
+COPY requirements.txt /app/
 
-# Install Python dependencies using uv
-RUN uv --install -r requirements.txt
+# Install dependencies using uv in a cached way
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install -r requirements.txt
 
-# Copy the rest of the application code into the container
-COPY . .
+# Copy the rest of the application code
+COPY . /app
 
-# Add .dockerignore to reduce build context
-# (Ensure .dockerignore is properly configured to exclude unnecessary files)
+# Final runtime stage
+FROM base
+# Copy the built application from the builder stage
+COPY --from=builder /app /app
+# Add virtual environment's bin to PATH
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Command to run the application
 CMD ["python3", "main.py"]
