@@ -2,6 +2,7 @@ import disnake
 from disnake.ext import commands
 
 from classes.bot import CustomClient
+from commands.components.buttons import button_logic
 from disnake import ButtonStyle
 from disnake.ui import Button, ActionRow
 from exceptions.CustomExceptions import *
@@ -47,11 +48,23 @@ full_mapping = {
 }
 
 mapping = {
+    #day 1
     'clandetailed': 'Clan Detailed',
     'clanbasic': 'Clan Basic',
     'clanmini': 'Clan Minimalistic',
     'clancompo': 'Clan Composition',
     'clandonos': 'Clan Donations',
+
+    #day 2
+    'clanactivity': 'Clan Activity',
+    'clancapoverview': 'Clan Capital Overview',
+    'clancapdonos': 'Clan Capital Donations',
+    'clancapraids': 'Clan Capital Raids',
+    'familyoverview': 'Family Overview',
+    'familyclans': 'Family Clans',
+
+    #day 3
+    'legendclan': 'Legend Clan',
 }
 
 
@@ -60,9 +73,9 @@ class MessageCommands(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @commands.message_command(name='AutoBoard', dm_permission=False)
+    @commands.message_command(name='Automation', dm_permission=False)
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
-    async def auto_board(self, ctx: disnake.MessageCommandInteraction, message: disnake.Message):
+    async def automation(self, ctx: disnake.MessageCommandInteraction, message: disnake.Message):
         check = await self.bot.white_list_check(ctx, 'setup server')
         await ctx.response.defer(ephemeral=True)
         if not check and not ctx.author.guild_permissions.manage_guild:
@@ -77,7 +90,7 @@ class MessageCommands(commands.Cog):
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
         autoboard_count = await self.bot.autoboards.count_documents({"$and" : [{'webhook_id': {'$ne': None}}, {"server_id" : ctx.guild_id}]})
         if autoboard_count >= db_server.autoboard_limit:
-            raise MessageException('You have reached your autoboard limit, this feature is in beta, please reach out to support.')
+            raise MessageException('You have reached your automation limit, this feature is in beta, please reach out to support.')
 
         options = []
         options_added = set() #this is to let us force page 0 on pagination
@@ -93,7 +106,7 @@ class MessageCommands(commands.Cog):
                     split_view[-1] = "page=0"
                     custom_id = ":".join(split_view)
                 if custom_id not in options_added:
-                    options.append(disnake.SelectOption(label=mapped_name, value=custom_id))
+                    options.append(disnake.SelectOption(label=mapped_name, value=f"choosecustom_{custom_id}"))
                     options_added.add(custom_id)
 
         options.sort(key=lambda x: x.label)
@@ -103,16 +116,16 @@ class MessageCommands(commands.Cog):
         if len(options) >= 2:
             option_select = disnake.ui.Select(
                 options=options,
-                placeholder=f'Select Board Type',  # the placeholder text to show when no options have been chosen
+                placeholder=f'Select Type',  # the placeholder text to show when no options have been chosen
                 min_values=1,  # the minimum number of options a user must select
                 max_values=1,  # the maximum number of options a user can select
             )
             await ctx.edit_original_message(
-                content='Choose which button to make an auto refreshing board for',
+                content='Choose which button to make an auto refreshing automation for?',
                 components=[disnake.ui.ActionRow(option_select)],
             )
             res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, ephemeral=True)
-            custom_id = res.values[0]
+            custom_id = res.values[0].split("_")[-1]
         else:
             custom_id = options[0].value
 
@@ -123,9 +136,9 @@ class MessageCommands(commands.Cog):
             )
         ]
 
-        await ctx.edit_original_response(content="How would you like to automate this board?\n"
+        await ctx.edit_original_response(content="How would you like to automate this?\n"
                                                  "- Auto Post: post on days of your choice at the daily reset (5 AM UTC)\n"
-                                                 "- Auto Refresh: Refresh this board every 30-60 minutes", components=components)
+                                                 "- Auto Refresh: Refresh every 30-60 minutes", components=components)
 
         res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
 
@@ -142,6 +155,7 @@ class MessageCommands(commands.Cog):
                     disnake.SelectOption(label="Friday", value="friday"),
                     disnake.SelectOption(label="Saturday", value="saturday"),
                     disnake.SelectOption(label="Sunday", value="sunday"),
+                    disnake.SelectOption(label="End of Season", value="endofseason"),
                 ]
             )
             await ctx.edit_original_response(content="When would you like to autopost?\n"
@@ -165,7 +179,7 @@ class MessageCommands(commands.Cog):
                 'locale' : str(ctx.locale)
             })
             await message.delete()
-            await ctx.edit_original_message('Auto Post Board Created', components=[])
+            await ctx.edit_original_message('Auto Post Automation Created', components=[])
 
         elif res.data.custom_id == "auto_refresh":
             webhook = await get_webhook_for_channel(channel=message.channel, bot=self.bot)
@@ -174,16 +188,13 @@ class MessageCommands(commands.Cog):
                 await message.channel.add_user(self.bot.user)
                 thread = message.channel.id
 
-            placeholder = disnake.Embed(
-                description='Placeholder Embed, will update momentarily!',
-                color=disnake.Color.green(),
-            )
+            placeholder, _ = await button_logic(button_data=custom_id, bot=self.bot, guild=ctx.guild, locale=ctx.locale)
             if thread is not None:
                 thread = await self.bot.getch_channel(thread)
-                webhook_message = await webhook.send(embed=placeholder, thread=thread, wait=True)
+                webhook_message = await webhook.send(embed=placeholder, components=[], thread=thread, wait=True)
                 thread = thread.id
             else:
-                webhook_message = await webhook.send(embed=placeholder, wait=True)
+                webhook_message = await webhook.send(embed=placeholder, components=[], wait=True)
             await self.bot.autoboards.update_one(
                 {'$and': [{'button_id': custom_id}, {'server_id': ctx.guild_id}, {'type' : "refresh"}]},
                 {
@@ -197,7 +208,7 @@ class MessageCommands(commands.Cog):
                 upsert=True,
             )
             await message.delete()
-            await ctx.edit_original_message('Refresh Board Created', components=[])
+            await ctx.edit_original_message('Refresh Automation Created!', components=[])
 
 
 

@@ -120,7 +120,7 @@ class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)
 
-    @commands.slash_command(name='base')
+    @commands.slash_command(name='base', description="Post a base with link & keep track of downloads")
     async def base(
         self,
         ctx: disnake.ApplicationCommandInteraction,

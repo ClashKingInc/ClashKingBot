@@ -84,13 +84,28 @@ class VoiceStatCron(commands.Cog):
                 except (disnake.NotFound, disnake.Forbidden):
                     await self.bot.server_db.update_one({'server': server}, {'$set': {'eosCountdown': None}})
 
+            channel = r.get('eosDayCountdown')
+            if channel is not None:
+                try:
+                    channel = await self.bot.getch_channel(channel_id=channel, raise_exception=True)
+                    time_ = await calculate_time('Season Day')
+                    prev_name = channel.name
+                    text = f'Day {time_}'
+                    if '|' in prev_name:
+                        custom = prev_name.split('|')[0]
+                        text = f'{custom}| {text}'
+                    if text != channel.name:
+                        await channel.edit(name=text)
+                except (disnake.NotFound, disnake.Forbidden):
+                    await self.bot.server_db.update_one({'server': server}, {'$set': {'eosDayCountdown': None}})
+
+
             channel = r.get('memberCount')
             if channel is not None:
                 try:
                     channel = await self.bot.getch_channel(channel_id=channel, raise_exception=True)
-                    clan_tags = await self.bot.clan_db.distinct('tag', filter={'server': server})
-                    results = await self.bot.player_stats.count_documents(filter={'clan_tag': {'$in': clan_tags}})
-                    await channel.edit(name=f'{results} Clan Members')
+                    member_tags = await self.bot.get_family_member_tags(guild_id=server)
+                    await channel.edit(name=f'{len(member_tags)} Clan Members')
                 except (disnake.NotFound, disnake.Forbidden):
                     await self.bot.server_db.update_one({'server': server}, {'$set': {'memberCount': None}})
 
