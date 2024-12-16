@@ -137,7 +137,7 @@ class DiscordEvents(commands.Cog):
             "ClashKing is designed to simplify clan and family management while providing powerful features like **legends tracking**, **autoboards**, and **in-depth stats**. "
             "It also includes tools like **role management**, **ticketing**, and **roster management** to make running your clan easier.\n\n"
             "To get started, browse the [documentation](https://docs.clashking.xyz) & run `/help` to explore the available features."
-            "For additional support, you can also query our docs with `/ask`) or join the [support/community server](https://discord.gg/clashking).\n\n"
+            " For additional support, you can also query our docs with `/ask` or join the [support/community server](https://discord.gg/clashking).\n\n"
             "**Note:** ClashKing is actively developed and improving constantly. If you encounter any issues or have feature suggestions, let me know! If you enjoy the bot, "
             "consider supporting the project by using Creator Code **ClashKing** in-game. Thank you for being part of this journey! - Destinea, Magic, & Obno ❤️"
         )
