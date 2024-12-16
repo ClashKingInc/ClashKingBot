@@ -31,32 +31,6 @@ class DiscordEvents(commands.Cog):
 
         logger.info('We have connected to the discord gateway')
 
-        if not self.bot.user.public_flags.verified_bot:
-            return
-
-        global has_started
-        if not has_started:
-            has_started = True
-            database_guilds = await self.bot.server_db.distinct('server')
-            database_guilds: set = set(database_guilds)
-            missing_guilds = [guild.id for guild in self.bot.guilds if guild.id not in database_guilds]
-            for guild in missing_guilds:
-                try:
-                    await self.bot.server_db.insert_one(
-                        {
-                            'server': guild,
-                            'banlist': None,
-                            'greeting': None,
-                            'cwlcount': None,
-                            'topboardchannel': None,
-                            'tophour': None,
-                            'lbboardChannel': None,
-                            'lbhour': None,
-                        }
-                    )
-                except:
-                    continue
-
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -82,6 +56,26 @@ class DiscordEvents(commands.Cog):
                 activity=disnake.CustomActivity(state=default_status.get('activity_text'), name='Custom Status'),
                 status=DISCORD_STATUS_TYPES.get(default_status.get('status')),
             )
+
+        database_guilds = await self.bot.server_db.distinct('server')
+        database_guilds: set = set(database_guilds)
+        missing_guilds = [guild.id for guild in self.bot.guilds if guild.id not in database_guilds]
+        for guild in missing_guilds:
+            try:
+                await self.bot.server_db.insert_one(
+                    {
+                        'server': guild,
+                        'banlist': None,
+                        'greeting': None,
+                        'cwlcount': None,
+                        'topboardchannel': None,
+                        'tophour': None,
+                        'lbboardChannel': None,
+                        'lbhour': None,
+                    }
+                )
+            except:
+                continue
 
         logger.info('Bot has loaded & is ready')
 
