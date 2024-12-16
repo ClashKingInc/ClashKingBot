@@ -4,7 +4,7 @@ A Clash of Clans Discord bot focused on efficient clan management. It provides r
 
 <div align="center">
   
-[![Docker Image](https://img.shields.io/badge/Docker-clashkinginc%2Fclashkingbot-blue?logo=docker&style=for-the-badge)](https://github.com/orgs/ClashKingInc/packages/container/clashkingbot) [![Contributors](https://img.shields.io/github/contributors/ClashKingInc/ClashKingBot?style=for-the-badge)](https://github.com/ClashKingInc/ClashKingBot/graphs/contributors)
+[![Docker Image](https://img.shields.io/badge/Docker-clashkinginc%2Fclashkingbot-blue?logo=docker&style=for-the-badge)](https://github.com/ClashKingInc/ClashKingBot/pkgs/container/clashkingbot) [![Contributors](https://img.shields.io/github/contributors/ClashKingInc/ClashKingBot?style=for-the-badge)](https://github.com/ClashKingInc/ClashKingBot/graphs/contributors)
 [![Forks](https://img.shields.io/github/forks/ClashKingInc/ClashKingBot?style=for-the-badge)](https://github.com/ClashKingInc/ClashKingBot/network/members)
 [![Stargazers](https://img.shields.io/github/stars/ClashKingInc/ClashKingBot?style=for-the-badge)](https://github.com/ClashKingInc/ClashKingBot/stargazers)
 [![Issues](https://img.shields.io/github/issues/ClashKingInc/ClashKingBot?style=for-the-badge)](https://github.com/ClashKingInc/ClashKingBot/issues)
