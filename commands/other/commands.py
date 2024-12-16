@@ -160,15 +160,14 @@ class misc(commands.Cog, name='Other'):
         # Cluster stats
         cluster_lines = []
         for d in sorted(self.bot.SHARD_DATA, key=lambda x: x.cluster_id):
-            star = "⭐" if d.cluster_id == cluster_id else ""
-            line = f"{star} **Cluster {d.cluster_id}**: {d.server_count:,} Servers | {d.member_count:,} Members | {d.clan_count:,} Clans"
+            line = f"**{d.cluster_id}**: {d.server_count:,} S | {d.member_count:,} M | {d.clan_count:,} C"
             cluster_lines.append(line)
 
         if not cluster_lines:
             cluster_lines.append(
-                f"Cluster {cluster_id}: {inservers:,} Servers | {members_local:,} Members | {num_clans:,} Clans")
+                f"{cluster_id}: {inservers:,} S | {members_local:,} M | {num_clans:,} C")
 
-        embed.add_field(name="📂 Cluster Stats", value="\n".join(cluster_lines), inline=False)
+        embed.add_field(name="📂 Cluster Stats (Server, Members, Clans)", value="```" + "\n".join(cluster_lines) + "```", inline=False)
 
         # Environment info
         env_info = (
