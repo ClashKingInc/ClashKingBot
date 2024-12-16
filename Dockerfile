@@ -1,6 +1,10 @@
 # Use an updated Python image
 FROM python:3.11-bookworm
 
+LABEL org.opencontainers.image.source=https://github.com/ClashKingInc/ClashKingBot
+LABEL org.opencontainers.image.description="Image for the ClashKing Discord Bot"
+LABEL org.opencontainers.image.licenses=MIT
+
 # Install dependencies
 RUN apt-get update && apt-get install -y libsnappy-dev
 
