@@ -33,4 +33,4 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/clashkinginc/clashkingbot:$(if [ "${{ github.ref_name }}" = "master" ]; then echo "latest"; else echo "${SANITIZED_BRANCH}"; fi)
+            ghcr.io/clashkinginc/clashkingbot:${{ github.ref_name == 'master' && 'latest' || env.SANITIZED_BRANCH }}
