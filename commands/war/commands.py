@@ -86,7 +86,7 @@ class War(commands.Cog):
                 )
                 embed.set_thumbnail(url=clan.badge.large)
                 return await ctx.send(embed=embed)
-        embed = await main_war_page(bot=self.bot, war=war, war_league=str(clan.war_league))
+        embed = await main_war_page(bot=self.bot, war=war, war_league=str(clan.war_league), is_previous=previous_wars is not None)
 
         main = embed
 

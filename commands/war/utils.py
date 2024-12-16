@@ -16,7 +16,7 @@ from utility.constants import SUPER_SCRIPTS, leagues, war_leagues
 from utility.general import create_superscript
 
 
-async def main_war_page(bot: CustomClient, war: coc.ClanWar, war_league=None):
+async def main_war_page(bot: CustomClient, war: coc.ClanWar, war_league=None, is_previous=False):
 	war_time = war.start_time.seconds_until
 	war_state = "In Prep"
 	war_pos = "Starting"
@@ -43,13 +43,17 @@ async def main_war_page(bot: CustomClient, war: coc.ClanWar, war_league=None):
 		color = disnake.Color.green()
 
 	embed = disnake.Embed(description=f"[**{war.clan.name}**]({war.clan.share_link})", color=color)
+	time_line = f"[*View War Timeline*](https://api.clashking.xyz/timeline/{war.clan.tag.replace("#", "%23")}/{war.end_time.raw_time})\n"
+	if not is_previous:
+		time_line = f"[*View War Timeline*](https://api.clashking.xyz/timeline/{war.clan.tag.replace("#", "%23")})\n"
 	embed.add_field(
 	    name=f"**War Against**",
 	    value=f"[**{war.opponent.name} ({war.opponent.tag})**]({war.opponent.share_link})\n­\n",
-	    inline=False,
+		inline=False,
 	)
 
-	state_text = f"{war_state} ({war.team_size} vs {war.team_size})\n" f"{war_pos}: <t:{int(war_time)}:R>\n­\n"
+	state_text = (f"{war_state} ({war.team_size} vs {war.team_size})\n{war_pos}: <t:{int(war_time)}:R>\n"
+				  f"{time_line}­\n")
 	if war.type == "cwl":
 		state_text = (f"{cwl_league_emojis(bot=bot, league=str(war_league))}{str(war_league)}\n" + state_text)  # clearer than equivalent f-string
 	embed.add_field(name=f"**War State**", value=state_text, inline=False)
