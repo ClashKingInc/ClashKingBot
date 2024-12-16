@@ -23,10 +23,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GH_TOKEN }}
 
+      - name: Sanitize branch name
+        id: sanitize
+        run: echo "SANITIZED_BRANCH=$(echo '${{ github.ref_name }}' | sed 's/[^a-zA-Z0-9_.-]/-/g')" >> $GITHUB_ENV
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            ghcr.io/clashkinginc/clashkingbot:latest${{ github.ref_name == 'master' && 'latest' || github.ref_name }}
+            ghcr.io/clashkinginc/clashkingbot:$(if [ "${{ github.ref_name }}" = "master" ]; then echo "latest"; else echo "${SANITIZED_BRANCH}"; fi)
