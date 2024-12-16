@@ -5,9 +5,9 @@ import disnake
 import motor.motor_asyncio
 from disnake.ext import commands
 from exceptions.CustomExceptions import *
+from main import config
 
-
-db_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv('STATIC_MONGODB'))
+db_client = motor.motor_asyncio.AsyncIOMotorClient(config.static_db)
 whitelist = db_client.usafam.whitelist
 server_settings = db_client.usafam.server
 
