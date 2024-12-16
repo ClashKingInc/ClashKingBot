@@ -85,7 +85,7 @@ class BanEvents(commands.Cog):
                             for banned_server in servers_banned_in:
                                 banned_server = self.bot.SERVER_MAP.get(banned_server)
                                 if banned_server is not None:
-                                    server_list.append(f'{banned_server.name} ({banned_server.member_count} members) | {ban_result.get('DateCreated')[:10]}')
+                                    server_list.append(f"{banned_server.name} ({banned_server.member_count} members) | {ban_result.get('DateCreated')[:10]}")
                             server_list = ':\n' + '\n'.join(server_list)
 
                         if server_list:
