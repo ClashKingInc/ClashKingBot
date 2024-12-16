@@ -13,7 +13,7 @@ async def button_logic(
     bot: CustomClient,
     guild: disnake.Guild,
     locale: disnake.Locale,
-    ctx: disnake.MessageInteraction = None,
+    ctx: disnake.MessageInteraction | None = None,
     autoboard: bool = False,
 ):
     split_data = button_data.split(':')
@@ -57,10 +57,14 @@ async def button_logic(
         elif name == 'custom_player':
             data = await bot.getPlayer(player_tag=data, custom=True)
         elif name == 'discord_user':
-            data = await ctx.guild.getch_member(data)
+            ctx: disnake.ApplicationCommandInteraction
+            if ctx.guild:
+                data = await ctx.guild.getch_member(data)
+            else:
+                data = ctx.user
         hold_kwargs[name] = data
 
-    embed_color = await bot.ck_client.get_server_embed_color(server_id=guild.id)
+    embed_color = await bot.ck_client.get_server_embed_color(server_id=None if not guild else guild.id)
     hold_kwargs['embed_color'] = embed_color
     hold_kwargs = {key: hold_kwargs[key] for key in inspect.getfullargspec(function).args}
     embed = await function(**hold_kwargs)

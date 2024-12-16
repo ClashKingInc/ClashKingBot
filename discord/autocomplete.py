@@ -39,7 +39,13 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
 
     async def clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         if ctx.guild is None:
+            last_record = await self.bot.command_stats.find_one(
+                {"$and" : [{"user" : ctx.user.id}, {"server": {"$ne": None}}]},
+                sort=[("time", -1)]
+            )
             guild_id = 0
+            if last_record:
+                guild_id = last_record.get("server")
         else:
             guild_id = ctx.guild.id
         if ctx.filled_options.get('family') is not None:

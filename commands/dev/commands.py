@@ -15,6 +15,7 @@ import uuid
 import random
 from classes.bot import CustomClient
 from discord import convert, autocomplete
+from utility.constants import EMBED_COLOR_CLASS
 
 class OwnerCommands(commands.Cog):
     def __init__(self, bot: CustomClient):
@@ -135,8 +136,8 @@ class OwnerCommands(commands.Cog):
         pass
 
 
-    @dev.sub_command(name='autoboard-limit', description="Set a new autoboard limit for a server")
-    async def autoboard_limit(self, ctx: ApplicationCommandInteraction,
+    @dev.sub_command(name='automation-limit', description="Set a new autoboard limit for a server")
+    async def automation_limit(self, ctx: ApplicationCommandInteraction,
                               server: disnake.Guild =commands.Param(converter=convert.server, autocomplete=autocomplete.all_server),
                               new_limit: int = commands.Param()):
         await ctx.response.defer()

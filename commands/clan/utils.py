@@ -23,7 +23,9 @@ from ..graphs.utils import daily_graph
 
 @register_button('clandetailed', parser='_:clan')
 async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake.Guild, embed_color: disnake.Color):
-    db_clan = await bot.clan_db.find_one({'$and': [{'tag': clan.tag}, {'server': server.id}]})
+    db_clan = None
+    if server:
+        db_clan = await bot.clan_db.find_one({'$and': [{'tag': clan.tag}, {'server': server.id}]})
 
     clan_legend_ranking = await bot.clan_leaderboard_db.find_one({'tag': clan.tag})
 
