@@ -15,8 +15,6 @@ from utility.startup import fetch_emoji_dict
 
 
 has_started = False
-has_readied = False
-
 
 class DiscordEvents(commands.Cog):
     def __init__(self, bot: CustomClient):
@@ -38,6 +36,7 @@ class DiscordEvents(commands.Cog):
         if has_started:
             return
 
+        has_started = True
         if self.bot._config.cluster_id == 0:
             await self.sync_patchable_commands()
 
