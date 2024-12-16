@@ -4,11 +4,11 @@ A Clash of Clans Discord bot focused on efficient clan management. It provides r
 
 <div align="center">
   
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
+[![Docker Image](https://img.shields.io/badge/Docker-clashkinginc%2Fclashkingbot-blue?logo=docker&style=for-the-badge)](https://github.com/orgs/ClashKingInc/packages/container/clashkingbot) [![Contributors](https://img.shields.io/github/contributors/ClashKingInc/ClashKingBot?style=for-the-badge)](https://github.com/ClashKingInc/ClashKingBot/graphs/contributors)
+[![Forks](https://img.shields.io/github/forks/ClashKingInc/ClashKingBot?style=for-the-badge)](https://github.com/ClashKingInc/ClashKingBot/network/members)
+[![Stargazers](https://img.shields.io/github/stars/ClashKingInc/ClashKingBot?style=for-the-badge)](https://github.com/ClashKingInc/ClashKingBot/stargazers)
+[![Issues](https://img.shields.io/github/issues/ClashKingInc/ClashKingBot?style=for-the-badge)](https://github.com/ClashKingInc/ClashKingBot/issues)
+[![MIT License](https://img.shields.io/github/license/ClashKingInc/ClashKingBot?style=for-the-badge)](https://github.com/ClashKingInc/ClashKingBot/blob/master/LICENSE)
 
 [**Invite Bot**](https://discord.com/application-directory/824653933347209227) • [**Docs**](https://docs.clashking.xyz) • [**Demo (Discord)**](https://discord.gg/clashking)
 
@@ -22,6 +22,7 @@ A Clash of Clans Discord bot focused on efficient clan management. It provides r
 - [Tech Stack](#tech-stack)  
 - [Sister Repositories](#sister-repositories)  
 - [Getting Started](#getting-started)  
+- [Docker Image](#docker-image)  
 - [Contributing](#contributing)  
 - [License](#license)  
 - [Contact](#contact)  
@@ -98,46 +99,9 @@ Additional dependencies can be found in [requirements.txt](https://github.com/Cl
 
 ---
 
-## Contributing
+## Docker Image
 
-Contributions are welcome. If you’d like to report a bug, request a feature, or submit code changes, please open an issue or pull request.
+The Docker image for this bot is available on GitHub Container Registry (GHCR):
 
-- Fork the repo
-- Create your feature branch: `git checkout -b feature/AmazingFeature`
-- Commit your changes: `git commit -m 'Add AmazingFeature'`
-- Push to the branch: `git push origin feature/AmazingFeature`
-- Open a Pull Request
-
-See [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md).
-
-<p align="right"><a href="#top">Back to Top ↑</a></p>
-
----
-
-## License
-
-This project is distributed under the MIT License. See [LICENSE](https://github.com/ClashKingInc/ClashKingBot/blob/master/LICENSE) for details.
-
-<p align="right"><a href="#top">Back to Top ↑</a></p>
-
----
-
-## Contact
-
-- **Discord:** [Demo & Support Server](https://discord.gg/clashking)  
-- **Issues & Requests:** [GitHub Issues](https://github.com/ClashKingInc/ClashKingBot/issues)
-
-<p align="right"><a href="#top">Back to Top ↑</a></p>
-
----
-
-[contributors-shield]: https://img.shields.io/github/contributors/ClashKingInc/ClashKingBot.svg?style=for-the-badge
-[contributors-url]: https://github.com/ClashKingInc/ClashKingBot/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/ClashKingInc/ClashKingBot.svg?style=for-the-badge
-[forks-url]: https://github.com/ClashKingInc/ClashKingBot/network/members
-[stars-shield]: https://img.shields.io/github/stars/ClashKingInc/ClashKingBot.svg?style=for-the-badge
-[stars-url]: https://github.com/ClashKingInc/ClashKingBot/stargazers
-[issues-shield]: https://img.shields.io/github/issues/ClashKingInc/ClashKingBot.svg?style=for-the-badge
-[issues-url]: https://github.com/ClashKingInc/ClashKingBot/issues
-[license-shield]: https://img.shields.io/github/license/ClashKingInc/ClashKingBot.svg?style=for-the-badge
-[license-url]: https://github.com/ClashKingInc/ClashKingBot/blob/master/LICENSE
+```bash
+docker pull ghcr.io/clashkinginc/clashkingbot:latest
