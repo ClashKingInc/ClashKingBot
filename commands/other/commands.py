@@ -149,7 +149,7 @@ class misc(commands.Cog, name='Other'):
         # Shard info
         shard_info = f"**Total Shards:** {shard_count}"
         if shard_count > 1:
-            shard_info += f"\n**Current Shard:** {current_shard_id}"
+            shard_info += f"\n**Your Shard:** {current_shard_id + 1}"
         shard_info += f"\n**Your Cluster:** {cluster_id}"
         embed.add_field(name="🔧 Shard Info", value=shard_info, inline=False)
 
@@ -160,7 +160,7 @@ class misc(commands.Cog, name='Other'):
         # Cluster stats
         cluster_lines = []
         for d in sorted(self.bot.SHARD_DATA, key=lambda x: x.cluster_id):
-            line = f"**{d.cluster_id}**: {d.server_count:,} S | {d.member_count:,} M | {d.clan_count:,} C"
+            line = f"{d.cluster_id}: {d.server_count:,} S | {d.member_count:,} M | {d.clan_count:,} C"
             cluster_lines.append(line)
 
         if not cluster_lines:
