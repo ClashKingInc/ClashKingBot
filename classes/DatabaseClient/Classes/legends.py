@@ -23,17 +23,17 @@ class LegendRanking:
     @property
     def local_ranking(self):
         if self._ranking_result is None:
-            return '<:status_offline:910938138984206347>'
+            return 'Unranked'
         if self._ranking_result.get('local_rank') is None:
-            return '<:status_offline:910938138984206347>'
+            return 'Unranked'
         return self._ranking_result.get('local_rank')
 
     @property
     def global_ranking(self):
         if self._ranking_result is None:
-            return '<:status_offline:1247040997045829712>'
+            return 'Unranked'
         if self._ranking_result.get('global_rank') is None:
-            return '<:status_offline:1247040997045829712>'
+            return 'Unranked'
         return self._ranking_result.get('global_rank')
 
     @property
