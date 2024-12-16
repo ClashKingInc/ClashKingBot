@@ -7,7 +7,7 @@ from disnake.ext import commands
 from exceptions.CustomExceptions import *
 from main import config
 
-db_client = motor.motor_asyncio.AsyncIOMotorClient(config.static_db)
+db_client = motor.motor_asyncio.AsyncIOMotorClient(config.static_mongodb)
 whitelist = db_client.usafam.whitelist
 server_settings = db_client.usafam.server
 
