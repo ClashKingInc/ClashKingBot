@@ -247,12 +247,14 @@ class War_Log(commands.Cog):
             await ctx.response.defer(ephemeral=True)
             war_id = (str(ctx.data.custom_id).split('_'))[-1]
             clan_tag = (str(ctx.data.custom_id).split('_'))[1]
-            war_data = await self.bot.clan_wars.find_one({'war_id': war_id})
+            war_data = await self.bot.clan_wars.find_one({"$and" : [{'war_id': war_id}, {"data" : {"$ne" : None}}]})
             war = None
             if war_data is not None:
                 war = coc.ClanWar(data=war_data['data'], client=self.bot.coc_client, clan_tag=clan_tag)
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
+                if war_id != f'{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}':
+                    war = None
             if war is None:
                 return await ctx.send(content='No War Found', ephemeral=True)
             attack_embed: disnake.Embed = await attacks_embed(bot=self.bot, war=war)
@@ -262,12 +264,14 @@ class War_Log(commands.Cog):
             await ctx.response.defer(ephemeral=True)
             war_id = (str(ctx.data.custom_id).split('_'))[-1]
             clan_tag = (str(ctx.data.custom_id).split('_'))[1]
-            war_data = await self.bot.clan_wars.find_one({'war_id': war_id})
+            war_data = await self.bot.clan_wars.find_one({"$and" : [{'war_id': war_id}, {"data" : {"$ne" : None}}]})
             war = None
             if war_data is not None:
                 war = coc.ClanWar(data=war_data['data'], client=self.bot.coc_client, clan_tag=clan_tag)
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
+                if war_id != f'{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}':
+                    war = None
             if war is None:
                 return await ctx.send(content='No War Found', ephemeral=True)
             attack_embed = await defenses_embed(bot=self.bot, war=war)
@@ -277,12 +281,14 @@ class War_Log(commands.Cog):
             await ctx.response.defer()
             war_id = (str(ctx.data.custom_id).split('_'))[-1]
             clan_tag = (str(ctx.data.custom_id).split('_'))[1]
-            war_data = await self.bot.clan_wars.find_one({'war_id': war_id})
+            war_data = await self.bot.clan_wars.find_one({"$and" : [{'war_id': war_id}, {"data" : {"$ne" : None}}]})
             war = None
             if war_data is not None:
                 war = coc.ClanWar(data=war_data['data'], client=self.bot.coc_client, clan_tag=clan_tag)
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
+                if war_id != f'{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}':
+                    war = None
             if war is None:
                 return await ctx.send(content='No War Found', ephemeral=True)
             embed = await main_war_page(bot=self.bot, war=war)
@@ -293,12 +299,14 @@ class War_Log(commands.Cog):
             await ctx.response.defer(ephemeral=True)
             war_id = (str(ctx.data.custom_id).split('_'))[-1]
             clan_tag = (str(ctx.data.custom_id).split('_'))[1]
-            war_data = await self.bot.clan_wars.find_one({'war_id': war_id})
+            war_data = await self.bot.clan_wars.find_one({"$and" : [{'war_id': war_id}, {"data" : {"$ne" : None}}]})
             war = None
             if war_data is not None:
                 war = coc.ClanWar(data=war_data['data'], client=self.bot.coc_client, clan_tag=clan_tag)
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
+                if war_id != f'{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}':
+                    war = None
             if war is None:
                 return await ctx.send(content='No War Found', ephemeral=True)
 
