@@ -6,6 +6,7 @@ from classes.bot import CustomClient
 from discord import autocomplete, convert, options
 from exceptions.CustomExceptions import PlayerNotInLegends
 from utility.constants import POSTER_LIST
+from utility.discord_utils import user_command
 
 from .utils import (
     legend_buckets,
@@ -23,6 +24,7 @@ class Legends(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
+    @user_command()
     @commands.slash_command(
         name=disnake.Localized('legends', key='legends-name'),
         description=disnake.Localized(key='legends-description'),

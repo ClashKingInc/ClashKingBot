@@ -1,12 +1,11 @@
 from datetime import datetime
-from datetime import datetime
 from typing import List
 
 import coc
 import disnake
 import pytz
 from disnake.ext import commands
-
+import pendulum as pend
 from classes.bot import CustomClient
 from classes.player.stats import StatsPlayer
 from classes.tickets import LOG_TYPE, OpenTicket, TicketPanel
@@ -201,14 +200,36 @@ class TicketClick(commands.Cog):
             )
             await ctx.channel.delete()
 
-        panel_settings = await self.bot.tickets.find_one(
-            {
-                '$and': [
-                    {'server_id': ctx.guild.id},
-                    {'name': ctx.data.custom_id.split('_')[0]},
-                ]
-            }
-        )
+        def is_unix_timestamp(timestamp: str) -> bool:
+            """
+            Check if a string is a valid Unix timestamp.
+
+            Args:
+                timestamp (str): The string to check.
+
+            Returns:
+                bool: True if the string is a valid Unix timestamp, False otherwise.
+            """
+            try:
+                # Ensure the string can be converted to an integer
+                ts_int = int(timestamp)
+
+                # Check if the timestamp is within a reasonable range for Unix time
+                pend.from_timestamp(ts_int)
+                return True
+            except (ValueError, OverflowError):
+                return False
+
+        panel_settings = None
+        if is_unix_timestamp(ctx.data.custom_id.split("_")[-1]):
+            panel_settings = await self.bot.tickets.find_one(
+                {
+                    '$and': [
+                        {'server_id': ctx.guild.id},
+                        {'name': ctx.data.custom_id.split('_')[0]},
+                    ]
+                }
+            )
         if panel_settings is not None:
             member = await ctx.guild.getch_member(ctx.user.id)
             panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
@@ -320,14 +341,12 @@ class TicketClick(commands.Cog):
                     else:
                         await res.response.send_message(content='Done!', components=[], ephemeral=True)
 
-            print(button.questions)
             if button.questions:
                 if message:
                     await message.delete()
                 (message, questionaire_embed) = await ask_questions(bot=self.bot, ctx=ctx, questions=button.questions)
                 embeds.append(questionaire_embed)
 
-            print("here again")
             channels = await open_ticket(
                 bot=self.bot,
                 ticket_panel=panel,

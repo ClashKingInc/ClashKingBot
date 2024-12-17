@@ -99,11 +99,20 @@ class misc(commands.Cog, name='Other'):
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)
 
-
-
     @commands.slash_command(name='bot', description='View detailed bot statistics, total and per cluster.')
     async def stat(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
+
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get("https://api.clashking.xyz/global/counts") as response:
+                    if response.status == 200:
+                        api_data = await response.json()
+                    else:
+                        api_data = None
+            except Exception as e:
+                print(f"API request failed: {e}")
+                api_data = None
 
         cluster_id = self.bot._config.cluster_id
 
@@ -111,7 +120,7 @@ class misc(commands.Cog, name='Other'):
         uptime_seconds = time.time() - self.up
         uptime_str = time.strftime('%H hours %M minutes %S seconds', time.gmtime(uptime_seconds))
 
-        # Shard info (if any)
+        # Shard info
         shard_count = self.bot.shard_count if self.bot.shard_count else 1
         current_shard_id = getattr(ctx.guild, "shard_id", 0)
 
@@ -149,7 +158,7 @@ class misc(commands.Cog, name='Other'):
         # Shard info
         shard_info = f"**Total Shards:** {shard_count}"
         if shard_count > 1:
-            shard_info += f"\n**Current Shard:** {current_shard_id}"
+            shard_info += f"\n**Your Shard:** {current_shard_id + 1}"
         shard_info += f"\n**Your Cluster:** {cluster_id}"
         embed.add_field(name="🔧 Shard Info", value=shard_info, inline=False)
 
@@ -157,18 +166,32 @@ class misc(commands.Cog, name='Other'):
         embed.add_field(name="📂 Tickets Opened", value=f"{num_tickets:,}", inline=True)
         embed.add_field(name="🗃️ Loaded Servers", value=f"{chunked_guilds:,}", inline=True)
 
+        if api_data:
+            global_counts = (
+                f"Players in War    : {api_data['players_in_war']:,}\n"
+                f"Clans in War      : {api_data['clans_in_war']:,}\n"
+                f"Players in Legends: {api_data['players_in_legends']:,}\n"
+                f"Join/Leaves Stored: {api_data['total_join_leaves']:,}\n"
+                f"Players Tracked   : {api_data['player_count']:,}\n"
+                f"Clans Tracked     : {api_data['clan_count']:,}\n"
+                f"Wars Stored       : {api_data['wars_stored']:,}"
+            )
+            embed.add_field(name="🌍 Global Stats", value=f"```yaml\n{global_counts}\n```", inline=False)
+        else:
+            embed.add_field(name="🌍 Global Stats", value="```yaml\nFailed to fetch data.\n```", inline=False)
+
         # Cluster stats
         cluster_lines = []
         for d in sorted(self.bot.SHARD_DATA, key=lambda x: x.cluster_id):
-            star = "⭐" if d.cluster_id == cluster_id else ""
-            line = f"{star} **Cluster {d.cluster_id}**: {d.server_count:,} Servers | {d.member_count:,} Members | {d.clan_count:,} Clans"
+            line = f"{d.cluster_id}: {d.server_count:,} S | {d.member_count:,} M | {d.clan_count:,} C"
             cluster_lines.append(line)
 
         if not cluster_lines:
             cluster_lines.append(
-                f"Cluster {cluster_id}: {inservers:,} Servers | {members_local:,} Members | {num_clans:,} Clans")
+                f"{cluster_id}: {inservers:,} S | {members_local:,} M | {num_clans:,} C")
 
-        embed.add_field(name="📂 Cluster Stats", value="\n".join(cluster_lines), inline=False)
+        embed.add_field(name="📂 Cluster Stats (Server, Members, Clans)", value="```" + "\n".join(cluster_lines) + "```",
+                        inline=False)
 
         # Environment info
         env_info = (

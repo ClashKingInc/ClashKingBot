@@ -23,7 +23,9 @@ from ..graphs.utils import daily_graph
 
 @register_button('clandetailed', parser='_:clan')
 async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake.Guild, embed_color: disnake.Color):
-    db_clan = await bot.clan_db.find_one({'$and': [{'tag': clan.tag}, {'server': server.id}]})
+    db_clan = None
+    if server:
+        db_clan = await bot.clan_db.find_one({'$and': [{'tag': clan.tag}, {'server': server.id}]})
 
     clan_legend_ranking = await bot.clan_leaderboard_db.find_one({'tag': clan.tag})
 
@@ -1201,15 +1203,15 @@ async def war_log(
         clan_attack_count = war.clan.attacks_used
 
         if war.result == 'win':
-            status = '<:warwon:932212939899949176>'
+            status = bot.emoji.up_green_arrow
             op_status = 'Win'
 
         elif (war.opponent.stars == war.clan.stars) and (war.clan.destruction == war.opponent.destruction):
-            status = '<:dash:933150462818021437>'
+            status = bot.emoji.grey_dash
             op_status = 'Draw'
 
         else:
-            status = '<:warlost:932212154164183081>'
+            status = bot.emoji.down_red_arrow
             op_status = 'Loss'
 
         time = f'<t:{int(war.end_time.time.replace(tzinfo=utc).timestamp())}:R>'
@@ -1226,7 +1228,7 @@ async def war_log(
             f'{status}**{op_status} vs '
             f'\u200e{war.opponent.name}**\n'
             f'({war.team_size} vs {war.team_size}){num_hit} | {time}\n'
-            f'{war.clan.stars} <:star:825571962699907152> {war.opponent.stars} | '
+            f'{war.clan.stars} ★ {war.opponent.stars} | '
             f'{clan_attack_count}/{total} | {round(war.clan.destruction, 1)}% | '
             f'+{war.clan.exp_earned}xp\n'
         )

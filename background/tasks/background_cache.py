@@ -31,6 +31,14 @@ class BackgroundCache(commands.Cog):
 
         self.bot.SERVER_MAP = {g.id : g for shard in self.bot.SHARD_DATA for g in shard.servers}
 
+        channel = self.bot.get_channel(937528942661877851)
+        if channel is not None and self.bot.user.public_flags.verified_bot:
+            number_of_servers = len(list(self.bot.SERVER_MAP.keys()))
+            new_channel_name = f'ClashKing: {number_of_servers} Servers'
+            if new_channel_name != channel.name:
+                await channel.edit(name=new_channel_name)
+
+
     @guilds_store.before_loop
     async def before_guilds_store(self):
         await self.bot.wait_until_ready()

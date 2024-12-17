@@ -1,6 +1,7 @@
 from disnake.ext import commands
 
 from discord import autocomplete, options
+from utility.discord_utils import user_command
 
 from .utils import *
 
@@ -9,6 +10,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
+    @user_command()
     @commands.slash_command(name='clan')
     async def clan(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()

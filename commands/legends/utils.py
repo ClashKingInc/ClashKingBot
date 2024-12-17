@@ -65,7 +65,10 @@ async def legend_day_overview(
 
     embed.add_field(
         name=f"**{_('rankings')}**",
-        value=f"- {bot.emoji.earth} {global_ranking_text} | {player.ranking.flag} {player.ranking.local_ranking}\n- {_('country')}: {player.ranking.country}",
+        value=f"- {bot.emoji.earth} {global_ranking_text}\n"
+              f"- {player.ranking.flag} {player.ranking.local_ranking}\n"
+              f"- {_('country')}: {player.ranking.country}\n"
+              f"[*Stats seem wrong? FAQ*](https://docs.clashking.xyz/faq#the-legend-stats-are-wrong)",
         inline=False,
     )
 
