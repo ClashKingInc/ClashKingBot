@@ -37,10 +37,12 @@ class Embeds(commands.Cog):
             id = discohook_url_or_messsage_link.split('share=')[-1]
             async with aiohttp.ClientSession() as session:
                 async with session.get(f"https://discohook.app/api/v1/share/{id}") as response:
-                    discohook_data = await response.json()
-            print(discohook_data)
+                    if response.status == 200:
+                        discohook_data = await response.json()
+                    else:
+                        raise MessageException("Invalid Discohook Link. Must use https://discohook.app")
             decoded_embed = reverse_encoding(embed_dict=dict(discohook_data))
-            print(decoded_embed)
+
         elif 'discord.com' in discohook_url_or_messsage_link:
             try:
                 link_split = discohook_url_or_messsage_link.split('/')
@@ -74,32 +76,34 @@ class Embeds(commands.Cog):
         name: str = commands.Param(autocomplete=autocomplete.embeds),
         discohook_url: str = commands.Param(default=None),
     ):
-        await ctx.response.defer()
+        await ctx.response.defer(ephemeral=True)
         lookup = await self.bot.custom_embeds.find_one({'$and': [{'server': ctx.guild_id}, {'name': name}]})
         if lookup is None:
             raise MessageException('No embed with that name found on this server')
 
         if discohook_url is None:
             encoding = encoded_data(data=lookup.get('data'))
-            shortened_url = await shorten_link(url=f'https://discohook.org/?data={encoding}')
+            shortened_url = await shorten_link(url=f'https://discohook.app/?data={encoding}')
             buttons = disnake.ui.ActionRow(disnake.ui.Button(label='Edit Embed', url=shortened_url, style=disnake.ButtonStyle.url))
             await ctx.edit_original_message(
                 content='Click the button below to edit your embed',
-                components=[buttons],
+                components=[buttons]
             )
         else:
-            if discohook_url.startswith('https://share.discohook.app'):
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(discohook_url, allow_redirects=True) as response:
-                        discohook_url = str(response.url)
-            data = discohook_url.split('data=')
-            decoded_embed = reverse_encoding(base64_encoded=data[-1])
+            id = discohook_url.split('share=')[-1]
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"https://discohook.app/api/v1/share/{id}") as response:
+                    if response.status == 200:
+                        discohook_data = await response.json()
+                    else:
+                        raise MessageException("Invalid Discohook Link. Must use https://discohook.app")
+            decoded_embed = reverse_encoding(embed_dict=dict(discohook_data))
             await self.bot.custom_embeds.update_one(
                 {'$and': [{'server': ctx.guild_id}, {'name': name}]},
                 {'$set': {'data': decoded_embed}},
             )
             embeds = [disnake.Embed.from_dict(data=e) for e in decoded_embed.get('embeds', [])]
-            await ctx.send(
+            await ctx.edit_original_message(
                 content=f'**Your new embed**\n\n' + (decoded_embed.get('content') or ''),
                 embeds=embeds,
             )
