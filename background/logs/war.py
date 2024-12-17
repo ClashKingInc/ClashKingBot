@@ -254,7 +254,7 @@ class War_Log(commands.Cog):
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
                 if war_id != f'{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}':
-                    war = None
+                    pass
             if war is None:
                 return await ctx.send(content='No War Found', ephemeral=True)
             attack_embed: disnake.Embed = await attacks_embed(bot=self.bot, war=war)
@@ -271,7 +271,7 @@ class War_Log(commands.Cog):
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
                 if war_id != f'{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}':
-                    war = None
+                    pass
             if war is None:
                 return await ctx.send(content='No War Found', ephemeral=True)
             attack_embed = await defenses_embed(bot=self.bot, war=war)
@@ -288,7 +288,7 @@ class War_Log(commands.Cog):
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
                 if war_id != f'{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}':
-                    war = None
+                    pass
             if war is None:
                 return await ctx.send(content='No War Found', ephemeral=True)
             embed = await main_war_page(bot=self.bot, war=war)
@@ -306,7 +306,7 @@ class War_Log(commands.Cog):
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
                 if war_id != f'{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}':
-                    war = None
+                    pass
             if war is None:
                 return await ctx.send(content='No War Found', ephemeral=True)
 
