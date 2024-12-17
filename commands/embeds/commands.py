@@ -33,11 +33,14 @@ class Embeds(commands.Cog):
             raise MessageException('Cannot have 2 embeds with the same name')
 
         if 'discohook.app' in discohook_url_or_messsage_link:
+
+            id = discohook_url_or_messsage_link.split('share=')[-1]
             async with aiohttp.ClientSession() as session:
-                async with session.get(discohook_url_or_messsage_link, allow_redirects=True) as response:
-                    discohook_url = str(response.url)
-            data = discohook_url.split('data=')
-            decoded_embed = reverse_encoding(base64_encoded=data[-1])
+                async with session.get(f"https://discohook.app/api/v1/share/{id}") as response:
+                    discohook_data = await response.json()
+            print(discohook_data)
+            decoded_embed = reverse_encoding(embed_dict=dict(discohook_data))
+            print(decoded_embed)
         elif 'discord.com' in discohook_url_or_messsage_link:
             try:
                 link_split = discohook_url_or_messsage_link.split('/')
