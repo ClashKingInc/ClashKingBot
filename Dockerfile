@@ -1,24 +1,32 @@
-# Use an updated Python image
-FROM python:3.11-bookworm
+# Stage 1: Base Image with Python and System Dependencies
+FROM python:3.11-bookworm AS base
 
 LABEL org.opencontainers.image.source=https://github.com/ClashKingInc/ClashKingBot
 LABEL org.opencontainers.image.description="Image for the ClashKing Discord Bot"
 LABEL org.opencontainers.image.licenses=MIT
 
-# Install dependencies
-RUN apt-get update && apt-get install -y libsnappy-dev
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libsnappy-dev && \
+    rm -rf /var/lib/apt/lists/*
 
-# Set the working directory in the container
+# Set the working directory
 WORKDIR /app
 
-# First, copy only the requirements.txt file
+# Stage 2: Install Python Dependencies
+FROM base AS dependencies
+
+# Copy only requirements to leverage Docker cache
 COPY requirements.txt .
 
-# Install any needed packages specified in requirements.txt
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Now copy the rest of the application code into the container
+# Stage 3: Copy Application Code
+FROM dependencies AS final
+
+# Copy the rest of the application code
 COPY . .
 
-# Command to run the application
+# Set the default command
 CMD ["python3", "main.py"]
