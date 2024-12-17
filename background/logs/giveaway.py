@@ -1,9 +1,8 @@
-from random import sample
+from datetime import datetime, timezone
+from random import choices
 
 import disnake
 from disnake.ext import commands
-from datetime import datetime, timezone
-from bson.objectid import ObjectId
 
 from background.logs.events import giveaway_ee
 from utility.search import search_results
@@ -15,12 +14,35 @@ class GiveawayEvents(commands.Cog):
         giveaway_ee.on('giveaway_start', self.on_giveaway_start)
         giveaway_ee.on('giveaway_end', self.on_giveaway_end)
 
+    async def get_user_roles(self, guild_id, user_id: str) -> list:
+        """
+        Get the roles of a user in a guild.
+
+        Args:
+            user_id (str): L'ID de l'utilisateur.
+
+        Returns:
+            list: List of role IDs the user has.
+        """
+        guild = self.bot.get_guild(guild_id)
+        if guild is None:
+            return []
+
+        # Fetch the member object
+        try:
+            member = await guild.fetch_member(int(user_id))
+            if member:
+                # Return the role IDs (excluding @everyone)
+                return [str(role.id) for role in member.roles if role.name != "@everyone"]
+        except Exception as e:
+            print(f"Error fetching user roles: {e}")
+
+        return []
+
     async def on_giveaway_start(self, data):
         """
         Handle the 'giveaway_start' event and add a "Participate" button with an image.
         """
-        print("Giveaway Start Event Triggered")
-
         # Extract giveaway data
         channel_id = data['channel_id']
         prize = data['prize']
@@ -31,8 +53,6 @@ class GiveawayEvents(commands.Cog):
         end_time = data.get("end_time")  # UNIX timestamp
         giveaway_id = data.get('giveaway_id', 'unknown')  # Giveaway ID (fallback if missing)
         winners_count = data.get('winners_count', 1)
-
-        print(data)
 
         # Dynamic plural handling for winners count
         winners_text = "Winner" if winners_count == 1 else "Winners"
@@ -93,8 +113,6 @@ class GiveawayEvents(commands.Cog):
         """
         Handle the 'giveaway_end' event and display winners/participants.
         """
-        print("Giveaway End Event Triggered")
-
         # Extract giveaway data
         participants = data.get('participants', [])
         winner_count = data.get('winner_count', 0)
@@ -102,6 +120,25 @@ class GiveawayEvents(commands.Cog):
         prize = data['prize']
         winners_count = data.get('winners_count', 1)
         text_on_end = data.get("text_on_end", "")
+        boosters = data.get('boosters', [])
+        guild_id = data.get('server_id', 'unknown')
+
+        weights = []
+        for participant in participants:
+            user_roles = await self.get_user_roles(guild_id, participant)
+
+            # Find applicable boosters for the user
+            applicable_boosts = [booster["value"] for booster in boosters if
+                                 any(role in booster["roles"] for role in user_roles)]
+
+            if applicable_boosts:
+                # If boosters are found, set the weight to the highest value
+                weight = max(applicable_boosts)
+            else:
+                # If no boosters are found, set the weight to 1
+                weight = 1
+
+            weights.append(weight)
 
         # Determine if there's one or multiple winners
         winners_text = "Winner" if winners_count == 1 else "Winners"
@@ -109,7 +146,7 @@ class GiveawayEvents(commands.Cog):
         # Determine winners
         winners = []
         if participants and winner_count > 0:
-            winners = sample(participants, min(winner_count, len(participants)))
+            winners = choices(participants, weights=weights, k=min(winner_count, len(participants)))
 
         # Format mention text for winners
         mention_text = ' '.join([f'<@{winner}>' for winner in winners]) if winners else "No winners"
@@ -129,7 +166,6 @@ class GiveawayEvents(commands.Cog):
 
             # Send the message
             await channel.send(content=content, embed=embed) if content else await channel.send(embed=embed)
-            print(f"Sent giveaway end message to channel {channel_id}")
 
     @commands.Cog.listener()
     async def on_button_click(self, interaction: disnake.MessageInteraction):
@@ -137,9 +173,7 @@ class GiveawayEvents(commands.Cog):
         Listener for giveaway participation buttons.
         """
         if interaction.component.custom_id.startswith("giveaway_"):
-            print("Giveaway button clicked: ", interaction.component.custom_id)
             giveaway_id = interaction.component.custom_id.split("_")[1]
-            print(f"Giveaway button clicked: {giveaway_id}")
 
             # Fetch giveaway from the database (ID as a string)
             giveaway = await self.bot.giveaways.find_one({"_id": giveaway_id})
@@ -152,22 +186,28 @@ class GiveawayEvents(commands.Cog):
                 await interaction.response.send_message("You have already entered this giveaway!", ephemeral=True)
                 return
 
-            # Retrieve options
-            require_profile_pic = True
-            require_clash_account = True
+            # Check for roles allow/deny rules
+            user_roles = [str(role.id) for role in interaction.user.roles]
+            roles_mode = giveaway.get("roles_mode", "allow")
+            allowed_roles = giveaway.get("roles", [])
 
-            print(interaction.user.avatar)
+            if roles_mode == "deny" and any(role in allowed_roles for role in user_roles) is False:
+                await interaction.response.send_message("You are not allowed to enter this giveaway.", ephemeral=True)
+                return
+            elif roles_mode == "allow" and any(role in allowed_roles for role in user_roles):
+                await interaction.response.send_message("You are not allowed to enter this giveaway.", ephemeral=True)
+                return
+
             # Check profile picture requirement
-            if require_profile_pic and interaction.user.avatar is None:
+            if giveaway.get("profile_picture_required") and interaction.user.avatar is None:
                 await interaction.response.send_message("You need a profile picture to enter this giveaway.",
                                                         ephemeral=True)
                 return
 
             # Check Clash account requirement
-            if require_clash_account:
+            if giveaway.get("coc_account_required"):
                 search_query = str(interaction.user.id)
                 results = await search_results(self.bot, search_query)
-                print(results)
                 if not results:
                     await interaction.response.send_message(
                         "You need a linked Clash account to enter this giveaway.",
