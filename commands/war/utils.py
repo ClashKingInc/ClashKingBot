@@ -43,9 +43,9 @@ async def main_war_page(bot: CustomClient, war: coc.ClanWar, war_league=None, is
 		color = disnake.Color.green()
 
 	embed = disnake.Embed(description=f"[**{war.clan.name}**]({war.clan.share_link})", color=color)
-	time_line = f"[*View War Timeline*](https://api.clashking.xyz/timeline/{war.clan.tag.replace("#", "%23")}/{war.end_time.raw_time})\n"
+	time_line = f'[*View War Timeline*](https://api.clashking.xyz/timeline/{war.clan.tag.replace("#", "%23")}/{war.end_time.raw_time})\n'
 	if not is_previous:
-		time_line = f"[*View War Timeline*](https://api.clashking.xyz/timeline/{war.clan.tag.replace("#", "%23")})\n"
+		time_line = f'[*View War Timeline*](https://api.clashking.xyz/timeline/{war.clan.tag.replace("#", "%23")})\n'
 	embed.add_field(
 	    name=f"**War Against**",
 	    value=f"[**{war.opponent.name} ({war.opponent.tag})**]({war.opponent.share_link})\n­\n",
