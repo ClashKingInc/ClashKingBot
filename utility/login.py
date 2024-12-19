@@ -3,7 +3,7 @@ import coc
 
 async def coc_login():
     coc_client: coc.Client = coc.Client(
-        base_url='https://api.clashking.xyz/v1',
+        base_url='https://proxy.clashk.ing/v1',
         key_count=10,
         key_names='test',
         throttle_limit=500,
