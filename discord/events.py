@@ -37,7 +37,7 @@ class DiscordEvents(commands.Cog):
             return
 
         has_started = True
-        if self.bot._config.cluster_id == 1:
+        if self.bot._config.cluster_id <= 1:
             await self.sync_patchable_commands()
 
         if self.bot.user.public_flags.verified_bot:

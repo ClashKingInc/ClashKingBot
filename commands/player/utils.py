@@ -600,7 +600,7 @@ async def detailed_player_board(bot: CustomClient, custom_player: StatsPlayer, s
     if member is not None:
         embed.set_footer(text=str(member), icon_url=member.display_avatar)
 
-    ban = await bot.banlist.find_one({"$and": [{"VillageTag": f"{player.tag}"}, {"server": server.id}]})
+    ban = await bot.banlist.find_one({"$and": [{"VillageTag": f"{player.tag}"}, {"server": server.id if server else None}]})
 
     if ban is not None:
         date = ban.get("DateCreated")
