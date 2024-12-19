@@ -469,7 +469,7 @@ class CustomClient(commands.AutoShardedBot):
 
     async def get_screenshot(self, player: coc.Player):
         tag = player.tag.replace('#', '')
-        url = f'https://api.clashking.xyz/ss/{tag}/706149153431879760'
+        url = f'https://api.clashk.ing/ss/{tag}/706149153431879760'
 
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5 * 60)) as session:
             async with session.get(url) as response:
@@ -564,7 +564,7 @@ class CustomClient(commands.AutoShardedBot):
         }
         data = [f"players/{t.replace('#', '%23')}" for t in tag_set]
         async with aiohttp.ClientSession() as session:
-            async with session.post('https://api.clashking.xyz/ck/bulk', json=data, headers=headers) as response:
+            async with session.post('https://api.clashk.ing/ck/bulk', json=data, headers=headers) as response:
                 data = await response.read()
         player_data: dict = ujson.loads(data)
         players.extend(

@@ -96,7 +96,7 @@ def get_cluster_breakdown(config: 'Config'):
 
 def create_config() -> 'Config':
     BOT_TOKEN = getenv('BOT_TOKEN')
-    bot_config_url = 'https://api.clashking.xyz/bot/config'
+    bot_config_url = 'https://api.clashk.ing/bot/config'
     bot_config = requests.get(bot_config_url, timeout=5, headers={'bot-token': BOT_TOKEN}).json()
     config = Config(remote_settings=bot_config)
     config.bot_token = BOT_TOKEN

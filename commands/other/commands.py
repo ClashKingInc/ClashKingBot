@@ -105,7 +105,7 @@ class misc(commands.Cog, name='Other'):
 
         async with aiohttp.ClientSession() as session:
             try:
-                async with session.get("https://api.clashking.xyz/global/counts") as response:
+                async with session.get("https://api.clashk.ing/global/counts") as response:
                     if response.status == 200:
                         api_data = await response.json()
                     else:

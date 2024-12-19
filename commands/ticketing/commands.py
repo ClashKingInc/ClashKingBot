@@ -333,7 +333,7 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
         base64_uuid = base64.urlsafe_b64encode(uuid_bytes).rstrip(b'=')
         url_safe_uuid = base64_uuid.decode('utf-8')
         await self.bot.tickets.update_one({'$and': [{'server_id': ctx.guild.id}, {'name': ticket_panel}]}, {'$set': {'token': url_safe_uuid}})
-        await ctx.send(content=f'Edit your roster here -> https://api.clashking.xyz/ticketing?token={url_safe_uuid}', ephemeral=True)
+        await ctx.send(content=f'Edit your roster here -> https://api.clashk.ing/ticketing?token={url_safe_uuid}', ephemeral=True)
 
     @ticket.sub_command(
         name='apply-rules',

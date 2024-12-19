@@ -141,7 +141,7 @@ class BaseTicket:
                         bytes_=io.BytesIO(transcript.encode()),
                         id=f'transcript-{thread_channel.id}',
                     )
-                    link = f'https://api.clashking.xyz/renderhtml?url={link}'
+                    link = f'https://api.clashk.ing/renderhtml?url={link}'
                     buttons = disnake.ui.ActionRow()
                     buttons.append_item(disnake.ui.Button(label=f'Thread Transcript', url=link))
 
@@ -151,7 +151,7 @@ class BaseTicket:
                 bytes_=io.BytesIO(transcript.encode()),
                 id=f'transcript-{ticket_channel.id}',
             )
-            link = f'https://api.clashking.xyz/renderhtml?url={link}'
+            link = f'https://api.clashk.ing/renderhtml?url={link}'
             buttons.append_item(disnake.ui.Button(label=f'Channel Transcript', url=link))
             components = [buttons]
 

@@ -289,7 +289,7 @@ async def image_board(
         'title': re.sub('[*_`~/"#]', '', f'{(clan or server).name} Top {limit} {type.title()}'),
     }
     async with aiohttp.ClientSession(json_serialize=ujson.dumps) as session:
-        async with session.post('https://api.clashking.xyz/table', json=data) as response:
+        async with session.post('https://api.clashk.ing/table', json=data) as response:
             link = await response.json()
         await session.close()
     return f'{link.get("link")}?t={int(pend.now(tz=pend.UTC).timestamp())}'

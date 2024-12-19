@@ -575,7 +575,7 @@ class RosterCommands(commands.Cog, name='Rosters'):
         base64_uuid = base64.urlsafe_b64encode(uuid_bytes).rstrip(b'=')
         url_safe_uuid = base64_uuid.decode('utf-8')
         await self.bot.rosters.update_one({'$and': [{'server_id': ctx.guild.id}, {'alias': roster}]}, {'$set': {'token': url_safe_uuid}})
-        await ctx.send(content=f'Edit your roster here -> https://api.clashking.xyz/roster/?token={url_safe_uuid}', ephemeral=True)
+        await ctx.send(content=f'Edit your roster here -> https://api.clashk.ing/roster/?token={url_safe_uuid}', ephemeral=True)
 
     @roster.sub_command(name='list', description='List of rosters on this server')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -823,7 +823,7 @@ class RosterCommands(commands.Cog, name='Rosters'):
             base64_uuid = base64.urlsafe_b64encode(uuid_bytes).rstrip(b'=')
             url_safe_uuid = base64_uuid.decode('utf-8')
             await self.bot.rosters.update_one({'$and': [{'server_id': ctx.guild.id}, {'alias': roster.alias}]}, {'$set': {'token': url_safe_uuid}})
-            await ctx.send(content=f'Edit your roster here -> https://api.clashking.xyz/roster/?token={url_safe_uuid}', ephemeral=True)
+            await ctx.send(content=f'Edit your roster here -> https://api.clashk.ing/roster/?token={url_safe_uuid}', ephemeral=True)
 
         elif 'Signup_' in str(ctx.data.custom_id):
             alias = str(ctx.data.custom_id).split('_')[1]
