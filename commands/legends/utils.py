@@ -598,6 +598,7 @@ async def legend_buckets(bot: CustomClient, embed_color: disnake.Color):
                     6500,
                     8500,
                 ],
+                'default': 'out_of_bounds',
                 'output': {'count': {'$sum': 1}},
             }
         }
@@ -608,6 +609,8 @@ async def legend_buckets(bot: CustomClient, embed_color: disnake.Color):
     lowest_rank = lowest_rank[0].get('rank')
     for result in results:
         trophy = result.get('_id')
+        if trophy == "out_of_bounds":
+            continue
         if trophy == 6500:
             trophy = '6500+'
         mid_calc = (result.get('count') / lowest_rank) * 100
