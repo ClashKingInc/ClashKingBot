@@ -6,6 +6,7 @@ from disnake.ext import commands
 
 from background.logs.events import giveaway_ee
 from utility.search import search_results
+import pendulum
 
 
 class GiveawayEvents(commands.Cog):
@@ -13,6 +14,7 @@ class GiveawayEvents(commands.Cog):
         self.bot = bot
         giveaway_ee.on('giveaway_start', self.on_giveaway_start)
         giveaway_ee.on('giveaway_end', self.on_giveaway_end)
+        giveaway_ee.on('giveaway_update', self.on_giveaway_update)
 
     async def get_user_roles(self, guild_id, user_id: str) -> list:
         """
@@ -44,41 +46,34 @@ class GiveawayEvents(commands.Cog):
         Handle the 'giveaway_start' event and add a "Participate" button with an image.
         """
         # Extract giveaway data
-        channel_id = data['channel_id']
-        prize = data['prize']
-        mentions = data.get('mentions', [])
-        text_in_embed = data.get("text_in_embed", "")
-        text_above_embed = data.get("text_above_embed", "")
-        image_url = data.get("image_url", None)  # Optional image
-        end_time = data.get("end_time")  # UNIX timestamp
-        giveaway_id = data.get('giveaway_id', 'unknown')  # Giveaway ID (fallback if missing)
-        winners_count = data.get('winners_count', 1)
+        print(data)
+        giveaway = data['giveaway']
+        print(giveaway)
+        channel_id = giveaway['channel_id']
+        prize = giveaway['prize']
+        mentions = giveaway.get('mentions', [])
+        text_in_embed = giveaway.get("text_in_embed", "")
+        text_above_embed = giveaway.get("text_above_embed", "")
+        image_url = giveaway.get("image_url", None)  # Optional image
+        end_time = giveaway.get("end_time")  # ISO 8601 string
+        giveaway_id = giveaway.get('_id', 'unknown')  # Giveaway ID
+        winners_count = giveaway.get('winners', 1)
 
         # Dynamic plural handling for winners count
         winners_text = "Winner" if winners_count == 1 else "Winners"
-
-        # Convert end_time to a readable format
-        if end_time:
-            end_datetime = datetime.fromtimestamp(end_time, tz=timezone.utc)
-            formatted_end_time = end_datetime.strftime("%a %d %b %Y at %H:%M UTC")
-            footer_text = f"Ends on {formatted_end_time}"
-        else:
-            footer_text = "End time not provided."
 
         # Embed for giveaway start
         embed = disnake.Embed(
             title=f"🎉 {prize} - {winners_count} {winners_text} 🎉",
             description=f"{text_in_embed}",
             color=disnake.Color.blurple(),
-            timestamp=datetime.now(timezone.utc)  # Adds the current time
+            timestamp=pendulum.parse(end_time, tz='UTC') if end_time else pendulum.now("UTC")
         )
-        embed.add_field(name="🎟️ How to Enter", value="Click the **Participate** button below!", inline=False)
+        embed.set_footer(text=f"Ends")
 
         # Add image if provided
         if image_url:
             embed.set_image(url=image_url)
-
-        embed.set_footer(text=footer_text)
 
         # "Participate" button
         participate_button = disnake.ui.Button(
@@ -107,22 +102,79 @@ class GiveawayEvents(commands.Cog):
                 {"_id": giveaway_id},
                 {"$set": {"message_id": message.id}}
             )
-            print(f"Sent giveaway start message to channel {channel_id}")
+
+    async def on_giveaway_update(self, data):
+        """
+        Handle the 'giveaway_update' event and update the giveaway message.
+        """
+        # Extract giveaway data
+        giveaway = data['giveaway']
+        channel_id = giveaway['channel_id']
+        giveaway_id = giveaway.get('_id', 'unknown')
+        prize = giveaway['prize']
+        mentions = giveaway.get('mentions', [])
+        text_in_embed = giveaway.get("text_in_embed", "")
+        text_above_embed = giveaway.get("text_above_embed", "")
+        image_url = giveaway.get("image_url", None)  # Optional image
+        winners_count = giveaway.get('winners', 1)
+        message_id = giveaway.get("message_id")
+
+        # Check if the message ID is present
+        if not message_id:
+            print(f"No message ID found for giveaway {giveaway_id}.")
+            return
+
+        # Update the embed
+        winners_text = "Winner" if winners_count == 1 else "Winners"
+        embed = disnake.Embed(
+            title=f"🎉 {prize} - {winners_count} {winners_text} 🎉",
+            description=f"{text_in_embed}",
+            color=disnake.Color.blurple(),
+            timestamp= pendulum.parse(giveaway.get("end_time"), tz='UTC') if giveaway.get("end_time") else pendulum.now("UTC")
+        )
+        embed.set_footer(text=f"Ends")
+
+        # Add image if provided
+        if image_url:
+            embed.set_image(url=image_url)
+
+        # Update mentions and text above embed
+        mention_text = " ".join([f"<@&{mention}>" for mention in mentions]) if mentions else ""
+        content = f"{mention_text}\n{text_above_embed}".strip() if mention_text or text_above_embed else None
+
+        # Fetch the target channel and message
+        channel = self.bot.get_channel(int(channel_id))
+        if not channel:
+            print(f"Channel with ID {channel_id} not found.")
+            return
+
+        try:
+            message = await channel.fetch_message(message_id)
+            # Update the message content and embed
+            await message.edit(content=content, embed=embed)
+            print(f"Giveaway message with ID {message_id} successfully updated.")
+        except disnake.NotFound:
+            print(f"Message with ID {message_id} not found in channel {channel_id}.")
+        except Exception as e:
+            print(f"Error updating giveaway message: {e}")
 
     async def on_giveaway_end(self, data):
         """
         Handle the 'giveaway_end' event and display winners/participants.
         """
         # Extract giveaway data
-        participants = data.get('participants', [])
-        winner_count = data.get('winner_count', 0)
-        channel_id = data['channel_id']
-        prize = data['prize']
-        winners_count = data.get('winners_count', 1)
-        text_on_end = data.get("text_on_end", "")
-        boosters = data.get('boosters', [])
-        guild_id = data.get('server_id', 'unknown')
+        giveaway = data['giveaway']
+        participants = giveaway.get('entries', [])
+        winner_count = giveaway.get('winners', 0)
+        channel_id = giveaway['channel_id']
+        prize = giveaway['prize']
+        winners_count = giveaway.get('winners', 1)
+        text_on_end = giveaway.get("text_on_end", "")
+        boosters = giveaway.get('boosters', [])
+        guild_id = giveaway.get('server_id', 'unknown')
+        image_url = giveaway.get("image_url", None)  # Optional image
 
+        # Calculate weights for participants based on boosters
         weights = []
         for participant in participants:
             user_roles = await self.get_user_roles(guild_id, participant)
@@ -131,17 +183,10 @@ class GiveawayEvents(commands.Cog):
             applicable_boosts = [booster["value"] for booster in boosters if
                                  any(role in booster["roles"] for role in user_roles)]
 
-            if applicable_boosts:
-                # If boosters are found, set the weight to the highest value
-                weight = max(applicable_boosts)
-            else:
-                # If no boosters are found, set the weight to 1
-                weight = 1
-
+            weight = max(applicable_boosts) if applicable_boosts else 1
             weights.append(weight)
 
-        # Determine if there's one or multiple winners
-        winners_text = "Winner" if winners_count == 1 else "Winners"
+        print(weights)
 
         # Determine winners
         winners = []
@@ -152,11 +197,16 @@ class GiveawayEvents(commands.Cog):
         mention_text = ' '.join([f'<@{winner}>' for winner in winners]) if winners else "No winners"
 
         # Build the embed
+        winners_text = "Winner" if winners_count == 1 else "Winners"
         embed = disnake.Embed(
             title=f"🎉 {prize} - {winners_count} {winners_text} 🎉",
             description=f"**Total Participants:** {len(participants)}",
             color=disnake.Color.red(),
         )
+
+        # Add image if provided
+        if image_url:
+            embed.set_image(url=image_url)
 
         # Get the target channel
         channel = self.bot.get_channel(int(channel_id))
@@ -173,15 +223,28 @@ class GiveawayEvents(commands.Cog):
         Listener for giveaway participation buttons.
         """
         if interaction.component.custom_id.startswith("giveaway_"):
+            await interaction.response.defer(ephemeral=True)
             giveaway_id = interaction.component.custom_id.split("_")[1]
 
-            # Fetch giveaway from the database (ID as a string)
+            # Fetch giveaway from the database
             giveaway = await self.bot.giveaways.find_one({"_id": giveaway_id})
             if not giveaway:
                 await interaction.response.send_message("This giveaway no longer exists.", ephemeral=True)
                 return
 
-            # Check if the user already entered
+            # Check if the giveaway has ended
+            if giveaway.get("end_time"):
+                end_time = giveaway["end_time"]
+                if end_time.tzinfo is None:
+                    # Make end_time offset-aware by assuming it's in UTC
+                    end_time = end_time.replace(tzinfo=timezone.utc)
+
+                if datetime.now(timezone.utc) > end_time:
+                    # Giveaway has ended
+                    await interaction.response.send_message("This giveaway has already ended!", ephemeral=True)
+                    return
+
+            # Check if the user has already entered
             if str(interaction.user.id) in giveaway.get("entries", []):
                 await interaction.response.send_message("You have already entered this giveaway!", ephemeral=True)
                 return
@@ -234,7 +297,6 @@ class GiveawayEvents(commands.Cog):
                     custom_id=f"giveaway_{giveaway_id}"
                 )
                 components = [disnake.ui.ActionRow(updated_button)]
-
                 await message.edit(components=components)
                 await interaction.response.send_message("You successfully joined the giveaway! 🎉", ephemeral=True)
             except disnake.NotFound:

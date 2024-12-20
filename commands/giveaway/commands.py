@@ -1,4 +1,4 @@
-from random import sample
+from random import sample, choices
 
 import disnake
 from disnake import ApplicationCommandInteraction, Embed
@@ -6,9 +6,9 @@ from disnake.ext import commands
 from datetime import datetime, timedelta
 import uuid
 import base64
-from disnake.ext.commands import Param
 
 from discord.autocomplete import Autocomplete
+from utility.discord_utils import check_commands
 
 
 class GiveawayCommands(commands.Cog):
@@ -24,7 +24,7 @@ class GiveawayCommands(commands.Cog):
 
     # Sub-command: Giveaway Dashboard
     @giveaway.sub_command(name="dashboard", description="Generate a link to access the giveaway dashboard.")
-    @commands.has_permissions(administrator=True)
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def giveaway_dashboard(self, ctx: disnake.ApplicationCommandInteraction):
         """
         Generate a tokenized URL for the giveaway dashboard.
@@ -56,7 +56,7 @@ class GiveawayCommands(commands.Cog):
 
     # Sub-command: Reroll Winner
     @giveaway.sub_command(name="reroll", description="Reroll one or more winners of a giveaway using mentions.")
-    @commands.has_permissions(administrator=True)
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def giveaway_reroll(
             self,
             ctx: disnake.ApplicationCommandInteraction,
@@ -82,6 +82,8 @@ class GiveawayCommands(commands.Cog):
             await ctx.send("❌ There are no participants for this giveaway.", ephemeral=True)
             return
 
+        boosters = giveaway.get("boosters", [])
+
         # Parse the mentions into user IDs
         user_ids_to_replace = [mention.strip("<@!>") for mention in users_to_replace.split()]
         user_ids_to_replace = [uid for uid in user_ids_to_replace if uid.isdigit()]
@@ -103,8 +105,17 @@ class GiveawayCommands(commands.Cog):
             )
             return
 
+        # Calculate weights based on boosters
+        weights = []
+        for participant in eligible_participants:
+            weight = 1.0
+            for booster in boosters:
+                if participant in booster["roles"]:
+                    weight *= booster["value"]
+            weights.append(weight)
+
         # Select new winners
-        new_winners = sample(eligible_participants, len(user_ids_to_replace))
+        new_winners = choices(eligible_participants, weights=weights, k=len(user_ids_to_replace))
 
         # Format the announcement
         old_winner_mentions = ", ".join([f"<@{uid}>" for uid in user_ids_to_replace])
@@ -145,7 +156,6 @@ class GiveawayCommands(commands.Cog):
         await ctx.send(
             f"✅ Reroll completed. New winners have been announced in <#{channel_id}>.", ephemeral=True
         )
-
 
 def setup(bot):
     bot.add_cog(GiveawayCommands(bot))
