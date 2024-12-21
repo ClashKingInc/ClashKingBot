@@ -301,8 +301,8 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
 
             # Check Clash account requirement
             if giveaway.get("coc_account_required"):
-                search_query = str(interaction.user.id)
-                results = await search_results(self.bot, search_query)
+                results = await self.bot.link_client.get_linked_players(interaction.user.id)
+                print(results)
                 if not results:
                     await interaction.response.send_message(
                         "You need a linked Clash account to enter this giveaway.",
