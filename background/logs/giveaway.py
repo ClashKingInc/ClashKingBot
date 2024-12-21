@@ -5,7 +5,6 @@ import disnake
 from disnake.ext import commands
 
 from background.logs.events import giveaway_ee
-from utility.search import search_results
 import pendulum
 
 
@@ -250,13 +249,8 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
             {"$set": {"winners_list": new_winners}}
         )
 
-    import datetime
-    from disnake import ButtonStyle, MessageInteraction
-    from disnake.ui import Button, ActionRow
-    from datetime import timezone
-
     @commands.Cog.listener()
-    async def on_button_click(self, interaction: MessageInteraction):
+    async def on_button_click(self, interaction: disnake.MessageInteraction):
         """
         Listener for giveaway participation buttons.
         """
