@@ -9,7 +9,7 @@ from utility.search import search_results
 import pendulum
 
 
-class GiveawayEvents(commands.Cog):
+class GiveawayEvents(commands.Cog, name="Giveaway Events"):
     def __init__(self, bot):
         self.bot = bot
         giveaway_ee.on('giveaway_start', self.on_giveaway_start)
@@ -21,12 +21,12 @@ class GiveawayEvents(commands.Cog):
         Get the roles of a user in a guild.
 
         Args:
-            user_id (str): L'ID de l'utilisateur.
+            user_id (str): The user ID to fetch roles for.
 
         Returns:
             list: List of role IDs the user has.
         """
-        guild = self.bot.get_guild(guild_id)
+        guild = await self.bot.getch_guild(guild_id)
         if guild is None:
             return []
 
@@ -46,9 +46,10 @@ class GiveawayEvents(commands.Cog):
         Handle the 'giveaway_start' event and add a "Participate" button with an image.
         """
         # Extract giveaway data
-        print(data)
         giveaway = data['giveaway']
-        print(giveaway)
+        server_id = giveaway.get('server_id', 'unknown')
+        if server_id not in self.bot.OUR_GUILDS:
+            return
         channel_id = giveaway['channel_id']
         prize = giveaway['prize']
         mentions = giveaway.get('mentions', [])
@@ -87,7 +88,8 @@ class GiveawayEvents(commands.Cog):
         mention_text = " ".join([f"<@&{mention}>" for mention in mentions]) if mentions else ""
 
         # Send the embed to the channel
-        channel = self.bot.get_channel(int(channel_id))
+        channel = await self.bot.getch_channel(int(channel_id))
+
         if channel:
             # Combine mention_text and text_above_embed, ensuring proper spacing
             content = f"{mention_text}\n{text_above_embed}".strip() if mention_text or text_above_embed else None
@@ -109,6 +111,9 @@ class GiveawayEvents(commands.Cog):
         """
         # Extract giveaway data
         giveaway = data['giveaway']
+        server_id = giveaway.get('server_id', 'unknown')
+        if server_id not in self.bot.OUR_GUILDS:
+            return
         channel_id = giveaway['channel_id']
         giveaway_id = giveaway.get('_id', 'unknown')
         prize = giveaway['prize']
@@ -143,7 +148,7 @@ class GiveawayEvents(commands.Cog):
         content = f"{mention_text}\n{text_above_embed}".strip() if mention_text or text_above_embed else None
 
         # Fetch the target channel and message
-        channel = self.bot.get_channel(int(channel_id))
+        channel = await self.bot.getch_channel(int(channel_id))
         if not channel:
             print(f"Channel with ID {channel_id} not found.")
             return
@@ -164,6 +169,9 @@ class GiveawayEvents(commands.Cog):
         """
         # Extract giveaway data
         giveaway = data['giveaway']
+        server_id = giveaway.get('server_id', 'unknown')
+        if server_id not in self.bot.OUR_GUILDS:
+            return
         participants = giveaway.get('entries', [])
         winner_count = giveaway.get('winners', 0)
         channel_id = giveaway['channel_id']
@@ -186,8 +194,6 @@ class GiveawayEvents(commands.Cog):
             weight = max(applicable_boosts) if applicable_boosts else 1
             weights.append(weight)
 
-        print(weights)
-
         # Determine winners
         winners = []
         if participants and winner_count > 0:
@@ -209,7 +215,8 @@ class GiveawayEvents(commands.Cog):
             embed.set_image(url=image_url)
 
         # Get the target channel
-        channel = self.bot.get_channel(int(channel_id))
+        channel = await self.bot.getch_channel(int(channel_id))
+
         if channel:
             # Combine mention_text and text_on_end
             content = f"{mention_text}\n{text_on_end}".strip() if mention_text or text_on_end else None
@@ -223,7 +230,6 @@ class GiveawayEvents(commands.Cog):
         Listener for giveaway participation buttons.
         """
         if interaction.component.custom_id.startswith("giveaway_"):
-            await interaction.response.defer(ephemeral=True)
             giveaway_id = interaction.component.custom_id.split("_")[1]
 
             # Fetch giveaway from the database

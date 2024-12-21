@@ -138,7 +138,7 @@ class GiveawayCommands(commands.Cog):
 
         # Send the announcement in the giveaway's channel
         channel_id = giveaway["channel_id"]
-        channel = self.bot.get_channel(channel_id)
+        channel = await self.bot.getch_channel(int(channel_id))
 
         if not channel:
             await ctx.send("❌ Could not find the channel associated with the giveaway.", ephemeral=True)
