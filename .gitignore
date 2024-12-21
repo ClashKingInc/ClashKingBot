@@ -3,7 +3,7 @@
 __pycache__
 venv
 /venv/Lib/site-packages
-/venv/
+.venv/
 .idea
 *.iml
 *.xml

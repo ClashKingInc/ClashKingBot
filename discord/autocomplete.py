@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, timedelta, timezone
 
 import coc
 import disnake
@@ -428,6 +429,29 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
                         results.append(location.name)
         return results[0:25]
 
+    async def recent_giveaway_ids(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        """
+        Autocomplete for recently ended giveaway IDs.
+        """
+        # Calculer la date d'il y a une semaine
+        one_week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+
+        # Requête pour récupérer les giveaways récents
+        recent_giveaways = await self.bot.giveaways.find(
+            {"end_time": {"$gte": one_week_ago}},
+            {"_id": 1, "prize": 1}
+        ).to_list(length=25)
+
+        # Construire les suggestions basées sur les données récupérées
+        giveaway_list = []
+        for giveaway in recent_giveaways:
+            prize = giveaway.get("prize", "Unknown Prize")
+            giveaway_id = giveaway.get("_id")
+            if query.lower() in prize.lower():
+                giveaway_list.append(f"{prize} | {giveaway_id}")
+
+        # Retourner jusqu'à 25 suggestions
+        return giveaway_list[:25]
 
 def setup(bot: CustomClient):
     bot.add_cog(Autocomplete(bot))
