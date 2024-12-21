@@ -43,7 +43,7 @@ class GiveawayCommands(commands.Cog):
         await self.bot.tokens_db.insert_one(token_data)
 
         # Generate the dashboard URL
-        dashboard_url = f"https://api.clashking.xyz/giveaway/dashboard?token={token}"
+        dashboard_url = f"https://api.clashk.ing/giveaway/dashboard?token={token}"
 
         # Send the URL to the user
         embed = disnake.Embed(
