@@ -47,6 +47,12 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
         if guild is None:
             return []
 
+        if not guild.chunked:
+            if guild.id not in self.bot.STARTED_CHUNK:
+                await guild.chunk(cache=True)
+            else:
+                self.bot.STARTED_CHUNK.add(guild.id)
+
         try:
             member = await guild.getch_member(int(user_id))
             if member:
