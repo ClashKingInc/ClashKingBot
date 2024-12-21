@@ -5,17 +5,37 @@ import disnake
 from disnake.ext import commands
 
 from background.logs.events import giveaway_ee
-import pendulum
+import pendulum as pend
+from classes.bot import CustomClient
+from pymongo import ReturnDocument
 
 
 class GiveawayEvents(commands.Cog, name="Giveaway Events"):
-    def __init__(self, bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
         giveaway_ee.on('giveaway_start', self.on_giveaway_start)
         giveaway_ee.on('giveaway_end', self.on_giveaway_end)
         giveaway_ee.on('giveaway_update', self.on_giveaway_update)
 
-    async def get_user_roles(self, guild_id, user_id: str) -> list:
+    async def update_button(self, giveaway_id: str):
+        try:
+            giveaway = await self.bot.giveaways.find_one({"_id": giveaway_id})
+            channel_id = giveaway['channel_id']
+            participants_count = len(giveaway.get("entries", []))
+
+            channel = await self.bot.getch_channel(int(channel_id))
+            message = await channel.fetch_message(giveaway["message_id"])
+            updated_button = disnake.ui.Button(
+                label=f"🎟️ Participate ({participants_count})",
+                style=disnake.ButtonStyle.blurple,
+                custom_id=f"giveaway_{giveaway_id}"
+            )
+            components = [disnake.ui.ActionRow(updated_button)]
+            await message.edit(components=components)
+        except Exception:
+            pass
+
+    async def get_user_roles(self, guild_id: int, user_id: str) -> list:
         """
         Get the roles of a user in a guild.
 
@@ -29,7 +49,6 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
         if guild is None:
             return []
 
-        # Fetch the member object
         try:
             member = await guild.getch_member(int(user_id))
             if member:
@@ -67,7 +86,7 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
             title=f"🎉 {prize} - {winners_count} {winners_text} 🎉",
             description=f"{text_in_embed}",
             color=disnake.Color.blurple(),
-            timestamp=pendulum.parse(end_time, tz='UTC') if end_time else pendulum.now("UTC")
+            timestamp=pend.parse(end_time, tz='UTC') if end_time else pend.now("UTC")
         )
         embed.set_footer(text=f"Ends")
 
@@ -134,7 +153,7 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
             title=f"🎉 {prize} - {winners_count} {winners_text} 🎉",
             description=f"{text_in_embed}",
             color=disnake.Color.blurple(),
-            timestamp= pendulum.parse(giveaway.get("end_time"), tz='UTC') if giveaway.get("end_time") else pendulum.now("UTC")
+            timestamp= pend.parse(giveaway.get("end_time"), tz='UTC') if giveaway.get("end_time") else pend.now("UTC")
         )
         embed.set_footer(text=f"Ends")
 
@@ -234,12 +253,12 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
             await channel.send(content=content, embed=embed) if content else await channel.send(embed=embed)
 
         # Add winners to the database
-        now = pendulum.now("UTC")
+        now = pend.now("UTC")
         new_winners = [
             {
                 "user_id": winner,
                 "status": "winner",
-                "timestamp": now.to_iso8601_string()  # Pendulum ISO 8601 format
+                "timestamp": now.to_iso8601_string()
             }
             for winner in winners
         ]
@@ -309,27 +328,19 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
                     )
                     return
 
-            # Update entries in the database
-            await self.bot.giveaways.update_one(
-                {"_id": giveaway_id},
-                {"$push": {"entries": str(interaction.user.id)}}
-            )
-
-            # Fetch updated giveaway data
-            updated_giveaway = await self.bot.giveaways.find_one({"_id": giveaway_id})
-            new_participants_count = len(updated_giveaway.get("entries", []))
-
-            # Update the participation button
-            channel = interaction.channel
             try:
-                message = await channel.fetch_message(giveaway["message_id"])
-                updated_button = disnake.ui.Button(
-                    label=f"🎟️ Participate ({new_participants_count})",
-                    style=disnake.ButtonStyle.blurple,
-                    custom_id=f"giveaway_{giveaway_id}"
+                existing_job = self.bot.scheduler.get_job(giveaway_id)
+                if existing_job:
+                    self.bot.scheduler.remove_job(giveaway_id)
+
+                self.bot.scheduler.add_job(
+                    self.update_button,
+                    trigger='date',
+                    id=giveaway_id,
+                    run_date=pend.now(tz=pend.UTC).add(minutes=1),
+                    args=[giveaway_id]
                 )
-                components = [disnake.ui.ActionRow(updated_button)]
-                await message.edit(components=components)
+
                 await interaction.followup.send("You successfully joined the giveaway! 🎉", ephemeral=True)
             except disnake.NotFound:
                 await interaction.followup.send("The giveaway message could not be found.", ephemeral=True)
