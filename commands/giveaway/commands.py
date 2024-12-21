@@ -7,12 +7,12 @@ from datetime import datetime, timedelta
 import uuid
 import base64
 
-from discord.autocomplete import Autocomplete
+from discord import autocomplete
 from utility.discord_utils import check_commands
-
+from classes.bot import CustomClient
 
 class GiveawayCommands(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.slash_command(name="giveaway", description="Manage all giveaway-related commands.")
@@ -58,21 +58,21 @@ class GiveawayCommands(commands.Cog):
     @giveaway.sub_command(name="reroll", description="Reroll one or more winners of a giveaway using mentions.")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def giveaway_reroll(
-            self,
-            ctx: disnake.ApplicationCommandInteraction,
-            giveaway_name: str = commands.Param(
-                description="The ID of the giveaway to reroll.",
-                autocomplete=Autocomplete.recent_giveaway_ids
-            ),
-            users_to_replace: str = commands.Param(description="Mention the users to replace (@user1 @user2)."),
-            reason: str = commands.Param(default=None, description="Reason for the reroll (optional).")
+        self,
+        ctx: disnake.ApplicationCommandInteraction,
+        giveaway_name: str = commands.Param(
+            description="The ID of the giveaway to reroll.",
+            autocomplete=autocomplete.recent_giveaway_ids
+        ),
+        users_to_replace: str = commands.Param(description="Mention the users to replace (@user1 @user2)."),
+        reason: str = commands.Param(default=None, description="Reason for the reroll (optional).")
     ):
         """
         Reroll winners of a giveaway by replacing specified users.
         """
         giveaway_id = giveaway_name.split(" | ")[1]
         # Fetch the giveaway data
-        giveaway = await self.bot.giveaways.find_one({"_id": giveaway_id})
+        giveaway = await self.bot.giveaways.find_one({"_id": giveaway_id, "server_id": ctx.guild.id})
         if not giveaway:
             await ctx.send(f"❌ Giveaway with ID `{giveaway_id}` not found.", ephemeral=True)
             return
@@ -114,8 +114,14 @@ class GiveawayCommands(commands.Cog):
                     weight *= booster["value"]
             weights.append(weight)
 
-        # Select new winners
-        new_winners = choices(eligible_participants, weights=weights, k=len(user_ids_to_replace))
+        # Select new winners without duplicates
+        new_winners = []
+        already_selected = set()
+        while len(new_winners) < len(user_ids_to_replace):
+            sampled = choices(eligible_participants, weights=weights, k=1)[0]
+            if sampled not in already_selected:
+                new_winners.append(sampled)
+                already_selected.add(sampled)
 
         # Format the announcement
         old_winner_mentions = ", ".join([f"<@{uid}>" for uid in user_ids_to_replace])

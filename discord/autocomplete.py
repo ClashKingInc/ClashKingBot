@@ -431,18 +431,28 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
 
     async def recent_giveaway_ids(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         """
-        Autocomplete for recently ended giveaway IDs.
+        Autocomplete for recently ended giveaway IDs, optionally filtered by server_id.
         """
-        # Calculer la date d'il y a une semaine
+        server_id = ctx.guild_id
+
+        # Calculating the timestamp for one week ago
         one_week_ago = datetime.now(timezone.utc) - timedelta(days=7)
 
-        # Requête pour récupérer les giveaways récents
+        # Build the search filter based on the server_id and end_time
+        search_filter = {
+            "end_time": {"$gte": one_week_ago}
+        }
+
+        if server_id:
+            search_filter["server_id"] = int(server_id)
+
+        # Request the recent giveaway data
         recent_giveaways = await self.bot.giveaways.find(
-            {"end_time": {"$gte": one_week_ago}},
+            search_filter,
             {"_id": 1, "prize": 1}
         ).to_list(length=25)
 
-        # Construire les suggestions basées sur les données récupérées
+        # Build a list of suggestions based on the query
         giveaway_list = []
         for giveaway in recent_giveaways:
             prize = giveaway.get("prize", "Unknown Prize")
@@ -450,7 +460,7 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
             if query.lower() in prize.lower():
                 giveaway_list.append(f"{prize} | {giveaway_id}")
 
-        # Retourner jusqu'à 25 suggestions
+        # Return the first 25 suggestions
         return giveaway_list[:25]
 
 def setup(bot: CustomClient):

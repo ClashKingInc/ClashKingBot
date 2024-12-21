@@ -197,7 +197,17 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
         # Determine winners
         winners = []
         if participants and winner_count > 0:
-            winners = choices(participants, weights=weights, k=min(winner_count, len(participants)))
+            if len(participants) <= winner_count:
+                # If there are fewer participants than winners, all participants are winners
+                winners = participants
+            else:
+                # Use weighted random sampling to select winners
+                selected_indices = set()
+                while len(selected_indices) < winner_count:
+                    sampled = choices(participants, weights=weights, k=1)[0]
+                    if sampled not in selected_indices:
+                        selected_indices.add(sampled)
+                winners = list(selected_indices)
 
         # Format mention text for winners
         mention_text = ' '.join([f'<@{winner}>' for winner in winners]) if winners else "No winners"
