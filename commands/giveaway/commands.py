@@ -1,6 +1,7 @@
 from random import sample, choices
 
 import disnake
+import pendulum
 from disnake import ApplicationCommandInteraction, Embed
 from disnake.ext import commands
 from datetime import datetime, timedelta
@@ -58,19 +59,20 @@ class GiveawayCommands(commands.Cog):
     @giveaway.sub_command(name="reroll", description="Reroll one or more winners of a giveaway using mentions.")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def giveaway_reroll(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        giveaway_name: str = commands.Param(
-            description="The ID of the giveaway to reroll.",
-            autocomplete=autocomplete.recent_giveaway_ids
-        ),
-        users_to_replace: str = commands.Param(description="Mention the users to replace (@user1 @user2)."),
-        reason: str = commands.Param(default=None, description="Reason for the reroll (optional).")
+            self,
+            ctx: disnake.ApplicationCommandInteraction,
+            giveaway_name: str = commands.Param(
+                description="The ID of the giveaway to reroll.",
+                autocomplete=autocomplete.recent_giveaway_ids
+            ),
+            users_to_replace: str = commands.Param(description="Mention the users to replace (@user1 @user2)."),
+            reason: str = commands.Param(default=None, description="Reason for the reroll (optional).")
     ):
         """
         Reroll winners of a giveaway by replacing specified users.
         """
         giveaway_id = giveaway_name.split(" | ")[1]
+
         # Fetch the giveaway data
         giveaway = await self.bot.giveaways.find_one({"_id": giveaway_id, "server_id": ctx.guild.id})
         if not giveaway:
@@ -83,22 +85,27 @@ class GiveawayCommands(commands.Cog):
             return
 
         boosters = giveaway.get("boosters", [])
+        winners_list = giveaway.get("winners_list", [])
+
+        # Extract current winners
+        current_winners = [w["user_id"] for w in winners_list]
 
         # Parse the mentions into user IDs
         user_ids_to_replace = [mention.strip("<@!>") for mention in users_to_replace.split()]
         user_ids_to_replace = [uid for uid in user_ids_to_replace if uid.isdigit()]
 
         # Validate the mentioned users
-        invalid_users = [uid for uid in user_ids_to_replace if uid not in participants]
+        invalid_users = [uid for uid in user_ids_to_replace if uid not in current_winners]
         if invalid_users:
             invalid_mentions = ", ".join([f"<@{uid}>" for uid in invalid_users])
             await ctx.send(
-                f"❌ The following users are not participants of this giveaway: {invalid_mentions}", ephemeral=True
+                f"❌ The following users are not current winners of this giveaway: {invalid_mentions}", ephemeral=True
             )
             return
 
         # Ensure we have enough eligible participants to replace
-        eligible_participants = [p for p in participants if p not in user_ids_to_replace]
+        already_selected = set(current_winners)
+        eligible_participants = [p for p in participants if p not in current_winners]
         if len(eligible_participants) < len(user_ids_to_replace):
             await ctx.send(
                 f"❌ Not enough eligible participants to replace {len(user_ids_to_replace)} users.", ephemeral=True
@@ -116,7 +123,6 @@ class GiveawayCommands(commands.Cog):
 
         # Select new winners without duplicates
         new_winners = []
-        already_selected = set()
         while len(new_winners) < len(user_ids_to_replace):
             sampled = choices(eligible_participants, weights=weights, k=1)[0]
             if sampled not in already_selected:
@@ -138,7 +144,7 @@ class GiveawayCommands(commands.Cog):
                 f"**Total Participants:** {len(participants)}"
             ),
             color=disnake.Color.orange(),
-            timestamp=datetime.now()
+            timestamp=pendulum.now("UTC")
         )
         embed.set_footer(text=f"Rerolled by {ctx.author.name}")
 
@@ -153,15 +159,41 @@ class GiveawayCommands(commands.Cog):
         await channel.send(content=f"{new_winner_mentions}", embed=embed)
 
         # Update the database with the rerolled winners
+        now = pendulum.now("UTC")
+
+        # Mark replaced winners as "rerolled"
+        await self.bot.giveaways.update_many(
+            {"_id": giveaway_id},
+            {
+                "$set": {
+                    "winners_list.$[elem].status": "rerolled",
+                    "winners_list.$[elem].timestamp": now.to_iso8601_string(),
+                    "winners_list.$[elem].reason": reason or "no reason provided"
+                }
+            },
+            array_filters=[{"elem.user_id": {"$in": user_ids_to_replace}}]
+        )
+
+        # Add new winners with the status "winner"
+        new_winners_data = [
+            {
+                "user_id": winner,
+                "status": "winner",
+                "timestamp": now.to_iso8601_string(),
+            }
+            for winner in new_winners
+        ]
+
         await self.bot.giveaways.update_one(
             {"_id": giveaway_id},
-            {"$push": {"rerolled_winners": {"replaced": user_ids_to_replace, "new": new_winners}}}
+            {"$push": {"winners_list": {"$each": new_winners_data}}}
         )
 
         # Confirm the action to the administrator
         await ctx.send(
             f"✅ Reroll completed. New winners have been announced in <#{channel_id}>.", ephemeral=True
         )
+
 
 def setup(bot):
     bot.add_cog(GiveawayCommands(bot))

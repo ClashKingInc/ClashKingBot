@@ -32,7 +32,7 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
 
         # Fetch the member object
         try:
-            member = await guild.fetch_member(int(user_id))
+            member = await guild.getch_member(int(user_id))
             if member:
                 # Return the role IDs (excluding @everyone)
                 return [str(role.id) for role in member.roles if role.name != "@everyone"]
@@ -233,6 +233,22 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
 
             # Send the message
             await channel.send(content=content, embed=embed) if content else await channel.send(embed=embed)
+
+        # Add winners to the database
+        now = pendulum.now("UTC")
+        new_winners = [
+            {
+                "user_id": winner,
+                "status": "winner",
+                "timestamp": now.to_iso8601_string()  # Pendulum ISO 8601 format
+            }
+            for winner in winners
+        ]
+
+        await self.bot.giveaways.update_one(
+            {"_id": giveaway["_id"]},
+            {"$set": {"winners_list": new_winners}}
+        )
 
     @commands.Cog.listener()
     async def on_button_click(self, interaction: disnake.MessageInteraction):
