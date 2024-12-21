@@ -17,14 +17,11 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
         giveaway_ee.on('giveaway_end', self.on_giveaway_end)
         giveaway_ee.on('giveaway_update', self.on_giveaway_update)
 
-    async def update_button(self, giveaway_id: str):
+    async def update_button(self, giveaway_id: str, message: disnake.Message):
         try:
             giveaway = await self.bot.giveaways.find_one({"_id": giveaway_id})
-            channel_id = giveaway['channel_id']
             participants_count = len(giveaway.get("entries", []))
 
-            channel = await self.bot.getch_channel(int(channel_id))
-            message = await channel.fetch_message(giveaway["message_id"])
             updated_button = disnake.ui.Button(
                 label=f"🎟️ Participate ({participants_count})",
                 style=disnake.ButtonStyle.blurple,
@@ -34,6 +31,7 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
             await message.edit(components=components)
         except Exception:
             pass
+
 
     async def get_user_roles(self, guild_id: int, user_id: str) -> list:
         """
@@ -59,7 +57,7 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
 
         return []
 
-    async def on_giveaway_start(self, data):
+    async def on_giveaway_start(self, data: dict):
         """
         Handle the 'giveaway_start' event and add a "Participate" button with an image.
         """
@@ -123,7 +121,7 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
                 {"$set": {"message_id": message.id}}
             )
 
-    async def on_giveaway_update(self, data):
+    async def on_giveaway_update(self, data: dict):
         """
         Handle the 'giveaway_update' event and update the giveaway message.
         """
@@ -181,7 +179,7 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
         except Exception as e:
             print(f"Error updating giveaway message: {e}")
 
-    async def on_giveaway_end(self, data):
+    async def on_giveaway_end(self, data: dict):
         """
         Handle the 'giveaway_end' event and display winners/participants.
         """
@@ -269,20 +267,21 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
         )
 
     @commands.Cog.listener()
-    async def on_button_click(self, interaction: disnake.MessageInteraction):
+    async def on_button_click(self, ctx: disnake.MessageInteraction):
         """
         Listener for giveaway participation buttons.
         """
-        if interaction.component.custom_id.startswith("giveaway_"):
-            giveaway_id = interaction.component.custom_id.split("_")[1]
+        #i normally use ctx.data.custom_id, but i actually kinda like this lol
+        if ctx.component.custom_id.startswith("giveaway_"):
+            giveaway_id = ctx.component.custom_id.split("_")[1]
 
             # Defer the interaction to allow time for processing
-            await interaction.response.defer(ephemeral=True)
+            await ctx.response.defer(ephemeral=True)
 
             # Fetch giveaway from the database
             giveaway = await self.bot.giveaways.find_one({"_id": giveaway_id})
             if not giveaway:
-                await interaction.followup.send("This giveaway no longer exists.", ephemeral=True)
+                await ctx.send("This giveaway no longer exists.", ephemeral=True)
                 return
 
             # Check if the giveaway has ended
@@ -292,42 +291,46 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
                     end_time = end_time.replace(tzinfo=timezone.utc)
 
                 if datetime.now(timezone.utc) > end_time:
-                    await interaction.followup.send("This giveaway has already ended!", ephemeral=True)
+                    await ctx.send("This giveaway has already ended!", ephemeral=True)
                     return
 
 
             # Check if the user has already entered
-            if str(interaction.user.id) in giveaway.get("entries", []):
-                await interaction.followup.send("You have already entered this giveaway!", ephemeral=True)
+            if str(ctx.user.id) in giveaway.get("entries", []):
+                await ctx.send("You have already entered this giveaway!", ephemeral=True)
                 return
 
             # Check for roles allow/deny rules
-            user_roles = [str(role.id) for role in interaction.user.roles]
+            user_roles = [str(role.id) for role in ctx.user.roles]
             roles_mode = giveaway.get("roles_mode", "allow")
             allowed_roles = giveaway.get("roles", [])
 
             if roles_mode == "deny" and any(role in allowed_roles for role in user_roles) is False:
-                await interaction.followup.send("You are not allowed to enter this giveaway.", ephemeral=True)
+                await ctx.send("You are not allowed to enter this giveaway.", ephemeral=True)
                 return
             elif roles_mode == "allow" and any(role in allowed_roles for role in user_roles):
-                await interaction.followup.send("You are not allowed to enter this giveaway.", ephemeral=True)
+                await ctx.send("You are not allowed to enter this giveaway.", ephemeral=True)
                 return
 
             # Check profile picture requirement
-            if giveaway.get("profile_picture_required") and interaction.user.avatar is None:
-                await interaction.followup.send("You need a profile picture to enter this giveaway.", ephemeral=True)
+            if giveaway.get("profile_picture_required") and ctx.user.avatar is None:
+                await ctx.send("You need a profile picture to enter this giveaway.", ephemeral=True)
                 return
 
             # Check Clash account requirement
             if giveaway.get("coc_account_required"):
-                results = await self.bot.link_client.get_linked_players(interaction.user.id)
+                results = await self.bot.link_client.get_linked_players(ctx.user.id)
                 if not results:
-                    await interaction.followup.send(
+                    await ctx.send(
                         "You need a linked Clash account to enter this giveaway.",
                         ephemeral=True
                     )
                     return
 
+            await self.bot.giveaways.update_one(
+                {"_id": giveaway_id},
+                {"$push": {"entries": str(ctx.user.id)}}
+            )
             try:
                 existing_job = self.bot.scheduler.get_job(giveaway_id)
                 if existing_job:
@@ -338,12 +341,12 @@ class GiveawayEvents(commands.Cog, name="Giveaway Events"):
                     trigger='date',
                     id=giveaway_id,
                     run_date=pend.now(tz=pend.UTC).add(minutes=1),
-                    args=[giveaway_id]
+                    args=[giveaway_id, ctx.message]
                 )
 
-                await interaction.followup.send("You successfully joined the giveaway! 🎉", ephemeral=True)
+                await ctx.send("You successfully joined the giveaway! 🎉", ephemeral=True)
             except disnake.NotFound:
-                await interaction.followup.send("The giveaway message could not be found.", ephemeral=True)
+                await ctx.send("The giveaway message could not be found.", ephemeral=True)
 
 
 def setup(bot):
