@@ -2,7 +2,7 @@ aiocache==0.12.2
 APScheduler==3.9.1
 ballpark @ git+https://github.com/Mee6/python-ballpark.git@5ab86393ba8cb2f306187f393aca8ec5b3bbbbae
 chat-exporter @ git+https://github.com/MagicTheDev/DiscordChatExporterPy@42ff2ae12628e62ace81e7f69205729c115a5ba6
-coc.py==3.7.2
+coc.py @ git+https://github.com/mathsman5133/coc.py.git@th17
 disnake @ git+https://github.com/MagicTheDev/disnake.git
 disnake-ext-fluent @ git+https://github.com/MagicTheDev/disnake-ext-fluent.git
 dnspython==2.6.1
@@ -10,6 +10,7 @@ docker==7.1.0
 emoji==1.6.3
 expiring-dict==1.1.0
 fluent.runtime==0.4.0
+imagehash==4.3.1
 ipython==8.13.0
 kaleido==0.2.1
 loguru==0.7.2

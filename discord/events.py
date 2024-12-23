@@ -10,9 +10,9 @@ from classes.bot import CustomClient
 from classes.DatabaseClient.familyclient import FamilyClient
 from classes.tickets import LOG_TYPE, OpenTicket, TicketPanel
 from utility.constants import DISCORD_STATUS_TYPES, EMBED_COLOR_CLASS
-from utility.discord_utils import get_webhook_for_channel, PATCHABLE_COMMANDS
+from utility.discord_utils import get_webhook_for_channel
 from utility.startup import fetch_emoji_dict
-
+import functools
 
 has_started = False
 
@@ -37,8 +37,6 @@ class DiscordEvents(commands.Cog):
             return
 
         has_started = True
-        if self.bot._config.cluster_id <= 1:
-            await self.sync_patchable_commands()
 
         if self.bot.user.public_flags.verified_bot:
             for count, shard in self.bot.shards.items():
@@ -186,7 +184,6 @@ class DiscordEvents(commands.Cog):
         # Send the message only if the server settings were just created
         if results is None:
             await first_channel.send(embed=embed, components=buttons)
-
 
 
     @commands.Cog.listener()
@@ -438,46 +435,7 @@ class DiscordEvents(commands.Cog):
             await channel.delete(reason=f'{payload.user.name} left server')
 
 
-    async def sync_patchable_commands(self):
-        """
-        Sync global commands to patch or revert top-level commands as needed.
-        """
-        # Fetch all current global commands from Discord
-        global_commands = await self.bot.http.get_global_commands(self.bot.application_id)
 
-        # Desired patchable contexts
-        PATCH_CONTEXTS = {"integration_types": [0, 1], "contexts": [0, 1, 2]}  # Patched
-        DEFAULT_CONTEXTS = {"integration_types": [0], "contexts": None}  # Normal slash commands
-
-        # Iterate through current global commands
-        for command in global_commands:
-            command_name = command["name"]
-            command_id = command["id"]
-
-            # Check if the command is in the PATCHABLE_COMMANDS registry
-            if command_name in PATCHABLE_COMMANDS:
-                await self._update_command_if_needed(command_id, PATCH_CONTEXTS, command)
-            else:
-                await self._update_command_if_needed(command_id, DEFAULT_CONTEXTS, command)
-
-
-    async def _update_command_if_needed(self, command_id, desired_contexts, command):
-        """
-        Updates a command's contexts only if they differ from the desired state.
-        """
-        current_contexts = {
-            "integration_types": command.get("integration_types", []),
-            "contexts": command.get("contexts", [])
-        }
-        # Only send API call if there's a difference
-        if current_contexts != desired_contexts:
-            await self.bot.http.edit_global_command(
-                self.bot.application_id,
-                command_id,
-                payload=desired_contexts,
-            )
-        else:
-            pass
 
 
 def setup(bot: CustomClient):

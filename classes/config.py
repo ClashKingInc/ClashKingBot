@@ -43,3 +43,6 @@ class Config:
         self.clashofstats_user_agent = remote_settings.get('clashofstats_user_agent')
 
         self.gitbook_token = remote_settings.get('gitbook_token')
+        self.open_ai_key = remote_settings.get('open_ai_key')
+
+        self.emoji_asset_version = remote_settings.get('emoji_version')

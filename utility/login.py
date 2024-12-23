@@ -8,7 +8,7 @@ async def coc_login():
         key_names='test',
         throttle_limit=500,
         cache_max_size=10_000,
-        load_game_data=coc.LoadGameData(always=False),
+        load_game_data=coc.LoadGameData(default=True),
         raw_attribute=True,
         stats_max_size=10_000,
     )

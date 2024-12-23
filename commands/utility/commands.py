@@ -22,13 +22,17 @@ class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
     @commands.slash_command(
         name='army',
         description='Create a visual message representation of an army link',
+        install_types=disnake.ApplicationInstallTypes.all(),
+        contexts=disnake.InteractionContextTypes.all()
     )
+    @commands.cooldown(10, 5, commands.BucketType.user)
     async def army(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         link: str,
-        nickname: str = 'Results',
-        clan_castle: str = 'None',
+        nickname: str = 'Army Link Results',
+        clan_castle: str = commands.Param(default=None, max_length=150),
+        equipment: str = commands.Param(default=None, max_length=150)
     ):
         """
         Parameters
@@ -37,10 +41,13 @@ class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
         nickname: (optional) nickname for this army,
         clan_castle: (optional) clan castle to go with this army
         """
-        embed = army_embed(bot=self.bot, nick=nickname, link=link, clan_castle=clan_castle)
+        await ctx.response.defer()
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+        embed = await army_embed(bot=self.bot, nick=nickname, link=link, clan_castle=clan_castle, equipment=equipment, embed_color=embed_color)
         buttons = disnake.ui.ActionRow()
         buttons.append_item(disnake.ui.Button(label=f'Copy Link', emoji=self.bot.emoji.troop.partial_emoji, url=link))
         await ctx.send(embed=embed, components=buttons)
+
 
     @commands.slash_command(
         name='boosts',
@@ -120,7 +127,10 @@ class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
                 for embed in embeds:
                     await ctx.channel.send(embed=embed)
 
-    @commands.slash_command(name='base', description="Post a base with link & keep track of downloads")
+    @commands.slash_command(
+        name='base',
+        description="Post a base with link & keep track of downloads"
+    )
     async def base(
         self,
         ctx: disnake.ApplicationCommandInteraction,
@@ -166,6 +176,15 @@ class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
                 'new': True,
             }
         )
+
+    @commands.slash_command(
+        name="equipment",
+        description="See how different equipment combos affect heroes",
+        install_types=disnake.ApplicationInstallTypes.all(),
+        contexts=disnake.InteractionContextTypes.all()
+    )
+    async def equipment(self, ctx: disnake.ApplicationCommandInteraction):
+        hero = self.bot.coc_client.get_hero()
 
 
 def setup(bot: CustomClient):

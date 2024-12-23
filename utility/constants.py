@@ -73,44 +73,10 @@ item_to_name = {
     'Townhall Level': 'town_hall',
 }
 
-HOME_VILLAGE_HEROES = [
-    'Barbarian King',
-    'Archer Queen',
-    'Royal Champion',
-    'Grand Warden',
-    "Minion Prince"
-]
+
 EMBED_COLOR = 2829617
 EMBED_COLOR_CLASS = disnake.Color(EMBED_COLOR)
 
-HERO_EQUIPMENT = {
-    'Barbarian Puppet': 'Barbarian King',
-    'Rage Vial': 'Barbarian King',
-    'Archer Puppet': 'Archer Queen',
-    'Invisibility Vial': 'Archer Queen',
-    'Eternal Tome': 'Grand Warden',
-    'Life Gem': 'Grand Warden',
-    'Seeking Shield': 'Royal Champion',
-    'Royal Gem': 'Royal Champion',
-    'Earthquake Boots': 'Barbarian King',
-    'Vampstache': 'Barbarian King',
-    'Giant Arrow': 'Archer Queen',
-    'Healer Puppet': 'Archer Queen',
-    'Rage Gem': 'Grand Warden',
-    'Healing Tome': 'Grand Warden',
-    'Giant Gauntlet': 'Barbarian King',
-    'Frozen Arrow': 'Archer Queen',
-    'Hog Rider Puppet': 'Royal Champion',
-    'Haste Vial': 'Royal Champion',
-    'Fireball': 'Grand Warden',
-    "Lavaloon Puppet": "Grand Warden",
-    "Spiky Ball" : "Barbarian King",
-    "Magic Mirror"  : "Archer Queen",
-    "Rocket Spear" : "Royal Champion",
-    "Henchmen Puppet" : "Minion Prince",
-    "Dark Orb" : "Minion Prince",
-    "Electro Boots" : "Royal Champion",
-}
 
 POSTER_LIST = {
     'Edrag': 'edrag',
@@ -419,18 +385,7 @@ BADGE_GUILDS = deque(
 
 SUPER_SCRIPTS = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹']
 
-DARK_ELIXIR = [
-    'Minion',
-    'Hog Rider',
-    'Valkyrie',
-    'Golem',
-    'Witch',
-    'Lava Hound',
-    'Bowler',
-    'Ice Golem',
-    'Headhunter',
-    "Druid"
-]
+
 SUPER_TROOPS = [
     'Super Barbarian',
     'Super Archer',

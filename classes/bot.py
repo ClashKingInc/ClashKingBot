@@ -11,6 +11,7 @@ import aiohttp
 import coc
 import dateutil.relativedelta
 import disnake
+
 import emoji
 import motor.motor_asyncio
 import pendulum as pend
@@ -32,6 +33,7 @@ from utility.clash.other import is_cwl
 from utility.constants import BADGE_GUILDS, locations
 from utility.general import create_superscript, fetch
 from utility.login import coc_login
+
 
 
 class CustomClient(commands.AutoShardedBot):
@@ -213,6 +215,7 @@ class CustomClient(commands.AutoShardedBot):
 
         self.BADGE_GUILDS = BADGE_GUILDS
 
+
     def clean_string(self, text: str):
         text = emoji.replace_emoji(text)
         text = re.sub('[*_`~/]', '', text)
@@ -237,10 +240,8 @@ class CustomClient(commands.AutoShardedBot):
         if loc := ctx.locale:
             return loc
 
-        if loc := ctx.guild_locale:
-            return loc
-
         return disnake.Locale.en_US
+
 
     def get_localizator(self, ctx: disnake.Interaction = None, locale: disnake.Locale = None):
         if not locale:
@@ -258,7 +259,7 @@ class CustomClient(commands.AutoShardedBot):
         return functools.partial(self.i18n.l10n, locale=server.preferred_locale or disnake.Locale.en_US)
 
     def get_number_emoji(self, color: str, number: int) -> EmojiType:
-        emoji = self.fetch_emoji(f"gold_{number}")
+        emoji = self.fetch_emoji(f"{color}_{number}")
         return emoji
 
     async def track_clans(self, tags: list):

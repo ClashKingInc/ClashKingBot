@@ -24,9 +24,8 @@ from pytz import utc
 
 from classes.bot import CustomClient
 from classes.DatabaseClient.Classes.player import LegendDay, LegendPlayer
-from utility.cdn import general_upload_to_cdn
 from utility.clash.other import gen_legend_date, gen_season_date
-from utility.constants import HERO_EQUIPMENT, POSTER_LIST
+from utility.constants import POSTER_LIST
 from utility.discord_utils import register_button
 from utility.general import create_superscript
 
@@ -90,8 +89,8 @@ async def legend_day_overview(
     for hero in enums.HOME_BASE_HERO_ORDER:
         emoji_text = ''
         for gear in gears_used:
-            gear_hero = HERO_EQUIPMENT.get(gear.name)
-            if gear_hero == hero:
+            gear = bot.coc_client.get_equipment(name=gear.name)
+            if gear.hero == hero:
                 emoji_text += f'{bot.fetch_emoji(gear.name)}{create_superscript(gear.level)}'
         if emoji_text != '':
             gear_text += f'{bot.fetch_emoji(name=hero)} | {emoji_text}\n'

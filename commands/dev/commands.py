@@ -1,23 +1,17 @@
 import io
 import re
 import textwrap
-import time
-import traceback
 from contextlib import redirect_stdout
 from datetime import datetime
 
 import disnake
 from disnake.ext import commands
 from disnake import ApplicationCommandInteraction
-import pendulum as pend
-import aiohttp
-import uuid
-import random
+
 from classes.bot import CustomClient
 import os
 
 from discord import convert, autocomplete
-from utility.constants import EMBED_COLOR_CLASS
 
 class OwnerCommands(commands.Cog):
     def __init__(self, bot: CustomClient):

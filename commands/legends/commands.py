@@ -6,7 +6,6 @@ from classes.bot import CustomClient
 from discord import autocomplete, convert, options
 from exceptions.CustomExceptions import PlayerNotInLegends
 from utility.constants import POSTER_LIST
-from utility.discord_utils import user_command
 
 from .utils import (
     legend_buckets,
@@ -24,16 +23,17 @@ class Legends(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @user_command()
     @commands.slash_command(
-        name=disnake.Localized('legends', key='legends-name'),
+        name="legends",
         description=disnake.Localized(key='legends-description'),
+        install_types=disnake.ApplicationInstallTypes.all(),
+        contexts=disnake.InteractionContextTypes.all()
     )
     async def legends(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
 
     @legends.sub_command(
-        name=disnake.Localized('search', key='search-name'),
+        name="search",
         description=disnake.Localized(key='search-description'),
     )
     async def legends_search(
@@ -86,7 +86,7 @@ class Legends(commands.Cog):
         await ctx.send(embed=embed, components=buttons)
 
     @legends.sub_command(
-        name=disnake.Localized('clan', key='clan-name'),
+        name="clan",
         description=disnake.Localized(key='clan-description'),
     )
     async def legends_clan(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = options.clan):
@@ -103,7 +103,7 @@ class Legends(commands.Cog):
         await ctx.send(embed=embed, components=[buttons])
 
     @legends.sub_command(
-        name=disnake.Localized('history', key='history-name'),
+        name="history",
         description=disnake.Localized(key='history-description'),
     )
     async def legend_history(

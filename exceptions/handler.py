@@ -53,6 +53,9 @@ class ExceptionHandler(commands.Cog):
         if isinstance(error, disnake.ext.commands.CommandError):
             error = error.original
 
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.send(f"This command is on cooldown. Try again in {error.retry_after:.1f} seconds.", ephemeral=True)
+
         if isinstance(error, APITokenRequired):
             embed = disnake.Embed(
                 title='**API Token is required for this server**',
@@ -233,7 +236,7 @@ class ExceptionHandler(commands.Cog):
             buttons = disnake.ui.ActionRow(
                 disnake.ui.Button(
                     label='Sentry',
-                    url=f'https://clashking.sentry.io/4504206148829184/?query={event_id}',
+                    url=f'https://sentry.clashk.ing/4504206148829184/?query={event_id}',
                     style=disnake.ButtonStyle.url,
                 )
             )

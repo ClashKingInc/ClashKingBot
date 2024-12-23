@@ -1,188 +1,180 @@
-import re
+import openai
 from collections import defaultdict
 from typing import Dict, List
+import ast
 
 import coc
 import disnake
 import pendulum as pd
 
-from assets.army_ids import size, spell_ids, troop_ids
 from classes.bot import CustomClient
 from exceptions.CustomExceptions import MessageException
 from utility.constants import EMBED_COLOR_CLASS, MAX_ARMY_CAMP, MAX_NUM_SPELLS
 from utility.discord_utils import iter_embed_creation
+from utility.time import format_time
 
-
-def army_embed(
+async def army_embed(
     bot: CustomClient,
     nick: str,
     link: str,
-    clan_castle: str,
+    clan_castle: str = None,
+    equipment: str = None,
     embed_color: disnake.Color = EMBED_COLOR_CLASS,
 ):
-    valid = is_link_valid(link)
-    if not valid:
+    troops_list, spell_list = bot.coc_client.parse_army_link(link=link)
+    if not troops_list and not spell_list:
         raise MessageException('Not a valid army link')
-    troops_patten = 'u([\d+x-]+)'
-    armycomp = re.split(troops_patten, link)
 
-    sieges = '**Sieges:**\n'
-    troop_string = ''
-    troops_used = []
-    eightTroops = ['Valkyrie', 'Golem', 'P.E.K.K.A']
-    isEight = False
+    troops = super_troops = spells = siege_machines = ""
+    troop_space = spell_space = minimum_th = cc_space = 0
+    troop_train_time = spell_train_time = 0
 
-    troopSpace = 0
-    troop_string += '**Troops:**\n'
-    if len(armycomp) > 1 and armycomp[1] != '':
-        troops = armycomp[1]
-        troops_str = troops.split('-')
-        for troop in troops_str:
-            split_num_and_id = troop.split('x')
-            num = split_num_and_id[0]
-            id = split_num_and_id[1]
-            troops_used.append(id)
-            troop_name = troop_ids(int(id))
-            if troop_name in eightTroops:
-                isEight = True
-            troop_emoji = bot.fetch_emoji(troop_name)
-            if troop_name not in coc.SIEGE_MACHINE_ORDER:
-                troopSpace += size(troop_name) * int(num)
-                troop_string += f'{troop_emoji}`x {str(num)}` {troop_name}\n'
-            else:
-                sieges += f'{troop_emoji}`x {str(num)}` {troop_name}\n'
-    else:
-        troop_string += 'None'
+    for troop, quantity in troops_list: #type: coc.Troop, int
+        emoji = bot.fetch_emoji(troop.name)
+        if troop.is_super_troop:
+            super_troops += f'{emoji}`x {str(quantity)}` {troop.name}\n'
+        elif troop.is_siege_machine:
+            siege_machines += f'{emoji}`x {str(quantity)}` {troop.name}\n'
+        else:
+            troops += f'{emoji}`x {str(quantity)}` {troop.name}\n'
+        minimum_th = max(minimum_th, troop.required_th_level[1])
+        troop_space += troop.housing_space * quantity
+        troop_train_time += troop.training_time.total_seconds() * quantity
 
-    spells_patten = 's([\d+x-]+)'
-    armycomp = re.split(spells_patten, link)
+    for spell, quantity in spell_list: #type: coc.Spell, int
+        emoji = bot.fetch_emoji(spell.name)
+        spells += f'{emoji}`x {str(quantity)}` {spell.name}\n'
+        minimum_th = max(minimum_th, spell.required_th_level[1])
+        spell_space += spell.housing_space * quantity
+        spell_train_time += spell.training_time.total_seconds() * quantity
 
-    spell_string = '**Spells:**\n'
-    spells_used = []
-    spell_space = 0
-    if len(armycomp) > 1 and armycomp[1] != '':
-        spells = armycomp[1]
-        spells_str = spells.split('-')
-        for spell in spells_str:
-            split_num_and_id = spell.split('x')
-            num = split_num_and_id[0]
-            id = split_num_and_id[1]
-            spells_used.append(id)
-            spell_name = spell_ids(int(id))
-            spell_emoji = bot.fetch_emoji(spell_name)
-            spell_space += size(spell_name) * int(num)
-            spell_string += f'{spell_emoji}`x {str(num)}` {spell_name}\n'
-    else:
-        spell_string += 'None'
+    minimum_th = max(minimum_th, army_camp_size(troop_space))
+    embed = disnake.Embed(
+        title=nick,
+        description=f"-# {bot.fetch_emoji(minimum_th)}Minimum Required Townhall: {minimum_th}\n"
+                    f"-# {bot.emoji.clock} Training Time: {format_time(max(troop_train_time, spell_train_time))}\n",
+        color=embed_color)
+    for field, content in zip(["Troops", "Super Troops", "Spells", "Siege Machines"], [troops, super_troops, spells, siege_machines]):
+        if content:
+            embed.add_field(name=field, value=content + "­", inline=False)
 
-    if sieges == '**Sieges:**\n':
-        sieges += 'None'
+    if equipment:
+        try:
+            context = """
+                    You are an assistant designed to help users turn their clash of clans 
+                    equipment and clan castle selections into a python readable dictionary
+                    """
+            user_prompt = f"""
+                    These are the current equipment: {str(coc.enums.EQUIPMENT)}, these are my equipment: {equipment}.
+                    Give me a python readable dictionary like equipment: quantity, using the closest available options.
+                    If there is no available close and accurate option, please skip. Return ONLY a dictionary and nothing else,
+                    even if empty. Do NOT return in a code block, please.
+                    """
+            openai.api_key = bot._config.open_ai_key
+            response = await openai.ChatCompletion.acreate(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": context},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=2000,  # Adjust token limit as needed
+                temperature=0.7  # Adjust creativity level
+            )
 
-    army = ''
-    townhall_lv = townhall_army(troopSpace)
-    townhall_lv = townhall_lv[0]
-    if townhall_lv == 'TH7-8' and isEight:
-        townhall_lv = 'TH8'
+            response = response["choices"][0]["message"]["content"]
+            equip_dict = ast.literal_eval(response)
+            equipment = ""
+            for hero_name in coc.enums.HOME_BASE_HERO_ORDER:
+                heroes_equipment = ""
+                for name, _ in equip_dict.items():
+                    gear = bot.coc_client.get_equipment(name=name)
+                    if gear.hero == hero_name:
+                        emoji = bot.fetch_emoji(gear.name)
+                        heroes_equipment += f"- {emoji} {gear.name}\n"
+                if heroes_equipment:
+                    emoji = bot.fetch_emoji(hero_name)
+                    equipment += f"{emoji} {hero_name} \n{heroes_equipment}"
+        except Exception:
+            pass
+        if clan_castle:
+            equipment += f"­"
+        embed.add_field(name="Equipment", value=f'{equipment}', inline=False)
 
-    army += townhall_lv + f' Army Composition\n{bot.emoji.blank}'
+    if clan_castle:
+        try:
+            context = """
+                            You are an assistant designed to help users turn their clash of clans 
+                            equipment and clan castle selections into a python readable dictionary
+                            """
+            user_prompt = f"""
+                            These are the current troops & spells: {str(coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER)}, 
+                            these are my spells and troops: {clan_castle}.
+                            Give me a python readable dictionary like troop/spell: quantity, using the closest available options.
+                            If there is no available close and accurate option, please skip. Return ONLY a dictionary and nothing else,
+                            even if empty. Do NOT return in a code block, please.
+                            """
+            openai.api_key = bot._config.open_ai_key
+            response = await openai.ChatCompletion.acreate(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": context},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=2000,  # Adjust token limit as needed
+                temperature=0.7  # Adjust creativity level
+            )
+            response = response["choices"][0]["message"]["content"]
+            castle_dict = ast.literal_eval(response)
+            troops = spells = ""
+            for name, quantity in castle_dict.items():  # type: str, int
+                item = bot.coc_client.get_troop(name=name)
+                if item is None:
+                    item = bot.coc_client.get_spell(name=name)
+                if not item:
+                    continue
+                emoji = bot.fetch_emoji(item.name)
+                if item.name in coc.enums.SPELL_ORDER:
+                    spells += f'{emoji}`x {str(quantity)}` {item.name}\n'
+                elif item.name in coc.enums.HOME_TROOP_ORDER:
+                    troops += f'{emoji}`x {str(quantity)}` {item.name}\n'
+                    cc_space += item.housing_space * int(quantity)
+            clan_castle = troops + spells
+        except Exception as e:
+            pass
+        embed.add_field(name="Clan Castle", value=f'{clan_castle}', inline=False)
 
-    army += f'\n{bot.emoji.troop} {troopSpace} {bot.emoji.spells} {spell_space}\n{bot.emoji.blank}\n'
-
-    army += troop_string + f'{bot.emoji.blank}\n'
-    army += spell_string + f'{bot.emoji.blank}\n'
-    army += sieges + f'{bot.emoji.blank}\n'
-    army += f'**Clan Castle:**\n{bot.emoji.clan_castle.emoji_string} {clan_castle}'
-    embed = disnake.Embed(title=nick, description=army, color=embed_color)
-    embed.timestamp = pd.now(pd.UTC).now()
+    embed.set_footer(text=f"{troop_space} Troop Space | {spell_space} Spell Space | {cc_space} CC Troop")
     return embed
 
 
-def townhall_army(size: int):
+def army_camp_size(size: int):
     if size <= 20:
-        return ['TH1', 1]
+        return 1
     elif size <= 30:
-        return ['TH2', 2]
+        return 2
     elif size <= 70:
-        return ['TH3', 3]
+        return 3
     elif size <= 80:
-        return ['TH4', 4]
+        return 4
     elif size <= 135:
-        return ['TH5', 5]
+        return 5
     elif size <= 150:
-        return ['TH6', 6]
+        return 6
     elif size <= 200:
-        return ['TH7-8', 7]
+        return 7
     elif size <= 220:
-        return ['TH9', 9]
+        return 9
     elif size <= 240:
-        return ['TH10', 10]
+        return 10
     elif size <= 260:
-        return ['TH11', 11]
+        return 11
     elif size <= 280:
-        return ['TH12', 12]
+        return 12
     elif size <= 300:
-        return ['TH13-14', 13]
+        return 13
     else:
-        return ['TH15+', 15]
+        return 15
 
-
-def is_link_valid(link: str):
-    if 'https://link.clashofclans.com/' not in link:
-        return False
-
-    if '?action=CopyArmy&army=' not in link:
-        return False
-
-    spot = link.find('=', link.find('=') + 1)
-    link = link[spot + 1 :]
-
-    if 'u' not in link and 's' not in link:
-        return False
-
-    letter_u_count = 0
-    letter_s_count = 0
-    for letter in link:
-        if letter == 'u':
-            letter_u_count += 1
-        if letter == 's':
-            letter_s_count += 1
-
-    if letter_u_count > 1:
-        return False
-    if letter_s_count > 1:
-        return False
-
-    for character in link:
-        if character == 'u' or character == 'x' or character == '-' or character.isdigit() or character == 's':
-            pass
-        else:
-            return False
-
-    troops_patten = 'u([\d+x-]+)'
-    check_link_troops = re.split(troops_patten, link)
-    if len(check_link_troops) > 1 and check_link_troops[1] != '':
-        troops_str = check_link_troops[1].split('-')
-        for troop in troops_str:
-            strings = troop.split('x')
-            if int(strings[0]) > MAX_ARMY_CAMP:  # check for a valid count of the unit
-                # print('wrong count')
-                return False
-            if not troop_ids(int(strings[1])):  # check if it actually exists in dicts
-                # print('wrong id')
-                return False
-
-    spells_patten = 's([\d+x-]+)'
-    check_link_spells = re.split(spells_patten, link)
-    if len(check_link_spells) > 1 and check_link_spells[1] != '':
-        spells_str = check_link_spells[1].split('-')
-        for spell in spells_str:
-            string = spell.split('x')
-            if int(string[0]) > MAX_NUM_SPELLS:  # check for a valid count of the unit
-                return False
-            if not spell_ids(int(string[1])):  # check if it actually exists in dicts
-                return False
-
-    return True
 
 
 async def super_troop_embed(

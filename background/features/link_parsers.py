@@ -78,11 +78,12 @@ class LinkParsing(commands.Cog):
                 server_settings = await self.bot.ck_client.get_server_settings(server_id=message.guild.id)
                 if not server_settings.army_link_parse:
                     return
-                embed = army_embed(
+                embed = await army_embed(
                     bot=self.bot,
                     nick='Results',
                     link=message.content,
-                    clan_castle='None',
+                    clan_castle=None,
+                    equipment=None,
                     embed_color=server_settings.embed_color,
                 )
                 buttons = disnake.ui.ActionRow(

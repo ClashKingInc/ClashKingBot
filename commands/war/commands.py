@@ -28,15 +28,16 @@ from .utils import (
     plan_text,
     roster_embed,
 )
-from utility.discord_utils import user_command
 
 
 class War(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @user_command()
-    @commands.slash_command(name='war')
+    @commands.slash_command(name='war',
+                            install_types=disnake.ApplicationInstallTypes.all(),
+                            contexts=disnake.InteractionContextTypes.all()
+                            )
     async def war(self, ctx: disnake.ApplicationCommandInteraction):
         pass
 

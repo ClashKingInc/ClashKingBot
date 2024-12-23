@@ -237,17 +237,7 @@ def register_button(
 
     return decorator
 
-PATCHABLE_COMMANDS = set()
-def user_command():
-    """
-    Decorator to mark a command as patchable for global availability.
-    Adds the command's name to the PATCHABLE_COMMANDS registry.
-    """
-    def wrapper(command_obj):
-        # Add the command's name to the global registry
-        PATCHABLE_COMMANDS.add(command_obj.name)
-        return command_obj
-    return wrapper
+
 
 
 async def get_webhook_for_channel(bot, channel: Union[disnake.TextChannel, disnake.Thread]) -> disnake.Webhook:
