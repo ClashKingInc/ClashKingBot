@@ -38,7 +38,8 @@ async def army_embed(
         else:
             troops += f'{emoji}`x {str(quantity)}` {troop.name}\n'
         minimum_th = max(minimum_th, troop.required_th_level[1])
-        troop_space += troop.housing_space * quantity
+        if not troop.is_siege_machine:
+            troop_space += troop.housing_space * quantity
         troop_train_time += troop.training_time.total_seconds() * quantity
 
     for spell, quantity in spell_list: #type: coc.Spell, int
@@ -137,7 +138,8 @@ async def army_embed(
                     spells += f'{emoji}`x {str(quantity)}` {item.name}\n'
                 elif item.name in coc.enums.HOME_TROOP_ORDER:
                     troops += f'{emoji}`x {str(quantity)}` {item.name}\n'
-                    cc_space += item.housing_space * int(quantity)
+                    if not item.is_siege_machine:
+                        cc_space += item.housing_space * int(quantity)
             clan_castle = troops + spells
         except Exception as e:
             pass
