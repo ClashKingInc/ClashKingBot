@@ -288,6 +288,8 @@ class TicketClick(commands.Cog):
                         text += f'{hero.name} | {hero.level},'
                         if hero.is_builder_base:
                             continue
+                        if not name_to_req.get(hero.name):
+                            continue
                         if hero.level < name_to_req.get(hero.name):
                             meet_hero_req = False
                             break
