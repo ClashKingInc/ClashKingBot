@@ -10,8 +10,9 @@ from disnake import ApplicationCommandInteraction
 
 from classes.bot import CustomClient
 import os
-
+import asyncio
 from discord import convert, autocomplete
+from .utils import fetch_emoji_dict
 
 class OwnerCommands(commands.Cog):
     def __init__(self, bot: CustomClient):
@@ -171,6 +172,12 @@ class OwnerCommands(commands.Cog):
     @dev.sub_command(name='test', description="Arbitrary command")
     async def test(self, ctx: ApplicationCommandInteraction):
         pass
+
+    @dev.sub_command(name='update-emojis', description="Update Emojis across all bots")
+    async def update_emojis(self, ctx: ApplicationCommandInteraction):
+        await ctx.response.defer()
+        asyncio.create_task(fetch_emoji_dict(bot=self.bot))
+        await ctx.send("Updating Emojis.")
 
 
     @dev.sub_command(name='automation-limit', description="Set a new autoboard limit for a server")

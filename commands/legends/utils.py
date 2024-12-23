@@ -89,7 +89,7 @@ async def legend_day_overview(
     for hero in enums.HOME_BASE_HERO_ORDER:
         emoji_text = ''
         for gear in gears_used:
-            gear = bot.coc_client.get_equipment(name=gear.name)
+            gear = bot.coc_client.get_equipment(name=gear.name, level=gear.level)
             if gear.hero == hero:
                 emoji_text += f'{bot.fetch_emoji(gear.name)}{create_superscript(gear.level)}'
         if emoji_text != '':

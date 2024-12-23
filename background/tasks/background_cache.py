@@ -24,8 +24,7 @@ class BackgroundCache(commands.Cog):
 
         await self.bot.bot_sync.update_one({"$and" : [{"type" : "server_counts", "bot_id" : self.bot.user.id, "cluster_id" : self.bot._config.cluster_id}]},
                                            {"$set" : {"server_count" : len(guild_id_list), "member_count" : total_members,
-                                                      "shards" : self.bot.shard_ids, "clan_count" : len(clan_tags), "servers" : servers,
-                                                      "emoji_asset_version" : self.bot._config.emoji_asset_version}}, upsert=True)
+                                                      "shards" : self.bot.shard_ids, "clan_count" : len(clan_tags), "servers" : servers}}, upsert=True)
 
         shard_data = await self.bot.bot_sync.find({"bot_id" : self.bot.user.id}).to_list(length=None)
         self.bot.SHARD_DATA = [ShardData(data=d) for d in shard_data]
