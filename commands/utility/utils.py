@@ -40,7 +40,7 @@ async def army_embed(
         minimum_th = max(minimum_th, troop.required_th_level[1])
         if not troop.is_siege_machine:
             troop_space += troop.housing_space * quantity
-        troop_train_time += troop.training_time.total_seconds() * quantity
+            troop_train_time += troop.training_time.total_seconds() * quantity
 
     for spell, quantity in spell_list: #type: coc.Spell, int
         emoji = bot.fetch_emoji(spell.name)
