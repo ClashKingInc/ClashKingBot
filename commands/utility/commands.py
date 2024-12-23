@@ -177,14 +177,14 @@ class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
             }
         )
 
-    @commands.slash_command(
+    '''@commands.slash_command(
         name="equipment",
         description="See how different equipment combos affect heroes",
         install_types=disnake.ApplicationInstallTypes.all(),
         contexts=disnake.InteractionContextTypes.all()
     )
     async def equipment(self, ctx: disnake.ApplicationCommandInteraction):
-        hero = self.bot.coc_client.get_hero()
+        hero = self.bot.coc_client.get_hero()'''
 
 
 def setup(bot: CustomClient):
