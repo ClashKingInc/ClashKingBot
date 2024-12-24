@@ -246,8 +246,6 @@ class DiscordEvents(commands.Cog):
             )
 
             current_time = int(pend.now(tz=pend.UTC).timestamp())
-            if self.bot.is_owner(ctx.author):
-                last_run = None
             HOURS = 12
             MINUTES = 0
             run_time_check_seconds = (HOURS * 60 * 60) + (MINUTES * 60)
