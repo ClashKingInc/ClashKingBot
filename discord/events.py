@@ -1,4 +1,4 @@
-import asyncio
+import random
 import datetime
 
 import disnake
@@ -12,7 +12,7 @@ from classes.tickets import LOG_TYPE, OpenTicket, TicketPanel
 from utility.constants import DISCORD_STATUS_TYPES, EMBED_COLOR_CLASS
 from utility.discord_utils import get_webhook_for_channel
 from utility.startup import fetch_emoji_dict
-import functools
+
 
 has_started = False
 
@@ -236,72 +236,118 @@ class DiscordEvents(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_application_command(self, ctx: disnake.ApplicationCommandInteraction):
+    async def on_slash_command_completion(self, ctx: disnake.ApplicationCommandInteraction):
         sent_support_msg = False
 
         try:
-            msg = await ctx.original_message()
-            if not msg.flags.ephemeral:
-                # Check the last support message sent
-                last_run = await self.bot.command_stats.find_one(
-                    filter={'$and': [{'user': ctx.author.id}, {'sent_support_msg': True}]},
-                    sort=[('time', -1)]
+            last_run = await self.bot.command_stats.find_one(
+                filter={'$and': [{'user': ctx.author.id}, {'sent_support_msg': True}]},
+                sort=[('time', -1)]
+            )
+
+            current_time = int(pend.now(tz=pend.UTC).timestamp())
+            if self.bot.is_owner(ctx.author):
+                last_run = None
+            HOURS = 0
+            MINUTES = 15
+            run_time_check_seconds = (HOURS * 60 * 60) + (MINUTES * 60)
+
+            if last_run is None or current_time - last_run.get('time', 0) >= run_time_check_seconds:
+
+                commands_run_by_user = await self.bot.command_stats.count_documents({'user': ctx.author.id})
+
+                pipeline = [
+                    {"$match": {"user": ctx.author.id}},
+                    {"$group": {"_id": "$command_name", "count": {"$sum": 1}}},
+                    {"$sort": {"count": -1}},
+                    {"$limit": 1}
+                ]
+                most_used_command_doc = await self.bot.command_stats.aggregate(pipeline).to_list(length=1)
+                most_used_command = most_used_command_doc[0]["_id"] if most_used_command_doc else "No data"
+
+                #file = disnake.File('assets/support.png')
+                buttons = disnake.ui.ActionRow(
+                    disnake.ui.Button(
+                        label='Discord',
+                        style=disnake.ButtonStyle.url,
+                        url='https://discord.gg/clashking'
+                    ),
+                    disnake.ui.Button(
+                        label='X',
+                        style=disnake.ButtonStyle.url,
+                        url='https://x.clashk.ing'
+                    ),
+                    disnake.ui.Button(
+                        label='Patreon',
+                        style=disnake.ButtonStyle.url,
+                        url='https://support.clashk.ing'
+                    ),
+                    disnake.ui.Button(
+                        label='Github',
+                        style=disnake.ButtonStyle.url,
+                        url='https://git.clashk.ing'
+                    )
                 )
-                current_time = int(pend.now(tz=pend.UTC).timestamp())
-                week_in_seconds = 7 * 86400
 
-                if last_run is None or current_time - last_run.get('time', 0) >= week_in_seconds:
-                    # Wait until the message is no longer loading
-                    for _ in range(10):
-                        if not msg.flags.loading:
-                            break
-                        await asyncio.sleep(1.5)
-                        msg = await ctx.channel.fetch_message(msg.id)
+                quotes = [
+                    "“In the end, we're all just Clashers in life's shop. Use code ClashKing!”",
+                    "“Ask not what your clan can do for you—ask what you can do with ClashKing.”",
+                    "“I have a dream that one day all Clashers will use code ClashKing in the Supercell Store!”",
+                    "“The best time to set a creator code was 7 days ago. The second best time is now: ClashKing.”",
+                    "“To boost or not to boost, that is the question. The answer: ClashKing.”",
+                    "“Success is 1% inspiration and 99% using code ClashKing.”",
+                    "“All roads lead to the shop, but the best ones start with ClashKing.”",
+                    "“Keep calm and use code ClashKing.”",
+                    "“A creator code in need is a creator code indeed: ClashKing.”",
+                    "“Not all heroes wear capes; some just use code ClashKing.”",
+                    "“Fortune favors the prepared. And by prepared, we mean using ClashKing.”",
+                    "“When life gives you gems, make sure ClashKing gets credit.”",
+                    "“With great power comes great responsibility… and code ClashKing!”",
+                    "“Clashing is temporary, but using code ClashKing is forever.”",
+                    "“Actions speak louder than words. Use code ClashKing.”",
+                    "“Gems are a girl’s best friend, but they’re better with ClashKing.”",
+                    "“Rome wasn’t built in a day, but it probably used code ClashKing for the gems.”",
+                    "“ClashKing isn’t just a creator code; it’s a lifestyle.”",
+                    "“The journey of a thousand raids begins with code ClashKing.”",
+                    "“An unboosted shop is a wasted opportunity. Enter code ClashKing.”",
+                    "“Clash like nobody’s watching, but always use code ClashKing.”",
+                    "“Live, laugh, and ClashKing.”",
+                    "“The grass is always greener when you use ClashKing.”",
+                    "“The secret to happiness? Entering code ClashKing.”",
+                    "“Life’s a game, and the real MVP is code ClashKing.”",
+                    "“The ultimate strategy: buy gems with code ClashKing.”",
+                    "“Good players build bases. Great players use ClashKing.”",
+                ]
 
-                    if not msg.flags.loading:
-                        commands_run_by_user = await self.bot.command_stats.count_documents({'user': ctx.author.id})
-                        sent_support_msg = True
+                random_quote = random.choice(quotes)
 
-                        file = disnake.File('assets/support.png')
-                        buttons = disnake.ui.ActionRow(
-                            disnake.ui.Button(
-                                label='Creator Code',
-                                style=disnake.ButtonStyle.url,
-                                url='https://code.clashk.ing'
-                            ),
-                            disnake.ui.Button(
-                                label='Server',
-                                style=disnake.ButtonStyle.url,
-                                url='https://discord.gg/clashking'
-                            ),
-                            disnake.ui.Button(
-                                label='X',
-                                style=disnake.ButtonStyle.url,
-                                url='https://x.clashk.ing'
-                            ),
-                            disnake.ui.Button(
-                                label='Patreon',
-                                style=disnake.ButtonStyle.url,
-                                url='https://support.clashk.ing'
-                            ),
-                            disnake.ui.Button(
-                                label='Github',
-                                style=disnake.ButtonStyle.url,
-                                url='https://git.clashk.ing'
-                            )
-                        )
+                embed = disnake.Embed(
+                    title="<:creator:1126649651626508308> Creator Code: ClashKing",
+                    description=(
+                        f"💥 **Your support fuels everything we do!** 💥\n\n"
+                        f"{random_quote}\n\n"
+                        f"Did you know creator codes work in **every Supercell game**?\n"
+                        f"When you set it, it lasts for **7 days** and can be used in:\n"
+                        f"🎮 The in-game shop: [code.clashk.ing](https://code.clashk.ing)\n"
+                        f"<:supercell_store:1321000600216801362> The Supercell Store: [store.supercell.com](https://store.supercell.com/?boost=clashking)\n\n"
+                        f"📊 **Commands Run by You:** {commands_run_by_user}\n"
+                        f"✨ **Most Used Command:** `{most_used_command}`\n\n"
+                        f"Check out other ways to connect below!"
+                    ),
+                    color=EMBED_COLOR_CLASS
+                )
 
-                        await ctx.followup.send(
-                            content=(
-                                f'You have run {commands_run_by_user} commands on ClashKing!\n'
-                                f'- This message is only sent once weekly\n'
-                                f'- Your support means a lot! Use our creator code for your purchases, star us on GitHub, or follow us on Twitter.'
-                            ),
-                            file=file,
-                            components=[buttons],
-                            ephemeral=True
-                        )
-                        sent_support_msg = True
+                embed.set_footer(text="Thanks for supporting ClashKing! ❤️")
+                embed.set_thumbnail(url=self.bot.user.avatar.url)
+
+                # Send the message
+                await ctx.followup.send(
+                    embed=embed,
+                    components=[buttons],
+                    delete_after=60,
+                    ephemeral=True
+                )
+                sent_support_msg = True
         except Exception as e:
             pass
 
