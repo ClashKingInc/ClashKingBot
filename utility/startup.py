@@ -33,28 +33,8 @@ def get_portainer_token(config: 'Config'):
 def get_cluster_breakdown(config: 'Config'):
     cluster_kwargs = {'shard_count': None}
     if config.is_main:
-        portainer_token = get_portainer_token(config)
-        headers = {
-            'Authorization': f'Bearer {portainer_token}',
-            'Content-Type': 'application/json'
-        }
-        response = requests.get(f"https://hosting.clashk.ing/api/endpoints/2/docker/containers/json", headers=headers)
-        if response.status_code != 200:
-            raise Exception(f"Failed to fetch containers: {response.text}")
-        all_containers = response.json()
 
-        with open('/proc/self/mountinfo') as file:
-            line = file.readline().strip()
-            while line:
-                if '/docker/containers/' in line:
-                    containerID = line.split('/docker/containers/')[-1]  # Take only text to the right
-                    HOSTNAME = containerID.split('/')[0]  # Take only text to the left
-                    break
-                line = file.readline().strip()
-
-        our_container = [c for c in all_containers if c['Id'][:12] == HOSTNAME[:12]][0]
-        container_name = our_container['Names'][0].strip('/')
-        config.cluster_id = CURRENT_CLUSTER = int(container_name.split('_')[-1])
+        CURRENT_CLUSTER = config.cluster_id
 
         def calculate_shard_distribution(total_shards, total_clusters):
             base_shard_count = total_shards // total_clusters
@@ -89,10 +69,12 @@ def get_cluster_breakdown(config: 'Config'):
 
 def create_config() -> 'Config':
     BOT_TOKEN = getenv('BOT_TOKEN')
+    CLUSTER_ID = getenv('CLUSTER_ID', '0')
     bot_config_url = 'https://api.clashk.ing/bot/config'
     bot_config = requests.get(bot_config_url, timeout=5, headers={'bot-token': BOT_TOKEN}).json()
     config = Config(remote_settings=bot_config)
     config.bot_token = BOT_TOKEN
+    config.cluster_id = int(CLUSTER_ID)
     return config
 
 
