@@ -30,7 +30,7 @@ async def kafka_events(bot: 'CustomClient'):
     while True:
         clans = set()
         while not bot.OUR_CLANS:
-            await asyncio.sleep(15)
+            await asyncio.sleep(1)
         try:
             async with websockets.connect(
                 f'ws://85.10.200.219:8001/events',
@@ -39,11 +39,20 @@ async def kafka_events(bot: 'CustomClient'):
                 open_timeout=None,
                 max_queue=500_000,
             ) as websocket:
-                await websocket.send(ujson.dumps({'clans': list(bot.OUR_CLANS)}).encode('utf-8'))
-
+                await websocket.send(
+                    ujson.dumps({
+                        'client_id': f"{bot.application_id}-{bot._config.cluster_id}",
+                        'clans': list(bot.OUR_CLANS)
+                    }).encode('utf-8')
+                )
                 async for message in websocket:
                     if clans != bot.OUR_CLANS:
-                        await websocket.send(ujson.dumps({'clans': list(bot.OUR_CLANS)}).encode('utf-8'))
+                        await websocket.send(
+                            ujson.dumps({
+                                'client_id': f"{bot.application_id}-{bot._config.cluster_id}",
+                                'clans': list(bot.OUR_CLANS)
+                            }).encode('utf-8')
+                        )
                         clans = bot.OUR_CLANS
 
                     if 'Login!' in str(message):
