@@ -28,6 +28,7 @@ async def kafka_events(bot: 'CustomClient'):
 
     background_tasks = set()
     while True:
+        print("here")
         clans = set()
         while not bot.OUR_CLANS:
             await asyncio.sleep(15)
@@ -45,7 +46,6 @@ async def kafka_events(bot: 'CustomClient'):
                         'clans': list(bot.OUR_CLANS)
                     }).encode('utf-8')
                 )
-
                 async for message in websocket:
                     if clans != bot.OUR_CLANS:
                         await websocket.send(
