@@ -1,7 +1,6 @@
 import traceback
 
 import asyncio
-import uvicorn
 import disnake
 import platform
 import sentry_sdk
@@ -9,8 +8,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pymongo import MongoClient
 from pytz import utc
 
-from fastapi import FastAPI
-import threading
 from classes.bot import CustomClient
 from utility.startup import create_config, get_cluster_breakdown, load_cogs, sentry_filter
 
@@ -65,22 +62,9 @@ if not config.is_beta:
         'background.logs.war',
         "background.features.refresh_boards"
     ]
-health_app = FastAPI()
-@health_app.get("/health")
-async def health_check():
-    if bot.is_ready():
-        return {"status": "ok", "details": "Bot is running and ready"}
-    else:
-        return {"status": "error", "details": "Bot is not ready"}
 
-def run_health_check_server():
-    uvicorn.run(health_app, host="127.0.0.1", port=8000)
 
 if __name__ == '__main__':
-
-    # Start FastAPI server in a background thread
-    threading.Thread(target=run_health_check_server, daemon=True).start()
-
 
     sentry_sdk.init(
         dsn=config.sentry_dsn,
