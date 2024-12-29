@@ -39,7 +39,12 @@ async def kafka_events(bot: 'CustomClient'):
                 open_timeout=None,
                 max_queue=500_000,
             ) as websocket:
-                await websocket.send(ujson.dumps({'clans': list(bot.OUR_CLANS)}).encode('utf-8'))
+                await websocket.send(
+                    ujson.dumps({
+                        'client_id': f"{bot.application_id}-{bot._config.cluster_id}",
+                        'clans': list(bot.OUR_CLANS)
+                    }).encode('utf-8')
+                )
 
                 async for message in websocket:
                     if clans != bot.OUR_CLANS:
