@@ -20,7 +20,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Now copy the rest of the application code into the container
 COPY . .
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s CMD curl -f http://127.0.0.1:8000/health || exit 1
-
 # Command to run the application
 CMD ["python3", "main.py"]
