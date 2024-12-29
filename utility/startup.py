@@ -34,7 +34,7 @@ def get_cluster_breakdown(config: 'Config'):
     cluster_kwargs = {'shard_count': None}
     if config.is_main:
 
-        CURRENT_CLUSTER = config.cluster_id
+        CURRENT_CLUSTER = config.cluster_id + 1
 
         def calculate_shard_distribution(total_shards, total_clusters):
             base_shard_count = total_shards // total_clusters
