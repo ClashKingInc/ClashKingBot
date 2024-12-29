@@ -28,7 +28,6 @@ async def kafka_events(bot: 'CustomClient'):
 
     background_tasks = set()
     while True:
-        print("here")
         clans = set()
         while not bot.OUR_CLANS:
             await asyncio.sleep(15)
