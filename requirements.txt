@@ -35,6 +35,8 @@ pytz==2021.3
 redis==4.6.0
 sentry_sdk==1.25.0
 stringcase==1.2.0
+uvicorn==0.34.0
+uvloop==0.21.0
 Wand==0.6.7
 websockets==10.3
 XlsxWriter==3.0.3
