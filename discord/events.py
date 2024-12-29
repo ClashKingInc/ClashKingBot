@@ -21,13 +21,22 @@ class DiscordEvents(commands.Cog):
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_connect(self):
+    async def on_shard_connect(self, shard_id: int):
         emojis = await fetch_emoji_dict(bot=self.bot)
         self.bot.loaded_emojis = emojis
         self.bot.emoji = Emojis(bot=self.bot)
         self.bot.ck_client = FamilyClient(bot=self.bot)
+        logger.info(f'Shard {shard_id} has connected to the discord gateway')
 
-        logger.info('We have connected to the discord gateway')
+
+    @commands.Cog.listener()
+    async def on_shard_ready(self, shard_id: int):
+        shard = self.bot.get_shard(shard_id=shard_id)
+        await self.bot.change_presence(
+            activity=disnake.CustomActivity(state='Use Code ClashKing 👀', name='Custom Status'),
+            shard_id=shard.id,
+        )
+        logger.info(f'Shard {shard_id} has loaded & is ready')
 
 
     @commands.Cog.listener()
@@ -37,22 +46,6 @@ class DiscordEvents(commands.Cog):
             return
 
         has_started = True
-
-        if self.bot.user.public_flags.verified_bot:
-            for count, shard in self.bot.shards.items():
-                await self.bot.change_presence(
-                    activity=disnake.CustomActivity(state='Use Code ClashKing 👀', name='Custom Status'),
-                    shard_id=shard.id,
-                )
-        else:
-            default_status = {
-                'activity_text': 'Use Code ClashKing 👀',
-                'status': 'Online',
-            }
-            await self.bot.change_presence(
-                activity=disnake.CustomActivity(state=default_status.get('activity_text'), name='Custom Status'),
-                status=DISCORD_STATUS_TYPES.get(default_status.get('status')),
-            )
 
         database_guilds = await self.bot.server_db.distinct('server')
         database_guilds: set = set(database_guilds)
