@@ -236,7 +236,8 @@ async def minimalistic_clan_board(
     embed_color: disnake.Color = disnake.Color.green(),
 ):
     db_clan = await bot.clan_db.find_one({'$and': [{'tag': clan.tag}, {'server': server.id}]})
-    ctg = db_clan or {}.get('category', 'General')
+    db_clan = db_clan or {}
+    ctg = db_clan.get('category', 'General')
     category = f'{ctg} Clan'
 
     embed = disnake.Embed(
