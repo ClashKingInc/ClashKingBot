@@ -6,7 +6,7 @@ import disnake
 from classes.config import Config
 
 
-async def upload_to_cdn(config: Config, picture: disnake.Attachment):
+async def upload_to_cdn(config: Config, picture: disnake.Attachment, reason: str):
     headers = {
         'content-type': 'application/octet-stream',
         'AccessKey': config.bunny_api_token,
@@ -14,11 +14,12 @@ async def upload_to_cdn(config: Config, picture: disnake.Attachment):
     payload = await picture.read()
     async with aiohttp.ClientSession() as session:
         async with session.put(
-            url=f'https://storage.bunnycdn.com/clashking-files/{picture.id}.png',
+            url=f'https://storage.bunnycdn.com/clashking-files/{reason}/{picture.id}/{picture.filename}',
             headers=headers,
             data=payload,
         ) as response:
             await session.close()
+    return f'https://cdn.clashking.xyz/{reason}/{picture.id}/{picture.filename}'
 
 
 async def general_upload_to_cdn(config: Config, bytes_, id):
