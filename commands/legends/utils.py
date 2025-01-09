@@ -1,5 +1,6 @@
 import asyncio
 import calendar
+import concurrent.futures
 import io
 import random
 
@@ -8,7 +9,7 @@ import coc
 import disnake
 import emoji
 import matplotlib
-import concurrent.futures
+
 
 matplotlib.use('Agg')
 from datetime import datetime
@@ -64,10 +65,10 @@ async def legend_day_overview(
 
     embed.add_field(
         name=f"**{_('rankings')}**",
-        value=f"- {bot.emoji.earth} {global_ranking_text}\n"
-              f"- {player.ranking.flag} {player.ranking.local_ranking}\n"
-              f"- {_('country')}: {player.ranking.country}\n"
-              f"[*Stats seem wrong? FAQ*](https://docs.clashking.xyz/faq#the-legend-stats-are-wrong)",
+        value=f'- {bot.emoji.earth} {global_ranking_text}\n'
+        f'- {player.ranking.flag} {player.ranking.local_ranking}\n'
+        f"- {_('country')}: {player.ranking.country}\n"
+        f'[*Stats seem wrong? FAQ*](https://docs.clashking.xyz/faq#the-legend-stats-are-wrong)',
         inline=False,
     )
 
@@ -408,7 +409,7 @@ async def legend_poster(bot: CustomClient, player: coc.Player | LegendPlayer, ba
         poster = poster.resize((960, 540))
         poster.save(temp, format='PNG', optimize=True)
         temp.seek(0)
-        file = disnake.File(fp=temp, filename="legends_poster.png")
+        file = disnake.File(fp=temp, filename='legends_poster.png')
         return file
 
     with concurrent.futures.ThreadPoolExecutor() as pool:
@@ -608,7 +609,7 @@ async def legend_buckets(bot: CustomClient, embed_color: disnake.Color):
     lowest_rank = lowest_rank[0].get('rank')
     for result in results:
         trophy = result.get('_id')
-        if trophy == "out_of_bounds":
+        if trophy == 'out_of_bounds':
             continue
         if trophy == 6500:
             trophy = '6500+'

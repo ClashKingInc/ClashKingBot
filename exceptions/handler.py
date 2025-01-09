@@ -54,7 +54,7 @@ class ExceptionHandler(commands.Cog):
             error = error.original
 
         if isinstance(error, commands.CommandOnCooldown):
-            await ctx.send(f"This command is on cooldown. Try again in {error.retry_after:.1f} seconds.", ephemeral=True)
+            await ctx.send(f'This command is on cooldown. Try again in {error.retry_after:.1f} seconds.', ephemeral=True)
 
         if isinstance(error, APITokenRequired):
             embed = disnake.Embed(
@@ -269,7 +269,6 @@ class ExceptionHandler(commands.Cog):
             await ctx.edit_original_message(embed=embed)
         else:
             await ctx.send(embed=embed)
-
 
 
 def setup(bot: CustomClient):

@@ -1,18 +1,20 @@
+import asyncio
 import io
+import os
 import re
 import textwrap
 from contextlib import redirect_stdout
 from datetime import datetime
 
 import disnake
-from disnake.ext import commands
 from disnake import ApplicationCommandInteraction
+from disnake.ext import commands
 
 from classes.bot import CustomClient
-import os
-import asyncio
-from discord import convert, autocomplete
+from discord import autocomplete, convert
+
 from .utils import fetch_emoji_dict
+
 
 class OwnerCommands(commands.Cog):
     def __init__(self, bot: CustomClient):
@@ -20,7 +22,7 @@ class OwnerCommands(commands.Cog):
         self.count = 0
         self.model = None
 
-    @commands.command(name="reload_all", help="Reload all cogs automatically.", guild_ids=[923764211845312533, 1210616106448978001])
+    @commands.command(name='reload_all', help='Reload all cogs automatically.', guild_ids=[923764211845312533, 1210616106448978001])
     @commands.is_owner()  # Restrict to the bot owner
     async def reload_all(self, ctx):
         """
@@ -31,19 +33,19 @@ class OwnerCommands(commands.Cog):
         failed_cogs = []
 
         # Dynamically find all cogs in the `commands` directory
-        for root, _, files in os.walk("commands"):
+        for root, _, files in os.walk('commands'):
             for filename in files:
-                if filename.endswith(".py"):  # Only include Python files
-                    path = os.path.join(root, filename)[len("commands/"):][:-3].replace(os.path.sep, ".")
+                if filename.endswith('.py'):  # Only include Python files
+                    path = os.path.join(root, filename)[len('commands/') :][:-3].replace(os.path.sep, '.')
 
                     # Check if 'commands' is part of the path to filter utils and other submodules
-                    if not path.endswith("commands"):
+                    if not path.endswith('commands'):
                         continue
 
-                    if path.split(".")[0] in disallowed:  # Exclude disallowed cogs
+                    if path.split('.')[0] in disallowed:  # Exclude disallowed cogs
                         continue
 
-                    cog = f"commands.{path}"
+                    cog = f'commands.{path}'
                     try:
                         self.bot.reload_extension(cog)
                         reloaded_cogs.append(cog)
@@ -51,22 +53,22 @@ class OwnerCommands(commands.Cog):
                         failed_cogs.append((cog, str(e)))
 
         # Format the response
-        success_msg = "\n".join([f"✅ {cog}" for cog in reloaded_cogs]) or "No cogs were reloaded."
-        error_msg = "\n".join([f"❌ {cog}: {error}" for cog, error in failed_cogs]) or "No errors occurred."
+        success_msg = '\n'.join([f'✅ {cog}' for cog in reloaded_cogs]) or 'No cogs were reloaded.'
+        error_msg = '\n'.join([f'❌ {cog}: {error}' for cog, error in failed_cogs]) or 'No errors occurred.'
 
         embed = disnake.Embed(
-            title="🔄 Reload All Cogs",
-            description=f"**Reloaded Cogs:**\n{success_msg}\n\n**Errors:**\n{error_msg}",
+            title='🔄 Reload All Cogs',
+            description=f'**Reloaded Cogs:**\n{success_msg}\n\n**Errors:**\n{error_msg}',
             color=disnake.Color.blurple(),
         )
         await ctx.send(embed=embed)
 
-    @commands.slash_command(name="dev", guild_ids=[923764211845312533, 1210616106448978001])
+    @commands.slash_command(name='dev', guild_ids=[923764211845312533, 1210616106448978001])
     @commands.is_owner()
     async def dev(self, ctx: ApplicationCommandInteraction):
         pass
 
-    @dev.sub_command(name='exec', description="Execute python code")
+    @dev.sub_command(name='exec', description='Execute python code')
     async def exec(self, ctx: ApplicationCommandInteraction):
         def cleanup_code(content: str) -> str:
             """Automatically removes code blocks from the code and reformats linebreaks"""
@@ -168,27 +170,27 @@ class OwnerCommands(commands.Cog):
             for i, b in enumerate(buffer):
                 await ctx.followup.send(embed=disnake.Embed(description=f'```py\n{b}```'))
 
-
-    @dev.sub_command(name='test', description="Arbitrary command")
+    @dev.sub_command(name='test', description='Arbitrary command')
     async def test(self, ctx: ApplicationCommandInteraction):
         pass
 
-    @dev.sub_command(name='update-emojis', description="Update Emojis across all bots")
+    @dev.sub_command(name='update-emojis', description='Update Emojis across all bots')
     async def update_emojis(self, ctx: ApplicationCommandInteraction):
         await ctx.response.defer()
         asyncio.create_task(fetch_emoji_dict(bot=self.bot))
-        await ctx.send("Updating Emojis.")
+        await ctx.send('Updating Emojis.')
 
-
-    @dev.sub_command(name='automation-limit', description="Set a new autoboard limit for a server")
-    async def automation_limit(self, ctx: ApplicationCommandInteraction,
-                              server: disnake.Guild =commands.Param(converter=convert.server, autocomplete=autocomplete.all_server),
-                              new_limit: int = commands.Param()):
+    @dev.sub_command(name='automation-limit', description='Set a new autoboard limit for a server')
+    async def automation_limit(
+        self,
+        ctx: ApplicationCommandInteraction,
+        server: disnake.Guild = commands.Param(converter=convert.server, autocomplete=autocomplete.all_server),
+        new_limit: int = commands.Param(),
+    ):
         await ctx.response.defer()
         db_server = await self.bot.ck_client.get_server_settings(server_id=server.id)
         await db_server.set_autoboard_limit(limit=new_limit)
-        await ctx.send(f"{server.name} autoboard limit set to {new_limit}")
-
+        await ctx.send(f'{server.name} autoboard limit set to {new_limit}')
 
 
 def setup(bot: CustomClient):

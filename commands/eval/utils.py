@@ -5,8 +5,8 @@ from typing import List
 import coc
 import disnake
 
-from classes.DatabaseClient.Classes.settings import DatabaseServer
 from classes.bot import CustomClient
+from classes.DatabaseClient.Classes.settings import DatabaseServer
 from exceptions.CustomExceptions import MessageException
 from utility.constants import DEFAULT_EVAL_ROLE_TYPES, ROLE_TREATMENT_TYPES
 from utility.general import create_superscript, get_guild_icon
@@ -164,20 +164,20 @@ async def logic(
                     ROLES_TO_ADD.add(league_roles.get(lookup))
 
                 if player.best_trophies >= 6000:
-                    ROLES_TO_ADD.add(league_roles.get("6000_personal_best"))
+                    ROLES_TO_ADD.add(league_roles.get('6000_personal_best'))
                 elif player.best_trophies >= 5000:
-                    ROLES_TO_ADD.add(league_roles.get("5000_personal_best"))
+                    ROLES_TO_ADD.add(league_roles.get('5000_personal_best'))
 
             if 'builder_league' in eval_types and do_eval:
                 league = player.builder_base_league.name.split(' ')[0].lower()
                 ROLES_TO_ADD.add(builder_league_roles.get(f'{league}_league'))
 
                 if player.best_builder_base_trophies >= 7000:
-                    ROLES_TO_ADD.add(builder_league_roles.get("7000_personal_best"))
+                    ROLES_TO_ADD.add(builder_league_roles.get('7000_personal_best'))
                 elif player.best_builder_base_trophies >= 6000:
-                    ROLES_TO_ADD.add(builder_league_roles.get("6000_personal_best"))
+                    ROLES_TO_ADD.add(builder_league_roles.get('6000_personal_best'))
                 elif player.best_builder_base_trophies >= 5000:
-                    ROLES_TO_ADD.add(builder_league_roles.get("5000_personal_best"))
+                    ROLES_TO_ADD.add(builder_league_roles.get('5000_personal_best'))
 
             if player.clan is not None and 'clan' in eval_types:
                 ROLES_TO_ADD.add(clan_member_roles.get(player.clan.tag))

@@ -36,7 +36,7 @@ def encoded_data(data: dict):
 
 
 def reverse_encoding(embed_dict: dict):
-    '''# Step 1: Replace `%2B` with `+` if necessary (though for URL-safe base64, `%2B` is not used)
+    """# Step 1: Replace `%2B` with `+` if necessary (though for URL-safe base64, `%2B` is not used)
     base64_encoded = base64_encoded.replace('%2B', '+')
 
     # Step 2: Handle padding for URL-safe base64
@@ -58,10 +58,10 @@ def reverse_encoding(embed_dict: dict):
     try:
         embed_dict = json.loads(json_string)
     except json.JSONDecodeError as e:
-        return None'''
+        return None"""
 
-    data = embed_dict.get("data").get('messages')[0]
-    data = data.get("data")
+    data = embed_dict.get('data').get('messages')[0]
+    data = data.get('data')
     data.pop('attachments', None)
     if data.get('embeds') is None:
         data['embeds'] = []

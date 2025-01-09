@@ -3,14 +3,17 @@ from typing import List
 
 import coc
 import disnake
+import pendulum as pend
 import pytz
 from disnake.ext import commands
-import pendulum as pend
+
 from classes.bot import CustomClient
 from classes.player.stats import StatsPlayer
 from classes.tickets import LOG_TYPE, OpenTicket, TicketPanel
 from utility.discord_utils import interaction_handler
+
 from .utils import ask_questions, message_convertor, open_ticket
+
 
 tiz = pytz.utc
 from utility.player_pagination import button_pagination
@@ -221,7 +224,7 @@ class TicketClick(commands.Cog):
                 return False
 
         panel_settings = None
-        if is_unix_timestamp(ctx.data.custom_id.split("_")[-1]):
+        if is_unix_timestamp(ctx.data.custom_id.split('_')[-1]):
             panel_settings = await self.bot.tickets.find_one(
                 {
                     '$and': [

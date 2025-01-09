@@ -16,13 +16,11 @@ class RefreshBoards(commands.Cog):
         self.bot.scheduler.add_job(self.set_check_state, 'interval', hours=12, misfire_grace_time=None)
         self.bot.scheduler.add_job(self.post, 'cron', hour=4, minute=50, misfire_grace_time=None)
 
-
     async def set_check_state(self):
         self.position_check = True
 
-
     async def refresh(self):
-        all_refresh_boards = await self.bot.autoboards.find({"$and" : [{'webhook_id': {'$ne': None}}, {"type" : "refresh"}]}).to_list(length=None)
+        all_refresh_boards = await self.bot.autoboards.find({'$and': [{'webhook_id': {'$ne': None}}, {'type': 'refresh'}]}).to_list(length=None)
         for board in all_refresh_boards:
 
             webhook_id = board.get('webhook_id')
@@ -90,12 +88,11 @@ class RefreshBoards(commands.Cog):
 
         self.position_check = False
 
-
     async def post(self):
         current_day_name = pend.now(tz=pend.UTC).format('dddd').lower()
         day_set = {current_day_name}
 
-        all_post_boards = await self.bot.autoboards.find({"$and" : [{'webhook_id': {'$ne': None}}, {"type" : "post"}]}).to_list(length=None)
+        all_post_boards = await self.bot.autoboards.find({'$and': [{'webhook_id': {'$ne': None}}, {'type': 'post'}]}).to_list(length=None)
         for board in all_post_boards:
             webhook_id = board.get('webhook_id')
             thread_id = board.get('thread_id')

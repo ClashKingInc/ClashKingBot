@@ -1,6 +1,7 @@
-import secrets
 import base64
+import secrets
 import uuid
+
 
 def generate_token() -> str:
     """
@@ -21,6 +22,6 @@ def generate_token() -> str:
     combined_bytes = uuid_bytes + random_bytes
 
     # Encode to URL-safe base64
-    token = base64.urlsafe_b64encode(combined_bytes).rstrip(b"=").decode("utf-8")
+    token = base64.urlsafe_b64encode(combined_bytes).rstrip(b'=').decode('utf-8')
 
     return token

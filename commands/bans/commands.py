@@ -8,6 +8,7 @@ from discord import options
 from exceptions.CustomExceptions import MessageException
 from utility.components import create_components
 from utility.discord_utils import check_commands, interaction_handler
+
 from .utils import add_ban, create_embeds, remove_ban
 
 
@@ -15,11 +16,11 @@ class Bans(commands.Cog, name='Bans'):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @commands.slash_command(name="ban", description=Loc(key='ban-description'))
+    @commands.slash_command(name='ban', description=Loc(key='ban-description'))
     async def ban(self, ctx):
         await ctx.response.defer()
 
-    @ban.sub_command(name="add", description=Loc(key='add-description'))
+    @ban.sub_command(name='add', description=Loc(key='add-description'))
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ban_add(
         self,
@@ -34,7 +35,7 @@ class Bans(commands.Cog, name='Bans'):
         )
         await ctx.edit_original_message(embed=embed)
 
-    @ban.sub_command(name="remove", description=Loc(key='remove-description'))
+    @ban.sub_command(name='remove', description=Loc(key='remove-description'))
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ban_remove(
         self,
@@ -45,7 +46,7 @@ class Bans(commands.Cog, name='Bans'):
         embed = await remove_ban(bot=self.bot, player=player, removed_by=ctx.user, guild=ctx.guild, locale=locale)
         await ctx.edit_original_message(embed=embed)
 
-    @ban.sub_command(name="list", description=Loc(key='list-description'))
+    @ban.sub_command(name='list', description=Loc(key='list-description'))
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def ban_list(self, ctx: disnake.ApplicationCommandInteraction):
 

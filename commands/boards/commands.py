@@ -1,10 +1,10 @@
 import disnake
+from disnake import ButtonStyle
 from disnake.ext import commands
+from disnake.ui import ActionRow, Button
 
 from classes.bot import CustomClient
 from commands.components.buttons import button_logic
-from disnake import ButtonStyle
-from disnake.ui import Button, ActionRow
 from exceptions.CustomExceptions import *
 from utility.discord_utils import check_commands, get_webhook_for_channel, interaction_handler
 
@@ -48,25 +48,22 @@ full_mapping = {
 }
 
 mapping = {
-    #day 1
+    # day 1
     'clandetailed': 'Clan Detailed',
     'clanbasic': 'Clan Basic',
     'clanmini': 'Clan Minimalistic',
     'clancompo': 'Clan Composition',
     'clandonos': 'Clan Donations',
-
-    #day 2
+    # day 2
     'clanactivity': 'Clan Activity',
     'clancapoverview': 'Clan Capital Overview',
     'clancapdonos': 'Clan Capital Donations',
     'clancapraids': 'Clan Capital Raids',
     'familyoverview': 'Family Overview',
     'familyclans': 'Family Clans',
-
-    #day 3
+    # day 3
     'legendclan': 'Legend Clan',
 }
-
 
 
 class MessageCommands(commands.Cog):
@@ -88,12 +85,12 @@ class MessageCommands(commands.Cog):
             raise MessageException('This message has no components')
 
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
-        autoboard_count = await self.bot.autoboards.count_documents({"$and" : [{'webhook_id': {'$ne': None}}, {"server_id" : ctx.guild_id}]})
+        autoboard_count = await self.bot.autoboards.count_documents({'$and': [{'webhook_id': {'$ne': None}}, {'server_id': ctx.guild_id}]})
         if autoboard_count >= db_server.autoboard_limit:
             raise MessageException('You have reached your automation limit, this feature is in beta, please reach out to support.')
 
         options = []
-        options_added = set() #this is to let us force page 0 on pagination
+        options_added = set()   # this is to let us force page 0 on pagination
         for child in message.components[0].children:
             if child.custom_id is None:
                 continue
@@ -101,12 +98,12 @@ class MessageCommands(commands.Cog):
             if mapping.get(name) is not None:
                 mapped_name = mapping.get(name)
                 custom_id = child.custom_id
-                if "page=" in child.custom_id:
-                    split_view = child.custom_id.split(":")
-                    split_view[-1] = "page=0"
-                    custom_id = ":".join(split_view)
+                if 'page=' in child.custom_id:
+                    split_view = child.custom_id.split(':')
+                    split_view[-1] = 'page=0'
+                    custom_id = ':'.join(split_view)
                 if custom_id not in options_added:
-                    options.append(disnake.SelectOption(label=mapped_name, value=f"choosecustom_{custom_id}"))
+                    options.append(disnake.SelectOption(label=mapped_name, value=f'choosecustom_{custom_id}'))
                     options_added.add(custom_id)
 
         options.sort(key=lambda x: x.label)
@@ -125,43 +122,47 @@ class MessageCommands(commands.Cog):
                 components=[disnake.ui.ActionRow(option_select)],
             )
             res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, ephemeral=True)
-            custom_id = res.values[0].split("_")[-1]
+            custom_id = res.values[0].split('_')[-1]
         else:
-            custom_id = options[0].value.split("_")[-1]
+            custom_id = options[0].value.split('_')[-1]
 
         components = [
             ActionRow(
-                Button(style=ButtonStyle.grey, label="Auto Post", custom_id="auto_post"),
-                Button(style=ButtonStyle.grey, label="Auto Refresh", custom_id="auto_refresh")
+                Button(style=ButtonStyle.grey, label='Auto Post', custom_id='auto_post'),
+                Button(style=ButtonStyle.grey, label='Auto Refresh', custom_id='auto_refresh'),
             )
         ]
 
-        await ctx.edit_original_response(content="How would you like to automate this?\n"
-                                                 "- Auto Post: post on days of your choice at the daily reset (5 AM UTC)\n"
-                                                 "- Auto Refresh: Refresh every 30-60 minutes", components=components)
+        await ctx.edit_original_response(
+            content='How would you like to automate this?\n'
+            '- Auto Post: post on days of your choice at the daily reset (5 AM UTC)\n'
+            '- Auto Refresh: Refresh every 30-60 minutes',
+            components=components,
+        )
 
         res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
 
-        if res.data.custom_id == "auto_post":
+        if res.data.custom_id == 'auto_post':
             select = disnake.ui.Select(
-                placeholder="Select days",
+                placeholder='Select days',
                 min_values=1,
                 max_values=8,
                 options=[
-                    disnake.SelectOption(label="Monday", value="monday"),
-                    disnake.SelectOption(label="Tuesday", value="tuesday"),
-                    disnake.SelectOption(label="Wednesday", value="wednesday"),
-                    disnake.SelectOption(label="Thursday", value="thursday"),
-                    disnake.SelectOption(label="Friday", value="friday"),
-                    disnake.SelectOption(label="Saturday", value="saturday"),
-                    disnake.SelectOption(label="Sunday", value="sunday"),
-                    disnake.SelectOption(label="End of Season", value="endofseason"),
-                ]
+                    disnake.SelectOption(label='Monday', value='monday'),
+                    disnake.SelectOption(label='Tuesday', value='tuesday'),
+                    disnake.SelectOption(label='Wednesday', value='wednesday'),
+                    disnake.SelectOption(label='Thursday', value='thursday'),
+                    disnake.SelectOption(label='Friday', value='friday'),
+                    disnake.SelectOption(label='Saturday', value='saturday'),
+                    disnake.SelectOption(label='Sunday', value='sunday'),
+                    disnake.SelectOption(label='End of Season', value='endofseason'),
+                ],
             )
-            await ctx.edit_original_response(content="When would you like to autopost?\n"
-                                                     "You can choose as many options as you would like, if any 2 days overlap (like friday + cwl end), it will still only send once",
-                                             components=[disnake.ui.ActionRow(select)]
-                                             )
+            await ctx.edit_original_response(
+                content='When would you like to autopost?\n'
+                'You can choose as many options as you would like, if any 2 days overlap (like friday + cwl end), it will still only send once',
+                components=[disnake.ui.ActionRow(select)],
+            )
             res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
             webhook = await get_webhook_for_channel(channel=message.channel, bot=self.bot)
             thread = None
@@ -169,19 +170,21 @@ class MessageCommands(commands.Cog):
                 await message.channel.add_user(self.bot.user)
                 thread = message.channel.id
 
-            await self.bot.autoboards.insert_one({
-                'type': "post",
-                'server_id': ctx.guild.id,
-                'button_id': custom_id,
-                "webhook_id" : webhook.id,
-                "thread_id" : thread,
-                'days' : res.values,
-                'locale' : str(ctx.locale)
-            })
+            await self.bot.autoboards.insert_one(
+                {
+                    'type': 'post',
+                    'server_id': ctx.guild.id,
+                    'button_id': custom_id,
+                    'webhook_id': webhook.id,
+                    'thread_id': thread,
+                    'days': res.values,
+                    'locale': str(ctx.locale),
+                }
+            )
             await message.delete()
             await ctx.edit_original_message('Auto Post Automation Created', components=[])
 
-        elif res.data.custom_id == "auto_refresh":
+        elif res.data.custom_id == 'auto_refresh':
             webhook = await get_webhook_for_channel(channel=message.channel, bot=self.bot)
             thread = None
             if isinstance(message.channel, disnake.Thread):
@@ -196,21 +199,12 @@ class MessageCommands(commands.Cog):
             else:
                 webhook_message = await webhook.send(embed=placeholder, components=[], wait=True)
             await self.bot.autoboards.update_one(
-                {'$and': [{'button_id': custom_id}, {'server_id': ctx.guild_id}, {'type' : "refresh"}]},
-                {
-                    '$set': {
-                        'webhook_id': webhook.id,
-                        'thread_id': thread,
-                        'message_id': webhook_message.id,
-                        'locale': str(ctx.locale)
-                    }
-                },
+                {'$and': [{'button_id': custom_id}, {'server_id': ctx.guild_id}, {'type': 'refresh'}]},
+                {'$set': {'webhook_id': webhook.id, 'thread_id': thread, 'message_id': webhook_message.id, 'locale': str(ctx.locale)}},
                 upsert=True,
             )
             await message.delete()
             await ctx.edit_original_message('Refresh Automation Created!', components=[])
-
-
 
 
 def setup(bot: CustomClient):

@@ -12,6 +12,7 @@ from utility.clash.capital import gen_raid_weekend_datestrings, get_raidlog_entr
 from utility.components import clan_component
 from utility.discord_utils import check_commands, interaction_handler
 from utility.time import time_difference
+
 from .send import clan_capital_reminder, war_reminder
 from .utils import (
     create_capital_reminder,
@@ -218,7 +219,7 @@ class ReminderCommands(commands.Cog, name='Reminders'):
         await ctx.response.defer()
         all_reminders_tags = await self.bot.reminders.distinct('clan', filter={'$and': [{'server': ctx.guild.id}]})
         if not all_reminders_tags:
-            raise MessageException("No reminders set up on server")
+            raise MessageException('No reminders set up on server')
         clans = await self.bot.get_clans(tags=all_reminders_tags)
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
 

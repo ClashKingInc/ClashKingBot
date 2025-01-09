@@ -38,7 +38,7 @@ class Config:
         self.cluster_id = 0
         self.total_clusters = remote_settings.get('total_clusters')
 
-        self.emoji_url = "https://assets.clashk.ing/bot/emojis.json"
+        self.emoji_url = 'https://assets.clashk.ing/bot/emojis.json'
 
         self.clashofstats_user_agent = remote_settings.get('clashofstats_user_agent')
 

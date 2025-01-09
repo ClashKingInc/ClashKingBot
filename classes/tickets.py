@@ -4,15 +4,15 @@ from enum import Enum
 from typing import Any, List
 
 import chat_exporter
-from chat_exporter import AttachmentHandler
-
 import disnake
+from chat_exporter import AttachmentHandler
 from disnake import ButtonStyle, Embed
 from disnake.ui import Button
 
 from classes.bot import CustomClient
 from exceptions.CustomExceptions import ButtonAlreadyExists, ButtonNotFound
 from utility.cdn import upload_html_to_cdn, upload_to_cdn
+
 
 text_style_conversion = {
     'Blue': disnake.ButtonStyle.primary,
@@ -28,7 +28,7 @@ class MyAttachmentHandler(AttachmentHandler):
 
     async def process_asset(self, attachment: disnake.Attachment):
         # now we can generate the asset url from the identifier
-        asset_url = await upload_to_cdn(config=self.bunny_api_token, picture=attachment, reason="transcripts")
+        asset_url = await upload_to_cdn(config=self.bunny_api_token, picture=attachment, reason='transcripts')
 
         # and set the proxy url attribute of the attachment to the generated url
         attachment.proxy_url = asset_url
@@ -147,8 +147,9 @@ class BaseTicket:
             channel = self.ticket_close_log
 
             buttons = disnake.ui.ActionRow()
-            transcript = await chat_exporter.export(ticket_channel, attachment_handler=MyAttachmentHandler(
-                        bunny_api_token=self.bot._config.bunny_api_token))
+            transcript = await chat_exporter.export(
+                ticket_channel, attachment_handler=MyAttachmentHandler(bunny_api_token=self.bot._config.bunny_api_token)
+            )
             link = await upload_html_to_cdn(
                 config=self.bot._config,
                 bytes_=io.BytesIO(transcript.encode()),
@@ -159,8 +160,9 @@ class BaseTicket:
             if ticket.thread is not None:
                 thread_channel = await self.bot.getch_channel(channel_id=ticket.thread)
                 if thread_channel is not None:
-                    transcript = await chat_exporter.export(thread_channel, attachment_handler=MyAttachmentHandler(
-                        bunny_api_token=self.bot._config.bunny_api_token))
+                    transcript = await chat_exporter.export(
+                        thread_channel, attachment_handler=MyAttachmentHandler(bunny_api_token=self.bot._config.bunny_api_token)
+                    )
                     link = await upload_html_to_cdn(
                         config=self.bot._config,
                         bytes_=io.BytesIO(transcript.encode()),

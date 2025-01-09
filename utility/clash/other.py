@@ -1,6 +1,7 @@
 import re
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 import coc
 import emoji
@@ -8,7 +9,6 @@ from pytz import utc
 
 from utility.constants import SUPER_TROOPS
 
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from classes.bot import CustomClient

@@ -6,6 +6,7 @@ from classes.bot import CustomClient
 from discord.options import autocomplete
 from utility.components import create_components
 from utility.discord_utils import interaction_handler
+
 from .utils import bb_clan_leaderboard, bb_player_leaderboard, clan_capital_leaderboard, hv_clan_leaderboard, hv_player_leaderboard
 
 
@@ -53,11 +54,7 @@ class Leaderboards(commands.Cog, name='Leaderboards'):
 
         if type == 'HV Players':
             embeds = await hv_player_leaderboard(
-                bot=self.bot,
-                country_name=country.capitalize(),
-                rankings=rankings,
-                location_emoji=location_emoji,
-                embed_color=embed_color
+                bot=self.bot, country_name=country.capitalize(), rankings=rankings, location_emoji=location_emoji, embed_color=embed_color
             )
         elif type == 'HV Clans':
             embeds = await hv_clan_leaderboard(

@@ -40,13 +40,10 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
 
     async def clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         if ctx.guild is None:
-            last_record = await self.bot.command_stats.find_one(
-                {"$and" : [{"user" : ctx.user.id}, {"server": {"$ne": None}}]},
-                sort=[("time", -1)]
-            )
+            last_record = await self.bot.command_stats.find_one({'$and': [{'user': ctx.user.id}, {'server': {'$ne': None}}]}, sort=[('time', -1)])
             guild_id = 0
             if last_record:
-                guild_id = last_record.get("server")
+                guild_id = last_record.get('server')
         else:
             guild_id = ctx.guild.id
         if ctx.filled_options.get('family') is not None:
@@ -439,29 +436,25 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
         one_week_ago = datetime.now(timezone.utc) - timedelta(days=7)
 
         # Build the search filter based on the server_id and end_time
-        search_filter = {
-            "end_time": {"$gte": one_week_ago}
-        }
+        search_filter = {'end_time': {'$gte': one_week_ago}}
 
         if server_id:
-            search_filter["server_id"] = int(server_id)
+            search_filter['server_id'] = int(server_id)
 
         # Request the recent giveaway data
-        recent_giveaways = await self.bot.giveaways.find(
-            search_filter,
-            {"_id": 1, "prize": 1}
-        ).to_list(length=25)
+        recent_giveaways = await self.bot.giveaways.find(search_filter, {'_id': 1, 'prize': 1}).to_list(length=25)
 
         # Build a list of suggestions based on the query
         giveaway_list = []
         for giveaway in recent_giveaways:
-            prize = giveaway.get("prize", "Unknown Prize")
-            giveaway_id = giveaway.get("_id")
+            prize = giveaway.get('prize', 'Unknown Prize')
+            giveaway_id = giveaway.get('_id')
             if query.lower() in prize.lower():
-                giveaway_list.append(f"{prize} | {giveaway_id}")
+                giveaway_list.append(f'{prize} | {giveaway_id}')
 
         # Return the first 25 suggestions
         return giveaway_list[:25]
+
 
 def setup(bot: CustomClient):
     bot.add_cog(Autocomplete(bot))

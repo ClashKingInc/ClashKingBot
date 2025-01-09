@@ -463,8 +463,10 @@ class Roster:
         assigned_by_other_group = defaultdict(list)
         default = all_roles.get('No Group')
         for group, role in all_roles.items():
-            groups = {group,}
-            if group == "No Group":
+            groups = {
+                group,
+            }
+            if group == 'No Group':
                 groups.add(None)
             if role is None:
                 role = default
@@ -494,7 +496,7 @@ class Roster:
                     try:
                         await member.add_roles(*[role])
                     except:
-                        print("error happened")
+                        print('error happened')
                         pass
 
     async def add_member(self, player: coc.Player, sub=False, group='No Group'):
@@ -1144,7 +1146,6 @@ class Roster:
         if groups is None:
             return ['No Group', 'Sub']
         return ['No Group', 'Sub'] + groups
-
 
     @property
     def members(self):

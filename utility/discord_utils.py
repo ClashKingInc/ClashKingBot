@@ -1,11 +1,13 @@
 import os
-from typing import Callable, List, Union, Dict, Tuple, Any
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 import disnake
 import motor.motor_asyncio
 from disnake.ext import commands
+
 from exceptions.CustomExceptions import *
 from main import config
+
 
 db_client = motor.motor_asyncio.AsyncIOMotorClient(config.static_mongodb)
 whitelist = db_client.usafam.whitelist
@@ -202,7 +204,7 @@ async def interaction_handler(
     return (modal_inter, embed)"""
 
 
-#jesus what is this trash lmao
+# jesus what is this trash lmao
 def iter_embed_creation(base_embed: disnake.Embed, iter: List, scheme: str, brk: int = 50) -> List[disnake.Embed]:
 
     embeds = []
@@ -224,20 +226,12 @@ def iter_embed_creation(base_embed: disnake.Embed, iter: List, scheme: str, brk:
 registered_functions: Dict[str, Tuple[Callable[..., None] | None, str, bool, bool, bool]] = {}
 
 
-def register_button(
-    command_name: str,
-    parser: str,
-    ephemeral: bool = False,
-    no_embed: bool = False,
-    pagination: bool = False
-):
+def register_button(command_name: str, parser: str, ephemeral: bool = False, no_embed: bool = False, pagination: bool = False):
     def decorator(func: Callable[..., None]) -> Callable[..., None]:
         registered_functions[command_name] = (func, parser, ephemeral, no_embed, pagination)
         return func
 
     return decorator
-
-
 
 
 async def get_webhook_for_channel(bot, channel: Union[disnake.TextChannel, disnake.Thread]) -> disnake.Webhook:

@@ -1,5 +1,7 @@
-import disnake
 from typing import TYPE_CHECKING
+
+import disnake
+
 
 if TYPE_CHECKING:
     from classes.bot import CustomClient

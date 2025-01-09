@@ -4,8 +4,8 @@ import disnake
 from disnake.ext import commands
 
 from classes.bot import CustomClient
-from utility.discord_utils import registered_functions
 from utility.components import button_generator
+from utility.discord_utils import registered_functions
 
 
 async def button_logic(
@@ -19,7 +19,7 @@ async def button_logic(
     split_data = button_data.split(':')
     lookup_name = button_data.split(':')[0]
 
-    function, parser, ephemeral, no_embed, pagination = registered_functions.get(lookup_name, (None, "", False, False, False))
+    function, parser, ephemeral, no_embed, pagination = registered_functions.get(lookup_name, (None, '', False, False, False))
 
     if function is None:
         return None, 0  # maybe change this
@@ -27,11 +27,11 @@ async def button_logic(
         await ctx.response.defer(ephemeral=ephemeral)
 
     page = 0
-    if pagination and "page=" in split_data[-1]:
-        page = int(split_data.pop(-1).replace("page=", ""))
+    if pagination and 'page=' in split_data[-1]:
+        page = int(split_data.pop(-1).replace('page=', ''))
 
     if ctx is not None and not autoboard and pagination and ctx.author.id != ctx.message.interaction.author.id and page != -1:
-        await ctx.send("Must run the command to interact with pagination", ephemeral=True)
+        await ctx.send('Must run the command to interact with pagination', ephemeral=True)
         return None, 0
 
     page = max(page, 0)
@@ -71,7 +71,7 @@ async def button_logic(
 
     components = 0
     if pagination and isinstance(embed, list):
-        components = button_generator(button_id=":".join(split_data), current_page=page, max_page=len(embed), bot=bot)
+        components = button_generator(button_id=':'.join(split_data), current_page=page, max_page=len(embed), bot=bot)
         embed = embed[min(len(embed) - 1, page)]
 
     if no_embed:

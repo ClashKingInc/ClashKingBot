@@ -10,6 +10,7 @@ from classes.bot import CustomClient
 from classes.player.stats import StatsPlayer
 from classes.tickets import OpenTicket, Ticket_Buttons, TicketPanel
 
+
 tiz = pytz.utc
 from utility.clash.other import heros
 

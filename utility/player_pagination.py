@@ -1,9 +1,8 @@
 import disnake
 
-from commands.player.utils import detailed_player_board, create_profile_troops, history, upgrade_embed
-
 from classes.bot import CustomClient
 from classes.player.stats import StatsPlayer
+from commands.player.utils import create_profile_troops, detailed_player_board, history, upgrade_embed
 
 
 class ProfileView(disnake.ui.View):
