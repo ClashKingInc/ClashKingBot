@@ -33,7 +33,7 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/clashkinginc/clashkingbot:${{ github.event.release.tag_name }} # Tag with release version
+            ghcr.io/clashkinginc/clashkingbot:${{ github.event.release.tag_name }}
             ghcr.io/clashkinginc/clashkingbot:latest
 
       # Step 5: Trigger Deployment Webhook
