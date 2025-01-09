@@ -1,6 +1,6 @@
 aiocache==0.12.2
 APScheduler==3.9.1
-ballpark @ git+https://github.com/Mee6/python-ballpark.git@5ab86393ba8cb2f306187f393aca8ec5b3bbbbae
+ballpark @ git+https://github.com/Mee6/python-ballpark.git
 chat-exporter==2.8.1
 coc.py==3.8.2
 disnake @ git+https://github.com/MagicTheDev/disnake.git
