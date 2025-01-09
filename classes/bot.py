@@ -56,6 +56,7 @@ class CustomClient(commands.AutoShardedBot):
             chunk_guilds_at_startup=chunk_guilds_at_startup,
             **kwargs,
         )
+        self.VERSION = "1.0.0"
 
         self.i18n = fluent.FluentStore()
         self.i18n.load('locales/')
