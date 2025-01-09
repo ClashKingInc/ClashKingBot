@@ -1,21 +1,24 @@
-name: Image Builder
+name: Release and Deploy
 
 on:
-  workflow_dispatch:
+  release:
+    types:
+      - published # Trigger workflow only when a release is published
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          ref: ${{ github.ref_name }} # Automatically checkout the triggering branch
 
+      # Step 2: Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Step 3: Log in to GitHub Container Registry
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
@@ -23,14 +26,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GH_TOKEN }}
 
-      - name: Sanitize branch name
-        id: sanitize
-        run: echo "SANITIZED_BRANCH=$(echo '${{ github.ref_name }}' | sed 's/[^a-zA-Z0-9_.-]/-/g')" >> $GITHUB_ENV
-
+      # Step 4: Build and push Docker image with both versioned and 'latest' tags
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            ghcr.io/clashkinginc/clashkingbot:${{ github.ref_name == 'master' && 'latest' || env.SANITIZED_BRANCH }}
+            ghcr.io/clashkinginc/clashkingbot:${{ github.event.release.tag_name }} # Tag with release version
+            ghcr.io/clashkinginc/clashkingbot:latest
+
+      # Step 5: Trigger Deployment Webhook
+      - name: Trigger Deployment
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+            "https://coolify.clashk.ing/api/v1/deploy?uuid=p04sos8s0okso0sk08kw0sog&force=false"
