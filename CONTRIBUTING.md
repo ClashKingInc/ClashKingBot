@@ -1,12 +1,16 @@
-# Contributing to ClashKingBot
+# Contributing to ClashKing
 
-We appreciate your interest in contributing to ClashKingBot! By participating in this project, you help us improve and expand its capabilities. To ensure a smooth collaboration, please follow these guidelines.
+We appreciate your interest in contributing to ClashKingBot! Your involvement helps us improve and expand its capabilities. Please follow these guidelines for a smooth collaboration.
+
+---
 
 ## How Can You Contribute?
 
-- **Reporting Bugs:** If you encounter any issues, please [open an issue](https://github.com/ClashKingInc/ClashKingBot/issues) with detailed information.
-- **Suggesting Enhancements:** We welcome ideas to improve the bot. Share your suggestions by [opening an issue](https://github.com/ClashKingInc/ClashKingBot/issues).
-- **Submitting Pull Requests:** If you'd like to contribute code, please fork the repository and create a pull request with your changes.
+- **Reporting Bugs:** If you encounter issues, please [open an issue](https://github.com/ClashKingInc/ClashKingBot/issues) with detailed information.
+- **Suggesting Enhancements:** Share your ideas for improvement by [opening an issue](https://github.com/ClashKingInc/ClashKingBot/issues).
+- **Submitting Pull Requests:** To contribute code, fork the repository, make your changes, and create a pull request.
+
+---
 
 ## Development Setup
 
@@ -14,19 +18,30 @@ We appreciate your interest in contributing to ClashKingBot! By participating in
 2. **Clone Your Fork:** Use `git clone` to clone your fork to your local machine.
 3. **Install Dependencies:** Navigate to the project directory and run `pip install -r requirements.txt` to install the necessary dependencies.
 4. **Create a Branch:** Create a new branch for your feature or bug fix.
-5. **Make Changes:** Implement your changes in the codebase.
-6. **Test Your Changes:** Ensure your changes work as intended and do not introduce new issues.
-7. **Submit a Pull Request:** Push your changes to your fork and submit a pull request to the `master` branch of the main repository.
+5. **Request Development Credentials:** Reach out to us for the required credentials to ensure you can fully integrate with the project.
 
-## Code Style
+---
 
-- Follow the existing code style and conventions.
-- Write clear and concise commit messages.
-- Include comments where necessary to explain your code.
+## Code Formatting and Style
 
-## Communication
+- **Formatting Tools:** Use `blue` for code formatting and `isort` for sorting imports. `pip install blue` & `pip install isort`, run:
+  - `blue . && isort .`
+- **Code Style:**
+  - Follow existing code style and conventions.
+  - Write clear, concise commit messages.
+  - Include comments where necessary to explain your code.
+- **Command Design:** When adding commands:
+  - Keep them simple, intuitive, and self-explanatory, minimizing confusion.
+  - Consider how new commands fit into existing ones and ensure they align with the overall user experience.
+  - Provide advanced options for power users, but make basic functionality straightforward.
 
-- Join our [Discord server](https://discord.com/invite/clashking) for discussions and support.
-- Be respectful and considerate in all communications.
+---
 
-Thank you for your contributions!
+## Communication and Support
+
+- **Join Us on Discord:** For discussions, feedback, and support, join our [Discord server](https://discord.com/invite/clashking).
+- **Respectful Communication:** Maintain a professional and respectful tone in all interactions
+
+---
+
+Thank you for helping us make ClashKing better!
