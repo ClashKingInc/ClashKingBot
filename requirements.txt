@@ -2,7 +2,7 @@ aiocache==0.12.2
 APScheduler==3.9.1
 ballpark @ git+https://github.com/Mee6/python-ballpark.git@5ab86393ba8cb2f306187f393aca8ec5b3bbbbae
 chat-exporter==2.8.1
-coc.py @ git+https://github.com/mathsman5133/coc.py.git@dd5615b29081edf4734cf537effb35d6e93370c4#egg=coc.py
+coc.py==3.8.2
 disnake @ git+https://github.com/MagicTheDev/disnake.git
 disnake-ext-fluent @ git+https://github.com/MagicTheDev/disnake-ext-fluent.git
 dnspython==2.6.1
