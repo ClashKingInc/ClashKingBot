@@ -8,8 +8,8 @@ from numerize import numerize
 from pytz import utc
 
 from background.logs.events import player_ee, raid_ee
-from classes.DatabaseClient.Classes.settings import DatabaseClan
 from classes.bot import CustomClient
+from classes.DatabaseClient.Classes.settings import DatabaseClan
 from utility.clash.capital import calc_raid_medals
 
 

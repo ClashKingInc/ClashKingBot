@@ -2,6 +2,7 @@ from disnake.ext import commands
 
 from discord import options
 from utility.components import button_generator
+
 from .utils import *
 
 
@@ -256,12 +257,11 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
             embed_color=embed_color,
         )
 
-        components = button_generator(button_id=f'familysorted:{server.id}:{sort_by}:{limit}:{townhall}',
-                                      current_page=0, max_page=len(embeds), bot=self.bot)
+        components = button_generator(
+            button_id=f'familysorted:{server.id}:{sort_by}:{limit}:{townhall}', current_page=0, max_page=len(embeds), bot=self.bot
+        )
 
         await ctx.edit_original_message(embed=embeds[0], components=components)
-
-
 
     @family.sub_command(name='donations', description='Donation stats for a family')
     async def donations(

@@ -1,17 +1,16 @@
 import io
+import platform
+import sys
 import time
 from urllib.parse import urlencode
 
-import platform
-import sys
 import aiohttp
 import disnake
-from disnake.ext import commands
-from PIL import Image, ImageDraw, ImageFont
-
 from disnake import ButtonStyle, MessageInteraction
-from disnake.ui import Button, ActionRow
+from disnake.ext import commands
+from disnake.ui import ActionRow, Button
 from emoji.unicode_codes.data_dict import component
+from PIL import Image, ImageDraw, ImageFont
 
 from classes.bot import CustomClient
 from discord import autocomplete, convert
@@ -105,13 +104,13 @@ class misc(commands.Cog, name='Other'):
 
         async with aiohttp.ClientSession() as session:
             try:
-                async with session.get("https://api.clashk.ing/global/counts") as response:
+                async with session.get('https://api.clashk.ing/global/counts') as response:
                     if response.status == 200:
                         api_data = await response.json()
                     else:
                         api_data = None
             except Exception as e:
-                print(f"API request failed: {e}")
+                print(f'API request failed: {e}')
                 api_data = None
 
         cluster_id = self.bot._config.cluster_id
@@ -122,7 +121,7 @@ class misc(commands.Cog, name='Other'):
 
         # Shard info
         shard_count = self.bot.shard_count if self.bot.shard_count else 1
-        current_shard_id = getattr(ctx.guild, "shard_id", 0)
+        current_shard_id = getattr(ctx.guild, 'shard_id', 0)
 
         # Total stats from SHARD_DATA
         total_servers = sum(d.server_count for d in self.bot.SHARD_DATA)
@@ -140,31 +139,31 @@ class misc(commands.Cog, name='Other'):
         num_tickets = await self.bot.open_tickets.count_documents({})
 
         # Environment info
-        python_version = sys.version.split(" ")[0]
-        system_info = platform.system() + " " + platform.release()
+        python_version = sys.version.split(' ')[0]
+        system_info = platform.system() + ' ' + platform.release()
 
-        embed = disnake.Embed(title=f"{self.bot.user.name} Statistics", color=disnake.Color.green())
+        embed = disnake.Embed(title=f'{self.bot.user.name} Statistics', color=disnake.Color.green())
 
         # Basic bot stats
-        embed.add_field(name="🤖 Bot", value=f"{me}", inline=True)
-        embed.add_field(name="🏓 Latency", value=f"{latency_ms} ms", inline=True)
-        embed.add_field(name="⏰ Uptime", value=uptime_str, inline=True)
+        embed.add_field(name='🤖 Bot', value=f'{me}', inline=True)
+        embed.add_field(name='🏓 Latency', value=f'{latency_ms} ms', inline=True)
+        embed.add_field(name='⏰ Uptime', value=uptime_str, inline=True)
 
         # Total stats
-        embed.add_field(name="🌐 Total Servers", value=f"{total_servers:,}", inline=True)
-        embed.add_field(name="👥 Total Members", value=f"{total_members:,}", inline=True)
-        embed.add_field(name="🏆 Total Clans", value=f"{total_clans:,}", inline=True)
+        embed.add_field(name='🌐 Total Servers', value=f'{total_servers:,}', inline=True)
+        embed.add_field(name='👥 Total Members', value=f'{total_members:,}', inline=True)
+        embed.add_field(name='🏆 Total Clans', value=f'{total_clans:,}', inline=True)
 
         # Shard info
-        shard_info = f"**Total Shards:** {shard_count}"
+        shard_info = f'**Total Shards:** {shard_count}'
         if shard_count > 1:
-            shard_info += f"\n**Your Shard:** {current_shard_id + 1}"
-        shard_info += f"\n**Your Cluster:** {cluster_id}"
-        embed.add_field(name="🔧 Shard Info", value=shard_info, inline=False)
+            shard_info += f'\n**Your Shard:** {current_shard_id + 1}'
+        shard_info += f'\n**Your Cluster:** {cluster_id}'
+        embed.add_field(name='🔧 Shard Info', value=shard_info, inline=False)
 
         # Additional local stats
-        embed.add_field(name="📂 Tickets Opened", value=f"{num_tickets:,}", inline=True)
-        embed.add_field(name="🗃️ Loaded Servers", value=f"{chunked_guilds:,}", inline=True)
+        embed.add_field(name='📂 Tickets Opened', value=f'{num_tickets:,}', inline=True)
+        embed.add_field(name='🗃️ Loaded Servers', value=f'{chunked_guilds:,}', inline=True)
 
         if api_data:
             global_counts = (
@@ -176,31 +175,25 @@ class misc(commands.Cog, name='Other'):
                 f"Clans Tracked     : {api_data['clan_count']:,}\n"
                 f"Wars Stored       : {api_data['wars_stored']:,}"
             )
-            embed.add_field(name="🌍 Global Stats", value=f"```yaml\n{global_counts}\n```", inline=False)
+            embed.add_field(name='🌍 Global Stats', value=f'```yaml\n{global_counts}\n```', inline=False)
         else:
-            embed.add_field(name="🌍 Global Stats", value="```yaml\nFailed to fetch data.\n```", inline=False)
+            embed.add_field(name='🌍 Global Stats', value='```yaml\nFailed to fetch data.\n```', inline=False)
 
         # Cluster stats
         cluster_lines = []
         for d in sorted(self.bot.SHARD_DATA, key=lambda x: x.cluster_id):
-            line = f"{d.cluster_id}: {d.server_count:,} S | {d.member_count:,} M | {d.clan_count:,} C"
+            line = f'{d.cluster_id}: {d.server_count:,} S | {d.member_count:,} M | {d.clan_count:,} C'
             cluster_lines.append(line)
 
         if not cluster_lines:
-            cluster_lines.append(
-                f"{cluster_id}: {inservers:,} S | {members_local:,} M | {num_clans:,} C")
+            cluster_lines.append(f'{cluster_id}: {inservers:,} S | {members_local:,} M | {num_clans:,} C')
 
-        embed.add_field(name="📂 Cluster Stats (Server, Members, Clans)", value="```" + "\n".join(cluster_lines) + "```",
-                        inline=False)
+        embed.add_field(name='📂 Cluster Stats (Server, Members, Clans)', value='```' + '\n'.join(cluster_lines) + '```', inline=False)
 
         # Environment info
-        env_info = (
-            f"**Python:** {python_version}\n"
-            f"**System:** {system_info}\n"
-            f"**Containerized:** Yes (Docker)"
-        )
+        env_info = f'**Python:** {python_version}\n' f'**System:** {system_info}\n' f'**Containerized:** Yes (Docker)'
 
-        embed.add_field(name="🏗 Environment", value=env_info, inline=False)
+        embed.add_field(name='🏗 Environment', value=env_info, inline=False)
 
         # Action buttons
         page_buttons = [
@@ -220,7 +213,6 @@ class misc(commands.Cog, name='Other'):
             buttons.append_item(button)
 
         await ctx.edit_original_message(embed=embed, components=[buttons])
-
 
     @commands.slash_command(name='debug', description='Debug issues on your server')
     async def debug(

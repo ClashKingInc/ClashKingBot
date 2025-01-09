@@ -10,12 +10,11 @@ from coc import utils
 from utility.clash.capital import gen_raid_weekend_datestrings
 from utility.constants import SHORT_PLAYER_LINK, SUPER_SCRIPTS
 
+
 if TYPE_CHECKING:
     from classes.bot import CustomClient
 else:
     from disnake import AutoShardedClient as CustomClient
-
-
 
 
 class CustomClanClass(coc.Clan):

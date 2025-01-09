@@ -47,6 +47,7 @@ def button_generator(bot: CustomClient, button_id: str, current_page: int, max_p
 
     return [buttons]
 
+
 def create_components(current_page, embeds, print: bool = False):
     length = len(embeds)
     if length == 1:

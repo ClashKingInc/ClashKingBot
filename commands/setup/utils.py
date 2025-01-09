@@ -1,8 +1,8 @@
 import coc
 import disnake
+from disnake import ApplicationCommandInteraction, ButtonStyle, Color, Embed, MessageInteraction
+from disnake.ui import ActionRow, Button
 
-from disnake import Color, Embed, ButtonStyle, ApplicationCommandInteraction, MessageInteraction
-from disnake.ui import Button, ActionRow
 from classes.bot import CustomClient
 from utility.discord_utils import interaction_handler
 
@@ -21,12 +21,7 @@ async def add_clan(bot: CustomClient, clan: coc.Clan, ctx: ApplicationCommandInt
             style=ButtonStyle.green,
             custom_id='Yes',
         ),
-        Button(
-            label='No',
-            emoji='❌',
-            style=ButtonStyle.red,
-            custom_id='No'
-        ),
+        Button(label='No', emoji='❌', style=ButtonStyle.red, custom_id='No'),
     ]
     buttons = ActionRow()
     for button in page_buttons:
@@ -36,14 +31,14 @@ async def add_clan(bot: CustomClient, clan: coc.Clan, ctx: ApplicationCommandInt
 
     res: MessageInteraction = await interaction_handler(bot=bot, ctx=ctx)
 
-    if res.data.custom_id == "Yes":
+    if res.data.custom_id == 'Yes':
         await bot.clan_db.insert_one(
             {
                 'name': clan.name,
                 'tag': clan.tag,
                 'generalRole': None,
                 'leaderRole': None,
-                'category': "General",
+                'category': 'General',
                 'server': ctx.guild.id,
                 'clanChannel': None,
             }

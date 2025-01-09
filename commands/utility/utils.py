@@ -1,10 +1,10 @@
-import openai
+import ast
 from collections import defaultdict
 from typing import Dict, List
-import ast
 
 import coc
 import disnake
+import openai
 import pendulum as pd
 
 from classes.bot import CustomClient
@@ -12,6 +12,7 @@ from exceptions.CustomExceptions import MessageException
 from utility.constants import EMBED_COLOR_CLASS, MAX_ARMY_CAMP, MAX_NUM_SPELLS
 from utility.discord_utils import iter_embed_creation
 from utility.time import format_time
+
 
 async def army_embed(
     bot: CustomClient,
@@ -25,11 +26,11 @@ async def army_embed(
     if not troops_list and not spell_list:
         raise MessageException('Not a valid army link')
 
-    troops = super_troops = spells = siege_machines = ""
+    troops = super_troops = spells = siege_machines = ''
     troop_space = spell_space = minimum_th = cc_space = 0
     troop_train_time = spell_train_time = 0
 
-    for troop, quantity in troops_list: #type: coc.Troop, int
+    for troop, quantity in troops_list:   # type: coc.Troop, int
         emoji = bot.fetch_emoji(troop.name)
         if troop.is_super_troop:
             super_troops += f'{emoji}`x {str(quantity)}` {troop.name}\n'
@@ -42,7 +43,7 @@ async def army_embed(
             troop_space += troop.housing_space * quantity
             troop_train_time += troop.training_time.total_seconds() * quantity
 
-    for spell, quantity in spell_list: #type: coc.Spell, int
+    for spell, quantity in spell_list:   # type: coc.Spell, int
         emoji = bot.fetch_emoji(spell.name)
         spells += f'{emoji}`x {str(quantity)}` {spell.name}\n'
         minimum_th = max(minimum_th, spell.required_th_level[1])
@@ -52,12 +53,13 @@ async def army_embed(
     minimum_th = max(minimum_th, army_camp_size(troop_space))
     embed = disnake.Embed(
         title=nick,
-        description=f"-# {bot.fetch_emoji(minimum_th)}Minimum Required Townhall: {minimum_th}\n"
-                    f"-# {bot.emoji.clock} Training Time: {format_time(max(troop_train_time, spell_train_time))}\n",
-        color=embed_color)
-    for field, content in zip(["Troops", "Super Troops", "Spells", "Siege Machines"], [troops, super_troops, spells, siege_machines]):
+        description=f'-# {bot.fetch_emoji(minimum_th)}Minimum Required Townhall: {minimum_th}\n'
+        f'-# {bot.emoji.clock} Training Time: {format_time(max(troop_train_time, spell_train_time))}\n',
+        color=embed_color,
+    )
+    for field, content in zip(['Troops', 'Super Troops', 'Spells', 'Siege Machines'], [troops, super_troops, spells, siege_machines]):
         if content:
-            embed.add_field(name=field, value=content + "­", inline=False)
+            embed.add_field(name=field, value=content + '­', inline=False)
 
     if equipment:
         try:
@@ -73,33 +75,30 @@ async def army_embed(
                     """
             openai.api_key = bot._config.open_ai_key
             response = await openai.ChatCompletion.acreate(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": context},
-                    {"role": "user", "content": user_prompt}
-                ],
+                model='gpt-4o-mini',
+                messages=[{'role': 'system', 'content': context}, {'role': 'user', 'content': user_prompt}],
                 max_tokens=2000,  # Adjust token limit as needed
-                temperature=0.7  # Adjust creativity level
+                temperature=0.7,  # Adjust creativity level
             )
 
-            response = response["choices"][0]["message"]["content"]
+            response = response['choices'][0]['message']['content']
             equip_dict = ast.literal_eval(response)
-            equipment = ""
+            equipment = ''
             for hero_name in coc.enums.HOME_BASE_HERO_ORDER:
-                heroes_equipment = ""
+                heroes_equipment = ''
                 for name, _ in equip_dict.items():
                     gear = bot.coc_client.get_equipment(name=name)
                     if gear.hero == hero_name:
                         emoji = bot.fetch_emoji(gear.name)
-                        heroes_equipment += f"- {emoji} {gear.name}\n"
+                        heroes_equipment += f'- {emoji} {gear.name}\n'
                 if heroes_equipment:
                     emoji = bot.fetch_emoji(hero_name)
-                    equipment += f"{emoji} {hero_name} \n{heroes_equipment}"
+                    equipment += f'{emoji} {hero_name} \n{heroes_equipment}'
         except Exception:
             pass
         if clan_castle:
-            equipment += f"­"
-        embed.add_field(name="Equipment", value=f'{equipment}', inline=False)
+            equipment += f'­'
+        embed.add_field(name='Equipment', value=f'{equipment}', inline=False)
 
     if clan_castle:
         try:
@@ -116,17 +115,14 @@ async def army_embed(
                             """
             openai.api_key = bot._config.open_ai_key
             response = await openai.ChatCompletion.acreate(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": context},
-                    {"role": "user", "content": user_prompt}
-                ],
+                model='gpt-4o-mini',
+                messages=[{'role': 'system', 'content': context}, {'role': 'user', 'content': user_prompt}],
                 max_tokens=2000,  # Adjust token limit as needed
-                temperature=0.7  # Adjust creativity level
+                temperature=0.7,  # Adjust creativity level
             )
-            response = response["choices"][0]["message"]["content"]
+            response = response['choices'][0]['message']['content']
             castle_dict = ast.literal_eval(response)
-            troops = spells = ""
+            troops = spells = ''
             for name, quantity in castle_dict.items():  # type: str, int
                 item = bot.coc_client.get_troop(name=name)
                 if item is None:
@@ -143,9 +139,9 @@ async def army_embed(
             clan_castle = troops + spells
         except Exception as e:
             pass
-        embed.add_field(name="Clan Castle", value=f'{clan_castle}', inline=False)
+        embed.add_field(name='Clan Castle', value=f'{clan_castle}', inline=False)
 
-    embed.set_footer(text=f"{troop_space} Troop Space | {spell_space} Spell Space | {cc_space} CC Troop")
+    embed.set_footer(text=f'{troop_space} Troop Space | {spell_space} Spell Space | {cc_space} CC Troop')
     return embed
 
 
@@ -176,7 +172,6 @@ def army_camp_size(size: int):
         return 13
     else:
         return 15
-
 
 
 async def super_troop_embed(

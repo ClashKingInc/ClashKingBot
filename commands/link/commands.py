@@ -9,8 +9,9 @@ from discord import autocomplete, convert
 from exceptions.CustomExceptions import APITokenRequired, InvalidAPIToken, MessageException
 from utility.discord_utils import check_commands, get_webhook_for_channel, interaction_handler
 from utility.general import get_guild_icon
-from .click import LinkButtonExtended
+
 from ..eval.utils import logic
+from .click import LinkButtonExtended
 
 
 class Linking(LinkButtonExtended, commands.Cog):

@@ -1,17 +1,17 @@
-
 from typing import Union
 
 import coc
 import disnake
 from disnake.ext import commands
 
-from classes.DatabaseClient.Classes.settings import DatabaseClan
 from classes.bot import CustomClient
+from classes.DatabaseClient.Classes.settings import DatabaseClan
 from discord import autocomplete, convert, options
 from exceptions.CustomExceptions import *
 from utility.components import clan_component
 from utility.discord_utils import check_commands, get_webhook_for_channel, interaction_handler
 from utility.general import calculate_time, get_guild_icon
+
 from .utils import add_clan
 
 
@@ -71,13 +71,13 @@ class SetupCommands(commands.Cog, name='Setup'):
             await db_server.set_change_nickname(status=(change_nicknames == 'On'))
             changed_text += f'- **Change Nicknames:** `{change_nicknames}`\n'
         if family_nickname_convention is not None:
-            if "{discord_display_name}" in family_nickname_convention and family_nickname_convention != "{discord_display_name}":
-                raise MessageException("{discord_display_name} must be used by itself in a convention}")
+            if '{discord_display_name}' in family_nickname_convention and family_nickname_convention != '{discord_display_name}':
+                raise MessageException('{discord_display_name} must be used by itself in a convention}')
             await db_server.set_family_nickname_convention(rule=family_nickname_convention)
             changed_text += f'- **Family Nickname Convention:** `{family_nickname_convention}`\n'
         if non_family_nickname_convention is not None:
-            if "{discord_display_name}" in non_family_nickname_convention and non_family_nickname_convention != "{discord_display_name}":
-                raise MessageException("{discord_display_name} must be used by itself in a convention}")
+            if '{discord_display_name}' in non_family_nickname_convention and non_family_nickname_convention != '{discord_display_name}':
+                raise MessageException('{discord_display_name} must be used by itself in a convention}')
             await db_server.set_non_family_nickname_convention(rule=non_family_nickname_convention)
             changed_text += f'- **Non Family Nickname Convention:** `{non_family_nickname_convention}`\n'
         if flair_non_family is not None:
@@ -107,16 +107,15 @@ class SetupCommands(commands.Cog, name='Setup'):
             embed.set_thumbnail(url=ctx.guild.icon.url)
         await ctx.edit_original_message(embed=embed)
 
-
     @setup.sub_command(name='clan', description='Set settings for a clan')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def clan_settings(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         clan: coc.Clan = options.clan,
-        member_role: disnake.Role = commands.Param(description="Role assigned to clan members", default=None),
-        leadership_role: disnake.Role = commands.Param(description="Role assigned to clan coleads + leader", default=None),
-        clan_channel: Union[disnake.TextChannel, disnake.Thread] = commands.Param(description="Channel where ban & welcome messages go"),
+        member_role: disnake.Role = commands.Param(description='Role assigned to clan members', default=None),
+        leadership_role: disnake.Role = commands.Param(description='Role assigned to clan coleads + leader', default=None),
+        clan_channel: Union[disnake.TextChannel, disnake.Thread] = commands.Param(description='Channel where ban & welcome messages go'),
         greeting: str = commands.Param(autocomplete=autocomplete.embeds, default=None),
         auto_greet: str = commands.Param(choices=['Never', 'First Join', 'Every Join'], default=None),
         category: str = commands.Param(default=None, autocomplete=autocomplete.category),
@@ -465,8 +464,6 @@ class SetupCommands(commands.Cog, name='Setup'):
         )
         await res.edit_original_message(embed=embed)
 
-
-
     @setup.sub_command(name='logs', description='Set a variety of different clan logs for your server!')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def set_log_add(
@@ -672,7 +669,7 @@ class SetupCommands(commands.Cog, name='Setup'):
             'Raid Weekend',
             'EOS',
             'Clan Member Count',
-            "Season Day",
+            'Season Day',
             'War Score',
             'War Timer',
         ]
@@ -779,7 +776,7 @@ class SetupCommands(commands.Cog, name='Setup'):
                     {'$and': [{'tag': clan.tag}, {'server': ctx.guild.id}]},
                     {'$set': {'warTimerCountdown': channel.id}},
                 )
-            elif type == "Season Day":
+            elif type == 'Season Day':
                 await self.bot.server_db.update_one({'server': ctx.guild.id}, {'$set': {'eosDayCountdown': channel.id}})
 
             else:
@@ -819,7 +816,6 @@ class SetupCommands(commands.Cog, name='Setup'):
         if ctx.guild.icon is not None:
             embed.set_thumbnail(url=ctx.guild.icon.url)
         await ctx.edit_original_message(content='', embed=embed, components=[])
-
 
     @setup.sub_command(name='link-parse', description='Turn link parsing types on/off')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())

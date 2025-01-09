@@ -721,7 +721,7 @@ async def family_sorted(
     current_index = 1  # Keep track of global numbering
 
     # Split players into chunks of 50
-    for chunk in [players[i:i + chunk_size] for i in range(0, len(players), chunk_size)]:
+    for chunk in [players[i : i + chunk_size] for i in range(0, len(players), chunk_size)]:
         text = ''
         for player in chunk:
             if sort_by in ['role', 'tag', 'heroes', 'ach_Friend in Need', 'town_hall']:
@@ -735,7 +735,7 @@ async def family_sorted(
             elif sort_by in ['trophies', 'ach_Sweet Victory!']:
                 emoji = bot.emoji.trophy
             elif sort_by in ['season_rank']:
-                emoji = bot.fetch_emoji("Legend Shield")
+                emoji = bot.fetch_emoji('Legend Shield')
             elif sort_by in ['clan_capital_contributions', 'ach_Aggressive Capitalism']:
                 emoji = bot.emoji.capital_gold
             elif sort_by in ['exp_level']:
@@ -757,7 +757,9 @@ async def family_sorted(
             if 'ach_' not in sort_by and sort_by not in ['season_rank', 'heroes']:
                 text += f'`{spot:3}`{emoji}`{player.__getattribute__(sort_by):{longest}} {player.name[:15]}`\n'
             elif 'ach_' in sort_by:
-                text += f"`{spot:3}`{emoji}`{player.get_achievement(name=sort_by.split('_')[-1], default_value=0).value:{longest}} {player.name[:13]}`\n"
+                text += (
+                    f"`{spot:3}`{emoji}`{player.get_achievement(name=sort_by.split('_')[-1], default_value=0).value:{longest}} {player.name[:13]}`\n"
+                )
             elif sort_by == 'season_rank':
                 try:
                     rank = player.legend_statistics.best_season.rank
@@ -771,11 +773,7 @@ async def family_sorted(
             current_index += 1  # Increment the global numbering
 
         # Create an embed for this chunk
-        embed = disnake.Embed(
-            title=f'{server.name} sorted by {og_sort}',
-            description=text,
-            color=embed_color
-        )
+        embed = disnake.Embed(title=f'{server.name} sorted by {og_sort}', description=text, color=embed_color)
         embed.timestamp = pend.now(tz=pend.UTC)
         embeds.append(embed)
 

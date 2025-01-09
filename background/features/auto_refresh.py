@@ -31,7 +31,8 @@ class AutoEvalBackground(commands.Cog):
 
             status_roles.sort(key=lambda role: role['months'], reverse=True)
             status_roles_map: dict[int, tuple[dict, disnake.Role]] = {
-                role['id']: (role, disnake.utils.get(guild.roles, id=role['id'])) for role in status_roles}
+                role['id']: (role, disnake.utils.get(guild.roles, id=role['id'])) for role in status_roles
+            }
 
             bot_member = guild.me
 
@@ -65,9 +66,9 @@ class AutoEvalBackground(commands.Cog):
 
                 try:
                     if isinstance(role_to_add, disnake.Role):
-                        await member.add_roles(*[role_to_add], reason="Tenure Roles")
+                        await member.add_roles(*[role_to_add], reason='Tenure Roles')
                     if roles_to_remove:
-                        await member.remove_roles(*roles_to_remove, reason="Tenure Roles")
+                        await member.remove_roles(*roles_to_remove, reason='Tenure Roles')
                 except Exception as e:
                     continue
 

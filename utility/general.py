@@ -207,12 +207,12 @@ async def calculate_time(type, war: coc.ClanWar = None):
 
         start_pendulum = pend.instance(start)
         end_pendulum = pend.instance(end)
-        now = pend.now("UTC")
+        now = pend.now('UTC')
 
         days_since_start = now.diff(start_pendulum).in_days()
         days_from_start_to_end = start_pendulum.diff(end_pendulum).in_days()
 
-        text = f"{days_since_start}/{days_from_start_to_end}"
+        text = f'{days_since_start}/{days_from_start_to_end}'
 
     elif type == 'War Score':
         if war is None:

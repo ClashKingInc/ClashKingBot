@@ -11,10 +11,8 @@ from classes.player.stats import StatsPlayer
 from exceptions.CustomExceptions import NoLinkedAccounts
 from utility.clash.capital import is_raids, weekend_to_cocpy_timestamp
 from utility.clash.other import *
-from utility.discord_utils import interaction_handler
-from utility.discord_utils import register_button
+from utility.discord_utils import interaction_handler, register_button
 from utility.general import acronym, create_superscript
-
 
 
 async def basic_player_board(bot: CustomClient, player: coc.Player, embed_color: disnake.Color):
@@ -430,7 +428,6 @@ async def create_player_hr(bot: CustomClient, player: StatsPlayer, start_date, e
         text = 'No attacks/defenses yet.\n'
     embed.add_field(name="**Star Count %'s**", value=text + '­\n', inline=False)
 
-
     fresh_hr = await player.hit_rate(fresh_type=[True], start_timestamp=start_date, end_timestamp=end_date)
     nonfresh_hr = await player.hit_rate(fresh_type=[False], start_timestamp=start_date, end_timestamp=end_date)
     fresh_dr = await player.hit_rate(fresh_type=[True], start_timestamp=start_date, end_timestamp=end_date)
@@ -536,20 +533,20 @@ async def detailed_player_board(bot: CustomClient, custom_player: StatsPlayer, s
     member = await bot.getch_user(discord_id)
     super_troop_text = profileSuperTroops(player=player, bot=bot)
 
-    clan_text = f"[{player.clan.name}]({player.clan.share_link}), {player.role.in_game_name}" if player.clan is not None else "Not in a Clan"
+    clan_text = f'[{player.clan.name}]({player.clan.share_link}), {player.role.in_game_name}' if player.clan is not None else 'Not in a Clan'
 
     if member is not None:
-        link_text = f"{bot.emoji.green_check}Linked to {member.mention}"
+        link_text = f'{bot.emoji.green_check}Linked to {member.mention}'
     elif member is None and discord_id is not None:
-        link_text = f"{bot.emoji.green_check}*Linked, but not on this server.*"
+        link_text = f'{bot.emoji.green_check}*Linked, but not on this server.*'
     else:
         link_text = f"{bot.emoji.square_x_deny}Not linked. Owner? Use {bot.get_command_mention('link')}"
 
-    last_online = f"<t:{player.last_online}:R>, {len(player.season_last_online())} times"
+    last_online = f'<t:{player.last_online}:R>, {len(player.season_last_online())} times'
     if player.last_online is None:
-        last_online = "`Not Seen Yet`"
+        last_online = '`Not Seen Yet`'
 
-    loot_text = ""
+    loot_text = ''
     if player.gold_looted() != 0:
         loot_text += f"- {bot.emoji.gold}Gold Looted: {'{:,}'.format(player.gold_looted())}\n"
     if player.elixir_looted() != 0:
@@ -560,31 +557,31 @@ async def detailed_player_board(bot: CustomClient, custom_player: StatsPlayer, s
     capital_stats = player.clan_capital_stats(start_week=0, end_week=4)
     hitrate = (await player.hit_rate())[0]
     profile_text = (
-        f"{link_text}\n"
+        f'{link_text}\n'
         f"[Open In-Game]({player.share_link}), [Clash Of Stats](https://www.clashofstats.com/players/{player.tag.strip('#')})\n"
-        f"Clan: {clan_text}\n"
-        f"Seen: {last_online}\n\n"
-        f"**Season Stats:**\n"
-        f"- {bot.fetch_emoji(player.league.name)}Trophies: {player.trophies}\n"
-        f"- {bot.emoji.brown_shield}Attack Wins: {player.attack_wins}\n"
-        f"- {bot.emoji.shield}Defense Wins: {player.defense_wins}\n"
-        f"{loot_text}"
-        f"**War**\n"
-        f"- {bot.emoji.ratio}Hitrate: `{round(hitrate.average_triples * 100, 1)}%`\n"
-        f"- {bot.emoji.average}Avg Stars: `{round(hitrate.average_stars, 2)}`\n"
-        f"- {bot.emoji.war_star}Total Stars: `{hitrate.total_stars}, {hitrate.num_attacks} atks`\n"
-        f"**Donations**\n"
-        f"- {bot.emoji.up_green_arrow}Donated: {player.donos().donated}\n"
-        f"- {bot.emoji.down_red_arrow}Received: {player.donos().received}\n"
-        f"- {bot.emoji.ratio}Donation Ratio: {player.donation_ratio()}\n"
-        f"**Event Stats**\n"
+        f'Clan: {clan_text}\n'
+        f'Seen: {last_online}\n\n'
+        f'**Season Stats:**\n'
+        f'- {bot.fetch_emoji(player.league.name)}Trophies: {player.trophies}\n'
+        f'- {bot.emoji.brown_shield}Attack Wins: {player.attack_wins}\n'
+        f'- {bot.emoji.shield}Defense Wins: {player.defense_wins}\n'
+        f'{loot_text}'
+        f'**War**\n'
+        f'- {bot.emoji.ratio}Hitrate: `{round(hitrate.average_triples * 100, 1)}%`\n'
+        f'- {bot.emoji.average}Avg Stars: `{round(hitrate.average_stars, 2)}`\n'
+        f'- {bot.emoji.war_star}Total Stars: `{hitrate.total_stars}, {hitrate.num_attacks} atks`\n'
+        f'**Donations**\n'
+        f'- {bot.emoji.up_green_arrow}Donated: {player.donos().donated}\n'
+        f'- {bot.emoji.down_red_arrow}Received: {player.donos().received}\n'
+        f'- {bot.emoji.ratio}Donation Ratio: {player.donation_ratio()}\n'
+        f'**Event Stats**\n'
         f"- {bot.emoji.capital_gold}CG Donated: {'{:,}'.format(sum([sum(cap.donated) for cap in capital_stats]))}\n"
         f"- {bot.emoji.thick_capital_sword}CG Raided: {'{:,}'.format(sum([sum(cap.raided) for cap in capital_stats]))}\n"
         f"- {bot.emoji.clan_games}Clan Games: {'{:,}'.format(player.clan_games())}\n"
-        f"{super_troop_text}"
-        f"\n**All Time Stats**\n"
-        f"- Best: {bot.emoji.trophy}{player.best_trophies} | {bot.emoji.versus_trophy}{player.best_builder_base_trophies}\n"
-        f"- War: {bot.emoji.war_star}{player.war_stars}\n"
+        f'{super_troop_text}'
+        f'\n**All Time Stats**\n'
+        f'- Best: {bot.emoji.trophy}{player.best_trophies} | {bot.emoji.versus_trophy}{player.best_builder_base_trophies}\n'
+        f'- War: {bot.emoji.war_star}{player.war_stars}\n'
         f"- CWL: {bot.emoji.war_star} {player.get_achievement('War League Legend').value}\n"
         f"- {bot.emoji.troop}Donos: {'{:,}'.format(player.get_achievement('Friend in Need').value)}\n"
         f"- {bot.emoji.clan_games}Clan Games: {'{:,}'.format(player.get_achievement('Games Champion').value)}\n"
@@ -593,22 +590,22 @@ async def detailed_player_board(bot: CustomClient, custom_player: StatsPlayer, s
     )
 
     embed = disnake.Embed(
-        title=f"{player.name} ({player.tag})",
+        title=f'{player.name} ({player.tag})',
         description=profile_text,
         color=disnake.Color.green(),
     ).set_thumbnail(url=player.town_hall_cls.image_url)
     if member is not None:
         embed.set_footer(text=str(member), icon_url=member.display_avatar)
 
-    ban = await bot.banlist.find_one({"$and": [{"VillageTag": f"{player.tag}"}, {"server": server.id if server else None}]})
+    ban = await bot.banlist.find_one({'$and': [{'VillageTag': f'{player.tag}'}, {'server': server.id if server else None}]})
 
     if ban is not None:
-        date = ban.get("DateCreated")
+        date = ban.get('DateCreated')
         date = date[:10]
-        notes = ban.get("Notes")
-        if notes == "":
-            notes = "No Reason Given"
-        embed.add_field(name=f"**{bot.emoji.warning}Banned Player**", value=f"Date: {date}\nReason: {notes}")
+        notes = ban.get('Notes')
+        if notes == '':
+            notes = 'No Reason Given'
+        embed.add_field(name=f'**{bot.emoji.warning}Banned Player**', value=f'Date: {date}\nReason: {notes}')
     return embed
 
 
@@ -634,7 +631,7 @@ async def player_accounts(bot: CustomClient, discord_user: disnake.Member, embed
     for count, player in enumerate(players):
         if count < 20:
             opt_emoji = bot.emoji.opt_in if player.war_opted_in else bot.emoji.opt_out
-            
+
             text += (
                 f'{opt_emoji}**[{player.clear_name}{create_superscript(player.town_hall)}]({player.share_link})**\n'
                 f'{bot.fetch_emoji(player.league_as_string)}{player.trophies}'

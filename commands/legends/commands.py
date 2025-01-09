@@ -24,16 +24,16 @@ class Legends(commands.Cog):
         self.bot = bot
 
     @commands.slash_command(
-        name="legends",
+        name='legends',
         description=disnake.Localized(key='legends-description'),
         install_types=disnake.ApplicationInstallTypes.all(),
-        contexts=disnake.InteractionContextTypes.all()
+        contexts=disnake.InteractionContextTypes.all(),
     )
     async def legends(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
 
     @legends.sub_command(
-        name="search",
+        name='search',
         description=disnake.Localized(key='search-description'),
     )
     async def legends_search(
@@ -86,7 +86,7 @@ class Legends(commands.Cog):
         await ctx.send(embed=embed, components=buttons)
 
     @legends.sub_command(
-        name="clan",
+        name='clan',
         description=disnake.Localized(key='clan-description'),
     )
     async def legends_clan(self, ctx: disnake.ApplicationCommandInteraction, clan: coc.Clan = options.clan):
@@ -97,13 +97,13 @@ class Legends(commands.Cog):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f"legendclan:{clan.tag}",
+                custom_id=f'legendclan:{clan.tag}',
             ),
         )
         await ctx.send(embed=embed, components=[buttons])
 
     @legends.sub_command(
-        name="history",
+        name='history',
         description=disnake.Localized(key='history-description'),
     )
     async def legend_history(

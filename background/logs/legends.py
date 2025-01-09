@@ -122,7 +122,7 @@ class LegendEvents(commands.Cog):
         )
         embed.set_footer(
             text=f'{player.trophies}',
-            icon_url=self.bot.fetch_emoji("Legend League").partial_emoji.url,
+            icon_url=self.bot.fetch_emoji('Legend League').partial_emoji.url,
         )
         embed.timestamp = utc_time
 

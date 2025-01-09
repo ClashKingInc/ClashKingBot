@@ -354,23 +354,7 @@ class eval(commands.Cog, name='Refresh'):
 
         roles_updated = ''
 
-        spot_to_text = [
-            'th3',
-            'th4',
-            'th5',
-            'th6',
-            'th7',
-            'th8',
-            'th9',
-            'th10',
-            'th11',
-            'th12',
-            'th13',
-            'th14',
-            'th15',
-            'th16',
-            'th17'
-        ]
+        spot_to_text = ['th3', 'th4', 'th5', 'th6', 'th7', 'th8', 'th9', 'th10', 'th11', 'th12', 'th13', 'th14', 'th15', 'th16', 'th17']
         list_roles = [th3, th4, th5, th6, th7, th8, th9, th10, th11, th12, th13, th14, th15, th16, th17]
 
         for count, role in enumerate(list_roles):
@@ -444,8 +428,8 @@ class eval(commands.Cog, name='Refresh'):
         champion_league: disnake.Role = None,
         titan_league: disnake.Role = None,
         legends_league: disnake.Role = None,
-        lower_personal_best: disnake.Role = commands.Param(default=None, name="5000_personal_best"),
-        upper_personal_best: disnake.Role = commands.Param(default=None, name="6000_personal_best"),
+        lower_personal_best: disnake.Role = commands.Param(default=None, name='5000_personal_best'),
+        upper_personal_best: disnake.Role = commands.Param(default=None, name='6000_personal_best'),
     ):
 
         list_roles = [
@@ -458,7 +442,7 @@ class eval(commands.Cog, name='Refresh'):
             titan_league,
             legends_league,
             lower_personal_best,
-            upper_personal_best
+            upper_personal_best,
         ]
         if len(set(list_roles)) == 1:
             raise MessageException('Please select at least one role to set.')
@@ -473,7 +457,7 @@ class eval(commands.Cog, name='Refresh'):
             'titan_league',
             'legends_league',
             '5000_personal_best',
-            '6000_personal_best'
+            '6000_personal_best',
         ]
 
         roles_updated = ''
@@ -512,9 +496,9 @@ class eval(commands.Cog, name='Refresh'):
         emerald_league: disnake.Role = None,
         ruby_league: disnake.Role = None,
         diamond_league: disnake.Role = None,
-        lower_personal_best: disnake.Role = commands.Param(default=None, name="5000_personal_best"),
-        mid_personal_best: disnake.Role = commands.Param(default=None, name="6000_personal_best"),
-        upper_personal_best: disnake.Role = commands.Param(default=None, name="7000_personal_best"),
+        lower_personal_best: disnake.Role = commands.Param(default=None, name='5000_personal_best'),
+        mid_personal_best: disnake.Role = commands.Param(default=None, name='6000_personal_best'),
+        upper_personal_best: disnake.Role = commands.Param(default=None, name='7000_personal_best'),
     ):
 
         list_roles = [
@@ -532,7 +516,7 @@ class eval(commands.Cog, name='Refresh'):
             diamond_league,
             lower_personal_best,
             mid_personal_best,
-            upper_personal_best
+            upper_personal_best,
         ]
 
         if list_roles.count(None) == len(list_roles):
@@ -551,9 +535,9 @@ class eval(commands.Cog, name='Refresh'):
             'emerald_league',
             'ruby_league',
             'diamond_league',
-            "5000_personal_best",
-            "6000_personal_best",
-            "7000_personal_best"
+            '5000_personal_best',
+            '6000_personal_best',
+            '7000_personal_best',
         ]
 
         roles_updated = ''
@@ -606,7 +590,7 @@ class eval(commands.Cog, name='Refresh'):
             )
         await ctx.send(embed=embed)
 
-    '''@roles.sub_command(name='achievements', description='Set role for one time personal bests')
+    """@roles.sub_command(name='achievements', description='Set role for one time personal bests')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def achievement_roles(
         self,
@@ -623,7 +607,7 @@ class eval(commands.Cog, name='Refresh'):
             type=type.lower().replace(' ', '_'),
             amount=amount_or_rank,
             season=season.lower().replace(' ', '_'),
-        )'''
+        )"""
 
     @roles.sub_command(name='list', description='List of refresh affiliated roles for this server')
     async def role_list(self, ctx: disnake.ApplicationCommandInteraction):
@@ -765,7 +749,7 @@ class eval(commands.Cog, name='Refresh'):
                 'titan_league',
                 'legends_league',
                 '5000_personal_best',
-                '6000_personal_best'
+                '6000_personal_best',
             ],
         ),
         builder_league: str = commands.Param(
@@ -784,7 +768,7 @@ class eval(commands.Cog, name='Refresh'):
                 'ruby_league',
                 'diamond_league',
                 '5000_personal_best',
-                '6000_personal_best'
+                '6000_personal_best',
             ],
         ),
     ):

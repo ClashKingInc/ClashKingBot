@@ -99,7 +99,6 @@ class VoiceStatCron(commands.Cog):
                 except (disnake.NotFound, disnake.Forbidden):
                     await self.bot.server_db.update_one({'server': server}, {'$set': {'eosDayCountdown': None}})
 
-
             channel = r.get('memberCount')
             if channel is not None:
                 try:
@@ -132,9 +131,9 @@ class VoiceStatCron(commands.Cog):
             except Exception:
                 continue
 
-        war_tags = await self.bot.clan_db.distinct("tag", filter={'warTimerCountdown': {'$ne': None}})
+        war_tags = await self.bot.clan_db.distinct('tag', filter={'warTimerCountdown': {'$ne': None}})
         wars = await self.bot.get_clan_wars(tags=war_tags)
-        war_map = {w.clan.tag : w for w in wars if w is not None}
+        war_map = {w.clan.tag: w for w in wars if w is not None}
         for clan_result in await self.bot.clan_db.find({'warTimerCountdown': {'$ne': None}}).to_list(length=None):
             try:
                 db_clan = DatabaseClan(bot=self.bot, data=clan_result)

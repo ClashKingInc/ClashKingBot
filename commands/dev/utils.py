@@ -1,13 +1,16 @@
+import asyncio
 import base64
 from io import BytesIO
 from typing import TYPE_CHECKING
+
 import imagehash
 import requests
 from PIL import Image
-import asyncio
+
 
 if TYPE_CHECKING:
     from classes.bot import CustomClient
+
 
 def compute_image_hash(image_data: bytes) -> str:
     """
@@ -23,15 +26,15 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
 
     # Fetch the desired emoji definitions
     response = requests.get(config.emoji_url).json()
-    assets_url = "https://assets.clashk.ing"
+    assets_url = 'https://assets.clashk.ing'
 
-    bot_config = await bot.db_client.bot.settings.find_one({"type" : "bot"}, {"_id" : 0})
-    tokens = [bot_config.get("prod_token")] + bot_config.get("beta_tokens", [])
+    bot_config = await bot.db_client.bot.settings.find_one({'type': 'bot'}, {'_id': 0})
+    tokens = [bot_config.get('prod_token')] + bot_config.get('beta_tokens', [])
     for bot_token in tokens:
         application_id = discord_get(
-            "https://discord.com/api/v10/oauth2/applications/@me",
+            'https://discord.com/api/v10/oauth2/applications/@me',
             bot_token=bot_token,
-        ).get("id")
+        ).get('id')
         original_name_map = {}
         full_emoji_dict = {}
 
@@ -40,21 +43,17 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
             hold_dict = emoji_dict.copy()
             for key, value in emoji_dict.items():
                 prev_value = hold_dict.pop(key)
-                prev_key = key.replace(".", "").replace(" ", "").lower()
+                prev_key = key.replace('.', '').replace(' ', '').lower()
                 if prev_key.isnumeric():
-                    prev_key = f"{prev_key}xx"
+                    prev_key = f'{prev_key}xx'
                 original_name_map[prev_key] = key
                 hold_dict[prev_key] = prev_value
             full_emoji_dict = full_emoji_dict | hold_dict
 
-
         # Fetch current emojis from Discord
-        current_emoji = discord_get(
-            f'https://discord.com/api/v10/applications/{application_id}/emojis',
-            bot_token=bot_token
-        ).get('items', [])
+        current_emoji = discord_get(f'https://discord.com/api/v10/applications/{application_id}/emojis', bot_token=bot_token).get('items', [])
 
-        current_emoji_names = [emoji['name'] for emoji in current_emoji if emoji["name"]]
+        current_emoji_names = [emoji['name'] for emoji in current_emoji if emoji['name']]
 
         # --------------------------------------------------------------------------------
         # 1) Build a map of existing emojis {emoji_name -> (id, hash)} to detect changes
@@ -65,7 +64,7 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
             emoji_name = emoji['name']
             emoji_id = emoji['id']
             # Discord CDN URL for the emoji image (PNG format)
-            cdn_url = f"https://cdn.discordapp.com/emojis/{emoji_id}.png?size=128&quality=lossless"
+            cdn_url = f'https://cdn.discordapp.com/emojis/{emoji_id}.png?size=128&quality=lossless'
 
             try:
                 cdn_resp = requests.get(cdn_url)
@@ -75,34 +74,27 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
             except requests.exceptions.RequestException:
                 # If fetching fails, store None; we can decide how to handle it below
                 existing_emoji_map[emoji_name] = {'id': emoji_id, 'hash': None}
-        print("created hashmap")
+        print('created hashmap')
         # --------------------------------------------------------------------------------
         # 2) Determine which emojis need to be deleted (unused in the new config)
         # --------------------------------------------------------------------------------
 
-        emoji_to_be_deleted = [
-            emoji for emoji in current_emoji
-            if emoji['name'] not in full_emoji_dict.keys()
-        ]
+        emoji_to_be_deleted = [emoji for emoji in current_emoji if emoji['name'] not in full_emoji_dict.keys()]
 
         for emoji in emoji_to_be_deleted:
             try:
                 delete_response = discord_delete(
-                    f"https://discord.com/api/v10/applications/{application_id}/emojis/{emoji['id']}",
-                    bot_token=bot_token
+                    f"https://discord.com/api/v10/applications/{application_id}/emojis/{emoji['id']}", bot_token=bot_token
                 )
                 print(f"Deleted emoji: {emoji['name']}")
             except requests.exceptions.RequestException as e:
                 print(f"Failed to delete emoji {emoji['name']}: {e}")
-        print("deleted emojis, no longer existing")
+        print('deleted emojis, no longer existing')
 
         # --------------------------------------------------------------------------------
         # 3) Identify new emojis that need to be added
         # --------------------------------------------------------------------------------
-        emoji_to_be_added = [
-            name for name in full_emoji_dict.keys()
-            if name not in current_emoji_names
-        ]
+        emoji_to_be_added = [name for name in full_emoji_dict.keys() if name not in current_emoji_names]
 
         # Add new emojis
         for name in emoji_to_be_added:
@@ -134,14 +126,11 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
                 if hasattr(e, 'response') and e.response is not None:
                     print(f'Response content: {e.response.content.decode()}')
 
-        print("identified new emojis")
+        print('identified new emojis')
         # --------------------------------------------------------------------------------
         # 4) Check existing emojis for updates (hash changes)
         # --------------------------------------------------------------------------------
-        emoji_to_be_checked = [
-            name for name in full_emoji_dict.keys()
-            if name in current_emoji_names
-        ]
+        emoji_to_be_checked = [name for name in full_emoji_dict.keys() if name in current_emoji_names]
 
         for name in emoji_to_be_checked:
             try:
@@ -169,13 +158,10 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
 
                     # Delete the existing emoji
                     try:
-                        discord_delete(
-                            f"https://discord.com/api/v10/applications/{application_id}/emojis/{emoji_id}",
-                            bot_token=bot_token
-                        )
-                        print(f"Deleted emoji for update: {name}")
+                        discord_delete(f'https://discord.com/api/v10/applications/{application_id}/emojis/{emoji_id}', bot_token=bot_token)
+                        print(f'Deleted emoji for update: {name}')
                     except requests.exceptions.RequestException as e:
-                        print(f"Failed to delete emoji {name} for update: {e}")
+                        print(f'Failed to delete emoji {name} for update: {e}')
                         continue  # Skip re-adding if we failed to delete
 
                     # Re-add the updated emoji
@@ -186,11 +172,11 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
                         discord_post(
                             f'https://discord.com/api/v10/applications/{application_id}/emojis',
                             json_data={'name': name, 'image': new_base64},
-                            bot_token=bot_token
+                            bot_token=bot_token,
                         )
                         print(f'Updated emoji: {name}')
                     except requests.exceptions.RequestException as e:
-                        print(f"Failed to add updated emoji {name}: {e}")
+                        print(f'Failed to add updated emoji {name}: {e}')
                 else:
                     # Either hashes match or we couldn't fetch one of them
                     print(f"Emoji '{name}' is up-to-date or unable to compare. No action needed.")
@@ -200,7 +186,7 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
                 if hasattr(e, 'response') and e.response is not None:
                     print(f'Response content: {e.response.content.decode()}')
 
-        print("compared hashes")
+        print('compared hashes')
 
 
 def discord_get(url, bot_token):

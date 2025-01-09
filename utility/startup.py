@@ -1,11 +1,9 @@
-
 import os
 from os import getenv
+
 import requests
 
 from classes.config import Config
-
-
 
 
 def get_portainer_token(config: 'Config'):
@@ -14,21 +12,20 @@ def get_portainer_token(config: 'Config'):
         'Username': config.portainer_user,
         'Password': config.portainer_pw,
     }
-    headers = {
-        'Content-Type': 'application/json'
-    }
+    headers = {'Content-Type': 'application/json'}
 
     response = requests.post(url, json=payload, headers=headers)
 
     if response.status_code != 200:
-        raise Exception(f"Failed to authenticate with Portainer: {response.text}")
+        raise Exception(f'Failed to authenticate with Portainer: {response.text}')
 
     # Extract the JWT token from the response
     token = response.json().get('jwt')
     if not token:
-        raise Exception("Failed to retrieve Portainer token")
+        raise Exception('Failed to retrieve Portainer token')
 
     return token
+
 
 def get_cluster_breakdown(config: 'Config'):
     cluster_kwargs = {'shard_count': None}
@@ -92,17 +89,14 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
         hold_dict = emoji_dict.copy()
         for key, value in emoji_dict.items():
             prev_value = hold_dict.pop(key)
-            prev_key = key.replace(".", "").replace(" ", "").lower()
+            prev_key = key.replace('.', '').replace(' ', '').lower()
             if prev_key.isnumeric():
-                prev_key = f"{prev_key}xx"
+                prev_key = f'{prev_key}xx'
             original_name_map[prev_key] = key
             hold_dict[prev_key] = prev_value
         full_emoji_dict = full_emoji_dict | hold_dict
 
-    current_emoji = discord_get(
-        f'https://discord.com/api/v10/applications/{bot.application_id}/emojis',
-        bot_token=config.bot_token
-    ).get('items', [])
+    current_emoji = discord_get(f'https://discord.com/api/v10/applications/{bot.application_id}/emojis', bot_token=config.bot_token).get('items', [])
 
     combined_emojis = {}
     for emoji in current_emoji:
@@ -125,8 +119,6 @@ def discord_get(url, bot_token):
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     return response.json()
-
-
 
 
 def load_cogs(disallowed: set):

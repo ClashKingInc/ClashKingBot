@@ -8,7 +8,7 @@ class UtilityButtons(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    '''@commands.Cog.listener()
+    """@commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: disnake.RawReactionActionEvent):
         print(payload)
         results = await self.bot.bases.find_one({'message_id': payload.message_id})
@@ -20,7 +20,7 @@ class UtilityButtons(commands.Cog):
             await channel.send(
                 content=f'https://link.clashofclans.com/en?action=OpenLayout&id={base_id}',
                 file=file
-            )'''
+            )"""
 
     @commands.Cog.listener()
     async def on_button_click(self, res: disnake.MessageInteraction):

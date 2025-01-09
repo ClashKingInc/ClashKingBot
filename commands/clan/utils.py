@@ -18,6 +18,7 @@ from utility.constants import EMBED_COLOR_CLASS, SUPER_SCRIPTS, item_to_name
 from utility.discord_utils import register_button
 from utility.general import create_superscript, response_to_line, smart_convert_seconds
 from utility.imagegen.ClanCapitalResult import generate_raid_result_image
+
 from ..graphs.utils import daily_graph
 
 
@@ -660,7 +661,7 @@ async def clan_sorted(
         elif sort_by in ['trophies', 'ach_Sweet Victory!']:
             emoji = bot.emoji.trophy
         elif sort_by in ['season_rank']:
-            emoji = bot.fetch_emoji("Legend League")
+            emoji = bot.fetch_emoji('Legend League')
         elif sort_by in ['clan_capital_contributions', 'ach_Aggressive Capitalism']:
             emoji = bot.emoji.capital_gold
         elif sort_by in ['exp_level']:

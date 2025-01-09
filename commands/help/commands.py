@@ -133,73 +133,69 @@ class HelpCommands(commands.Cog, name='Help'):
             else:
                 await res.edit_original_message(embed=embeds[page_names.index(res.values[0])])
 
-
-    @commands.slash_command(name='ask', description="Ask questions about the bot & docs")
+    @commands.slash_command(name='ask', description='Ask questions about the bot & docs')
     async def ask(self, ctx: disnake.ApplicationCommandInteraction, question: str):
         await ctx.response.defer(ephemeral=True)
         query = question
 
         # Fetch the answer from GitBook API
-        gitbook_url = "https://api.gitbook.com/v1/spaces/iSJhS5UxZkjOhR5eSxhS/search/ask"
+        gitbook_url = 'https://api.gitbook.com/v1/spaces/iSJhS5UxZkjOhR5eSxhS/search/ask'
         async with aiohttp.ClientSession() as session:
-            async with session.get(gitbook_url, params={"query": query}) as response:
+            async with session.get(gitbook_url, params={'query': query}) as response:
                 answer = await response.json() if response.status == 200 else None
 
         if not answer:
-            raise MessageException("No answer found")
+            raise MessageException('No answer found')
 
-        pages_to_find = {source["page"] for source in answer.get("answer", {}).get("sources", [])}
+        pages_to_find = {source['page'] for source in answer.get('answer', {}).get('sources', [])}
 
         # Fetch GitBook content
-        content_url = "https://api.gitbook.com/v1/spaces/iSJhS5UxZkjOhR5eSxhS/content"
-        headers = {"Authorization": f"Bearer {self.bot._config.gitbook_token}"}
+        content_url = 'https://api.gitbook.com/v1/spaces/iSJhS5UxZkjOhR5eSxhS/content'
+        headers = {'Authorization': f'Bearer {self.bot._config.gitbook_token}'}
         async with aiohttp.ClientSession() as session:
             async with session.get(content_url, headers=headers) as response:
                 content = await response.json() if response.status == 200 else None
 
-        if not content or "pages" not in content:
+        if not content or 'pages' not in content:
             return
 
         # Extract page URLs
         gitbook_urls = []
-        base_url = "https://docs.clashking.xyz"
+        base_url = 'https://docs.clashking.xyz'
 
         def recurse_pages(pages):
             for page in pages:
-                if page["id"] in pages_to_find:
+                if page['id'] in pages_to_find:
                     gitbook_urls.append(f"{base_url}/{page['path']}")
-                if "pages" in page:
-                    recurse_pages(page["pages"])
+                if 'pages' in page:
+                    recurse_pages(page['pages'])
 
-        recurse_pages(content["pages"])
+        recurse_pages(content['pages'])
 
         if gitbook_urls:
             # Create buttons for each URL
-            buttons = [
-                disnake.ui.Button(label=f"Source {i + 1}", url=url, style=disnake.ButtonStyle.link)
-                for i, url in enumerate(gitbook_urls)
-            ]
+            buttons = [disnake.ui.Button(label=f'Source {i + 1}', url=url, style=disnake.ButtonStyle.link) for i, url in enumerate(gitbook_urls)]
 
             # Group buttons into rows (max 5 per row)
-            action_rows = [
-                disnake.ui.ActionRow(*buttons[i:i + 5]) for i in range(0, len(buttons), 5)
-            ]
+            action_rows = [disnake.ui.ActionRow(*buttons[i : i + 5]) for i in range(0, len(buttons), 5)]
 
             # Send reply
             embed = disnake.Embed(
                 description='This info is pulled from our [docs](https://docs.clashking.xyz), to try to help assist you.',
                 color=disnake.Color.orange(),
             )
-            if answer.get("answer", {}).get("text") is None:
+            if answer.get('answer', {}).get('text') is None:
                 embed = None
                 action_rows = None
             await ctx.send(
                 embed=embed,
-                content=answer.get("answer", {}).get("text",
-                                                     "No answer found sorry, you can browse our docs [here](https://docs.clashk.ing) though."),
+                content=answer.get('answer', {}).get(
+                    'text', 'No answer found sorry, you can browse our docs [here](https://docs.clashk.ing) though.'
+                ),
                 components=action_rows,
-                ephemeral=True
+                ephemeral=True,
             )
+
 
 def setup(bot: CustomClient):
     bot.add_cog(HelpCommands(bot))

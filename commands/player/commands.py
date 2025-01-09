@@ -8,6 +8,7 @@ from discord.options import autocomplete, convert
 from exceptions.CustomExceptions import *
 from utility.player_pagination import button_pagination
 from utility.search import search_results
+
 from .utils import player_accounts, to_do_embed
 
 
@@ -18,16 +19,14 @@ class PlayerCommands(commands.Cog, name='Player Commands'):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-
     @commands.slash_command(
         name=disnake.Localized('player', key='player-name'),
         description=disnake.Localized(key='player-description'),
         install_types=disnake.ApplicationInstallTypes.all(),
-        contexts=disnake.InteractionContextTypes.all()
+        contexts=disnake.InteractionContextTypes.all(),
     )
     async def player(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
-
 
     @player.sub_command(
         name=disnake.Localized('lookup', key='lookup-name'),

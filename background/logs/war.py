@@ -247,7 +247,7 @@ class War_Log(commands.Cog):
             await ctx.response.defer(ephemeral=True)
             war_id = (str(ctx.data.custom_id).split('_'))[-1]
             clan_tag = (str(ctx.data.custom_id).split('_'))[1]
-            war_data = await self.bot.clan_wars.find_one({"$and" : [{'war_id': war_id}, {"data" : {"$ne" : None}}]})
+            war_data = await self.bot.clan_wars.find_one({'$and': [{'war_id': war_id}, {'data': {'$ne': None}}]})
             war = None
             if war_data is not None:
                 war = coc.ClanWar(data=war_data['data'], client=self.bot.coc_client, clan_tag=clan_tag)
@@ -264,7 +264,7 @@ class War_Log(commands.Cog):
             await ctx.response.defer(ephemeral=True)
             war_id = (str(ctx.data.custom_id).split('_'))[-1]
             clan_tag = (str(ctx.data.custom_id).split('_'))[1]
-            war_data = await self.bot.clan_wars.find_one({"$and" : [{'war_id': war_id}, {"data" : {"$ne" : None}}]})
+            war_data = await self.bot.clan_wars.find_one({'$and': [{'war_id': war_id}, {'data': {'$ne': None}}]})
             war = None
             if war_data is not None:
                 war = coc.ClanWar(data=war_data['data'], client=self.bot.coc_client, clan_tag=clan_tag)
@@ -281,7 +281,7 @@ class War_Log(commands.Cog):
             await ctx.response.defer()
             war_id = (str(ctx.data.custom_id).split('_'))[-1]
             clan_tag = (str(ctx.data.custom_id).split('_'))[1]
-            war_data = await self.bot.clan_wars.find_one({"$and" : [{'war_id': war_id}, {"data" : {"$ne" : None}}]})
+            war_data = await self.bot.clan_wars.find_one({'$and': [{'war_id': war_id}, {'data': {'$ne': None}}]})
             war = None
             if war_data is not None:
                 war = coc.ClanWar(data=war_data['data'], client=self.bot.coc_client, clan_tag=clan_tag)
@@ -299,7 +299,7 @@ class War_Log(commands.Cog):
             await ctx.response.defer(ephemeral=True)
             war_id = (str(ctx.data.custom_id).split('_'))[-1]
             clan_tag = (str(ctx.data.custom_id).split('_'))[1]
-            war_data = await self.bot.clan_wars.find_one({"$and" : [{'war_id': war_id}, {"data" : {"$ne" : None}}]})
+            war_data = await self.bot.clan_wars.find_one({'$and': [{'war_id': war_id}, {'data': {'$ne': None}}]})
             war = None
             if war_data is not None:
                 war = coc.ClanWar(data=war_data['data'], client=self.bot.coc_client, clan_tag=clan_tag)
