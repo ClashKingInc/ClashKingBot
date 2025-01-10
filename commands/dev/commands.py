@@ -13,8 +13,8 @@ from disnake.ext import commands
 from classes.bot import CustomClient
 from discord import autocomplete, convert
 
-from .utils import fetch_emoji_dict
-
+from .utils import fetch_emoji_dict, milestone_embed
+from utility.components import button_generator
 
 class OwnerCommands(commands.Cog):
     def __init__(self, bot: CustomClient):
@@ -174,11 +174,13 @@ class OwnerCommands(commands.Cog):
     async def test(self, ctx: ApplicationCommandInteraction):
         pass
 
+
     @dev.sub_command(name='update-emojis', description='Update Emojis across all bots')
     async def update_emojis(self, ctx: ApplicationCommandInteraction):
         await ctx.response.defer()
         asyncio.create_task(fetch_emoji_dict(bot=self.bot))
         await ctx.send('Updating Emojis.')
+
 
     @dev.sub_command(name='automation-limit', description='Set a new autoboard limit for a server')
     async def automation_limit(
@@ -191,6 +193,23 @@ class OwnerCommands(commands.Cog):
         db_server = await self.bot.ck_client.get_server_settings(server_id=server.id)
         await db_server.set_autoboard_limit(limit=new_limit)
         await ctx.send(f'{server.name} autoboard limit set to {new_limit}')
+
+
+    #GITHUB COMMANDS
+    @dev.sub_command_group(name="github", description='Github commands')
+    async def github(self, ctx: ApplicationCommandInteraction):
+        pass
+
+    @github.sub_command(name="timeline", description="Milestone timeline for github issues")
+    async def github_timeline(self,
+                              ctx: ApplicationCommandInteraction,
+                              repo = commands.Param(choices=["ClashKingBot"]),
+                              ):
+        await ctx.response.defer()
+        repo = f"ClashKingInc/{repo}"
+        embed = await milestone_embed(bot=self.bot, repo=repo)
+        components = button_generator(bot=self.bot, button_id=f"githubtimeline:{repo}")
+        await ctx.edit_original_response(embed=embed, components=components)
 
 
 def setup(bot: CustomClient):

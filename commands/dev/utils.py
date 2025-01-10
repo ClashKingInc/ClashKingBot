@@ -1,15 +1,91 @@
 import asyncio
+import aiohttp
 import base64
 from io import BytesIO
 from typing import TYPE_CHECKING
 
+import disnake
 import imagehash
 import requests
 from PIL import Image
-
+import pendulum as pend
 
 if TYPE_CHECKING:
     from classes.bot import CustomClient
+
+GITHUB_API_BASE = "https://api.github.com"
+from utility.constants import EMBED_COLOR_CLASS
+from utility.discord_utils import register_button
+
+
+async def fetch_github_milestones(bot: 'CustomClient', repo_name: str):
+    """Fetch milestones from the GitHub repository."""
+    url = f"{GITHUB_API_BASE}/repos/{repo_name}/milestones"
+    headers = {"Authorization": f"token {bot._config.github_token}"}
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers) as response:
+            if response.status != 200:
+                raise Exception(f"Failed to fetch milestones: {response.status}")
+            return await response.json()
+
+
+async def fetch_issues_for_milestone(bot: 'CustomClient', repo_name: str, milestone_number: int):
+    """Fetch issues for a specific milestone."""
+    url = f"{GITHUB_API_BASE}/repos/{repo_name}/issues?milestone={milestone_number}&state=open"
+    headers = {"Authorization": f"token {bot._config.github_token}"}
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers) as response:
+            if response.status != 200:
+                raise Exception(f"Failed to fetch issues: {response.status}")
+            return await response.json()
+
+
+@register_button("githubtimeline", parser="_:repo")
+async def milestone_embed(bot: 'CustomClient', repo: str):
+    milestones: list[dict] = await fetch_github_milestones(bot=bot, repo_name=repo)
+    if not milestones:
+        return disnake.Embed(
+                title=f"{repo.split('/')[-1]} Timeline",
+                description="No open milestones found.",
+                color=disnake.Color.red(),
+        )
+
+    embed = disnake.Embed(
+        title=f"{repo.split('/')[-1]} Timeline",
+        color=EMBED_COLOR_CLASS,
+    )
+    milestones.sort(key=lambda x: x.get("due_on") or "2099-09-09")
+    for milestone in milestones:
+        total_issues = milestone["open_issues"] + milestone["closed_issues"]
+        completion_percentage = (
+            (milestone["closed_issues"] / total_issues) * 100
+            if total_issues > 0
+            else 0
+        )
+
+        issues = await fetch_issues_for_milestone(bot=bot, repo_name=repo, milestone_number=milestone["number"])
+        issues_list = "\n".join([f"- {issue['title']}" for issue in issues[:5]])
+        if len(issues) > 10:
+            issues_list += "\n- ... and more"
+
+        due_date = "No due date"
+        if milestone["due_on"]:
+            due_date = bot.timestamper(pend.parse(milestone["due_on"]).int_timestamp).cal_date
+        embed.add_field(
+            name=f"{milestone['title']} ({completion_percentage:.0f}% complete)",
+            value=(
+                f"**Due Date:** {due_date}\n"
+                f"**Last Updated:** {bot.timestamper(pend.parse(milestone['updated_at']).int_timestamp).relative}\n"
+                f"**Issues:** {milestone['closed_issues']}/{milestone['open_issues']} complete\n"
+                f"{issues_list}"
+            ),
+            inline=False,
+        )
+
+    return embed
+
 
 
 def compute_image_hash(image_data: bytes) -> str:
