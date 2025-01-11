@@ -38,7 +38,7 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
                     th_emoji = self.bot.fetch_emoji(player.town_hall)
                     embed = disnake.Embed(
                         description=f'[**{player.name}** ({player.tag})]({player.share_link})\n'
-                        + f'**{th_emoji}{player.town_hall}{leagueAndTrophies(bot=self.bot, player=player)}<:star:825571962699907152>{player.war_stars}{hero}**\n',
+                        + f'**{th_emoji}{player.town_hall}{leagueAndTrophies(bot=self.bot, player=player)}{self.bot.emoji.war_star}{player.war_stars}{hero}**\n',
                         color=disnake.Color.green(),
                     )
                     embed.set_footer(
@@ -169,12 +169,12 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
                     player = player_map.get(member.tag)
                     if player is None:
                         continue
-                    hero = basic_heros(bot=self.bot, player=player)
-
                     th_emoji = self.bot.fetch_emoji(player.town_hall)
                     embed = disnake.Embed(
                         description=f'[**{player.name}** ({player.tag})]({player.share_link})\n'
-                        + f'**{th_emoji}{player.town_hall}{leagueAndTrophies(bot=self.bot, player=player)}<:star:825571962699907152>{player.war_stars}{hero}**\n',
+                        + f'**{th_emoji}{player.town_hall}{leagueAndTrophies(bot=self.bot, player=player)}(#{member.clan_rank})'
+                          f'{self.bot.emoji.up_green_arrow}**{player.donations}**{self.bot.emoji.down_red_arrow}**{player.received}**'
+                          f'{self.bot.emoji.pin}{member.role.in_game_name}\n',
                         color=disnake.Color.red(),
                     )
                     if player.clan is not None and player.clan.tag != clan.tag:

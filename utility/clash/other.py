@@ -84,17 +84,11 @@ def heros(bot: 'CustomClient', player: coc.Player):
 
 
 def basic_heros(bot, player: coc.Player):
-    def get_level_emoji(hero: coc.Hero):
-        color = 'blue'
-        if hero.level == hero.get_max_level_for_townhall(townhall=player.town_hall):
-            color = 'gold'
-        return bot.get_number_emoji(color=color, number=hero.level)
-
     hero_string = ''
     for hero in player.heroes:
         if not hero.is_home_base:
             continue
-        hero_string += f'{bot.fetch_emoji(hero.name)}{get_level_emoji(hero)}'
+        hero_string += f'{bot.fetch_emoji(hero.name)}**{hero.level}**'
 
     if not hero_string:
         return ''
