@@ -48,3 +48,4 @@ class Config:
         self.emoji_asset_version = remote_settings.get('emoji_version')
 
         self.github_token = remote_settings.get('github_token')
+        self.clash_event_ws = remote_settings.get('clash_event_ws')
