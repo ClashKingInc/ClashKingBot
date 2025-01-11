@@ -38,5 +38,5 @@ sentry_sdk==1.25.0
 stringcase==1.2.0
 uvicorn==0.34.0
 Wand==0.6.7
-websockets==10.3
+websockets==14.1
 XlsxWriter==3.0.3
