@@ -63,8 +63,7 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
                         )
                     select = disnake.ui.Select(
                         options=options,
-                        placeholder='View Applicant Accounts',
-                        # the placeholder text to show when no options have been chosen
+                        placeholder='Account Info',
                         min_values=1,  # the minimum number of options a user must select
                         max_values=1,  # the maximum number of options a user can select
                     )
@@ -108,7 +107,7 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
                                 )
                         else:
                             for embed_chunk in embeds:
-                                await webhook.send(embeds=embed_chunk, components=components)
+                                await webhook.send(embeds=embed_chunk, components=components if log.profile_button else None)
                     except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                         await log.set_thread(id=None)
                         await log.set_webhook(id=None)
