@@ -115,7 +115,7 @@ class SetupCommands(commands.Cog, name='Setup'):
         clan: coc.Clan = options.clan,
         member_role: disnake.Role = commands.Param(description='Role assigned to clan members', default=None),
         leadership_role: disnake.Role = commands.Param(description='Role assigned to clan coleads + leader', default=None),
-        clan_channel: Union[disnake.TextChannel, disnake.Thread] = commands.Param(default=None, escription='Channel where ban & welcome messages go'),
+        clan_channel: Union[disnake.TextChannel, disnake.Thread] = commands.Param(default=None, description='Channel where ban & welcome messages go'),
         greeting: str = commands.Param(autocomplete=autocomplete.embeds, default=None),
         auto_greet: str = commands.Param(choices=['Never', 'First Join', 'Every Join'], default=None),
         category: str = commands.Param(default=None, autocomplete=autocomplete.category),
