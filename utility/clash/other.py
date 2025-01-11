@@ -88,7 +88,7 @@ def basic_heros(bot, player: coc.Player):
     for hero in player.heroes:
         if not hero.is_home_base:
             continue
-        hero_string += f'{bot.fetch_emoji(hero.name)}**{hero.level}**'
+        hero_string += f'{bot.fetch_emoji(hero.name)}{hero.level}'
 
     if not hero_string:
         return ''
