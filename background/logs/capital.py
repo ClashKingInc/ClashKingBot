@@ -132,7 +132,9 @@ class clan_capital_events(commands.Cog, name='Clan Capital Events'):
                     color=disnake.Color.green(),
                 )
                 embed.set_author(name=f'{clan.name}', icon_url=clan.badge.url)
-                embed.set_footer(text=f'{numerize.numerize(raid.total_loot, 2)} Total CG | Calc Medals: {off_medal_reward}')
+                embed.set_footer(
+                    text=f'{numerize.numerize(raid.total_loot, 2)} Total CG | Calc Medals: {off_medal_reward}'
+                )
 
                 embeds.append(embed)
 

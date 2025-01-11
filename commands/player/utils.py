@@ -25,7 +25,10 @@ async def basic_player_board(bot: CustomClient, player: coc.Player, embed_color:
 
     embed = disnake.Embed(
         title=f'**Invite {player.name} to your clan:**',
-        description=f'{player.name} - TH{player.town_hall}\n' + f'Tag: {player.tag}\n' + f'Clan: {clan}\n' + f'Trophies: {player.trophies}\n'
+        description=f'{player.name} - TH{player.town_hall}\n'
+        + f'Tag: {player.tag}\n'
+        + f'Clan: {clan}\n'
+        + f'Trophies: {player.trophies}\n'
         f'War Stars: {player.war_stars}\n'
         f'{hero}{pets}',
         color=embed_color,
@@ -84,7 +87,9 @@ async def history(bot: CustomClient, player):
         last_5 += f'[{clan.clan_name}]({clan.share_link}), {clan.role.in_game_name}'
         if clan.stay_type == StayType.stay:
             last_5 += f', {clan.stay_length.days} days' if clan.stay_length.days >= 1 else ''
-            last_5 += f'\n<t:{int(clan.start_stay.time.timestamp())}:D> to <t:{int(clan.end_stay.time.timestamp())}:D>\n'
+            last_5 += (
+                f'\n<t:{int(clan.start_stay.time.timestamp())}:D> to <t:{int(clan.end_stay.time.timestamp())}:D>\n'
+            )
         elif clan.stay_type == StayType.seen:
             last_5 += f'\nSeen on <t:{int(clan.seen_date.time.timestamp())}:D>\n'
 
@@ -533,7 +538,11 @@ async def detailed_player_board(bot: CustomClient, custom_player: StatsPlayer, s
     member = await bot.getch_user(discord_id)
     super_troop_text = profileSuperTroops(player=player, bot=bot)
 
-    clan_text = f'[{player.clan.name}]({player.clan.share_link}), {player.role.in_game_name}' if player.clan is not None else 'Not in a Clan'
+    clan_text = (
+        f'[{player.clan.name}]({player.clan.share_link}), {player.role.in_game_name}'
+        if player.clan is not None
+        else 'Not in a Clan'
+    )
 
     if member is not None:
         link_text = f'{bot.emoji.green_check}Linked to {member.mention}'
@@ -597,7 +606,9 @@ async def detailed_player_board(bot: CustomClient, custom_player: StatsPlayer, s
     if member is not None:
         embed.set_footer(text=str(member), icon_url=member.display_avatar)
 
-    ban = await bot.banlist.find_one({'$and': [{'VillageTag': f'{player.tag}'}, {'server': server.id if server else None}]})
+    ban = await bot.banlist.find_one(
+        {'$and': [{'VillageTag': f'{player.tag}'}, {'server': server.id if server else None}]}
+    )
 
     if ban is not None:
         date = ban.get('DateCreated')

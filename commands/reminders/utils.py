@@ -123,7 +123,9 @@ def roster_options(bot: CustomClient, results):
     now = int(datetime.utcnow().replace(tzinfo=utc).timestamp())
     results = [result for result in results if result.get('time') is not None and result.get('time', 0) > (now + 1200)]
     if not results:
-        raise ThingNotFound('**No Rosters or Any Rosters that have times set up (that are in the future) on this server**')
+        raise ThingNotFound(
+            '**No Rosters or Any Rosters that have times set up (that are in the future) on this server**'
+        )
     roster_options = []
     for result in results:
         roster_options.append(disnake.SelectOption(label=result.get('alias'), value=f"{result.get('alias')}"))
@@ -1002,7 +1004,9 @@ async def edit_reminder(
 ):
     while True:
         if type != 'roster':
-            reminders = await bot.reminders.find({'$and': [{'clan': clan.tag}, {'type': type}, {'server': ctx.guild.id}]}).to_list(length=None)
+            reminders = await bot.reminders.find(
+                {'$and': [{'clan': clan.tag}, {'type': type}, {'server': ctx.guild.id}]}
+            ).to_list(length=None)
         else:
             rosters = await bot.rosters.distinct(
                 '_id',

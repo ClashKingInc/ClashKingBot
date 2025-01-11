@@ -81,7 +81,9 @@ def war_start_embed(new_war: coc.ClanWar):
 
 
 def war_buttons(bot: CustomClient, new_war: coc.ClanWar):
-    war_unique_id = '-'.join([new_war.clan_tag, new_war.opponent.tag]) + f'-{int(new_war.preparation_start_time.time.timestamp())}'
+    war_unique_id = (
+        '-'.join([new_war.clan_tag, new_war.opponent.tag]) + f'-{int(new_war.preparation_start_time.time.timestamp())}'
+    )
     button = [
         disnake.ui.ActionRow(
             disnake.ui.Button(

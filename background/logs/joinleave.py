@@ -22,10 +22,16 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
         clan = coc.Clan(data=event['new_clan'], client=self.bot.coc_client)
 
         if members_joined := event.get('joined', []):
-            tracked = await self.bot.clan_db.find({'$and': [{'tag': clan.tag}, {'logs.join_log.webhook': {'$ne': None}}]}).to_list(length=None)
+            tracked = await self.bot.clan_db.find(
+                {'$and': [{'tag': clan.tag}, {'logs.join_log.webhook': {'$ne': None}}]}
+            ).to_list(length=None)
             if tracked:
-                members_joined = [coc.ClanMember(data=member, client=self.bot.coc_client, clan=clan) for member in members_joined]
-                player_pull = await self.bot.get_players(tags=[m.tag for m in members_joined], use_cache=False, custom=False)
+                members_joined = [
+                    coc.ClanMember(data=member, client=self.bot.coc_client, clan=clan) for member in members_joined
+                ]
+                player_pull = await self.bot.get_players(
+                    tags=[m.tag for m in members_joined], use_cache=False, custom=False
+                )
                 player_map = {p.tag: p for p in player_pull}
 
                 embeds = []
@@ -107,17 +113,25 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
                                 )
                         else:
                             for embed_chunk in embeds:
-                                await webhook.send(embeds=embed_chunk, components=components if log.profile_button else None)
+                                await webhook.send(
+                                    embeds=embed_chunk, components=components if log.profile_button else None
+                                )
                     except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                         await log.set_thread(id=None)
                         await log.set_webhook(id=None)
                         continue
 
         if members_left := event.get('left', []):
-            tracked = await self.bot.clan_db.find({'$and': [{'tag': clan.tag}, {'logs.leave_log.webhook': {'$ne': None}}]}).to_list(length=None)
+            tracked = await self.bot.clan_db.find(
+                {'$and': [{'tag': clan.tag}, {'logs.leave_log.webhook': {'$ne': None}}]}
+            ).to_list(length=None)
             if tracked:
-                members_left = [coc.ClanMember(data=member, client=self.bot.coc_client, clan=clan) for member in members_left]
-                player_pull = await self.bot.get_players(tags=[m.tag for m in members_left], use_cache=False, custom=False)
+                members_left = [
+                    coc.ClanMember(data=member, client=self.bot.coc_client, clan=clan) for member in members_left
+                ]
+                player_pull = await self.bot.get_players(
+                    tags=[m.tag for m in members_left], use_cache=False, custom=False
+                )
                 player_map = {p.tag: p for p in player_pull}
 
                 embeds = []
@@ -129,8 +143,8 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
                     embed = disnake.Embed(
                         description=f'[**{player.name}** ({player.tag})]({player.share_link})\n'
                         + f'{th_emoji}**{player.town_hall}{leagueAndTrophies(bot=self.bot, player=player)}(#{member.clan_rank})**'
-                        +  f'{self.bot.emoji.up_green_arrow}**{player.donations}**{self.bot.emoji.down_red_arrow}**{player.received}**'
-                        +  f'{self.bot.emoji.pin}**{member.role.in_game_name}**\n',
+                        + f'{self.bot.emoji.up_green_arrow}**{player.donations}**{self.bot.emoji.down_red_arrow}**{player.received}**'
+                        + f'{self.bot.emoji.pin}**{member.role.in_game_name}**\n',
                         color=disnake.Color.red(),
                     )
                     if player.clan is not None and player.clan.tag != clan.tag:

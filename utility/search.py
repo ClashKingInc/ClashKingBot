@@ -40,7 +40,11 @@ async def search_name_with_tag(bot: CustomClient, query: str, poster=False):
         ]
     results = await bot.player_search.aggregate(pipeline=pipeline).to_list(length=None)
     for document in results:
-        names.append(f'{create_superscript(document.get("th"))}{document.get("name")} ({document.get("clan_name")})' + ' | ' + document.get('tag'))
+        names.append(
+            f'{create_superscript(document.get("th"))}{document.get("name")} ({document.get("clan_name")})'
+            + ' | '
+            + document.get('tag')
+        )
     return names
 
 
@@ -66,7 +70,9 @@ async def family_names(bot: CustomClient, query: str, guild):
     results = await bot.player_search.aggregate(pipeline=pipeline).to_list(length=None)
     for document in results:
         clan = document.get('clan_name')
-        names.append(f'{create_superscript(document.get("th"))}{document.get("name")} ({clan})' + ' | ' + document.get('tag'))
+        names.append(
+            f'{create_superscript(document.get("th"))}{document.get("name")} ({clan})' + ' | ' + document.get('tag')
+        )
     return names
 
 
@@ -90,5 +96,7 @@ async def all_names(bot: CustomClient, query: str):
     results = await bot.player_search.aggregate(pipeline=pipeline).to_list(length=None)
     for document in results:
         clan = document.get('clan_name')
-        names.append(f'{create_superscript(document.get("th"))}{document.get("name")} ({clan})' + ' | ' + document.get('tag'))
+        names.append(
+            f'{create_superscript(document.get("th"))}{document.get("name")} ({clan})' + ' | ' + document.get('tag')
+        )
     return names

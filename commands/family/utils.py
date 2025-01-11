@@ -11,7 +11,12 @@ import pendulum as pend
 from classes.bot import CustomClient
 from classes.player.stats import ClanCapitalWeek
 from exceptions.CustomExceptions import MessageException
-from utility.clash.capital import calc_raid_medals, gen_raid_weekend_datestrings, get_raidlog_entry, get_season_raid_weeks
+from utility.clash.capital import (
+    calc_raid_medals,
+    gen_raid_weekend_datestrings,
+    get_raidlog_entry,
+    get_season_raid_weeks,
+)
 from utility.clash.other import (
     cwl_league_emojis,
     games_season_start_end_as_timestamp,
@@ -112,7 +117,9 @@ async def family_summary(
     season = bot.gen_season_date() if season is None else season
     member_tags = await bot.get_family_member_tags(guild_id=server.id)
     # we dont want results w/ no name
-    results = await bot.player_stats.find({'$and': [{'tag': {'$in': member_tags}}, {'name': {'$ne': None}}]}).to_list(length=None)
+    results = await bot.player_stats.find({'$and': [{'tag': {'$in': member_tags}}, {'name': {'$ne': None}}]}).to_list(
+        length=None
+    )
     text = ''
     for option, emoji in zip(
         ['gold', 'elixir', 'dark_elixir'],
@@ -317,7 +324,9 @@ async def family_overview(bot: CustomClient, server: disnake.Guild, embed_color:
             if member.get('league') == 'Legend League':
                 legend_player_count += 1
 
-    clan_stats = await bot.clan_stats.find({'tag': {'$in': clan_tags}}, projection={'_id': 0, 'tag': 1, f'{season}': 1}).to_list(length=None)
+    clan_stats = await bot.clan_stats.find(
+        {'tag': {'$in': clan_tags}}, projection={'_id': 0, 'tag': 1, f'{season}': 1}
+    ).to_list(length=None)
     total_donations = 0
     total_received = 0
     total_de_looted = 0
@@ -539,7 +548,13 @@ async def family_troop_progress(
             '$match': {
                 '$and': [
                     {'tag': {'$in': player_tags}},
-                    {'type': {'$in': list(coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER + coc.enums.BUILDER_TROOPS_ORDER)}},
+                    {
+                        'type': {
+                            '$in': list(
+                                coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER + coc.enums.BUILDER_TROOPS_ORDER
+                            )
+                        }
+                    },
                     {'time': {'$gte': SEASON_START}},
                     {'time': {'$lte': SEASON_END}},
                 ]
@@ -757,9 +772,7 @@ async def family_sorted(
             if 'ach_' not in sort_by and sort_by not in ['season_rank', 'heroes']:
                 text += f'`{spot:3}`{emoji}`{player.__getattribute__(sort_by):{longest}} {player.name[:15]}`\n'
             elif 'ach_' in sort_by:
-                text += (
-                    f"`{spot:3}`{emoji}`{player.get_achievement(name=sort_by.split('_')[-1], default_value=0).value:{longest}} {player.name[:13]}`\n"
-                )
+                text += f"`{spot:3}`{emoji}`{player.get_achievement(name=sort_by.split('_')[-1], default_value=0).value:{longest}} {player.name[:13]}`\n"
             elif sort_by == 'season_rank':
                 try:
                     rank = player.legend_statistics.best_season.rank
@@ -794,7 +807,9 @@ async def family_donations(
     season = bot.gen_season_date() if season is None else season
 
     family_clan_tags = await bot.clan_db.distinct('tag', filter={'server': server.id})
-    family_clan_donations = await bot.clan_stats.find({'tag': {'$in': family_clan_tags}}, projection={'_id': 0, f'{season}': 1}).to_list(length=None)
+    family_clan_donations = await bot.clan_stats.find(
+        {'tag': {'$in': family_clan_tags}}, projection={'_id': 0, f'{season}': 1}
+    ).to_list(length=None)
 
     holder = namedtuple('holder', ['tag', 'donations', 'received'])
     hold_items = {}
@@ -1160,7 +1175,9 @@ async def family_raids(bot: CustomClient, server: disnake.Guild, weekend: str, e
 
         medals = calc_raid_medals(raid.attack_log)
         hall_level = (
-            0 if coc.utils.get(clan.capital_districts, id=70000000) is None else coc.utils.get(clan.capital_districts, id=70000000).hall_level
+            0
+            if coc.utils.get(clan.capital_districts, id=70000000) is None
+            else coc.utils.get(clan.capital_districts, id=70000000).hall_level
         )
         embed.add_field(
             name=f'{clan.name} | CH{hall_level}',

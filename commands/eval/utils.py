@@ -67,7 +67,10 @@ async def logic(
         all_tags.append(player_tag)
 
     type_to_roles = {
-        'family': list(family_roles) + list(family_elder_roles) + list(family_coleader_roles) + list(family_leader_roles),
+        'family': list(family_roles)
+        + list(family_elder_roles)
+        + list(family_coleader_roles)
+        + list(family_leader_roles),
         'not_family': list(not_family_roles),
         'only_family': list(only_family_roles),
         'clan': list(clan_member_roles.values()),
@@ -112,7 +115,9 @@ async def logic(
 
     player_dict = {p.tag: p for p in all_players}
 
-    user_settings = await bot.user_settings.find({'discord_user': {'$in': [m.id for m in members]}}).to_list(length=None)
+    user_settings = await bot.user_settings.find({'discord_user': {'$in': [m.id for m in members]}}).to_list(
+        length=None
+    )
     main_account_lookup = {
         settings.get('discord_user'): (
             settings.get('server_main_account', {}).get(str(guild.id))
@@ -298,7 +303,9 @@ async def logic(
                     '{player_warstars}': main_account.war_stars,
                     '{player_role}': (main_account.role if main_account.role is not None else ''),
                     '{player_clan}': (main_account.clan.name if main_account.clan is not None else ''),
-                    '{player_clan_abbreviation}': (clan_abbreviations.get(main_account.clan.tag) if main_account.clan is not None else ''),
+                    '{player_clan_abbreviation}': (
+                        clan_abbreviations.get(main_account.clan.tag) if main_account.clan is not None else ''
+                    ),
                     '{player_league}': main_account.league.name,
                 }
                 for type, replace in types.items():

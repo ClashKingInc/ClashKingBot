@@ -226,7 +226,9 @@ def iter_embed_creation(base_embed: disnake.Embed, iter: List, scheme: str, brk:
 registered_functions: Dict[str, Tuple[Callable[..., None] | None, str, bool, bool, bool]] = {}
 
 
-def register_button(command_name: str, parser: str, ephemeral: bool = False, no_embed: bool = False, pagination: bool = False):
+def register_button(
+    command_name: str, parser: str, ephemeral: bool = False, no_embed: bool = False, pagination: bool = False
+):
     def decorator(func: Callable[..., None]) -> Callable[..., None]:
         registered_functions[command_name] = (func, parser, ephemeral, no_embed, pagination)
         return func
@@ -243,9 +245,13 @@ async def get_webhook_for_channel(bot, channel: Union[disnake.TextChannel, disna
         webhook = next((w for w in webhooks if w.user.id == bot.user.id), None)
         if webhook is None:
             if isinstance(channel, disnake.Thread):
-                webhook = await channel.parent.create_webhook(name=bot.user.name, avatar=bot.user.avatar, reason='Log Creation')
+                webhook = await channel.parent.create_webhook(
+                    name=bot.user.name, avatar=bot.user.avatar, reason='Log Creation'
+                )
             else:
-                webhook = await channel.create_webhook(name=bot.user.name, avatar=bot.user.avatar, reason='Log Creation')
+                webhook = await channel.create_webhook(
+                    name=bot.user.name, avatar=bot.user.avatar, reason='Log Creation'
+                )
         return webhook
     except Exception:
         raise MissingWebhookPerms

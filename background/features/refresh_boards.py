@@ -20,7 +20,9 @@ class RefreshBoards(commands.Cog):
         self.position_check = True
 
     async def refresh(self):
-        all_refresh_boards = await self.bot.autoboards.find({'$and': [{'webhook_id': {'$ne': None}}, {'type': 'refresh'}]}).to_list(length=None)
+        all_refresh_boards = await self.bot.autoboards.find(
+            {'$and': [{'webhook_id': {'$ne': None}}, {'type': 'refresh'}]}
+        ).to_list(length=None)
         for board in all_refresh_boards:
 
             webhook_id = board.get('webhook_id')
@@ -32,7 +34,9 @@ class RefreshBoards(commands.Cog):
             guild = await self.bot.getch_guild(board.get('server_id'))
             if guild is None:
                 continue
-            embed, components = await button_logic(button_data=button_id, bot=self.bot, guild=guild, locale=disnake.Locale(board.get('locale')))
+            embed, components = await button_logic(
+                button_data=button_id, bot=self.bot, guild=guild, locale=disnake.Locale(board.get('locale'))
+            )
             if embed is None:
                 continue
 
@@ -92,7 +96,9 @@ class RefreshBoards(commands.Cog):
         current_day_name = pend.now(tz=pend.UTC).format('dddd').lower()
         day_set = {current_day_name}
 
-        all_post_boards = await self.bot.autoboards.find({'$and': [{'webhook_id': {'$ne': None}}, {'type': 'post'}]}).to_list(length=None)
+        all_post_boards = await self.bot.autoboards.find(
+            {'$and': [{'webhook_id': {'$ne': None}}, {'type': 'post'}]}
+        ).to_list(length=None)
         for board in all_post_boards:
             webhook_id = board.get('webhook_id')
             thread_id = board.get('thread_id')
@@ -108,7 +114,9 @@ class RefreshBoards(commands.Cog):
             if days.isdisjoint(day_set):
                 continue
 
-            embed, components = await button_logic(button_data=button_id, bot=self.bot, guild=guild, locale=disnake.Locale(board.get('locale')))
+            embed, components = await button_logic(
+                button_data=button_id, bot=self.bot, guild=guild, locale=disnake.Locale(board.get('locale'))
+            )
             if embed is None:
                 continue
 

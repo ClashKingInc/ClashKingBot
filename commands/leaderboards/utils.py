@@ -6,7 +6,11 @@ from classes.DatabaseClient.Classes.player import LegendPlayer
 
 
 async def hv_player_leaderboard(
-    bot: CustomClient, country_name: str, rankings: list[coc.RankedPlayer], location_emoji: str, embed_color: disnake.Color
+    bot: CustomClient,
+    country_name: str,
+    rankings: list[coc.RankedPlayer],
+    location_emoji: str,
+    embed_color: disnake.Color,
 ):
     tag_map = {m.tag: m for m in rankings}
     tags = list(tag_map.keys())
@@ -58,7 +62,9 @@ async def hv_player_leaderboard(
 
     for i, player in enumerate(player_list, start=1):
         legend_day = player.get_legend_day()
-        emoji = player.ranking.flag if player.ranking.country is not None and country_name == 'Global' else bot.emoji.trophy
+        emoji = (
+            player.ranking.flag if player.ranking.country is not None and country_name == 'Global' else bot.emoji.trophy
+        )
         text += f'\u200e**{emoji}\u200e{player._.trophies} | \u200e{player._.name}**\n'
         if player._legend_data:
             text += (
@@ -76,14 +82,21 @@ async def hv_player_leaderboard(
         text_chunks.append(text)
 
     for chunk in text_chunks:
-        embed = disnake.Embed(title=f'{location_emoji} {country_name} Top 200 Players', description=chunk, color=embed_color)
+        embed = disnake.Embed(
+            title=f'{location_emoji} {country_name} Top 200 Players', description=chunk, color=embed_color
+        )
         embeds.append(embed)
 
     return embeds
 
 
 async def hv_clan_leaderboard(
-    bot: CustomClient, country_name: str, rankings: list[coc.RankedClan], location_emoji: str, family_clan_tags: list[str], embed_color: disnake.Color
+    bot: CustomClient,
+    country_name: str,
+    rankings: list[coc.RankedClan],
+    location_emoji: str,
+    family_clan_tags: list[str],
+    embed_color: disnake.Color,
 ):
     embeds = []
     text_chunks = []
@@ -105,14 +118,21 @@ async def hv_clan_leaderboard(
         text_chunks.append(text)
 
     for chunk in text_chunks:
-        embed = disnake.Embed(title=f'{location_emoji} {country_name} Top 200 HV Clans', description=chunk, color=embed_color)
+        embed = disnake.Embed(
+            title=f'{location_emoji} {country_name} Top 200 HV Clans', description=chunk, color=embed_color
+        )
         embeds.append(embed)
 
     return embeds
 
 
 async def clan_capital_leaderboard(
-    bot: CustomClient, country_name: str, rankings: list[coc.RankedClan], location_emoji: str, family_clan_tags: list[str], embed_color: disnake.Color
+    bot: CustomClient,
+    country_name: str,
+    rankings: list[coc.RankedClan],
+    location_emoji: str,
+    family_clan_tags: list[str],
+    embed_color: disnake.Color,
 ):
     embeds = []
     text_chunks = []
@@ -134,7 +154,9 @@ async def clan_capital_leaderboard(
         text_chunks.append(text)
 
     for chunk in text_chunks:
-        embed = disnake.Embed(title=f'{location_emoji} {country_name} Top 200 Capital Clans', description=chunk, color=embed_color)
+        embed = disnake.Embed(
+            title=f'{location_emoji} {country_name} Top 200 Capital Clans', description=chunk, color=embed_color
+        )
         embeds.append(embed)
 
     return embeds
@@ -168,14 +190,21 @@ async def bb_player_leaderboard(
         text_chunks.append(text)
 
     for chunk in text_chunks:
-        embed = disnake.Embed(title=f'{location_emoji} {country_name} Top 200 BB Players', description=chunk, color=embed_color)
+        embed = disnake.Embed(
+            title=f'{location_emoji} {country_name} Top 200 BB Players', description=chunk, color=embed_color
+        )
         embeds.append(embed)
 
     return embeds
 
 
 async def bb_clan_leaderboard(
-    bot: CustomClient, country_name: str, rankings: list[coc.RankedClan], location_emoji: str, family_clan_tags: list[str], embed_color: disnake.Color
+    bot: CustomClient,
+    country_name: str,
+    rankings: list[coc.RankedClan],
+    location_emoji: str,
+    family_clan_tags: list[str],
+    embed_color: disnake.Color,
 ):
     embeds = []
     text_chunks = []
@@ -197,7 +226,9 @@ async def bb_clan_leaderboard(
         text_chunks.append(text)
 
     for chunk in text_chunks:
-        embed = disnake.Embed(title=f'{location_emoji} {country_name} Top 200 BB Clans', description=chunk, color=embed_color)
+        embed = disnake.Embed(
+            title=f'{location_emoji} {country_name} Top 200 BB Clans', description=chunk, color=embed_color
+        )
         embeds.append(embed)
 
     return embeds

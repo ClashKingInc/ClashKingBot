@@ -58,7 +58,9 @@ class TicketClick(commands.Cog):
             if ctx.user.id == ticket.user:
                 return await ctx.send(content="You don't have permissions to do this", ephemeral=True)
 
-            panel_settings = await self.bot.tickets.find_one({'$and': [{'server_id': ctx.guild.id}, {'name': ticket.panel_name}]})
+            panel_settings = await self.bot.tickets.find_one(
+                {'$and': [{'server_id': ctx.guild.id}, {'name': ticket.panel_name}]}
+            )
             panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
 
             if not panel.approve_messages:
@@ -85,7 +87,9 @@ class TicketClick(commands.Cog):
             await msg.delete()
             # await res.send(content="Sent!", ephemeral=True)
             approve_msg = panel.get_message(name=res.values[0].split('_')[-1])
-            message, left_over = await message_convertor(bot=self.bot, ctx=ctx, message=approve_msg.message, ticket=ticket)
+            message, left_over = await message_convertor(
+                bot=self.bot, ctx=ctx, message=approve_msg.message, ticket=ticket
+            )
             if left_over:
                 await res.response.send_modal(
                     title='Custom Fields',
@@ -192,7 +196,9 @@ class TicketClick(commands.Cog):
                     ephemeral=True,
                 )
             await ticket.set_ticket_status(status='delete')
-            panel_settings = await self.bot.tickets.find_one({'$and': [{'server_id': ctx.guild.id}, {'name': ticket.panel_name}]})
+            panel_settings = await self.bot.tickets.find_one(
+                {'$and': [{'server_id': ctx.guild.id}, {'name': ticket.panel_name}]}
+            )
             panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
 
             await panel.send_log(
@@ -268,7 +274,8 @@ class TicketClick(commands.Cog):
                     ]:
                         buttons.append_item(button)
                     return await ctx.send(
-                        content='No accounts linked to you. Click the button below to link. ' '**Once you are done, please open a ticket again.**',
+                        content='No accounts linked to you. Click the button below to link. '
+                        '**Once you are done, please open a ticket again.**',
                         components=buttons,
                         ephemeral=True,
                     )
@@ -296,7 +303,11 @@ class TicketClick(commands.Cog):
                         if hero.level < name_to_req.get(hero.name):
                             meet_hero_req = False
                             break
-                    if account.town_hall >= button.townhall_minimum and meet_hero_req and account.war_stars >= data_requirements.war_stars:
+                    if (
+                        account.town_hall >= button.townhall_minimum
+                        and meet_hero_req
+                        and account.war_stars >= data_requirements.war_stars
+                    ):
                         options.append(
                             disnake.SelectOption(
                                 label=account.name,
@@ -320,7 +331,9 @@ class TicketClick(commands.Cog):
                     placeholder='Select Account(s)',
                     # the placeholder text to show when no options have been chosen
                     min_values=1,  # the minimum number of options a user must select
-                    max_values=min(button.number_allowed_to_apply, len(options)),  # the maximum number of options a user can select
+                    max_values=min(
+                        button.number_allowed_to_apply, len(options)
+                    ),  # the maximum number of options a user can select
                 )
                 dropdown = [disnake.ui.ActionRow(select)]
                 text = ''
@@ -430,7 +443,9 @@ class TicketClick(commands.Cog):
                     await member.add_roles(*[r for r in roles_to_add if r is not None])
 
                 if button.roles_to_remove:
-                    roles_to_remove = [disnake.utils.get(member.guild.roles, id=int(role)) for role in button.roles_to_remove]
+                    roles_to_remove = [
+                        disnake.utils.get(member.guild.roles, id=int(role)) for role in button.roles_to_remove
+                    ]
                     roles_to_remove = [r for r in roles_to_remove if r is not None]
                     await member.remove_roles(*[r for r in roles_to_remove if r is not None])
             except Exception:

@@ -62,7 +62,9 @@ class GiveawayCommands(commands.Cog):
     async def giveaway_reroll(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        giveaway_name: str = commands.Param(description='The ID of the giveaway to reroll.', autocomplete=autocomplete.recent_giveaway_ids),
+        giveaway_name: str = commands.Param(
+            description='The ID of the giveaway to reroll.', autocomplete=autocomplete.recent_giveaway_ids
+        ),
         users_to_replace: str = commands.Param(description='Mention the users to replace (@user1 @user2).'),
         reason: str = commands.Param(default=None, description='Reason for the reroll (optional).'),
     ):
@@ -96,14 +98,18 @@ class GiveawayCommands(commands.Cog):
         invalid_users = [uid for uid in user_ids_to_replace if uid not in current_winners]
         if invalid_users:
             invalid_mentions = ', '.join([f'<@{uid}>' for uid in invalid_users])
-            await ctx.send(f'❌ The following users are not current winners of this giveaway: {invalid_mentions}', ephemeral=True)
+            await ctx.send(
+                f'❌ The following users are not current winners of this giveaway: {invalid_mentions}', ephemeral=True
+            )
             return
 
         # Ensure we have enough eligible participants to replace
         already_selected = set(current_winners)
         eligible_participants = [p for p in participants if p not in current_winners]
         if len(eligible_participants) < len(user_ids_to_replace):
-            await ctx.send(f'❌ Not enough eligible participants to replace {len(user_ids_to_replace)} users.', ephemeral=True)
+            await ctx.send(
+                f'❌ Not enough eligible participants to replace {len(user_ids_to_replace)} users.', ephemeral=True
+            )
             return
 
         # Calculate weights based on boosters
@@ -178,7 +184,9 @@ class GiveawayCommands(commands.Cog):
             for winner in new_winners
         ]
 
-        await self.bot.giveaways.update_one({'_id': giveaway_id}, {'$push': {'winners_list': {'$each': new_winners_data}}})
+        await self.bot.giveaways.update_one(
+            {'_id': giveaway_id}, {'$push': {'winners_list': {'$each': new_winners_data}}}
+        )
 
         # Confirm the action to the administrator
         await ctx.send(f'✅ Reroll completed. New winners have been announced in <#{channel_id}>.', ephemeral=True)

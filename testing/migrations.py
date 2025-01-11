@@ -5,7 +5,9 @@ from classes.bot import CustomClient
 
 async def migrate_clan_db_simple_schema(bot: CustomClient):
     our_clan_tags = await bot.clan_db.distinct('tag')
-    our_clan_stats = await bot.clan_stats.find({'tag': {'$in': our_clan_tags}}, projection={'_id': 0}).to_list(length=None)
+    our_clan_stats = await bot.clan_stats.find({'tag': {'$in': our_clan_tags}}, projection={'_id': 0}).to_list(
+        length=None
+    )
     print(len(our_clan_stats), 'clans')
 
     player_tags = []

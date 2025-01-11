@@ -19,7 +19,9 @@ class ExceptionHandler(commands.Cog):
     async def on_message_command_error(self, ctx: disnake.ApplicationCommandInteraction, error):
         await self.error_handler(ctx, error)
 
-    async def error_handler(self, ctx: disnake.ApplicationCommandInteraction | disnake.MessageCommandInteraction, error):
+    async def error_handler(
+        self, ctx: disnake.ApplicationCommandInteraction | disnake.MessageCommandInteraction, error
+    ):
         if isinstance(error, disnake.ext.commands.ConversionError):
             error = error.original
 
@@ -54,7 +56,9 @@ class ExceptionHandler(commands.Cog):
             error = error.original
 
         if isinstance(error, commands.CommandOnCooldown):
-            await ctx.send(f'This command is on cooldown. Try again in {error.retry_after:.1f} seconds.', ephemeral=True)
+            await ctx.send(
+                f'This command is on cooldown. Try again in {error.retry_after:.1f} seconds.', ephemeral=True
+            )
 
         if isinstance(error, APITokenRequired):
             embed = disnake.Embed(

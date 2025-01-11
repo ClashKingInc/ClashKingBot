@@ -367,7 +367,9 @@ async def monthly_bar_graph(
             'attack_wins': 'attack_wins',
         }
         data = defaultdict(int)
-        clan_stats = await bot.clan_stats.find({'tag': {'$in': clan_tags}}, projection={'_id': 0, f'{season}': 1, 'tag': 1}).to_list(length=None)
+        clan_stats = await bot.clan_stats.find(
+            {'tag': {'$in': clan_tags}}, projection={'_id': 0, f'{season}': 1, 'tag': 1}
+        ).to_list(length=None)
         for clan in clan_stats:
             clan_name = name_mapping.get(clan.get('tag'))
             for value_data in clan.get(season, {}).values():

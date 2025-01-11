@@ -258,7 +258,10 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
         )
 
         components = button_generator(
-            button_id=f'familysorted:{server.id}:{sort_by}:{limit}:{townhall}', current_page=0, max_page=len(embeds), bot=self.bot
+            button_id=f'familysorted:{server.id}:{sort_by}:{limit}:{townhall}',
+            current_page=0,
+            max_page=len(embeds),
+            bot=self.bot,
         )
 
         await ctx.edit_original_message(embed=embeds[0], components=components)

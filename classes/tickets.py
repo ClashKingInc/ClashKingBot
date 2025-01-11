@@ -161,7 +161,8 @@ class BaseTicket:
                 thread_channel = await self.bot.getch_channel(channel_id=ticket.thread)
                 if thread_channel is not None:
                     transcript = await chat_exporter.export(
-                        thread_channel, attachment_handler=MyAttachmentHandler(bunny_api_token=self.bot._config.bunny_api_token)
+                        thread_channel,
+                        attachment_handler=MyAttachmentHandler(bunny_api_token=self.bot._config.bunny_api_token),
                     )
                     link = await upload_html_to_cdn(
                         config=self.bot._config,
@@ -193,7 +194,9 @@ class TicketPanel(BaseTicket):
         self.open_category: int = self.panel_settings.get('open-category')
         self.sleep_category: int = self.panel_settings.get('sleep-category')
         self.closed_category: int = self.panel_settings.get('closed-category')
-        self.approve_messages: List[ApproveMessages] = [ApproveMessages(data=msg) for msg in self.panel_settings.get('approve_messages', [])]
+        self.approve_messages: List[ApproveMessages] = [
+            ApproveMessages(data=msg) for msg in self.panel_settings.get('approve_messages', [])
+        ]
 
     def get_message(self, name: str):
         msg = next((msg for msg in self.approve_messages if msg.name == name), None)
@@ -301,8 +304,12 @@ class Ticket_Buttons(BaseTicket):
         self.count_spot = button_data.get('count')
         self.settings = panel_settings.get(f'{self.custom_id}_settings')
 
-        self.roles_to_add: List[int] = self.settings.get('roles_to_add', []) if self.settings.get('roles_to_add') is not None else []
-        self.roles_to_remove: List[int] = self.settings.get('roles_to_remove', []) if self.settings.get('roles_to_remove') is not None else []
+        self.roles_to_add: List[int] = (
+            self.settings.get('roles_to_add', []) if self.settings.get('roles_to_add') is not None else []
+        )
+        self.roles_to_remove: List[int] = (
+            self.settings.get('roles_to_remove', []) if self.settings.get('roles_to_remove') is not None else []
+        )
 
         self.questions: List[str] = self.settings.get('questions', [])
         self.clans_can_apply: List[str] = self.settings.get('apply_clans', [])
@@ -313,8 +320,12 @@ class Ticket_Buttons(BaseTicket):
         self.townhall_requirements: dict = self.settings.get('townhall_requirements', {})
         self.private_thread: bool = self.settings.get('private_thread', False)
 
-        self.ping_staff_roles: List[int] = self.settings.get('mod_role', []) if self.settings.get('mod_role') is not None else []
-        self.no_ping_staff_roles: List[int] = self.settings.get('no_ping_mod_role', []) if self.settings.get('no_ping_mod_role') is not None else []
+        self.ping_staff_roles: List[int] = (
+            self.settings.get('mod_role', []) if self.settings.get('mod_role') is not None else []
+        )
+        self.no_ping_staff_roles: List[int] = (
+            self.settings.get('no_ping_mod_role', []) if self.settings.get('no_ping_mod_role') is not None else []
+        )
 
         self.naming_convention: str = self.settings.get('naming', '{ticket_count}-{user}')
 
@@ -322,7 +333,9 @@ class Ticket_Buttons(BaseTicket):
         new_message = self.settings.get('new_message')
 
         if new_message:
-            lookup = await self.bot.custom_embeds.find_one({'$and': [{'server': self.panel_server.id}, {'name': new_message}]})
+            lookup = await self.bot.custom_embeds.find_one(
+                {'$and': [{'server': self.panel_server.id}, {'name': new_message}]}
+            )
             embed_data = lookup.get('data')
             embeds = [disnake.Embed.from_dict(data=e) for e in embed_data.get('embeds', [])]
             return embeds

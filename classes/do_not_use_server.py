@@ -19,13 +19,19 @@ class OldDatabaseServer:
         self.greeting = data.get('greeting')
         self.use_api_token = data.get('api_token', True)
         self.league_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get('eval', {}).get('league_roles', [])]
-        self.builder_league_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get('eval', {}).get('builder_league_roles', [])]
+        self.builder_league_roles = [
+            MultiTypeRole(bot=bot, data=d) for d in data.get('eval', {}).get('builder_league_roles', [])
+        ]
         self.ignored_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('ignored_roles', [])]
         self.family_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('family_roles', [])]
         self.not_family_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('not_family_roles', [])]
         self.townhall_roles = [TownhallRole(bot=bot, data=d) for d in data.get('eval', {}).get('townhall_roles', [])]
-        self.builderhall_roles = [BuilderHallRole(bot=bot, data=d) for d in data.get('eval', {}).get('builderhall_roles', [])]
-        self.achievement_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get('eval', {}).get('achievement_roles', [])]
+        self.builderhall_roles = [
+            BuilderHallRole(bot=bot, data=d) for d in data.get('eval', {}).get('builderhall_roles', [])
+        ]
+        self.achievement_roles = [
+            MultiTypeRole(bot=bot, data=d) for d in data.get('eval', {}).get('achievement_roles', [])
+        ]
         self.status_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get('eval', {}).get('status_roles', [])]
         self.clans = [DatabaseClan(bot=bot, data=d) for d in data.get('clans', [])]
         self.category_roles = data.get('category_roles')

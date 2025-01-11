@@ -32,7 +32,10 @@ class clan_events(commands.Cog, name='Clan Events'):
             if not db_clan.member_count_warning.channel:
                 continue
 
-            if new_clan.member_count > db_clan.member_count_warning.above and old_clan.member_count <= db_clan.member_count_warning.above:
+            if (
+                new_clan.member_count > db_clan.member_count_warning.above
+                and old_clan.member_count <= db_clan.member_count_warning.above
+            ):
                 try:
                     channel = await self.bot.getch_channel(db_clan.member_count_warning.channel, raise_exception=True)
                     text = f'{new_clan.name} is above {db_clan.member_count_warning.above} members'
@@ -48,7 +51,10 @@ class clan_events(commands.Cog, name='Clan Events'):
                 except (disnake.NotFound, disnake.Forbidden):
                     await db_clan.member_count_warning.set_channel(id=None)
 
-            if new_clan.member_count < db_clan.member_count_warning.below and old_clan.member_count >= db_clan.member_count_warning.below:
+            if (
+                new_clan.member_count < db_clan.member_count_warning.below
+                and old_clan.member_count >= db_clan.member_count_warning.below
+            ):
                 try:
                     channel = await self.bot.getch_channel(db_clan.member_count_warning.channel, raise_exception=True)
                     text = f'{new_clan.name} is below {db_clan.member_count_warning.below} members'

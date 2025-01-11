@@ -91,7 +91,10 @@ item_data = [
         'name': 'Barbarian',
         'level': 5,
         'state': 'upgradeable',  # Options: 'max_th', 'max_game', 'rushed', 'upgradeable'
-        'cost': {'image': 'https://static.wikia.nocookie.net/clashofclans/images/4/43/Elixir.png', 'amount': 1.5},  # Replace with actual URL
+        'cost': {
+            'image': 'https://static.wikia.nocookie.net/clashofclans/images/4/43/Elixir.png',
+            'amount': 1.5,
+        },  # Replace with actual URL
     },
     # Add more items as needed
 ]

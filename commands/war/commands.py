@@ -35,7 +35,9 @@ class War(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @commands.slash_command(name='war', install_types=disnake.ApplicationInstallTypes.all(), contexts=disnake.InteractionContextTypes.all())
+    @commands.slash_command(
+        name='war', install_types=disnake.ApplicationInstallTypes.all(), contexts=disnake.InteractionContextTypes.all()
+    )
     async def war(self, ctx: disnake.ApplicationCommandInteraction):
         pass
 
@@ -87,7 +89,9 @@ class War(commands.Cog):
                 )
                 embed.set_thumbnail(url=clan.badge.large)
                 return await ctx.send(embed=embed)
-        embed = await main_war_page(bot=self.bot, war=war, war_league=str(clan.war_league), is_previous=previous_wars is not None)
+        embed = await main_war_page(
+            bot=self.bot, war=war, war_league=str(clan.war_league), is_previous=previous_wars is not None
+        )
 
         main = embed
 
@@ -143,7 +147,9 @@ class War(commands.Cog):
 
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', check=check, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for(
+                    'message_interaction', check=check, timeout=600
+                )
             except:
                 await msg.edit(components=[])
                 break

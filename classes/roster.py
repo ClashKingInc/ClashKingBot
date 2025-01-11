@@ -206,7 +206,9 @@ class Roster:
             color=disnake.Color.from_rgb(r=43, g=45, b=49),
         )
         footer_text = ''.join(f'Th{index}: {th} ' for index, th in sorted(thcount.items(), reverse=True) if th != 0)
-        embed.set_footer(text=f'{footer_text}\nTh{self.th_min}-Th{self.th_max} | {self.roster_size} Account Limit\n{move_text}')
+        embed.set_footer(
+            text=f'{footer_text}\nTh{self.th_min}-Th{self.th_max} | {self.roster_size} Account Limit\n{move_text}'
+        )
         embed.set_author(
             icon_url=self.roster_result.get('clan_badge'),
             name=f"{self.roster_result.get('clan_name')} | {self.roster_result.get('alias')}",

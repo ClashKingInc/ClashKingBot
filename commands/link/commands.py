@@ -317,7 +317,9 @@ class Linking(LinkButtonExtended, commands.Cog):
             }
             if on_welcome_channel:
                 embeds = [default_embeds.get('welcome')]
-            elif len(selected_types) == 1 or ('Link Button' in selected_types and 'Link Help Button' in selected_types and len(selected_types) == 2):
+            elif len(selected_types) == 1 or (
+                'Link Button' in selected_types and 'Link Help Button' in selected_types and len(selected_types) == 2
+            ):
                 option = selected_types[0]
                 if option == 'Link Help Button':
                     option = 'Link Button'

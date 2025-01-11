@@ -71,12 +71,18 @@ class SetupCommands(commands.Cog, name='Setup'):
             await db_server.set_change_nickname(status=(change_nicknames == 'On'))
             changed_text += f'- **Change Nicknames:** `{change_nicknames}`\n'
         if family_nickname_convention is not None:
-            if '{discord_display_name}' in family_nickname_convention and family_nickname_convention != '{discord_display_name}':
+            if (
+                '{discord_display_name}' in family_nickname_convention
+                and family_nickname_convention != '{discord_display_name}'
+            ):
                 raise MessageException('{discord_display_name} must be used by itself in a convention}')
             await db_server.set_family_nickname_convention(rule=family_nickname_convention)
             changed_text += f'- **Family Nickname Convention:** `{family_nickname_convention}`\n'
         if non_family_nickname_convention is not None:
-            if '{discord_display_name}' in non_family_nickname_convention and non_family_nickname_convention != '{discord_display_name}':
+            if (
+                '{discord_display_name}' in non_family_nickname_convention
+                and non_family_nickname_convention != '{discord_display_name}'
+            ):
                 raise MessageException('{discord_display_name} must be used by itself in a convention}')
             await db_server.set_non_family_nickname_convention(rule=non_family_nickname_convention)
             changed_text += f'- **Non Family Nickname Convention:** `{non_family_nickname_convention}`\n'
@@ -114,8 +120,12 @@ class SetupCommands(commands.Cog, name='Setup'):
         ctx: disnake.ApplicationCommandInteraction,
         clan: coc.Clan = options.clan,
         member_role: disnake.Role = commands.Param(description='Role assigned to clan members', default=None),
-        leadership_role: disnake.Role = commands.Param(description='Role assigned to clan coleads + leader', default=None),
-        clan_channel: Union[disnake.TextChannel, disnake.Thread] = commands.Param(default=None, description='Channel where ban & welcome messages go'),
+        leadership_role: disnake.Role = commands.Param(
+            description='Role assigned to clan coleads + leader', default=None
+        ),
+        clan_channel: Union[disnake.TextChannel, disnake.Thread] = commands.Param(
+            default=None, description='Channel where ban & welcome messages go'
+        ),
         greeting: str = commands.Param(autocomplete=autocomplete.embeds, default=None),
         auto_greet: str = commands.Param(choices=['Never', 'First Join', 'Every Join'], default=None),
         category: str = commands.Param(default=None, autocomplete=autocomplete.category),
@@ -238,9 +248,12 @@ class SetupCommands(commands.Cog, name='Setup'):
     ):
         await ctx.response.defer()
         if user.id != ctx.user.id and not (
-            ctx.user.guild_permissions.manage_guild or self.bot.white_list_check(ctx=ctx, command_name='setup user-settings')
+            ctx.user.guild_permissions.manage_guild
+            or self.bot.white_list_check(ctx=ctx, command_name='setup user-settings')
         ):
-            raise MessageException('Missing permissions to run this command. Must have `Manage Server` Perms or be whitelisted `/whitelist add`')
+            raise MessageException(
+                'Missing permissions to run this command. Must have `Manage Server` Perms or be whitelisted `/whitelist add`'
+            )
 
         changed_text = ''
         if private_mode is not None and ctx.user.id == user.id:
@@ -985,7 +998,9 @@ class SetupCommands(commands.Cog, name='Setup'):
         chose = False
         while chose is False:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', check=check, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for(
+                    'message_interaction', check=check, timeout=600
+                )
             except:
                 await msg.edit(components=[])
                 break

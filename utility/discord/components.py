@@ -255,7 +255,9 @@ def clan_component(bot: CustomClient, all_clans: List[coc.Clan], clan_page: int 
         options=clan_options,
         placeholder=f'Select Clan(s)',  # the placeholder text to show when no options have been chosen
         min_values=1,  # the minimum number of options a user must select
-        max_values=(len(clans) if max_choose is None else max_choose),  # the maximum number of options a user can select
+        max_values=(
+            len(clans) if max_choose is None else max_choose
+        ),  # the maximum number of options a user can select
     )
 
     return disnake.ui.ActionRow(clan_select)

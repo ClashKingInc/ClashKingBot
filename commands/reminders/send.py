@@ -72,7 +72,11 @@ async def war_reminder(
                 f'{bot.emoji.wood_swords}{war.clan.attacks_used}/{war.opponent.attacks_used} {bot.emoji.war_star}{war.clan.stars}/{war.opponent.stars}'
             )
             for war_member in players:
-                if war_member.clan is not None and war_member.clan.tag == war.clan_tag and str(war_member.role) not in reminder.roles:
+                if (
+                    war_member.clan is not None
+                    and war_member.clan.tag == war.clan_tag
+                    and str(war_member.role) not in reminder.roles
+                ):
                     continue
                 if war_member.town_hall not in reminder.townhalls:
                     continue
@@ -192,9 +196,7 @@ async def clan_capital_reminder(
         if isinstance(player, coc.ClanMember):
             num_missing = f'(0/6)'
         else:
-            num_missing = (
-                f'({(player.attack_limit + player.bonus_attack_limit) - player.attack_count}/{(player.attack_limit + player.bonus_attack_limit)})'
-            )
+            num_missing = f'({(player.attack_limit + player.bonus_attack_limit) - player.attack_count}/{(player.attack_limit + player.bonus_attack_limit)})'
         discord_user = await server.getch_member(discord_id)
         if len(missing_text) + len(custom_text) + 150 >= 2000:
             missing_text_list.append(missing_text)
@@ -203,7 +205,9 @@ async def clan_capital_reminder(
         if discord_user is None:
             missing_text += f'{num_missing} {bot.fetch_emoji(full_player.town_hall)}{player.name} | {full_player.tag}\n'
         else:
-            missing_text += f'{num_missing} {bot.fetch_emoji(full_player.town_hall)}{player.name} | {discord_user.mention}\n'
+            missing_text += (
+                f'{num_missing} {bot.fetch_emoji(full_player.town_hall)}{player.name} | {discord_user.mention}\n'
+            )
 
     if missing_text != '':
         missing_text_list.append(missing_text)
@@ -228,7 +232,9 @@ async def clan_capital_reminder(
 
 
 async def clan_games_reminder(bot: CustomClient, reminder_time):
-    for reminder in await bot.reminders.find({'$and': [{'type': 'Clan Games'}, {'time': reminder_time}]}).to_list(length=None):
+    for reminder in await bot.reminders.find({'$and': [{'type': 'Clan Games'}, {'time': reminder_time}]}).to_list(
+        length=None
+    ):
         reminder = Reminder(bot=bot, data=reminder)
         if reminder.server_id not in bot.OUR_GUILDS:
             continue
@@ -249,7 +255,9 @@ async def clan_games_reminder(bot: CustomClient, reminder_time):
 
         missing = {}
         member_points = {}
-        for stat in await bot.player_stats.find({f'tag': {'$in': [member.tag for member in clan.members]}}).to_list(length=None):
+        for stat in await bot.player_stats.find({f'tag': {'$in': [member.tag for member in clan.members]}}).to_list(
+            length=None
+        ):
             points = stat.get('clan_games', {}).get(f'{bot.gen_games_season()}', {}).get('points', 0)
             if points < reminder.point_threshold:
                 missing[stat.get('tag')] = coc.utils.get(clan.members, tag=stat.get('tag'))
@@ -333,7 +341,9 @@ async def inactivity_reminder(bot: CustomClient):
                 inactive_text += f'{name} | {member.mention}\n'
         time = str(reminder.time).replace('hr', '')
         badge = await bot.create_new_badge_emoji(url=clan.badge.url)
-        reminder_text = f'**{badge}{clan.name}\nPlayers Inactive for {time}Hours**\n' f'{inactive_text}' f'\n{reminder.custom_text}'
+        reminder_text = (
+            f'**{badge}{clan.name}\nPlayers Inactive for {time}Hours**\n' f'{inactive_text}' f'\n{reminder.custom_text}'
+        )
         try:
             await channel.send(content=reminder_text)
         except:

@@ -10,7 +10,9 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
-    @commands.slash_command(name='clan', install_types=disnake.ApplicationInstallTypes.all(), contexts=disnake.InteractionContextTypes.all())
+    @commands.slash_command(
+        name='clan', install_types=disnake.ApplicationInstallTypes.all(), contexts=disnake.InteractionContextTypes.all()
+    )
     async def clan(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
 

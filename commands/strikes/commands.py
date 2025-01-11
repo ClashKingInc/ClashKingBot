@@ -58,7 +58,9 @@ class Strikes(commands.Cog, name='Strikes'):
         clan: coc.Clan = commands.Param(default=None, converter=convert.clan, autocomplete=autocomplete.clan),
         user: disnake.Member = None,
         strike_amount: int = commands.Param(default=1),
-        view_expired_strikes: bool = commands.Param(default=False, converter=convert.basic_bool, choices=['True', 'False']),
+        view_expired_strikes: bool = commands.Param(
+            default=False, converter=convert.basic_bool, choices=['True', 'False']
+        ),
         view_non_family: bool = commands.Param(default=False, converter=convert.basic_bool, choices=['True', 'False']),
     ):
         """
@@ -94,7 +96,9 @@ class Strikes(commands.Cog, name='Strikes'):
 
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', check=check, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for(
+                    'message_interaction', check=check, timeout=600
+                )
             except:
                 await msg.edit(components=[])
                 break

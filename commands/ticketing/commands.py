@@ -230,7 +230,9 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
     async def ticket_message(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        ticket_button: tuple[str, str] = commands.Param(autocomplete=autocomplete.ticket_panel_buttons, converter=convert.ticket_button),
+        ticket_button: tuple[str, str] = commands.Param(
+            autocomplete=autocomplete.ticket_panel_buttons, converter=convert.ticket_button
+        ),
         embed: str = commands.Param(autocomplete=autocomplete.embeds),
     ):
         await ctx.response.defer()
@@ -257,7 +259,8 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
         )
 
         await ctx.edit_original_message(
-            content=f'`Custom message set for {button_name} button on {panel_name} panel`\n' f'{embed_data.get("content", "") or ""}',
+            content=f'`Custom message set for {button_name} button on {panel_name} panel`\n'
+            f'{embed_data.get("content", "") or ""}',
             embeds=embeds,
         )
 
@@ -266,7 +269,9 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
     async def ticket_roles(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        ticket_button: tuple[str, str] = commands.Param(autocomplete=autocomplete.ticket_panel_buttons, converter=convert.ticket_button),
+        ticket_button: tuple[str, str] = commands.Param(
+            autocomplete=autocomplete.ticket_panel_buttons, converter=convert.ticket_button
+        ),
         mode=commands.Param(choices=['Add Roles', 'Remove Roles']),
         remove=commands.Param(default='False', choices=['True']),
     ):
@@ -331,8 +336,12 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
         uuid_bytes = random_uuid.bytes
         base64_uuid = base64.urlsafe_b64encode(uuid_bytes).rstrip(b'=')
         url_safe_uuid = base64_uuid.decode('utf-8')
-        await self.bot.tickets.update_one({'$and': [{'server_id': ctx.guild.id}, {'name': ticket_panel}]}, {'$set': {'token': url_safe_uuid}})
-        await ctx.send(content=f'Edit your roster here -> https://api.clashk.ing/ticketing?token={url_safe_uuid}', ephemeral=True)
+        await self.bot.tickets.update_one(
+            {'$and': [{'server_id': ctx.guild.id}, {'name': ticket_panel}]}, {'$set': {'token': url_safe_uuid}}
+        )
+        await ctx.send(
+            content=f'Edit your roster here -> https://api.clashk.ing/ticketing?token={url_safe_uuid}', ephemeral=True
+        )
 
     @ticket.sub_command(
         name='apply-rules',
@@ -342,7 +351,9 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
     async def ticket_apply_rules(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        ticket_button: tuple[str, str] = commands.Param(autocomplete=autocomplete.ticket_panel_buttons, converter=convert.ticket_button),
+        ticket_button: tuple[str, str] = commands.Param(
+            autocomplete=autocomplete.ticket_panel_buttons, converter=convert.ticket_button
+        ),
         show_my_current_rules: str = commands.Param(default='False', choices=['True']),
     ):
         if show_my_current_rules == 'True':
@@ -523,7 +534,9 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
             return await ctx.send(content=f'Ticket already {status}')
 
         await ticket.set_ticket_status(status=status)
-        panel_settings = await self.bot.tickets.find_one({'$and': [{'server_id': ctx.guild.id}, {'name': ticket.panel_name}]})
+        panel_settings = await self.bot.tickets.find_one(
+            {'$and': [{'server_id': ctx.guild.id}, {'name': ticket.panel_name}]}
+        )
         panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
 
         await panel.send_log(
@@ -601,7 +614,11 @@ class TicketCommands(TicketClick, commands.Cog, name='Ticket Commands'):
 
     @commands.Cog.listener()
     async def on_message(self, message: disnake.Message):
-        if not message.author.bot and isinstance(message.channel, disnake.TextChannel) and message.channel.topic == 'Ticketing powered by ClashKing!':
+        if (
+            not message.author.bot
+            and isinstance(message.channel, disnake.TextChannel)
+            and message.channel.topic == 'Ticketing powered by ClashKing!'
+        ):
             if message.guild.id in self.bot.OUR_GUILDS:
                 result = await self.bot.open_tickets.find_one({'channel': message.channel.id})
                 if result is not None:

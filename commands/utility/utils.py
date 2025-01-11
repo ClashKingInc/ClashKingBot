@@ -57,7 +57,9 @@ async def army_embed(
         f'-# {bot.emoji.clock} Training Time: {format_time(max(troop_train_time, spell_train_time))}\n',
         color=embed_color,
     )
-    for field, content in zip(['Troops', 'Super Troops', 'Spells', 'Siege Machines'], [troops, super_troops, spells, siege_machines]):
+    for field, content in zip(
+        ['Troops', 'Super Troops', 'Spells', 'Siege Machines'], [troops, super_troops, spells, siege_machines]
+    ):
         if content:
             embed.add_field(name=field, value=content + '­', inline=False)
 
@@ -182,7 +184,9 @@ async def super_troop_embed(
 ) -> List[disnake.Embed]:
     player_tags = [m.tag for clan in clans for m in clan.members]
     players = await bot.get_players(tags=player_tags, custom=False)
-    players = [p for p in players if p.get_troop(name=super_troop) is not None and p.get_troop(name=super_troop).is_active]
+    players = [
+        p for p in players if p.get_troop(name=super_troop) is not None and p.get_troop(name=super_troop).is_active
+    ]
     base_embed = disnake.Embed(title=f'Players with {super_troop}', color=embed_color)
     embeds = iter_embed_creation(
         base_embed=base_embed,

@@ -228,7 +228,11 @@ async def create_embeds(
             if striked_player.added_by is not None:
                 user = await bot.getch_user(strike.get('added_by'))
                 added_by = f'{user}'
-            clan = f'{striked_player.clan.name}, {str(striked_player.role)}' if striked_player.clan is not None else 'No Clan'
+            clan = (
+                f'{striked_player.clan.name}, {str(striked_player.role)}'
+                if striked_player.clan is not None
+                else 'No Clan'
+            )
 
             rollover_days = strike.get('rollover_date')
             if rollover_days is not None:

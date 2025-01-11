@@ -15,10 +15,14 @@ class BanEvents(commands.Cog):
 
     async def ban_alerts(self, event):
         clan = coc.Clan(data=event['new_clan'], client=self.bot.coc_client)
-        members_joined = [coc.ClanMember(data=member, client=self.bot.coc_client, clan=clan) for member in event.get('joined', [])]
+        members_joined = [
+            coc.ClanMember(data=member, client=self.bot.coc_client, clan=clan) for member in event.get('joined', [])
+        ]
 
         if members_joined:
-            ban_results = await self.bot.banlist.find({'VillageTag': {'$in': [m.tag for m in members_joined]}}).to_list(length=None)
+            ban_results = await self.bot.banlist.find({'VillageTag': {'$in': [m.tag for m in members_joined]}}).to_list(
+                length=None
+            )
 
             if not ban_results:
                 return
@@ -60,7 +64,9 @@ class BanEvents(commands.Cog):
                                 value=f'Player {member.name} [{member.tag}] has joined {clan.name} and is on the {server.name} BAN list!\n\n'
                                 f'Banned on: {date}\nReason: {notes}',
                             )
-                            embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/843624785560993833/932701461614313562/2EdQ9Cx.png')
+                            embed.set_thumbnail(
+                                url='https://cdn.discordapp.com/attachments/843624785560993833/932701461614313562/2EdQ9Cx.png'
+                            )
 
                             try:
                                 channel = await self.bot.getch_channel(
@@ -74,7 +80,9 @@ class BanEvents(commands.Cog):
                                     await db_clan.set_ban_alert_channel(id=None)
                                 continue
                 else:
-                    small_server_result = await self.bot.server_db.find_one({'server': db_clan.server_id}, {'server': 1, 'dismissed_warns': 1})
+                    small_server_result = await self.bot.server_db.find_one(
+                        {'server': db_clan.server_id}, {'server': 1, 'dismissed_warns': 1}
+                    )
                     players_set = set()
                     for ban_result in ban_results:
                         member = coc.utils.get(members_joined, tag=ban_result.get('VillageTag'))
@@ -102,9 +110,15 @@ class BanEvents(commands.Cog):
                             embed.set_thumbnail(url='https://clashkingfiles.b-cdn.net/bot/warning.jpg')
                             try:
                                 buttons = disnake.ui.ActionRow(
-                                    disnake.ui.Button(label='Dismiss', style=disnake.ButtonStyle.grey, custom_id=f'DismissWarn_{member.tag}')
+                                    disnake.ui.Button(
+                                        label='Dismiss',
+                                        style=disnake.ButtonStyle.grey,
+                                        custom_id=f'DismissWarn_{member.tag}',
+                                    )
                                 )
-                                channel = await self.bot.getch_channel(channel_id=db_clan.ban_alert_channel or db_clan.clan_channel)
+                                channel = await self.bot.getch_channel(
+                                    channel_id=db_clan.ban_alert_channel or db_clan.clan_channel
+                                )
                                 await channel.send(embed=embed, components=[buttons])
                             except (disnake.NotFound, disnake.Forbidden):
                                 if db_clan.ban_alert_channel is None:
@@ -130,7 +144,10 @@ class BanEvents(commands.Cog):
                 await ctx.message.edit(components=[])
                 return await ctx.send(content='Player warning now dismissed!', ephemeral=True)
 
-            await ctx.send(content='You do not have permissions to dismiss this warning! Permissions tied to `/ban remove`.', ephemeral=True)
+            await ctx.send(
+                content='You do not have permissions to dismiss this warning! Permissions tied to `/ban remove`.',
+                ephemeral=True,
+            )
 
 
 def setup(bot: CustomClient):

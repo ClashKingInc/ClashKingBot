@@ -26,7 +26,10 @@ class LinkParsing(commands.Cog):
 
         if message.guild.id in self.bot.OUR_GUILDS:
 
-            if 'https://link.clashofclans.com/' in message.content and 'action=OpenPlayerProfile&tag=' in message.content:
+            if (
+                'https://link.clashofclans.com/' in message.content
+                and 'action=OpenPlayerProfile&tag=' in message.content
+            ):
                 server_settings = await self.bot.ck_client.get_server_settings(server_id=message.guild.id)
                 if not server_settings.player_link_parse:
                     return

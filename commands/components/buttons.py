@@ -19,7 +19,9 @@ async def button_logic(
     split_data = button_data.split(':')
     lookup_name = button_data.split(':')[0]
 
-    function, parser, ephemeral, no_embed, pagination = registered_functions.get(lookup_name, (None, '', False, False, False))
+    function, parser, ephemeral, no_embed, pagination = registered_functions.get(
+        lookup_name, (None, '', False, False, False)
+    )
 
     if function is None:
         return None, 0  # maybe change this
@@ -30,7 +32,13 @@ async def button_logic(
     if pagination and 'page=' in split_data[-1]:
         page = int(split_data.pop(-1).replace('page=', ''))
 
-    if ctx is not None and not autoboard and pagination and ctx.author.id != ctx.message.interaction.author.id and page != -1:
+    if (
+        ctx is not None
+        and not autoboard
+        and pagination
+        and ctx.author.id != ctx.message.interaction.author.id
+        and page != -1
+    ):
         await ctx.send('Must run the command to interact with pagination', ephemeral=True)
         return None, 0
 

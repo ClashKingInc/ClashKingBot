@@ -84,7 +84,9 @@ class Embeds(commands.Cog):
         if discohook_url is None:
             encoding = encoded_data(data=lookup.get('data'))
             shortened_url = await shorten_link(url=f'https://discohook.app/?data={encoding}')
-            buttons = disnake.ui.ActionRow(disnake.ui.Button(label='Edit Embed', url=shortened_url, style=disnake.ButtonStyle.url))
+            buttons = disnake.ui.ActionRow(
+                disnake.ui.Button(label='Edit Embed', url=shortened_url, style=disnake.ButtonStyle.url)
+            )
             await ctx.edit_original_message(content='Click the button below to edit your embed', components=[buttons])
         else:
             id = discohook_url.split('share=')[-1]

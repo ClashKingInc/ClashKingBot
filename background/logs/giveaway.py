@@ -23,7 +23,9 @@ class GiveawayEvents(commands.Cog, name='Giveaway Events'):
             participants_count = len(giveaway.get('entries', []))
 
             updated_button = disnake.ui.Button(
-                label=f'🎟️ Participate ({participants_count})', style=disnake.ButtonStyle.blurple, custom_id=f'giveaway_{giveaway_id}'
+                label=f'🎟️ Participate ({participants_count})',
+                style=disnake.ButtonStyle.blurple,
+                custom_id=f'giveaway_{giveaway_id}',
             )
             components = [disnake.ui.ActionRow(updated_button)]
             await message.edit(components=components)
@@ -97,7 +99,9 @@ class GiveawayEvents(commands.Cog, name='Giveaway Events'):
 
         # "Participate" button
         participate_button = disnake.ui.Button(
-            label='🎟️ Participate (0)', style=disnake.ButtonStyle.blurple, custom_id=f'giveaway_{giveaway_id}'  # Show 0 participants initially
+            label='🎟️ Participate (0)',
+            style=disnake.ButtonStyle.blurple,
+            custom_id=f'giveaway_{giveaway_id}',  # Show 0 participants initially
         )
         components = [disnake.ui.ActionRow(participate_button)]
 
@@ -202,7 +206,9 @@ class GiveawayEvents(commands.Cog, name='Giveaway Events'):
             user_roles = await self.get_user_roles(guild_id, participant)
 
             # Find applicable boosters for the user
-            applicable_boosts = [booster['value'] for booster in boosters if any(role in booster['roles'] for role in user_roles)]
+            applicable_boosts = [
+                booster['value'] for booster in boosters if any(role in booster['roles'] for role in user_roles)
+            ]
 
             weight = max(applicable_boosts) if applicable_boosts else 1
             weights.append(weight)
@@ -249,7 +255,9 @@ class GiveawayEvents(commands.Cog, name='Giveaway Events'):
 
         # Add winners to the database
         now = pend.now('UTC')
-        new_winners = [{'user_id': winner, 'status': 'winner', 'timestamp': now.to_iso8601_string()} for winner in winners]
+        new_winners = [
+            {'user_id': winner, 'status': 'winner', 'timestamp': now.to_iso8601_string()} for winner in winners
+        ]
 
         await self.bot.giveaways.update_one({'_id': giveaway['_id']}, {'$set': {'winners_list': new_winners}})
 
@@ -317,7 +325,11 @@ class GiveawayEvents(commands.Cog, name='Giveaway Events'):
                     self.bot.scheduler.remove_job(giveaway_id)
 
                 self.bot.scheduler.add_job(
-                    self.update_button, trigger='date', id=giveaway_id, run_date=pend.now(tz=pend.UTC).add(minutes=1), args=[giveaway_id, ctx.message]
+                    self.update_button,
+                    trigger='date',
+                    id=giveaway_id,
+                    run_date=pend.now(tz=pend.UTC).add(minutes=1),
+                    args=[giveaway_id, ctx.message],
                 )
 
                 await ctx.send('You successfully joined the giveaway! 🎉', ephemeral=True)

@@ -85,9 +85,13 @@ class MessageCommands(commands.Cog):
             raise MessageException('This message has no components')
 
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
-        autoboard_count = await self.bot.autoboards.count_documents({'$and': [{'webhook_id': {'$ne': None}}, {'server_id': ctx.guild_id}]})
+        autoboard_count = await self.bot.autoboards.count_documents(
+            {'$and': [{'webhook_id': {'$ne': None}}, {'server_id': ctx.guild_id}]}
+        )
         if autoboard_count >= db_server.autoboard_limit:
-            raise MessageException('You have reached your automation limit, this feature is in beta, please reach out to support.')
+            raise MessageException(
+                'You have reached your automation limit, this feature is in beta, please reach out to support.'
+            )
 
         options = []
         options_added = set()   # this is to let us force page 0 on pagination
@@ -200,7 +204,14 @@ class MessageCommands(commands.Cog):
                 webhook_message = await webhook.send(embed=placeholder, components=[], wait=True)
             await self.bot.autoboards.update_one(
                 {'$and': [{'button_id': custom_id}, {'server_id': ctx.guild_id}, {'type': 'refresh'}]},
-                {'$set': {'webhook_id': webhook.id, 'thread_id': thread, 'message_id': webhook_message.id, 'locale': str(ctx.locale)}},
+                {
+                    '$set': {
+                        'webhook_id': webhook.id,
+                        'thread_id': thread,
+                        'message_id': webhook_message.id,
+                        'locale': str(ctx.locale),
+                    }
+                },
                 upsert=True,
             )
             await message.delete()

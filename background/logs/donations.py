@@ -54,7 +54,9 @@ class Donations(commands.Cog, name='Donations'):
         if donation_text == '' and received_text == '':
             return
 
-        for cc in await self.bot.clan_db.find({'$and': [{'tag': clan.tag}, {f'logs.donation_log.webhook': {'$ne': None}}]}).to_list(length=None):
+        for cc in await self.bot.clan_db.find(
+            {'$and': [{'tag': clan.tag}, {f'logs.donation_log.webhook': {'$ne': None}}]}
+        ).to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
             if clan.server_id not in self.bot.OUR_GUILDS:
                 continue

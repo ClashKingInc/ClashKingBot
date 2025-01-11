@@ -61,7 +61,9 @@ async def legend_day_overview(
             curr_rank = 100
         mid_calc = (curr_rank / lowest_rank) * 100
         perc_of_total = round(mid_calc, 2 if mid_calc < 1 else None)
-        global_ranking_text = f"{player.ranking.global_ranking} {_('top-ranking', values={'perc_of_total' : perc_of_total})}"
+        global_ranking_text = (
+            f"{player.ranking.global_ranking} {_('top-ranking', values={'perc_of_total' : perc_of_total})}"
+        )
 
     embed.add_field(
         name=f"**{_('rankings')}**",
@@ -193,7 +195,9 @@ async def legend_poster(bot: CustomClient, player: coc.Player | LegendPlayer, ba
     season_stats = list(season_stats.values())
     season_stats = season_stats[0 : length.days + 1]
 
-    y = [5000] + [legend_day.finished_trophies for legend_day in season_stats if legend_day.finished_trophies is not None]
+    y = [5000] + [
+        legend_day.finished_trophies for legend_day in season_stats if legend_day.finished_trophies is not None
+    ]
     x = [spot for spot in range(0, len(y))]
 
     fig = plt.figure(dpi=100)
@@ -505,7 +509,9 @@ async def legend_quicksearch(bot: CustomClient, ctx: disnake.MessageInteraction,
             ephemeral=True,
         )
     else:
-        await bot.legend_profile.update_one({'discord_id': ctx.author.id}, {'$push': {'profile_tags': tag}}, upsert=True)
+        await bot.legend_profile.update_one(
+            {'discord_id': ctx.author.id}, {'$push': {'profile_tags': tag}}, upsert=True
+        )
         await ctx.send(
             content=f'Added {player.name} to your Quick Check & Daily Report list.',
             ephemeral=True,
@@ -553,7 +559,10 @@ async def legend_cutoff(bot: CustomClient, embed_color: disnake.Color):
 @register_button('legendstreaks', parser='_:limit')
 async def legend_streaks(bot: CustomClient, limit: int, embed_color: disnake.Color):
     results = (
-        await bot.player_stats.find({}, projection={'name': 1, 'legends.streak': 1}).sort('legends.streak', -1).limit(limit).to_list(length=None)
+        await bot.player_stats.find({}, projection={'name': 1, 'legends.streak': 1})
+        .sort('legends.streak', -1)
+        .limit(limit)
+        .to_list(length=None)
     )
     text = '``` # ★★★ Name\n'
     for count, result in enumerate(results, 1):

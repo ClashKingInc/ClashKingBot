@@ -100,7 +100,9 @@ class PlayerCommands(commands.Cog, name='Player Commands'):
 
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', check=check, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for(
+                    'message_interaction', check=check, timeout=600
+                )
             except:
                 try:
                     await ctx.edit_original_message(components=[])

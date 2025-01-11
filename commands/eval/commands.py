@@ -45,7 +45,9 @@ class eval(commands.Cog, name='Refresh'):
         else:
             perms = await self.bot.white_list_check(ctx=ctx, command_name='refresh')
             if not perms and not ctx.author.guild_permissions.manage_guild:
-                raise MessageException('Missing Manage Server Permissions and/or not whitelisted for this command (`/whitelist add`')
+                raise MessageException(
+                    'Missing Manage Server Permissions and/or not whitelisted for this command (`/whitelist add`'
+                )
 
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
 
@@ -219,7 +221,9 @@ class eval(commands.Cog, name='Refresh'):
         for choice in AUTOREFRESH_TRIGGERS:
             choices.append(disnake.SelectOption(label=choice, value=choice.replace(' ', '_').lower()))
 
-        trigger_select = disnake.ui.ActionRow(disnake.ui.Select(options=choices, placeholder='Choose Trigger Types', max_values=5))
+        trigger_select = disnake.ui.ActionRow(
+            disnake.ui.Select(options=choices, placeholder='Choose Trigger Types', max_values=5)
+        )
         await ctx.edit_original_message(content='**Choose your new triggers below**', components=[trigger_select])
         res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
 
@@ -354,7 +358,23 @@ class eval(commands.Cog, name='Refresh'):
 
         roles_updated = ''
 
-        spot_to_text = ['th3', 'th4', 'th5', 'th6', 'th7', 'th8', 'th9', 'th10', 'th11', 'th12', 'th13', 'th14', 'th15', 'th16', 'th17']
+        spot_to_text = [
+            'th3',
+            'th4',
+            'th5',
+            'th6',
+            'th7',
+            'th8',
+            'th9',
+            'th10',
+            'th11',
+            'th12',
+            'th13',
+            'th14',
+            'th15',
+            'th16',
+            'th17',
+        ]
         list_roles = [th3, th4, th5, th6, th7, th8, th9, th10, th11, th12, th13, th14, th15, th16, th17]
 
         for count, role in enumerate(list_roles):
@@ -389,7 +409,16 @@ class eval(commands.Cog, name='Refresh'):
         bh9: disnake.Role = None,
         bh10: disnake.Role = None,
     ):
-        if bh3 is None and bh4 is None and bh5 is None and bh6 is None and bh7 is None and bh8 is None and bh9 is None and bh10 is None:
+        if (
+            bh3 is None
+            and bh4 is None
+            and bh5 is None
+            and bh6 is None
+            and bh7 is None
+            and bh8 is None
+            and bh9 is None
+            and bh10 is None
+        ):
             raise MessageException('Please provide a role for at least 1 builderhall level.')
 
         roles_updated = ''
@@ -783,37 +812,51 @@ class eval(commands.Cog, name='Refresh'):
                 raise MessageException('That townhall does not have a role assigned to it for eval currently.')
             else:
                 mention = results.get('role')
-                await self.bot.townhallroles.find_one_and_delete({'$and': [{'th': f'{townhall}'}, {'server': ctx.guild.id}]})
+                await self.bot.townhallroles.find_one_and_delete(
+                    {'$and': [{'th': f'{townhall}'}, {'server': ctx.guild.id}]}
+                )
 
             removed_text += f'{townhall.capitalize()} eval role removed - <@&{mention}>\n'
 
         if builderhall:
-            results = await self.bot.builderhallroles.find_one({'$and': [{'th': f'{builderhall}'}, {'server': ctx.guild.id}]})
+            results = await self.bot.builderhallroles.find_one(
+                {'$and': [{'th': f'{builderhall}'}, {'server': ctx.guild.id}]}
+            )
             if results is None:
                 raise MessageException('That builderhall does not have a role assigned to it for eval currently.')
             else:
                 mention = results.get('role')
-                await self.bot.builderhallroles.find_one_and_delete({'$and': [{'th': f'{builderhall}'}, {'server': ctx.guild.id}]})
+                await self.bot.builderhallroles.find_one_and_delete(
+                    {'$and': [{'th': f'{builderhall}'}, {'server': ctx.guild.id}]}
+                )
 
             removed_text += f'{builderhall.capitalize()} eval role removed - <@&{mention}>\n'
 
         if league_role:
-            results = await self.bot.legendleagueroles.find_one({'$and': [{'type': f'{league_role}'}, {'server': ctx.guild.id}]})
+            results = await self.bot.legendleagueroles.find_one(
+                {'$and': [{'type': f'{league_role}'}, {'server': ctx.guild.id}]}
+            )
             if results is None:
                 raise MessageException('That league role type does not have a role assigned to it for eval currently.')
             else:
                 mention = results.get('role')
-                await self.bot.legendleagueroles.find_one_and_delete({'$and': [{'type': f'{league_role}'}, {'server': ctx.guild.id}]})
+                await self.bot.legendleagueroles.find_one_and_delete(
+                    {'$and': [{'type': f'{league_role}'}, {'server': ctx.guild.id}]}
+                )
 
             removed_text += f'{league_role} eval role removed - <@&{mention}>\n'
 
         if builder_league:
-            results = await self.bot.builderleagueroles.find_one({'$and': [{'type': f'{builder_league}'}, {'server': ctx.guild.id}]})
+            results = await self.bot.builderleagueroles.find_one(
+                {'$and': [{'type': f'{builder_league}'}, {'server': ctx.guild.id}]}
+            )
             if results is None:
                 raise MessageException('That league role type does not have a role assigned to it for eval currently.')
             else:
                 mention = results.get('role')
-                await self.bot.builderleagueroles.find_one_and_delete({'$and': [{'type': f'{builder_league}'}, {'server': ctx.guild.id}]})
+                await self.bot.builderleagueroles.find_one_and_delete(
+                    {'$and': [{'type': f'{builder_league}'}, {'server': ctx.guild.id}]}
+                )
 
             removed_text += f'{builder_league} eval role removed - <@&{mention}>\n'
 

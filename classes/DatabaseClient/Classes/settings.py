@@ -30,23 +30,33 @@ class DatabaseServer:
         self.greeting = data.get('greeting')
         self.use_api_token = data.get('api_token', True)
         self.league_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get('eval', {}).get('league_roles', [])]
-        self.builder_league_roles = [MultiTypeRole(bot=bot, data=d) for d in data.get('eval', {}).get('builder_league_roles', [])]
+        self.builder_league_roles = [
+            MultiTypeRole(bot=bot, data=d) for d in data.get('eval', {}).get('builder_league_roles', [])
+        ]
         self.ignored_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('ignored_roles', [])]
         self.family_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('family_roles', [])]
         self.not_family_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('not_family_roles', [])]
         self.only_family_roles = [EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('only_family_roles', [])]
         self.family_elder_roles = [
-            EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('family_position_roles', []) if d.get('type') == 'family_elder_roles'
+            EvalRole(bot=bot, data=d)
+            for d in data.get('eval', {}).get('family_position_roles', [])
+            if d.get('type') == 'family_elder_roles'
         ]
         self.family_coleader_roles = [
-            EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('family_position_roles', []) if d.get('type') == 'family_co-leader_roles'
+            EvalRole(bot=bot, data=d)
+            for d in data.get('eval', {}).get('family_position_roles', [])
+            if d.get('type') == 'family_co-leader_roles'
         ]
         self.family_leader_roles = [
-            EvalRole(bot=bot, data=d) for d in data.get('eval', {}).get('family_position_roles', []) if d.get('type') == 'family_leader_roles'
+            EvalRole(bot=bot, data=d)
+            for d in data.get('eval', {}).get('family_position_roles', [])
+            if d.get('type') == 'family_leader_roles'
         ]
 
         self.townhall_roles = [TownhallRole(bot=bot, data=d) for d in data.get('eval', {}).get('townhall_roles', [])]
-        self.builderhall_roles = [BuilderHallRole(bot=bot, data=d) for d in data.get('eval', {}).get('builderhall_roles', [])]
+        self.builderhall_roles = [
+            BuilderHallRole(bot=bot, data=d) for d in data.get('eval', {}).get('builderhall_roles', [])
+        ]
 
         self.achievement_roles = [AchievementRole(data=d) for d in data.get('achievement_roles', [])]
 

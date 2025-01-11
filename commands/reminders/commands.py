@@ -298,7 +298,9 @@ class ReminderCommands(commands.Cog, name='Reminders'):
             if ia_reminder_text:
                 reminder_text += '**Inactivity:** \n' + '\n'.join(ia_reminder_text) + '\n'
 
-            war_reminders = await self.bot.reminders.find({'$and': [{'clan': tag}, {'type': 'War'}, {'server': ctx.guild.id}]}).to_list(length=None)
+            war_reminders = await self.bot.reminders.find(
+                {'$and': [{'clan': tag}, {'type': 'War'}, {'server': ctx.guild.id}]}
+            ).to_list(length=None)
             war_reminders = sorted(
                 war_reminders,
                 key=lambda l: float(str(l.get('time')).replace('hr', '')),

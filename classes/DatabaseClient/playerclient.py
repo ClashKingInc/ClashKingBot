@@ -49,7 +49,9 @@ class PlayerClient(BaseClient):
         tag_map = {m.tag: m for m in members}
         tags = list(tag_map.keys())
 
-        results = await self.bot.player_stats.find({'tag': {'$in': list(tags)}}, {'tag': 1, 'legends': 1}).to_list(length=None)
+        results = await self.bot.player_stats.find({'tag': {'$in': list(tags)}}, {'tag': 1, 'legends': 1}).to_list(
+            length=None
+        )
         results = {r.get('tag'): r for r in results}
 
         full_ranking_data = await self.bot.leaderboard_db.find({'tag': {'$in': list(tags)}}).to_list(length=None)

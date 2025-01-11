@@ -49,7 +49,9 @@ class Trials(commands.Cog, name='Trials'):
             }
         )
         if result is not None:
-            raise MessageException(f'**An active trial for {player.name} already exists.** Trials can be ended with `/trial end`')
+            raise MessageException(
+                f'**An active trial for {player.name} already exists.** Trials can be ended with `/trial end`'
+            )
 
         await self.bot.track_players(players=[player])
         beginning_store = {

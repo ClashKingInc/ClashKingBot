@@ -23,7 +23,11 @@ class BackgroundCache(commands.Cog):
         self.bot.OUR_CLANS = set(clan_tags)
 
         await self.bot.bot_sync.update_one(
-            {'$and': [{'type': 'server_counts', 'bot_id': self.bot.user.id, 'cluster_id': self.bot._config.cluster_id}]},
+            {
+                '$and': [
+                    {'type': 'server_counts', 'bot_id': self.bot.user.id, 'cluster_id': self.bot._config.cluster_id}
+                ]
+            },
             {
                 '$set': {
                     'server_count': len(guild_id_list),

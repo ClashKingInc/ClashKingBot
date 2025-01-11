@@ -27,7 +27,9 @@ class Settings(commands.Cog, name='Settings'):
         picture: disnake.Attachment,
         name: str,
     ):
-        await ctx.edit_original_message(content='<a:loading:948121999526461440> Updating, this can take several minutes.')
+        await ctx.edit_original_message(
+            content='<a:loading:948121999526461440> Updating, this can take several minutes.'
+        )
         db_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
         for clan in db_server.clans:
             logs = [

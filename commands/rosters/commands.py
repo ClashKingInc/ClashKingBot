@@ -159,7 +159,9 @@ class RosterCommands(commands.Cog, name='Rosters'):
         self,
         ctx: disnake.ApplicationCommandInteraction,
         roster: str = commands.Param(autocomplete=autocomplete.roster_alias),
-        players: List[coc.Player] = commands.Param(converter=convert.multi_player, autocomplete=autocomplete.family_players),
+        players: List[coc.Player] = commands.Param(
+            converter=convert.multi_player, autocomplete=autocomplete.family_players
+        ),
     ):
         await ctx.response.defer(ephemeral=True)
         _roster = Roster(bot=self.bot)
@@ -213,7 +215,9 @@ class RosterCommands(commands.Cog, name='Rosters'):
 
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', check=check, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for(
+                    'message_interaction', check=check, timeout=600
+                )
             except Exception:
                 break
 
@@ -234,7 +238,9 @@ class RosterCommands(commands.Cog, name='Rosters'):
                     button_value = button_value.split('_')[1]
                     mode = button_value
                     if button_value == 'move':
-                        embed = await _roster.embed(move_text=f'Mode: {button_value} | Moving to {new_roster}\nGroup Mode: {group}')
+                        embed = await _roster.embed(
+                            move_text=f'Mode: {button_value} | Moving to {new_roster}\nGroup Mode: {group}'
+                        )
                     else:
                         embed = await _roster.embed(move_text=f'Mode: {button_value}')
                     components = await _roster.mode_components(
@@ -277,7 +283,9 @@ class RosterCommands(commands.Cog, name='Rosters'):
                         )
                         await _roster.find_roster(guild=ctx.guild, alias=_roster.roster_result.get('alias'))
                         if mode == 'move':
-                            embed = await _roster.embed(move_text=f'Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}')
+                            embed = await _roster.embed(
+                                move_text=f'Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}'
+                            )
                         else:
                             embed = await _roster.embed(move_text=f'Mode: {mode}')
                         PLAYER_PAGE = 0
@@ -293,7 +301,9 @@ class RosterCommands(commands.Cog, name='Rosters'):
                         alias = res.values[0].split('_')[1]
                         await _roster.find_roster(guild=ctx.guild, alias=alias)
                         if mode == 'move':
-                            embed = await _roster.embed(move_text=f'Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}')
+                            embed = await _roster.embed(
+                                move_text=f'Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}'
+                            )
                         else:
                             embed = await _roster.embed(move_text=f'Mode: {mode}')
                         PLAYER_PAGE = 0
@@ -331,7 +341,9 @@ class RosterCommands(commands.Cog, name='Rosters'):
                         alias = res.values[0].split('_')[1]
                         new_roster = alias
                         await _new_roster.find_roster(guild=ctx.guild, alias=new_roster)
-                        embed = await _roster.embed(move_text=f'Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}')
+                        embed = await _roster.embed(
+                            move_text=f'Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}'
+                        )
                         PLAYER_PAGE = 0
                         EDIT_ROSTER_PAGE = 0
                         MOVE_ROSTER_PAGE = 0
@@ -345,7 +357,9 @@ class RosterCommands(commands.Cog, name='Rosters'):
 
                     elif 'rostergroup_' in res.values[0]:
                         group = res.values[0].split('_')[-1]
-                        embed = await _roster.embed(move_text=f'Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}')
+                        embed = await _roster.embed(
+                            move_text=f'Mode: {mode} | Moving to {new_roster}\nGroup Mode: {group}'
+                        )
                         components = await _roster.mode_components(
                             mode=mode,
                             player_page=PLAYER_PAGE,
@@ -575,8 +589,12 @@ class RosterCommands(commands.Cog, name='Rosters'):
         uuid_bytes = random_uuid.bytes
         base64_uuid = base64.urlsafe_b64encode(uuid_bytes).rstrip(b'=')
         url_safe_uuid = base64_uuid.decode('utf-8')
-        await self.bot.rosters.update_one({'$and': [{'server_id': ctx.guild.id}, {'alias': roster}]}, {'$set': {'token': url_safe_uuid}})
-        await ctx.send(content=f'Edit your roster here -> https://api.clashk.ing/roster/?token={url_safe_uuid}', ephemeral=True)
+        await self.bot.rosters.update_one(
+            {'$and': [{'server_id': ctx.guild.id}, {'alias': roster}]}, {'$set': {'token': url_safe_uuid}}
+        )
+        await ctx.send(
+            content=f'Edit your roster here -> https://api.clashk.ing/roster/?token={url_safe_uuid}', ephemeral=True
+        )
 
     @roster.sub_command(name='list', description='List of rosters on this server')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
@@ -767,7 +785,9 @@ class RosterCommands(commands.Cog, name='Rosters'):
             if user is not None and user.id == ctx.user.id:
                 rosters_found = await self.bot.rosters.find({'members.tag': player.tag}).to_list(length=100)
             else:
-                rosters_found = await self.bot.rosters.find({'$and': [{'server_id': ctx.guild.id}, {'members.tag': player.tag}]}).to_list(length=100)
+                rosters_found = await self.bot.rosters.find(
+                    {'$and': [{'server_id': ctx.guild.id}, {'members.tag': player.tag}]}
+                ).to_list(length=100)
 
             if not rosters_found:
                 continue
@@ -823,8 +843,12 @@ class RosterCommands(commands.Cog, name='Rosters'):
             uuid_bytes = random_uuid.bytes
             base64_uuid = base64.urlsafe_b64encode(uuid_bytes).rstrip(b'=')
             url_safe_uuid = base64_uuid.decode('utf-8')
-            await self.bot.rosters.update_one({'$and': [{'server_id': ctx.guild.id}, {'alias': roster.alias}]}, {'$set': {'token': url_safe_uuid}})
-            await ctx.send(content=f'Edit your roster here -> https://api.clashk.ing/roster/?token={url_safe_uuid}', ephemeral=True)
+            await self.bot.rosters.update_one(
+                {'$and': [{'server_id': ctx.guild.id}, {'alias': roster.alias}]}, {'$set': {'token': url_safe_uuid}}
+            )
+            await ctx.send(
+                content=f'Edit your roster here -> https://api.clashk.ing/roster/?token={url_safe_uuid}', ephemeral=True
+            )
 
         elif 'Signup_' in str(ctx.data.custom_id):
             alias = str(ctx.data.custom_id).split('_')[1]
@@ -889,9 +913,13 @@ class RosterCommands(commands.Cog, name='Rosters'):
             dropdown = [
                 disnake.ui.ActionRow(select),
                 disnake.ui.ActionRow(placement_select),
-                disnake.ui.ActionRow(disnake.ui.Button(label='Submit', style=disnake.ButtonStyle.green, custom_id='Save')),
+                disnake.ui.ActionRow(
+                    disnake.ui.Button(label='Submit', style=disnake.ButtonStyle.green, custom_id='Save')
+                ),
             ]
-            msg = await ctx.followup.send(content='Select Account(s) to Add & Where to add them', components=dropdown, ephemeral=True)
+            msg = await ctx.followup.send(
+                content='Select Account(s) to Add & Where to add them', components=dropdown, ephemeral=True
+            )
 
             save = False
             accounts_to_add = []
@@ -978,7 +1006,9 @@ class RosterCommands(commands.Cog, name='Rosters'):
                 return res.message.id == msg.id
 
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', check=check, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for(
+                    'message_interaction', check=check, timeout=600
+                )
             except:
                 return await msg.edit(components=[])
 
@@ -990,7 +1020,11 @@ class RosterCommands(commands.Cog, name='Rosters'):
                 added.append(player_dict[account].name)
                 await roster.remove_member(player_dict[account])
             await roster.find_roster(guild=ctx.guild, alias=alias)
-            matching = [player for player in roster.players if player['discord'] == str(ctx.user) and player['group'] in ['No Group', 'Sub']]
+            matching = [
+                player
+                for player in roster.players
+                if player['discord'] == str(ctx.user) and player['group'] in ['No Group', 'Sub']
+            ]
             if roster.role is not None and not matching:
                 try:
                     role = ctx.guild.get_role(roster.role)
@@ -1050,7 +1084,9 @@ class RosterCommands(commands.Cog, name='Rosters'):
                 return res.message.id == msg.id
 
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', check=check, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for(
+                    'message_interaction', check=check, timeout=600
+                )
             except:
                 return await msg.edit(components=[])
 

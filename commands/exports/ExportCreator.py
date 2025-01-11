@@ -65,7 +65,9 @@ class ExportCreator(commands.Cog):
             elif template == 'Troops':
                 await self.create_troops_export(players=players, workbook=workbook, sheet_name='season_troops')
             elif template == 'Player Achievements':
-                await self.create_achievements_export(players=players, workbook=workbook, sheet_name='player_achievements')
+                await self.create_achievements_export(
+                    players=players, workbook=workbook, sheet_name='player_achievements'
+                )
             elif template == 'Player Activity':
                 await self.create_player_activity_export(
                     players=players,
@@ -243,7 +245,9 @@ class ExportCreator(commands.Cog):
         ]
         await self.write_data(worksheet=advanced_player_Stats_page, column_names=columns, data=data)
 
-    async def create_player_stats_export(self, players: List[StatsPlayer], workbook: openpyxl.Workbook, sheet_name: str):
+    async def create_player_stats_export(
+        self, players: List[StatsPlayer], workbook: openpyxl.Workbook, sheet_name: str
+    ):
         player_stats_page = workbook.create_sheet(sheet_name)
         players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=False)
         data = []
@@ -416,7 +420,9 @@ class ExportCreator(commands.Cog):
         ]
         await self.write_data(worksheet=activity_page, column_names=columns, data=data)
 
-    async def create_achievements_export(self, players: List[StatsPlayer], workbook: openpyxl.workbook, sheet_name: str):
+    async def create_achievements_export(
+        self, players: List[StatsPlayer], workbook: openpyxl.workbook, sheet_name: str
+    ):
         achievement_page = workbook.create_sheet(sheet_name)
         players_data = await self.bot.get_players(tags=[player.tag for player in players], custom=False)
         data = []

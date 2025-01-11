@@ -96,7 +96,9 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
             hold_dict[prev_key] = prev_value
         full_emoji_dict = full_emoji_dict | hold_dict
 
-    current_emoji = discord_get(f'https://discord.com/api/v10/applications/{bot.application_id}/emojis', bot_token=config.bot_token).get('items', [])
+    current_emoji = discord_get(
+        f'https://discord.com/api/v10/applications/{bot.application_id}/emojis', bot_token=config.bot_token
+    ).get('items', [])
 
     combined_emojis = {}
     for emoji in current_emoji:

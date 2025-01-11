@@ -65,7 +65,9 @@ class reddit_feed(commands.Cog):
 
     async def comment_stream(self, event: dict):
 
-        results = await self.bot.server_db.find({'$and': [{'reddit_feed': {'$ne': None}}, {'reddit_accounts': {'$ne': None}}]}).to_list(length=None)
+        results = await self.bot.server_db.find(
+            {'$and': [{'reddit_feed': {'$ne': None}}, {'reddit_accounts': {'$ne': None}}]}
+        ).to_list(length=None)
         for r in results:
             server_id = r.get('server')
             if server_id not in self.bot.OUR_GUILDS:
@@ -81,7 +83,8 @@ class reddit_feed(commands.Cog):
                         color=disnake.Color.green(),
                     )
                     embed.set_footer(
-                        icon_url=self.bot.emoji.reddit_icon.partial_emoji.url, text=f"u/{event.get('author')} | {event.get('score')} upvotes"
+                        icon_url=self.bot.emoji.reddit_icon.partial_emoji.url,
+                        text=f"u/{event.get('author')} | {event.get('score')} upvotes",
                     )
                     if role is not None:
                         await channel.send(content=f'<@&{role}>', embed=embed)

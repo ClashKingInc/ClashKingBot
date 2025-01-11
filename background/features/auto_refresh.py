@@ -11,7 +11,9 @@ class AutoEvalBackground(commands.Cog):
         self.bot.scheduler.add_job(self.status_roles, 'interval', minutes=60)
 
     async def status_roles(self):
-        servers_with_status_roles = await self.bot.server_db.find({'status_roles.discord': {'$exists': True, '$ne': {}}}).to_list(length=None)
+        servers_with_status_roles = await self.bot.server_db.find(
+            {'status_roles.discord': {'$exists': True, '$ne': {}}}
+        ).to_list(length=None)
 
         for server_config in servers_with_status_roles:
             if server_config.get('server') not in self.bot.OUR_GUILDS:

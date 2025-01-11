@@ -104,7 +104,9 @@ async def add_ban(
     return embed
 
 
-async def remove_ban(bot: CustomClient, player: coc.Player, removed_by: disnake.User, guild: disnake.Guild, locale: disnake.Locale):
+async def remove_ban(
+    bot: CustomClient, player: coc.Player, removed_by: disnake.User, guild: disnake.Guild, locale: disnake.Locale
+):
     _, locale = bot.get_localizator(locale=locale)
 
     results = await bot.banlist.find_one({'$and': [{'VillageTag': player.tag}, {'server': guild.id}]})
@@ -114,7 +116,14 @@ async def remove_ban(bot: CustomClient, player: coc.Player, removed_by: disnake.
     await bot.banlist.find_one_and_delete({'$and': [{'VillageTag': player.tag}, {'server': guild.id}]})
 
     embed = disnake.Embed(
-        description=_('unbanned', values={'player_name': player.name, 'player_link': player.share_link, 'discord_mention': removed_by.mention}),
+        description=_(
+            'unbanned',
+            values={
+                'player_name': player.name,
+                'player_link': player.share_link,
+                'discord_mention': removed_by.mention,
+            },
+        ),
         color=disnake.Color.orange(),
     )
 
@@ -130,7 +139,9 @@ async def send_ban_log(bot: CustomClient, guild: disnake.Guild, reason: disnake.
             await safe_run(func=ban_log_channel.send, embed=reason)
 
 
-async def create_embeds(bot: CustomClient, bans: list, guild: disnake.Guild, embed_color: disnake.Color, locale: disnake.Locale):
+async def create_embeds(
+    bot: CustomClient, bans: list, guild: disnake.Guild, embed_color: disnake.Color, locale: disnake.Locale
+):
     _, locale = bot.get_localizator(locale=locale)
 
     embeds = []
@@ -139,7 +150,9 @@ async def create_embeds(bot: CustomClient, bans: list, guild: disnake.Guild, emb
     discord_links = dict(discord_links)
 
     hold = ''
-    banned_players: list[BannedPlayer] = await bot.get_players(tags=banned_tags, custom=BannedPlayer, use_cache=True, found_results=bans)
+    banned_players: list[BannedPlayer] = await bot.get_players(
+        tags=banned_tags, custom=BannedPlayer, use_cache=True, found_results=bans
+    )
     for count, banned_player in enumerate(banned_players, 1):
         date = banned_player.date_created[0:10]
         notes = banned_player.notes
@@ -168,7 +181,9 @@ async def create_embeds(bot: CustomClient, bans: list, guild: disnake.Guild, emb
 
         if count % 10 == 0 or count == len(banned_players):
             embed = disnake.Embed(description=hold, color=embed_color)
-            embed.set_author(name=_('server-ban-list', values={'server_name': guild.name}), icon_url=get_guild_icon(guild=guild))
+            embed.set_author(
+                name=_('server-ban-list', values={'server_name': guild.name}), icon_url=get_guild_icon(guild=guild)
+            )
             embeds.append(embed)
             hold = ''
 

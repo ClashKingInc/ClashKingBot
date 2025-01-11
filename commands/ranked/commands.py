@@ -53,14 +53,19 @@ class FamilyStats(commands.Cog, name='Family Trophy Stats'):
             clan = player.clan.name if player.clan else 'None'
 
             embed = disnake.Embed(
-                description=f'Name: {player.name}\n' + f'Tag: {player.tag}\n' + f'Clan: {clan}\n' + f'Trophies: {player.trophies}\n'
+                description=f'Name: {player.name}\n'
+                + f'Tag: {player.tag}\n'
+                + f'Clan: {clan}\n'
+                + f'Trophies: {player.trophies}\n'
                 f'{ctx.guild.name} : {server_ranking}\n'
                 f'Rank: <a:earth:861321402909327370> {ranking.global_ranking} | {ranking.flag} {ranking.local_ranking}\n'
                 + f'Country: {ranking.country}',
                 color=embed_color,
             )
             embed.set_footer(text=f'Ranks for {user.display_name}', icon_url=user.display_avatar.url)
-            embed.set_thumbnail(url=f'https://assets.clashk.ing/home-base/town-hall-pics/town-hall-{player.town_hall}.png')
+            embed.set_thumbnail(
+                url=f'https://assets.clashk.ing/home-base/town-hall-pics/town-hall-{player.town_hall}.png'
+            )
             embeds.append(embed)
 
         current_page = 0
@@ -73,7 +78,9 @@ class FamilyStats(commands.Cog, name='Family Trophy Stats'):
 
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', check=check, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for(
+                    'message_interaction', check=check, timeout=600
+                )
             except Exception:
                 raise ExpiredComponents
 
@@ -178,7 +185,9 @@ class FamilyStats(commands.Cog, name='Family Trophy Stats'):
                     continue
 
         sorted(server_players, key=server_players.get, reverse=True)
-        server_players = {key: rank for rank, key in enumerate(sorted(server_players, key=server_players.get, reverse=True), 1)}
+        server_players = {
+            key: rank for rank, key in enumerate(sorted(server_players, key=server_players.get, reverse=True), 1)
+        }
         server_players_list = list(server_players.keys())
 
         embeds = []
@@ -194,7 +203,9 @@ class FamilyStats(commands.Cog, name='Family Trophy Stats'):
 
             if ranking.local_ranking != '<:status_offline:910938138984206347>':
                 num += 1
-                text += f'<:trophy:956417881778815016>`{trophies[tag]}` | {ranking.flag} {ranking.country} | {names[tag]}\n'
+                text += (
+                    f'<:trophy:956417881778815016>`{trophies[tag]}` | {ranking.flag} {ranking.country} | {names[tag]}\n'
+                )
 
             if num == 25:
                 embed = disnake.Embed(
@@ -223,7 +234,9 @@ class FamilyStats(commands.Cog, name='Family Trophy Stats'):
 
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', check=check, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for(
+                    'message_interaction', check=check, timeout=600
+                )
             except:
                 await msg.edit(components=[])
                 break

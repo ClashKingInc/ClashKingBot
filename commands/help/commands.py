@@ -45,7 +45,9 @@ class HelpCommands(commands.Cog, name='Help'):
             for cog, commands in all_commands.items():
                 text = ''
                 for command in commands:
-                    api_command: disnake.APISlashCommand = self.bot.get_global_command_named(name=command.qualified_name.split(' ')[0])
+                    api_command: disnake.APISlashCommand = self.bot.get_global_command_named(
+                        name=command.qualified_name.split(' ')[0]
+                    )
                     permissions = get_command_permissions(command=command)
                     if permissions:
                         permissions = f"**({', '.join(permissions)})**".replace('Guild', 'Server')
@@ -64,7 +66,9 @@ class HelpCommands(commands.Cog, name='Help'):
             if not command:
                 raise MessageException('Command Not Found')
             command = command[0]
-            api_command: disnake.APISlashCommand = self.bot.get_global_command_named(name=command.qualified_name.split(' ')[0])
+            api_command: disnake.APISlashCommand = self.bot.get_global_command_named(
+                name=command.qualified_name.split(' ')[0]
+            )
             mention = f'</{command.qualified_name}:{api_command.id}>'
 
             embed = disnake.Embed(
@@ -174,7 +178,10 @@ class HelpCommands(commands.Cog, name='Help'):
 
         if gitbook_urls:
             # Create buttons for each URL
-            buttons = [disnake.ui.Button(label=f'Source {i + 1}', url=url, style=disnake.ButtonStyle.link) for i, url in enumerate(gitbook_urls)]
+            buttons = [
+                disnake.ui.Button(label=f'Source {i + 1}', url=url, style=disnake.ButtonStyle.link)
+                for i, url in enumerate(gitbook_urls)
+            ]
 
             # Group buttons into rows (max 5 per row)
             action_rows = [disnake.ui.ActionRow(*buttons[i : i + 5]) for i in range(0, len(buttons), 5)]

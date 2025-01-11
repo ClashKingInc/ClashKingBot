@@ -633,7 +633,9 @@ class StatsPlayer(coc.Player):
 
         for pet_name in names:
             pet = self.bot.coc_client.get_pet(name=pet_name, townhall=self.town_hall, level=1)
-            if self.town_hall < 14 or (pet.name not in ['L.A.S.S.I', 'Mighty Yak', 'Electro Owl', 'Unicorn'] and self.town_hall == 14):
+            if self.town_hall < 14 or (
+                pet.name not in ['L.A.S.S.I', 'Mighty Yak', 'Electro Owl', 'Unicorn'] and self.town_hall == 14
+            ):
                 continue
             th_max = pet.get_max_level_for_townhall(self.town_hall)
             if th_max is None:
@@ -724,7 +726,9 @@ class RushedInfo:
                     or (item.name in coc.SPELL_ORDER and item.is_dark_spell)
                 ):
                     dark_elixir += item.upgrade_cost
-                elif (item.name in ['Battle Machine', 'Battle Copter'] and item.is_builder_base) or (item.is_builder_base):
+                elif (item.name in ['Battle Machine', 'Battle Copter'] and item.is_builder_base) or (
+                    item.is_builder_base
+                ):
                     builder_elixir += item.upgrade_cost
                 else:
                     elixir += item.upgrade_cost
@@ -766,7 +770,9 @@ class RushedInfo:
                     or (item.name in coc.SPELL_ORDER and item.is_dark_spell)
                 ):
                     dark_elixir += item.upgrade_cost
-                elif (item.name in ['Battle Machine', 'Battle Copter'] and item.is_builder_base) or (item.is_builder_base):
+                elif (item.name in ['Battle Machine', 'Battle Copter'] and item.is_builder_base) or (
+                    item.is_builder_base
+                ):
                     builder_elixir += item.upgrade_cost
                 else:
                     elixir += item.upgrade_cost

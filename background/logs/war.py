@@ -46,7 +46,9 @@ class War_Log(commands.Cog):
                 if find_result is not None:
                     season = self.bot.gen_season_date()
                     _time = int(pend.now(tz=pend.UTC).timestamp())
-                    await self.bot.player_stats.update_one({'tag': attack.attacker.tag}, {'$set': {'last_online': _time}})
+                    await self.bot.player_stats.update_one(
+                        {'tag': attack.attacker.tag}, {'$set': {'last_online': _time}}
+                    )
                     await self.bot.player_stats.update_one(
                         {'tag': attack.attacker.tag},
                         {'$push': {f'last_online_times.{season}': _time}},
@@ -71,7 +73,9 @@ class War_Log(commands.Cog):
                     f' {star_str} **{attack.destruction}%** {self.bot.fetch_emoji(attack.attacker.town_hall)}{create_superscript(num=attack.attacker.map_position)}\n'
                 )
 
-        for cc in await self.bot.clan_db.find({'$and': [{'tag': war.clan.tag}, {'logs.war_log.webhook': {'$ne': None}}]}).to_list(length=None):
+        for cc in await self.bot.clan_db.find(
+            {'$and': [{'tag': war.clan.tag}, {'logs.war_log.webhook': {'$ne': None}}]}
+        ).to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=cc)
             if db_clan.server_id not in self.bot.OUR_GUILDS:
                 continue
@@ -95,7 +99,9 @@ class War_Log(commands.Cog):
                 await log.set_webhook(id=None)
                 continue
 
-        for cc in await self.bot.clan_db.find({'$and': [{'tag': war.clan.tag}, {'logs.war_panel.webhook': {'$ne': None}}]}).to_list(length=None):
+        for cc in await self.bot.clan_db.find(
+            {'$and': [{'tag': war.clan.tag}, {'logs.war_panel.webhook': {'$ne': None}}]}
+        ).to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=cc)
             if db_clan.server_id not in self.bot.OUR_GUILDS:
                 continue
@@ -126,7 +132,9 @@ class War_Log(commands.Cog):
             clan = await self.bot.getClan(new_war.clan.tag)
         war_league = clan.war_league if clan is not None else None
 
-        for cc in await self.bot.clan_db.find({'$and': [{'tag': new_war.clan.tag}, {'events.war': {'$eq': True}}]}).to_list(length=None):
+        for cc in await self.bot.clan_db.find(
+            {'$and': [{'tag': new_war.clan.tag}, {'events.war': {'$eq': True}}]}
+        ).to_list(length=None):
             db_clan = DatabaseClan(bot=self.bot, data=cc)
             if db_clan.server_id not in self.bot.OUR_GUILDS:
                 continue
@@ -148,7 +156,9 @@ class War_Log(commands.Cog):
                         scheduled_end_time=new_war.end_time.time,
                         image=image_bytes,
                         entity_type=disnake.GuildScheduledEventEntityType.external,
-                        entity_metadata=disnake.GuildScheduledEventMetadata(location=f'{new_war.clan.name} vs {new_war.opponent.name}'),
+                        entity_metadata=disnake.GuildScheduledEventMetadata(
+                            location=f'{new_war.clan.name} vs {new_war.opponent.name}'
+                        ),
                     )
                 except disnake.Forbidden:
                     await db_clan.set_server_event_creation_status(type='war', status=False)

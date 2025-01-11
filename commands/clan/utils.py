@@ -12,7 +12,12 @@ from disnake.utils import get
 from classes.bot import CustomClient
 from classes.player.stats import ClanCapitalWeek, LegendRanking, StatsPlayer
 from exceptions.CustomExceptions import MessageException
-from utility.clash.capital import calc_raid_medals, gen_raid_weekend_datestrings, get_raidlog_entry, get_season_raid_weeks
+from utility.clash.capital import (
+    calc_raid_medals,
+    gen_raid_weekend_datestrings,
+    get_raidlog_entry,
+    get_season_raid_weeks,
+)
 from utility.clash.other import *
 from utility.constants import EMBED_COLOR_CLASS, SUPER_SCRIPTS, item_to_name
 from utility.discord_utils import register_button
@@ -77,7 +82,11 @@ async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake
     cwl_league_emoji = cwl_league_emojis(bot=bot, league=str(clan.war_league))
     capital_league_emoji = league_to_emoji(bot=bot, league=str(clan.capital_league))
 
-    hall_level = 0 if coc.utils.get(clan.capital_districts, id=70000000) is None else coc.utils.get(clan.capital_districts, id=70000000).hall_level
+    hall_level = (
+        0
+        if coc.utils.get(clan.capital_districts, id=70000000) is None
+        else coc.utils.get(clan.capital_districts, id=70000000).hall_level
+    )
     hall_level_emoji = 1 if hall_level == 0 else hall_level
     clan_capital_text = (
         f'Capital League: {capital_league_emoji}{clan.capital_league}\n'
@@ -473,7 +482,13 @@ async def troops_spell_siege_progress(
             '$match': {
                 '$and': [
                     {'tag': {'$in': player_tags}},
-                    {'type': {'$in': list(coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER + coc.enums.BUILDER_TROOPS_ORDER)}},
+                    {
+                        'type': {
+                            '$in': list(
+                                coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER + coc.enums.BUILDER_TROOPS_ORDER
+                            )
+                        }
+                    },
                     {'time': {'$gte': season_start.timestamp()}},
                     {'time': {'$lte': season_end.timestamp()}},
                 ]
@@ -712,10 +727,14 @@ async def clan_donations(
 ):
     season = bot.gen_season_date() if season is None else season
     fallback_dict = {m.tag: {'donated': m.donations, 'received': m.received} for m in clan.members}
-    clan_donations = (await bot.clan_stats.find_one({'tag': clan.tag}, projection={'_id': 0, f'{season}': 1})).get(season, {})
-    tags = [tag for tag, data in clan_donations.items() if data.get('received') is not None or data.get('donated') is not None] + list(
-        fallback_dict.keys()
+    clan_donations = (await bot.clan_stats.find_one({'tag': clan.tag}, projection={'_id': 0, f'{season}': 1})).get(
+        season, {}
     )
+    tags = [
+        tag
+        for tag, data in clan_donations.items()
+        if data.get('received') is not None or data.get('donated') is not None
+    ] + list(fallback_dict.keys())
 
     players = await bot.get_players(tags=tags, custom=True, use_cache=True, fake_results=True)
     map_player = {p.tag: p for p in players}
@@ -798,7 +817,9 @@ async def clan_warpreference(
         results: List[dict] = await bot.player_history.aggregate(pipeline).to_list(length=None)
 
         now = int((pend.now(tz=pend.UTC).timestamp()))
-        member_stats = {result['_id']: smart_convert_seconds(seconds=(now - result['last_change'])) for result in results}
+        member_stats = {
+            result['_id']: smart_convert_seconds(seconds=(now - result['last_change'])) for result in results
+        }
     elif option == 'lastwar':
         pipeline = [
             {
@@ -826,7 +847,10 @@ async def clan_warpreference(
             {'$group': {'_id': '$members.tag', 'endTime': {'$last': '$endTime'}}},
         ]
         results: List[dict] = await bot.clan_wars.aggregate(pipeline).to_list(length=None)
-        member_stats = {result['_id']: smart_convert_seconds(abs(coc.Timestamp(data=result.get('endTime')).seconds_until)) for result in results}
+        member_stats = {
+            result['_id']: smart_convert_seconds(abs(coc.Timestamp(data=result.get('endTime')).seconds_until))
+            for result in results
+        }
 
     elif option == 'wartimer':
         pipeline = [
@@ -1150,14 +1174,18 @@ async def clan_raid_weekend_raid_stats(bot: CustomClient, clan: coc.Clan, weeken
         if tag in member_tags:
             raid_text.append(
                 [
-                    f'\u200e{bot.emoji.capital_gold}`' f'{total_attacks[tag]}/{attack_limit[tag]} ' f'{amount:5} {name[:15]:15}`',
+                    f'\u200e{bot.emoji.capital_gold}`'
+                    f'{total_attacks[tag]}/{attack_limit[tag]} '
+                    f'{amount:5} {name[:15]:15}`',
                     amount,
                 ]
             )
         else:
             raid_text.append(
                 [
-                    f'\u200e{bot.emoji.square_x_deny}`' f'{total_attacks[tag]}/{attack_limit[tag]} ' f'{amount} {name[:15]:15}`',
+                    f'\u200e{bot.emoji.square_x_deny}`'
+                    f'{total_attacks[tag]}/{attack_limit[tag]} '
+                    f'{amount} {name[:15]:15}`',
                     amount,
                 ]
             )
@@ -1249,7 +1277,12 @@ async def war_log(
 @register_button('clancwlperf', parser='_:clan')
 async def cwl_performance(bot: CustomClient, clan: coc.Clan, embed_color: disnake.Color):
     asyncio.create_task(bot.store_all_cwls(clan=clan))
-    responses = await bot.cwl_db.find({'$and': [{'clan_tag': clan.tag}, {'data': {'$ne': None}}]}).sort('season', -1).limit(50).to_list(length=None)
+    responses = (
+        await bot.cwl_db.find({'$and': [{'clan_tag': clan.tag}, {'data': {'$ne': None}}]})
+        .sort('season', -1)
+        .limit(50)
+        .to_list(length=None)
+    )
     embed = Embed(title=f'**{clan.name} CWL History**', color=embed_color)
 
     embed.set_thumbnail(url=clan.badge.large)
@@ -1289,7 +1322,9 @@ async def clan_summary(
     season = bot.gen_season_date() if season is None else season
     member_tags = [member.tag for member in clan.members]
     # we dont want results w/ no name
-    results = await bot.player_stats.find({'$and': [{'tag': {'$in': member_tags}}, {'name': {'$ne': None}}]}).to_list(length=None)
+    results = await bot.player_stats.find({'$and': [{'tag': {'$in': member_tags}}, {'name': {'$ne': None}}]}).to_list(
+        length=None
+    )
 
     if not results:
         raise MessageException("No stats for this clan found. If you haven't already, add it with `/addclan`")

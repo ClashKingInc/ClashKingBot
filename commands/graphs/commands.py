@@ -138,7 +138,9 @@ class GraphCreator(commands.Cog, name='Graph Commands'):
             converter=convert.multi_clan,
             autocomplete=autocomplete.multi_clan,
         ),
-        family: disnake.Guild = commands.Param(converter=convert.server, default=None, autocomplete=autocomplete.server),
+        family: disnake.Guild = commands.Param(
+            converter=convert.server, default=None, autocomplete=autocomplete.server
+        ),
     ):
         family = family or ctx.guild
         if clans is None:

@@ -71,7 +71,9 @@ class misc(commands.Cog, name='Other'):
 
         while True:
             try:
-                res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', check=check, timeout=600)
+                res: disnake.MessageInteraction = await self.bot.wait_for(
+                    'message_interaction', check=check, timeout=600
+                )
 
             except:
                 try:
@@ -188,7 +190,11 @@ class misc(commands.Cog, name='Other'):
         if not cluster_lines:
             cluster_lines.append(f'{cluster_id}: {inservers:,} S | {members_local:,} M | {num_clans:,} C')
 
-        embed.add_field(name='📂 Cluster Stats (Server, Members, Clans)', value='```' + '\n'.join(cluster_lines) + '```', inline=False)
+        embed.add_field(
+            name='📂 Cluster Stats (Server, Members, Clans)',
+            value='```' + '\n'.join(cluster_lines) + '```',
+            inline=False,
+        )
 
         # Environment info
         env_info = f'**Python:** {python_version}\n' f'**System:** {system_info}\n' f'**Containerized:** Yes (Docker)'
@@ -218,7 +224,9 @@ class misc(commands.Cog, name='Other'):
     async def debug(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        server: disnake.Guild = commands.Param(converter=convert.server, default=None, autocomplete=autocomplete.server),
+        server: disnake.Guild = commands.Param(
+            converter=convert.server, default=None, autocomplete=autocomplete.server
+        ),
     ):
         server = server or ctx.guild
         pass
@@ -295,7 +303,9 @@ class misc(commands.Cog, name='Other'):
 
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                'https://fankit.supercell.com/api/assets/search/338?q={query}&limit=25&page=1&requestnewflag=true&order=RELEVANCE'.format(query=query)
+                'https://fankit.supercell.com/api/assets/search/338?q={query}&limit=25&page=1&requestnewflag=true&order=RELEVANCE'.format(
+                    query=query
+                )
             ) as response:
                 data = await response.json()
 

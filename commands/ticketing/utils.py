@@ -111,7 +111,11 @@ async def open_ticket(
         guild=ctx.guild,
     )
     channel = await ctx.guild.create_text_channel(
-        name=channel_name, reason=channel_name, overwrites=overwrite_dict, category=category, topic='Ticketing powered by ClashKing!'
+        name=channel_name,
+        reason=channel_name,
+        overwrites=overwrite_dict,
+        category=category,
+        topic='Ticketing powered by ClashKing!',
     )
 
     text = ' '.join([role.mention for role in ping_roles if role is not None]) + member.mention

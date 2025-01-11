@@ -26,12 +26,23 @@ class Bans(commands.Cog, name='Bans'):
         self,
         ctx: disnake.ApplicationCommandInteraction,
         player: coc.Player = options.family_player,
-        reason: str = commands.Param(name=Loc(key='reason-option'), description=Loc(key='reason-description'), default=None),
-        dm_player: str = commands.Param(name=Loc(key='dm-player-option'), description=Loc(key='dm-player-description'), default=None),
+        reason: str = commands.Param(
+            name=Loc(key='reason-option'), description=Loc(key='reason-description'), default=None
+        ),
+        dm_player: str = commands.Param(
+            name=Loc(key='dm-player-option'), description=Loc(key='dm-player-description'), default=None
+        ),
     ):
         _, locale = self.bot.get_localizator(ctx=ctx)
         embed = await add_ban(
-            bot=self.bot, player=player, added_by=ctx.user, guild=ctx.guild, reason=reason, rollover_days=None, dm_player=dm_player, locale=locale
+            bot=self.bot,
+            player=player,
+            added_by=ctx.user,
+            guild=ctx.guild,
+            reason=reason,
+            rollover_days=None,
+            dm_player=dm_player,
+            locale=locale,
         )
         await ctx.edit_original_message(embed=embed)
 

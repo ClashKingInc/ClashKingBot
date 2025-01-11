@@ -224,7 +224,9 @@ class LinkButtonExtended(commands.Cog):
                 embed[0].title = f'**{player.name} successfully linked**'
                 await modal_inter.send(embed=embed[0], ephemeral=True)
                 try:
-                    results = await self.bot.clan_db.find_one({'$and': [{'tag': player.clan.tag}, {'server': ctx.guild.id}]})
+                    results = await self.bot.clan_db.find_one(
+                        {'$and': [{'tag': player.clan.tag}, {'server': ctx.guild.id}]}
+                    )
                     if results is not None:
                         greeting = results.get('greeting')
                         if greeting is None:

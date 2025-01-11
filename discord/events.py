@@ -107,7 +107,9 @@ class DiscordEvents(commands.Cog):
         embed.add_field(name='Owner', value=f'{owner}', inline=True)
         embed.add_field(name='Member Count', value=f'{member_count}', inline=True)
         embed.add_field(name='Total Roles', value=f'{roles}', inline=True)
-        embed.add_field(name='Total Channels', value=f'{channels} (Text: {text_channels}, Voice: {voice_channels})', inline=False)
+        embed.add_field(
+            name='Total Channels', value=f'{channels} (Text: {text_channels}, Voice: {voice_channels})', inline=False
+        )
         embed.add_field(name='Creation Date', value=f'{creation_date}', inline=True)
         embed.add_field(name='Server Description', value=f'{description}', inline=False)
         embed.add_field(name='Boost Level', value=f'Tier {boost_level} with {boosts} Boosts', inline=True)
@@ -152,7 +154,12 @@ class DiscordEvents(commands.Cog):
             return
 
         first_channel = next(
-            (channel for channel in guild.channels if str(channel.type) == 'text' and channel.permissions_for(channel.guild.me).send_messages), None
+            (
+                channel
+                for channel in guild.channels
+                if str(channel.type) == 'text' and channel.permissions_for(channel.guild.me).send_messages
+            ),
+            None,
         )
         if not first_channel:
             return
@@ -166,7 +173,9 @@ class DiscordEvents(commands.Cog):
 
         # Add a footer if the bot lacks admin permissions
         if not bot_admin:
-            embed.set_footer(text='Admin permissions are recommended for full functionality and easier setup. Thank you!')
+            embed.set_footer(
+                text='Admin permissions are recommended for full functionality and easier setup. Thank you!'
+            )
 
         # Send the message only if the server settings were just created
         if results is None:
@@ -206,7 +215,9 @@ class DiscordEvents(commands.Cog):
         embed.add_field(name='Owner', value=f'{owner}', inline=True)
         embed.add_field(name='Member Count', value=f'{member_count}', inline=True)
         embed.add_field(name='Total Roles', value=f'{roles}', inline=True)
-        embed.add_field(name='Total Channels', value=f'{channels} (Text: {text_channels}, Voice: {voice_channels})', inline=False)
+        embed.add_field(
+            name='Total Channels', value=f'{channels} (Text: {text_channels}, Voice: {voice_channels})', inline=False
+        )
         embed.add_field(name='Creation Date', value=f'{creation_date}', inline=True)
         embed.add_field(name='Server Description', value=f'{description}', inline=False)
         embed.add_field(name='Boost Level', value=f'Tier {boost_level} with {boosts} Boosts', inline=True)
@@ -248,7 +259,9 @@ class DiscordEvents(commands.Cog):
 
                 # file = disnake.File('assets/support.png')
                 buttons = disnake.ui.ActionRow(
-                    disnake.ui.Button(label='Discord', style=disnake.ButtonStyle.url, url='https://discord.gg/clashking'),
+                    disnake.ui.Button(
+                        label='Discord', style=disnake.ButtonStyle.url, url='https://discord.gg/clashking'
+                    ),
                     disnake.ui.Button(label='X', style=disnake.ButtonStyle.url, url='https://x.clashk.ing'),
                     disnake.ui.Button(label='Patreon', style=disnake.ButtonStyle.url, url='https://support.clashk.ing'),
                     disnake.ui.Button(label='Github', style=disnake.ButtonStyle.url, url='https://git.clashk.ing'),
@@ -425,7 +438,9 @@ class DiscordEvents(commands.Cog):
             ticket = OpenTicket(bot=self.bot, open_ticket=ticket)
             if ticket.status == 'delete':
                 return
-            panel_settings = await self.bot.tickets.find_one({'$and': [{'server_id': payload.guild_id}, {'name': ticket.panel_name}]})
+            panel_settings = await self.bot.tickets.find_one(
+                {'$and': [{'server_id': payload.guild_id}, {'name': ticket.panel_name}]}
+            )
             panel = TicketPanel(bot=self.bot, panel_settings=panel_settings)
             channel: disnake.TextChannel = await self.bot.getch_channel(channel_id=ticket.channel)
             if channel is None:

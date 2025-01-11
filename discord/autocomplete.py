@@ -10,7 +10,13 @@ from expiring_dict import ExpiringDict
 
 from classes.bot import CustomClient
 from commands.help.utils import get_all_commands
-from commands.reminders.utils import gen_capital_times, gen_clan_games_times, gen_inactivity_times, gen_roster_times, gen_war_times
+from commands.reminders.utils import (
+    gen_capital_times,
+    gen_clan_games_times,
+    gen_inactivity_times,
+    gen_roster_times,
+    gen_war_times,
+)
 from utility.clash.capital import gen_raid_weekend_datestrings
 from utility.constants import TH_FILTER_OPTIONS, TOWNHALL_LEVELS
 from utility.general import create_superscript
@@ -40,7 +46,9 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
 
     async def clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         if ctx.guild is None:
-            last_record = await self.bot.command_stats.find_one({'$and': [{'user': ctx.user.id}, {'server': {'$ne': None}}]}, sort=[('time', -1)])
+            last_record = await self.bot.command_stats.find_one(
+                {'$and': [{'user': ctx.user.id}, {'server': {'$ne': None}}]}, sort=[('time', -1)]
+            )
             guild_id = 0
             if last_record:
                 guild_id = last_record.get('server')
@@ -166,7 +174,11 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
                 {'tag': 1, 'name': 1, 'townhall': 1},
             ).to_list(length=None)
             results = [
-                (f'‡{create_superscript(document.get("townhall", 0))}{document.get("name")}' + ' | ' + document.get('tag'))
+                (
+                    f'‡{create_superscript(document.get("townhall", 0))}{document.get("name")}'
+                    + ' | '
+                    + document.get('tag')
+                )
                 for document in documents
                 if query.lower() in document.get('name').lower()
             ] + results
@@ -260,7 +272,9 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
 
     async def ticket_panel_buttons(self, ctx: disnake.ApplicationCommandInteraction, query: str):
 
-        ticket_panels = await self.bot.tickets.find({'server_id': ctx.guild.id}, {'name': 1, '_id': 0, 'components.label': 1}).to_list(length=None)
+        ticket_panels = await self.bot.tickets.find(
+            {'server_id': ctx.guild.id}, {'name': 1, '_id': 0, 'components.label': 1}
+        ).to_list(length=None)
         alias_list = []
         for panel in ticket_panels:
             panel_name = panel.get('name')
@@ -303,7 +317,11 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
             previous_split = query.split(',')[:-1]
             previous_split = [item.strip() for item in previous_split]
             previous = ', '.join(previous_split)
-            return [f'{previous}, {time}' for time in all_times if new_query.lower().strip() in time.lower() and time not in previous_split][:25]
+            return [
+                f'{previous}, {time}'
+                for time in all_times
+                if new_query.lower().strip() in time.lower() and time not in previous_split
+            ][:25]
         else:
             return [time for time in all_times if query.lower() in time.lower()][:25]
 
@@ -362,7 +380,8 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
                 if result.get('data').get('tag') is not None:
                     type = 'CWL'
                 elif (
-                    Timestamp(data=result.get('data').get('startTime')).time - Timestamp(data=result.get('data').get('preparationStartTime')).time
+                    Timestamp(data=result.get('data').get('startTime')).time
+                    - Timestamp(data=result.get('data').get('preparationStartTime')).time
                 ).seconds in prep_list:
                     type = 'FW'
                 else:
@@ -392,7 +411,9 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
     async def strike_ids(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         if selected := ctx.options.get('remove', {}).get('player'):
             tag: str = selected.split('|')[-1]
-            results = await self.bot.strikelist.find({'$and': [{'tag': tag.replace(' ', '')}, {'server': ctx.guild.id}]}).to_list(length=None)
+            results = await self.bot.strikelist.find(
+                {'$and': [{'tag': tag.replace(' ', '')}, {'server': ctx.guild.id}]}
+            ).to_list(length=None)
         else:
             results = await self.bot.strikelist.find({'server': ctx.guild.id}).to_list(length=None)
         return_text = []
@@ -406,7 +427,12 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
 
     async def command_autocomplete(self, ctx: disnake.ApplicationCommandInteraction, query: str) -> list[str]:
         commands: dict[str, list[disnake.ext.commands.InvokableSlashCommand]] = get_all_commands(bot=self.bot)
-        return [c.qualified_name for command_list in commands.values() for c in command_list if query.lower() in c.qualified_name.lower()][:25]
+        return [
+            c.qualified_name
+            for command_list in commands.values()
+            for c in command_list
+            if query.lower() in c.qualified_name.lower()
+        ][:25]
 
     async def command_category_autocomplete(self, ctx: disnake.ApplicationCommandInteraction, query: str) -> list[str]:
         commands: dict[str, list[disnake.ext.commands.InvokableSlashCommand]] = get_all_commands(bot=self.bot)

@@ -37,7 +37,9 @@ class AutoEval(commands.Cog):
                 'role': 'role_change',
                 'league': 'league_change',
             }
-            if (trigger_name := convert_trigger.get(event.get('trigger'), event.get('trigger'))) not in db_server.autoeval_triggers:
+            if (
+                trigger_name := convert_trigger.get(event.get('trigger'), event.get('trigger'))
+            ) not in db_server.autoeval_triggers:
                 continue
 
             link = await self.bot.link_client.get_link(player_tag)
@@ -102,7 +104,11 @@ class AutoEval(commands.Cog):
                 continue
 
             if db_server.blacklisted_roles:
-                discord_members = [member for member in discord_members if not any(role.id in db_server.blacklisted_roles for role in member.roles)]
+                discord_members = [
+                    member
+                    for member in discord_members
+                    if not any(role.id in db_server.blacklisted_roles for role in member.roles)
+                ]
 
             try:
                 await logic(

@@ -42,7 +42,10 @@ def get_command_permissions(command: disnake.ext.commands.InvokableSlashCommand)
                         permissions.extend(
                             [
                                 p.replace('_', ' ').title()
-                                for p, v in closure.cell_contents[0].__closure__[0].cell_contents.__closure__[0].cell_contents.items()
+                                for p, v in closure.cell_contents[0]
+                                .__closure__[0]
+                                .cell_contents.__closure__[0]
+                                .cell_contents.items()
                                 if v
                             ]
                         )

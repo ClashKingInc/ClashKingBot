@@ -133,7 +133,13 @@ async def testthis(self, ctx: disnake.ApplicationCommandInteraction, clan: str):
         else:
             color = (255, 255, 255)
         draw.text(
-            (315, 690 + (106 * count)), f'{clan.name[:17]}', anchor='lm', fill=color, stroke_width=stroke, stroke_fill=(0, 0, 0), font=clan_name
+            (315, 690 + (106 * count)),
+            f'{clan.name[:17]}',
+            anchor='lm',
+            fill=color,
+            stroke_width=stroke,
+            stroke_fill=(0, 0, 0),
+            font=clan_name,
         )
         promo = [x['promo'] for x in war_leagues['items'] if x['name'] == base_clan.war_league.name][0]
         demo = [x['demote'] for x in war_leagues['items'] if x['name'] == base_clan.war_league.name][0]
@@ -149,7 +155,15 @@ async def testthis(self, ctx: disnake.ApplicationCommandInteraction, clan: str):
             extra = 15
             color = (255, 255, 255)
 
-        draw.text((100, 690 + (106 * count)), f'{count + 1}.', anchor='lm', fill=color, stroke_width=stroke, stroke_fill=(0, 0, 0), font=numbers)
+        draw.text(
+            (100, 690 + (106 * count)),
+            f'{count + 1}.',
+            anchor='lm',
+            fill=color,
+            stroke_width=stroke,
+            stroke_fill=(0, 0, 0),
+            font=numbers,
+        )
         size = 100, 100
         placement_img.thumbnail(size, Image.ANTIALIAS)
         background.paste(placement_img, (30, 663 + (107 * count) + extra), placement_img.convert('RGBA'))
@@ -187,7 +201,13 @@ async def testthis(self, ctx: disnake.ApplicationCommandInteraction, clan: str):
 
         background.paste(star_img, (1440, 665 + (106 * count)), star_img.convert('RGBA'))
         draw.text(
-            (1400, 685 + (107 * count)), f'{stars}', anchor='mm', fill=(255, 255, 255), stroke_width=stroke, stroke_fill=(0, 0, 0), font=stat_numbers
+            (1400, 685 + (107 * count)),
+            f'{stars}',
+            anchor='mm',
+            fill=(255, 255, 255),
+            stroke_width=stroke,
+            stroke_fill=(0, 0, 0),
+            font=stat_numbers,
         )
         draw.text(
             (1647, 685 + (107 * count)),
@@ -206,7 +226,13 @@ async def testthis(self, ctx: disnake.ApplicationCommandInteraction, clan: str):
     background.paste(league_img, (785, 80), league_img.convert('RGBA'))
 
     draw.text(
-        (975, 520), f'{base_clan.war_league}', anchor='mm', fill=(255, 255, 255), stroke_width=stroke, stroke_fill=(0, 0, 0), font=league_name_font
+        (975, 520),
+        f'{base_clan.war_league}',
+        anchor='mm',
+        fill=(255, 255, 255),
+        stroke_width=stroke,
+        stroke_fill=(0, 0, 0),
+        font=league_name_font,
     )
     draw.text(
         (515, 135),
@@ -224,7 +250,15 @@ async def testthis(self, ctx: disnake.ApplicationCommandInteraction, clan: str):
         month = 0
     month = calendar.month_name[month + 1]
     date_font = ImageFont.truetype('ImageGen/SCmagic.ttf', 24)
-    draw.text((387, 75), f'{month} {start.year}', anchor='mm', fill=(237, 191, 33), stroke_width=3, stroke_fill=(0, 0, 0), font=date_font)
+    draw.text(
+        (387, 75),
+        f'{month} {start.year}',
+        anchor='mm',
+        fill=(237, 191, 33),
+        stroke_width=3,
+        stroke_fill=(0, 0, 0),
+        font=date_font,
+    )
 
     def save_im(background):
         # background.show()

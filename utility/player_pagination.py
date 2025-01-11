@@ -39,7 +39,9 @@ class ProfileView(disnake.ui.View):
 
     def create_profile_select(self):
         player_results = [
-            disnake.SelectOption(label=f'{player.name}', emoji=self.bot.fetch_emoji(player.town_hall).partial_emoji, value=f'{count}')
+            disnake.SelectOption(
+                label=f'{player.name}', emoji=self.bot.fetch_emoji(player.town_hall).partial_emoji, value=f'{count}'
+            )
             for count, player in enumerate(self.results)
         ]
 
