@@ -128,7 +128,7 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
                     th_emoji = self.bot.fetch_emoji(player.town_hall)
                     embed = disnake.Embed(
                         description=f'[**{player.name}** ({player.tag})]({player.share_link})\n'
-                        + f'{th_emoji}**{player.town_hall}**{leagueAndTrophies(bot=self.bot, player=player)}(#{member.clan_rank})'
+                        + f'{th_emoji}**{player.town_hall}{leagueAndTrophies(bot=self.bot, player=player)}(#{member.clan_rank})**'
                         +  f'{self.bot.emoji.up_green_arrow}**{player.donations}**{self.bot.emoji.down_red_arrow}**{player.received}**'
                         +  f'{self.bot.emoji.pin}**{member.role.in_game_name}**\n',
                         color=disnake.Color.red(),
