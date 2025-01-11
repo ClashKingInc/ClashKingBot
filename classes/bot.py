@@ -22,7 +22,7 @@ from disnake.ext import commands, fluent
 from expiring_dict import ExpiringDict
 from redis import asyncio as redis
 
-from background.logs.events import kafka_events
+from background.logs.events import clash_event_gateway
 from classes.clashofstats import COSPlayerHistory
 from classes.config import Config
 from classes.DatabaseClient.familyclient import FamilyClient
@@ -59,7 +59,7 @@ class CustomClient(commands.AutoShardedBot):
         self.i18n = fluent.FluentStore()
         self.i18n.load('locales/')
 
-        self.loop.create_task(kafka_events(self))
+        self.loop.create_task(clash_event_gateway(self))
 
         self._config = config
 
