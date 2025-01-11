@@ -29,16 +29,18 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
                 player_map = {p.tag: p for p in player_pull}
 
                 embeds = []
+                players = []
                 for member in members_joined:
                     player = player_map.get(member.tag)
                     if player is None:
                         continue
+                    players.append(player)
                     hero = basic_heros(bot=self.bot, player=player)
 
                     th_emoji = self.bot.fetch_emoji(player.town_hall)
                     embed = disnake.Embed(
                         description=f'[**{player.name}** ({player.tag})]({player.share_link})\n'
-                        + f'**{th_emoji}{player.town_hall}{leagueAndTrophies(bot=self.bot, player=player)}<:star:825571962699907152>{player.war_stars}{hero}**\n',
+                        + f'**{th_emoji}{player.town_hall}{leagueAndTrophies(bot=self.bot, player=player)}{self.bot.emoji.war_star}{player.war_stars}{hero}**\n',
                         color=disnake.Color.green(),
                     )
                     embed.set_footer(
@@ -48,92 +50,46 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
                     embeds.append(embed)
                 embeds = [embeds[i : i + 10] for i in range(0, len(embeds), 10)]
 
+                components = []
+                if len(players) >= 2:
+                    options = []
+                    for account in players:
+                        options.append(
+                            disnake.SelectOption(
+                                label=account.name,
+                                emoji=self.bot.fetch_emoji(name=account.town_hall).partial_emoji,
+                                value=f'ticketviewer_{account.tag}',
+                            )
+                        )
+                    select = disnake.ui.Select(
+                        options=options,
+                        placeholder='Account Info',
+                        min_values=1,  # the minimum number of options a user must select
+                        max_values=1,  # the maximum number of options a user can select
+                    )
+                    components = [disnake.ui.ActionRow(select)]
+                elif len(players) == 1:
+                    components = [
+                        disnake.ui.ActionRow(
+                            disnake.ui.Button(
+                                label='',
+                                emoji=self.bot.emoji.user_search.partial_emoji,
+                                style=disnake.ButtonStyle.grey,
+                                custom_id=f'redditplayer_{players[0].tag}',
+                            )
+                        )
+                    ]
+
                 for cc in tracked:
                     db_clan = DatabaseClan(bot=self.bot, data=cc)
                     if db_clan.server_id not in self.bot.OUR_GUILDS:
                         continue
-
-                    if db_clan.auto_greet_option != 'Never':
-                        greet_message = await self.bot.custom_embeds.find_one(
-                            {
-                                '$and': [
-                                    {'server': db_clan.server_id},
-                                    {'name': db_clan.greeting},
-                                ]
-                            }
-                        )
-                        if greet_message is None:
-                            greet_message = {
-                                'content': 'Welcome {user_mention} to **{clan_name}**!',
-                                'embeds': [],
-                            }
-                        else:
-                            greet_message = greet_message.get('data', {})
-
-                        for player in player_pull:
-                            send = True
-                            if db_clan.auto_greet_option == 'First Join':
-                                join_result = await self.bot.clan_join_leave.find_one({'$and': [{'tag': player.tag}, {'clan': clan.tag}]})
-                                if join_result is not None:
-                                    send = False
-
-                            if send:
-                                linked = await self.bot.link_client.get_link(player.tag)
-                                discord_user = None
-                                if linked is not None:
-                                    discord_user = await self.bot.getch_user(linked)
-
-                                local_greet_message = str(greet_message)
-                                types = {
-                                    '{user_mention}': (discord_user.mention if discord_user else ''),
-                                    '{user_display_name}': (discord_user.display_name if discord_user else ''),
-                                    '{clan_name}': clan.name,
-                                    '{clan_link}': clan.share_link,
-                                    '{clan_leader_name}': coc.utils.get(clan.members, role=coc.Role.leader),
-                                    '{player_name}': player.name,
-                                    '{player_link}': player.share_link,
-                                    '{player_townhall}': player.town_hall,
-                                    '{player_townhall_emoji}': self.bot.fetch_emoji(player.town_hall).emoji_string,
-                                    '{player_league}': player.league.name,
-                                    '{player_league_emoji}': self.bot.fetch_emoji(player.league.name).emoji_string,
-                                    '{player_trophies}': player.trophies,
-                                }
-
-                                for type, replace in types.items():
-                                    local_greet_message = local_greet_message.replace(type, str(replace))
-
-                                local_greet_message = ast.literal_eval(local_greet_message)
-
-                                channel = await self.bot.getch_channel(db_clan.clan_channel)
-                                if channel is not None:
-                                    try:
-                                        await channel.send(
-                                            content=local_greet_message.get('content', ''),
-                                            embeds=[disnake.Embed.from_dict(data=e) for e in local_greet_message.get('embeds', [])],
-                                        )
-                                    # WE NEED TO HANDLE THIS EVENTUALLY
-                                    except Exception:
-                                        pass
 
                     if not embeds:
                         continue
 
                     log = db_clan.join_log
 
-                    components = []
-                    if log.profile_button:
-                        stat_buttons = [
-                            disnake.ui.Button(
-                                label='',
-                                emoji=self.bot.emoji.troop.partial_emoji,
-                                style=disnake.ButtonStyle.green,
-                                custom_id=f'redditplayer_{player.tag}',
-                            )
-                        ]
-                        buttons = disnake.ui.ActionRow()
-                        for button in stat_buttons:
-                            buttons.append_item(button)
-                        components = [buttons]
                     try:
                         webhook = await self.bot.getch_webhook(log.webhook)
                         if webhook.user.id != self.bot.user.id:
@@ -147,11 +103,11 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
                                 await webhook.send(
                                     embeds=embed_chunk,
                                     thread=thread,
-                                    components=components,
+                                    components=components if log.profile_button else None,
                                 )
                         else:
                             for embed_chunk in embeds:
-                                await webhook.send(embeds=embed_chunk, components=components)
+                                await webhook.send(embeds=embed_chunk, components=components if log.profile_button else None)
                     except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
                         await log.set_thread(id=None)
                         await log.set_webhook(id=None)
@@ -169,12 +125,12 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
                     player = player_map.get(member.tag)
                     if player is None:
                         continue
-                    hero = basic_heros(bot=self.bot, player=player)
-
                     th_emoji = self.bot.fetch_emoji(player.town_hall)
                     embed = disnake.Embed(
                         description=f'[**{player.name}** ({player.tag})]({player.share_link})\n'
-                        + f'**{th_emoji}{player.town_hall}{leagueAndTrophies(bot=self.bot, player=player)}<:star:825571962699907152>{player.war_stars}{hero}**\n',
+                        + f'{th_emoji}**{player.town_hall}{leagueAndTrophies(bot=self.bot, player=player)}(#{member.clan_rank})**'
+                        +  f'{self.bot.emoji.up_green_arrow}**{player.donations}**{self.bot.emoji.down_red_arrow}**{player.received}**'
+                        +  f'{self.bot.emoji.pin}**{member.role.in_game_name}**\n',
                         color=disnake.Color.red(),
                     )
                     if player.clan is not None and player.clan.tag != clan.tag:
