@@ -1,5 +1,5 @@
 # Use an updated Python image
-FROM python:3.11-bookworm
+FROM python:3.12.8-bookworm
 
 LABEL org.opencontainers.image.source=https://github.com/ClashKingInc/ClashKingBot
 LABEL org.opencontainers.image.description="Image for the ClashKing Discord Bot"
