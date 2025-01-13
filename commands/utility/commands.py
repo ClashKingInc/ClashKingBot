@@ -45,8 +45,7 @@ class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
         await ctx.response.defer()
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
         embed = await army_embed(bot=self.bot, nick=nickname, link=link, clan_castle=clan_castle, equipment=equipment, embed_color=embed_color)
-        buttons = disnake.ui.ActionRow()
-        buttons.append_item(disnake.ui.Button(label=f'Copy Link', emoji=self.bot.emoji.troop.partial_emoji, url=link))
+        buttons = [disnake.ui.Button(label=f'Copy Link', emoji=self.bot.emoji.troop.partial_emoji, url=link)]
         await ctx.send(embed=embed, components=buttons)
 
     @commands.slash_command(
