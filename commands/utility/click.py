@@ -81,7 +81,7 @@ class UtilityButtons(commands.Cog):
             id = str(res.data.custom_id).split("_")[-1]
             await self.bot.user_settings.update_one(
                 {"discord_user": res.user.id},
-                {"$addToSet": {"armies": id}}
+                {"$addToSet": {"armies": id}}, upsert=True
             )
 
             # Trim the array to maintain max size of 25
