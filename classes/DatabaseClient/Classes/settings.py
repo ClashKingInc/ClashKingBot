@@ -79,6 +79,7 @@ class DatabaseServer:
         self.player_link_parse = data.get('link_parse', {}).get('player', True)
         self.base_link_parse = data.get('link_parse', {}).get('base', True)
         self.show_command_parse = data.get('link_parse', {}).get('show', True)
+        self.link_parse_channels: list[int] = data.get('link_parse', {}).get('channels', [])
 
         self.welcome_link_log = ServerLog(parent=self, type='welcome_link')
 
@@ -87,6 +88,9 @@ class DatabaseServer:
 
     async def set_allowed_link_parse(self, type: str, status: bool):
         await self.bot.server_db.update_one({'server': self.server_id}, {'$set': {f'link_parse.{type}': status}})
+
+    async def set_allowed_link_parse_channels(self, channel_ids: list[int]):
+        await self.bot.server_db.update_one({'server': self.server_id}, {'$set': {f'link_parse.channels': channel_ids}})
 
     async def set_change_nickname(self, status: bool):
         await self.bot.server_db.update_one({'server': self.server_id}, {'$set': {'change_nickname': status}})
