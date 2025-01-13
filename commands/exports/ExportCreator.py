@@ -11,7 +11,7 @@ from openpyxl import Workbook, load_workbook
 from pytz import utc
 
 from classes.bot import CustomClient
-from classes.player.stats import LegendDay, StatsPlayer
+from classes.database.models.player.stats import LegendDay, StatsPlayer
 
 
 class ExportCreator(commands.Cog):

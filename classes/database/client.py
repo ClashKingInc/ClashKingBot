@@ -10,10 +10,10 @@ else:
 
 from utility.constants import EMBED_COLOR
 
-from .Classes.settings import DatabaseServer
+from .models.settings import DatabaseServer
 
 
-class BaseClient:
+class DatabaseClient:
     def __init__(self, bot: CustomClient):
         self.bot = bot
 

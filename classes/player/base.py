@@ -5,7 +5,7 @@ import emoji
 
 from utility.constants import SHORT_PLAYER_LINK
 
-from ..DatabaseClient.Classes.abc import CustomTownHall
+from ..database.models.abc import CustomTownHall
 
 
 # these are attributes that every custom player should have

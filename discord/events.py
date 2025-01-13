@@ -7,7 +7,7 @@ from disnake.ext import commands
 from loguru import logger
 
 from classes.bot import CustomClient
-from classes.DatabaseClient.familyclient import FamilyClient
+from classes.database.familyclient import FamilyClient
 from classes.emoji import Emojis
 from classes.tickets import LOG_TYPE, OpenTicket, TicketPanel
 from utility.constants import DISCORD_STATUS_TYPES, EMBED_COLOR_CLASS

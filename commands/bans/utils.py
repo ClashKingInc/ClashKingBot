@@ -5,7 +5,7 @@ import disnake
 import pendulum as pend
 
 from classes.bot import CustomClient
-from classes.player.bans import BannedPlayer
+from classes.database.models.player.bans import BannedPlayer
 from exceptions.CustomExceptions import MessageException
 from utility.general import get_guild_icon, safe_run
 

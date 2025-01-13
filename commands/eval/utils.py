@@ -6,7 +6,7 @@ import coc
 import disnake
 
 from classes.bot import CustomClient
-from classes.DatabaseClient.Classes.settings import DatabaseServer
+from classes.database.models.settings import DatabaseServer
 from exceptions.CustomExceptions import MessageException
 from utility.constants import DEFAULT_EVAL_ROLE_TYPES, ROLE_TREATMENT_TYPES
 from utility.general import create_superscript, get_guild_icon

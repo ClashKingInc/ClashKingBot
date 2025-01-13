@@ -1,12 +1,10 @@
 import coc
-import disnake
 from disnake.ext import commands
 
-from background.logs.events import clan_ee, player_ee
+from classes.events.gateway import clan_ee, player_ee
 from classes.bot import CustomClient
-from classes.DatabaseClient.Classes.settings import DatabaseServer
 from commands.eval.utils import logic
-from utility.constants import DEFAULT_EVAL_ROLE_TYPES, EMBED_COLOR_CLASS
+from utility.constants import DEFAULT_EVAL_ROLE_TYPES
 
 
 class AutoEval(commands.Cog):

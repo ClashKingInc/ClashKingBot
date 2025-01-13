@@ -4,7 +4,7 @@ import disnake
 from disnake.ext import commands
 
 from classes.bot import CustomClient
-from classes.player.stats import LegendRanking
+from classes.database.models.player.stats import LegendRanking
 from exceptions.CustomExceptions import ExpiredComponents, NoLinkedAccounts
 from utility.components import create_components
 

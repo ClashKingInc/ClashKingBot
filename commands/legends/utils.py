@@ -24,7 +24,7 @@ from PIL import Image, ImageDraw, ImageFont
 from pytz import utc
 
 from classes.bot import CustomClient
-from classes.DatabaseClient.Classes.player import LegendDay, LegendPlayer
+from classes.database.models.player import LegendDay, LegendPlayer
 from utility.clash.other import gen_legend_date, gen_season_date
 from utility.constants import POSTER_LIST
 from utility.discord_utils import register_button

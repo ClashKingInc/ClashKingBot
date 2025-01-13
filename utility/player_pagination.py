@@ -1,7 +1,7 @@
 import disnake
 
 from classes.bot import CustomClient
-from classes.player.stats import StatsPlayer
+from classes.database.models.player.stats import StatsPlayer
 from commands.player.utils import create_profile_troops, detailed_player_board, history, upgrade_embed
 
 

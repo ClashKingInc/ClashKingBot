@@ -2,8 +2,7 @@ import disnake
 from disnake.ext import commands
 
 from classes.bot import CustomClient
-from classes.player.stats import StatsPlayer
-from utility.search import search_results
+from classes.database.models.player.stats import StatsPlayer
 
 from ..eval.utils import logic
 from ..player.utils import to_do_embed

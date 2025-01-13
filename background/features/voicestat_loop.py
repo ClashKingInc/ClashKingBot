@@ -8,7 +8,7 @@ from utility.general import calculate_time
 utc = pytz.utc
 
 from classes.bot import CustomClient
-from classes.DatabaseClient.Classes.settings import DatabaseClan
+from classes.database.models.settings import DatabaseClan
 from exceptions.CustomExceptions import MissingWebhookPerms
 
 

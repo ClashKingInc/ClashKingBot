@@ -2,7 +2,7 @@ import coc
 import disnake
 
 from classes.bot import CustomClient
-from classes.DatabaseClient.Classes.player import LegendPlayer
+from classes.database.models.player import LegendPlayer
 
 
 async def hv_player_leaderboard(

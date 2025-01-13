@@ -75,10 +75,6 @@ def partial_emoji_gen(bot, emoji_string, animated=False):
     return emoji
 
 
-def embed_parse(string):
-    return 0
-
-
 async def interaction_handler(
     bot,
     ctx: Union[disnake.ApplicationCommandInteraction, disnake.MessageInteraction],

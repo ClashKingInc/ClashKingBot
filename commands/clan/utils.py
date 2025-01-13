@@ -9,8 +9,7 @@ from ballpark import ballpark as B
 from disnake import Embed
 from disnake.utils import get
 
-from classes.bot import CustomClient
-from classes.player.stats import ClanCapitalWeek, LegendRanking, StatsPlayer
+from classes.database.models.player.stats import ClanCapitalWeek, LegendRanking, StatsPlayer
 from exceptions.CustomExceptions import MessageException
 from utility.clash.capital import (
     calc_raid_medals,

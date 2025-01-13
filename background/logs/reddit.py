@@ -1,7 +1,7 @@
 import disnake
 from disnake.ext import commands
 
-from background.logs.events import reddit_ee
+from classes.events.gateway import reddit_ee
 from classes.bot import CustomClient
 from utility.player_pagination import button_pagination
 

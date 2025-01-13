@@ -2,9 +2,9 @@ import coc
 import disnake
 from disnake.ext import commands
 
-from background.logs.events import clan_ee
+from classes.events.gateway import clan_ee
 from classes.bot import CustomClient
-from classes.DatabaseClient.Classes.settings import DatabaseClan
+from classes.database.models.settings import DatabaseClan
 
 
 class clan_events(commands.Cog, name='Clan Events'):

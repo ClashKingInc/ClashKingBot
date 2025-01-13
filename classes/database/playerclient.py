@@ -2,11 +2,11 @@ import coc
 
 from exceptions.CustomExceptions import MessageException
 
-from .Classes.player import LegendPlayer
+from .models.player import LegendPlayer
 from .client import BaseClient
 
 
-class PlayerClient(BaseClient):
+class PlayerClient():
     def __init__(self, bot):
         super().__init__(bot)
 

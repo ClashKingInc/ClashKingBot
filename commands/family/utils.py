@@ -9,7 +9,7 @@ import disnake
 import pendulum as pend
 
 from classes.bot import CustomClient
-from classes.player.stats import ClanCapitalWeek
+from classes.database.models.player.stats import ClanCapitalWeek
 from exceptions.CustomExceptions import MessageException
 from utility.clash.capital import (
     calc_raid_medals,

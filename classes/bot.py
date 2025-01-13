@@ -22,12 +22,12 @@ from disnake.ext import commands, fluent
 from expiring_dict import ExpiringDict
 from redis import asyncio as redis
 
-from background.logs.events import clash_event_gateway
+from classes.events import EventGateway
 from classes.clashofstats import COSPlayerHistory
 from classes.config import Config
-from classes.DatabaseClient.familyclient import FamilyClient
+from classes.database.familyclient import FamilyClient
 from classes.emoji import Emojis, EmojiType
-from classes.player.stats import CustomClanClass, StatsPlayer
+from classes.database.models.player.stats import CustomClanClass, StatsPlayer
 from utility.clash.other import is_cwl
 from utility.constants import BADGE_GUILDS, locations
 from utility.general import create_superscript, fetch
@@ -59,7 +59,8 @@ class CustomClient(commands.AutoShardedBot):
         self.i18n = fluent.FluentStore()
         self.i18n.load('locales/')
 
-        self.loop.create_task(clash_event_gateway(self))
+        self.event_gateway = EventGateway()
+        self.loop.create_task(self.event_gateway.run())
 
         self._config = config
 
@@ -556,6 +557,7 @@ class CustomClient(commands.AutoShardedBot):
         use_cache=True,
         fake_results=False,
         found_results=None,
+        as_mapping=False,
     ):
         fresh_tags = fresh_tags or []
 
@@ -598,6 +600,8 @@ class CustomClient(commands.AutoShardedBot):
             )
             for data in player_data
         )
+        if as_mapping:
+            return {p.tag: p for p in players}
         return players
 
     async def get_clans(self, tags: list, use_cache=True):

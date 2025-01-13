@@ -2,9 +2,9 @@ import coc
 import disnake
 from disnake.ext import commands
 
-from background.logs.events import clan_ee
+from classes.events.gateway import clan_ee
 from classes.bot import CustomClient
-from classes.DatabaseClient.Classes.settings import DatabaseClan
+from classes.database.models.settings import DatabaseClan
 from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.constants import SHORT_PLAYER_LINK
 from utility.discord_utils import get_webhook_for_channel

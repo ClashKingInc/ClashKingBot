@@ -5,14 +5,13 @@ import disnake
 import pendulum as pend
 from numerize import numerize
 
-from classes.bot import CustomClient
 from classes.clashofstats import StayType
-from classes.player.stats import StatsPlayer
+from classes.database.models.player.stats import StatsPlayer
 from exceptions.CustomExceptions import NoLinkedAccounts
 from utility.clash.capital import is_raids, weekend_to_cocpy_timestamp
 from utility.clash.other import *
 from utility.discord_utils import interaction_handler, register_button
-from utility.general import acronym, create_superscript
+from utility.general import create_superscript
 
 
 async def basic_player_board(bot: CustomClient, player: coc.Player, embed_color: disnake.Color):

@@ -4,7 +4,7 @@ import coc
 import disnake
 
 from classes.bot import CustomClient
-from classes.player.stats import StatsPlayer
+from classes.database.models.player.stats import StatsPlayer
 from utility.constants import BOARD_TYPES
 
 

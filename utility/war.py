@@ -2,7 +2,7 @@ import coc
 import disnake
 
 from classes.bot import CustomClient
-from classes.DatabaseClient.Classes.settings import DatabaseClan
+from classes.database.models.settings import DatabaseClan
 from commands.war.utils import main_war_page
 from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.discord_utils import get_webhook_for_channel

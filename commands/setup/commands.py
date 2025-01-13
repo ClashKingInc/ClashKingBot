@@ -5,7 +5,7 @@ import disnake
 from disnake.ext import commands
 
 from classes.bot import CustomClient
-from classes.DatabaseClient.Classes.settings import DatabaseClan
+from classes.database.models.settings import DatabaseClan
 from discord import autocomplete, convert, options
 from exceptions.CustomExceptions import *
 from utility.components import clan_component

@@ -8,7 +8,7 @@ import disnake
 import pendulum as pend
 
 from classes.bot import CustomClient
-from classes.player.strikes import StrikedPlayer
+from classes.database.models.player.strikes import StrikedPlayer
 from exceptions.CustomExceptions import MessageException, NoLinkedAccounts
 from utility.general import get_guild_icon, safe_run
 

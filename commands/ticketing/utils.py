@@ -7,7 +7,7 @@ import disnake
 import pytz
 
 from classes.bot import CustomClient
-from classes.player.stats import StatsPlayer
+from classes.database.models.player.stats import StatsPlayer
 from classes.tickets import OpenTicket, Ticket_Buttons, TicketPanel
 
 

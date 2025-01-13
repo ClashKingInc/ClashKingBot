@@ -1,9 +1,8 @@
 import disnake
 from disnake.ext import commands
-from disnake.ext.commands import dm_only
 
 from classes.bot import CustomClient
-from classes.player.stats import StatsPlayer
+from classes.database.models.player.stats import StatsPlayer
 from discord.options import autocomplete, convert
 from exceptions.CustomExceptions import *
 from utility.player_pagination import button_pagination

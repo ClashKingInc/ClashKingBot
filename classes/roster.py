@@ -10,7 +10,7 @@ import disnake
 import emoji
 
 from classes.bot import CustomClient
-from classes.player.stats import StatsPlayer
+from classes.database.models.player.stats import StatsPlayer
 from exceptions.CustomExceptions import *
 from utility.cdn import general_upload_to_cdn
 

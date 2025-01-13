@@ -4,9 +4,8 @@ from random import choices
 import disnake
 import pendulum as pend
 from disnake.ext import commands
-from pymongo import ReturnDocument
 
-from background.logs.events import giveaway_ee
+from classes.events.gateway import giveaway_ee
 from classes.bot import CustomClient
 
 

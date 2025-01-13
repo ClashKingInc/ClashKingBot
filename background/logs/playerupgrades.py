@@ -4,9 +4,9 @@ import coc
 import disnake
 from disnake.ext import commands
 
-from background.logs.events import player_ee
+from classes.events.gateway import player_ee
 from classes.bot import CustomClient
-from classes.DatabaseClient.Classes.settings import DatabaseClan
+from classes.database.models.settings import DatabaseClan
 from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.clash.other import league_emoji
 from utility.constants import ROLES

@@ -8,7 +8,7 @@ import pytz
 from disnake.ext import commands
 
 from classes.bot import CustomClient
-from classes.player.stats import StatsPlayer
+from classes.database.models.player.stats import StatsPlayer
 from classes.tickets import LOG_TYPE, OpenTicket, TicketPanel
 from utility.discord_utils import interaction_handler
 

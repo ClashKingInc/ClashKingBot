@@ -2,7 +2,7 @@ import disnake
 import sentry_sdk
 from disnake.ext import commands
 
-from background.logs.events import reminder_ee
+from classes.events.gateway import reminder_ee
 from classes.bot import CustomClient
 from classes.reminders import Reminder
 from commands.reminders.send import clan_capital_reminder, war_reminder
