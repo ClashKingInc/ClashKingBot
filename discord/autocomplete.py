@@ -7,6 +7,7 @@ import pytz
 from coc.miscmodels import Timestamp
 from disnake.ext import commands
 from expiring_dict import ExpiringDict
+from setuptools.command.alias import alias
 
 from classes.bot import CustomClient
 from commands.help.utils import get_all_commands
@@ -454,6 +455,19 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
 
         # Return the first 25 suggestions
         return giveaway_list[:25]
+
+    async def user_armies(self, ctx: disnake.ApplicationCommandInteraction, query: str):
+        user_settings = await self.bot.user_settings.find_one({'discord_user': ctx.author.id})
+        user_settings = user_settings or {}
+        army_ids = user_settings.get('armies', [])
+        armies = await self.bot.army_share.find({"_id" : {"$in" : army_ids}}, {"embed" : 0}).to_list(length=25)
+
+        alias_list = []
+        for army in armies:
+            nickname = army['nickname']
+            if query.lower() in nickname.lower():
+                alias_list.append(f'{nickname} | {army["_id"]}')
+        return alias_list[:25]
 
 
 def setup(bot: CustomClient):
