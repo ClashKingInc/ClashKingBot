@@ -28,7 +28,7 @@ class MyAttachmentHandler(AttachmentHandler):
 
     async def process_asset(self, attachment: disnake.Attachment):
         # now we can generate the asset url from the identifier
-        asset_url = await upload_to_cdn(config=self.bunny_api_token, picture=attachment, reason='transcripts')
+        asset_url = await upload_to_cdn(api_token=self.bunny_api_token, picture=attachment, reason='transcripts')
 
         # and set the proxy url attribute of the attachment to the generated url
         attachment.proxy_url = asset_url

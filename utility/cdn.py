@@ -6,10 +6,10 @@ import disnake
 from classes.config import Config
 
 
-async def upload_to_cdn(config: Config, picture: disnake.Attachment, reason: str):
+async def upload_to_cdn(api_token: str, picture: disnake.Attachment, reason: str):
     headers = {
         'content-type': 'application/octet-stream',
-        'AccessKey': config.bunny_api_token,
+        'AccessKey': api_token,
     }
     payload = await picture.read()
     async with aiohttp.ClientSession() as session:
