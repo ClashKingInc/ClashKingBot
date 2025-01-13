@@ -822,30 +822,88 @@ class SetupCommands(commands.Cog, name='Setup'):
     async def link_parse(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        army_links: str = commands.Param(default=None, choices=['On', 'Off']),
-        player_links: str = commands.Param(default=None, choices=['On', 'Off']),
-        clan_links: str = commands.Param(default=None, choices=['On', 'Off']),
-        base_links: str = commands.Param(default=None, choices=['On', 'Off']),
+        army_links: str = commands.Param(default=None, choices=['On', 'Off'], description="Turn army links into an embed like /army"),
+        player_links: str = commands.Param(default=None, choices=['On', 'Off'], description="Turn player links into a simple info embed"),
+        clan_links: str = commands.Param(default=None, choices=['On', 'Off'], description="Turn clan links into an embed like /clan search"),
+        base_links: str = commands.Param(default=None, choices=['On', 'Off'], description="Turn base links into an embed like /base"),
         show_parse: str = commands.Param(default=None, description='the -show command', choices=['On', 'Off']),
+        manage_whitelist: bool = commands.Param(default=None, choices=['Yes', 'No'],
+                                                        converter=convert.basic_bool, description="Set parsing to only happen in specific channels"),
     ):
         await ctx.response.defer()
-        if army_links == player_links == clan_links is None:
-            pass
         ck_server = await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)
-        link_types = ['army', 'player', 'clan', 'base', 'show']
-        text = ''
-        for link_type, option in zip(link_types, [army_links, player_links, clan_links, base_links, show_parse]):
-            if option is None:
-                continue
-            await ck_server.set_allowed_link_parse(type=link_type, status=(option == 'On'))
-            text += f'- {link_type.capitalize()} Link Parse - `{option}`\n'
-        embed = disnake.Embed(
-            title=f'Link Parse Settings Updated',
-            description=text,
-            color=ck_server.embed_color,
-        )
-        embed.set_author(name=ctx.guild.name, icon_url=get_guild_icon(ctx.guild))
-        await ctx.send(embed=embed)
+
+        if manage_whitelist:
+            channel_select = disnake.ui.ChannelSelect(
+                placeholder="Select channels",
+                custom_id="channel_select",
+                max_values=25,
+                channel_types=[disnake.ChannelType.text]
+            )
+            remove_whitelist_button = disnake.ui.Button(
+                label="Remove All Whitelists", style=disnake.ButtonStyle.danger, custom_id="remove_whitelist"
+            )
+            await ctx.send(
+                content="Choose up to 25 channels to explicitly whitelist for parsing or remove whitelisting all together.\n"
+                        "-# Hint: Start typing to view more channels",
+                components=[
+                    [channel_select],
+                    [remove_whitelist_button],
+                ],
+            )
+
+            res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx)
+
+            if res.component.custom_id == "channel_select":
+                selected_channels = res.values
+                await ck_server.set_allowed_link_parse_channels(channel_ids=selected_channels)
+
+                # Create an embed for the selected channels
+                embed = disnake.Embed(
+                    title="Parse Whitelist Channels Updated",
+                    description="\n".join([f"<#{c}>" for c in selected_channels]),
+                    color=ck_server.embed_color
+                )
+                embed.set_footer(text="Changes saved successfully!")
+                await res.edit_original_message(
+                    content=None,  # Clear the content
+                    embed=embed,  # Add the embed
+                    components=[]  # Clear the components
+                )
+
+            elif res.component.custom_id == "remove_whitelist":
+                await ck_server.set_allowed_link_parse_channels(channel_ids=[])
+
+                # Create an embed for removing whitelist
+                embed = disnake.Embed(
+                    title="Parse Whitelist Channels Removed",
+                    description="All Parse Whitelisted Channels have been removed.",
+                    color=ck_server.embed_color
+                )
+                embed.set_footer(text="Changes saved successfully!")
+                await res.edit_original_message(
+                    content=None,  # Clear the content
+                    embed=embed,  # Add the embed
+                    components=[]  # Clear the components
+                )
+            return
+        else:
+            link_types = ['army', 'player', 'clan', 'base', 'show']
+            text = ''
+            for link_type, option in zip(link_types, [army_links, player_links, clan_links, base_links, show_parse]):
+                if option is None:
+                    continue
+                await ck_server.set_allowed_link_parse(type=link_type, status=(option == 'On'))
+                text += f'- {link_type.capitalize()} Link Parse - `{option}`\n'
+            if not text:
+                text = "No options were updated"
+            embed = disnake.Embed(
+                title=f'Link Parse Settings Updated',
+                description=text,
+                color=ck_server.embed_color,
+            )
+            embed.set_author(name=ctx.guild.name, icon_url=get_guild_icon(ctx.guild))
+            await ctx.send(embed=embed)
 
     @commands.slash_command(name='addclan', description='Add a clan to the server')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())

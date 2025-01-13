@@ -67,15 +67,3 @@ def reverse_encoding(embed_dict: dict):
         data['embeds'] = []
 
     return data
-
-
-async def shorten_link(url: str):
-    api_url = 'https://api.clashk.ing/shortner'
-    params = {'url': url}
-    async with aiohttp.ClientSession() as session:
-        async with session.get(api_url, params=params) as response:
-            if response.status == 200:
-                data = await response.json()
-                return data.get('url')
-            else:
-                return None

@@ -108,7 +108,7 @@ class Convert(commands.Cog, name='Convert'):
         raise MessageException(f'{hex_code} is not a valid hex color.')
 
     def basic_bool(self, statement: str):
-        if statement in ['Yes', 'True', 'Add']:
+        if statement in ['Yes', 'True', 'Add', "On"]:
             return True
         return False
 

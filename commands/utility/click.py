@@ -76,3 +76,20 @@ class UtilityButtons(commands.Cog):
                     color=disnake.Color.green(),
                 )
                 return await res.send(embed=embed, ephemeral=True)
+
+        elif str(res.data.custom_id).startswith("armyshare_"):
+            id = str(res.data.custom_id).split("_")[-1]
+            await self.bot.user_settings.update_one(
+                {"discord_user": res.user.id},
+                {"$addToSet": {"armies": id}}
+            )
+
+            # Trim the array to maintain max size of 25
+            await self.bot.user_settings.update_one(
+                {"discord_user": res.user.id},
+                {"$push": {"armies": {"$each": [], "$slice": -25}}}
+            )
+            await res.send(f"Army Saved! "
+                           f"Use {self.bot.command_mention('army share')} to manage/post/share your armies",
+                           ephemeral=True, delete_after=15)
+

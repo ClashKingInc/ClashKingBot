@@ -6,8 +6,9 @@ from classes.bot import CustomClient
 from discord import autocomplete
 from exceptions.CustomExceptions import MessageException
 from utility.discord_utils import check_commands
+from utility.general import shorten_link
 
-from .utils import encoded_data, reverse_encoding, shorten_link
+from .utils import encoded_data, reverse_encoding
 
 
 class Embeds(commands.Cog):

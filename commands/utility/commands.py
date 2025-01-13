@@ -3,9 +3,9 @@ import uuid
 import coc
 import disnake
 from disnake.ext import commands
-
+import pendulum as pend
 from classes.bot import CustomClient
-from discord import options
+from discord import options, autocomplete
 from exceptions.CustomExceptions import MessageException
 from utility.components import create_components
 from utility.constants import SUPER_TROOPS
@@ -13,6 +13,7 @@ from utility.discord_utils import interaction_handler
 
 from .click import UtilityButtons
 from .utils import army_embed, clan_boost_embeds, super_troop_embed
+from hashids import Hashids
 
 
 class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
@@ -22,18 +23,24 @@ class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
 
     @commands.slash_command(
         name='army',
-        description='Create a visual message representation of an army link',
+        description='Create & share visual representations of an army link',
         install_types=disnake.ApplicationInstallTypes.all(),
         contexts=disnake.InteractionContextTypes.all(),
     )
+    async def army(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
+
+    @army.sub_command(name="link",description='Create a visual message representation of an army link')
     @commands.cooldown(10, 5, commands.BucketType.user)
-    async def army(
+    async def army_link(
         self,
         ctx: disnake.ApplicationCommandInteraction,
         link: str,
         nickname: str = 'Army Link Results',
         clan_castle: str = commands.Param(default=None, max_length=150),
         equipment: str = commands.Param(default=None, max_length=150),
+        pets: str = commands.Param(default=None, max_length=150),
+        notes: str = commands.Param(default=None, max_length=150),
     ):
         """
         Parameters
@@ -41,12 +48,61 @@ class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
         link: an army link copied from in-game
         nickname: (optional) nickname for this army,
         clan_castle: (optional) clan castle to go with this army
+        equipment: (optional) equipment to go with this army
+        pets: (optional) pets to go with this army
+        notes: (optional) notes about this army
         """
         await ctx.response.defer()
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
-        embed = await army_embed(bot=self.bot, nick=nickname, link=link, clan_castle=clan_castle, equipment=equipment, embed_color=embed_color)
-        buttons = disnake.ui.ActionRow()
-        buttons.append_item(disnake.ui.Button(label=f'Copy Link', emoji=self.bot.emoji.troop.partial_emoji, url=link))
+        embed = await army_embed(bot=self.bot,
+                                 nick=nickname,
+                                 link=link,
+                                 clan_castle=clan_castle,
+                                 equipment=equipment,
+                                 pets=pets,
+                                 notes=notes,
+                                 embed_color=embed_color)
+        """
+        we save the saved army as an embed, this is in case underlying implementations change
+        """
+        hasher = Hashids(min_length=6)
+        id = hasher.encode(ctx.id)
+        await self.bot.army_share.insert_one({
+            "_id": id,
+            "link": link,
+            "nickname": nickname,
+            "embed": embed.to_dict(),
+        })
+        buttons = [
+            disnake.ui.Button(label=f'Copy Link', emoji=self.bot.emoji.troop.partial_emoji, url=link),
+            disnake.ui.Button(label="Save Army", style=disnake.ButtonStyle.green, custom_id=f"armyshare_{id}")
+        ]
+        await ctx.send(embed=embed, components=buttons)
+
+    @army.sub_command(name="share", description='Share your saved armies')
+    async def army_share(
+            self,
+            ctx: disnake.ApplicationCommandInteraction,
+            army: str = commands.Param(autocomplete=autocomplete.user_armies)
+    ):
+        """
+        Parameters
+        ----------
+        army: an army to share and post
+        """
+        await ctx.response.defer()
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+        army_id = army.split("|")[-1].strip()
+        result = await self.bot.army_share.find_one({"_id": army_id})
+        if not result:
+            raise MessageException(f"No matching army found for `{army}`")
+        embed = disnake.Embed().from_dict(data=result.get("embed"))
+        embed.colour = embed_color
+        buttons = [
+            disnake.ui.Button(label=f'Copy Link', emoji=self.bot.emoji.troop.partial_emoji, url=result.get("link")),
+            disnake.ui.Button(label="Save Army", style=disnake.ButtonStyle.green,
+                              custom_id=f"armyshare_{army_id}")
+        ]
         await ctx.send(embed=embed, components=buttons)
 
     @commands.slash_command(

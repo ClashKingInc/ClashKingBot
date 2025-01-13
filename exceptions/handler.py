@@ -221,7 +221,11 @@ class ExceptionHandler(commands.Cog):
             return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, ExpiredComponents):
-            return await ctx.edit_original_message(components=[])
+            message = await ctx.original_response()
+            rows = disnake.ui.ActionRow.rows_from_message(message)
+            for _, component in disnake.ui.ActionRow.walk_components(rows):
+                component.disabled = True
+            return await ctx.edit_original_response(components=rows)
 
         if isinstance(error, disnake.NotFound):
             return

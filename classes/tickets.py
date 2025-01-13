@@ -28,7 +28,7 @@ class MyAttachmentHandler(AttachmentHandler):
 
     async def process_asset(self, attachment: disnake.Attachment):
         # now we can generate the asset url from the identifier
-        asset_url = await upload_to_cdn(config=self.bunny_api_token, picture=attachment, reason='transcripts')
+        asset_url = await upload_to_cdn(api_token=self.bunny_api_token, picture=attachment, reason='transcripts')
 
         # and set the proxy url attribute of the attachment to the generated url
         attachment.proxy_url = asset_url
@@ -146,7 +146,7 @@ class BaseTicket:
             embed.set_author(name=user.name, icon_url=user.display_avatar.url)
             channel = self.ticket_close_log
 
-            buttons = disnake.ui.ActionRow()
+            buttons = []
             transcript = await chat_exporter.export(
                 ticket_channel, attachment_handler=MyAttachmentHandler(bunny_api_token=self.bot._config.bunny_api_token)
             )
@@ -155,7 +155,7 @@ class BaseTicket:
                 bytes_=io.BytesIO(transcript.encode()),
                 id=f'transcript-{ticket_channel.id}',
             )
-            buttons.append_item(disnake.ui.Button(label=f'Channel', url=link))
+            buttons.append(disnake.ui.Button(label=f'Channel', url=link))
 
             if ticket.thread is not None:
                 thread_channel = await self.bot.getch_channel(channel_id=ticket.thread)
@@ -168,7 +168,7 @@ class BaseTicket:
                         bytes_=io.BytesIO(transcript.encode()),
                         id=f'transcript-{thread_channel.id}',
                     )
-                    buttons.append_item(disnake.ui.Button(label=f'Thread', url=link))
+                    buttons.append(disnake.ui.Button(label=f'Thread', url=link))
             components = [buttons]
 
         try:

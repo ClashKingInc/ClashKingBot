@@ -28,7 +28,8 @@ class LinkParsing(commands.Cog):
 
             if 'https://link.clashofclans.com/' in message.content and 'action=OpenPlayerProfile&tag=' in message.content:
                 server_settings = await self.bot.ck_client.get_server_settings(server_id=message.guild.id)
-                if not server_settings.player_link_parse:
+                if (not server_settings.player_link_parse or
+                        (server_settings.link_parse_channels and message.channel.id not in server_settings.link_parse_channels)):
                     return
 
                 tag = self.extract_url(text=message.content)
@@ -55,7 +56,8 @@ class LinkParsing(commands.Cog):
 
             elif 'https://link.clashofclans.com/' in message.content and 'OpenClanProfile' in message.content:
                 server_settings = await self.bot.ck_client.get_server_settings(server_id=message.guild.id)
-                if not server_settings.clan_link_parse:
+                if (not server_settings.clan_link_parse or
+                        (server_settings.link_parse_channels and message.channel.id not in server_settings.link_parse_channels)):
                     return
 
                 clan_tag = self.extract_url(message.content)
@@ -76,7 +78,8 @@ class LinkParsing(commands.Cog):
 
             elif 'https://link.clashofclans.com/' in message.content and 'CopyArmy' in message.content:
                 server_settings = await self.bot.ck_client.get_server_settings(server_id=message.guild.id)
-                if not server_settings.army_link_parse:
+                if (not server_settings.army_link_parse or
+                        (server_settings.link_parse_channels and message.channel.id not in server_settings.link_parse_channels)):
                     return
                 embed = await army_embed(
                     bot=self.bot,
@@ -103,7 +106,8 @@ class LinkParsing(commands.Cog):
                 and 'image' in message.attachments[0].content_type
             ):
                 server_settings = await self.bot.ck_client.get_server_settings(server_id=message.guild.id)
-                if not server_settings.base_link_parse:
+                if (not server_settings.base_link_parse or
+                        (server_settings.link_parse_channels and message.channel.id not in server_settings.link_parse_channels)):
                     return
                 base_url = self.extract_url(text=message.content, url_only=True)
                 description = message.content.replace(base_url, '')

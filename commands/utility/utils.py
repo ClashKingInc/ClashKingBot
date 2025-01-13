@@ -9,10 +9,113 @@ import pendulum as pd
 
 from classes.bot import CustomClient
 from exceptions.CustomExceptions import MessageException
-from utility.constants import EMBED_COLOR_CLASS, MAX_ARMY_CAMP, MAX_NUM_SPELLS
+from utility.constants import EMBED_COLOR_CLASS
 from utility.discord_utils import iter_embed_creation
 from utility.time import format_time
 
+async def generate_dictionary(bot: CustomClient, context: str, user_prompt: str):
+    try:
+        openai.api_key = bot._config.open_ai_key
+        response = await openai.ChatCompletion.acreate(
+            model='gpt-4o-mini',
+            messages=[
+                {'role': 'system', 'content': context},
+                {'role': 'user', 'content': user_prompt}
+            ],
+            max_tokens=2000,  # Adjust token limit as needed
+            temperature=0.7,  # Adjust creativity level
+        )
+        response_content = response['choices'][0]['message']['content']
+        return ast.literal_eval(response_content)
+    except Exception:
+        return {}
+
+async def generate_equipment(bot: CustomClient, equipment: str) -> str:
+    try:
+        context = """
+                You are an assistant designed to help users turn their clash of clans 
+                equipment selections into a python readable dictionary
+                """
+        user_prompt = f"""
+                These are the current equipment: {str(coc.enums.EQUIPMENT)}, these are my equipment: {equipment}.
+                Give me a python readable dictionary like equipment: quantity, using the closest available options.
+                If there is no available close and accurate option, please skip. Return ONLY a dictionary and nothing else,
+                even if empty. Do NOT return in a code block, please.
+                """
+        equip_dict = await generate_dictionary(bot=bot, context=context, user_prompt=user_prompt)
+        equipment = ''
+        for hero_name in coc.enums.HOME_BASE_HERO_ORDER:
+            heroes_equipment = ''
+            for name, _ in equip_dict.items():
+                gear = bot.coc_client.get_equipment(name=name)
+                if gear.hero == hero_name:
+                    emoji = bot.fetch_emoji(gear.name)
+                    heroes_equipment += f'- {emoji} {gear.name}\n'
+            if heroes_equipment:
+                emoji = bot.fetch_emoji(hero_name)
+                equipment += f'{emoji} {hero_name} \n{heroes_equipment}'
+    except Exception:
+        pass
+
+    return equipment
+
+
+async def generate_pets(bot: CustomClient, pets: str) -> str:
+    try:
+        context = """
+                You are an assistant designed to help users turn their clash of clans 
+                pet selections into a python readable dictionary
+                """
+        user_prompt = f"""
+                These are the current pets: {str(coc.enums.PETS_ORDER)}, these are my pets: {pets}.
+                Give me a python readable list like [pet1, pet2, pet3], using the closest available options.
+                If there is no available close and accurate option, please skip. Return ONLY a list and nothing else,
+                even if empty. Do NOT return in a code block, please.
+                """
+        pet_list = await generate_dictionary(bot=bot, context=context, user_prompt=user_prompt)
+        pets = ''
+        for pet in pet_list:
+            emoji = bot.fetch_emoji(pet)
+            pets += f'{emoji}'
+    except Exception:
+        pass
+
+    return pets
+
+async def generate_clan_castle(bot: CustomClient, clan_castle: str) -> tuple[str, int]:
+    cc_space = 0
+    try:
+        context = """
+                You are an assistant designed to help users turn their clash of clans clan castle - troop & spell
+                selections into a python readable dictionary
+                """
+        user_prompt = f"""
+                        These are the current troops & spells: {str(coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER)}, 
+                        these are my spells and troops: {clan_castle}.
+                        Give me a python readable dictionary like troop/spell: quantity, using the closest available options.
+                        If there is no available close and accurate option, please skip. Return ONLY a dictionary and nothing else,
+                        even if empty. Do NOT return in a code block, please.
+                        """
+
+        castle_dict = await generate_dictionary(bot=bot, context=context, user_prompt=user_prompt)
+        troops = spells = ''
+        for name, quantity in castle_dict.items():  # type: str, int
+            item = bot.coc_client.get_troop(name=name)
+            if item is None:
+                item = bot.coc_client.get_spell(name=name)
+            if not item:
+                continue
+            emoji = bot.fetch_emoji(item.name)
+            if item.name in coc.enums.SPELL_ORDER:
+                spells += f'{emoji}`x {str(quantity)}` {item.name}\n'
+            elif item.name in coc.enums.HOME_TROOP_ORDER:
+                troops += f'{emoji}`x {str(quantity)}` {item.name}\n'
+                if not item.is_siege_machine:
+                    cc_space += item.housing_space * int(quantity)
+        clan_castle = troops + spells
+    except Exception as e:
+        pass
+    return clan_castle, cc_space
 
 async def army_embed(
     bot: CustomClient,
@@ -20,6 +123,8 @@ async def army_embed(
     link: str,
     clan_castle: str = None,
     equipment: str = None,
+    pets: str = None,
+    notes: str = None,
     embed_color: disnake.Color = EMBED_COLOR_CLASS,
 ):
     troops_list, spell_list = bot.coc_client.parse_army_link(link=link)
@@ -51,94 +156,35 @@ async def army_embed(
         spell_train_time += spell.training_time.total_seconds() * quantity
 
     minimum_th = max(minimum_th, army_camp_size(troop_space))
+    description =\
+    f'-# {bot.fetch_emoji(minimum_th)}Minimum Required Townhall: {minimum_th}\n'\
+    f'-# {bot.emoji.clock} Training Time: {format_time(max(troop_train_time, spell_train_time))}\n'
+
+    if notes:
+        description += f"-# {bot.emoji.pin} Notes: {notes}\n"
     embed = disnake.Embed(
         title=nick,
-        description=f'-# {bot.fetch_emoji(minimum_th)}Minimum Required Townhall: {minimum_th}\n'
-        f'-# {bot.emoji.clock} Training Time: {format_time(max(troop_train_time, spell_train_time))}\n',
+        description=description,
         color=embed_color,
     )
     for field, content in zip(['Troops', 'Super Troops', 'Spells', 'Siege Machines'], [troops, super_troops, spells, siege_machines]):
         if content:
             embed.add_field(name=field, value=content + '­', inline=False)
 
-    if equipment:
-        try:
-            context = """
-                    You are an assistant designed to help users turn their clash of clans 
-                    equipment and clan castle selections into a python readable dictionary
-                    """
-            user_prompt = f"""
-                    These are the current equipment: {str(coc.enums.EQUIPMENT)}, these are my equipment: {equipment}.
-                    Give me a python readable dictionary like equipment: quantity, using the closest available options.
-                    If there is no available close and accurate option, please skip. Return ONLY a dictionary and nothing else,
-                    even if empty. Do NOT return in a code block, please.
-                    """
-            openai.api_key = bot._config.open_ai_key
-            response = await openai.ChatCompletion.acreate(
-                model='gpt-4o-mini',
-                messages=[{'role': 'system', 'content': context}, {'role': 'user', 'content': user_prompt}],
-                max_tokens=2000,  # Adjust token limit as needed
-                temperature=0.7,  # Adjust creativity level
-            )
-
-            response = response['choices'][0]['message']['content']
-            equip_dict = ast.literal_eval(response)
-            equipment = ''
-            for hero_name in coc.enums.HOME_BASE_HERO_ORDER:
-                heroes_equipment = ''
-                for name, _ in equip_dict.items():
-                    gear = bot.coc_client.get_equipment(name=name)
-                    if gear.hero == hero_name:
-                        emoji = bot.fetch_emoji(gear.name)
-                        heroes_equipment += f'- {emoji} {gear.name}\n'
-                if heroes_equipment:
-                    emoji = bot.fetch_emoji(hero_name)
-                    equipment += f'{emoji} {hero_name} \n{heroes_equipment}'
-        except Exception:
-            pass
+    if equipment or pets:
+        equipment = await generate_equipment(bot=bot, equipment=equipment)
         if clan_castle:
             equipment += f'­'
-        embed.add_field(name='Equipment', value=f'{equipment}', inline=False)
+        embed.add_field(name='Heroes & Equipment', value=f'{equipment}', inline=False)
+
+    if pets:
+        pets = await generate_pets(bot=bot, pets=pets)
+        if clan_castle:
+            pets += f'\n­'
+        embed.add_field(name='Pets', value=f'{pets}', inline=False)
 
     if clan_castle:
-        try:
-            context = """
-                            You are an assistant designed to help users turn their clash of clans 
-                            equipment and clan castle selections into a python readable dictionary
-                            """
-            user_prompt = f"""
-                            These are the current troops & spells: {str(coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER)}, 
-                            these are my spells and troops: {clan_castle}.
-                            Give me a python readable dictionary like troop/spell: quantity, using the closest available options.
-                            If there is no available close and accurate option, please skip. Return ONLY a dictionary and nothing else,
-                            even if empty. Do NOT return in a code block, please.
-                            """
-            openai.api_key = bot._config.open_ai_key
-            response = await openai.ChatCompletion.acreate(
-                model='gpt-4o-mini',
-                messages=[{'role': 'system', 'content': context}, {'role': 'user', 'content': user_prompt}],
-                max_tokens=2000,  # Adjust token limit as needed
-                temperature=0.7,  # Adjust creativity level
-            )
-            response = response['choices'][0]['message']['content']
-            castle_dict = ast.literal_eval(response)
-            troops = spells = ''
-            for name, quantity in castle_dict.items():  # type: str, int
-                item = bot.coc_client.get_troop(name=name)
-                if item is None:
-                    item = bot.coc_client.get_spell(name=name)
-                if not item:
-                    continue
-                emoji = bot.fetch_emoji(item.name)
-                if item.name in coc.enums.SPELL_ORDER:
-                    spells += f'{emoji}`x {str(quantity)}` {item.name}\n'
-                elif item.name in coc.enums.HOME_TROOP_ORDER:
-                    troops += f'{emoji}`x {str(quantity)}` {item.name}\n'
-                    if not item.is_siege_machine:
-                        cc_space += item.housing_space * int(quantity)
-            clan_castle = troops + spells
-        except Exception as e:
-            pass
+        clan_castle, cc_space = await generate_clan_castle(bot=bot, clan_castle=clan_castle)
         embed.add_field(name='Clan Castle', value=f'{clan_castle}', inline=False)
 
     embed.set_footer(text=f'{troop_space} Troop Space | {spell_space} Spell Space | {cc_space} CC Troop')
