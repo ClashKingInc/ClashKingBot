@@ -52,17 +52,6 @@ async def add_ban(
         )
         ban_type = 'updated'
     else:
-        print(
-            {
-                'VillageTag': player.tag,
-                'DateCreated': dt_string,
-                'Notes': reason,
-                'server': guild.id,
-                'added_by': added_by.id,
-                'rollover_date': rollover_days,
-                'name': player.name,
-            }
-        )
         await bot.banlist.insert_one(
             {
                 'VillageTag': player.tag,
