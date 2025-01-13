@@ -107,6 +107,7 @@ class CustomClient(commands.AutoShardedBot):
         self.tokens_db: collection_class = self.looper_db.clashking.tokens
         self.lineups: collection_class = self.looper_db.clashking.lineups
         self.bot_sync: collection_class = self.looper_db.clashking.bot_sync
+        self.army_share: collection_class = self.looper_db.clashking.army_share
 
         self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(
             discordlinks.login(self._config.link_api_username, self._config.link_api_password)
@@ -231,6 +232,10 @@ class CustomClient(commands.AutoShardedBot):
 
     async def create_new_badge_emoji(self, url: str):
         return self.emoji.blank.emoji_string
+
+    def command_mention(self, command: str) -> str:
+        global_command = self.get_global_command_named(name=command.replace('-/', '').split(' ')[0])
+        return f"</{command.replace('-/', '')}:{global_command.id}>"
 
     def get_locale(self, ctx: disnake.Interaction) -> disnake.Locale:
 
