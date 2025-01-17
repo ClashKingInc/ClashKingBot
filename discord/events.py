@@ -270,7 +270,6 @@ class DiscordEvents(commands.Cog):
                     '“With great power comes great responsibility… and code ClashKing!”',
                     '“Clashing is temporary, but using code ClashKing is forever.”',
                     '“Actions speak louder than words. Use code ClashKing.”',
-                    '“Gems are a girl’s best friend, but they’re better with ClashKing.”',
                     '“Rome wasn’t built in a day, but it probably used code ClashKing for the gems.”',
                     '“ClashKing isn’t just a creator code; it’s a lifestyle.”',
                     '“The journey of a thousand raids begins with code ClashKing.”',
