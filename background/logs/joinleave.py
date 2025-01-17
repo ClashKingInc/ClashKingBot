@@ -10,7 +10,7 @@ from classes.DatabaseClient.Classes.settings import DatabaseClan
 from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.clash.other import basic_heros, leagueAndTrophies
 from utility.discord_utils import get_webhook_for_channel
-
+from commands.bans.utils import add_ban
 
 class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
     def __init__(self, bot: CustomClient):
@@ -241,8 +241,7 @@ class join_leave_events(commands.Cog, name='Clan Join & Leave Events'):
 
             # await modal_inter.response.defer()
             ban_reason = modal_inter.text_values['ban_reason']
-            ban_cog = self.bot.get_cog(name='Bans')
-            embed = await ban_cog.ban_player(ctx, player, ban_reason)
+            embed = await add_ban(bot=self.bot, player=player, added_by=ctx.user, guild=ctx.guild, reason=ban_reason, rollover_days=None, dm_player=None)
             await modal_inter.send(embed=embed)
 
         if 'jlstrike_' in ctx.data.custom_id:
