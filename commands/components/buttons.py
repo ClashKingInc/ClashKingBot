@@ -6,7 +6,7 @@ from disnake.ext import commands
 from classes.bot import CustomClient
 from utility.components import button_generator
 from utility.discord_utils import registered_functions
-
+import pendulum as pend
 
 async def button_logic(
     button_data: str,
@@ -78,6 +78,9 @@ async def button_logic(
     if pagination and isinstance(embed, list):
         components = button_generator(button_id=':'.join(split_data), current_page=page, max_page=len(embed), bot=bot)
         embed = embed[min(len(embed) - 1, page)]
+
+    if isinstance(embed, disnake.Embed):
+        embed.timestamp = pend.now(tz=pend.UTC)
 
     if no_embed:
         return None, 0
