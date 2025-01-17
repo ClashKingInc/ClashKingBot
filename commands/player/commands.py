@@ -1,6 +1,5 @@
 import disnake
 from disnake.ext import commands
-from disnake.ext.commands import dm_only
 
 from classes.bot import CustomClient
 from classes.player.stats import StatsPlayer
@@ -8,8 +7,8 @@ from discord.options import autocomplete, convert
 from exceptions.CustomExceptions import *
 from utility.player_pagination import button_pagination
 from utility.search import search_results
-
-from .utils import player_accounts, to_do_embed
+from utility.components import button_generator
+from .utils import player_accounts, to_do_embed, player_todo_settings
 
 
 
@@ -93,27 +92,17 @@ class PlayerCommands(commands.Cog, name='Player Commands'):
         self,
         ctx: disnake.ApplicationCommandInteraction,
         discord_user: disnake.Member = None,
+        settings: bool = commands.Param(default=None, choices=["True"], converter=convert.basic_bool)
     ):
-
+        if settings:
+            return await player_todo_settings(bot=self.bot, ctx=ctx)
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
         discord_user = discord_user or ctx.author
 
-        buttons = disnake.ui.ActionRow(
-            disnake.ui.Button(
-                label='',
-                emoji=self.bot.emoji.refresh.partial_emoji,
-                style=disnake.ButtonStyle.grey,
-                custom_id=f'playertodo:{discord_user.id}',
-            ),
-            disnake.ui.Button(
-                label='',
-                emoji=self.bot.emoji.gear.partial_emoji,
-                style=disnake.ButtonStyle.grey,
-                custom_id=f'playertodosettings:ctx',
-            ),
-        )
-        embed = await to_do_embed(bot=self.bot, discord_user=discord_user, embed_color=embed_color)
-        await ctx.edit_original_message(embed=embed, components=buttons)
+        embeds = await to_do_embed(bot=self.bot, discord_user=discord_user, embed_color=embed_color)
+        buttons = button_generator(bot=self.bot, button_id=f'playertodo:{discord_user.id}',
+                                   current_page=0, max_page=len(embeds))
+        await ctx.edit_original_message(embed=embeds[0], components=buttons)
 
     '''@player.sub_command(name="war-stats", description="War stats of a player or discord user")
     async def war_stats_player(self, ctx: disnake.ApplicationCommandInteraction,

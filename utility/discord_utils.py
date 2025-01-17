@@ -1,9 +1,13 @@
-import os
+from linecache import cache
 from typing import Any, Callable, Dict, List, Tuple, Union
+import functools
 
+import asyncio
 import disnake
 import motor.motor_asyncio
 from disnake.ext import commands
+from expiring_dict import ExpiringDict
+from aiocache import SimpleMemoryCache, cached
 
 from exceptions.CustomExceptions import *
 from main import config
@@ -224,10 +228,15 @@ def iter_embed_creation(base_embed: disnake.Embed, iter: List, scheme: str, brk:
 
 
 registered_functions: Dict[str, Tuple[Callable[..., None] | None, str, bool, bool, bool]] = {}
+cache_store = ExpiringDict(ttl=300)
+
+
 
 
 def register_button(command_name: str, parser: str, ephemeral: bool = False, no_embed: bool = False, pagination: bool = False):
     def decorator(func: Callable[..., None]) -> Callable[..., None]:
+        if pagination:
+            func = cached(ttl=300, cache=SimpleMemoryCache)(func)
         registered_functions[command_name] = (func, parser, ephemeral, no_embed, pagination)
         return func
 

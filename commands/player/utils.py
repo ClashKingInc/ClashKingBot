@@ -651,8 +651,8 @@ async def player_accounts(bot: CustomClient, discord_user: disnake.Member, embed
     return embed
 
 
-@register_button('playertodo', parser='_:discord_user')
-async def to_do_embed(bot: CustomClient, discord_user: disnake.Member, embed_color: disnake.Color):
+@register_button('playertodo', parser='_:discord_user', pagination=True)
+async def to_do_embed(bot: CustomClient, discord_user: disnake.Member, embed_color: disnake.Color) -> list[disnake.Embed]:
 
     user_settings = await bot.user_settings.find_one({'discord_id': discord_user.id})
     if user_settings:
@@ -664,41 +664,59 @@ async def to_do_embed(bot: CustomClient, discord_user: disnake.Member, embed_col
     if not linked_accounts:
         raise NoLinkedAccounts
 
-    embed = disnake.Embed(title=f'{discord_user.display_name} To-Do List', color=embed_color)
+    embed_list = []
+    current_embed = disnake.Embed(title=f'{discord_user.display_name} To-Do List', color=embed_color)
+    sections = []
 
     war_hits_to_do = await get_war_hits(bot=bot, linked_accounts=linked_accounts)
-    if war_hits_to_do != '':
-        embed.add_field(name='War Hits', value=war_hits_to_do, inline=False)
+    if war_hits_to_do:
+        sections.append(f'**War Hits:**\n {war_hits_to_do}')
 
     legend_hits_to_do = await get_legend_hits(linked_accounts=linked_accounts)
-    if legend_hits_to_do != '':
-        embed.add_field(name='Legend Hits', value=legend_hits_to_do, inline=False)
+    if legend_hits_to_do:
+        sections.append(f'**Legend Hits:**\n {legend_hits_to_do}')
 
     if is_raids():
         raid_hits_to_do = await get_raid_hits(bot=bot, linked_accounts=linked_accounts)
-        if raid_hits_to_do != '':
-            embed.add_field(name='Raid Hits', value=raid_hits_to_do, inline=False)
+        if raid_hits_to_do:
+            sections.append(f'**Raid Hits:**\n {raid_hits_to_do}')
 
     clangames_to_do = await get_clan_games(linked_accounts=linked_accounts)
-    if clangames_to_do != '':
-        embed.add_field(name='Clan Games', value=clangames_to_do, inline=False)
+    if clangames_to_do:
+        sections.append(f'**Clan Games:**\n {clangames_to_do}')
 
     pass_to_do = await get_pass(bot=bot, linked_accounts=linked_accounts)
-    if pass_to_do != '':
-        embed.add_field(name='Season Pass (Top 10)', value=pass_to_do, inline=False)
+    if pass_to_do:
+        sections.append(f'**Season Pass (Top 10):**\n {pass_to_do}')
 
     inactive_to_do = await get_inactive(linked_accounts=linked_accounts)
-    if inactive_to_do != '':
-        embed.add_field(name='Inactive Accounts (48+ hr)', value=inactive_to_do, inline=False)
+    if inactive_to_do:
+        sections.append(f'**Inactive Accounts (48+ hr):**\n {inactive_to_do}')
 
     donation_to_do = await get_last_donated(bot=bot, linked_accounts=linked_accounts)
-    if donation_to_do != '':
-        embed.add_field(name='Capital Dono (24+ hr)', value=donation_to_do, inline=False)
+    if donation_to_do:
+        sections.append(f'**Capital Dono (24+ hr):**\n {donation_to_do}')
 
-    if len(embed.fields) == 0:
-        embed.description = "You're all caught up chief!"
-    embed.timestamp = pend.now(tz=pend.UTC)
-    return embed
+    if not sections:
+        current_embed.description = "You're all caught up, chief!"
+    else:
+        description = ""
+        for section in sections:
+            if len(description) + len(section) + 2 > 4000:
+                current_embed.description = description
+                current_embed.timestamp = pend.now(tz=pend.UTC)
+                embed_list.append(current_embed)
+                current_embed = disnake.Embed(title=f'{discord_user.display_name} To-Do List (Cont.)',
+                                              color=embed_color)
+                description = section
+            else:
+                description += f'{section}­\n'
+
+        current_embed.description = description
+
+    current_embed.timestamp = pend.now(tz=pend.UTC)
+    embed_list.append(current_embed)
+    return embed_list
 
 
 async def get_war_hits(bot: CustomClient, linked_accounts: List[StatsPlayer]):
@@ -734,8 +752,7 @@ async def get_war_hits(bot: CustomClient, linked_accounts: List[StatsPlayer]):
     return war_hits
 
 
-@register_button('playertodosettings', parser='_:ctx', ephemeral=True, no_embed=True)
-async def player_todo_settings(bot: CustomClient, ctx: disnake.MessageInteraction):
+async def player_todo_settings(bot: CustomClient, ctx: disnake.ApplicationCommandInteraction):
 
     user_accounts = await bot.link_client.get_linked_players(discord_id=ctx.user.id)
     user_accounts = await bot.get_players(tags=user_accounts, use_cache=True, custom=False)
@@ -877,7 +894,7 @@ async def get_raid_hits(bot: CustomClient, linked_accounts: List[StatsPlayer]):
 async def get_inactive(linked_accounts: List[StatsPlayer]):
     now = int(pend.now(tz=pend.UTC).timestamp())
     inactive_text = ''
-    for player in linked_accounts:
+    for player in sorted(linked_accounts, key=lambda x : x.last_online or 0, reverse=True):
         last_online = player.last_online
         # 48 hours in seconds
         if last_online is None:
