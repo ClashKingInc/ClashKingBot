@@ -66,7 +66,12 @@ async def button_logic(
 
     embed_color = await bot.ck_client.get_server_embed_color(server_id=None if not guild else guild.id)
     hold_kwargs['embed_color'] = embed_color
-    hold_kwargs = {key: hold_kwargs[key] for key in inspect.getfullargspec(function).args}
+    # Ensure function signature respects wrapped functions
+    signature = inspect.signature(function)
+    valid_keys = list(signature.parameters.keys())
+
+    # Keep only valid keys
+    hold_kwargs = {key: hold_kwargs[key] for key in valid_keys if key in hold_kwargs}
     embed = await function(**hold_kwargs)
 
     components = 0
