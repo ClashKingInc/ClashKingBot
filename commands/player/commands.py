@@ -12,8 +12,6 @@ from utility.search import search_results
 from .utils import player_accounts, to_do_embed
 
 
-# from CommandsOlder.Utils.Player import create_profile_troops
-
 
 class PlayerCommands(commands.Cog, name='Player Commands'):
     def __init__(self, bot: CustomClient):
@@ -64,54 +62,6 @@ class PlayerCommands(commands.Cog, name='Player Commands'):
         msg = await ctx.original_message()
         await button_pagination(self.bot, ctx, msg, results)
 
-    @player.sub_command(name='upgrades', description='Show upgrades left for an account')
-    async def upgrades(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        player_tag: str = None,
-        discord_user: disnake.Member = None,
-    ):
-        raise MessageException('Command under construction')
-        if player_tag is None and discord_user is None:
-            search_query = str(ctx.author.id)
-        elif player_tag is not None:
-            search_query = player_tag
-        else:
-            search_query = str(discord_user.id)
-
-        player = await self.bot.getPlayer(player_tag=player_tag, custom=True, raise_exceptions=True)
-        embed = await create_profile_troops(bot=self.bot, result=player)
-        components = []
-        """if len(players) > 1:
-            player_results = []
-            for count, player in enumerate(players):
-                player_results.append(
-                    disnake.SelectOption(label=f"{player.name}", emoji=player.town_hall_cls.emoji.partial_emoji,
-                                         value=f"{count}"))
-            profile_select = disnake.ui.Select(options=player_results, placeholder="Accounts", max_values=1)
-            st2 = disnake.ui.ActionRow()
-            st2.append_item(profile_select)
-            components = [st2]"""
-        await ctx.send(embeds=embed, components=components)
-        msg = await ctx.original_message()
-
-        def check(res: disnake.MessageInteraction):
-            return res.message.id == msg.id
-
-        while True:
-            try:
-                res: disnake.MessageInteraction = await self.bot.wait_for('message_interaction', check=check, timeout=600)
-            except:
-                try:
-                    await ctx.edit_original_message(components=[])
-                except:
-                    pass
-                break
-
-            await res.response.defer()
-            current_page = int(res.values[0])
-            embed = await create_profile_troops(self.bot, players[current_page])
-            await res.edit_original_message(embeds=embed)
 
     @player.sub_command(name='accounts', description='List of accounts a user has & combined stats')
     async def accounts(
