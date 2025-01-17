@@ -31,7 +31,8 @@ def button_generator(bot: CustomClient, button_id: str, current_page: int, max_p
         disnake.ui.Button(
             label=f'{current_page + 1}/{max_page}',
             style=disnake.ButtonStyle.grey,
-            disabled=True,
+            custom_id=f'{button_id}:page={current_page if current_page != 0 else -2}',
+            disabled=False,
         ),
         disnake.ui.Button(
             label='Next',
