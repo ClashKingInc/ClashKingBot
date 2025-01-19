@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import pendulum as pend
 import coc
 
+
 class DiscordTimeStamp:
     def __init__(self, date: pend.DateTime):
         self.slash_date = f'<t:{date.int_timestamp}:d>'
@@ -9,6 +10,7 @@ class DiscordTimeStamp:
         self.time_only = f'<t:{date.int_timestamp}:t>'
         self.full_date = f'<t:{date.int_timestamp}:F>'
         self.relative = f'<t:{date.int_timestamp}:R>'
+
 
 def ts(date: pend.DateTime) -> DiscordTimeStamp:
     """
@@ -18,7 +20,6 @@ def ts(date: pend.DateTime) -> DiscordTimeStamp:
     :return: A DiscordTimeStamp object containing formatted Discord timestamp strings.
     """
     return DiscordTimeStamp(date=date)
-
 
 
 def time_difference(start: datetime, end: datetime):
@@ -52,7 +53,6 @@ def format_time(seconds):
         return f'{seconds} sec'
 
 
-
 def convert_seconds(seconds):
     if seconds is None:
         return 'N/A'
@@ -83,6 +83,7 @@ def smart_convert_seconds(seconds, granularity=2):
             result.append('{}{}'.format(int(value), name))
     return ' '.join(result[:granularity])
 
+
 def gen_raid_date():
     now = pend.now(tz=pend.UTC)
     current_dayofweek = now.day_of_week  # Monday = 0, Sunday = 6
@@ -98,6 +99,7 @@ def gen_raid_date():
         raid_date = now.add(days=forward).date()
     return str(raid_date)
 
+
 def gen_season_date(num_seasons: int = 0, as_text: bool = True) -> str | list[str]:
     """
     Generates season dates based on the number of seasons ago.
@@ -108,7 +110,7 @@ def gen_season_date(num_seasons: int = 0, as_text: bool = True) -> str | list[st
     """
 
     def format_date(date: pend.DateTime, text_format: bool) -> str:
-        return f"{calendar.month_name[date.month]} {date.year}" if text_format else date.format("YYYY-MM")
+        return f'{calendar.month_name[date.month]} {date.year}' if text_format else date.format('YYYY-MM')
 
     end_date = pend.instance(coc.utils.get_season_end().replace(tzinfo=pend.UTC))
 
@@ -123,10 +125,12 @@ def gen_legend_date():
     date = now.subtract(days=1).date() if now.hour < 5 else now.date()
     return str(date)
 
+
 def gen_games_season():
     now = pend.now(tz=pend.UTC)
     month = f'{now.month:02}'  # Ensure two-digit month
     return f'{now.year}-{month}'
+
 
 def is_raids():
     """
@@ -137,15 +141,18 @@ def is_raids():
     monday_7am = now.start_of('week').add(days=7, hours=7)
     return friday_7am <= now < monday_7am
 
+
 def is_cwl():
     now = pend.now(tz=pend.UTC)
     return 1 <= now.day <= 10 and not ((now.day == 1 and now.hour < 8) or (now.day == 11 and now.hour >= 8))
+
 
 def is_clan_games():
     now = pend.now(tz=pend.UTC)
     start = now.start_of('month').add(days=21, hours=8)  # 22nd at 08:00 UTC
     end = now.start_of('month').add(days=27, hours=8)  # 28th at 08:00 UTC
     return start <= now < end
+
 
 def season_start_end(season: str, gold_pass_season: bool = False):
     """
@@ -161,13 +168,13 @@ def season_start_end(season: str, gold_pass_season: bool = False):
         prev_year = year - 1 if month == 1 else year
 
         season_start = pend.from_timestamp(
-            coc.utils.get_season_start(month=prev_month, year=prev_year).timestamp(), tz="UTC"
+            coc.utils.get_season_start(month=prev_month, year=prev_year).timestamp(), tz='UTC'
         )
         season_end = pend.from_timestamp(
-            coc.utils.get_season_end(month=prev_month, year=prev_year).timestamp(), tz="UTC"
+            coc.utils.get_season_end(month=prev_month, year=prev_year).timestamp(), tz='UTC'
         )
     else:
-        season_start = pend.datetime(year, month, 1, tz="UTC")  # First day of the month
+        season_start = pend.datetime(year, month, 1, tz='UTC')  # First day of the month
         season_end = season_start.add(months=1)  # First day of the next month
 
     return season_start, season_end

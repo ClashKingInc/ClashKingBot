@@ -59,7 +59,6 @@ async def add_clan(bot: CustomClient, clan: coc.Clan, ctx: ApplicationCommandInt
         return await res.response.edit_message(embed=embed, components=None)
 
 
-
 async def create_countdown_text(type, war: coc.ClanWar = None) -> str:
     text = ''
     now = datetime.utcnow().replace(tzinfo=utc)
@@ -268,4 +267,3 @@ async def create_countdown_text(type, war: coc.ClanWar = None) -> str:
                 text = f'{hrs}H {mins}M'
 
     return text
-

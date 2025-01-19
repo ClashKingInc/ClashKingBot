@@ -22,8 +22,6 @@ class EmojiType:
         return emoji
 
 
-
-
 class Emojis:
     def __init__(self, bot: 'CustomClient'):
         self.animated_clash_swords = EmojiType(bot.loaded_emojis.get('animated_clash_swords'))

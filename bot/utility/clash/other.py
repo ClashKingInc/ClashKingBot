@@ -14,8 +14,6 @@ if TYPE_CHECKING:
     from classes.bot import CustomClient
 
 
-
-
 async def superTroops(player, asArray=False):
     troops = player.troop_cls
     troops = player.troops
@@ -143,7 +141,6 @@ def troops(player, bot: 'CustomClient'):
     troopList += '\n' + levelList
 
     return troopList
-
 
 
 def siegeMachines(player, bot: 'CustomClient'):
@@ -283,13 +280,3 @@ def league_to_emoji(bot: 'CustomClient', league: str):
     if emoji is None:
         emoji = bot.fetch_emoji('unranked')
     return emoji
-
-
-
-
-
-
-
-
-
-

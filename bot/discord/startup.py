@@ -6,6 +6,7 @@ import requests
 from classes.bot import CustomClient
 from classes.config import Config
 
+
 def create_config() -> 'Config':
     BOT_TOKEN = getenv('BOT_TOKEN')
     CLUSTER_ID = getenv('CLUSTER_ID', '0')
@@ -54,7 +55,6 @@ def get_cluster_breakdown(config: 'Config'):
     return cluster_kwargs
 
 
-
 async def fetch_emoji_dict(bot: 'CustomClient'):
     config = bot._config
 
@@ -96,13 +96,11 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
     return combined_emojis
 
 
-
 def discord_get(url, bot_token):
     headers = {'Authorization': f'Bot {bot_token}'}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     return response.json()
-
 
 
 def load_cogs(disallowed: set):

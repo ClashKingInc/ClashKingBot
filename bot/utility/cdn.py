@@ -1,4 +1,3 @@
-
 import aiohttp
 
 from main import config
@@ -30,9 +29,5 @@ async def upload_to_cdn(payload: bytes, folder: str, id: int | str, filetype: st
                     request_info=response.request_info,
                     history=response.history,
                     status=response.status,
-                    message=error_text
+                    message=error_text,
                 )
-
-
-
-

@@ -7,13 +7,13 @@ from coc import Player, Clan, WarRound, ClanWar, Location
 from aiocache import SimpleMemoryCache, cached
 from classes.mongo import MongoClient as mongo_client
 
+
 class CustomClashClient(coc.Client):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     async def get_player(self, player_tag: str, cls: Type[Player] = Player, **kwargs) -> Player:
         player_tag = player_tag.split('|')[-1]
-
 
         return await super().get_player(player_tag, cls, **kwargs)
 
@@ -22,13 +22,8 @@ class CustomClashClient(coc.Client):
 
         return await super().get_clan(tag, cls, **kwargs)
 
-
     async def get_current_war(
-        self,
-        clan_tag: str,
-        cwl_round: WarRound = WarRound.current_war,
-        cls: Type[ClanWar] = None,
-        **kwargs
+        self, clan_tag: str, cwl_round: WarRound = WarRound.current_war, cls: Type[ClanWar] = None, **kwargs
     ) -> Optional[ClanWar]:
         try:
             war = await super().get_current_war(clan_tag, cwl_round, cls, **kwargs)
@@ -37,8 +32,13 @@ class CustomClashClient(coc.Client):
         except coc.PrivateWarLog:
             result = (
                 await mongo_client.clan_wars.find(
-                    {'$and': [{'clans': clan_tag}, {'custom_id': None},
-                              {'endTime': {'$gte': pend.now(tz=pend.UTC).int_timestamp}}]}
+                    {
+                        '$and': [
+                            {'clans': clan_tag},
+                            {'custom_id': None},
+                            {'endTime': {'$gte': pend.now(tz=pend.UTC).int_timestamp}},
+                        ]
+                    }
                 )
                 .sort({'endTime': -1})
                 .to_list(length=None)
@@ -53,12 +53,11 @@ class CustomClashClient(coc.Client):
             war = await self.get_current_war(clan_tag=clan_to_use)
             return war
 
-
     @cached(ttl=None, cache=SimpleMemoryCache)
-    async def search_locations(self, *, limit: int = None, before: str = None, after: str = None, cls: Type[Location] = None,
-                               **kwargs) -> List[Location]:
+    async def search_locations(
+        self, *, limit: int = None, before: str = None, after: str = None, cls: Type[Location] = None, **kwargs
+    ) -> List[Location]:
         return await super().search_locations(limit=limit, before=before, after=after, cls=cls, **kwargs)
-
 
     async def fetch_players(self, player_tags: list[str]):
         pass
@@ -66,5 +65,3 @@ class CustomClashClient(coc.Client):
     async def fetch_clans(self, clan_tags: list[str]):
         pass
         self.season_start_end()
-
-

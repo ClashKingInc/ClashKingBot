@@ -13,6 +13,7 @@ from utility.general import create_superscript
 from image_gen import WarEndResult as war_gen
 from utility.war import update_war_message, war_start_embed
 
+
 class War_Log(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot

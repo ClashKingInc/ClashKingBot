@@ -1,7 +1,9 @@
 import os
 from dotenv import load_dotenv
+
 load_dotenv()
 import requests
+
 
 def discord_get(url, bot_token):
     headers = {'Authorization': f'Bot {bot_token}'}
@@ -9,16 +11,17 @@ def discord_get(url, bot_token):
     response.raise_for_status()
     return response.json()
 
+
 async def fetch_emoji_dict():
 
     # Fetch the desired emoji definitions
-    response = requests.get("https://assets.clashk.ing/bot/emojis.json").json()
+    response = requests.get('https://assets.clashk.ing/bot/emojis.json').json()
 
     original_name_map = {}
     full_emoji_dict = {}
 
     # Convert keys to a normalized form, just like your original code
-    types_for_class = ["icon_emojis"]
+    types_for_class = ['icon_emojis']
     for emoji_type, emoji_dict in response.items():
         if emoji_type not in types_for_class:
             continue
@@ -51,7 +54,7 @@ async def fetch_emoji_dict():
 
         combined_emojis[real_name] = f'{start}{emoji["name"]}:{emoji["id"]}>'
 
-    class_code = f"class Emojis:\n"
+    class_code = f'class Emojis:\n'
     class_code += "    def __init__(self, bot: 'CustomClient'):\n"
 
     # Add each field dynamically
@@ -60,5 +63,7 @@ async def fetch_emoji_dict():
 
     print(class_code)
 
+
 import asyncio
+
 asyncio.run(fetch_emoji_dict())

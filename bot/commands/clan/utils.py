@@ -1923,4 +1923,3 @@ def response_to_line(bot, response, clan):
         f'{emoji} {league_to_emoji(bot=bot, league=league_name)}{SUPER_SCRIPTS[tier]} `{place}{end}` | {date}\n',
         year,
     )
-

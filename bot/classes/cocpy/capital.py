@@ -1,13 +1,11 @@
-import coc
 import math
-
+import coc
 from functools import cached_property
 
 
 class CustomRaidLogEntry(coc.RaidLogEntry):
     def __init__(self, *, data, client, **kwargs):
         super().__init__(data=data, client=client, **kwargs)
-
 
     @cached_property
     def calculated_offensive_raid_medals(self):

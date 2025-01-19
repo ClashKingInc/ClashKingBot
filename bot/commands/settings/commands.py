@@ -67,7 +67,6 @@ class Settings(commands.Cog, name='Settings'):
             file=(await picture.to_file()),
         )
 
-
     @commands.slash_command(name='whitelist')
     async def whitelist(self, ctx: disnake.ApplicationCommandInteraction):
         pass

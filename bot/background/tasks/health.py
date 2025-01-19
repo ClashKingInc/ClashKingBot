@@ -2,6 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from classes.bot import CustomClient
 
+
 def create_health_app(bot: 'CustomClient') -> FastAPI:
     """
     Creates a FastAPI health check app with access to the bot instance.

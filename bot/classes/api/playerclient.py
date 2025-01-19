@@ -6,7 +6,7 @@ from .models.player import LegendPlayer
 from .client import BaseClient
 
 
-class PlayerClient():
+class PlayerClient:
     def __init__(self, bot):
         super().__init__(bot)
 

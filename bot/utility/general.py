@@ -17,8 +17,6 @@ from utility.clash.other import league_to_emoji
 from utility.constants import SUPER_SCRIPTS, placeholders, war_leagues
 
 
-
-
 async def fetch(url, session, **kwargs):
     async with session.get(url) as response:
         if kwargs.get('extra') is not None:
@@ -36,16 +34,12 @@ def create_superscript(num):
     return new_num
 
 
-
-
 def get_clan_member_tags(clans: List[coc.Clan]) -> List[str]:
     clan_member_tags = []
     for clan in clans:
         for member in clan.members:
             clan_member_tags.append(member.tag)
     return clan_member_tags
-
-
 
 
 def notate_number(number: int, zero=False):
@@ -74,7 +68,6 @@ def custom_round(number: int, add_percent=None):
     if add_percent:
         return f'{number}%'
     return number
-
 
 
 async def safe_run(func: Callable, **kwargs):

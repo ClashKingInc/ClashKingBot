@@ -29,10 +29,11 @@ from classes.config import Config
 from classes.database.familyclient import FamilyClient
 from classes.emoji import Emojis, EmojiType
 from classes.database.models.player.stats import CustomClanClass, StatsPlayer
-from utility.constants import  locations
+from utility.constants import locations
 from utility.general import create_superscript, fetch
 from classes.cocpy.login import coc_login
 from classes.mongo import MongoClient
+
 
 class CustomClient(commands.AutoShardedBot):
     def __init__(
@@ -104,8 +105,6 @@ class CustomClient(commands.AutoShardedBot):
         self.EXTENSION_LIST = []
         self.STARTED_CHUNK = set()
 
-
-
     def clean_string(self, text: str):
         text = emoji.replace_emoji(text)
         text = re.sub('[*_`~/]', '', text)
@@ -121,7 +120,6 @@ class CustomClient(commands.AutoShardedBot):
             return guild.icon.url
 
         return random.choice(placeholders)
-
 
     def get_locale(self, ctx: disnake.Interaction) -> disnake.Locale:
 
@@ -168,8 +166,6 @@ class CustomClient(commands.AutoShardedBot):
             return webhook
         except Exception:
             raise MissingWebhookPerms
-
-
 
     async def get_family_member_tags(self, guild_id, th_filter: int = None):
         clan_tags = await self.clan_db.distinct('tag', filter={'server': guild_id})
@@ -234,7 +230,6 @@ class CustomClient(commands.AutoShardedBot):
             mapping[c.get('tag')] = name
         return mapping
 
-
     # DISCORD HELPERS
     def partial_emoji_gen(self, emoji_string: str):
         emoji = emoji_string.split(':')
@@ -271,7 +266,6 @@ class CustomClient(commands.AutoShardedBot):
                 raise
             return None
 
-
     async def getch_webhook(self, webhook_id):
         webhook = self.feed_webhooks.get(webhook_id)
         if webhook is None:
@@ -287,7 +281,6 @@ class CustomClient(commands.AutoShardedBot):
         else:
             msg = await webhook.send(thread=thread, **kwargs)
         return msg
-
 
     async def get_players(
         self,
@@ -366,7 +359,6 @@ class CustomClient(commands.AutoShardedBot):
                 clans.append(response)
         return [clan for clan in clans if clan is not None]
 
-
     async def get_current_war_times(self, tags: list):
         tasks = []
         for tag in tags:
@@ -382,8 +374,6 @@ class CustomClient(commands.AutoShardedBot):
                 continue
             times[war.clan.tag] = (war, war.end_time)
         return times
-
-
 
     async def get_clan_wars(self, tags: list):
         tasks = []
@@ -429,7 +419,6 @@ class CustomClient(commands.AutoShardedBot):
                 history = await resp.json()
                 await session.close()
                 return COSPlayerHistory(data=history)
-
 
     # SERVER HELPERS
     def get_command_mention(self, name: str):

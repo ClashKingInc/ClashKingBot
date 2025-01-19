@@ -17,7 +17,9 @@ def check_commands():
 
         # check for clashking perms role
         member = await ctx.guild.getch_member(member_id=ctx.author.id)
-        server_setup = await mongo_client.server_db.find_one({'server': ctx.guild.id}, {'_id': 0, 'full_whitelist_role': 1})
+        server_setup = await mongo_client.server_db.find_one(
+            {'server': ctx.guild.id}, {'_id': 0, 'full_whitelist_role': 1}
+        )
 
         if server_setup is not None and server_setup.get('full_whitelist_role') is not None:
             if disnake.utils.get(member.roles, id=server_setup.get('full_whitelist_role')) is not None:
@@ -61,7 +63,6 @@ def check_commands():
         return False
 
     return commands.check(predicate)
-
 
 
 async def interaction_handler(
@@ -111,7 +112,6 @@ async def interaction_handler(
     return valid_value
 
 
-
 # jesus what is this trash lmao, hmm maybe its smart
 def iter_embed_creation(base_embed: disnake.Embed, iter: List, scheme: str, brk: int = 50) -> List[disnake.Embed]:
 
@@ -142,8 +142,3 @@ def register_button(
         return func
 
     return decorator
-
-
-
-
-

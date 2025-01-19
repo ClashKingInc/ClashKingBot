@@ -50,8 +50,6 @@ def button_generator(bot: CustomClient, button_id: str, current_page: int = 0, m
     return [buttons]
 
 
-
-
 def clan_component(bot: CustomClient, all_clans: List[coc.Clan], clan_page: int = 0, max_choose=None):
     clan_options = []
     length = 24
@@ -77,8 +75,6 @@ def clan_component(bot: CustomClient, all_clans: List[coc.Clan], clan_page: int 
     return disnake.ui.ActionRow(clan_select)
 
 
-
-
 async def basic_clan_dropdown(clans: List[coc.Clan], max_choose=1):
     clan_options = []
     clans.sort(key=lambda x: x.member_count)
@@ -93,6 +89,3 @@ async def basic_clan_dropdown(clans: List[coc.Clan], max_choose=1):
     )
 
     return disnake.ui.ActionRow(clan_select)
-
-
-

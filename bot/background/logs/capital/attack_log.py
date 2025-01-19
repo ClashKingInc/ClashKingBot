@@ -22,7 +22,6 @@ async def capital_attack_log(bot: CustomClient, event: CapitalAttacksEvent):
 
     logs = await get_available_logs(bot=bot, event=event)
 
-
     if not logs:
         return
 

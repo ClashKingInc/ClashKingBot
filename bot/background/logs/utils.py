@@ -13,14 +13,14 @@ MapItem = namedtuple('MapItem', ['database', 'cls'])
 database class should use this as well
 """
 
-class LogMapping():
-    join_log = MapItem(database="join_log", cls="join_log")
+
+class LogMapping:
+    join_log = MapItem(database='join_log', cls='join_log')
 
 
-
-async def get_available_logs(bot: CustomClient,
-                             event: PlayerEvent | ClanEvent | CapitalEvent,
-                             log_type: LogMapping) -> list[dict]:
+async def get_available_logs(
+    bot: CustomClient, event: PlayerEvent | ClanEvent | CapitalEvent, log_type: LogMapping
+) -> list[dict]:
     logs = []
     db = bot.clan_db
     """
