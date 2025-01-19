@@ -1,18 +1,18 @@
-import traceback
 import threading
+import traceback
+
 import disnake
 import sentry_sdk
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from pytz import utc
 from background.tasks.health import run_health_check_server
-
 from classes.bot import CustomClient
 from discord.startup import create_config, get_cluster_breakdown, load_cogs, sentry_filter
-
 from loguru import logger
+from pytz import utc
 
 logger.remove()
-logger.add(lambda msg: print(msg, end=""), level="INFO")  # Log to stdout
+
+logger.add(lambda msg: print(msg, end=''), level='INFO')  # Log to stdout
 
 scheduler = AsyncIOScheduler(timezone=utc)
 scheduler.start()
