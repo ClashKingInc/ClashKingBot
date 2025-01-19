@@ -40,7 +40,7 @@ class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
         clan_castle: str = commands.Param(default=None, max_length=150),
         equipment: str = commands.Param(default=None, max_length=150),
         pets: str = commands.Param(default=None, max_length=150),
-        notes: str = commands.Param(default=None, max_length=150),
+        notes: str = commands.Param(default=None, max_length=450),
     ):
         """
         Parameters
