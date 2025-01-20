@@ -26,10 +26,8 @@ import random
 from classes.events import EventGateway
 from classes.clashofstats import COSPlayerHistory
 from classes.config import Config
-from classes.database.familyclient import FamilyClient
+from classes.cocpy.client import CustomClashClient
 from classes.emoji import Emojis, EmojiType
-from classes.database.models.player.stats import CustomClanClass, StatsPlayer
-from utility.constants import locations
 from utility.general import create_superscript, fetch
 from classes.cocpy.login import coc_login
 from classes.mongo import MongoClient
@@ -82,7 +80,7 @@ class CustomClient(commands.AutoShardedBot):
             discordlinks.login(self._config.link_api_username, self._config.link_api_password)
         )
 
-        self.coc_client: coc.Client = asyncio.get_event_loop().run_until_complete(coc_login())
+        self.coc_client: CustomClashClient = asyncio.get_event_loop().run_until_complete(coc_login())
 
         self.loaded_emojis: dict = {}
 

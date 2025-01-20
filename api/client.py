@@ -7,6 +7,7 @@ from route import Route
 
 from api.bans import BanListItem, BanResponse
 from api.errors import APIUnavailableError, AuthenticationError, NotFoundError
+from api.other import ObjectDictIterable
 
 
 class ClashKingAPIClient:
@@ -71,6 +72,7 @@ class ClashKingAPIClient:
             except aiohttp.ClientError as e:
                 raise APIUnavailableError(500) from e  # Handle connection issues as API being down
 
+
     # BANS
     async def add_ban(self, server_id: int, player_tag: str, reason: str, added_by: int) -> BanResponse:
         """
@@ -107,7 +109,7 @@ class ClashKingAPIClient:
         )
         return BanResponse(data=response)
 
-    async def get_ban_list(self, server_id: int) -> list[BanListItem]:
+    async def get_ban_list(self, server_id: int) -> ObjectDictIterable[BanListItem]:
         """
         Retrieves a list of banned items for a specified server.
 
@@ -121,7 +123,7 @@ class ClashKingAPIClient:
             )
         )
         items = response['items']
-        return [BanListItem(data=item) for item in items]
+        return ObjectDictIterable(items=[BanListItem(data=item) for item in items], key="tag")
 
     async def foo(self):
         pass
@@ -131,7 +133,7 @@ import asyncio
 
 
 async def foo():
-    client = ClashKingAPIClient(api_token="", timeout=30, cache_ttl=60)
+    client = ClashKingAPIClient(api_token='', timeout=30, cache_ttl=60)
     list = await client.get_ban_list(server_id=923764211845312533)
 
 

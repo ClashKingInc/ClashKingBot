@@ -1,1 +1,0 @@
-from .capital import CustomRaidLogEntry

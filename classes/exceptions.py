@@ -1,102 +1,108 @@
-class RosterAliasAlreadyExists(Exception):
+
+class ClashKingException(Exception):
+    pass
+
+class RosterAliasAlreadyExists(ClashKingException):
     pass
 
 
-class RosterDoesNotExist(Exception):
+class RosterDoesNotExist(ClashKingException):
     pass
 
 
-class PlayerAlreadyInRoster(Exception):
+class PlayerAlreadyInRoster(ClashKingException):
     def __str__(self):
         return 'Already in Roster'
 
 
-class PlayerNotInRoster(Exception):
+class PlayerNotInRoster(ClashKingException):
     pass
 
 
-class RosterSizeLimit(Exception):
+class RosterSizeLimit(ClashKingException):
     def __str__(self):
         return 'Roster Size Limit Hit'
 
 
-class ExpiredComponents(Exception):
+class ExpiredComponents(ClashKingException):
     pass
 
 
-class PanelNotFound(Exception):
+class PanelNotFound(ClashKingException):
     pass
 
 
-class ButtonNotFound(Exception):
+class ButtonNotFound(ClashKingException):
     pass
 
 
-class ButtonAlreadyExists(Exception):
+class ButtonAlreadyExists(ClashKingException):
     pass
 
 
-class PanelAlreadyExists(Exception):
+class PanelAlreadyExists(ClashKingException):
     pass
 
 
-class FaultyJson(Exception):
+class FaultyJson(ClashKingException):
     pass
 
 
-class MissingWebhookPerms(Exception):
+class MissingWebhookPerms(ClashKingException):
     pass
 
 
-class NoLinkedAccounts(Exception):
+class NoLinkedAccounts(ClashKingException):
     pass
 
 
-class PlayerNotFound(Exception):
+class PlayerNotFound(ClashKingException):
     pass
 
 
-class InvalidHexCode(Exception):
+class InvalidHexCode(ClashKingException):
     pass
 
 
-class InvalidGuildID(Exception):
+class InvalidGuildID(ClashKingException):
     pass
 
 
-class ExportTemplateAlreadyExists(Exception):
+class ExportTemplateAlreadyExists(ClashKingException):
     pass
 
 
-class NoRosterRoles(Exception):
+class NoRosterRoles(ClashKingException):
     pass
 
 
-class NotValidReminderTime(Exception):
+class NotValidReminderTime(ClashKingException):
     pass
 
 
-class NoLegendStatsFound(Exception):
+class NoLegendStatsFound(ClashKingException):
     pass
 
 
-class PlayerNotInLegends(Exception):
+class PlayerNotInLegends(ClashKingException):
     pass
 
 
-class APITokenRequired(Exception):
+class APITokenRequired(ClashKingException):
     pass
 
 
-class InvalidAPIToken(Exception):
+class InvalidAPIToken(ClashKingException):
     pass
 
 
-class ThingNotFound(Exception):
+class ThingNotFound(ClashKingException):
     def __init__(self, message):
         super().__init__(message)
 
 
-class MessageException(Exception):
+class MessageException(ClashKingException):
     def __init__(self, message):
         super().__init__(message)
+    
+        

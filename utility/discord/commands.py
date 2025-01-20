@@ -9,6 +9,7 @@ from exceptions.CustomExceptions import *
 from classes.mongo import MongoClient as mongo_client
 
 
+
 def check_commands():
     async def predicate(ctx: disnake.ApplicationCommandInteraction):
         # if dev, allow to run
