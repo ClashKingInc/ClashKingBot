@@ -34,6 +34,8 @@ from utility.general import create_superscript, fetch
 from classes.cocpy.login import coc_login
 from classes.mongo import MongoClient
 
+from api.client import ClashKingAPIClient
+
 
 class CustomClient(commands.AutoShardedBot):
     def __init__(
@@ -70,7 +72,8 @@ class CustomClient(commands.AutoShardedBot):
         self.SERVER_MAP: dict[int, ShardServers] = {}
 
         self.scheduler = scheduler
-        self.ck_client: FamilyClient = None
+        self.ck_client = ClashKingAPIClient(api_token=config.clashking_api_token, timeout=30, cache_ttl=60)
+
         self.max_pool_size = 1 if config.is_custom else 100
 
         self.mongo = MongoClient()

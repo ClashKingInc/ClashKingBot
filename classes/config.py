@@ -49,3 +49,5 @@ class Config:
 
         self.github_token = remote_settings.get('github_token')
         self.clash_event_ws = remote_settings.get('clash_event_ws')
+
+        self.clashking_api_token = remote_settings.get('clashking_api_token')

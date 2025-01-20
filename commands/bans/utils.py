@@ -5,9 +5,9 @@ import disnake
 import pendulum as pend
 
 from classes.bot import CustomClient
-from classes.database.models.player.bans import BannedPlayer
-from exceptions.CustomExceptions import MessageException
-from utility.general import get_guild_icon, safe_run
+from classes.exceptions import MessageException
+from utility.general import safe_run
+from utility.discord.commands import register_button
 
 
 async def add_ban(
@@ -52,17 +52,6 @@ async def add_ban(
         )
         ban_type = 'updated'
     else:
-        print(
-            {
-                'VillageTag': player.tag,
-                'DateCreated': dt_string,
-                'Notes': reason,
-                'server': guild.id,
-                'added_by': added_by.id,
-                'rollover_date': rollover_days,
-                'name': player.name,
-            }
-        )
         await bot.banlist.insert_one(
             {
                 'VillageTag': player.tag,
@@ -139,6 +128,7 @@ async def send_ban_log(bot: CustomClient, guild: disnake.Guild, reason: disnake.
             await safe_run(func=ban_log_channel.send, embed=reason)
 
 
+@
 async def create_embeds(
     bot: CustomClient, bans: list, guild: disnake.Guild, embed_color: disnake.Color, locale: disnake.Locale
 ):
