@@ -24,48 +24,17 @@ async def add_ban(
     _, locale = bot.get_localizator(locale=locale)
 
     now = pend.now(tz=pend.UTC)
-    dt_string = now.strftime('%Y-%m-%d %H:%M:%S')
 
     if reason is None:
         reason = _('reason-default')
 
-    if rollover_days is not None:
-        now = pend.now(tz=pend.UTC)
-        rollover_days = now + timedelta(rollover_days)
-        rollover_days = int(rollover_days.timestamp())
 
-    find_ban = await bot.banlist.find_one({'$and': [{'VillageTag': player.tag}, {'server': guild.id}]})
-    if find_ban:
-        await bot.banlist.update_one(
-            {'$and': [{'VillageTag': player.tag}, {'server': guild.id}]},
-            {
-                '$set': {'Notes': reason, 'rollover_date': rollover_days},
-                '$push': {
-                    'edited_by': {
-                        'user': added_by.id,
-                        'previous': {
-                            'reason': find_ban.get('Notes'),
-                            'rollover_days': find_ban.get('rollover_date'),
-                        },
-                    }
-                },
-            },
-        )
-        ban_type = 'updated'
-    else:
-        await bot.banlist.insert_one(
-            {
-                'VillageTag': player.tag,
-                'DateCreated': dt_string,
-                'Notes': reason,
-                'server': guild.id,
-                'added_by': added_by.id,
-                'rollover_date': rollover_days,
-                'name': player.name,
-            }
-        )
-        ban_type = 'added'
-
+    ban = await bot.ck_client.add_ban(
+        server_id=guild.id,
+        player_tag=player.tag,
+        reason=reason,
+        added_by=added_by.id
+    )
     clan_text = _('no-clan')
     if player.clan:
         clan_text = f'[{player.clan.name}]({player.clan.share_link})'
@@ -73,7 +42,9 @@ async def add_ban(
     embed = disnake.Embed(
         description=f'**{bot.fetch_emoji(player.town_hall)}[{player.name}]({player.share_link})** | {player.tag}'
         f'{clan_text}\n'
-        f"{_('ban-details', values={'ban_type' : ban_type, 'date' : dt_string, 'discord_mention' : added_by.mention})}\n"
+        f"{_('ban-details', values={'ban_type' : ban.status.capitalize(), 
+                                    'date' : now.strftime('%Y-%m-%d %H:%M:%S'), 
+                                    'discord_mention' : added_by.mention,})}\n"
         f'{_("reason-notes")}: {reason}',
         color=disnake.Color.brand_red(),
     )
@@ -103,11 +74,10 @@ async def remove_ban(
 ):
     _, locale = bot.get_localizator(locale=locale)
 
-    results = await bot.banlist.find_one({'$and': [{'VillageTag': player.tag}, {'server': guild.id}]})
-    if not results:
+    try:
+        ban = await bot.ck_client.remove_ban(server_id=guild.id, player_tag=player.tag)
+    except:
         raise MessageException(_('not-banned', values={'player_name': player.name}))
-
-    await bot.banlist.find_one_and_delete({'$and': [{'VillageTag': player.tag}, {'server': guild.id}]})
 
     embed = disnake.Embed(
         description=_(
@@ -120,7 +90,6 @@ async def remove_ban(
         ),
         color=disnake.Color.orange(),
     )
-
     await send_ban_log(bot=bot, guild=guild, reason=embed)
     return embed
 
@@ -156,8 +125,6 @@ async def create_embeds(
     banned_players = await bot.coc_client.fetch_players(player_tags=bans.key_list())
     for count, banned_player in enumerate(banned_players, 1):
         ban = bans[banned_player.tag]
-        if ban is None:
-            continue
 
         clan = _('no-clan')
         if banned_player.clan is not None:

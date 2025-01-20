@@ -33,9 +33,3 @@ class BasePlayer(coc.Player):
     @property
     def clan_badge(self):
         return self.clan.badge.url if self.clan else 'https://clashking.b-cdn.net/unranked.png'
-
-
-
-
-
-

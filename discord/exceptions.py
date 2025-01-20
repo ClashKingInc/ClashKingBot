@@ -138,7 +138,6 @@ class ExceptionHandler(commands.Cog):
             else:
                 return await ctx.send(embed=embed)
 
-
         if isinstance(error, MissingWebhookPerms):
             embed = disnake.Embed(
                 description=f'Missing Permissions to Create or Edit Webhooks',

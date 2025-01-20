@@ -1,7 +1,8 @@
 from collections.abc import Iterable, Mapping
 from typing import Any, Iterator, TypeVar, Generic
 
-T = TypeVar("T")  # Generic type for objects
+T = TypeVar('T')  # Generic type for objects
+
 
 class ObjectDictIterable(Generic[T]):
     def __init__(self, items: list[T], key: str):
@@ -47,9 +48,7 @@ class ObjectDictIterable(Generic[T]):
         return self._dict.values()
 
     def __repr__(self):
-        return f"ObjectDictIterable({self._list}, key={self._key})"
+        return f'ObjectDictIterable({self._list}, key={self._key})'
 
     def __len__(self) -> int:
         return len(self._list)
-
-

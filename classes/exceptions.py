@@ -1,6 +1,6 @@
-
 class ClashKingException(Exception):
     pass
+
 
 class RosterAliasAlreadyExists(ClashKingException):
     pass
@@ -104,5 +104,3 @@ class ThingNotFound(ClashKingException):
 class MessageException(ClashKingException):
     def __init__(self, message):
         super().__init__(message)
-    
-        

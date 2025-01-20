@@ -8,6 +8,7 @@ from aiocache import SimpleMemoryCache, cached
 from classes.mongo import MongoClient as mongo_client
 from .player import BasePlayer
 
+
 class CustomClashClient(coc.Client):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -59,7 +60,9 @@ class CustomClashClient(coc.Client):
     ) -> List[Location]:
         return await super().search_locations(limit=limit, before=before, after=after, cls=cls, **kwargs)
 
-    async def fetch_players(self, player_tags: list[str], cls: Type[Player] = BasePlayer, cache: bool = ... , **kwargs) -> list[Player]:
+    async def fetch_players(
+        self, player_tags: list[str], cls: Type[Player] = BasePlayer, cache: bool = ..., **kwargs
+    ) -> list[Player]:
         pass
 
     async def fetch_clans(self, clan_tags: list[str]):

@@ -87,11 +87,9 @@ class Bans(commands.Cog, name='Bans'):
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
 
         embeds = await create_embeds(bot=self.bot, guild=ctx.guild, embed_color=embed_color, locale=locale)
-        buttons = button_generator(bot=self.bot, button_id=f"banlist:{ctx.guild_id}", max_page=len(embeds), print=True)
+        buttons = button_generator(bot=self.bot, button_id=f'banlist:{ctx.guild_id}', max_page=len(embeds), print=True)
 
         await ctx.edit_original_message(embed=embeds[0], components=buttons)
-
-
 
 
 def setup(bot: CustomClient):
