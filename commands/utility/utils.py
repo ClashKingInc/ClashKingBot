@@ -90,7 +90,7 @@ async def generate_clan_castle(bot: CustomClient, clan_castle: str) -> tuple[str
                 selections into a python readable dictionary
                 """
         user_prompt = f"""
-                        These are the current troops & spells: {str(coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER)}, 
+                        These are the current troops & spells: {str(coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER + coc.enums.SUPER_TROOP_ORDER)}, 
                         these are my spells and troops: {clan_castle}.
                         Give me a python readable dictionary like troop/spell: quantity, using the closest available options.
                         If there is no available close and accurate option, please skip. Return ONLY a dictionary and nothing else,
