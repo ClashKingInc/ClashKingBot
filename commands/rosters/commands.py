@@ -897,10 +897,10 @@ class RosterCommands(commands.Cog, name='Rosters'):
             accounts_to_add = []
             group = None
             while not save:
-                res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, msg=msg)
+                res: disnake.MessageInteraction = await interaction_handler(bot=self.bot, ctx=ctx, msg=msg, ephemeral=True)
                 if 'button' in str(res.data.component_type):
                     if not accounts_to_add and not group:
-                        await res.send('Must select accounts & group to submit')
+                        await res.send('Must select accounts & group to submit', ephemeral=True, delete_after=15)
                     else:
                         save = True
                 elif any('player_' in s for s in res.values):
