@@ -1,7 +1,6 @@
-from collections.abc import Iterable, Mapping
 from typing import Any, Iterator, TypeVar, Generic
 
-T = TypeVar('T')  # Generic type for objects
+T = TypeVar('T')
 
 
 class ObjectDictIterable(Generic[T]):
@@ -14,7 +13,10 @@ class ObjectDictIterable(Generic[T]):
         """
         self._list = items
         self._key = key
-        self._dict = {getattr(item, key): item for item in items}
+        try:
+            self._dict = {getattr(item, key): item for item in items}
+        except AttributeError as e:
+            raise ValueError(f"All items must have the attribute '{key}'") from e
 
     def __iter__(self) -> Iterator[T]:
         """Allows iteration over the stored objects."""

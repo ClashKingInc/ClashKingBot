@@ -72,7 +72,6 @@ class ClashKingAPIClient:
             except aiohttp.ClientError as e:
                 raise APIUnavailableError(500) from e  # Handle connection issues as API being down
 
-
     # BANS
     async def add_ban(self, server_id: int, player_tag: str, reason: str, added_by: int) -> BanResponse:
         """
@@ -123,7 +122,7 @@ class ClashKingAPIClient:
             )
         )
         items = response['items']
-        return ObjectDictIterable(items=[BanListItem(data=item) for item in items], key="tag")
+        return ObjectDictIterable(items=[BanListItem(data=item) for item in items], key='tag')
 
     async def foo(self):
         pass
@@ -133,7 +132,7 @@ import asyncio
 
 
 async def foo():
-    client = ClashKingAPIClient(api_token='', timeout=30, cache_ttl=60)
+    client = ClashKingAPIClient(api_token='XRKHJDBmTBILFepA7I5rKxwwBWQu', timeout=30, cache_ttl=60)
     list = await client.get_ban_list(server_id=923764211845312533)
 
 

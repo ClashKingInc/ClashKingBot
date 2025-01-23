@@ -57,9 +57,9 @@ async def add_ban(
             if server_member:
                 try:
                     await server_member.send(content=dm_player, embed=embed)
-                    embed.set_footer(text=_('Notified in DM'))
+                    embed.set_footer(text=_('notified-dm'))
                 except:
-                    embed.set_footer(text=_('DM Notification Failed'))
+                    embed.set_footer(text=_('notified-dm-fail'))
     await send_ban_log(bot=bot, guild=guild, reason=embed)
 
     return embed

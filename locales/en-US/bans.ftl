@@ -17,7 +17,7 @@ remove-description = Remove player from server's ban list
 list-name = list
 list-description = List of banned players on this server
 
-no-banned-players = No banned players on this server. Use `/{ ban-name } { add-name }` to get started.
+no-banned-players = No banned players on this server. Use { $command_mention } to get started.
 
 no-clan = No Clan
 ban-details = { $ban_type } on { $date } by { $discord_mention }
