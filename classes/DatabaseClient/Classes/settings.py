@@ -79,7 +79,7 @@ class DatabaseServer:
         self.player_link_parse = data.get('link_parse', {}).get('player', True)
         self.base_link_parse = data.get('link_parse', {}).get('base', True)
         self.show_command_parse = data.get('link_parse', {}).get('show', True)
-        self.link_parse_channels: list[int] = data.get('link_parse', {}).get('channels', [])
+        self.link_parse_channels: list[int] = [int(i) for i in data.get('link_parse', {}).get('channels', [])]
 
         self.welcome_link_log = ServerLog(parent=self, type='welcome_link')
 
