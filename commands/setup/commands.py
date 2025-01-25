@@ -827,7 +827,7 @@ class SetupCommands(commands.Cog, name='Setup'):
         clan_links: str = commands.Param(default=None, choices=['On', 'Off'], description="Turn clan links into an embed like /clan search"),
         base_links: str = commands.Param(default=None, choices=['On', 'Off'], description="Turn base links into an embed like /base"),
         show_parse: str = commands.Param(default=None, description='the -show command', choices=['On', 'Off']),
-        manage_whitelist: bool = commands.Param(default=None, choices=['Yes', 'No'],
+        manage_whitelist: bool = commands.Param(default=None, choices=['True'],
                                                         converter=convert.basic_bool, description="Set parsing to only happen in specific channels"),
     ):
         await ctx.response.defer()
