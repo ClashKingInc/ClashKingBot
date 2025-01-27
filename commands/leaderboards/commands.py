@@ -18,7 +18,10 @@ class Leaderboards(commands.Cog, name='Leaderboards'):
     async def leaderboard(self, ctx):
         await ctx.response.defer()
 
-    @leaderboard.sub_command(name='location', description='Top 200 Leaderboard for a location as seen in-game')
+    @leaderboard.sub_command(
+        name='location',
+        description='Top 200 Leaderboard for a location as seen in-game',
+    )
     async def leaderboard_location(
         self,
         ctx: disnake.ApplicationCommandInteraction,
