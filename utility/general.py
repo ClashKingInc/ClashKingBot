@@ -209,7 +209,7 @@ async def calculate_time(type, war: coc.ClanWar = None):
         end_pendulum = pend.instance(end)
         now = pend.now('UTC')
 
-        days_since_start = now.diff(start_pendulum).in_days() + 1
+        days_since_start = max(now.diff(start_pendulum).in_days(), 1)
         days_from_start_to_end = start_pendulum.diff(end_pendulum).in_days()
 
         text = f'{days_since_start}/{days_from_start_to_end}'
