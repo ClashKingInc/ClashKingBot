@@ -8,7 +8,7 @@ from classes.player.stats import StatsPlayer
 from utility.constants import BOARD_TYPES
 
 
-def button_generator(bot: CustomClient, button_id: str, current_page: int, max_page: int):
+def button_generator(bot: CustomClient, button_id: str, current_page: int = 0, max_page: int = 1):
     if max_page == 1:
         buttons = disnake.ui.ActionRow()
         buttons.append_item(
