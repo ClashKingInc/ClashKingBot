@@ -1,7 +1,7 @@
 import disnake
 
 from classes.bot import CustomClient
-from classes.database.models.settings import Join_Log
+from api.models.settings import Join_Log
 from utility.clash.other import basic_heros, leagueAndTrophies
 
 from classes.events import log_event, ClanJoinLeaveEvent
