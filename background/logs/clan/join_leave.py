@@ -86,6 +86,7 @@ async def clan_join_leave(bot: CustomClient, event: ClanJoinLeaveEvent):
             await send_logs(bot=bot, available_logs=logs, attribute='leave_log', embeds=embeds, components=components)
 
 
+
 def join_components(bot: CustomClient, log: Join_Log, player_tag: str) -> list:
     if log.profile_button:
         button = disnake.ui.Button(
