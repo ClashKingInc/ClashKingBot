@@ -8,6 +8,7 @@ from route import Route
 from api.bans import BanListItem, BanResponse
 from api.errors import APIUnavailableError, AuthenticationError, NotFoundError
 from api.other import ObjectDictIterable
+from api.player import LocationPlayer
 from api.server import ServerSettings
 
 
@@ -133,7 +134,7 @@ class ClashKingAPIClient:
                 endpoint=f'/v2/server/settings/{server_id}?clan_settings={with_clan_settings}',
             )
         )
-        return ServerSettings(data=response['settings'], client=self)
+        return ServerSettings(data=response['settings'])
 
 
     async def set_server_embed_color(self, server_id: int, embed_color: str):
@@ -155,6 +156,22 @@ class ClashKingAPIClient:
         )
         return response
 
+    #PLAYER ENDPOINTS
+    async def get_player_locations(self, player_tags: list[str]) -> ObjectDictIterable[LocationPlayer]:
+        """
+        Gets location info for a list of players.
+
+        :param player_tags: List of player tags.
+        """
+        response = await self._request(
+            Route(
+                method='POST',
+                endpoint='v2/players/location',
+                json={"player_tags": player_tags},
+            )
+        )
+        items = response['items']
+        return ObjectDictIterable(items=[LocationPlayer(data=item) for item in items], key='tag')
 
 
 
