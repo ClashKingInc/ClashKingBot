@@ -7,7 +7,7 @@ from coc import Player, Clan, WarRound, ClanWar, Location
 from aiocache import SimpleMemoryCache, cached
 from classes.mongo import MongoClient as mongo_client
 from .player import BasePlayer
-
+from .clan import BaseClan
 
 class CustomClashClient(coc.Client):
     def __init__(self, **kwargs):
@@ -18,10 +18,11 @@ class CustomClashClient(coc.Client):
 
         return await super().get_player(player_tag, cls, **kwargs)
 
-    async def get_clan(self, tag: str, cls: Type[Clan] = None, **kwargs) -> Clan:
+    async def get_clan(self, tag: str, cls: Type[Clan] = BaseClan, **kwargs) -> Clan:
         tag = tag.split('|')[-1]
 
         return await super().get_clan(tag, cls, **kwargs)
+
 
     async def get_current_war(
         self, clan_tag: str, cwl_round: WarRound = WarRound.current_war, cls: Type[ClanWar] = None, **kwargs
