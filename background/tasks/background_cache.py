@@ -18,7 +18,7 @@ class BackgroundCache(commands.Cog):
             total_members += guild.member_count
             servers.append({'id': guild.id, 'name': guild.name, 'members': guild.member_count})
 
-        self.bot.OUR_GUILDS = guild_id_list
+        self.bot.OUR_GUILDS = set(guild_id_list)
         clan_tags = await self.bot.clan_db.distinct('tag', filter={'server': {'$in': list(guild_id_list)}})
         self.bot.OUR_CLANS = set(clan_tags)
 
