@@ -2,21 +2,33 @@ import disnake
 from disnake.ext import commands
 
 from discord import autocomplete, options
+import coc
+from classes.bot import CustomClient
+from utils import clan_composition
 
-from .utils import *
 
+from disnake import Localized as Loc
+
+from utility.discord.components import button_generator
 
 class ClanCommands(commands.Cog, name='Clan Commands'):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
     @commands.slash_command(
-        name='clan', install_types=disnake.ApplicationInstallTypes.all(), contexts=disnake.InteractionContextTypes.all()
+        name='clan',
+        install_types=disnake.ApplicationInstallTypes.all(),
+        contexts=disnake.InteractionContextTypes.all(),
     )
     async def clan(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
 
-    @clan.sub_command(name='compo', description='Composition of values in a clan')
+
+    @clan.sub_command(
+        name='compo',
+        description = Loc(key='compo-description'),
+        extras = {'docs': 'https://docs.clashking.xyz/clan-and-family-commands/clan-commands#clan-compo-clan-type'},
+    )
     async def compo(
         self,
         ctx: disnake.ApplicationCommandInteraction,
@@ -27,19 +39,23 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
             choices=['Townhall', 'Trophies', 'Location', 'Role', 'League'],
         ),
     ):
-        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
-        embed = await clan_composition(bot=self.bot, clan=clan, type=type_, embed_color=embed_color)
-        buttons = disnake.ui.ActionRow(
-            disnake.ui.Button(
-                label='',
-                emoji=self.bot.emoji.refresh.partial_emoji,
-                style=disnake.ButtonStyle.grey,
-                custom_id=f'clancompo:{clan.tag}:{type_}',
-            )
-        )
-        await ctx.edit_original_response(embed=embed, components=[buttons])
+        embed_color = (await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)).embed_color
 
-    @clan.sub_command(name='search', description='Board showing basic clan overviews')
+        embed = await clan_composition(
+            bot=self.bot,
+            clan=clan,
+            type=type_,
+            embed_color=embed_color
+        )
+        buttons = button_generator(button_id=f'clancompo:{clan.tag}:{type_}')
+        await ctx.edit_original_response(embed=embed, components=buttons)
+
+
+
+    @clan.sub_command(
+        name='search',
+        description='Board showing basic clan overviews'
+    )
     async def search(
         self,
         ctx: disnake.ApplicationCommandInteraction,

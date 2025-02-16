@@ -26,6 +26,94 @@ from image_gen.ClanCapitalResult import generate_raid_result_image
 from ..graphs.utils import daily_graph
 
 
+
+@register_button('clancompo', parser='_:clan:type')
+async def clan_composition(bot: CustomClient, clan: coc.Clan, type: str, embed_color: disnake.Color):
+    bucket = defaultdict(int)
+
+    tag_to_location = {}
+    location_name_to_code = {}
+    if type == 'Location':
+        location_info = await bot.leaderboard_db.find(
+            {'tag': {'$in': [m.tag for m in clan.members]}},
+            {'tag': 1, 'country_name': 1, 'country_code': 1},
+        ).to_list(length=None)
+        tag_to_location = {d.get('tag'): d.get('country_name') for d in location_info}
+        location_name_to_code = {d.get('country_name'): d.get('country_code') for d in location_info}
+
+    for member in clan.members:
+        if type == 'Townhall':
+            if member._raw_data.get('townHallLevel') == 0:
+                continue
+            bucket[member._raw_data.get('townHallLevel')] += 1
+        elif type == 'Trophies':
+            if member.trophies >= 1000:
+                bucket[str(int(str(member.trophies)[0]) * 1000)] += 1
+            else:
+                bucket['100'] += 1
+        elif type == 'Location':
+            location = tag_to_location.get(member.tag)
+            if location is None:
+                continue
+            bucket[location] += 1
+        elif type == 'Role':
+            bucket[member.role.in_game_name] += 1
+        elif type == 'League':
+            bucket[member.league.name] += 1
+
+    text = ''
+    total = 0
+    field_to_sort = 1
+    if type == 'Townhall':
+        field_to_sort = 0
+    for key, value in sorted(bucket.items(), key=lambda x: x[field_to_sort], reverse=True):
+        icon = ''
+        if type == 'Townhall':
+            icon = bot.fetch_emoji(int(key))
+            total += int(key) * value
+        elif type == 'Location':
+            icon = f':flag_{location_name_to_code.get(key).lower()}:'
+        elif type == 'League':
+            icon = league_to_emoji(bot=bot, league=key)
+
+        formats = {
+            'Townhall': '`{value:2}` {icon}`TH{key} `\n',
+            'Trophies': '`{value:2}` {icon}`{key}+ Trophies`\n',
+            'Location': '`{value:2}` {icon}`{key}`\n',
+            'Role': '`{value:2}` {icon}`{key}`\n',
+            'League': '`{value:2}` {icon}`{key}`\n',
+        }
+        text += f'{formats.get(type).format(key=key,value=value, icon=icon)}'
+
+    footer_text = f'{clan.member_count} accounts'
+    if type == 'Townhall':
+        footer_text += f' | Avg Townhall: {round((total / clan.member_count), 2)}'
+
+    embed = disnake.Embed(title=f'{clan.name} {type}s', description=text, color=embed_color)
+    embed.set_thumbnail(url=clan.badge.large)
+    embed.set_footer(text=footer_text)
+    embed.timestamp = datetime.now()
+    return embed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @register_button('clandetailed', parser='_:clan')
 async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake.Guild, embed_color: disnake.Color):
     db_clan = None
@@ -257,73 +345,7 @@ async def minimalistic_clan_board(
     return embed
 
 
-@register_button('clancompo', parser='_:clan:type')
-async def clan_composition(bot: CustomClient, clan: coc.Clan, type: str, embed_color: disnake.Color):
-    bucket = defaultdict(int)
 
-    tag_to_location = {}
-    location_name_to_code = {}
-    if type == 'Location':
-        location_info = await bot.leaderboard_db.find(
-            {'tag': {'$in': [m.tag for m in clan.members]}},
-            {'tag': 1, 'country_name': 1, 'country_code': 1},
-        ).to_list(length=None)
-        tag_to_location = {d.get('tag'): d.get('country_name') for d in location_info}
-        location_name_to_code = {d.get('country_name'): d.get('country_code') for d in location_info}
-
-    for member in clan.members:
-        if type == 'Townhall':
-            if member._raw_data.get('townHallLevel') == 0:
-                continue
-            bucket[member._raw_data.get('townHallLevel')] += 1
-        elif type == 'Trophies':
-            if member.trophies >= 1000:
-                bucket[str(int(str(member.trophies)[0]) * 1000)] += 1
-            else:
-                bucket['100'] += 1
-        elif type == 'Location':
-            location = tag_to_location.get(member.tag)
-            if location is None:
-                continue
-            bucket[location] += 1
-        elif type == 'Role':
-            bucket[member.role.in_game_name] += 1
-        elif type == 'League':
-            bucket[member.league.name] += 1
-
-    text = ''
-    total = 0
-    field_to_sort = 1
-    if type == 'Townhall':
-        field_to_sort = 0
-    for key, value in sorted(bucket.items(), key=lambda x: x[field_to_sort], reverse=True):
-        icon = ''
-        if type == 'Townhall':
-            icon = bot.fetch_emoji(int(key))
-            total += int(key) * value
-        elif type == 'Location':
-            icon = f':flag_{location_name_to_code.get(key).lower()}:'
-        elif type == 'League':
-            icon = league_to_emoji(bot=bot, league=key)
-
-        formats = {
-            'Townhall': '`{value:2}` {icon}`TH{key} `\n',
-            'Trophies': '`{value:2}` {icon}`{key}+ Trophies`\n',
-            'Location': '`{value:2}` {icon}`{key}`\n',
-            'Role': '`{value:2}` {icon}`{key}`\n',
-            'League': '`{value:2}` {icon}`{key}`\n',
-        }
-        text += f'{formats.get(type).format(key=key,value=value, icon=icon)}'
-
-    footer_text = f'{clan.member_count} accounts'
-    if type == 'Townhall':
-        footer_text += f' | Avg Townhall: {round((total / clan.member_count), 2)}'
-
-    embed = disnake.Embed(title=f'{clan.name} {type}s', description=text, color=embed_color)
-    embed.set_thumbnail(url=clan.badge.large)
-    embed.set_footer(text=footer_text)
-    embed.timestamp = datetime.now()
-    return embed
 
 
 @register_button('clanhero', parser='_:clan:season:limit')

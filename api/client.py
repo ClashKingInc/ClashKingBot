@@ -8,6 +8,7 @@ from route import Route
 from api.bans import BanListItem, BanResponse
 from api.errors import APIUnavailableError, AuthenticationError, NotFoundError
 from api.other import ObjectDictIterable
+from api.server import ServerSettings
 
 
 class ClashKingAPIClient:
@@ -124,8 +125,37 @@ class ClashKingAPIClient:
         items = response['items']
         return ObjectDictIterable(items=[BanListItem(data=item) for item in items], key='tag')
 
-    async def foo(self):
-        pass
+    # SETTINGS
+    async def get_server_settings(self, server_id: int, with_clan_settings: bool = False):
+        response = await self._request(
+            Route(
+                method='GET',
+                endpoint=f'/v2/server/settings/{server_id}?clan_settings={with_clan_settings}',
+            )
+        )
+        return ServerSettings(data=response['settings'], client=self)
+
+
+    async def set_server_embed_color(self, server_id: int, embed_color: str):
+        """
+        Sets the embed color for a specified server.
+
+        :param server_id: The ID of the server to update the embed color for.
+        :param embed_color: The hex code of the color to set (e.g., '#FFFFFF').
+        :return: The response from the server after updating the embed color.
+        """
+        hex_code = embed_color.replace('#', '')
+        hex_code = int(hex_code, 16)
+
+        response = await self._request(
+            Route(
+                method='PUT',
+                endpoint=f'/v2/server/{server_id}/embed-color/{hex_code}',
+            )
+        )
+        return response
+
+
 
 
 import asyncio
