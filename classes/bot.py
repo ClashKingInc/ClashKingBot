@@ -29,7 +29,6 @@ from classes.config import Config
 from classes.cocpy.client import CustomClashClient
 from classes.emoji import Emojis, EmojiType
 from utility.general import create_superscript, fetch
-from classes.cocpy.login import coc_login
 
 from api.client import ClashKingAPIClient
 
@@ -44,6 +43,7 @@ class CustomClient(commands.AutoShardedBot):
         scheduler: AsyncIOScheduler,
         shard_count: int | None,
         chunk_guilds_at_startup: bool,
+        coc_client: CustomClashClient,
         **kwargs,
     ):
         super().__init__(
@@ -81,7 +81,7 @@ class CustomClient(commands.AutoShardedBot):
             discordlinks.login(self._config.link_api_username, self._config.link_api_password)
         )
 
-        self.coc_client: CustomClashClient = asyncio.get_event_loop().run_until_complete(coc_login())
+        self.coc_client: CustomClashClient = coc_client
 
         self.loaded_emojis: dict = {}
 

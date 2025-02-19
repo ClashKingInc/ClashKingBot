@@ -122,7 +122,12 @@ async def create_embeds(
     embeds = []
 
     hold = ''
-    banned_players = await bot.coc_client.fetch_players(player_tags=bans.key_list())
+    banned_players = []
+
+    # Iterate through the PlayerIterator asynchronously
+    async for player in bot.coc_client.get_players(player_tags=bans.key_list()):
+        banned_players.append(player)
+
     for count, banned_player in enumerate(banned_players, 1):
         ban = bans[banned_player.tag]
 

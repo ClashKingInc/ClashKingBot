@@ -84,7 +84,7 @@ class Bans(commands.Cog, name='Bans'):
         ctx: disnake.ApplicationCommandInteraction,
     ):
         _, locale = self.bot.get_localizator(ctx=ctx)
-        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+        embed_color = (await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)).embed_color
 
         embeds = await create_embeds(bot=self.bot, guild=ctx.guild, embed_color=embed_color, locale=locale)
         buttons = button_generator(bot=self.bot, button_id=f'banlist:{ctx.guild_id}', max_page=len(embeds), print=True)

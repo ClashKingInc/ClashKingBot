@@ -38,6 +38,7 @@ class DiscordEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
+        return
         global has_started
         if has_started:
             return

@@ -1,6 +1,6 @@
 import coc
 import pendulum as pend
-from classes.cocpy.login import coc_client
+
 from classes.cocpy.capital import CustomRaidLogEntry
 
 """return {
