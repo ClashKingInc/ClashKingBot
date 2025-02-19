@@ -29,7 +29,7 @@ from classes.config import Config
 from classes.cocpy.client import CustomClashClient
 from classes.emoji import Emojis, EmojiType
 from utility.general import create_superscript, fetch
-
+from typing import Any
 from api.client import ClashKingAPIClient
 
 
@@ -135,10 +135,10 @@ class CustomClient(commands.AutoShardedBot):
             locale = self.get_locale(ctx)
 
         def localizator_func(key, **kwargs):
-            if 'values' in kwargs:
-                return functools.partial(self.i18n.l10n, locale=locale, cache=False)(key, **kwargs)
+            if kwargs:
+                return functools.partial(self.i18n.l10n, locale=locale, cache=False)(key, values=kwargs)
             else:
-                return functools.partial(self.i18n.l10n, locale=locale, cache=True)(key, **kwargs)
+                return functools.partial(self.i18n.l10n, locale=locale, cache=True)(key)
 
         return localizator_func, locale
 

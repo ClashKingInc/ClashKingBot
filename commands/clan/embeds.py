@@ -10,7 +10,7 @@ from utility.discord.commands import register_button
 
 
 from classes.cocpy.clan import BaseClan
-from .utils import townhall_composition, super_troop_composition
+from .utils import townhall_composition
 
 
 @register_button('clancompo', parser='_:clan:type')
@@ -75,17 +75,15 @@ async def clan_composition(
         }
         text += f'{formats.get(type).format(key=key, value=value, icon=icon)}'
 
-    footer_text = _("num-accounts", values={"num" : clan.member_count})
+    footer_text = _("num-accounts", num=clan.member_count)
     if type == 'Townhall':
         footer_text += f' | {_("average-townhall")}: {round((total / clan.member_count), 2)}'
 
     embed = disnake.Embed(
         title=_(
             'clan-compo-title',
-            values={
-                "clan_name": clan.name,
-                "type": _(type.lower())
-            }
+            clan_name=clan.name,
+            type=_(type.lower()),
         ),
         description=text,
         color=embed_color
@@ -168,25 +166,25 @@ async def detailed_clan_board(
 
     clan_totals = await bot.ck_client.get_clan_totals(clan_tag="#VY2J0LL", player_tags=clan.member_tags)
     formatted_stats = (
-        f"Clan Games: {clan_totals.clan_games_points:,} Points\n"
-        f"Capital Gold: {clan_totals.clan_capital_donated:,} Donated\n"
-        f"Donos: {bot.emoji.up_green_arrow}{clan_totals.troops_donated:,}, "
-        f"{bot.emoji.down_red_arrow}{clan_totals.troops_received:,}\n"
-        f"Active Daily: {clan_totals.activity_per_day} players/avg\n"
-        f"Activity Score: {clan_totals.activity_score}\n"
-        f"Active Last 48h: {clan_totals.activity_last_48h} players"
+        f"{_("clan-games-points", points=clan_totals.clan_games_points)}\n"
+        f"{_("capital-gold-donated", donated=clan_totals.clan_capital_donated)}\n"
+        f"{_("total-clan-donations", 
+             donated_emoji=bot.emoji.up_green_arrow.emoji_string,
+             donated=clan_totals.troops_donated,
+             received_emoji=bot.emoji.down_red_arrow.emoji_string,
+             received=clan_totals.troops_received,
+             )}\n"
+        f"{_("active-daily", num=clan_totals.activity_per_day)}\n"
+        f"{_("active-last-48", num=clan_totals.activity_last_48h)}\n"
     )
-    embed.add_field(name="Season Stats", value=formatted_stats)
+    embed.add_field(name=_("season-stats"), value=formatted_stats)
 
     th_comp = townhall_composition(bot=bot, players=clan.members)
-    #super_troop_comp = super_troop_composition(bot=bot, players=clan.members)
-
-    embed.add_field(name='**Townhall Composition:**', value=th_comp, inline=False)
-    #embed.add_field(name='**Boosted Super Troops:**', value=super_troop_comp, inline=False)
+    embed.add_field(name=_("townhall-composition"), value=th_comp, inline=False)
 
     embed.set_thumbnail(url=clan.badge.large)
     if db_clan and db_clan.category:
-        embed.set_footer(text=f'Category: {db_clan.category}')
+        embed.set_footer(text=_("clan-category", category=db_clan.category))
     embed.timestamp = pend.now(tz=pend.UTC)
 
     return embed

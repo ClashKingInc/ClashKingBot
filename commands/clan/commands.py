@@ -90,15 +90,15 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
             custom_id = f'clanmini:{clan.tag}'
             embed = await minimalistic_clan_board(bot=self.bot, clan=clan, server=ctx.guild, embed_color=embed_color)'''
 
-        buttons = disnake.ui.ActionRow(
+        buttons = [
             disnake.ui.Button(
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
                 custom_id=custom_id,
             ),
-            disnake.ui.Button(label='Open In-Game', url=clan.share_link, style=disnake.ButtonStyle.url),
-        )
+            disnake.ui.Button(label=_("open-in-game"), url=clan.share_link, style=disnake.ButtonStyle.url),
+        ]
         await ctx.edit_original_response(embed=embed, components=[buttons])
 
 

@@ -33,3 +33,5 @@ capital-league = Ligue de capitale
 capital-hall = Hôtel de Capitale
 capital-points = Points de Capitale
 rankings = Classement
+
+

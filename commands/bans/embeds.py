@@ -42,9 +42,10 @@ async def add_ban(
     embed = disnake.Embed(
         description=f'**{bot.fetch_emoji(player.town_hall)}[{player.name}]({player.share_link})** | {player.tag}'
         f'{clan_text}\n'
-        f"{_('ban-details', values={'ban_type' : ban.status.capitalize(), 
-                                    'date' : now.strftime('%Y-%m-%d %H:%M:%S'), 
-                                    'discord_mention' : added_by.mention,})}\n"
+        f"{_('ban-details', 
+             ban_type=ban.status.capitalize(), 
+             date=now.strftime('%Y-%m-%d %H:%M:%S'), 
+             discord_mention=added_by.mention)}\n"
         f'{_("reason-notes")}: {reason}',
         color=disnake.Color.brand_red(),
     )
@@ -77,16 +78,14 @@ async def remove_ban(
     try:
         ban = await bot.ck_client.remove_ban(server_id=guild.id, player_tag=player.tag)
     except:
-        raise MessageException(_('not-banned', values={'player_name': player.name}))
+        raise MessageException(_('not-banned', player_name=player.name))
 
     embed = disnake.Embed(
         description=_(
             'unbanned',
-            values={
-                'player_name': player.name,
-                'player_link': player.share_link,
-                'discord_mention': removed_by.mention,
-            },
+            player_name=player.name,
+            player_link=player.share_link,
+            discord_mention=removed_by.mention,
         ),
         color=disnake.Color.orange(),
     )
@@ -151,7 +150,7 @@ async def create_embeds(
         if count % 10 == 0 or count == len(banned_players):
             embed = disnake.Embed(description=hold, color=embed_color)
             embed.set_author(
-                name=_('server-ban-list', values={'server_name': guild.name}),
+                name=_('server-ban-list', server_name=guild.name),
                 icon_url=bot.get_guild_icon(guild=guild),
             )
             embeds.append(embed)
