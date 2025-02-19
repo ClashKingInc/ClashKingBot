@@ -121,13 +121,11 @@ async def detailed_clan_board(
 ):
     _, locale = bot.get_localizator(locale=locale)
 
-    db_clan = None
-    if server:
-        db_clan = await bot.ck_client.get_server_clan_settings(server_id=server.id, clan_tag=clan.tag, silent=True)
+
+    db_clan = await bot.ck_client.get_server_clan_settings(server_id=server and server.id, clan_tag=clan.tag, silent=True)
 
     clan_ranking = await bot.ck_client.get_clan_ranking(clan_tag=clan.tag)
 
-    previous_season, season = gen_season_date(num_seasons=2)
 
     clan_leader = coc.utils.get(clan.members, role=coc.Role.leader)
 
@@ -182,56 +180,6 @@ async def detailed_clan_board(
         color=embed_color,
     )
 
-    clan_members: List[StatsPlayer] = await bot.get_players(tags=[member.tag for member in clan.members], custom=True)
-
-    clan_stats = await bot.clan_stats.find_one({'tag': clan.tag})
-    clan_games_points = 0
-    total_donated = 0
-    total_received = 0
-    if clan_stats:
-        for s in [season, previous_season]:
-            for tag, data in clan_stats.get(s, {}).items():
-                cg_points = data.get('clan_games', 0)
-                if cg_points is None:
-                    cg_points = 0
-                clan_games_points += cg_points
-            if clan_games_points != 0:
-                break
-
-        for tag, data in clan_stats.get(season, {}).items():
-            total_donated += data.get('donated', 0)
-            total_received += data.get('received', 0)
-
-    raid_season_stats = [c.results for c in clan_members]
-    donated_cc = 0
-    for date in gen_raid_weekend_datestrings(number_of_weeks=4):
-        donated_cc += sum(
-            [
-                sum(player.get(f'capital_gold').get(f'{date}').get('donate'))
-                for player in raid_season_stats
-                if player.get('capital_gold') is not None
-                and player.get('capital_gold').get(f'{date}') is not None
-                and player.get('capital_gold').get(f'{date}').get('donate') is not None
-            ]
-        )
-
-    now = datetime.utcnow()
-    time_add = defaultdict(set)
-    for player in clan_members:
-        for t in player.season_last_online():
-            time_to_date = datetime.fromtimestamp(t)
-            if now.date() == time_to_date.date():
-                continue
-            time_add[str(time_to_date.date())].add(player.tag)
-
-    num_players_day = []
-    for date, players in time_add.items():
-        num_players_day.append(len(players))
-
-    try:
-        avg_players = int(sum(num_players_day) / len(num_players_day))
-    except:
-        avg_players = 0
 
     embed.add_field(
         name='Season Stats',
@@ -247,12 +195,10 @@ async def detailed_clan_board(
     embed.add_field(name='**Boosted Super Troops:**', value=super_troop_comp, inline=False)
 
     embed.set_thumbnail(url=clan.badge.large)
-    if db_clan is not None:
-        ctg = db_clan.get('category')
-        if ctg is not None:
-            category = f'Category: {ctg} Clans'
-            embed.set_footer(text=category)
-    embed.timestamp = datetime.now()
+    if db_clan and db_clan.category:
+        embed.set_footer(text=f'Category: {db_clan.category}')
+    embed.timestamp = pend.now(tz=pend.UTC)
+
     return embed
 
 
