@@ -229,7 +229,7 @@ class DiscordEvents(commands.Cog):
             )
 
             current_time = int(pend.now(tz=pend.UTC).timestamp())
-            HOURS = 24 * 3
+            HOURS = 24 * 7
             MINUTES = 0
             run_time_check_seconds = (HOURS * 60 * 60) + (MINUTES * 60)
 
