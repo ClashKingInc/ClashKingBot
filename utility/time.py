@@ -84,7 +84,7 @@ def smart_convert_seconds(seconds, granularity=2):
     return ' '.join(result[:granularity])
 
 
-def gen_season_date(num_seasons: int = 0, as_text: bool = True) -> str | list[str]:
+def gen_season_date(num_seasons: int = 0, as_text: bool = False) -> str | list[str]:
     """
     Generates season dates based on the number of seasons ago.
 
