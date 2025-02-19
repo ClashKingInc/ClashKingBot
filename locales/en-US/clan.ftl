@@ -9,9 +9,9 @@ location = Location
 league = League
 role = Role
 
-clan-compo-title = { $clan_name } { $type } Composition
+clan-compo-title = { $clan_name } { $ type } Composition
 
-num-accounts = { $num } accounts
+num-accounts = { $ num } accounts
 
 average-townhall = Avg townhall
 
@@ -29,7 +29,7 @@ level = Level
 members = Members
 cwl = CWL
 wars-won = Wars Won
-wars-lost = Wars Lost
+wars-list = Wars Lost
 win-streak = Win Streak
 win-ratio = Win Ratio
 clan-description = Description
