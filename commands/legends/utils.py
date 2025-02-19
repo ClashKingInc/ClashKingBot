@@ -91,6 +91,8 @@ async def legend_day_overview(
         emoji_text = ''
         for gear in gears_used:
             gear = bot.coc_client.get_equipment(name=gear.name, level=gear.level)
+            if gear is None:
+                continue
             if gear.hero == hero:
                 emoji_text += f'{bot.fetch_emoji(gear.name)}{create_superscript(gear.level)}'
         if emoji_text != '':
