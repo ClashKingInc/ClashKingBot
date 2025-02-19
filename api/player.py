@@ -1,4 +1,4 @@
-from location import BaseLocation
+from api.location import BaseLocation
 
 class BasePlayer:
     def __init__(self, data: dict):

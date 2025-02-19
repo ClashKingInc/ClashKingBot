@@ -5,7 +5,7 @@ import pendulum as pend
 import coc
 from coc import Player, Clan, WarRound, ClanWar, Location
 from aiocache import SimpleMemoryCache, cached
-from classes.mongo import MongoClient as mongo_client
+
 from .player import BasePlayer
 from .clan import BaseClan
 
@@ -33,7 +33,7 @@ class CustomClashClient(coc.Client):
                 return None
         except coc.PrivateWarLog:
             result = (
-                await mongo_client.clan_wars.find(
+                await self.clan_wars.find(
                     {
                         '$and': [
                             {'clans': clan_tag},

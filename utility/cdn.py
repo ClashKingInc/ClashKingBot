@@ -1,6 +1,6 @@
 import aiohttp
 
-from main import config
+#from main import config
 
 
 async def upload_to_cdn(payload: bytes, folder: str, id: int | str, filetype: str):

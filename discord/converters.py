@@ -2,10 +2,11 @@ import calendar
 import re
 
 import coc
+import disnake
 from disnake.ext import commands
 
 from classes.bot import CustomClient
-from exceptions.CustomExceptions import InvalidGuildID, MessageException
+from classes.exceptions import InvalidGuildID, MessageException
 from utility.constants import TOWNHALL_LEVELS
 
 
@@ -45,9 +46,7 @@ class Convert(commands.Cog, name='Convert'):
             return list(reversed(TOWNHALL_LEVELS))
 
     async def clan(self, clan: str):
-        clan = await self.bot.getClan(clan_tag=clan, raise_exceptions=True)
-        if clan is None:
-            return coc.errors.NotFound
+        clan = await self.bot.coc_client.get_clan(tag=clan)
         if clan.member_count == 0:
             raise coc.errors.NotFound
         return clan
@@ -118,6 +117,9 @@ class Convert(commands.Cog, name='Convert'):
         button_name = split_text[0].strip()
         panel_name = split_text[1].strip()
         return (button_name, panel_name)
+
+    async def locale_to_string(self, item: str) -> str:
+        return item.string
 
 
 def setup(bot: CustomClient):

@@ -8,10 +8,8 @@ from pytz import utc
 from classes.bot import CustomClient
 from classes.reminders import Reminder
 from classes.roster import Roster
-from exceptions.CustomExceptions import ExpiredComponents, ThingNotFound
-from utility.components import clan_component
 from utility.constants import ROLES, TOWNHALL_LEVELS
-from utility.discord_utils import interaction_handler
+
 
 
 def role_options():

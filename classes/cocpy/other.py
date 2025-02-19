@@ -1,3 +1,7 @@
+import coc
+import emoji
+import re
+from utility.constants import SHORT_PLAYER_LINK, SUPER_SCRIPTS
 class BaseClan:
     def __init__(self, data: dict, api_clan: coc.Clan):
         self.tag: str = data.get('tag')

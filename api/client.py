@@ -3,9 +3,10 @@ import re
 from typing import Any
 from expiring_dict import ExpiringDict
 
-from route import Route
+from api.route import Route
 
 from api.bans import BanListItem, BanResponse
+from api.clan import ClanTotals
 from api.errors import APIUnavailableError, AuthenticationError, NotFoundError
 from api.location import ClanRanking
 from api.other import ObjectDictIterable
@@ -46,7 +47,7 @@ class ClashKingAPIClient:
         """Handles all HTTP requests, caching GET requests and raising appropriate exceptions."""
         url = f'{self.base_url}{route.endpoint}'
         method = route.method.lower()
-        cache_key = f'{route.method}:{route.endpoint}:{route.params}'
+        cache_key = f'{route.method}:{route.endpoint}'
 
         # Check cache for GET requests
         if method == 'get' and cache_key in self.cache:
@@ -59,9 +60,8 @@ class ClashKingAPIClient:
                 async with session.request(
                     method=method,
                     url=url,
-                    params=route.params if method in {'get', 'post'} else None,
-                    data=route.data if method in {'post', 'put'} else None,
-                    json=route.json if method == 'post' else None,
+                    data=route.data,
+                    json=route.json,
                     timeout=self.timeout,
                 ) as response:
                     if response.status == 403:
@@ -146,16 +146,16 @@ class ClashKingAPIClient:
         return ObjectDictIterable(items=[BanListItem(data=item) for item in items], key='tag')
 
 
-
     # SETTINGS
     async def get_server_settings(self, server_id: int, with_clan_settings: bool = False) -> ServerSettings:
         response = await self._request(
             Route(
                 method='GET',
-                endpoint=f'/v2/server/{server_id}/settings?clan_settings={with_clan_settings}',
+                endpoint=f'/v2/server/{server_id}/settings',
+                clan_settings=with_clan_settings,
             )
         )
-        return ServerSettings(data=response['settings'])
+        return ServerSettings(data=response)
 
 
     @handle_silent
@@ -209,7 +209,21 @@ class ClashKingAPIClient:
 
 
 
-    #CLAN ENDPOINTS
+    # CLAN ENDPOINTS
+    async def get_clan_totals(self, clan_tag: str, player_tags: list[str]) -> ClanTotals:
+        """
+        Retrieves the clan totals for a specified clan.
+        """
+        response = await self._request(
+            Route(
+                method='GET',
+                endpoint=f'/v2/clan/{clan_tag}/board/totals',
+                json={'player_tags': player_tags}
+            )
+        )
+        return ClanTotals(data=response)
+
+
     async def get_clan_ranking(self, clan_tag: str) -> ClanRanking:
         """
         Gets location info for a list of players.
@@ -231,7 +245,16 @@ import asyncio
 
 async def foo():
     client = ClashKingAPIClient(api_token='XRKHJDBmTBILFepA7I5rKxwwBWQu', timeout=30, cache_ttl=60)
-    list = await client.get_ban_list(server_id=923764211845312533)
+    player_tags = ["#2J8V28GV0", "#PVLRQQUJ", "#Q9YLRPUV", "#2LGQJ2GU8", "#C02UPP2P",
+ "#YL0CCGV2G", "#JPQC2Y02", "#C9V8PC90", "#2QJYRU88", "#LP9Y9Q8PG",
+ "#2GGUJVUGY", "#8GLYGGJQ", "#L20LQLULY", "#QCG229VY", "#QPGU0YR2L",
+ "#2PYGPPJ", "#PQYJGL2PL", "#YGYPR9YR", "#8RRQVYU", "#829CC0CY",
+ "#LGR29G2YV", "#PVCR00Y8L", "#80Y0C0VU", "#YU22G22Y", "#YQ2P00CQ",
+ "#90J9828JG", "#PR0J29P", "#282L8YR0Q", "#2YLPC28V", "#C0U0JJQR",
+ "#8V9QGJGU", "#YYVV2QPP", "#YUVPLUU8P", "#YV9JCQYU0", "#UJQVGJPG",
+ "#QJGYLJVL0", "#GPRJV8LGV", "#GQYRGYVJ8"]
+    response = await client.get_clan_totals(clan_tag="#VY2J0LL", player_tags=player_tags)
+    response = await client.get_server_settings(server_id=684667214347108386, with_clan_settings=True)
 
 
 asyncio.run(foo())

@@ -4,9 +4,6 @@ from typing import TYPE_CHECKING, List, Union
 import coc
 import disnake
 
-from utility.constants import AUTOREFRESH_TRIGGERS, ROLE_TREATMENT_TYPES
-
-
 
 from coc import utils
 

@@ -23,7 +23,7 @@ class EventGateway:
         self.defaults = {'ping_timeout': None, 'ping_interval': None, 'open_timeout': None, 'max_queue': 500_000}
         self.websocket: websockets.asyncio.client.Connection = None
         self.request_stats = defaultdict(lambda: deque(maxlen=10_000))
-        self.available_topics = set(list(self.emitter_map.keys()))
+
 
     @property
     def available_events(self) -> set:

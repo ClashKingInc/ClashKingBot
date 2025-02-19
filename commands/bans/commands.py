@@ -9,7 +9,7 @@ from discord import options
 from utility.discord.commands import check_commands, interaction_handler
 from utility.discord.components import button_generator
 
-from .utils import add_ban, create_embeds, remove_ban
+from .embeds import add_ban, create_embeds, remove_ban
 
 
 class Bans(commands.Cog, name='Bans'):

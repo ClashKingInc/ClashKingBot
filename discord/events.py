@@ -7,11 +7,9 @@ from disnake.ext import commands
 from loguru import logger
 
 from classes.bot import CustomClient
-from classes.database.familyclient import FamilyClient
 from classes.emoji import Emojis
 from classes.tickets import LOG_TYPE, OpenTicket, TicketPanel
-from utility.constants import DISCORD_STATUS_TYPES, EMBED_COLOR_CLASS
-from utility.discord_utils import get_webhook_for_channel
+from utility.constants import EMBED_COLOR_CLASS
 from .startup import fetch_emoji_dict
 
 
@@ -27,7 +25,6 @@ class DiscordEvents(commands.Cog):
         emojis = await fetch_emoji_dict(bot=self.bot)
         self.bot.loaded_emojis = emojis
         self.bot.emoji = Emojis(bot=self.bot)
-        self.bot.ck_client = FamilyClient(bot=self.bot)
         logger.info(f'Shard {shard_id} has connected to the discord gateway')
 
     @commands.Cog.listener()

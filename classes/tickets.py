@@ -10,8 +10,8 @@ from disnake import ButtonStyle, Embed
 from disnake.ui import Button
 
 from classes.bot import CustomClient
-from exceptions.CustomExceptions import ButtonAlreadyExists, ButtonNotFound
-from utility.cdn import upload_html_to_cdn, upload_to_cdn
+from classes.exceptions import ButtonAlreadyExists, ButtonNotFound
+from utility.cdn import upload_to_cdn
 
 
 text_style_conversion = {

@@ -4,7 +4,6 @@ import coc
 import disnake
 
 from classes.bot import CustomClient
-from classes.database.models.player.stats import StatsPlayer
 
 
 def button_generator(bot: CustomClient, button_id: str, current_page: int = 0, max_page: int = 1, print: bool = False):

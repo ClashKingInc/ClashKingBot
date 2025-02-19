@@ -30,7 +30,6 @@ from classes.cocpy.client import CustomClashClient
 from classes.emoji import Emojis, EmojiType
 from utility.general import create_superscript, fetch
 from classes.cocpy.login import coc_login
-from classes.mongo import MongoClient
 
 from api.client import ClashKingAPIClient
 
@@ -69,12 +68,14 @@ class CustomClient(commands.AutoShardedBot):
         self.SHARD_DATA: list[ShardData] = []
         self.SERVER_MAP: dict[int, ShardServers] = {}
 
+        scheduler.start()
         self.scheduler = scheduler
+
         self.ck_client = ClashKingAPIClient(api_token=config.clashking_api_token, timeout=30, cache_ttl=60)
 
         self.max_pool_size = 1 if config.is_custom else 100
 
-        self.mongo = MongoClient()
+        self.mongo = ""
 
         self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(
             discordlinks.login(self._config.link_api_username, self._config.link_api_password)

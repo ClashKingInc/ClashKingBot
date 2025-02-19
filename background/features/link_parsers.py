@@ -5,7 +5,7 @@ import disnake
 from disnake.ext import commands
 
 from classes.bot import CustomClient
-from commands.clan.utils import basic_clan_board
+from commands.clan.embeds import basic_clan_board
 from commands.player.utils import basic_player_board
 from commands.utility.utils import army_embed
 from utility.general import safe_run

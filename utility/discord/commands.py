@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, List, Tuple, Union
 import disnake
 from disnake.ext import commands
 
-from exceptions.CustomExceptions import *
+from classes.exceptions import *
 
 from classes.mongo import MongoClient as mongo_client
 

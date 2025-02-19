@@ -14,7 +14,7 @@ from expiring_dict import ExpiringDict
 from pytz import utc
 
 from utility.clash.other import league_to_emoji
-from utility.constants import SUPER_SCRIPTS, placeholders, war_leagues
+from utility.constants import SUPER_SCRIPTS
 
 
 async def fetch(url, session, **kwargs):

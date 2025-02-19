@@ -18,7 +18,7 @@ from commands.reminders.utils import (
     gen_war_times,
 )
 from utility.clash.capital import gen_raid_weekend_datestrings
-from utility.constants import TH_FILTER_OPTIONS, TOWNHALL_LEVELS
+from utility.constants import TOWNHALL_LEVELS
 from utility.general import create_superscript
 from utility.search import all_names, family_names, search_name_with_tag
 

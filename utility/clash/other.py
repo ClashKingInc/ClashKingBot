@@ -7,8 +7,6 @@ import coc
 import emoji
 from pytz import utc
 
-from utility.constants import SUPER_TROOPS
-
 
 if TYPE_CHECKING:
     from classes.bot import CustomClient
@@ -228,36 +226,10 @@ def profileSuperTroops(bot: 'CustomClient', player):
     return boostedTroops
 
 
-def clan_th_comp(bot: 'CustomClient', clan_members):
-    thcount = defaultdict(int)
-
-    for player in clan_members:
-        thcount[player.town_hall] += 1
-
-    th_comp_string = ''
-    for th_level, th_count in sorted(thcount.items(), reverse=True):
-        th_emoji = bot.fetch_emoji(th_level)
-        th_comp_string += f'{th_emoji}`{th_count}` '
-
-    return th_comp_string
 
 
-def clan_super_troop_comp(bot: 'CustomClient', clan_members):
-    super_troop_comp_dict = defaultdict(int)
-    for player in clan_members:
-        for troop in player.troops:
-            if troop.is_active:
-                super_troop_comp_dict[troop.name] += 1
 
-    return_string = ''
-    for troop, count in super_troop_comp_dict.items():
-        super_troop_emoji = bot.fetch_emoji(name=troop)
-        return_string += f'{super_troop_emoji}`x{count} `'
 
-    if return_string == '':
-        return_string = 'None'
-
-    return return_string
 
 
 def leagueAndTrophies(bot: 'CustomClient', player):
