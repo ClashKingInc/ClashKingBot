@@ -5,10 +5,8 @@ trophies = Trophées
 location = Localisation
 league = Ligue
 role = Rôle
-clan-compo-title = { $clan_name } { $ type } Composition
-
-num-accounts = { $ num } accounts
-
+clan-compo-title = { $clan_name } { $type } Composition
+num-accounts = { $num } accounts
 average-townhall = Hôtel de ville moyen
 anyone-can-join = Tout le monde peut rejoindre
 invite-only = Sur invitation
@@ -23,7 +21,7 @@ level = Niveau
 members = Membres
 cwl = LDC
 wars-won = Guerres gagnées
-wars-lost = Guerres Perdues
+wars-lost = Wars Lost
 win-streak = Série de victoires
 win-ratio = Ratio de victoire
 clan-description = Description
