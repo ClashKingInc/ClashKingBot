@@ -84,22 +84,6 @@ def smart_convert_seconds(seconds, granularity=2):
     return ' '.join(result[:granularity])
 
 
-def gen_raid_date():
-    now = pend.now(tz=pend.UTC)
-    current_dayofweek = now.day_of_week  # Monday = 0, Sunday = 6
-    if (
-        (current_dayofweek == 4 and now.hour >= 7)  # Friday after 7 AM UTC
-        or (current_dayofweek == 5)  # Saturday
-        or (current_dayofweek == 6)  # Sunday
-        or (current_dayofweek == 0 and now.hour < 7)  # Monday before 7 AM UTC
-    ):
-        raid_date = now.subtract(days=(current_dayofweek - 4 if current_dayofweek >= 4 else 0)).date()
-    else:
-        forward = 4 - current_dayofweek  # Days until next Friday
-        raid_date = now.add(days=forward).date()
-    return str(raid_date)
-
-
 def gen_season_date(num_seasons: int = 0, as_text: bool = True) -> str | list[str]:
     """
     Generates season dates based on the number of seasons ago.
@@ -117,7 +101,29 @@ def gen_season_date(num_seasons: int = 0, as_text: bool = True) -> str | list[st
     if num_seasons == 0:
         return format_date(end_date, as_text)
 
-    return [format_date(end_date.subtract(months=i), as_text) for i in range(num_seasons + 1)]
+    return [format_date(end_date.subtract(months=i), as_text) for i in range(num_seasons)]
+
+
+def gen_raid_date(num_weeks: int = 0) -> str | list[str]:
+    """
+    Generates Raid Weekend start dates based on the number of weeks ago.
+
+    :param num_weeks: Number of weeks ago. Default is 0 (current Raid Weekend).
+    :return: A single date string if num_weeks is 0, otherwise a list of date strings.
+    """
+
+    def get_raid_weekend_start(date: pend.DateTime) -> str:
+        """Finds the nearest Raid Weekend start date (Friday at 07:00 UTC)."""
+        if date.weekday() > 0 and (date.weekday() < 4 or (date.weekday() == 4 and date.hour < 7)):
+            date = date.subtract(weeks=1)
+        return date.start_of("week").add(days=4, hours=7).to_date_string()
+
+    now = pend.now()
+
+    if num_weeks == 0:
+        return get_raid_weekend_start(now)
+
+    return [get_raid_weekend_start(now.subtract(weeks=i)) for i in range(num_weeks + 1)]
 
 
 def gen_legend_date():
