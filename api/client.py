@@ -7,11 +7,26 @@ from route import Route
 
 from api.bans import BanListItem, BanResponse
 from api.errors import APIUnavailableError, AuthenticationError, NotFoundError
+from api.location import ClanRanking
 from api.other import ObjectDictIterable
 from api.player import LocationPlayer
-from api.server import ServerSettings
+from api.server import ServerSettings, ServerClanSettings
 
+from functools import wraps
 
+def handle_silent(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        silent = kwargs.pop("silent", False)  # Extract 'silent' if provided, default to False
+        try:
+            return await func(*args, **kwargs)
+        except NotFoundError:
+            if silent:
+                return None
+            raise
+    return wrapper
+
+# fmt: off
 class ClashKingAPIClient:
     def __init__(self, api_token: str, timeout: int = 30, cache_ttl: int = 60):
         # self.base_url = 'https://api.clashk.ing'
@@ -74,6 +89,8 @@ class ClashKingAPIClient:
             except aiohttp.ClientError as e:
                 raise APIUnavailableError(500) from e  # Handle connection issues as API being down
 
+
+
     # BANS
     async def add_ban(self, server_id: int, player_tag: str, reason: str, added_by: int) -> BanResponse:
         """
@@ -94,6 +111,7 @@ class ClashKingAPIClient:
         )
         return BanResponse(data=response)
 
+
     async def remove_ban(self, server_id: int, player_tag: str) -> BanResponse:
         """
         Removes a ban for a given player in a specific server.
@@ -109,6 +127,7 @@ class ClashKingAPIClient:
             )
         )
         return BanResponse(data=response)
+
 
     async def get_ban_list(self, server_id: int) -> ObjectDictIterable[BanListItem]:
         """
@@ -126,15 +145,28 @@ class ClashKingAPIClient:
         items = response['items']
         return ObjectDictIterable(items=[BanListItem(data=item) for item in items], key='tag')
 
+
+
     # SETTINGS
-    async def get_server_settings(self, server_id: int, with_clan_settings: bool = False):
+    async def get_server_settings(self, server_id: int, with_clan_settings: bool = False) -> ServerSettings:
         response = await self._request(
             Route(
                 method='GET',
-                endpoint=f'/v2/server/settings/{server_id}?clan_settings={with_clan_settings}',
+                endpoint=f'/v2/server/{server_id}/settings?clan_settings={with_clan_settings}',
             )
         )
         return ServerSettings(data=response['settings'])
+
+
+    @handle_silent
+    async def get_server_clan_settings(self, server_id: int, clan_tag: str) -> ServerClanSettings | None:
+        response = await self._request(
+            Route(
+                method='GET',
+                endpoint=f'/v2/server/{server_id}/clan/{clan_tag}/settings',
+            )
+        )
+        return ServerClanSettings(data=response)
 
 
     async def set_server_embed_color(self, server_id: int, embed_color: str):
@@ -156,6 +188,8 @@ class ClashKingAPIClient:
         )
         return response
 
+
+
     #PLAYER ENDPOINTS
     async def get_player_locations(self, player_tags: list[str]) -> ObjectDictIterable[LocationPlayer]:
         """
@@ -172,6 +206,23 @@ class ClashKingAPIClient:
         )
         items = response['items']
         return ObjectDictIterable(items=[LocationPlayer(data=item) for item in items], key='tag')
+
+
+
+    #CLAN ENDPOINTS
+    async def get_clan_ranking(self, clan_tag: str) -> ClanRanking:
+        """
+        Gets location info for a list of players.
+
+        :param clan_tag: tag for clan
+        """
+        response = await self._request(
+            Route(
+                method='GET',
+                endpoint=f'v2/clan/{clan_tag}/ranking',
+            )
+        )
+        return ClanRanking(data=response)
 
 
 

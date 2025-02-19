@@ -26,40 +26,48 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
 
     @clan.sub_command(
         name='compo',
-        description = Loc(key='compo-description'),
+        description = Loc(key='clan-compo-description'),
         extras = {'docs': 'https://docs.clashking.xyz/clan-and-family-commands/clan-commands#clan-compo-clan-type'},
     )
     async def compo(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        clan: coc.Clan = options.clan,
+        clan = options.clan,
         type_: str = commands.Param(
             name='type',
-            default='Townhall',
-            choices=['Townhall', 'Trophies', 'Location', 'Role', 'League'],
-        ),
+            default=Loc('Townhall', key="townhall-choice"),
+            choices=[
+                Loc('Townhall', key="townhall-choice"),
+                Loc('Trophies', key="trophies-choice"),
+                Loc('Location', key="location-choice"),
+                Loc('Role', key="role-choice"),
+                Loc('League', key="league-choice"),
+            ],
+        )
     ):
         embed_color = (await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)).embed_color
+        _, locale = self.bot.get_localizator(ctx=ctx)
 
         embed = await clan_composition(
             bot=self.bot,
             clan=clan,
             type=type_,
-            embed_color=embed_color
+            embed_color=embed_color,
+            locale=locale,
         )
-        buttons = button_generator(button_id=f'clancompo:{clan.tag}:{type_}')
+        buttons = button_generator(button_id=f'clancompo:{clan.tag}:{type_}', bot=self.bot)
         await ctx.edit_original_response(embed=embed, components=buttons)
 
 
 
     @clan.sub_command(
         name='search',
-        description='Board showing basic clan overviews'
+        description=Loc(key='clan-search-description'),
     )
     async def search(
         self,
         ctx: disnake.ApplicationCommandInteraction,
-        clan: coc.Clan = options.clan,
+        clan = options.clan,
         type: str = commands.Param(default='Detailed', choices=['Minimalistic', 'Basic', 'Detailed']),
     ):
         """
@@ -68,7 +76,8 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
         clan: Use clan tag or select an option from the autocomplete
         type: board type
         """
-        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+        embed_color = (await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)).embed_color
+
         if type == 'Detailed':
             custom_id = f'clandetailed:{clan.tag}'
             embed = await detailed_clan_board(bot=self.bot, clan=clan, server=ctx.guild, embed_color=embed_color)

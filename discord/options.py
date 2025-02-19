@@ -1,4 +1,5 @@
 import disnake
+from classes.cocpy.clan import BaseClan
 from disnake.ext import commands
 
 from discord import autocomplete, convert
@@ -10,7 +11,7 @@ optional_clan = commands.Param(
     autocomplete=autocomplete.clan,
     description=disnake.Localized(key='clan-autocomplete-description'),
 )
-clan = commands.Param(
+clan: BaseClan = commands.Param(
     converter=convert.clan,
     autocomplete=autocomplete.clan,
     description=disnake.Localized(key='clan-autocomplete-description'),

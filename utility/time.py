@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import pendulum as pend
 import coc
-
+import calendar
 
 class DiscordTimeStamp:
     def __init__(self, date: pend.DateTime):

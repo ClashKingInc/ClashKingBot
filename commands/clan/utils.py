@@ -9,8 +9,6 @@ from ballpark import ballpark as B
 from disnake import Embed
 from disnake.utils import get
 
-from classes.database.models.player.stats import ClanCapitalWeek, LegendRanking, StatsPlayer
-from exceptions.CustomExceptions import MessageException
 from utility.clash.capital import (
     calc_raid_medals,
     gen_raid_weekend_datestrings,
@@ -19,60 +17,65 @@ from utility.clash.capital import (
 )
 from utility.clash.other import *
 from utility.constants import EMBED_COLOR_CLASS, SUPER_SCRIPTS, item_to_name
-from utility.discord_utils import register_button
-from utility.general import create_superscript, response_to_line, smart_convert_seconds
-from image_gen.ClanCapitalResult import generate_raid_result_image
+from utility.discord.commands import register_button
+from utility.general import create_superscript
+from utility.time import gen_season_date
 
 from ..graphs.utils import daily_graph
 
+from classes.cocpy.clan import BaseClan
 
 
 @register_button('clancompo', parser='_:clan:type')
-async def clan_composition(bot: CustomClient, clan: coc.Clan, type: str, embed_color: disnake.Color):
+async def clan_composition(
+        bot: CustomClient,
+        clan: BaseClan,
+        type: str,
+        embed_color: disnake.Color,
+        locale: disnake.Locale = disnake.Locale.en_US,
+):
+    _, locale = bot.get_localizator(locale=locale)
+
     bucket = defaultdict(int)
 
-    tag_to_location = {}
-    location_name_to_code = {}
+    tag_to_location = None
+    country_to_code = {}
     if type == 'Location':
-        location_info = await bot.leaderboard_db.find(
-            {'tag': {'$in': [m.tag for m in clan.members]}},
-            {'tag': 1, 'country_name': 1, 'country_code': 1},
-        ).to_list(length=None)
-        tag_to_location = {d.get('tag'): d.get('country_name') for d in location_info}
-        location_name_to_code = {d.get('country_name'): d.get('country_code') for d in location_info}
+        tag_to_location = await bot.ck_client.get_player_locations(player_tags=clan.member_tags)
+        country_to_code = {p.country.name: p.country.code.lower() for p in tag_to_location}
 
     for member in clan.members:
         if type == 'Townhall':
-            if member._raw_data.get('townHallLevel') == 0:
+            if member.town_hall == 0:
                 continue
-            bucket[member._raw_data.get('townHallLevel')] += 1
+            bucket[member.town_hall] += 1
         elif type == 'Trophies':
             if member.trophies >= 1000:
-                bucket[str(int(str(member.trophies)[0]) * 1000)] += 1
+                bucket[str((member.trophies // 1000) * 1000)] += 1
             else:
                 bucket['100'] += 1
         elif type == 'Location':
-            location = tag_to_location.get(member.tag)
-            if location is None:
-                continue
-            bucket[location] += 1
+            if member.tag in tag_to_location:
+                location = tag_to_location[member.tag]
+                bucket[location.country.name] += 1
         elif type == 'Role':
             bucket[member.role.in_game_name] += 1
         elif type == 'League':
             bucket[member.league.name] += 1
 
+    if not bucket:
+        return disnake.Embed(description=_("no-data-found-clan"), color=disnake.Color.red())
+
     text = ''
     total = 0
-    field_to_sort = 1
-    if type == 'Townhall':
-        field_to_sort = 0
+    field_to_sort = 1 if type != "Townhall" else 0
     for key, value in sorted(bucket.items(), key=lambda x: x[field_to_sort], reverse=True):
         icon = ''
         if type == 'Townhall':
             icon = bot.fetch_emoji(int(key))
             total += int(key) * value
         elif type == 'Location':
-            icon = f':flag_{location_name_to_code.get(key).lower()}:'
+            icon = f':flag_{country_to_code.get(key)}:'
         elif type == 'League':
             icon = league_to_emoji(bot=bot, league=key)
 
@@ -83,129 +86,98 @@ async def clan_composition(bot: CustomClient, clan: coc.Clan, type: str, embed_c
             'Role': '`{value:2}` {icon}`{key}`\n',
             'League': '`{value:2}` {icon}`{key}`\n',
         }
-        text += f'{formats.get(type).format(key=key,value=value, icon=icon)}'
+        text += f'{formats.get(type).format(key=key,value=_(value), icon=icon)}'
 
-    footer_text = f'{clan.member_count} accounts'
+    footer_text = _("num-accounts", values={"num" : clan.member_count})
     if type == 'Townhall':
-        footer_text += f' | Avg Townhall: {round((total / clan.member_count), 2)}'
+        footer_text += f' | {_("average-townhall")}: {round((total / clan.member_count), 2)}'
 
-    embed = disnake.Embed(title=f'{clan.name} {type}s', description=text, color=embed_color)
+    embed = disnake.Embed(
+        title=_(
+            'clan-compo-title',
+            values={
+                "clan_name": clan.name,
+                "type": _(type)
+            }
+        ),
+        description=text,
+        color=embed_color
+    )
     embed.set_thumbnail(url=clan.badge.large)
     embed.set_footer(text=footer_text)
-    embed.timestamp = datetime.now()
+    embed.timestamp = pend.now(tz=pend.UTC)
     return embed
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @register_button('clandetailed', parser='_:clan')
-async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake.Guild, embed_color: disnake.Color):
+async def detailed_clan_board(
+        bot: CustomClient,
+        clan: coc.Clan,
+        server: disnake.Guild,
+        embed_color: disnake.Color,
+        locale: disnake.Locale = disnake.Locale.en_US,
+):
+    _, locale = bot.get_localizator(locale=locale)
+
     db_clan = None
     if server:
-        db_clan = await bot.clan_db.find_one({'$and': [{'tag': clan.tag}, {'server': server.id}]})
+        db_clan = await bot.ck_client.get_server_clan_settings(server_id=server.id, clan_tag=clan.tag, silent=True)
 
-    clan_legend_ranking = await bot.clan_leaderboard_db.find_one({'tag': clan.tag})
+    clan_ranking = await bot.ck_client.get_clan_ranking(clan_tag=clan.tag)
 
-    previous_season = bot.gen_previous_season_date()
-    season = bot.gen_season_date()
+    previous_season, season = gen_season_date(num_seasons=2)
 
-    clan_leader = get(clan.members, role=coc.Role.leader)
-    warwin = clan.war_wins
-    winstreak = clan.war_win_streak
-    if clan.public_war_log:
-        warloss = clan.war_losses
-        if warloss == 0:
-            winrate = warwin
-        else:
-            winrate = round((warwin / warloss), 2)
-    else:
-        warloss = 'Hidden Log'
-        winrate = 'Hidden Log'
+    clan_leader = coc.utils.get(clan.members, role=coc.Role.leader)
+
+
+    war_loss = max(clan.war_losses, 0) if clan.public_war_log else _("hidden-log")
+    win_rate = round((clan.war_wins / max(war_loss, 1)), 2) if clan.public_war_log else _("hidden-log")
 
     if str(clan.location) == 'International':
         flag = bot.emoji.earth
+    elif clan.location:
+        flag = f':flag_{clan.location.country_code.lower()}:'
     else:
-        try:
-            flag = f':flag_{clan.location.country_code.lower()}:'
-        except:
-            flag = 'ðŸ�³ï¸�'
+        flag = '🏳️'
 
-    ranking = LegendRanking(clan_legend_ranking)
-    rank_text = f'{bot.emoji.earth} {ranking.global_ranking} | '
+    rank_text = f'{_("rankings")}: {bot.emoji.earth} {clan_ranking.global_rank} | {flag} {clan_ranking.local_ranking}\n'
+    if not clan_ranking.local_rank and not clan_ranking.global_rank:
+        rank_text = f''
 
-    try:
-        location_name = clan.location.name
-    except:
-        location_name = 'Not Set'
-
-    if clan.location is not None:
-        if clan.location.name == 'International':
-            rank_text += f'ðŸŒ� {ranking.local_ranking}'
-        else:
-            rank_text += f'{flag} {ranking.local_ranking}'
-    else:
-        rank_text += f'{flag} {ranking.local_ranking}'
-    if not str(ranking.local_ranking).isdigit() and not str(ranking.global_ranking).isdigit():
-        rank_text = ''
-    else:
-        rank_text = f'Rankings: {rank_text}\n'
-
-    cwl_league_emoji = cwl_league_emojis(bot=bot, league=str(clan.war_league))
-    capital_league_emoji = league_to_emoji(bot=bot, league=str(clan.capital_league))
-
-    hall_level = (
-        0
-        if coc.utils.get(clan.capital_districts, id=70000000) is None
-        else coc.utils.get(clan.capital_districts, id=70000000).hall_level
-    )
-    hall_level_emoji = 1 if hall_level == 0 else hall_level
+    hall_level = coc.utils.get(clan.capital_districts, id=70000000).hall_level
     clan_capital_text = (
-        f'Capital League: {capital_league_emoji}{clan.capital_league}\n'
-        f'Capital Points: {bot.emoji.capital_trophy}{clan.capital_points}\n'
-        f"Capital Hall: {bot.fetch_emoji(f'Capital_Hall{hall_level_emoji}')} Level {hall_level}\n"
+        f'{_("capital-league")}: {bot.fetch_emoji(clan.capital_league)}{clan.capital_league}\n'
+        f'{_("capital-points")}: {bot.emoji.capital_trophy}{clan.capital_points}\n'
+        f"{_("capital-hall")}: {bot.fetch_emoji(f'Capital_Hall{hall_level}')} {_("level")} {hall_level}\n"
     )
 
     clan_type_converter = {
-        'open': 'Anyone Can Join',
-        'inviteOnly': 'Invite Only',
-        'closed': 'Closed',
+        'open': _("anyone-can-join"),
+        'inviteOnly': _("invite-only"),
+        'closed': _("closed"),
     }
     embed = Embed(
         title=f'**{clan.name}**',
         description=(
-            f'Tag: [{clan.tag}]({clan.share_link})\n'
-            f'Trophies: {bot.emoji.trophy} {clan.points} | '
-            f'{bot.emoji.versus_trophy} {clan.builder_base_points}\n'
-            f'Requirements: {bot.emoji.trophy}{clan.required_trophies} | {bot.fetch_emoji(clan.required_townhall)}{clan.required_townhall}\n'
-            f'Type: {clan_type_converter[clan.type]}\n'
-            f'Location: {flag} {location_name}\n'
-            f'{rank_text}\n'
-            f'Leader: {clan_leader.name}\n'
-            f'Level: {clan.level} \n'
-            f'Members: {bot.emoji.people}{clan.member_count}/50\n\n'
-            f'CWL: {cwl_league_emoji}{str(clan.war_league)}\n'
-            f'Wars Won: {bot.emoji.up_green_arrow}{warwin}\n'
-            f'Wars Lost: {bot.emoji.down_red_arrow}{warloss}\n'
-            f'War Streak: {bot.emoji.double_up_arrow}{winstreak}\n'
-            f'Winratio: {bot.emoji.ratio}{winrate}\n\n'
+            f'{_("tag")}: [{clan.tag}]({clan.share_link})\n'
+            f'{_("trophies")}: {bot.emoji.trophy} {clan.points} | {bot.emoji.versus_trophy} {clan.builder_base_points}\n'
+            f'{_("requirements")}: {bot.emoji.trophy}{clan.required_trophies} | '
+            f'{bot.fetch_emoji(clan.required_townhall)}{clan.required_townhall}\n'
+            f'{_("type")}: {clan_type_converter[clan.type]}\n'
+            f'{_("clan-location")}: {flag} {clan.location.name if clan.location else _("not-set")}\n'
+            f'{rank_text}'
+            f'{_("leader")}: {clan_leader.name}\n'
+            f'{_("level")}: {clan.level} \n'
+            f'{_("members")}: {bot.emoji.people}{clan.member_count}/50\n\n'
+            f'{_("cwl")}: {bot.fetch_emoji(f"CWL_{clan.war_league}")}{clan.war_league}\n'
+            f'{_("wars-won")}: {bot.emoji.up_green_arrow}{clan.war_wins}\n'
+            f'{_("wars-lost")}: {bot.emoji.down_red_arrow}{war_loss}\n'
+            f'{_("win-streak")}: {bot.emoji.double_up_arrow}{clan.war_win_streak}\n'
+            f'{_("win-ratio")}: {bot.emoji.ratio}{win_rate}\n\n'
             f'{clan_capital_text}\n'
-            f'Description: {clan.description}'
+            f'{_("clan-description")}: {clan.description}'
         ),
         color=embed_color,
     )

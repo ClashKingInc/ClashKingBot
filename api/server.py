@@ -18,6 +18,18 @@ class ServerSettings():
         self.embed_color = disnake.Color(data.get('embed_color', 0x2ECC71))
 
 
+class ServerClanSettings:
+    def __init__(self, data: dict):
+        self.name = data.get('name')
+        self.tag = data.get('tag')
+        self.server_id = data.get('server')
+
+        self.category = data.get('category')
+
+
+
+
+
 
 
 
