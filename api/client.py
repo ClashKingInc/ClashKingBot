@@ -223,7 +223,7 @@ class ClashKingAPIClient:
         )
         return ClanTotals(data=response)
 
-
+    @handle_silent
     async def get_clan_ranking(self, clan_tag: str) -> ClanRanking:
         """
         Gets location info for a list of players.
@@ -233,7 +233,7 @@ class ClashKingAPIClient:
         response = await self._request(
             Route(
                 method='GET',
-                endpoint=f'v2/clan/{clan_tag}/ranking',
+                endpoint=f'/v2/clan/{clan_tag}/ranking',
             )
         )
         return ClanRanking(data=response)

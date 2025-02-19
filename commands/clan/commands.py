@@ -43,8 +43,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 Loc('Role', key="role"),
                 Loc('League', key="league"),
             ],
-            convert_defaults=True,
-            converter=convert.locale_to_string
+            convert_defaults=True
         )
     ):
         embed_color = (await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)).embed_color

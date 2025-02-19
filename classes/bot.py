@@ -239,8 +239,12 @@ class CustomClient(commands.AutoShardedBot):
         return disnake.PartialEmoji(name=emoji[1], id=int(str(emoji[2])[:-1]), animated=animated)
 
     def fetch_emoji(self, name: str | int):
+        if name == "CWL_Unranked":
+            name = "unranked"
+
         if name == 'Unranked':
             name = 'unranked'
+
         emoji = self.loaded_emojis.get(name)
         if emoji is None:
             return None

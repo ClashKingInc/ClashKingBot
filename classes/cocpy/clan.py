@@ -23,5 +23,5 @@ class BaseClan(coc.Clan):
         return SHORT_CLAN_LINK + self.tag.replace('#', '')
 
     @property
-    def member_tags(self) -> set[str]:
-        return set(self.members_dict.keys())
+    def member_tags(self) -> list[str]:
+        return list(self.members_dict.keys())

@@ -73,7 +73,7 @@ async def clan_composition(
             'Role': '`{value:2}` {icon}`{key}`\n',
             'League': '`{value:2}` {icon}`{key}`\n',
         }
-        text += f'{formats.get(type).format(key=key,value=_(value), icon=icon)}'
+        text += f'{formats.get(type).format(key=key, value=value, icon=icon)}'
 
     footer_text = _("num-accounts", values={"num" : clan.member_count})
     if type == 'Townhall':
@@ -84,7 +84,7 @@ async def clan_composition(
             'clan-compo-title',
             values={
                 "clan_name": clan.name,
-                "type": _(type)
+                "type": _(type.lower())
             }
         ),
         description=text,
@@ -125,13 +125,14 @@ async def detailed_clan_board(
     else:
         flag = '🏳️'
 
-    rank_text = f'{_("rankings")}: {bot.emoji.earth} {clan_ranking.global_rank} | {flag} {clan_ranking.local_ranking}\n'
+    rank_text = f'{_("rankings")}: {bot.emoji.earth} {clan_ranking.global_rank} | {flag} {clan_ranking.local_rank}\n'
+
     if not clan_ranking.local_rank and not clan_ranking.global_rank:
         rank_text = f''
 
     hall_level = coc.utils.get(clan.capital_districts, id=70000000).hall_level
     clan_capital_text = (
-        f'{_("capital-league")}: {bot.fetch_emoji(clan.capital_league)}{clan.capital_league}\n'
+        f'{_("capital-league")}: {bot.fetch_emoji(clan.capital_league.name)}{clan.capital_league}\n'
         f'{_("capital-points")}: {bot.emoji.capital_trophy}{clan.capital_points}\n'
         f"{_("capital-hall")}: {bot.fetch_emoji(f'Capital_Hall{hall_level}')} {_("level")} {hall_level}\n"
     )
@@ -144,7 +145,7 @@ async def detailed_clan_board(
     embed = Embed(
         title=f'**{clan.name}**',
         description=(
-            f'{_("tag")}: [{clan.tag}]({clan.share_link})\n'
+            f'{_("clan-tag")}: [{clan.tag}]({clan.share_link})\n'
             f'{_("trophies")}: {bot.emoji.trophy} {clan.points} | {bot.emoji.versus_trophy} {clan.builder_base_points}\n'
             f'{_("requirements")}: {bot.emoji.trophy}{clan.required_trophies} | '
             f'{bot.fetch_emoji(clan.required_townhall)}{clan.required_townhall}\n'
@@ -154,7 +155,7 @@ async def detailed_clan_board(
             f'{_("leader")}: {clan_leader.name}\n'
             f'{_("level")}: {clan.level} \n'
             f'{_("members")}: {bot.emoji.people}{clan.member_count}/50\n\n'
-            f'{_("cwl")}: {bot.fetch_emoji(f"CWL_{clan.war_league}")}{clan.war_league}\n'
+            f'{_("cwl")}: {bot.fetch_emoji(f"CWL {clan.war_league}")}{clan.war_league}\n'
             f'{_("wars-won")}: {bot.emoji.up_green_arrow}{clan.war_wins}\n'
             f'{_("wars-lost")}: {bot.emoji.down_red_arrow}{war_loss}\n'
             f'{_("win-streak")}: {bot.emoji.double_up_arrow}{clan.war_win_streak}\n'
@@ -178,10 +179,10 @@ async def detailed_clan_board(
     embed.add_field(name="Season Stats", value=formatted_stats)
 
     th_comp = townhall_composition(bot=bot, players=clan.members)
-    super_troop_comp = super_troop_composition(bot=bot, players=clan.members)
+    #super_troop_comp = super_troop_composition(bot=bot, players=clan.members)
 
     embed.add_field(name='**Townhall Composition:**', value=th_comp, inline=False)
-    embed.add_field(name='**Boosted Super Troops:**', value=super_troop_comp, inline=False)
+    #embed.add_field(name='**Boosted Super Troops:**', value=super_troop_comp, inline=False)
 
     embed.set_thumbnail(url=clan.badge.large)
     if db_clan and db_clan.category:
