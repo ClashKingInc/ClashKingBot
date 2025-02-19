@@ -5,10 +5,8 @@ trophies = Trophies
 location = Location
 league = League
 role = Role
-clan-compo-title = { $clan_name } { $ type } Composition
-
-num-accounts = { $ num } accounts
-
+clan-compo-title = { $clan_name } { $type } Composition
+num-accounts = { $num } accounts
 average-townhall = Avg townhall
 anyone-can-join = Anyone Can Join
 invite-only = Invite Only
@@ -23,7 +21,7 @@ level = Level
 members = Members
 cwl = CWL
 wars-won = Wars Won
-wars-list = Wars Lost
+wars-lost = Wars Lost
 win-streak = Win Streak
 win-ratio = Win Ratio
 clan-description = Description
