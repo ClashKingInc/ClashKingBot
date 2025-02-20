@@ -1,5 +1,5 @@
 import disnake
-from classes.cocpy.clan import BaseClan
+from classes.cocpy.clan import CustomClan
 from disnake.ext import commands
 
 from discord import autocomplete, convert
@@ -11,7 +11,7 @@ optional_clan = commands.Param(
     autocomplete=autocomplete.clan,
     description=disnake.Localized(key='clan-autocomplete-description'),
 )
-clan: BaseClan = commands.Param(
+clan: CustomClan = commands.Param(
     converter=convert.clan,
     autocomplete=autocomplete.clan,
     description=disnake.Localized(key='clan-autocomplete-description'),
@@ -31,7 +31,18 @@ banned_player = commands.Param(
     description=disnake.Localized(key='player-autocomplete-description'),
 )
 
-optional_season = commands.Param(default=None, converter=convert.season, autocomplete=autocomplete.season)
-season = commands.Param(converter=convert.season, autocomplete=autocomplete.season)
+optional_season = commands.Param(
+    name=disnake.Localized(key='season-autocomplete-name'),
+    description=disnake.Localized(key='season-autocomplete-description'),
+    default=None,
+    converter=convert.season,
+    autocomplete=autocomplete.season
+)
+season = commands.Param(
+    name=disnake.Localized(key='season-autocomplete-name'),
+    description=disnake.Localized(key='season-autocomplete-description'),
+    converter=convert.season,
+    autocomplete=autocomplete.season
+)
 
 optional_family = commands.Param(converter=convert.server, default=None, autocomplete=autocomplete.server)

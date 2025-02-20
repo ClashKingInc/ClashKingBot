@@ -7,19 +7,20 @@ from disnake import Embed
 from classes.bot import CustomClient
 
 from utility.discord.commands import register_button
+from utility.general import create_superscript
+from utility.time import gen_season_date
 
-
-from classes.cocpy.clan import BaseClan
+from classes.cocpy.clan import CustomClan, CustomClanMember
 from .utils import townhall_composition
 
 
 @register_button('clancompo', parser='_:clan:type')
 async def clan_composition(
         bot: CustomClient,
-        clan: BaseClan,
+        clan: CustomClan,
         type: str,
         embed_color: disnake.Color,
-        locale: disnake.Locale = disnake.Locale.en_US,
+        locale: disnake.Locale,
 ):
     _, locale = bot.get_localizator(locale=locale)
 
@@ -97,10 +98,10 @@ async def clan_composition(
 @register_button('clandetailed', parser='_:clan')
 async def detailed_clan_board(
         bot: CustomClient,
-        clan: BaseClan,
+        clan: CustomClan,
         server: disnake.Guild,
         embed_color: disnake.Color,
-        locale: disnake.Locale = disnake.Locale.en_US,
+        locale: disnake.Locale,
 ):
     _, locale = bot.get_localizator(locale=locale)
 
@@ -190,9 +191,9 @@ async def detailed_clan_board(
 @register_button('clanbasic', parser='_:clan')
 async def basic_clan_board(
     bot: CustomClient,
-    clan: BaseClan,
+    clan: CustomClan,
     embed_color: disnake.Color,
-    locale: disnake.Locale = disnake.Locale.en_US,
+    locale: disnake.Locale,
 ):
     _, locale = bot.get_localizator(locale=locale)
 
@@ -260,7 +261,7 @@ async def minimalistic_clan_board(
     bot: CustomClient,
     clan: coc.Clan,
     embed_color: disnake.Color,
-    locale: disnake.Locale = disnake.Locale.en_US,
+    locale: disnake.Locale,
 ):
     _, locale = bot.get_localizator(locale=locale)
 
@@ -286,6 +287,72 @@ async def minimalistic_clan_board(
     embed.set_thumbnail(url=clan.badge.large)
     return embed
 
+
+@register_button('clandonos', parser='_:clan:season:townhall:limit:sort_by:sort_order')
+async def clan_donations(
+    bot: CustomClient,
+    clan: CustomClan,
+    season: str,
+    sort_by: str,
+    sort_order: str,
+    townhall: int,
+    limit: int,
+    embed_color: disnake.Color,
+    locale: disnake.Locale
+):
+    _, locale = bot.get_localizator(locale=locale)
+
+    season = season or gen_season_date()
+
+    donation_data = await bot.ck_client.get_clan_donations(clan_tag=clan.tag, season=season)
+
+    for member in clan.members:
+        if member.tag in donation_data:
+            member.donations = max(member.donations, donation_data[member.tag].donated)
+            member.received = max(member.received, donation_data[member.tag].received)
+
+    #only get matching townhall members, according to filter
+    members: list[CustomClanMember] = [member for member in clan.members if townhall is None or member.town_hall == townhall]
+
+    sort_map = {
+        "Name" : "name",
+        "Townhall" : "town_hall",
+        "Donations" : "donations",
+        "Received" : "received",
+        "Ratio" : "donation_ratio"
+    }
+
+    members.sort(
+        key=lambda x: x.__getattribute__(sort_map.get(sort_by)),
+        reverse=(sort_order.lower() == 'descending'),
+    )
+
+    text = '` #  DON   REC  NAME        `\n'
+    total_donated = 0
+    total_received = 0
+    for count, member in enumerate(members[:limit], 1):
+        text += f'`{count:2} {member.donations:5} {member.received:5} ' \
+                f'{disnake.utils.escape_markdown(member.name)[:13]:13}`' \
+                f'[{create_superscript(member.town_hall)}]({member.share_link})\n'
+        total_donated += member.donations
+        total_received += member.received
+
+    embed = disnake.Embed(description=f'{text}', color=embed_color)
+    embed.set_author(
+        name=_("clan-donations-title", clan_name=clan.name, num=min(limit, len(members))),
+        icon_url=clan.badge.url,
+    )
+    embed.set_footer(
+        icon_url=bot.emoji.clan_castle.partial_emoji.url,
+        text=_("clan-donations-footer",
+               type=sort_by,
+               total_donated=total_donated,
+               total_received=total_received,
+               season=season),
+    )
+
+    embed.timestamp = pend.now(tz=pend.UTC)
+    return embed
 
 
 

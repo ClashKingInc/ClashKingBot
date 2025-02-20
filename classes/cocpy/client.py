@@ -7,7 +7,7 @@ from coc import Player, Clan, WarRound, ClanWar, Location
 from aiocache import SimpleMemoryCache, cached
 
 from .player import BasePlayer
-from .clan import BaseClan
+from .clan import CustomClan
 
 class CustomClashClient(coc.Client):
     def __init__(self, **kwargs):
@@ -18,7 +18,7 @@ class CustomClashClient(coc.Client):
 
         return await super().get_player(player_tag, cls, **kwargs)
 
-    async def get_clan(self, tag: str, cls: Type[Clan] = BaseClan, **kwargs) -> Clan:
+    async def get_clan(self, tag: str, cls: Type[Clan] = CustomClan, **kwargs) -> Clan:
         tag = tag.split('|')[-1]
 
         return await super().get_clan(tag, cls, **kwargs)

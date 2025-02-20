@@ -40,38 +40,7 @@ async def sorted(
     await ctx.edit_original_message(embed=embed, components=[buttons])
 
 
-@clan.sub_command(name='donations', description='Donation stats for a clan')
-async def donations(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        clan: coc.Clan = options.clan,
-        season: str = options.optional_season,
-        townhall: int = None,
-        limit: int = commands.Param(default=50, min_value=1, max_value=50),
-        sort_by: str = commands.Param(default='Donations', choices=['Name', 'Townhall', 'Donations', 'Received']),
-        sort_order: str = commands.Param(default='Descending', choices=['Ascending', 'Descending']),
-):
-    embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
-    embed = await clan_donations(
-        bot=self.bot,
-        clan=clan,
-        season=season,
-        townhall=townhall,
-        limit=limit,
-        sort_by=sort_by,
-        sort_order=sort_order,
-        embed_color=embed_color,
-    )
-    buttons = disnake.ui.ActionRow()
-    buttons.append_item(
-        disnake.ui.Button(
-            label='',
-            emoji=self.bot.emoji.refresh.partial_emoji,
-            style=disnake.ButtonStyle.grey,
-            custom_id=f'clandonos:{clan.tag}:{season}:{townhall}:{limit}:{sort_by}:{sort_order}',
-        )
-    )
-    await ctx.edit_original_message(embed=embed, components=[buttons])
+
 
 
 @clan.sub_command(name='war-log', description='Past war info for clan')
