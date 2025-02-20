@@ -39,7 +39,7 @@ capital-league = Capital League
 capital-hall = Capital Hall
 capital-points = Capital Points
 
-rankings = Rankings
+rankings = Rank
 
 open-in-game = Open In-Game
 season-stats = Season Stats
@@ -51,3 +51,12 @@ clan-category = Category: { $category }
 total-clan-donations = Donos: { $donated_emoji }{ $donated }, { $received_emoji }{ $received }
 active-daily = Active Daily: { $num } players/avg
 active-last-48 = Active Last 48h: { $num } players
+
+detailed = Detailed
+minimalistic = Minimalistic
+basic = Basic
+clan-search-type-description = Type of embed with varying levels of detail
+clan-compo-type-description = Type of composition breakdown
+
+#type, as is in what type of option for the command
+option-type = type
