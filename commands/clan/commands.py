@@ -4,7 +4,7 @@ from disnake.ext import commands
 from discord import autocomplete, options, convert
 import coc
 from classes.bot import CustomClient
-from .embeds import clan_composition, detailed_clan_board
+from .embeds import clan_composition, detailed_clan_board, basic_clan_board, minimalistic_clan_board
 
 
 from disnake import Localized as Loc
@@ -34,7 +34,8 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
         ctx: disnake.ApplicationCommandInteraction,
         clan = options.clan,
         type_: str = commands.Param(
-            name='type',
+            description=Loc(key='clan-compo-type-description'),
+            name=Loc(key='option-type'),
             default=Loc('Townhall', key="townhall"),
             choices=[
                 Loc('Townhall', key="townhall"),
@@ -69,26 +70,29 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
         self,
         ctx: disnake.ApplicationCommandInteraction,
         clan = options.clan,
-        type: str = commands.Param(default='Detailed', choices=['Minimalistic', 'Basic', 'Detailed']),
+        type_: str = commands.Param(
+            name=Loc(key='option-type'),
+            description=Loc(key='clan-search-type-description'),
+            default=Loc('Detailed', key="detailed"),
+            choices=[
+                Loc('Minimalistic', key="minimalistic"),
+                Loc('Basic', key="basic"),
+                Loc('Detailed', key="detailed"),
+            ]
+        ),
     ):
-        """
-        Parameters
-        ----------
-        clan: Use clan tag or select an option from the autocomplete
-        type: board type
-        """
         embed_color = (await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)).embed_color
         _, locale = self.bot.get_localizator(ctx=ctx)
 
-        if type == 'Detailed':
+        if type_ == 'Detailed':
             custom_id = f'clandetailed:{clan.tag}'
             embed = await detailed_clan_board(bot=self.bot, clan=clan, server=ctx.guild, embed_color=embed_color, locale=locale)
-        '''elif type == 'Basic':
+        elif type_ == 'Basic':
             custom_id = f'clanbasic:{clan.tag}'
-            embed = await basic_clan_board(bot=self.bot, clan=clan, embed_color=embed_color)
-        elif type == 'Minimalistic':
+            embed = await basic_clan_board(bot=self.bot, clan=clan, embed_color=embed_color, locale=locale)
+        elif type_ == 'Minimalistic':
             custom_id = f'clanmini:{clan.tag}'
-            embed = await minimalistic_clan_board(bot=self.bot, clan=clan, server=ctx.guild, embed_color=embed_color)'''
+            embed = await minimalistic_clan_board(bot=self.bot, clan=clan, embed_color=embed_color, locale=locale)
 
         buttons = [
             disnake.ui.Button(
