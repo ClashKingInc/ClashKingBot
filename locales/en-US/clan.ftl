@@ -20,7 +20,6 @@ invite-only = Invite Only
 closed = Closed
 
 clan-tag = Tag
-trophies = Trophies
 requirements = Requirements
 type = Type
 clan-location = Location
@@ -41,3 +40,14 @@ capital-hall = Capital Hall
 capital-points = Capital Points
 
 rankings = Rankings
+
+open-in-game = Open In-Game
+season-stats = Season Stats
+townhall-composition = Townhall Composition
+clan-games-points = Clan Games: { $points } Points
+capital-gold-donated = Capital Gold: { $donated } Donated
+
+clan-category = Category: { $category }
+total-clan-donations = Donos: { $donated_emoji }{ $donated }, { $received_emoji }{ $received }
+active-daily = Active Daily: { $num } players/avg
+active-last-48 = Active Last 48h: { $num } players
