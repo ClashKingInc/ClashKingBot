@@ -60,3 +60,28 @@ clan-compo-type-description = Type of composition breakdown
 
 #type, as is in what type of option for the command
 option-type = type
+
+option-townhall = townhall
+townhall-description = Townhall level to filter results for
+
+option-limit = limit
+limit-description = Number of results to show
+
+option-sort-by = sort_by
+sort-by-description = What field to sort results by
+
+name = Name
+donations = Donations
+received = Received
+ratio = Ratio
+contribution-percent = Contribution Percent
+
+option-sort-order = sort_order
+sort-order-description = Which way to sort fields, ascending or descending
+descending = Descending
+ascending = Ascending
+
+clan-donations-description = Seasonal donation stats for a clan
+clan-donations-title = { $clan_name } Top { $num } Donators
+clan-donations-footer = Sorted by { $type } | ▲{ $total_donated } | ▼{ $total_received } | { $season }
+
