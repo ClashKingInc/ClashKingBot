@@ -81,6 +81,7 @@ sort-order-description = Which way to sort fields, ascending or descending
 descending = Descending
 ascending = Ascending
 
+clan-donations-description = Seasonal donation stats for a clan
 clan-donations-title = { $clan_name } Top { $num } Donators
 clan-donations-footer = Sorted by { $type } | ▲{ $total_donated } | ▼{ $total_received } | { $season }
 

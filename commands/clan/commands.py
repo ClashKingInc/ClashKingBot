@@ -109,7 +109,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
 
     @clan.sub_command(
         name='donations',
-        description='Donation stats for a clan'
+        description=Loc(key='clan-donations-description')
     )
     async def donations(
             self,
