@@ -46,7 +46,7 @@ clan-search-type-description = Type d’intégration avec différents niveaux de
 clan-compo-type-description = Type de composition
 #type, as is in what type of option for the command
 option-type = type
-option-townhall = hôtel de ville
+option-townhall = hôtel-de-ville
 townhall-description = Filtrer par niveau d’hôtel de ville
 option-limit = limite
 limit-description = Nombre de résultats à afficher
