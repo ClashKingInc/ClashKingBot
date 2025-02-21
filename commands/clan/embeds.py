@@ -7,19 +7,20 @@ from disnake import Embed
 from classes.bot import CustomClient
 
 from utility.discord.commands import register_button
+from utility.general import create_superscript
+from utility.time import gen_season_date
 
-
-from classes.cocpy.clan import BaseClan
-from .utils import townhall_composition, super_troop_composition
+from classes.cocpy.clan import CustomClan, CustomClanMember
+from .utils import townhall_composition
 
 
 @register_button('clancompo', parser='_:clan:type')
 async def clan_composition(
         bot: CustomClient,
-        clan: BaseClan,
+        clan: CustomClan,
         type: str,
         embed_color: disnake.Color,
-        locale: disnake.Locale = disnake.Locale.en_US,
+        locale: disnake.Locale,
 ):
     _, locale = bot.get_localizator(locale=locale)
 
@@ -75,17 +76,15 @@ async def clan_composition(
         }
         text += f'{formats.get(type).format(key=key, value=value, icon=icon)}'
 
-    footer_text = _("num-accounts", values={"num" : clan.member_count})
+    footer_text = _("num-accounts", num=clan.member_count)
     if type == 'Townhall':
         footer_text += f' | {_("average-townhall")}: {round((total / clan.member_count), 2)}'
 
     embed = disnake.Embed(
         title=_(
             'clan-compo-title',
-            values={
-                "clan_name": clan.name,
-                "type": _(type.lower())
-            }
+            clan_name=clan.name,
+            type=_(type.lower()),
         ),
         description=text,
         color=embed_color
@@ -99,21 +98,18 @@ async def clan_composition(
 @register_button('clandetailed', parser='_:clan')
 async def detailed_clan_board(
         bot: CustomClient,
-        clan: BaseClan,
+        clan: CustomClan,
         server: disnake.Guild,
         embed_color: disnake.Color,
-        locale: disnake.Locale = disnake.Locale.en_US,
+        locale: disnake.Locale,
 ):
     _, locale = bot.get_localizator(locale=locale)
-
 
     db_clan = await bot.ck_client.get_server_clan_settings(server_id=server and server.id, clan_tag=clan.tag, silent=True)
 
     clan_ranking = await bot.ck_client.get_clan_ranking(clan_tag=clan.tag)
 
-
     clan_leader = coc.utils.get(clan.members, role=coc.Role.leader)
-
 
     war_loss = max(clan.war_losses, 0) if clan.public_war_log else _("hidden-log")
     win_rate = round((clan.war_wins / max(war_loss, 1)), 2) if clan.public_war_log else _("hidden-log")
@@ -168,25 +164,25 @@ async def detailed_clan_board(
 
     clan_totals = await bot.ck_client.get_clan_totals(clan_tag="#VY2J0LL", player_tags=clan.member_tags)
     formatted_stats = (
-        f"Clan Games: {clan_totals.clan_games_points:,} Points\n"
-        f"Capital Gold: {clan_totals.clan_capital_donated:,} Donated\n"
-        f"Donos: {bot.emoji.up_green_arrow}{clan_totals.troops_donated:,}, "
-        f"{bot.emoji.down_red_arrow}{clan_totals.troops_received:,}\n"
-        f"Active Daily: {clan_totals.activity_per_day} players/avg\n"
-        f"Activity Score: {clan_totals.activity_score}\n"
-        f"Active Last 48h: {clan_totals.activity_last_48h} players"
+        f"{_("clan-games-points", points=clan_totals.clan_games_points)}\n"
+        f"{_("capital-gold-donated", donated=clan_totals.clan_capital_donated)}\n"
+        f"{_("total-clan-donations", 
+             donated_emoji=bot.emoji.up_green_arrow.emoji_string,
+             donated=clan_totals.troops_donated,
+             received_emoji=bot.emoji.down_red_arrow.emoji_string,
+             received=clan_totals.troops_received,
+             )}\n"
+        f"{_("active-daily", num=clan_totals.activity_per_day)}\n"
+        f"{_("active-last-48", num=clan_totals.activity_last_48h)}\n"
     )
-    embed.add_field(name="Season Stats", value=formatted_stats)
+    embed.add_field(name=_("season-stats"), value=formatted_stats)
 
     th_comp = townhall_composition(bot=bot, players=clan.members)
-    #super_troop_comp = super_troop_composition(bot=bot, players=clan.members)
-
-    embed.add_field(name='**Townhall Composition:**', value=th_comp, inline=False)
-    #embed.add_field(name='**Boosted Super Troops:**', value=super_troop_comp, inline=False)
+    embed.add_field(name=_("townhall-composition"), value=th_comp, inline=False)
 
     embed.set_thumbnail(url=clan.badge.large)
     if db_clan and db_clan.category:
-        embed.set_footer(text=f'Category: {db_clan.category}')
+        embed.set_footer(text=_("clan-category", category=db_clan.category))
     embed.timestamp = pend.now(tz=pend.UTC)
 
     return embed
@@ -195,40 +191,67 @@ async def detailed_clan_board(
 @register_button('clanbasic', parser='_:clan')
 async def basic_clan_board(
     bot: CustomClient,
-    clan: coc.Clan,
-    embed_color: disnake.Color = disnake.Color.green(),
+    clan: CustomClan,
+    embed_color: disnake.Color,
+    locale: disnake.Locale,
 ):
-    leader = coc.utils.get(clan.members, role=coc.Role.leader)
+    _, locale = bot.get_localizator(locale=locale)
 
-    warwin = clan.war_wins
-    warloss = clan.war_losses or 'Hidden Log'
-    winstreak = clan.war_win_streak
-    if clan.public_war_log:
-        winrate = round((warwin / (warloss if clan.war_losses != 0 else 1)), 2)
-    else:
-        winrate = 'Hidden Log'
+    clan_ranking = await bot.ck_client.get_clan_ranking(clan_tag=clan.tag)
 
-    if str(clan.location) == 'International' or clan.location is None:
-        flag = bot.emoji.earth.emoji_string
-    else:
+    clan_leader = coc.utils.get(clan.members, role=coc.Role.leader)
+
+    war_loss = max(clan.war_losses, 0) if clan.public_war_log else _("hidden-log")
+    win_rate = round((clan.war_wins / max(war_loss, 1)), 2) if clan.public_war_log else _("hidden-log")
+
+    if str(clan.location) == 'International':
+        flag = bot.emoji.earth
+    elif clan.location:
         flag = f':flag_{clan.location.country_code.lower()}:'
+    else:
+        flag = '🏳️'
 
-    embed = disnake.Embed(
-        title=f'**{clan.name}**',
-        description=f'Tag: [{clan.tag}]({clan.share_link})\n'
-        f'Trophies: {bot.emoji.trophy} {clan.points} | {bot.emoji.versus_trophy} {clan.builder_base_points}\n'
-        f'Required Trophies: {bot.emoji.trophy} {clan.required_trophies}\n'
-        f'Location: {flag} {clan.location}\n\n'
-        f'Leader: {leader.name}\n'
-        f'Level: {clan.level} \n'
-        f'Members: {bot.emoji.people}{clan.member_count}/50\n\n'
-        f'CWL: {bot.fetch_emoji(f"CWL_{clan.war_league}")}{str(clan.war_league)}\n'
-        f'Wars Won: {bot.emoji.up_green_arrow}{warwin}\nWars Lost: {bot.emoji.down_red_arrow}{warloss}\n'
-        f'War Streak: {bot.emoji.ratio}{winstreak}\nWin Ratio: {bot.emoji.ratio}{winrate}\n\n'
-        f'Description: {clan.description}',
-        color=embed_color,
+    rank_text = f'{_("rankings")}: {bot.emoji.earth} {clan_ranking.global_rank} | {flag} {clan_ranking.local_rank}\n'
+
+    if not clan_ranking.local_rank and not clan_ranking.global_rank:
+        rank_text = f''
+
+    hall_level = coc.utils.get(clan.capital_districts, id=70000000).hall_level
+    clan_capital_text = (
+        f'{_("capital-league")}: {bot.fetch_emoji(clan.capital_league.name)}{clan.capital_league}\n'
+        f'{_("capital-points")}: {bot.emoji.capital_trophy}{clan.capital_points}\n'
+        f"{_("capital-hall")}: {bot.fetch_emoji(f'Capital_Hall{hall_level}')} {_("level")} {hall_level}\n"
     )
 
+    clan_type_converter = {
+        'open': _("anyone-can-join"),
+        'inviteOnly': _("invite-only"),
+        'closed': _("closed"),
+    }
+
+    embed = Embed(
+        title=f'**{clan.name}**',
+        description=(
+            f'{_("clan-tag")}: [{clan.tag}]({clan.share_link})\n'
+            f'{_("trophies")}: {bot.emoji.trophy} {clan.points} | {bot.emoji.versus_trophy} {clan.builder_base_points}\n'
+            f'{_("requirements")}: {bot.emoji.trophy}{clan.required_trophies} | '
+            f'{bot.fetch_emoji(clan.required_townhall)}{clan.required_townhall}\n'
+            f'{_("type")}: {clan_type_converter[clan.type]}\n'
+            f'{_("clan-location")}: {flag} {clan.location.name if clan.location else _("not-set")}\n'
+            f'{rank_text}'
+            f'{_("leader")}: {clan_leader.name}\n'
+            f'{_("level")}: {clan.level} \n'
+            f'{_("members")}: {bot.emoji.people}{clan.member_count}/50\n\n'
+            f'{_("cwl")}: {bot.fetch_emoji(f"CWL {clan.war_league}")}{clan.war_league}\n'
+            f'{_("wars-won")}: {bot.emoji.up_green_arrow}{clan.war_wins}\n'
+            f'{_("wars-lost")}: {bot.emoji.down_red_arrow}{war_loss}\n'
+            f'{_("win-streak")}: {bot.emoji.double_up_arrow}{clan.war_win_streak}\n'
+            f'{_("win-ratio")}: {bot.emoji.ratio}{win_rate}\n\n'
+            f'{clan_capital_text}\n'
+            f'{_("clan-description")}: {clan.description}'
+        ),
+        color=embed_color,
+    )
     embed.set_thumbnail(url=clan.badge.large)
     return embed
 
@@ -236,22 +259,100 @@ async def basic_clan_board(
 @register_button('clanmini', parser='_:clan')
 async def minimalistic_clan_board(
     bot: CustomClient,
-    server: disnake.Guild,
     clan: coc.Clan,
-    embed_color: disnake.Color = disnake.Color.green(),
+    embed_color: disnake.Color,
+    locale: disnake.Locale,
 ):
-    db_clan = await bot.clan_db.find_one({'$and': [{'tag': clan.tag}, {'server': server.id}]})
-    db_clan = db_clan or {}
-    ctg = db_clan.get('category', 'General')
-    category = f'{ctg} Clan'
+    _, locale = bot.get_localizator(locale=locale)
+
+    if str(clan.location) == 'International':
+        flag = bot.emoji.earth
+    elif clan.location:
+        flag = f':flag_{clan.location.country_code.lower()}:'
+    else:
+        flag = '🏳️'
+
+    clan_ranking = await bot.ck_client.get_clan_ranking(clan_tag=clan.tag)
+    rank_text = f'{_("rankings")}: {bot.emoji.earth} {clan_ranking.global_rank} | {flag} {clan_ranking.local_rank}\n'
+    if not clan_ranking.local_rank and not clan_ranking.global_rank:
+        rank_text = f''
 
     embed = disnake.Embed(
-        description=f'**[{clan.name}]({clan.share_link})**\n{category} ({clan.member_count}/50)\n{clan.war_league.name}',
+        description=f'**[{clan.name}]({clan.share_link})**\n'
+                    f'{bot.emoji.trophy}{clan.points} ({clan.member_count}/50)\n'
+                    f'{rank_text}'
+                    f'{clan.war_league.name}',
         color=embed_color,
     )
     embed.set_thumbnail(url=clan.badge.large)
     return embed
 
+
+@register_button('clandonos', parser='_:clan:season:townhall:limit:sort_by:sort_order')
+async def clan_donations(
+    bot: CustomClient,
+    clan: CustomClan,
+    season: str,
+    sort_by: str,
+    sort_order: str,
+    townhall: int,
+    limit: int,
+    embed_color: disnake.Color,
+    locale: disnake.Locale
+):
+    _, locale = bot.get_localizator(locale=locale)
+
+    season = season or gen_season_date()
+
+    donation_data = await bot.ck_client.get_clan_donations(clan_tag=clan.tag, season=season)
+
+    for member in clan.members:
+        if member.tag in donation_data:
+            member.donations = max(member.donations, donation_data[member.tag].donated)
+            member.received = max(member.received, donation_data[member.tag].received)
+
+    #only get matching townhall members, according to filter
+    members: list[CustomClanMember] = [member for member in clan.members if townhall is None or member.town_hall == townhall]
+
+    sort_map = {
+        "Name" : "name",
+        "Townhall" : "town_hall",
+        "Donations" : "donations",
+        "Received" : "received",
+        "Ratio" : "donation_ratio"
+    }
+
+    members.sort(
+        key=lambda x: x.__getattribute__(sort_map.get(sort_by)),
+        reverse=(sort_order.lower() == 'descending'),
+    )
+
+    text = '` #  DON   REC  NAME        `\n'
+    total_donated = 0
+    total_received = 0
+    for count, member in enumerate(members[:limit], 1):
+        text += f'`{count:2} {member.donations:5} {member.received:5} ' \
+                f'{disnake.utils.escape_markdown(member.name)[:13]:13}`' \
+                f'[{create_superscript(member.town_hall)}]({member.share_link})\n'
+        total_donated += member.donations
+        total_received += member.received
+
+    embed = disnake.Embed(description=f'{text}', color=embed_color)
+    embed.set_author(
+        name=_("clan-donations-title", clan_name=clan.name, num=min(limit, len(members))),
+        icon_url=clan.badge.url,
+    )
+    embed.set_footer(
+        icon_url=bot.emoji.clan_castle.partial_emoji.url,
+        text=_("clan-donations-footer",
+               type=sort_by,
+               total_donated=total_donated,
+               total_received=total_received,
+               season=season),
+    )
+
+    embed.timestamp = pend.now(tz=pend.UTC)
+    return embed
 
 
 

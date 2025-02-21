@@ -1,7 +1,10 @@
+import disnake
 
 from classes.bot import CustomClient
 from collections import defaultdict
 import coc
+
+
 
 def townhall_composition(players: list[coc.Player | coc.ClanMember], bot: CustomClient) -> str:
     count = defaultdict(int)
@@ -17,7 +20,7 @@ def townhall_composition(players: list[coc.Player | coc.ClanMember], bot: Custom
     return th_comp_string
 
 
-def super_troop_composition(players: list[coc.Player | coc.ClanMember], bot: CustomClient) -> str:
+def super_troop_composition(players: list[coc.Player], bot: CustomClient) -> str:
     super_troops = defaultdict(int)
 
     for player in players:

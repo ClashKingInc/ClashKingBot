@@ -1,3 +1,6 @@
+commit_message: "chore: update translations"
+append_commit_message: true
+
 files:
   - source: locales/en-US/*.ftl
     translation: /locales/%locale%/%file_name%.ftl

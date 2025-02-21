@@ -10,7 +10,7 @@ from api.clan import ClanTotals
 from api.errors import APIUnavailableError, AuthenticationError, NotFoundError
 from api.location import ClanRanking
 from api.other import ObjectDictIterable
-from api.player import LocationPlayer
+from api.player import LocationPlayer, DonationPlayer
 from api.server import ServerSettings, ServerClanSettings
 
 from functools import wraps
@@ -238,6 +238,20 @@ class ClashKingAPIClient:
         )
         return ClanRanking(data=response)
 
+    async def get_clan_donations(self, clan_tag: str, season: str) -> ObjectDictIterable[DonationPlayer]:
+        """
+        :param clan_tag: tag for clan
+        :param season: season for clan donations, e.g., '2024-01'
+        """
+        response = await self._request(
+            Route(
+                method='GET',
+                endpoint=f'/v2/clan/{clan_tag}/donations/{season}',
+            )
+        )
+        items = response['items']
+        return ObjectDictIterable(items=[DonationPlayer(data=item) for item in items], key='tag')
+
 
 
 import asyncio
@@ -253,8 +267,8 @@ async def foo():
  "#90J9828JG", "#PR0J29P", "#282L8YR0Q", "#2YLPC28V", "#C0U0JJQR",
  "#8V9QGJGU", "#YYVV2QPP", "#YUVPLUU8P", "#YV9JCQYU0", "#UJQVGJPG",
  "#QJGYLJVL0", "#GPRJV8LGV", "#GQYRGYVJ8"]
-    response = await client.get_clan_totals(clan_tag="#VY2J0LL", player_tags=player_tags)
-    response = await client.get_server_settings(server_id=684667214347108386, with_clan_settings=True)
+    response = await client.get_clan_donations(clan_tag="#VY2J0LL", season="2025-01")
+    print(response)
 
 
 asyncio.run(foo())
