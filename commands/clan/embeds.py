@@ -3,11 +3,13 @@ from collections import defaultdict
 import coc
 import disnake
 import pendulum as pend
+from chat_exporter.ext.html_generator import embed_description
 from disnake import Embed
 from classes.bot import CustomClient
 
 from utility.discord.commands import register_button
 from utility.general import create_superscript
+from utility.constants import SHORT_CLAN_LINK
 from utility.time import gen_season_date
 
 from classes.cocpy.clan import CustomClan, CustomClanMember
@@ -353,6 +355,106 @@ async def clan_donations(
 
     embed.timestamp = pend.now(tz=pend.UTC)
     return embed
+
+
+
+@register_button('clanwarlog', parser='_:clan:limit')
+async def war_log(
+    bot: CustomClient,
+    clan: CustomClan,
+    limit: int,
+    embed_color: disnake.Color,
+    locale: disnake.Locale
+):
+    _, locale = bot.get_localizator(locale=locale)
+
+    embed_description = ''
+
+    if clan.public_war_log:
+        war_log = await bot.coc_client.get_war_log(clan.tag, limit=limit)
+    else:
+        war_log = await bot.ck_client.get_previous_clan_wars(clan_tag=clan.tag, limit=limit)
+
+    for war in war_log: #type: coc.ClanWarLogEntry | coc.ClanWar
+        if isinstance(war, coc.ClanWarLogEntry) and war.is_league_entry:
+            continue
+
+        clan_attack_count = war.clan.attacks_used
+
+        opponent_name = f'[\u200e{war.opponent.name}]({SHORT_CLAN_LINK + war.opponent.tag.replace("#", "")})'
+        if (war.clan.stars > war.opponent.stars or
+                (war.clan.stars == war.opponent.stars and war.clan.destruction > war.opponent.destruction)):
+            status = bot.emoji.up_green_arrow
+            op_status = _("win-vs", clan_name=opponent_name)
+
+        elif (war.opponent.stars == war.clan.stars) and (war.clan.destruction == war.opponent.destruction):
+            status = bot.emoji.grey_dash
+            op_status = _("draw-vs", clan_name=opponent_name)
+
+        else:
+            status = bot.emoji.down_red_arrow
+            op_status = _("loss-vs", clan_name=opponent_name)
+
+        time = f'<t:{int(war.end_time.time.replace(tzinfo=pend.UTC).timestamp())}:R>'
+        embed_description += (
+            f'{status}**{op_status}**\n'
+            f'({war.team_size} vs {war.team_size}){create_superscript(war.attacks_per_member)} | {time}\n'
+            f'{war.clan.stars} ★ {war.opponent.stars} | '
+            f'{clan_attack_count}/{war.team_size * war.attacks_per_member} | {round(war.clan.destruction, 1)}%\n'
+        )
+
+    embed_description = embed_description or _("empty-warlog")
+
+    embed = Embed(description=embed_description, color=embed_color)
+    embed.set_author(
+        icon_url=clan.badge.large,
+        name=_(f'clan-warlog-title', clan_name=clan.name, num=min(limit, len(war_log))),
+    )
+    embed.timestamp = pend.now(tz=pend.UTC)
+    if not clan.public_war_log:
+        embed.set_footer(text=_("clan-warlog-hidden-info"))
+    return embed
+
+
+@register_button('clancwlperf', parser='_:clan')
+async def cwl_performance(
+        bot: CustomClient,
+        clan: CustomClan,
+        embed_color: disnake.Color):
+    asyncio.create_task(bot.store_all_cwls(clan=clan))
+    responses = (
+        await bot.cwl_db.find({'$and': [{'clan_tag': clan.tag}, {'data': {'$ne': None}}]})
+        .sort('season', -1)
+        .limit(50)
+        .to_list(length=None)
+    )
+    embed = Embed(title=f'**{clan.name} CWL History**', color=embed_color)
+
+    embed.set_thumbnail(url=clan.badge.large)
+
+    old_year = '2015'
+    year_text = ''
+    not_empty = False
+    for response in responses:
+        text, year = response_to_line(bot, response.get('data'), clan)
+        if year != old_year:
+            if year_text != '':
+                not_empty = True
+                embed.add_field(name=old_year, value=year_text, inline=False)
+
+                year_text = ''
+            old_year = year
+        year_text += text
+
+    if year_text != '':
+        not_empty = True
+        embed.add_field(name=f'**{old_year}**', value=year_text, inline=False)
+
+    if not not_empty:
+        embed.description = 'No prior cwl data'
+    embed.timestamp = pend.now(tz=pend.UTC)
+    return embed
+
 
 
 
