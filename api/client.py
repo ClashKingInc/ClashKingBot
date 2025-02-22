@@ -1,5 +1,6 @@
 import aiohttp
 import re
+import coc
 from typing import Any
 from expiring_dict import ExpiringDict
 
@@ -148,6 +149,7 @@ class ClashKingAPIClient:
 
     # SETTINGS
     async def get_server_settings(self, server_id: int, with_clan_settings: bool = False) -> ServerSettings:
+        server_id = server_id or 0
         response = await self._request(
             Route(
                 method='GET',
@@ -160,6 +162,7 @@ class ClashKingAPIClient:
 
     @handle_silent
     async def get_server_clan_settings(self, server_id: int, clan_tag: str) -> ServerClanSettings | None:
+        server_id = server_id or 0
         response = await self._request(
             Route(
                 method='GET',
@@ -251,6 +254,32 @@ class ClashKingAPIClient:
         )
         items = response['items']
         return ObjectDictIterable(items=[DonationPlayer(data=item) for item in items], key='tag')
+
+
+    #WAR ENDPOINTS
+    async def get_previous_clan_wars(
+            self,
+            clan_tag: str,
+            timestamp_start = None,
+            timestamp_end = None,
+            include_cwl = False,
+            limit = 50,
+    ) -> list[coc.ClanWar]:
+        """
+        :param clan_tag: tag for clan
+        """
+        response = await self._request(
+            Route(
+                method='GET',
+                endpoint=f'/v2/war/{clan_tag}/previous',
+                timestamp_start=timestamp_start,
+                timestamp_end=timestamp_end,
+                include_cwl=include_cwl,
+                limit=limit,
+            )
+        )
+        items = response['items']
+        return [coc.ClanWar(data=data, clan_tag=clan_tag, client=None) for data in items]
 
 
 
