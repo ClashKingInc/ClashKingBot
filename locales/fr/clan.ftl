@@ -70,3 +70,7 @@ empty-warlog = Journal de guerres vide. Aucune guerre trouvée !
 win-vs = Victoire contre { $clan_name }
 draw-vs = Égalité contre { $clan_name }
 loss-vs = Défaite contre { $clan_name }
+cwl-ranking-line = { $place_emoji } { $league_emoji } `{ $place } | { $month }`
+clan-warlog-type-description = Type of war log history to show
+warlog = War Log
+cwl-history = CWL History
