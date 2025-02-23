@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 class EmojiType:
     def __init__(self, emoji_string):
         self.emoji_string = emoji_string
+        self.str = emoji_string
 
     def __str__(self):
         return self.emoji_string

@@ -6,11 +6,14 @@ import pendulum as pend
 from chat_exporter.ext.html_generator import embed_description
 from disnake import Embed
 from classes.bot import CustomClient
+from utility.clash.other import league_emoji
+from num2words import num2words
 
 from utility.discord.commands import register_button
 from utility.general import create_superscript
 from utility.constants import SHORT_CLAN_LINK
 from utility.time import gen_season_date
+from itertools import groupby
 
 from classes.cocpy.clan import CustomClan, CustomClanMember
 from .utils import townhall_composition
@@ -420,38 +423,52 @@ async def war_log(
 async def cwl_performance(
         bot: CustomClient,
         clan: CustomClan,
-        embed_color: disnake.Color):
-    asyncio.create_task(bot.store_all_cwls(clan=clan))
-    responses = (
-        await bot.cwl_db.find({'$and': [{'clan_tag': clan.tag}, {'data': {'$ne': None}}]})
-        .sort('season', -1)
-        .limit(50)
-        .to_list(length=None)
-    )
-    embed = Embed(title=f'**{clan.name} CWL History**', color=embed_color)
+        embed_color: disnake.Color,
+        limit: int,
+        locale: disnake.Locale
+):
+    _, locale = bot.get_localizator(locale=locale)
+    limit = min(limit, 20)
+
+    cwl_ranking_history = await bot.ck_client.get_cwl_ranking_history(clan_tag=clan.tag)
+    thresholds = await bot.ck_client.get_cwl_league_thresholds()
+
+    description = ""
+    for year, items in groupby(cwl_ranking_history[:limit], key=lambda c: c.season[:4]):
+        year_text = ""
+        for cwl in items:
+            # Find thresholds for the current league
+            promo, demo = next(((t.promo, t.demote) for t in thresholds if t.name == cwl.league), (None, None))
+
+            # Determine the appropriate emoji
+            place_emoji = (
+                bot.emoji.up_green_arrow.str if cwl.rank <= promo else
+                bot.emoji.down_red_arrow.str if cwl.rank >= demo else
+                "▫️"
+            )
+
+            date = pend.from_format(cwl.season, "YYYY-MM")
+            text = _("cwl-ranking-line",
+                     place_emoji=place_emoji,
+                     league_emoji=bot.fetch_emoji(f"CWL {cwl.league}").str,
+                     place=num2words(cwl.rank, to='ordinal_num', lang=locale.value.replace("-", "_")),
+                     month=date.format("MMMM", locale=locale.value.replace("-", "_"))
+                    )
+            text += f"\n-# ★{cwl.stars} | {cwl.destruction:.2f}% | ▲{cwl.rounds_won} | ▼{cwl.rounds_lost}"
+
+            year_text += f"{text}\n"
+
+        # Add the field for the year if there is any text
+        if year_text:
+            description += f'**{year}**\n{year_text}\n'
+
+    if not description:
+        description = 'No prior cwl data'
+
+    embed = Embed(title=f'**{clan.name} CWL History**', description=description, color=embed_color)
 
     embed.set_thumbnail(url=clan.badge.large)
 
-    old_year = '2015'
-    year_text = ''
-    not_empty = False
-    for response in responses:
-        text, year = response_to_line(bot, response.get('data'), clan)
-        if year != old_year:
-            if year_text != '':
-                not_empty = True
-                embed.add_field(name=old_year, value=year_text, inline=False)
-
-                year_text = ''
-            old_year = year
-        year_text += text
-
-    if year_text != '':
-        not_empty = True
-        embed.add_field(name=f'**{old_year}**', value=year_text, inline=False)
-
-    if not not_empty:
-        embed.description = 'No prior cwl data'
     embed.timestamp = pend.now(tz=pend.UTC)
     return embed
 

@@ -9,11 +9,13 @@ optional_clan = commands.Param(
     default=None,
     converter=convert.clan,
     autocomplete=autocomplete.clan,
+    name=disnake.Localized(key='clan-autocomplete-name'),
     description=disnake.Localized(key='clan-autocomplete-description'),
 )
 clan: CustomClan = commands.Param(
     converter=convert.clan,
     autocomplete=autocomplete.clan,
+    name=disnake.Localized(key='clan-autocomplete-name'),
     description=disnake.Localized(key='clan-autocomplete-description'),
 )
 

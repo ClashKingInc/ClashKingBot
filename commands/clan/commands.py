@@ -4,8 +4,15 @@ from disnake.ext import commands
 from discord import autocomplete, options, convert
 import coc
 from classes.bot import CustomClient
-from .embeds import clan_composition, detailed_clan_board, basic_clan_board, minimalistic_clan_board, clan_donations
-
+from .embeds import (
+    clan_composition,
+    detailed_clan_board,
+    basic_clan_board,
+    minimalistic_clan_board,
+    clan_donations,
+    war_log,
+    cwl_performance,
+)
 
 from disnake import Localized as Loc
 
@@ -169,6 +176,47 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
             button_id=f'clandonos:{clan.tag}:{season}:{townhall}:{limit}:{sort_by}:{sort_order}',
             bot=self.bot
         )
+        await ctx.edit_original_message(embed=embed, components=[buttons])
+
+
+
+    @clan.sub_command(name='war-log', description='Past war info for clan')
+    async def war(
+            self,
+            ctx: disnake.ApplicationCommandInteraction,
+            clan = options.clan,
+            option: str = commands.Param(
+                name=Loc(key='option-type'),
+                description=Loc(key='clan-warlog-type-description'),
+                choices=[
+                    Loc('War Log', key='warlog'),
+                    Loc('CWL History', key='cwl-history'),
+                ]
+            ),
+            limit: int = commands.Param(
+                name=Loc(key='option-limit'),
+                description=Loc(key='limit-description'),
+                default=25,
+                min_value=1,
+                max_value=25
+            ),
+    ):
+        embed_color = (await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)).embed_color
+        _, locale = self.bot.get_localizator(ctx=ctx)
+
+
+        if option == 'War Log':
+            embed = await war_log(bot=self.bot, clan=clan, limit=limit, embed_color=embed_color, locale=locale)
+            buttons = button_generator(
+                button_id=f'clanwarlog:{clan.tag}:{limit}',
+                bot=self.bot
+            )
+        elif option == 'CWL History':
+            embed = await cwl_performance(bot=self.bot, clan=clan, limit=limit, embed_color=embed_color, locale=locale)
+            buttons = button_generator(
+                button_id=f'clancwlperf:{clan.tag}',
+                bot=self.bot
+            )
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
 

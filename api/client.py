@@ -13,6 +13,8 @@ from api.location import ClanRanking
 from api.other import ObjectDictIterable
 from api.player import LocationPlayer, DonationPlayer
 from api.server import ServerSettings, ServerClanSettings
+from api.war import CWLRanking, CWLThreshold
+
 
 from functools import wraps
 
@@ -281,6 +283,34 @@ class ClashKingAPIClient:
         items = response['items']
         return [coc.ClanWar(data=data, clan_tag=clan_tag, client=None) for data in items]
 
+
+    async def get_cwl_ranking_history(
+            self,
+            clan_tag: str
+    ) -> list[CWLRanking]:
+        """
+        :param clan_tag: tag for clan
+        """
+        response = await self._request(
+            Route(
+                method='GET',
+                endpoint=f'/v2/cwl/{clan_tag}/ranking-history',
+            )
+        )
+        items = response['items']
+        return [CWLRanking(data=data) for data in items]
+
+    async def get_cwl_league_thresholds(
+            self,
+    ) -> list[CWLThreshold]:
+        response = await self._request(
+            Route(
+                method='GET',
+                endpoint=f'/v2/cwl/league-thresholds',
+            )
+        )
+        items = response['items']
+        return [CWLThreshold(data=data) for data in items]
 
 
 import asyncio

@@ -115,8 +115,6 @@ LEAGUES = [
 
 ROLES = ['Member', 'Elder', 'Co-Leader', 'Leader']
 
-WAR_LEAGUES = json.load(open(f'assets/war_leagues.json'))
-
 
 TH_FILTER = [f'{th1}v{th2}' for th1 in TOWNHALL_LEVELS for th2 in TOWNHALL_LEVELS if th1 != th2]
 TH_FILTER += [f'{x}v{x}' for x in TOWNHALL_LEVELS]

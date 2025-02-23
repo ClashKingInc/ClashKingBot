@@ -43,38 +43,6 @@ async def sorted(
 
 
 
-@clan.sub_command(name='war-log', description='Past war info for clan')
-async def war(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        clan: coc.Clan = options.clan,
-        option: str = commands.Param(choices=['War Log', 'CWL History']),
-        limit: int = commands.Param(default=25, min_value=1, max_value=25),
-):
-    embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
-    buttons = disnake.ui.ActionRow()
-    if option == 'War Log':
-        embed = await war_log(bot=self.bot, clan=clan, embed_color=embed_color)
-        buttons.append_item(
-            disnake.ui.Button(
-                label='',
-                emoji=self.bot.emoji.refresh.partial_emoji,
-                style=disnake.ButtonStyle.grey,
-                custom_id=f'clanwarlog:{clan.tag}:{limit}',
-            )
-        )
-    elif option == 'CWL History':
-        embed = await cwl_performance(bot=self.bot, clan=clan, embed_color=embed_color)
-        buttons.append_item(
-            disnake.ui.Button(
-                label='',
-                emoji=self.bot.emoji.refresh.partial_emoji,
-                style=disnake.ButtonStyle.grey,
-                custom_id=f'clancwlperf:{clan.tag}',
-            )
-        )
-
-    await ctx.edit_original_message(embed=embed, components=[buttons])
 
 
 @clan.sub_command(name='games', description='Clan Games stats for a clan')
