@@ -70,3 +70,7 @@ empty-warlog = Leeg oorlogsboek. Geen oorlogen gevonden!
 win-vs = Gewonnen tegen { $clan_name }
 draw-vs = Gelijkspel tegen { $clan_name }
 loss-vs = Verlogen tegen { $clan_name }
+cwl-ranking-line = { $place_emoji } { $league_emoji } `{ $place } | { $month }`
+clan-warlog-type-description = Type of war log history to show
+warlog = War Log
+cwl-history = CWL History
