@@ -5,6 +5,12 @@ class BaseClan:
         self.tag = data['tag']
 
 
+class BasicClan(BaseClan):
+    def __init__(self, data: dict):
+        super().__init__(data)
+        self.name = data['name']
+
+
 class ClanTotals(BaseClan):
     def __init__(self, data: dict):
         super().__init__(data)

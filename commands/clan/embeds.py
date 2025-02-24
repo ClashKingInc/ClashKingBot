@@ -438,7 +438,7 @@ async def cwl_performance(
         year_text = ""
         for cwl in items:
             # Find thresholds for the current league
-            promo, demo = next(((t.promo, t.demote) for t in thresholds if t.name == cwl.league), (None, None))
+            promo, demo = next(((t.promo, t.demote) for t in thresholds if t.name == cwl.league), (0, 0))
 
             # Determine the appropriate emoji
             place_emoji = (
@@ -451,8 +451,9 @@ async def cwl_performance(
             text = _("cwl-ranking-line",
                      place_emoji=place_emoji,
                      league_emoji=bot.fetch_emoji(f"CWL {cwl.league}").str,
+                     superscript=create_superscript(len(cwl.league.split(" ")[-1])),
                      place=num2words(cwl.rank, to='ordinal_num', lang=locale.value.replace("-", "_")),
-                     month=date.format("MMMM", locale=locale.value.replace("-", "_"))
+                     month=date.format("MMMM", locale=locale.value.replace("-", "_")).capitalize(),
                     )
             text += f"\n-# ★{cwl.stars} | {cwl.destruction:.2f}% | ▲{cwl.rounds_won} | ▼{cwl.rounds_lost}"
 

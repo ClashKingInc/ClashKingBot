@@ -1,6 +1,6 @@
 clan-compo-description = Różne podglądy na skład klanu
 clan-search-description = Panel pokazujący podstawowe przeglądy klanów
-townhall = Town hall
+townhall = Townhall
 trophies = Puchary
 location = Lokalizacja
 league = Liga
@@ -46,7 +46,7 @@ clan-search-type-description = Rodzaj osadzenia o różnych poziomach szczegół
 clan-compo-type-description = Rodzaj podziału składu
 #type, as is in what type of option for the command
 option-type = typ
-option-townhall = town hall
+option-townhall = townhall
 townhall-description = Poziom Town hall do filtrowania wyników dla
 option-limit = limit
 limit-description = Liczba wyników do pokazania

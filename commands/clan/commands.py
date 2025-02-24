@@ -17,6 +17,7 @@ from .embeds import (
 from disnake import Localized as Loc
 
 from utility.discord.components import button_generator
+from utility.constants import TOWNHALL_LEVELS
 
 class ClanCommands(commands.Cog, name='Clan Commands'):
     def __init__(self, bot: CustomClient):
@@ -172,6 +173,31 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
             locale=locale,
         )
 
+        family_clans = await self.bot.ck_client.get_basic_server_clan_list(server_id=ctx.guild.id)
+
+        components = [
+            disnake.ui.Select(
+                options=[
+                    disnake.SelectOption(
+                        label=f'{clan.name} ({clan.tag})',
+                        value=f'clandonos:set:clan={clan.tag}'
+                    )
+                    for clan in family_clans[:25]
+                ],
+                placeholder=f'Select Clan',
+            ),
+            disnake.ui.Select(
+                options=[
+                    disnake.SelectOption(
+                        label=f'Townhall {level}',
+                        value=f'clandonos:set:townhall={level}'
+                    )
+                    for level in TOWNHALL_LEVELS
+                ]
+            ),
+
+        ]
+
         buttons = button_generator(
             button_id=f'clandonos:{clan.tag}:{season}:{townhall}:{limit}:{sort_by}:{sort_order}',
             bot=self.bot
@@ -217,6 +243,93 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 button_id=f'clancwlperf:{clan.tag}',
                 bot=self.bot
             )
+        await ctx.edit_original_message(embed=embed, components=[buttons])
+
+    item_to_name = {
+        'Player Tag': 'tag',
+        'Role': 'role',
+        'Versus Trophies': 'versus_trophies',
+        'Trophies': 'trophies',
+        'Clan Capital Contributions': 'clan_capital_contributions',
+        'Clan Capital Raided': 'ach_Aggressive Capitalism',
+        'XP Level': 'exp_level',
+        'Combined Heroes': 'heroes',
+        'Obstacles Removed': 'ach_Nice and Tidy',
+        'War Stars': 'war_stars',
+        'DE Looted': 'ach_Heroic Heist',
+        'CWL Stars': 'ach_War League Legend',
+        'Attacks Won (all time)': 'ach_Conqueror',
+        'Attacks Won (season)': 'attack_wins',
+        'Defenses Won (season)': 'defense_wins',
+        'Defenses Won (all time)': 'ach_Unbreakable',
+        'Total Donated': 'ach_Friend in Need',
+        'Versus Trophy Record': 'ach_Champion Builder',
+        'Trophy Record': 'ach_Sweet Victory!',
+        'Clan Games Points': 'ach_Games Champion',
+        'Versus Battles Won': 'versus_attack_wins',
+        'Best Season Rank': 'legendStatistics.bestSeason.rank',
+        'Townhall Level': 'town_hall',
+    }
+
+    @clan.sub_command(name='sorted', description='List of clan members, sorted by any attribute')
+    async def sorted(
+            self,
+            ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = options.clan,
+            sort_by: str = commands.Param(choices=[
+                Loc("Player Tag", key="choice-player-tag"),
+                Loc("Role", key="choice-role"),
+                Loc("Townhall Level", key="choice-townhall-level"),
+                Loc("Trophies", key="choice-trophies"),
+                Loc("Versus Trophies", key="choice-versus-trophies"),
+                Loc("Clan Capital Contributions", key="choice-capital-contributions"),
+                Loc("Clan Capital Raided", key="choice-capital-raided"),
+                Loc("XP Level", key="choice-xp-level"),
+                Loc("Combined Heroes", key="choice-combined-heroes"),
+                Loc("Obstacles Removed", key="choice-obstacles-removed"),
+                Loc("War Stars", key="choice-war-stars"),
+                Loc("CWL Stars", key="choice-cwl-stars"),
+                Loc("DE Looted", key="choice-de-looted"),
+                Loc("Attacks Won (all time)", key="choice-attacks-won-all-time"),
+                Loc("Attacks Won (season)", key="choice-attacks-won-season"),
+                Loc("Defenses Won (season)", key="choice-defenses-won-season"),
+                Loc("Defenses Won (all time)", key="choice-defenses-won-all-time"),
+                Loc("Total Donated", key="choice-total-donated"),
+                Loc("Versus Trophy Record", key="choice-versus-trophy-record"),
+                Loc("Trophy Record", key="choice-trophy-record"),
+                Loc("Clan Games Points", key="choice-clan-games-points"),
+                Loc("Best Legend Finish", key="choice-best-legend-finish"),
+            ]),
+            townhall: int = None,
+            limit: int = commands.Param(default=50, min_value=1, max_value=50),
+    ):
+        """
+        Parameters
+        ----------
+        clan: Use clan tag or select an option from the autocomplete
+        sort_by: Sort by any attribute
+        limit: change amount of results shown
+        """
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+        embed = await clan_sorted(
+            bot=self.bot,
+            clan=clan,
+            sort_by=sort_by,
+            limit=limit,
+            townhall=townhall,
+            embed_color=embed_color,
+        )
+
+        buttons = disnake.ui.ActionRow()
+        buttons.append_item(
+            disnake.ui.Button(
+                label='',
+                emoji=self.bot.emoji.refresh.partial_emoji,
+                style=disnake.ButtonStyle.grey,
+                custom_id=f'clansorted:{clan.tag}:{sort_by}:{limit}:{townhall}',
+            )
+        )
+
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
 

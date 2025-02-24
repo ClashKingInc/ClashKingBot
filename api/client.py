@@ -7,7 +7,7 @@ from expiring_dict import ExpiringDict
 from api.route import Route
 
 from api.bans import BanListItem, BanResponse
-from api.clan import ClanTotals
+from api.clan import ClanTotals, BasicClan
 from api.errors import APIUnavailableError, AuthenticationError, NotFoundError
 from api.location import ClanRanking
 from api.other import ObjectDictIterable
@@ -194,6 +194,17 @@ class ClashKingAPIClient:
         return response
 
 
+    async def get_basic_server_clan_list(self, server_id: int) -> list[BasicClan]:
+        response = await self._request(
+            Route(
+                method='GET',
+                endpoint=f'/v2/link/server/{server_id}/clan/list',
+            )
+        )
+        return [BasicClan(data=data) for data in response['items']]
+
+
+
 
     #PLAYER ENDPOINTS
     async def get_player_locations(self, player_tags: list[str]) -> ObjectDictIterable[LocationPlayer]:
@@ -228,6 +239,7 @@ class ClashKingAPIClient:
         )
         return ClanTotals(data=response)
 
+
     @handle_silent
     async def get_clan_ranking(self, clan_tag: str) -> ClanRanking:
         """
@@ -242,6 +254,7 @@ class ClashKingAPIClient:
             )
         )
         return ClanRanking(data=response)
+
 
     async def get_clan_donations(self, clan_tag: str, season: str) -> ObjectDictIterable[DonationPlayer]:
         """

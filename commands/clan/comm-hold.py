@@ -1,43 +1,7 @@
 
 
 
-@clan.sub_command(name='sorted', description='List of clan members, sorted by any attribute')
-async def sorted(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        clan: coc.Clan = options.clan,
-        sort_by: str = commands.Param(choices=sorted(item_to_name.keys())),
-        townhall: int = None,
-        limit: int = commands.Param(default=50, min_value=1, max_value=50),
-):
-    """
-    Parameters
-    ----------
-    clan: Use clan tag or select an option from the autocomplete
-    sort_by: Sort by any attribute
-    limit: change amount of results shown
-    """
-    embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
-    embed = await clan_sorted(
-        bot=self.bot,
-        clan=clan,
-        sort_by=sort_by,
-        limit=limit,
-        townhall=townhall,
-        embed_color=embed_color,
-    )
 
-    buttons = disnake.ui.ActionRow()
-    buttons.append_item(
-        disnake.ui.Button(
-            label='',
-            emoji=self.bot.emoji.refresh.partial_emoji,
-            style=disnake.ButtonStyle.grey,
-            custom_id=f'clansorted:{clan.tag}:{sort_by}:{limit}:{townhall}',
-        )
-    )
-
-    await ctx.edit_original_message(embed=embed, components=[buttons])
 
 
 

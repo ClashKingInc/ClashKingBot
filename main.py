@@ -54,7 +54,7 @@ initial_extensions = [
     'discord.autocomplete',
     'discord.converters',
     "commands.clan.commands",
-    "commands.bans.commands",
+    "commands.bans.commands"
 ]
 
 
