@@ -93,7 +93,7 @@ win-vs = Win vs { $clan_name }
 draw-vs = Draw vs { $clan_name }
 loss-vs = Loss vs { $clan_name }
 
-cwl-ranking-line = { $place_emoji } { $league_emoji }{ $superscript } `{ $place } | { $month }`
+cwl-ranking-line = { $place_emoji } { $league_emoji } `{ $place } | { $month }`
 clan-warlog-type-description = Type of war log history to show
 
 warlog = War Log
