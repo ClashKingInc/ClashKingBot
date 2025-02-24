@@ -46,7 +46,7 @@ clan-search-type-description = Rodzaj osadzenia o różnych poziomach szczegół
 clan-compo-type-description = Rodzaj podziału składu
 #type, as is in what type of option for the command
 option-type = typ
-option-townhall = townhall
+option-townhall = town hall
 townhall-description = Poziom Town hall do filtrowania wyników dla
 option-limit = limit
 limit-description = Liczba wyników do pokazania
@@ -70,3 +70,7 @@ empty-warlog = Empty War Log. No wars found!
 win-vs = Win vs { $clan_name }
 draw-vs = Draw vs { $clan_name }
 loss-vs = Loss vs { $clan_name }
+cwl-ranking-line = { $place_emoji } { $league_emoji } `{ $place } | { $month }`
+clan-warlog-type-description = Type of war log history to show
+warlog = War Log
+cwl-history = CWL History
