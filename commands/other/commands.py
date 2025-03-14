@@ -166,14 +166,15 @@ class misc(commands.Cog, name='Other'):
         embed.add_field(name='🗃️ Loaded Servers', value=f'{chunked_guilds:,}', inline=True)
 
         if api_data:
+            max_length = max(len(f"{value:,}") for value in api_data.values())
             global_counts = (
-                f"Players in War    : {api_data['players_in_war']:,}\n"
-                f"Clans in War      : {api_data['clans_in_war']:,}\n"
-                f"Players in Legends: {api_data['players_in_legends']:,}\n"
-                f"Join/Leaves Stored: {api_data['total_join_leaves']:,}\n"
-                f"Players Tracked   : {api_data['player_count']:,}\n"
-                f"Clans Tracked     : {api_data['clan_count']:,}\n"
-                f"Wars Stored       : {api_data['wars_stored']:,}"
+                f"Players in War    : {api_data['players_in_war']:<{max_length},}\n"
+                f"Clans in War      : {api_data['clans_in_war']:<{max_length},}\n"
+                f"Players in Legends: {api_data['players_in_legends']:<{max_length},}\n"
+                f"Join/Leaves Stored: {api_data['total_join_leaves']:<{max_length},}\n"
+                f"Players Tracked   : {api_data['player_count']:<{max_length},}\n"
+                f"Clans Tracked     : {api_data['clan_count']:<{max_length},}\n"
+                f"Wars Stored       : {api_data['wars_stored']:<{max_length},}"
             )
             embed.add_field(name='🌍 Global Stats', value=f'```yaml\n{global_counts}\n```', inline=False)
         else:
