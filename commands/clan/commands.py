@@ -31,6 +31,36 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
     async def clan(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
 
+    @commands.slash_command(
+        name='role-mover'
+    )
+    async def role_mover(self,
+                         ctx: disnake.ApplicationCommandInteraction,
+                         role: disnake.Role,
+                         position: int,
+                         reverse = commands.Param(choices=["True"])
+        ):
+        await role.edit(position=len(ctx.guild.roles) - position)
+        await ctx.send(f"{role.mention} moved to {position}.", ephemeral=True)
+
+    @commands.slash_command(
+        name='forum-clone'
+    )
+    async def forum_clone(self,
+                         ctx: disnake.ApplicationCommandInteraction
+        ):
+        await ctx.response.defer(ephemeral=True)
+        forum = await ctx.guild.fetch_channel(1344775338600828928)
+        new_forum = await ctx.guild.create_forum_channel(name=forum.name, category=ctx.channel.category)
+        for thread in forum.threads:
+            messages = await thread.history(limit=1, oldest_first=True).flatten()
+            await new_forum.create_thread(name=thread.name,
+                                                       content=messages[0].content,
+                                                       file=(await messages[0].attachments[0].to_file())
+                                                       )
+        await ctx.send(f"{new_forum.mention} created", ephemeral=True)
+
+
 
     @clan.sub_command(
         name='compo',

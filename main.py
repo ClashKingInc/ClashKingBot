@@ -33,7 +33,6 @@ logger.add(lambda msg: print(msg, end=''), level='INFO')  # Log to stdout
 scheduler = AsyncIOScheduler(timezone=utc)
 
 
-
 config = create_config()
 
 intents = disnake.Intents(guilds=True, members=True, emojis=True, messages=True, message_content=True)
