@@ -294,7 +294,10 @@ class War(commands.Cog):
             )
 
     # CWL COMMANDS
-    @commands.slash_command(name='cwl')
+    @commands.slash_command(name='cwl',
+                            install_types=disnake.ApplicationInstallTypes.all(),
+                            contexts=disnake.InteractionContextTypes.all(),
+    )
     async def cwl(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
 

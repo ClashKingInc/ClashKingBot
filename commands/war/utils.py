@@ -733,6 +733,8 @@ async def ranking_lb(bot: CustomClient, group: coc.ClanWarLeagueGroup, fetched_c
 		clan_league_wars = await bot.clan_wars.find({"$and": [{"data.tag": {"$in": war_tags}}, {"data.season": group.season}]}).to_list(length=None)
 		league_wars = wars_from_group(bot=bot, data=clan_league_wars, group=group)
 
+	war_stars = []
+	avg_to_win = []
 	for round in group.rounds:
 		for war_tag in round:
 			if not league_wars:
@@ -745,11 +747,15 @@ async def ranking_lb(bot: CustomClient, group: coc.ClanWarLeagueGroup, fetched_c
 				star_dict[war.opponent.tag] += 10
 			tag_to_name[war.clan.tag] = war.clan.name
 			tag_to_name[war.opponent.tag] = war.opponent.name
-			for player in war.members:
-				attacks = player.attacks
-				for attack in attacks:
-					star_dict[player.clan.tag] += attack.stars
-					dest_dict[player.clan.tag] += attack.destruction
+
+			avg_to_win.append(max(war.clan.stars, war.opponent.stars))
+
+			star_dict[war.clan.tag] += war.clan.stars
+			dest_dict[war.clan.tag] += war.clan.destruction
+			star_dict[war.opponent.tag] += war.opponent.stars
+			dest_dict[war.opponent.tag] += war.opponent.destruction
+
+			war_stars.extend([war.clan.stars, war.opponent.stars])
 
 	star_list = []
 	for tag, stars in star_dict.items():
@@ -758,22 +764,16 @@ async def ranking_lb(bot: CustomClient, group: coc.ClanWarLeagueGroup, fetched_c
 		star_list.append([name, stars, destruction])
 
 	sorted_list = sorted(star_list, key=operator.itemgetter(1, 2), reverse=True)
-	text = ""
-	text += f"`# STR DSTR   NAME           `"
-	x = 1
-	for item in sorted_list:
-		name = item[0]
-		stars = str(item[1])
-		dest = str(item[2])
-		rank = str(x)
-		rank = rank.rjust(1)
-		stars = stars.rjust(2)
-		name = name.ljust(15)
-		dest = dest.rjust(5) + "%"
-		text += f"\n`\u200e{rank} \u200e{stars} {dest} \u200e{name}`"
-		x += 1
 
-	embed = disnake.Embed(title=f"Clan Ranking Leaderboard", description=text, color=disnake.Color.green())
+	text = "`# STR DSTR    NAME           `"
+	for x, (name, stars, dest) in enumerate(sorted_list, start=1):
+		text += f"\n`\u200e{x:<2} \u200e{stars:>2} {dest:6.2f}% \u200e{name:<15}`"
+
+	avg_stars_per_war = sum(war_stars) / len(war_stars) if war_stars else 0
+	avg_win_war = sum(avg_to_win) / len(avg_to_win) if avg_to_win else 0
+
+	embed = disnake.Embed(title="Clan Ranking Leaderboard", description=text, color=disnake.Color.green())
+	embed.set_footer(text=f"Avg {avg_stars_per_war:.1f} Stars/War | Avg Win {avg_win_war:.1f} Stars")
 	return embed
 
 
