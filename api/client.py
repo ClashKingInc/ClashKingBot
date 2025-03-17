@@ -11,7 +11,7 @@ from api.clan import ClanTotals, BasicClan
 from api.errors import APIUnavailableError, AuthenticationError, NotFoundError
 from api.location import ClanRanking
 from api.other import ObjectDictIterable
-from api.player import LocationPlayer, DonationPlayer
+from api.player import LocationPlayer, DonationPlayer, SortedPlayer
 from api.server import ServerSettings, ServerClanSettings
 from api.war import CWLRanking, CWLThreshold
 
@@ -216,12 +216,27 @@ class ClashKingAPIClient:
         response = await self._request(
             Route(
                 method='POST',
-                endpoint='v2/players/location',
+                endpoint='/v2/players/location',
                 json={"player_tags": player_tags},
             )
         )
         items = response['items']
         return ObjectDictIterable(items=[LocationPlayer(data=item) for item in items], key='tag')
+
+
+    async def get_sorted_players(self, sort_by: str, player_tags: list[str]) -> ObjectDictIterable[SortedPlayer]:
+        """
+        Gets players sorted by a specified criteria. Returns a stripped down version of the Player object.
+        """
+        response = await self._request(
+            Route(
+                method='POST',
+                endpoint=f'/v2/players/sorted/{sort_by}',
+                json={"player_tags": player_tags},
+            )
+        )
+        items = response['items']
+        return ObjectDictIterable(items=[SortedPlayer(data=item) for item in items], key='tag')
 
 
 
@@ -339,8 +354,8 @@ async def foo():
  "#90J9828JG", "#PR0J29P", "#282L8YR0Q", "#2YLPC28V", "#C0U0JJQR",
  "#8V9QGJGU", "#YYVV2QPP", "#YUVPLUU8P", "#YV9JCQYU0", "#UJQVGJPG",
  "#QJGYLJVL0", "#GPRJV8LGV", "#GQYRGYVJ8"]
-    response = await client.get_clan_donations(clan_tag="#VY2J0LL", season="2025-01")
+    response = await client.get_sorted_players(sort_by='cumulative_heroes', player_tags=player_tags)
     print(response)
 
 
-#asyncio.run(foo())
+asyncio.run(foo())

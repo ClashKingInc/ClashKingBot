@@ -474,6 +474,77 @@ async def cwl_performance(
     return embed
 
 
+@register_button('clansorted', parser='_:clan:sort_by:limit:townhall')
+async def clan_sorted(
+    bot: CustomClient,
+    clan: coc.Clan,
+    sort_by: str,
+    townhall: int,
+    limit: int,
+    embed_color: disnake.Color,
+    locale: disnake.Locale
+):
+    item_to_name = {
+        'Player Tag': 'tag',
+        'Role': 'role',
+        'Versus Trophies': 'builderBaseTrophies',
+        'Trophies': 'trophies',
+        'Clan Capital Contributions': 'clan_capital_contributions',
+        'Clan Capital Raided': 'achievements[name=Aggressive Capitalism].value',
+        'XP Level': 'expLevel',
+        'Combined Heroes': 'cumulative_heroes',
+        'Obstacles Removed': 'achievements[name=Nice and Tidy].value',
+        'War Stars': 'warStars',
+        'DE Looted': 'achievements[name=Heroic Heist].value',
+        'CWL Stars': 'achievements[name=War League Legend].value',
+        'Attacks Won (all time)': 'achievements[name=Conqueror].value',
+        'Attacks Won (season)': 'attackWins',
+        'Defenses Won (season)': 'defenseWins',
+        'Defenses Won (all time)': 'achievements[name=Unbreakable].value',
+        'Total Donated': 'achievements[name=Friend in Need].value',
+        'Versus Trophy Record': 'achievements[name=Champion Builder].value',
+        'Trophy Record': 'achievements[name=Sweet Victory!].value',
+        'Clan Games Points': 'achievements[name=Games Champion].value',
+        'Best Season Rank': 'legendStatistics.bestSeason.rank',
+        'Townhall Level': 'townHallLevel',
+    }
+
+    players = await bot.ck_client.get_sorted_players(
+        sort_by=item_to_name.get(sort_by),
+        player_tags=[m.tag for m in clan.members if not townhall or m.town_hall == townhall]
+    )
+    players = [player for player in players if player.value is not None][:limit]
+
+    if not players:
+        return disnake.Embed(
+            description=f'No players found for this sort ({sort_by}) and Townhall {townhall})',
+            color=disnake.Color.red()
+        )
+
+    longest = max(len(str(player.value)) for player in players)
+
+    total = 0
+    if isinstance(players[0].value, int):
+        total = sum(player.value for player in players)
+
+    text = ''
+    for count, player in enumerate(players, 1):
+        emoji = bot.get_number_emoji(color="blue", number=count)
+        text += f'{emoji}`{player.value:{longest}} {player.name[:15]}`\n'
+
+    embed = disnake.Embed(
+        description=text,
+        color=embed_color
+    )
+    embed.set_author(name=clan.name, icon_url=clan.badge.url)
+    townhall = f"Townhall {townhall}" if townhall else "All Townhalls"
+    footer = f"Sorted by {sort_by} | {townhall}"
+    if total:
+        footer += f" | Total: {total}"
+    embed.set_footer(text=footer)
+    return embed
+
+
 
 
 

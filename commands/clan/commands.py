@@ -12,6 +12,7 @@ from .embeds import (
     clan_donations,
     war_log,
     cwl_performance,
+    clan_sorted
 )
 
 from disnake import Localized as Loc
@@ -30,35 +31,6 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
     )
     async def clan(self, ctx: disnake.ApplicationCommandInteraction):
         await ctx.response.defer()
-
-    @commands.slash_command(
-        name='role-mover'
-    )
-    async def role_mover(self,
-                         ctx: disnake.ApplicationCommandInteraction,
-                         role: disnake.Role,
-                         position: int,
-                         reverse = commands.Param(choices=["True"])
-        ):
-        await role.edit(position=len(ctx.guild.roles) - position)
-        await ctx.send(f"{role.mention} moved to {position}.", ephemeral=True)
-
-    @commands.slash_command(
-        name='forum-clone'
-    )
-    async def forum_clone(self,
-                         ctx: disnake.ApplicationCommandInteraction
-        ):
-        await ctx.response.defer(ephemeral=True)
-        forum = await ctx.guild.fetch_channel(1344775338600828928)
-        new_forum = await ctx.guild.create_forum_channel(name=forum.name, category=ctx.channel.category)
-        for thread in forum.threads:
-            messages = await thread.history(limit=1, oldest_first=True).flatten()
-            await new_forum.create_thread(name=thread.name,
-                                                       content=messages[0].content,
-                                                       file=(await messages[0].attachments[0].to_file())
-                                                       )
-        await ctx.send(f"{new_forum.mention} created", ephemeral=True)
 
 
 
@@ -236,7 +208,10 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
 
 
 
-    @clan.sub_command(name='war-log', description='Past war info for clan')
+    @clan.sub_command(
+        name='war-log',
+        description=Loc(key='clan-warlog-description')
+    )
     async def war(
             self,
             ctx: disnake.ApplicationCommandInteraction,
@@ -275,92 +250,78 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
             )
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
-    item_to_name = {
-        'Player Tag': 'tag',
-        'Role': 'role',
-        'Versus Trophies': 'versus_trophies',
-        'Trophies': 'trophies',
-        'Clan Capital Contributions': 'clan_capital_contributions',
-        'Clan Capital Raided': 'ach_Aggressive Capitalism',
-        'XP Level': 'exp_level',
-        'Combined Heroes': 'heroes',
-        'Obstacles Removed': 'ach_Nice and Tidy',
-        'War Stars': 'war_stars',
-        'DE Looted': 'ach_Heroic Heist',
-        'CWL Stars': 'ach_War League Legend',
-        'Attacks Won (all time)': 'ach_Conqueror',
-        'Attacks Won (season)': 'attack_wins',
-        'Defenses Won (season)': 'defense_wins',
-        'Defenses Won (all time)': 'ach_Unbreakable',
-        'Total Donated': 'ach_Friend in Need',
-        'Versus Trophy Record': 'ach_Champion Builder',
-        'Trophy Record': 'ach_Sweet Victory!',
-        'Clan Games Points': 'ach_Games Champion',
-        'Versus Battles Won': 'versus_attack_wins',
-        'Best Season Rank': 'legendStatistics.bestSeason.rank',
-        'Townhall Level': 'town_hall',
-    }
 
-    @clan.sub_command(name='sorted', description='List of clan members, sorted by any attribute')
+
+    @clan.sub_command(
+        name='sorted',
+        description=Loc(key='clan-sorted-description')
+    )
     async def sorted(
             self,
             ctx: disnake.ApplicationCommandInteraction,
             clan: coc.Clan = options.clan,
-            sort_by: str = commands.Param(choices=[
-                Loc("Player Tag", key="choice-player-tag"),
-                Loc("Role", key="choice-role"),
-                Loc("Townhall Level", key="choice-townhall-level"),
-                Loc("Trophies", key="choice-trophies"),
-                Loc("Versus Trophies", key="choice-versus-trophies"),
-                Loc("Clan Capital Contributions", key="choice-capital-contributions"),
-                Loc("Clan Capital Raided", key="choice-capital-raided"),
-                Loc("XP Level", key="choice-xp-level"),
-                Loc("Combined Heroes", key="choice-combined-heroes"),
-                Loc("Obstacles Removed", key="choice-obstacles-removed"),
-                Loc("War Stars", key="choice-war-stars"),
-                Loc("CWL Stars", key="choice-cwl-stars"),
-                Loc("DE Looted", key="choice-de-looted"),
-                Loc("Attacks Won (all time)", key="choice-attacks-won-all-time"),
-                Loc("Attacks Won (season)", key="choice-attacks-won-season"),
-                Loc("Defenses Won (season)", key="choice-defenses-won-season"),
-                Loc("Defenses Won (all time)", key="choice-defenses-won-all-time"),
-                Loc("Total Donated", key="choice-total-donated"),
-                Loc("Versus Trophy Record", key="choice-versus-trophy-record"),
-                Loc("Trophy Record", key="choice-trophy-record"),
-                Loc("Clan Games Points", key="choice-clan-games-points"),
-                Loc("Best Legend Finish", key="choice-best-legend-finish"),
-            ]),
-            townhall: int = None,
-            limit: int = commands.Param(default=50, min_value=1, max_value=50),
+            sort_by: str = commands.Param(
+                name=Loc(key='option-sort-by'),
+                description=Loc(key='sort-by-description'),
+                choices=[
+                    Loc("Player Tag", key="choice-player-tag"),
+                    Loc("Role", key="choice-role"),
+                    Loc("Townhall Level", key="choice-townhall-level"),
+                    Loc("Trophies", key="choice-trophies"),
+                    Loc("Versus Trophies", key="choice-versus-trophies"),
+                    Loc("Clan Capital Contributions", key="choice-capital-contributions"),
+                    Loc("Clan Capital Raided", key="choice-capital-raided"),
+                    Loc("XP Level", key="choice-xp-level"),
+                    Loc("Combined Heroes", key="choice-combined-heroes"),
+                    Loc("Obstacles Removed", key="choice-obstacles-removed"),
+                    Loc("War Stars", key="choice-war-stars"),
+                    Loc("CWL Stars", key="choice-cwl-stars"),
+                    Loc("DE Looted", key="choice-de-looted"),
+                    Loc("Attacks Won (all time)", key="choice-attacks-won-all-time"),
+                    Loc("Attacks Won (season)", key="choice-attacks-won-season"),
+                    Loc("Defenses Won (season)", key="choice-defenses-won-season"),
+                    Loc("Defenses Won (all time)", key="choice-defenses-won-all-time"),
+                    Loc("Total Donated", key="choice-total-donated"),
+                    Loc("Versus Trophy Record", key="choice-versus-trophy-record"),
+                    Loc("Trophy Record", key="choice-trophy-record"),
+                    Loc("Clan Games Points", key="choice-clan-games-points"),
+                    Loc("Best Legend Finish", key="choice-best-legend-finish"),
+                ]
+            ),
+            townhall: int = commands.Param(
+                name=Loc(key='option-townhall'),
+                description=Loc(key='townhall-description'),
+                default=None,
+            ),
+            limit: int = commands.Param(
+                name=Loc(key='option-limit'),
+                description=Loc(key='limit-description'),
+                default=50,
+                min_value=1,
+                max_value=50,
+            ),
     ):
-        """
-        Parameters
-        ----------
-        clan: Use clan tag or select an option from the autocomplete
-        sort_by: Sort by any attribute
-        limit: change amount of results shown
-        """
-        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+        embed_color = (await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)).embed_color
+        _, locale = self.bot.get_localizator(ctx=ctx)
+
         embed = await clan_sorted(
             bot=self.bot,
             clan=clan,
             sort_by=sort_by,
-            limit=limit,
             townhall=townhall,
+            limit=limit,
             embed_color=embed_color,
+            locale=locale,
         )
 
-        buttons = disnake.ui.ActionRow()
-        buttons.append_item(
-            disnake.ui.Button(
-                label='',
-                emoji=self.bot.emoji.refresh.partial_emoji,
-                style=disnake.ButtonStyle.grey,
-                custom_id=f'clansorted:{clan.tag}:{sort_by}:{limit}:{townhall}',
-            )
+        buttons = button_generator(
+            button_id=f'clansorted:{clan.tag}:{sort_by}:{limit}:{townhall}',
+            bot=self.bot
         )
 
-        await ctx.edit_original_message(embed=embed, components=[buttons])
+        await ctx.edit_original_message(embed=embed, components=buttons)
+
+
 
 
 def setup(bot):
