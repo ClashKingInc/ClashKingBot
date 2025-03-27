@@ -16,7 +16,7 @@ imagehash==4.3.1
 ipython==8.13.0
 kaleido==0.2.1
 loguru==0.7.2
-matplotlib==3.7.1
+matplotlib==3.10.0
 meilisearch-python-sdk==3.4.0
 motor==3.5.1
 msgspec==0.18.6
@@ -32,7 +32,7 @@ pymitter==0.4.0
 pymongo==4.8.0
 python-dateutil==2.8.2
 python-dotenv==0.19.2
-python-snappy==0.6.1
+python-snappy
 pytz==2021.3
 redis==4.6.0
 sentry_sdk==1.25.0
