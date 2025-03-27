@@ -85,8 +85,6 @@ class LinkParsing(commands.Cog):
                     bot=self.bot,
                     nick='Results',
                     link=message.content,
-                    clan_castle=None,
-                    equipment=None,
                     embed_color=server_settings.embed_color,
                 )
                 buttons = disnake.ui.ActionRow(
