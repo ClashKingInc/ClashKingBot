@@ -2,7 +2,7 @@ aiocache==0.12.2
 APScheduler==3.9.1
 ballpark @ git+https://github.com/Mee6/python-ballpark.git
 chat-exporter==2.8.1
-coc.py==3.9.0
+coc.py @ git+https://github.com/mathsman5133/coc.py.git@march-update
 disnake @ git+https://github.com/MagicTheDev/disnake.git
 disnake-ext-fluent @ git+https://github.com/MagicTheDev/disnake-ext-fluent.git
 dnspython==2.6.1
@@ -36,6 +36,7 @@ python-snappy
 pytz==2021.3
 redis==4.6.0
 sentry_sdk==2.19.2
+ujson
 uvicorn==0.34.0
 Wand==0.6.7
 websockets==14.1
