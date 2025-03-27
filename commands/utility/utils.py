@@ -13,129 +13,27 @@ from utility.constants import EMBED_COLOR_CLASS
 from utility.discord_utils import iter_embed_creation
 from utility.time import format_time
 
-async def generate_dictionary(bot: CustomClient, context: str, user_prompt: str):
-    try:
-        openai.api_key = bot._config.open_ai_key
-        response = await openai.ChatCompletion.acreate(
-            model='gpt-4o-mini',
-            messages=[
-                {'role': 'system', 'content': context},
-                {'role': 'user', 'content': user_prompt}
-            ],
-            max_tokens=2000,  # Adjust token limit as needed
-            temperature=0.7,  # Adjust creativity level
-        )
-        response_content = response['choices'][0]['message']['content']
-        return ast.literal_eval(response_content)
-    except Exception:
-        return {}
-
-async def generate_equipment(bot: CustomClient, equipment: str) -> str:
-    try:
-        context = """
-                You are an assistant designed to help users turn their clash of clans 
-                equipment selections into a python readable dictionary
-                """
-        user_prompt = f"""
-                These are the current equipment: {str(coc.enums.EQUIPMENT)}, these are my equipment: {equipment}.
-                Give me a python readable dictionary like equipment: quantity, using the closest available options.
-                If there is no available close and accurate option, please skip. Return ONLY a dictionary and nothing else,
-                even if empty. Do NOT return in a code block, please.
-                """
-        equip_dict = await generate_dictionary(bot=bot, context=context, user_prompt=user_prompt)
-        equipment = ''
-        for hero_name in coc.enums.HOME_BASE_HERO_ORDER:
-            heroes_equipment = ''
-            for name, _ in equip_dict.items():
-                gear = bot.coc_client.get_equipment(name=name)
-                if gear.hero == hero_name:
-                    emoji = bot.fetch_emoji(gear.name)
-                    heroes_equipment += f'- {emoji} {gear.name}\n'
-            if heroes_equipment:
-                emoji = bot.fetch_emoji(hero_name)
-                equipment += f'{emoji} {hero_name} \n{heroes_equipment}'
-    except Exception:
-        pass
-
-    return equipment
-
-
-async def generate_pets(bot: CustomClient, pets: str) -> str:
-    try:
-        context = """
-                You are an assistant designed to help users turn their clash of clans 
-                pet selections into a python readable dictionary
-                """
-        user_prompt = f"""
-                These are the current pets: {str(coc.enums.PETS_ORDER)}, these are my pets: {pets}.
-                Give me a python readable list like [pet1, pet2, pet3], using the closest available options.
-                If there is no available close and accurate option, please skip. Return ONLY a list and nothing else,
-                even if empty. Do NOT return in a code block, please.
-                """
-        pet_list = await generate_dictionary(bot=bot, context=context, user_prompt=user_prompt)
-        pets = ''
-        for pet in pet_list:
-            emoji = bot.fetch_emoji(pet)
-            pets += f'{emoji}'
-    except Exception:
-        pass
-
-    return pets
-
-async def generate_clan_castle(bot: CustomClient, clan_castle: str) -> tuple[str, int]:
-    cc_space = 0
-    try:
-        context = """
-                You are an assistant designed to help users turn their clash of clans clan castle - troop & spell
-                selections into a python readable dictionary
-                """
-        user_prompt = f"""
-                        These are the current troops & spells: {str(coc.enums.HOME_TROOP_ORDER + coc.enums.SPELL_ORDER + coc.enums.SUPER_TROOP_ORDER)}, 
-                        these are my spells and troops: {clan_castle}.
-                        Give me a python readable dictionary like troop/spell: quantity, using the closest available options.
-                        If there is no available close and accurate option, please skip. Return ONLY a dictionary and nothing else,
-                        even if empty. Do NOT return in a code block, please.
-                        """
-
-        castle_dict = await generate_dictionary(bot=bot, context=context, user_prompt=user_prompt)
-        troops = spells = ''
-        for name, quantity in castle_dict.items():  # type: str, int
-            item = bot.coc_client.get_troop(name=name)
-            if item is None:
-                item = bot.coc_client.get_spell(name=name)
-            if not item:
-                continue
-            emoji = bot.fetch_emoji(item.name)
-            if item.name in coc.enums.SPELL_ORDER:
-                spells += f'{emoji}`x {str(quantity)}` {item.name}\n'
-            elif item.name in coc.enums.HOME_TROOP_ORDER or item.name in coc.enums.SUPER_TROOP_ORDER:
-                troops += f'{emoji}`x {str(quantity)}` {item.name}\n'
-                if not item.is_siege_machine:
-                    cc_space += item.housing_space * int(quantity)
-        clan_castle = troops + spells
-    except Exception as e:
-        pass
-    return clan_castle, cc_space
 
 async def army_embed(
     bot: CustomClient,
     nick: str,
     link: str,
-    clan_castle: str = None,
-    equipment: str = None,
-    pets: str = None,
     notes: str = None,
     embed_color: disnake.Color = EMBED_COLOR_CLASS,
 ):
-    troops_list, spell_list = bot.coc_client.parse_army_link(link=link)
-    if not troops_list and not spell_list:
+    recipe = bot.coc_client.parse_army_link(link=link)
+
+    if (not recipe.heroes_loadout
+            and not recipe.troops
+            and not recipe.spells
+            and not recipe.clan_castle_troops
+            and not recipe.clan_castle_spells):
         raise MessageException('Not a valid army link')
 
-    troops = super_troops = spells = siege_machines = ''
+    troops = super_troops = spells = siege_machines = clan_castle = ''
     troop_space = spell_space = minimum_th = cc_space = 0
-    troop_train_time = spell_train_time = 0
 
-    for troop, quantity in troops_list:   # type: coc.Troop, int
+    for troop, quantity in recipe.troops:   # type: coc.Troop, int
         emoji = bot.fetch_emoji(troop.name)
         if troop.is_super_troop:
             super_troops += f'{emoji}`x {str(quantity)}` {troop.name}\n'
@@ -146,19 +44,26 @@ async def army_embed(
         minimum_th = max(minimum_th, troop.required_th_level[1])
         if not troop.is_siege_machine:
             troop_space += troop.housing_space * quantity
-            troop_train_time += troop.training_time.total_seconds() * quantity
 
-    for spell, quantity in spell_list:   # type: coc.Spell, int
+    for spell, quantity in recipe.spells:   # type: coc.Spell, int
         emoji = bot.fetch_emoji(spell.name)
         spells += f'{emoji}`x {str(quantity)}` {spell.name}\n'
         minimum_th = max(minimum_th, spell.required_th_level[1])
         spell_space += spell.housing_space * quantity
-        spell_train_time += spell.training_time.total_seconds() * quantity
+
+    for troop, quantity in recipe.clan_castle_troops:   # type: coc.Troop, int
+        emoji = bot.fetch_emoji(troop.name)
+        if not troop.is_siege_machine:
+            cc_space += troop.housing_space * quantity
+        clan_castle += f'{emoji}`x {str(quantity)}` {troop.name}\n'
+
+    for spell, quantity in recipe.clan_castle_spells:  # type: coc.Spell, int
+        emoji = bot.fetch_emoji(spell.name)
+        clan_castle += f'{emoji}`x {str(quantity)}` {spell.name}\n'
 
     minimum_th = max(minimum_th, army_camp_size(troop_space))
     description =\
     f'-# {bot.fetch_emoji(minimum_th)}Minimum Required Townhall: {minimum_th}\n'\
-    f'-# {bot.emoji.clock} Training Time: {format_time(max(troop_train_time, spell_train_time))}\n'
 
     if notes:
         description += f"-# {bot.emoji.pin} Notes: {notes}\n"
@@ -171,20 +76,21 @@ async def army_embed(
         if content:
             embed.add_field(name=field, value=content + '­', inline=False)
 
-    if equipment or pets:
-        equipment = await generate_equipment(bot=bot, equipment=equipment)
-        if clan_castle:
-            equipment += f'­'
-        embed.add_field(name='Heroes & Equipment', value=f'{equipment}', inline=False)
+    hero_loadout = ""
+    for loadout in recipe.heroes_loadout: # type: coc.HeroLoadout
+        hero_loadout += f"{bot.fetch_emoji(loadout.hero.name)} `{loadout.hero.name}` "
+        if loadout.pet:
+            hero_loadout += f"\n- {bot.fetch_emoji(loadout.pet.name)} `{loadout.pet.name}`"
+        hero_loadout += "\n"
+        for equipment in loadout.equipment:
+            hero_loadout += f"- {bot.fetch_emoji(equipment.name)} `{equipment.name}`\n"
 
-    if pets:
-        pets = await generate_pets(bot=bot, pets=pets)
-        if clan_castle:
-            pets += f'\n­'
-        embed.add_field(name='Pets', value=f'{pets}', inline=False)
+    if hero_loadout:
+        if recipe.clan_castle_troops or recipe.clan_castle_spells:
+            hero_loadout += f'­'
+        embed.add_field(name='Heroes Loadout', value=f'{hero_loadout}', inline=False)
 
     if clan_castle:
-        clan_castle, cc_space = await generate_clan_castle(bot=bot, clan_castle=clan_castle)
         embed.add_field(name='Clan Castle', value=f'{clan_castle}', inline=False)
 
     embed.set_footer(text=f'{troop_space} Troop Space | {spell_space} Spell Space | {cc_space} CC Troop')

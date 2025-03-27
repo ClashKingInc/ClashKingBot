@@ -37,9 +37,6 @@ class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
         ctx: disnake.ApplicationCommandInteraction,
         link: str,
         nickname: str = 'Army Link Results',
-        clan_castle: str = commands.Param(default=None, max_length=150),
-        equipment: str = commands.Param(default=None, max_length=150),
-        pets: str = commands.Param(default=None, max_length=150),
         notes: str = commands.Param(default=None, max_length=450),
     ):
         """
@@ -47,9 +44,6 @@ class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
         ----------
         link: an army link copied from in-game
         nickname: (optional) nickname for this army,
-        clan_castle: (optional) clan castle to go with this army
-        equipment: (optional) equipment to go with this army
-        pets: (optional) pets to go with this army
         notes: (optional) notes about this army
         """
         await ctx.response.defer()
@@ -57,9 +51,6 @@ class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
         embed = await army_embed(bot=self.bot,
                                  nick=nickname,
                                  link=link,
-                                 clan_castle=clan_castle,
-                                 equipment=equipment,
-                                 pets=pets,
                                  notes=notes,
                                  embed_color=embed_color)
         """
