@@ -122,8 +122,10 @@ def army_camp_size(size: int):
         return 12
     elif size <= 300:
         return 13
-    else:
+    elif size <= 320:
         return 15
+    else:
+        return 17
 
 
 async def super_troop_embed(
