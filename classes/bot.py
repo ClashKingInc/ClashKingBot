@@ -71,7 +71,7 @@ class CustomClient(commands.AutoShardedBot):
         scheduler.start()
         self.scheduler = scheduler
 
-        self.ck_client = ClashKingAPIClient(api_token=config.clashking_api_token, timeout=30, cache_ttl=60)
+        self.ck_client = ClashKingAPIClient(api_token=config.clashking_api_token, timeout=30, cache_ttl=2)
 
         self.max_pool_size = 1 if config.is_custom else 100
 

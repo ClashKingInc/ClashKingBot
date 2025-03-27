@@ -45,57 +45,26 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
         return categories[:25]
 
     async def clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        if ctx.guild is None:
-            last_record = await self.bot.command_stats.find_one(
-                {'$and': [{'user': ctx.user.id}, {'server': {'$ne': None}}]}, sort=[('time', -1)]
-            )
-            guild_id = 0
-            if last_record:
-                guild_id = last_record.get('server')
-        else:
-            guild_id = ctx.guild.id
-        if ctx.filled_options.get('family') is not None:
-            if len(ctx.filled_options.get('family').split('|')) == 2:
-                guild_id = int(ctx.filled_options.get('family').split('|')[-1])
-
-        clan_list = []
-        if query == '':
-            pipeline = [
-                {'$match': {'server': guild_id}},
-                {'$sort': {'name': 1}},
-                {'$limit': 25},
-            ]
-        else:
-            pipeline = [
-                {
-                    '$search': {
-                        'index': 'clan_name',
-                        'autocomplete': {
-                            'query': query,
-                            'path': 'name',
-                        },
-                    }
-                },
-                {'$match': {'server': guild_id}},
-            ]
-        results = await self.bot.clan_db.aggregate(pipeline=pipeline).to_list(length=None)
-        for document in results:
-            clan_list.append(f'{document.get("name")} | {document.get("tag")}')
-
-        if clan_list == [] and len(query) >= 3:
-            if coc.utils.is_valid_tag(query):
-                clan = await self.bot.getClan(query)
+        results = await self.bot.ck_client.search_for_clans(
+            query=query,
+            user_id=ctx.user.id,
+            guild_id=ctx.guild_id if ctx.guild else None,
+        )
+        returnable = []
+        for clan in results[:25]:
+            if clan.result_type == "search_result":
+                text = f"{clan.name} | {clan.member_count}/50 | LV{clan.level} | {clan.war_league.replace('League ', '')} | {clan.tag}"
+            elif clan.result_type == "guild_search":
+                text = f"{clan.name} | {clan.tag}"
+            elif clan.result_type == "recent_search":
+                text = f"(Recent) {clan.name} | {clan.tag}"
+            elif clan.result_type == "bookmarked":
+                text = f"(Bookmark) {clan.name} | {clan.tag}"
             else:
-                clan = None
-            if clan is None:
-                results = await self.bot.coc_client.search_clans(name=query, limit=10)
-                for clan in results:
-                    league = str(clan.war_league).replace('League ', '')
-                    clan_list.append(f'{clan.name} | {clan.member_count}/50 | LV{clan.level} | {league} | {clan.tag}')
-            else:
-                clan_list.append(f'{clan.name} | {clan.tag}')
-                return clan_list
-        return clan_list[:25]
+                continue
+            returnable.append(text)
+
+        return returnable
 
     async def multi_clan(self, ctx: disnake.ApplicationCommandInteraction, query: str):
         guild_id = ctx.guild.id

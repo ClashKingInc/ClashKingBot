@@ -12,6 +12,7 @@ from api.errors import APIUnavailableError, AuthenticationError, NotFoundError
 from api.location import ClanRanking
 from api.other import ObjectDictIterable
 from api.player import LocationPlayer, DonationPlayer, SortedPlayer
+from api.search import ClanSearchResult
 from api.server import ServerSettings, ServerClanSettings
 from api.war import CWLRanking, CWLThreshold
 
@@ -58,6 +59,7 @@ class ClashKingAPIClient:
 
         headers = {'Authorization': f'Bearer {self.api_token}', 'Accept-Encoding': 'gzip'}
 
+        print(url)
         async with aiohttp.ClientSession(headers=headers) as session:
             try:
                 async with session.request(
@@ -339,6 +341,43 @@ class ClashKingAPIClient:
         )
         items = response['items']
         return [CWLThreshold(data=data) for data in items]
+
+
+
+    # SEARCH ENDPOINTS
+    async def search_for_clans(
+            self,
+            query: str,
+            user_id: int = 0,
+            guild_id: int = 0,
+    ) -> list[ClanSearchResult]:
+
+        response = await self._request(
+            Route(
+                method='GET',
+                endpoint=f'/v2/search/clan',
+                query=query,
+                user_id=user_id or 0,
+                guild_id=guild_id or 0,
+            )
+        )
+        items = response['items']
+        return [ClanSearchResult(data=data) for data in items]
+
+
+    async def add_recent_search(
+            self,
+            tag: str,
+            type: int,
+            user_id: int,
+    ) -> list[ClanSearchResult]:
+
+        await self._request(
+            Route(
+                method='POST',
+                endpoint=f'/v2/search/recent/{user_id}/{type}/{tag}',
+            )
+        )
 
 
 import asyncio

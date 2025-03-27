@@ -158,21 +158,3 @@ async def capital(
     return await ctx.edit_original_message(embed=embed, components=[buttons])
 
 
-@clan.sub_command(name='summary', description='Summary of stats for a clan')
-async def summary(
-        self,
-        ctx: disnake.ApplicationCommandInteraction,
-        clan: coc.Clan = options.clan,
-        season: str = options.optional_season,
-        limit: int = commands.Param(default=5, min_value=1, max_value=15),
-):
-    embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
-    embeds = await clan_summary(bot=self.bot, clan=clan, limit=limit, season=season, embed_color=embed_color)
-    buttons = disnake.ui.ActionRow()
-    buttons.add_button(
-        label='',
-        emoji=self.bot.emoji.refresh.partial_emoji,
-        style=disnake.ButtonStyle.grey,
-        custom_id=f'clansummary:{clan.tag}:{season}:{limit}',
-    )
-    await ctx.edit_original_message(embeds=embeds, components=[buttons])

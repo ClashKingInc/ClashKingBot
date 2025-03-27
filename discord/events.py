@@ -1,5 +1,6 @@
 import datetime
 import random
+import coc
 
 import disnake
 import pendulum as pend
@@ -321,6 +322,16 @@ class DiscordEvents(commands.Cog):
                 sent_support_msg = True
         except Exception as e:
             pass
+
+        if ctx.filled_options and ctx.filled_options.get("clan"):
+            clan_filled = ctx.filled_options.get("clan")
+            last_part = clan_filled.split("|")[-1]
+            if coc.utils.is_valid_tag(last_part):
+                await self.bot.ck_client.add_recent_search(
+                    tag=coc.utils.correct_tag(tag=last_part),
+                    type=1,
+                    user_id=ctx.user.id
+                )
 
         await self.bot.command_stats.insert_one(
             {

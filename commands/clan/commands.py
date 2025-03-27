@@ -24,6 +24,18 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
     def __init__(self, bot: CustomClient):
         self.bot = bot
 
+    @commands.Cog.listener()
+    async def on_slash_command_completion(self, ctx: disnake.ApplicationCommandInteraction):
+        if ctx.filled_options and ctx.filled_options.get("clan"):
+            clan_filled = ctx.filled_options.get("clan")
+            last_part = clan_filled.split("|")[-1]
+            if coc.utils.is_valid_tag(last_part):
+                await self.bot.ck_client.add_recent_search(
+                    tag=coc.utils.correct_tag(tag=last_part),
+                    type=1,
+                    user_id=ctx.user.id
+                )
+
     @commands.slash_command(
         name='clan',
         install_types=disnake.ApplicationInstallTypes.all(),
@@ -252,6 +264,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
 
 
 
+
     @clan.sub_command(
         name='sorted',
         description=Loc(key='clan-sorted-description')
@@ -322,6 +335,26 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
         await ctx.edit_original_message(embed=embed, components=buttons)
 
 
+    @clan.sub_command(name='summary',
+                      description=Loc(key='clan-summary-description'),
+    )
+    async def summary(
+            self,
+            ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = options.clan,
+            season: str = options.optional_season,
+            limit: int = commands.Param(default=5, min_value=1, max_value=15),
+    ):
+        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
+        embeds = await clan_summary(bot=self.bot, clan=clan, limit=limit, season=season, embed_color=embed_color)
+        buttons = disnake.ui.ActionRow()
+        buttons.add_button(
+            label='',
+            emoji=self.bot.emoji.refresh.partial_emoji,
+            style=disnake.ButtonStyle.grey,
+            custom_id=f'clansummary:{clan.tag}:{season}:{limit}',
+        )
+        await ctx.edit_original_message(embeds=embeds, components=[buttons])
 
 
 def setup(bot):

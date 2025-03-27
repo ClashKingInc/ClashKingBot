@@ -125,3 +125,10 @@ choice-best-legend-finish = Best Legend Finish
 clan-warlog-description = Past cwl & war data for a clan
 clan-sorted-description = Members of a clan sorted by an attribute
 
+clan-sorted-no-players-found = No players found for this sort ({ $sort_by }) or Townhall { $ townhall }
+clan-sorted-townhall = Townhall { $level }
+all-townhalls = All Townhalls
+clan-sorted-by = Sorted by { $sort_by } | { $townhall }
+clan-sorted-total = | Total: { $total }
+
+clan-summary-description = Summary of clan statistics
