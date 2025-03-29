@@ -10,6 +10,9 @@ class BackgroundCache(commands.Cog):
 
     @tasks.loop(seconds=60)
     async def guilds_store(self):
+        if not self.bot._config.is_main:
+            return
+
         guild_id_list = set()
         total_members = 0
         servers = []
