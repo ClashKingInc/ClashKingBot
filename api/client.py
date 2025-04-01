@@ -11,7 +11,7 @@ from api.clan import ClanTotals, BasicClan
 from api.errors import APIUnavailableError, AuthenticationError, NotFoundError
 from api.location import ClanRanking
 from api.other import ObjectDictIterable
-from api.player import LocationPlayer, DonationPlayer, SortedPlayer
+from api.player import LocationPlayer, DonationPlayer, SortedPlayer, Summary
 from api.search import ClanSearchResult
 from api.server import ServerSettings, ServerClanSettings
 from api.war import CWLRanking, CWLThreshold
@@ -241,6 +241,22 @@ class ClashKingAPIClient:
         return ObjectDictIterable(items=[SortedPlayer(data=item) for item in items], key='tag')
 
 
+    async def get_players_summary(self, season: str, limit: int, player_tags: list[str]) -> Summary:
+        """
+        Gets players sorted by a specified criteria. Returns a stripped down version of the Player object.
+        """
+        response = await self._request(
+            Route(
+                method='POST',
+                endpoint=f'/v2/players/summary/{season}/top',
+                limit=limit,
+                json={"player_tags": player_tags},
+            )
+        )
+        items = response['items']
+        return Summary(items=items)
+
+
 
     # CLAN ENDPOINTS
     async def get_clan_totals(self, clan_tag: str, player_tags: list[str]) -> ClanTotals:
@@ -393,7 +409,7 @@ async def foo():
  "#90J9828JG", "#PR0J29P", "#282L8YR0Q", "#2YLPC28V", "#C0U0JJQR",
  "#8V9QGJGU", "#YYVV2QPP", "#YUVPLUU8P", "#YV9JCQYU0", "#UJQVGJPG",
  "#QJGYLJVL0", "#GPRJV8LGV", "#GQYRGYVJ8"]
-    response = await client.get_sorted_players(sort_by='cumulative_heroes', player_tags=player_tags)
+    response = await client.get_players_summary(season="2024-02", limit=3, player_tags=player_tags)
     print(response)
 
 

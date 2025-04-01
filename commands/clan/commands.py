@@ -12,7 +12,8 @@ from .embeds import (
     clan_donations,
     war_log,
     cwl_performance,
-    clan_sorted
+    clan_sorted,
+    clan_summary
 )
 
 from disnake import Localized as Loc
@@ -341,20 +342,28 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
     async def summary(
             self,
             ctx: disnake.ApplicationCommandInteraction,
-            clan: coc.Clan = options.clan,
+            clan = options.clan,
             season: str = options.optional_season,
-            limit: int = commands.Param(default=5, min_value=1, max_value=15),
+            limit: int = commands.Param(default=5, min_value=1, max_value=50),
     ):
-        embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
-        embeds = await clan_summary(bot=self.bot, clan=clan, limit=limit, season=season, embed_color=embed_color)
-        buttons = disnake.ui.ActionRow()
-        buttons.add_button(
-            label='',
-            emoji=self.bot.emoji.refresh.partial_emoji,
-            style=disnake.ButtonStyle.grey,
-            custom_id=f'clansummary:{clan.tag}:{season}:{limit}',
+        embed_color = (await self.bot.ck_client.get_server_settings(server_id=ctx.guild_id)).embed_color
+        _, locale = self.bot.get_localizator(ctx=ctx)
+
+        embeds = await clan_summary(
+            bot=self.bot,
+            clan=clan,
+            limit=limit,
+            season=season,
+            embed_color=embed_color,
+            locale=locale,
         )
-        await ctx.edit_original_message(embeds=embeds, components=[buttons])
+
+        buttons = button_generator(
+            button_id=f'clansummary:{clan.tag}:{season}:{limit}',
+            bot=self.bot
+        )
+
+        await ctx.edit_original_message(embeds=embeds, components=buttons)
 
 
 def setup(bot):
