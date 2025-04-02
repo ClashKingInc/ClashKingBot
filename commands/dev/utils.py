@@ -29,7 +29,7 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
     assets_url = 'https://assets.clashk.ing'
 
     bot_config = await bot.db_client.bot.settings.find_one({'type': 'bot'}, {'_id': 0})
-    tokens = [bot_config.get('prod_token')] + bot_config.get('beta_tokens', [])
+    tokens = bot_config.get('collab_tokens')
     for bot_token in tokens:
         application_id = discord_get(
             'https://discord.com/api/v10/oauth2/applications/@me',
