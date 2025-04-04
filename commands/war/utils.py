@@ -1075,7 +1075,7 @@ async def create_cwl_status(bot: CustomClient, guild: disnake.Guild):
 	now = datetime.now()
 	season = bot.gen_season_date()
 	clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
-	if len(clan_tags) == 0:
+	if not clan_tags:
 		embed = disnake.Embed(description="No clans linked to this server.", color=disnake.Color.red())
 		return embed
 
