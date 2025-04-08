@@ -476,9 +476,18 @@ class War(commands.Cog):
         await ctx.send(embed=main_embed)
 
     @cwl.sub_command(name='status', description='Spin/War status for a family')
-    async def cwl_status(self, ctx: disnake.ApplicationCommandInteraction, category: str = commands.Param(autocomplete=autocomplete.category)):
+    async def cwl_status(self, ctx: disnake.ApplicationCommandInteraction,
+                         category: str = commands.Param(
+                             default=None,
+                             autocomplete=autocomplete.category,
+                             description="Optional: One or more categories (e.g., 'Main Family,Secondary Family')")):
+        # Defer the response only if it hasn’t been responded to yet
         if not ctx.response.is_done():
             await ctx.response.defer()
+
+        # Split the category string into a list, or use None if not provided
+        categories = [cat.strip()
+                      for cat in category.split(',')] if category else None
 
         buttons = disnake.ui.ActionRow()
         buttons.append_item(
@@ -486,10 +495,11 @@ class War(commands.Cog):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'cwlstatusfam_{category}',
+                custom_id=f'cwlstatusfam_{category or "all"}',
             )
         )
-        embed = await create_cwl_status(bot=self.bot, guild=ctx.guild, category=category)
+
+        embed = await create_cwl_status(bot=self.bot, guild=ctx.guild, categories=categories)
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
     @commands.Cog.listener()

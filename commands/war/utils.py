@@ -1112,19 +1112,21 @@ def get_league_war_by_tag(league_wars: List[coc.ClanWar], war_tag: str):
             return war
 
 
-async def create_cwl_status(bot: CustomClient, guild: disnake.Guild, category: str):
+async def create_cwl_status(bot: CustomClient, guild: disnake.Guild, categories: list = None):
     now = datetime.now()
     season = bot.gen_season_date()
 
-    # Filter clans by server and category
-    clan_tags = await bot.clan_db.distinct(
-        "tag",
-        filter={"server": guild.id, "category": category}
-    )
+    # Filter clans by server, optionally by multiple categories
+    filter_dict = {"server": guild.id}
+    if categories is not None:
+        # MongoDB $in operator for multiple values
+        filter_dict["category"] = {"$in": categories}
+
+    clan_tags = await bot.clan_db.distinct("tag", filter=filter_dict)
 
     if not clan_tags:
         embed = disnake.Embed(
-            description=f"No clans found in category '{category}' for this server.",
+            description=f"No clans found{' in categories ' + ', '.join(categories) if categories else ''} for this server.",
             color=disnake.Color.red()
         )
         return embed
@@ -1158,7 +1160,7 @@ async def create_cwl_status(bot: CustomClient, guild: disnake.Guild, category: s
     leagues = sorted(set(clan[1] for clan in clans_list))
 
     main_embed = disnake.Embed(
-        title=f"__**{guild.name} CWL Status - {category}**__",
+        title=f"__**{guild.name} CWL Status{' - ' + ', '.join(categories) if categories else ''}**__",
         color=disnake.Color.green()
     )
 

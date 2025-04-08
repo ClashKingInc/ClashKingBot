@@ -84,7 +84,8 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
                 results = await self.bot.coc_client.search_clans(name=query, limit=10)
                 for clan in results:
                     league = str(clan.war_league).replace('League ', '')
-                    clan_list.append(f'{clan.name} | {clan.member_count}/50 | LV{clan.level} | {league} | {clan.tag}')
+                    clan_list.append(
+                        f'{clan.name} | {clan.member_count}/50 | LV{clan.level} | {league} | {clan.tag}')
             else:
                 clan_list.append(f'{clan.name} | {clan.tag}')
                 return clan_list
@@ -129,7 +130,8 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
             previous_split = [item.strip() for item in previous_split]
             if f'{document.get("name")} | {document.get("tag")}' in previous_split:
                 continue
-            clan_list.append(f'{previous_query}{document.get("name")} | {document.get("tag")}')
+            clan_list.append(
+                f'{previous_query}{document.get("name")} | {document.get("tag")}')
         return clan_list[:25]
 
     async def family_players(self, ctx: disnake.ApplicationCommandInteraction, query: str):
@@ -163,11 +165,13 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
         if legend_profile:
             profile_tags = legend_profile.get('profile_tags', [])
             documents = await self.bot.player_stats.find(
-                {'$and': [{'tag': {'$in': profile_tags}}, {'league': 'Legend League'}]},
+                {'$and': [{'tag': {'$in': profile_tags}},
+                          {'league': 'Legend League'}]},
                 {'tag': 1, 'name': 1, 'townhall': 1},
             ).to_list(length=None)
             results = [
-                (f'‡{create_superscript(document.get("townhall", 0))}{document.get("name")}' + ' | ' + document.get('tag'))
+                (f'‡{create_superscript(document.get("townhall", 0))}{document.get("name")}' +
+                 ' | ' + document.get('tag'))
                 for document in documents
                 if query.lower() in document.get('name').lower()
             ] + results
@@ -232,11 +236,13 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
         starter_categories = ['General', 'Feeder', 'War', 'Esports']
         if query != '':
             starter_categories.insert(0, query)
-        categories = starter_categories + [c for c in categories if c not in starter_categories]
+        categories = starter_categories + \
+            [c for c in categories if c not in starter_categories]
         return categories[:25]
 
     async def th_filters(self, ctx: disnake.ApplicationCommandInteraction, query: str):
-        always = ['Equal Th Only'] + [str(t) for t in TOWNHALL_LEVELS] + TH_FILTER_OPTIONS
+        always = ['Equal Th Only'] + \
+            [str(t) for t in TOWNHALL_LEVELS] + TH_FILTER_OPTIONS
         if query != '':
             always = [a for a in always if query.lower() in a.lower()]
         return always[:25]
@@ -248,7 +254,8 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
             accounts = await self.bot.link_client.get_linked_players(user_option)
             if accounts:
                 accounts = await self.bot.get_players(tags=accounts, custom=False, use_cache=True)
-                accounts.sort(key=lambda x: (x.town_hall, x.trophies), reverse=True)
+                accounts.sort(key=lambda x: (
+                    x.town_hall, x.trophies), reverse=True)
                 accounts = [f'{a.name} | {a.tag}' for a in accounts]
                 USER_ACCOUNT_CACHE.ttl(ctx.user.id, accounts, ttl=120)
         else:
@@ -278,7 +285,8 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
             return []
         aliases = await self.bot.tickets.distinct(
             'components.label',
-            filter={'$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]},
+            filter={
+                '$and': [{'server_id': ctx.guild.id}, {'name': panel_name}]},
         )
         alias_list = []
         for alias in aliases:
@@ -363,7 +371,9 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
                 if result.get('data').get('tag') is not None:
                     type = 'CWL'
                 elif (
-                    Timestamp(data=result.get('data').get('startTime')).time - Timestamp(data=result.get('data').get('preparationStartTime')).time
+                    Timestamp(data=result.get('data').get('startTime')).time -
+                    Timestamp(data=result.get('data').get(
+                        'preparationStartTime')).time
                 ).seconds in prep_list:
                     type = 'FW'
                 else:
@@ -406,11 +416,13 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
         return return_text[:25]
 
     async def command_autocomplete(self, ctx: disnake.ApplicationCommandInteraction, query: str) -> list[str]:
-        commands: dict[str, list[disnake.ext.commands.InvokableSlashCommand]] = get_all_commands(bot=self.bot)
+        commands: dict[str, list[disnake.ext.commands.InvokableSlashCommand]
+                       ] = get_all_commands(bot=self.bot)
         return [c.qualified_name for command_list in commands.values() for c in command_list if query.lower() in c.qualified_name.lower()][:25]
 
     async def command_category_autocomplete(self, ctx: disnake.ApplicationCommandInteraction, query: str) -> list[str]:
-        commands: dict[str, list[disnake.ext.commands.InvokableSlashCommand]] = get_all_commands(bot=self.bot)
+        commands: dict[str, list[disnake.ext.commands.InvokableSlashCommand]
+                       ] = get_all_commands(bot=self.bot)
         categories = commands.keys()
         return [c for c in categories if query.lower() in c.lower()][:25]
 
@@ -421,7 +433,8 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
             results.append('Global')
         for location in locations:
             if query.lower() in location.name.lower():
-                ignored = ['Africa', 'Europe', 'North America', 'South America', 'Asia']
+                ignored = ['Africa', 'Europe',
+                           'North America', 'South America', 'Asia']
                 if location.name not in ignored:
                     if location.name not in results:
                         results.append(location.name)
@@ -460,7 +473,7 @@ class Autocomplete(commands.Cog, name='Autocomplete'):
         user_settings = await self.bot.user_settings.find_one({'discord_user': ctx.author.id})
         user_settings = user_settings or {}
         army_ids = user_settings.get('armies', [])
-        armies = await self.bot.army_share.find({"_id" : {"$in" : army_ids}}, {"embed" : 0}).to_list(length=25)
+        armies = await self.bot.army_share.find({"_id": {"$in": army_ids}}, {"embed": 0}).to_list(length=25)
 
         alias_list = []
         for army in armies:
