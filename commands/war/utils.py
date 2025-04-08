@@ -1112,13 +1112,21 @@ def get_league_war_by_tag(league_wars: List[coc.ClanWar], war_tag: str):
             return war
 
 
-async def create_cwl_status(bot: CustomClient, guild: disnake.Guild):
+async def create_cwl_status(bot: CustomClient, guild: disnake.Guild, category: str):
     now = datetime.now()
     season = bot.gen_season_date()
-    clan_tags = await bot.clan_db.distinct("tag", filter={"server": guild.id})
-    if len(clan_tags) == 0:
+
+    # Filter clans by server and category
+    clan_tags = await bot.clan_db.distinct(
+        "tag",
+        filter={"server": guild.id, "category": category}
+    )
+
+    if not clan_tags:
         embed = disnake.Embed(
-            description="No clans linked to this server.", color=disnake.Color.red())
+            description=f"No clans found in category '{category}' for this server.",
+            color=disnake.Color.red()
+        )
         return embed
 
     clans = await bot.get_clans(tags=clan_tags)
@@ -1132,41 +1140,50 @@ async def create_cwl_status(bot: CustomClient, guild: disnake.Guild):
             league = await bot.coc_client.get_league_group(clan.tag)
             state = league.state
             if str(state) == "preparation":
-                c.append(bot.emoji.green_check.emoji_string)
-                c.append(1)
+                c.extend([bot.emoji.green_check.emoji_string, 1])
             elif str(state) == "ended":
-                c.append(bot.emoji.square_x_deny.emoji_string)
-                c.append(3)
+                c.extend([bot.emoji.square_x_deny.emoji_string, 3])
             elif str(state) == "inWar":
-                c.append(bot.emoji.wood_swords.emoji_string)
-                c.append(0)
+                c.extend([bot.emoji.wood_swords.emoji_string, 0])
             elif str(state) == "notInWar":
-                c.append(bot.emoji.animated_clash_swords.emoji_string)
-                c.append(2)
+                c.extend([bot.emoji.animated_clash_swords.emoji_string, 2])
         except coc.NotFound:
-            c.append(bot.emoji.square_x_deny.emoji_string)
-            c.append(3)
+            c.extend([bot.emoji.square_x_deny.emoji_string, 3])
         spin_list.append(c)
 
+    # Sort by league and status
     clans_list = sorted(spin_list, key=lambda x: (x[1], x[4]), reverse=False)
 
-    main_embed = disnake.Embed(
-        title=f"__**{guild.name} CWL Status**__", color=disnake.Color.green())
+    # Define leagues from the actual clan data
+    leagues = sorted(set(clan[1] for clan in clans_list))
 
-    # name, league, clan, status emoji, order
+    main_embed = disnake.Embed(
+        title=f"__**{guild.name} CWL Status - {category}**__",
+        color=disnake.Color.green()
+    )
+
+    # Group clans by league
     for league in leagues:
         text = ""
         for clan in clans_list:
             if clan[1] == league:
                 text += f"{clan[3]} {clan[0]}\n"
-            if (clan[2] == clans_list[len(clans_list) - 1][2]) and (text != ""):
-                main_embed.add_field(
-                    name=f"**{league}**", value=text, inline=False)
+        if text:
+            main_embed.add_field(
+                name=f"**{league}**",
+                value=text,
+                inline=False
+            )
 
     main_embed.add_field(
         name="Legend",
-        value=f"{bot.emoji.animated_clash_swords.emoji_string} Spinning | {bot.emoji.square_x_deny} Not Spun | {bot.emoji.green_check} Prep |  {bot.emoji.wood_swords} War",
+        value=(f"{bot.emoji.animated_clash_swords.emoji_string} Spinning | "
+               f"{bot.emoji.square_x_deny.emoji_string} Not Spun | "
+               f"{bot.emoji.green_check.emoji_string} Prep | "
+               f"{bot.emoji.wood_swords.emoji_string} War"),
+        inline=False
     )
+
     main_embed.timestamp = now
     main_embed.set_footer(text="Last Refreshed:")
     return main_embed

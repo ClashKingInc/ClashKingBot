@@ -476,24 +476,27 @@ class War(commands.Cog):
         await ctx.send(embed=main_embed)
 
     @cwl.sub_command(name='status', description='Spin/War status for a family')
-    async def cwl_status(self, ctx: disnake.ApplicationCommandInteraction):
+    async def cwl_status(self, ctx: disnake.ApplicationCommandInteraction, category: str = commands.Param(autocomplete=autocomplete.category)):
+        if not ctx.response.is_done():
+            await ctx.response.defer()
+
         buttons = disnake.ui.ActionRow()
         buttons.append_item(
             disnake.ui.Button(
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'cwlstatusfam_',
+                custom_id=f'cwlstatusfam_{category}',
             )
         )
-        embed = await create_cwl_status(bot=self.bot, guild=ctx.guild)
+        embed = await create_cwl_status(bot=self.bot, guild=ctx.guild, category=category)
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
         if 'cwlstatusfam_' in str(ctx.data.custom_id):
             await ctx.response.defer()
-            embed = await create_cwl_status(bot=self.bot, guild=ctx.guild)
+            embed = await create_cwl_status(bot=self.bot, guild=ctx.guild, category=autocomplete.category)
             await ctx.edit_original_message(embed=embed)
 
 
