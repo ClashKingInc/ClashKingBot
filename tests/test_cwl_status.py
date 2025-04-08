@@ -1,14 +1,9 @@
-import asyncio
 import pytest
 import disnake
-import nest_asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime
 import coc
 from commands.war.utils import create_cwl_status
 
-# Apply nest_asyncio to allow nested event loops
-nest_asyncio.apply()
 
 # Constants for testing
 SERVER_ID = 1355584329526280293
