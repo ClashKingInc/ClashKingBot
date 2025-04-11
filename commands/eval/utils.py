@@ -45,11 +45,15 @@ async def logic(
     clan_member_roles = {c.tag: c.member_role for c in db_server.clans}
     clan_leadership_roles = {c.tag: c.leader_role for c in db_server.clans}
     clan_tags = {c.tag for c in db_server.clans}
-    townhall_roles = {int(r.townhall.replace('th', '')): r.id for r in db_server.townhall_roles}
-    builderhall_roles = {int(r.builderhall.replace('bh', '')): r.id for r in db_server.builderhall_roles}
+    townhall_roles = {int(r.townhall.replace('th', ''))
+                          : r.id for r in db_server.townhall_roles}
+    builderhall_roles = {int(r.builderhall.replace(
+        'bh', '')): r.id for r in db_server.builderhall_roles}
     league_roles = {r.type: r.id for r in db_server.league_roles}
-    builder_league_roles = {r.type: r.id for r in db_server.builder_league_roles}
-    clan_category_roles = {c.tag: db_server.category_roles.get(c.category) for c in db_server.clans}
+    builder_league_roles = {
+        r.type: r.id for r in db_server.builder_league_roles}
+    clan_category_roles = {c.tag: db_server.category_roles.get(
+        c.category) for c in db_server.clans}
     clan_abbreviations = {c.tag: c.abbreviation for c in db_server.clans}
     """
     How to find roles:
@@ -83,14 +87,17 @@ async def logic(
         if eval_type not in eval_types:
             type_to_roles.pop(eval_type, None)
 
-    ALL_CLASH_ROLES = {inner for type, outer in type_to_roles.items() for inner in outer if type != 'leadership'}
+    ALL_CLASH_ROLES = {inner for type, outer in type_to_roles.items()
+                       for inner in outer if type != 'leadership'}
     bot_member = await guild.getch_member(bot.user.id)
 
     if not bot_member.guild_permissions.manage_roles:
-        raise MessageException('Missing Manage Roles Permission, Cannot Edit Roles')
+        raise MessageException(
+            'Missing Manage Roles Permission, Cannot Edit Roles')
 
     if db_server.change_nickname and not bot_member.guild_permissions.manage_nicknames:
-        raise MessageException('Missing Change Nicknames Permission, Cannot Edit Nicknames')
+        raise MessageException(
+            'Missing Change Nicknames Permission, Cannot Edit Nicknames')
 
     for role in ALL_CLASH_ROLES:
         role = guild.get_role(role)
@@ -102,7 +109,8 @@ async def logic(
             )
 
     if 'leadership' in eval_types and db_server.leadership_eval:
-        ALL_CLASH_ROLES = ALL_CLASH_ROLES | set(type_to_roles.get('leadership', []))
+        ALL_CLASH_ROLES = ALL_CLASH_ROLES | set(
+            type_to_roles.get('leadership', []))
 
     fresh_tags = []
     if auto_eval_tag is not None:
@@ -133,7 +141,17 @@ async def logic(
         EvalResult = namedtuple('EvalResult', ['is_family', 'roles_to_add'])
 
         member_accounts = discord_link_dict.get(member.id, [])
-        member_accounts = [player_dict.get(tag) for tag in member_accounts if player_dict.get(tag) is not None]
+        member_accounts = [player_dict.get(
+            tag) for tag in member_accounts if player_dict.get(tag) is not None]
+
+        # Change to fix issue #106 - add "No linked accounts" if user has no linked accounts and skip them to prevent IndexError
+        if not member_accounts:
+            text += f'**{member.display_name}** | {member.mention}\n- No linked accounts'
+            if len(members) >= 2 and changed != 9:
+                text += f'\n<:blanke:838574915095101470>\n'
+            if len(members) >= 2:
+                changed += 1
+            continue
 
         def mini_eval(player: coc.Player) -> EvalResult:
             is_family = False
@@ -171,11 +189,14 @@ async def logic(
                 ROLES_TO_ADD.add(builder_league_roles.get(f'{league}_league'))
 
                 if player.best_builder_base_trophies >= 7000:
-                    ROLES_TO_ADD.add(builder_league_roles.get('7000_personal_best'))
+                    ROLES_TO_ADD.add(
+                        builder_league_roles.get('7000_personal_best'))
                 elif player.best_builder_base_trophies >= 6000:
-                    ROLES_TO_ADD.add(builder_league_roles.get('6000_personal_best'))
+                    ROLES_TO_ADD.add(
+                        builder_league_roles.get('6000_personal_best'))
                 elif player.best_builder_base_trophies >= 5000:
-                    ROLES_TO_ADD.add(builder_league_roles.get('5000_personal_best'))
+                    ROLES_TO_ADD.add(
+                        builder_league_roles.get('5000_personal_best'))
 
             if player.clan is not None and 'clan' in eval_types:
                 ROLES_TO_ADD.add(clan_member_roles.get(player.clan.tag))
@@ -185,7 +206,8 @@ async def logic(
 
             if player.clan is not None and db_server.leadership_eval and ('leadership' in eval_types):
                 if player.role.in_game_name in ['Co-Leader', 'Leader']:
-                    ROLES_TO_ADD.add(clan_leadership_roles.get(player.clan.tag))
+                    ROLES_TO_ADD.add(
+                        clan_leadership_roles.get(player.clan.tag))
 
             if is_family:
                 if player.role.in_game_name == 'Elder':
@@ -224,7 +246,8 @@ async def logic(
 
         ROLES_TO_ADD.discard(None)
 
-        NON_CLASH_ROLES = [r for r in member.roles if r.id not in ALL_CLASH_ROLES]
+        NON_CLASH_ROLES = [
+            r for r in member.roles if r.id not in ALL_CLASH_ROLES]
         CLASH_ROLES = {r.id for r in member.roles if r.id in ALL_CLASH_ROLES}
 
         removed = ''
@@ -271,7 +294,8 @@ async def logic(
                     local_nickname_convention = db_server.non_family_nickname_convention
                 main_account = main_account_lookup.get(member.id)
                 if main_account is not None:
-                    main_account = coc.utils.get(member_accounts, tag=main_account)
+                    main_account = coc.utils.get(
+                        member_accounts, tag=main_account)
                 if main_account is None:
                     if len(family_accounts) >= 1:
                         main_account = sorted(
@@ -300,7 +324,8 @@ async def logic(
                     '{player_league}': main_account.league.name,
                 }
                 for type, replace in types.items():
-                    local_nickname_convention = local_nickname_convention.replace(type, str(replace))
+                    local_nickname_convention = local_nickname_convention.replace(
+                        type, str(replace))
                 new_name = local_nickname_convention
 
         FINAL_ROLES = FINAL_CLASH_ROLES + NON_CLASH_ROLES
@@ -370,9 +395,11 @@ async def logic(
 
     time_elapsed = int(time.time() - time_start)
     for embed in embeds:
-        embed.set_footer(text=f'Time Elapsed: {time_elapsed} seconds, {num_changes} changes | Test: {test}')
+        embed.set_footer(
+            text=f'Time Elapsed: {time_elapsed} seconds, {num_changes} changes | Test: {test}')
         if guild.icon is not None:
-            embed.set_author(name=f'{guild.name}', icon_url=get_guild_icon(guild))
+            embed.set_author(name=f'{guild.name}',
+                             icon_url=get_guild_icon(guild))
 
     return embeds
 
