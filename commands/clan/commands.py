@@ -368,3 +368,4 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
 
 def setup(bot):
     bot.add_cog(ClanCommands(bot))
+
