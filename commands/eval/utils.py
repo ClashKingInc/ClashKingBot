@@ -273,7 +273,7 @@ async def logic(
 
         new_name = None
         if db_server.change_nickname and 'nicknames' in eval_types:
-            # if they have a family account or the server allows non family to change nickname, then change it
+            # If they have a family account or the server allows non-family to change nickname, then change it
             if member.top_role > bot_member.top_role or guild.owner_id == member.id:
                 new_name = '`Cannot Change`'
             else:
@@ -281,28 +281,28 @@ async def logic(
                     local_nickname_convention = db_server.family_nickname_convention
                 else:
                     local_nickname_convention = db_server.non_family_nickname_convention
-                main_account = main_account_lookup.get(member.id)
-                if main_account is not None:
+
+                main_account = None
+                main_account_tag = main_account_lookup.get(member.id)
+                if main_account_tag is not None:
                     main_account = coc.utils.get(
-                        member_accounts, tag=main_account)
-                if main_account is None:
-                    if family_accounts:
-                        main_account = sorted(
-                            family_accounts,
-                            key=lambda l: (l.town_hall, l.trophies),
-                            reverse=True,
-                        )[0]
-                    elif member_accounts:
-                        main_account = sorted(
-                            member_accounts,
-                            key=lambda l: (l.town_hall, l.trophies),
-                            reverse=True,
-                        )[0]
-                    else:
-                        new_name = member.display_name
-                else:
+                        member_accounts, tag=main_account_tag)
+                if main_account is None and family_accounts:
+                    main_account = sorted(
+                        family_accounts,
+                        key=lambda l: (l.town_hall, l.trophies),
+                        reverse=True,
+                    )[0]
+                elif main_account is None and member_accounts:
+                    main_account = sorted(
+                        member_accounts,
+                        key=lambda l: (l.town_hall, l.trophies),
+                        reverse=True,
+                    )[0]
+
+                if main_account is not None:
                     types = {
-                        '{discord_name}': member.global_name,
+                        '{discord_name}': member.global_name or member.display_name,
                         '{discord_display_name}': member.display_name,
                         '{player_name}': main_account.name,
                         '{player_tag}': main_account.tag,
