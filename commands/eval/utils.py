@@ -45,8 +45,7 @@ async def logic(
     clan_member_roles = {c.tag: c.member_role for c in db_server.clans}
     clan_leadership_roles = {c.tag: c.leader_role for c in db_server.clans}
     clan_tags = {c.tag for c in db_server.clans}
-    townhall_roles = {int(r.townhall.replace('th', ''))
-                          : r.id for r in db_server.townhall_roles}
+    townhall_roles = {int(r.townhall.replace('th', '')): r.id for r in db_server.townhall_roles}
     builderhall_roles = {int(r.builderhall.replace(
         'bh', '')): r.id for r in db_server.builderhall_roles}
     league_roles = {r.type: r.id for r in db_server.league_roles}
@@ -63,7 +62,7 @@ async def logic(
     status: by month
     """
 
-    all_discord_links = await bot.link_client.get_many_linked_players(*[m.id for m in members])
+    all_discord_links = await get_many_linked_players(*[m.id for m in members])
     discord_link_dict = defaultdict(list)
     all_tags = []
     for player_tag, discord_id in all_discord_links:
@@ -107,7 +106,6 @@ async def logic(
             raise MessageException(
                 f"{role.mention} is higher than {bot_member.mention}'s top role ({bot_member.top_role}), cannot assign that role to users."
             )
-
     if 'leadership' in eval_types and db_server.leadership_eval:
         ALL_CLASH_ROLES = ALL_CLASH_ROLES | set(
             type_to_roles.get('leadership', []))
@@ -143,15 +141,6 @@ async def logic(
         member_accounts = discord_link_dict.get(member.id, [])
         member_accounts = [player_dict.get(
             tag) for tag in member_accounts if player_dict.get(tag) is not None]
-
-        # Change to fix issue #106 - add "No linked accounts" if user has no linked accounts and skip them to prevent IndexError
-        if not member_accounts:
-            text += f'**{member.display_name}** | {member.mention}\n- No linked accounts'
-            if len(members) >= 2 and changed != 9:
-                text += f'\n<:blanke:838574915095101470>\n'
-            if len(members) >= 2:
-                changed += 1
-            continue
 
         def mini_eval(player: coc.Player) -> EvalResult:
             is_family = False
@@ -297,36 +286,38 @@ async def logic(
                     main_account = coc.utils.get(
                         member_accounts, tag=main_account)
                 if main_account is None:
-                    if len(family_accounts) >= 1:
+                    if family_accounts:
                         main_account = sorted(
                             family_accounts,
                             key=lambda l: (l.town_hall, l.trophies),
                             reverse=True,
                         )[0]
-                    else:
+                    elif member_accounts:
                         main_account = sorted(
                             member_accounts,
                             key=lambda l: (l.town_hall, l.trophies),
                             reverse=True,
                         )[0]
-
-                types = {
-                    '{discord_name}': member.global_name,
-                    '{discord_display_name}': member.display_name,
-                    '{player_name}': main_account.name,
-                    '{player_tag}': main_account.tag,
-                    '{player_townhall}': main_account.town_hall,
-                    '{player_townhall_small}': create_superscript(main_account.town_hall),
-                    '{player_warstars}': main_account.war_stars,
-                    '{player_role}': (main_account.role if main_account.role is not None else ''),
-                    '{player_clan}': (main_account.clan.name if main_account.clan is not None else ''),
-                    '{player_clan_abbreviation}': (clan_abbreviations.get(main_account.clan.tag) if main_account.clan is not None else ''),
-                    '{player_league}': main_account.league.name,
-                }
-                for type, replace in types.items():
-                    local_nickname_convention = local_nickname_convention.replace(
-                        type, str(replace))
-                new_name = local_nickname_convention
+                    else:
+                        new_name = member.display_name
+                else:
+                    types = {
+                        '{discord_name}': member.global_name,
+                        '{discord_display_name}': member.display_name,
+                        '{player_name}': main_account.name,
+                        '{player_tag}': main_account.tag,
+                        '{player_townhall}': main_account.town_hall,
+                        '{player_townhall_small}': create_superscript(main_account.town_hall),
+                        '{player_warstars}': main_account.war_stars,
+                        '{player_role}': (main_account.role if main_account.role is not None else ''),
+                        '{player_clan}': (main_account.clan.name if main_account.clan is not None else ''),
+                        '{player_clan_abbreviation}': (clan_abbreviations.get(main_account.clan.tag) if main_account.clan is not None else ''),
+                        '{player_league}': main_account.league.name,
+                    }
+                    for type, replace in types.items():
+                        local_nickname_convention = local_nickname_convention.replace(
+                            type, str(replace))
+                    new_name = local_nickname_convention
 
         FINAL_ROLES = FINAL_CLASH_ROLES + NON_CLASH_ROLES
 
@@ -462,3 +453,17 @@ async def family_role_remove(database, type: str, role: disnake.Role, guild: dis
         description=f'{role.mention} removed from the {type} list.',
         color=disnake.Color.green(),
     )
+
+
+async def get_many_linked_players(*discord_id: int) -> list[tuple[str, int]]:
+    import aiohttp
+    if not discord_id:
+        return []
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post("https://api.clashk.ing/discord_links", json=[str(did) for did in discord_id]) as resp:
+            if resp.status != 200:
+                return []
+            data: dict = await resp.json()
+
+    return [(tag, int(discord)) for tag, discord in data.items() if discord is not None]
