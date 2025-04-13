@@ -46,10 +46,13 @@ async def logic(
     clan_leadership_roles = {c.tag: c.leader_role for c in db_server.clans}
     clan_tags = {c.tag for c in db_server.clans}
     townhall_roles = {int(r.townhall.replace('th', '')): r.id for r in db_server.townhall_roles}
-    builderhall_roles = {int(r.builderhall.replace('bh', '')): r.id for r in db_server.builderhall_roles}
+    builderhall_roles = {int(r.builderhall.replace(
+        'bh', '')): r.id for r in db_server.builderhall_roles}
     league_roles = {r.type: r.id for r in db_server.league_roles}
-    builder_league_roles = {r.type: r.id for r in db_server.builder_league_roles}
-    clan_category_roles = {c.tag: db_server.category_roles.get(c.category) for c in db_server.clans}
+    builder_league_roles = {
+        r.type: r.id for r in db_server.builder_league_roles}
+    clan_category_roles = {c.tag: db_server.category_roles.get(
+        c.category) for c in db_server.clans}
     clan_abbreviations = {c.tag: c.abbreviation for c in db_server.clans}
     """
     How to find roles:
@@ -59,7 +62,7 @@ async def logic(
     status: by month
     """
 
-    all_discord_links = await bot.link_client.get_many_linked_players(*[m.id for m in members])
+    all_discord_links = await get_many_linked_players(*[m.id for m in members])
     discord_link_dict = defaultdict(list)
     all_tags = []
     for player_tag, discord_id in all_discord_links:
@@ -86,14 +89,17 @@ async def logic(
         if eval_type not in eval_types:
             type_to_roles.pop(eval_type, None)
 
-    ALL_CLASH_ROLES = {inner for type, outer in type_to_roles.items() for inner in outer if type != 'leadership'}
+    ALL_CLASH_ROLES = {inner for type, outer in type_to_roles.items()
+                       for inner in outer if type != 'leadership'}
     bot_member = await guild.getch_member(bot.user.id)
 
     if not bot_member.guild_permissions.manage_roles:
-        raise MessageException('Missing Manage Roles Permission, Cannot Edit Roles')
+        raise MessageException(
+            'Missing Manage Roles Permission, Cannot Edit Roles')
 
     if db_server.change_nickname and not bot_member.guild_permissions.manage_nicknames:
-        raise MessageException('Missing Change Nicknames Permission, Cannot Edit Nicknames')
+        raise MessageException(
+            'Missing Change Nicknames Permission, Cannot Edit Nicknames')
 
     for role in ALL_CLASH_ROLES:
         role = guild.get_role(role)
@@ -103,9 +109,9 @@ async def logic(
             raise MessageException(
                 f"{role.mention} is higher than {bot_member.mention}'s top role ({bot_member.top_role}), cannot assign that role to users."
             )
-
     if 'leadership' in eval_types and db_server.leadership_eval:
-        ALL_CLASH_ROLES = ALL_CLASH_ROLES | set(type_to_roles.get('leadership', []))
+        ALL_CLASH_ROLES = ALL_CLASH_ROLES | set(
+            type_to_roles.get('leadership', []))
 
     fresh_tags = []
     if auto_eval_tag is not None:
@@ -136,7 +142,8 @@ async def logic(
         EvalResult = namedtuple('EvalResult', ['is_family', 'roles_to_add'])
 
         member_accounts = discord_link_dict.get(member.id, [])
-        member_accounts = [player_dict.get(tag) for tag in member_accounts if player_dict.get(tag) is not None]
+        member_accounts = [player_dict.get(
+            tag) for tag in member_accounts if player_dict.get(tag) is not None]
 
         def mini_eval(player: coc.Player) -> EvalResult:
             is_family = False
@@ -174,11 +181,14 @@ async def logic(
                 ROLES_TO_ADD.add(builder_league_roles.get(f'{league}_league'))
 
                 if player.best_builder_base_trophies >= 7000:
-                    ROLES_TO_ADD.add(builder_league_roles.get('7000_personal_best'))
+                    ROLES_TO_ADD.add(
+                        builder_league_roles.get('7000_personal_best'))
                 elif player.best_builder_base_trophies >= 6000:
-                    ROLES_TO_ADD.add(builder_league_roles.get('6000_personal_best'))
+                    ROLES_TO_ADD.add(
+                        builder_league_roles.get('6000_personal_best'))
                 elif player.best_builder_base_trophies >= 5000:
-                    ROLES_TO_ADD.add(builder_league_roles.get('5000_personal_best'))
+                    ROLES_TO_ADD.add(
+                        builder_league_roles.get('5000_personal_best'))
 
             if player.clan is not None and 'clan' in eval_types:
                 ROLES_TO_ADD.add(clan_member_roles.get(player.clan.tag))
@@ -188,7 +198,8 @@ async def logic(
 
             if player.clan is not None and db_server.leadership_eval and ('leadership' in eval_types):
                 if player.role.in_game_name in ['Co-Leader', 'Leader']:
-                    ROLES_TO_ADD.add(clan_leadership_roles.get(player.clan.tag))
+                    ROLES_TO_ADD.add(
+                        clan_leadership_roles.get(player.clan.tag))
 
             if is_family:
                 if player.role.in_game_name == 'Elder':
@@ -227,7 +238,8 @@ async def logic(
 
         ROLES_TO_ADD.discard(None)
 
-        NON_CLASH_ROLES = [r for r in member.roles if r.id not in ALL_CLASH_ROLES]
+        NON_CLASH_ROLES = [
+            r for r in member.roles if r.id not in ALL_CLASH_ROLES]
         CLASH_ROLES = {r.id for r in member.roles if r.id in ALL_CLASH_ROLES}
 
         removed = ''
@@ -264,7 +276,7 @@ async def logic(
 
         new_name = None
         if db_server.change_nickname and 'nicknames' in eval_types:
-            # if they have a family account or the server allows non family to change nickname, then change it
+            # If they have a family account or the server allows non-family to change nickname, then change it
             if member.top_role > bot_member.top_role or guild.owner_id == member.id:
                 new_name = '`Cannot Change`'
             else:
@@ -272,39 +284,43 @@ async def logic(
                     local_nickname_convention = db_server.family_nickname_convention
                 else:
                     local_nickname_convention = db_server.non_family_nickname_convention
-                main_account = main_account_lookup.get(member.id)
-                if main_account is not None:
-                    main_account = coc.utils.get(member_accounts, tag=main_account)
-                if main_account is None:
-                    if len(family_accounts) >= 1:
-                        main_account = sorted(
-                            family_accounts,
-                            key=lambda l: (l.town_hall, l.trophies),
-                            reverse=True,
-                        )[0]
-                    else:
-                        main_account = sorted(
-                            member_accounts,
-                            key=lambda l: (l.town_hall, l.trophies),
-                            reverse=True,
-                        )[0]
 
-                types = {
-                    '{discord_name}': member.global_name,
-                    '{discord_display_name}': member.display_name,
-                    '{player_name}': main_account.name,
-                    '{player_tag}': main_account.tag,
-                    '{player_townhall}': main_account.town_hall,
-                    '{player_townhall_small}': create_superscript(main_account.town_hall),
-                    '{player_warstars}': main_account.war_stars,
-                    '{player_role}': (main_account.role if main_account.role is not None else ''),
-                    '{player_clan}': (main_account.clan.name if main_account.clan is not None else ''),
-                    '{player_clan_abbreviation}': (clan_abbreviations.get(main_account.clan.tag) if main_account.clan is not None else ''),
-                    '{player_league}': main_account.league.name,
-                }
-                for type, replace in types.items():
-                    local_nickname_convention = local_nickname_convention.replace(type, str(replace))
-                new_name = local_nickname_convention
+                main_account = None
+                main_account_tag = main_account_lookup.get(member.id)
+                if main_account_tag is not None:
+                    main_account = coc.utils.get(
+                        member_accounts, tag=main_account_tag)
+                if main_account is None and family_accounts:
+                    main_account = sorted(
+                        family_accounts,
+                        key=lambda l: (l.town_hall, l.trophies),
+                        reverse=True,
+                    )[0]
+                elif main_account is None and member_accounts:
+                    main_account = sorted(
+                        member_accounts,
+                        key=lambda l: (l.town_hall, l.trophies),
+                        reverse=True,
+                    )[0]
+
+                if main_account is not None:
+                    types = {
+                        '{discord_name}': member.global_name or member.display_name,
+                        '{discord_display_name}': member.display_name,
+                        '{player_name}': main_account.name,
+                        '{player_tag}': main_account.tag,
+                        '{player_townhall}': main_account.town_hall,
+                        '{player_townhall_small}': create_superscript(main_account.town_hall),
+                        '{player_warstars}': main_account.war_stars,
+                        '{player_role}': (main_account.role if main_account.role is not None else ''),
+                        '{player_clan}': (main_account.clan.name if main_account.clan is not None else ''),
+                        '{player_clan_abbreviation}': (clan_abbreviations.get(main_account.clan.tag) if main_account.clan is not None else ''),
+                        '{player_league}': main_account.league.name,
+                    }
+                    for type, replace in types.items():
+                        local_nickname_convention = local_nickname_convention.replace(
+                            type, str(replace))
+                    new_name = local_nickname_convention
 
         FINAL_ROLES = FINAL_CLASH_ROLES + NON_CLASH_ROLES
 
@@ -374,9 +390,11 @@ async def logic(
 
     time_elapsed = int(time.time() - time_start)
     for embed in embeds:
-        embed.set_footer(text=f'Time Elapsed: {time_elapsed} seconds, {num_changes} changes | Test: {test}')
+        embed.set_footer(
+            text=f'Time Elapsed: {time_elapsed} seconds, {num_changes} changes | Test: {test}')
         if guild.icon is not None:
-            embed.set_author(name=f'{guild.name}', icon_url=get_guild_icon(guild))
+            embed.set_author(name=f'{guild.name}',
+                             icon_url=get_guild_icon(guild))
 
     return embeds
 
@@ -439,3 +457,17 @@ async def family_role_remove(database, type: str, role: disnake.Role, guild: dis
         description=f'{role.mention} removed from the {type} list.',
         color=disnake.Color.green(),
     )
+
+
+async def get_many_linked_players(*discord_id: int) -> list[tuple[str, int]]:
+    import aiohttp
+    if not discord_id:
+        return []
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post("https://api.clashk.ing/discord_links", json=[str(did) for did in discord_id]) as resp:
+            if resp.status != 200:
+                return []
+            data: dict = await resp.json()
+
+    return [(tag, int(discord)) for tag, discord in data.items() if discord is not None]

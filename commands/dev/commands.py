@@ -63,7 +63,7 @@ class OwnerCommands(commands.Cog):
         )
         await ctx.send(embed=embed)
 
-    @commands.slash_command(name='dev', guild_ids=[923764211845312533, 1210616106448978001])
+    @commands.slash_command(name='dev')
     @commands.is_owner()
     async def dev(self, ctx: ApplicationCommandInteraction):
         pass

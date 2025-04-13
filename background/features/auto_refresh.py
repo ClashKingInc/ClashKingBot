@@ -17,7 +17,8 @@ class AutoEvalBackground(commands.Cog):
             if server_config.get('server') not in self.bot.OUR_GUILDS:
                 continue
 
-            status_roles = server_config.get('status_roles', {}).get('discord', [])
+            status_roles = server_config.get(
+                'status_roles', {}).get('discord', [])
 
             guild = await self.bot.getch_guild(guild_id=server_config.get('server'))
             if guild is None:
@@ -43,13 +44,16 @@ class AutoEvalBackground(commands.Cog):
                 # Calculate the number of months the member has been in the server
                 joined_at = member.joined_at
                 now = pend.now(tz=pend.UTC)
-                num_months = (now.year - joined_at.year) * 12 + (now.month - joined_at.month)
+                num_months = (now.year - joined_at.year) * \
+                    12 + (now.month - joined_at.month)
 
                 current_roles = set(member.roles)
 
                 role_to_add = None
                 roles_to_remove = []
                 for role, role_obj in status_roles_map.values():
+                    if role_obj is None:
+                        continue
                     if bot_member.top_role <= role_obj:
                         continue
 
