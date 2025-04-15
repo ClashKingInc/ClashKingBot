@@ -138,6 +138,24 @@ class Strikes(commands.Cog, name='Strikes'):
         embed = disnake.Embed(description=f'Strike {strike_id} removed.', color=disnake.Color.green())
         return await ctx.send(embed=embed)
 
+    @strike.sub_command(name='clear', description='Clear all strikes from a clan')
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def strike_clear(
+            self,
+            ctx: disnake.ApplicationCommandInteraction,
+            clan = commands.Param(default=None, converter=convert.clan, autocomplete=autocomplete.clan),
+    ):
+        result_ = await self.bot.strikelist.find_one({'$and': [{'clan': clan}]})
+        if result_ is None:
+            embed = disnake.Embed(
+                description=f'{clan} does not exist.',
+                color=disnake.Color.red(),
+            )
+            return await ctx.send(embed=embed)
+        await self.bot.strikelist.delete_many({'$and': [{'clan': clan}]})
+        embed = disnake.Embed(description=f'All strikes from {clan} cleared.', color=disnake.Color.green())
+        return await ctx.send(embed=embed)
+
     """@commands.slash_command(name='autostrike', description='stuff')
     async def autostrikes(self, ctx):
         pass
