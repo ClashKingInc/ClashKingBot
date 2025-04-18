@@ -2,6 +2,7 @@ import asyncio
 import base64
 import datetime
 import uuid
+from collections import defaultdict
 from typing import List
 
 import coc
@@ -788,6 +789,22 @@ class RosterCommands(commands.Cog, name='Rosters'):
             color=disnake.Color.green(),
         )
         await ctx.edit_original_message(embed=embed)
+
+    # @roster.sub_command(name='compo', description='Get a list of the townhall composition for a roster')
+    # async def roster_composition(self, ctx: disnake.ApplicationCommandInteraction,
+    #             roster: str = commands.Param(autocomplete=autocomplete.roster_alias)):
+    #     bucket = defaultdict(int)
+    #     final = f""
+    #     for member in roster:
+    #         return self.bot.fetch_emoji(name=player_dict.get('townhall')).emoji_string
+            # if type == 'Townhall':
+            #     if member._raw_data.get('townHallLevel') == 0:
+            #         continue
+            #     bucket[member._raw_data.get('townHallLevel')] += 1
+
+
+
+
 
     @roster_create_player_group.autocomplete('remove')
     @roster_role.autocomplete('group')
