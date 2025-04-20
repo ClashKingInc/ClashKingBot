@@ -69,6 +69,9 @@ async def logic(
         discord_link_dict[discord_id].append(player_tag)
         all_tags.append(player_tag)
 
+
+
+
     type_to_roles = {
         'family': list(family_roles) + list(family_elder_roles) + list(family_coleader_roles) + list(family_leader_roles),
         'not_family': list(not_family_roles),
@@ -352,7 +355,8 @@ async def logic(
                 text += f'\n- {change_text}: {change}'
 
         if had_change and len(members) >= 2 and changed != 9:
-            text += f'\n<:blanke:838574915095101470>\n'
+            text += f'\n{bot.emoji.blank}\n'
+
         if had_change:
             changed += 1
             num_changes += 1
