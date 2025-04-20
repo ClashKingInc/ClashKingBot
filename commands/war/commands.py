@@ -506,9 +506,8 @@ class War(commands.Cog):
     async def on_button_click(self, ctx: disnake.MessageInteraction):
         if 'cwlstatusfam_' in str(ctx.data.custom_id):
             await ctx.response.defer()
-            embed = await create_cwl_status(bot=self.bot, guild=ctx.guild, category=autocomplete.category)
-            await ctx.edit_original_message(embed=embed)
-
+            categories = [cat.strip() for cat in autocomplete.category.split(',')] if autocomplete.category else None
+            embed = await create_cwl_status(bot=self.bot, guild=ctx.guild, categories=categories)
 
 def setup(bot: CustomClient):
     bot.add_cog(War(bot))
