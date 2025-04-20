@@ -1112,18 +1112,29 @@ def get_league_war_by_tag(league_wars: List[coc.ClanWar], war_tag: str):
             return war
 
 
+async def get_clan_status(bot, clan):
+    """Get status and sort key for a clan."""
+    try:
+        league = await bot.coc_client.get_league_group(clan.tag)
+        state = str(league.state)
+        status_map = {
+            "preparation": (bot.emoji.green_check.emoji_string, 1),
+            "ended": (bot.emoji.square_x_deny.emoji_string, 3),
+            "inWar": (bot.emoji.wood_swords.emoji_string, 0),
+            "notInWar": (bot.emoji.animated_clash_swords.emoji_string, 2)
+        }
+        emoji, sort_key = status_map.get(state, (bot.emoji.square_x_deny.emoji_string, 3))
+    except coc.NotFound:
+        emoji, sort_key = bot.emoji.square_x_deny.emoji_string, 3
+    return [clan.name, clan.war_league.name, clan.tag, emoji, sort_key]
+
 async def create_cwl_status(bot: CustomClient, guild: disnake.Guild, categories: list = None):
     now = datetime.now()
-    season = bot.gen_season_date()
-
-    # Filter clans by server, optionally by multiple categories
     filter_dict = {"server": guild.id}
-    if categories is not None:
-        # MongoDB $in operator for multiple values
+    if categories:
         filter_dict["category"] = {"$in": categories}
 
     clan_tags = await bot.clan_db.distinct("tag", filter=filter_dict)
-
     if not clan_tags:
         embed = disnake.Embed(
             description=f"No clans found{' in categories ' + ', '.join(categories) if categories else ''} for this server.",
@@ -1131,32 +1142,9 @@ async def create_cwl_status(bot: CustomClient, guild: disnake.Guild, categories:
         )
         return embed
 
-    clans = await bot.get_clans(tags=clan_tags)
-
-    spin_list = []
-    for clan in clans:
-        if clan is None:
-            continue
-        c = [clan.name, clan.war_league.name, clan.tag]
-        try:
-            league = await bot.coc_client.get_league_group(clan.tag)
-            state = league.state
-            if str(state) == "preparation":
-                c.extend([bot.emoji.green_check.emoji_string, 1])
-            elif str(state) == "ended":
-                c.extend([bot.emoji.square_x_deny.emoji_string, 3])
-            elif str(state) == "inWar":
-                c.extend([bot.emoji.wood_swords.emoji_string, 0])
-            elif str(state) == "notInWar":
-                c.extend([bot.emoji.animated_clash_swords.emoji_string, 2])
-        except coc.NotFound:
-            c.extend([bot.emoji.square_x_deny.emoji_string, 3])
-        spin_list.append(c)
-
-    # Sort by league and status
-    clans_list = sorted(spin_list, key=lambda x: (x[1], x[4]), reverse=False)
-
-    # Define leagues from the actual clan data
+    clans = [clan for clan in await bot.get_clans(tags=clan_tags) if clan]
+    spin_list = [await get_clan_status(bot, clan) for clan in clans]
+    clans_list = sorted(spin_list, key=lambda x: (x[1], x[4]))
     leagues = sorted(set(clan[1] for clan in clans_list))
 
     main_embed = disnake.Embed(
@@ -1164,28 +1152,21 @@ async def create_cwl_status(bot: CustomClient, guild: disnake.Guild, categories:
         color=disnake.Color.green()
     )
 
-    # Group clans by league
     for league in leagues:
-        text = ""
-        for clan in clans_list:
-            if clan[1] == league:
-                text += f"{clan[3]} {clan[0]}\n"
+        text = "".join(f"{clan[3]} {clan[0]}\n" for clan in clans_list if clan[1] == league)
         if text:
-            main_embed.add_field(
-                name=f"**{league}**",
-                value=text,
-                inline=False
-            )
+            main_embed.add_field(name=f"**{league}**", value=text, inline=False)
 
     main_embed.add_field(
         name="Legend",
-        value=(f"{bot.emoji.animated_clash_swords.emoji_string} Spinning | "
-               f"{bot.emoji.square_x_deny.emoji_string} Not Spun | "
-               f"{bot.emoji.green_check.emoji_string} Prep | "
-               f"{bot.emoji.wood_swords.emoji_string} War"),
+        value=(
+            f"{bot.emoji.animated_clash_swords.emoji_string} Spinning | "
+            f"{bot.emoji.square_x_deny.emoji_string} Not Spun | "
+            f"{bot.emoji.green_check.emoji_string} Prep | "
+            f"{bot.emoji.wood_swords.emoji_string} War"
+        ),
         inline=False
     )
-
     main_embed.timestamp = now
     main_embed.set_footer(text="Last Refreshed:")
     return main_embed
