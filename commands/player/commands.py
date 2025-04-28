@@ -170,6 +170,90 @@ class PlayerCommands(commands.Cog, name='Player Commands'):
         elif type == "CWL":
             return await player_embeds.cwl_stalk(bot=self.bot,ctx=ctx, member=member)'''
 
+    # @commands.slash_command(name='absence', description='Report an absence')
+    # async def absence(
+    #         self,
+    #         ctx: disnake.ApplicationCommandInteraction,
+    #
+    #         reason: str
+    # ):
+    #     await ctx.response.defer()
+    #
+    #     user_id = ctx.user.id
+    #     print(f"UserID = {user_id}")
+    #
+    #     player_tag = await  self.bot.link_client.get_link(user_id)
+    #     print(f"Linked tag = {player_tag}")
+    #
+    #     if not player_tag:
+    #         return await ctx.edit_original_message(content= "You must link your clash account")
+    #
+    #     print(f"Logging {player_tag} with reason:{reason}")
+    #
+    #     return await ctx.edit_original_message(content=f"Absence Recorded for {player_tag}: {reason}")
+    @commands.slash_command(name='absence', description='Report an absence')
+    async def absence(
+            self,
+            ctx: disnake.ApplicationCommandInteraction,
+            start_date: str,
+            end_date: str,
+            reason: str
+    ):
+        from datetime import datetime
+        await ctx.response.defer()
+
+        user_id = ctx.user.id
+        print(f"UserID = {user_id}")
+
+        try:
+            start = datetime.strptime(start_date, "%Y-%m-%d")
+            end = datetime.strptime(end_date, "%Y-%m-%d")
+        except ValueError:
+            return await ctx.edit_original_message(content="❌ Dates must be in YYYY-MM-DD format.")
+
+        if start > end:
+            return await ctx.edit_original_message(content="❌ Start date must be before end date.")
+
+        # Try to find the linked Clash account
+        player_tag = await self.bot.link_client.get_link(user_id)
+        print(f"Linked tag = {player_tag}")
+
+        if not player_tag:
+            embed = disnake.Embed(
+                title="Account Not Linked",
+                description="❌ You must link your Clash of Clans account before reporting an absence.",
+                color=disnake.Color.red()
+            )
+            return await ctx.edit_original_message(embed=embed)
+
+        # Pull detailed player info
+        try:
+            player = await self.bot.coc_client.get_player(player_tag)
+        except Exception as e:
+            print(f"Failed to fetch player data: {e}")
+            return await ctx.edit_original_message(
+                content="❌ Failed to fetch your Clash profile. Please try again later.")
+
+        print(f"Logging absence for {player_tag} ({player.name}) with reason: {reason}")
+
+        # Build a nice embed for the confirmation
+        embed = disnake.Embed(
+            title="Absence Recorded ✅",
+            description=f"Absence for [{player.name}]({player.share_link}) has been recorded.",
+            color=disnake.Color.green()
+        )
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.add_field(name="Start Date", value=start.strftime("%B %d, %Y"), inline=True)
+        embed.add_field(name="End Date", value=end.strftime("%B %d, %Y"), inline=True)
+        embed.set_footer(text=f"Requested by {ctx.user.display_name}", icon_url=ctx.user.display_avatar.url)
+        embed.add_field(name="Town Hall", value=f"{player.town_hall}", inline=True)
+        embed.add_field(name="Trophies", value=f"{player.trophies}", inline=True)
+        embed.set_footer(text=f"Requested by {ctx.user.display_name}", icon_url=ctx.user.display_avatar.url)
+
+        await ctx.edit_original_message(embed=embed)
+
+        # (optional) Save to a database here if you want
+
 
 def setup(bot: CustomClient):
     bot.add_cog(PlayerCommands(bot))
