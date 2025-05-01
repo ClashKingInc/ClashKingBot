@@ -513,7 +513,7 @@ class War(commands.Cog):
                 convert_defaults=True,
                 converter=convert.season,
                 autocomplete=autocomplete.season,
-            ),
+            )
     ):
         (group, clan_league_wars, fetched_clan, war_league) = await get_cwl_wars(bot=self.bot, clan=clan, season=season)
 
@@ -548,7 +548,7 @@ class War(commands.Cog):
         )
 
         for clan_name, th_counts in clan_th_compositions.items():
-            compo_str = ', '.join(f"TH{th}: {count}" for th, count in th_counts.items())
+            compo_str = ', '.join(f"{self.bot.fetch_emoji(th).emoji_string} {count}" for th, count in th_counts.items())
             embed.add_field(name=clan_name, value=compo_str or "No data", inline=False)
 
         embed.set_thumbnail(url=clan.badge.large)
