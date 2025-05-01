@@ -1,11 +1,14 @@
 import disnake
 import pendulum as pend
+import time
 from disnake.ext import commands
 
 from classes.bot import CustomClient
 from commands.components.buttons import button_logic
 from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.discord_utils import get_webhook_for_channel
+
+board_refresh_timestamps = {}
 
 
 class RefreshBoards(commands.Cog):
@@ -22,6 +25,13 @@ class RefreshBoards(commands.Cog):
     async def refresh(self):
         all_refresh_boards = await self.bot.autoboards.find({'$and': [{'webhook_id': {'$ne': None}}, {'type': 'refresh'}]}).to_list(length=None)
         for board in all_refresh_boards:
+            board_id = str(board.get('_id'))
+            now = time.time()
+
+            last_refresh = board_refresh_timestamps.get(board_id, 0)
+            if now - last_refresh < 2:
+                continue
+            board_refresh_timestamps[board_id] = now
 
             webhook_id = board.get('webhook_id')
             thread_id = board.get('thread_id')

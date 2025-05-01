@@ -2,11 +2,13 @@ import inspect
 
 import disnake
 from disnake.ext import commands
-
+import time
 from classes.bot import CustomClient
 from utility.components import button_generator
 from utility.discord_utils import registered_functions
 import pendulum as pend
+
+user_refresh_cooldowns = {}
 
 async def button_logic(
     button_data: str,
@@ -103,6 +105,35 @@ class ComponentHandler(commands.Cog):
 
         if ':' not in button_data:
             return
+
+        try:
+            original_msg = await ctx.original_message()
+            refresh_emoji_id = str(self.bot.emoji.refresh.partial_emoji.id)
+
+            has_refresh_emoji = any(
+                isinstance(comp, disnake.ui.Button) and
+                comp.emoji and str(comp.emoji.id) == refresh_emoji_id
+                for row in original_msg.components
+                for comp in row.children
+            )
+
+            if has_refresh_emoji:
+                user_id = ctx.author.id
+                now = time.time()
+                last_used = user_refresh_cooldowns.get(user_id, 0)
+
+                if now - last_used < 2:
+                    if not ctx.response.is_done():
+                        await ctx.response.defer(ephemeral=False)
+                    await ctx.edit_original_message(
+                        embed=original_msg.embeds[0] if original_msg.embeds else None,
+                        components=original_msg.components
+                    )
+                    return
+
+                user_refresh_cooldowns[user_id] = now
+        except Exception:
+            pass
 
         locale = self.bot.get_locale(ctx=ctx)
         embed, components = await button_logic(
