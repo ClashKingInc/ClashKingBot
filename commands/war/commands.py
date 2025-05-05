@@ -495,7 +495,7 @@ class War(commands.Cog):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'cwlstatusfam_{category or "all"}',
+                custom_id=f'cwlstatusfam_{category or "all"}:refresh',
             )
         )
 

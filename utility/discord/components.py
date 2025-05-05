@@ -175,7 +175,7 @@ def clan_board_components(bot: CustomClient, season: Union[str, None], clan_tag:
                 label='',
                 emoji=bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'00_{type}_{season}_{clan_tag}',
+                custom_id=f'00_{type}_{season}_{clan_tag}_refresh',
             )
         )
     buttons.append_item(

@@ -19,7 +19,7 @@ class MultiCommands(commands.Cog, name='Multi-Use Commands'):
             label='',
             emoji=self.bot.emoji.refresh.partial_emoji,
             style=disnake.ButtonStyle.grey,
-            custom_id=f'discordlinks:{clan.tag}:{ctx.guild_id}',
+            custom_id=f'discordlinks:{clan.tag}:{ctx.guild_id}:refresh',
         )
         buttons.add_button(
             label='',

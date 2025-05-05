@@ -97,7 +97,7 @@ class Legends(commands.Cog):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'legendclan:{clan.tag}',
+                custom_id=f'legendclan:{clan.tag}:refresh',
             ),
         )
         await ctx.send(embed=embed, components=[buttons])
@@ -144,7 +144,7 @@ class Legends(commands.Cog):
                     label='',
                     emoji=self.bot.emoji.refresh.partial_emoji,
                     style=disnake.ButtonStyle.grey,
-                    custom_id=f'legendcutoff:',
+                    custom_id=f'legendcutoff:refresh',
                 )
             )
         elif type == 'Triple Streaks':
@@ -155,7 +155,7 @@ class Legends(commands.Cog):
                     label='',
                     emoji=self.bot.emoji.refresh.partial_emoji,
                     style=disnake.ButtonStyle.grey,
-                    custom_id=f'legendstreaks:{limit}',
+                    custom_id=f'legendstreaks:{limit}:refresh',
                 )
             )
         elif type == 'Trophy Buckets':
@@ -166,7 +166,7 @@ class Legends(commands.Cog):
                     label='',
                     emoji=self.bot.emoji.refresh.partial_emoji,
                     style=disnake.ButtonStyle.grey,
-                    custom_id=f'legendbuckets:',
+                    custom_id=f'legendbuckets:refresh',
                 )
             )
         elif type == 'EOS Finishers':
@@ -177,7 +177,7 @@ class Legends(commands.Cog):
                     label='',
                     emoji=self.bot.emoji.refresh.partial_emoji,
                     style=disnake.ButtonStyle.grey,
-                    custom_id=f'legendeosfinishers:',
+                    custom_id=f'legendeosfinishers:refresh',
                 )
             )
         await ctx.edit_original_message(embed=embed, components=[buttons])

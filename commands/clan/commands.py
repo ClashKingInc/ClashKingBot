@@ -31,7 +31,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'clancompo:{clan.tag}:{type_}',
+                custom_id=f"clancompo:{clan.tag}:{type_}:refresh"
             )
         )
         await ctx.edit_original_response(embed=embed, components=[buttons])
@@ -51,13 +51,13 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
         """
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
         if type == 'Detailed':
-            custom_id = f'clandetailed:{clan.tag}'
+            custom_id = f'clandetailed:{clan.tag}:refresh'
             embed = await detailed_clan_board(bot=self.bot, clan=clan, server=ctx.guild, embed_color=embed_color)
         elif type == 'Basic':
-            custom_id = f'clanbasic:{clan.tag}'
+            custom_id = f'clanbasic:{clan.tag}:refresh'
             embed = await basic_clan_board(bot=self.bot, clan=clan, embed_color=embed_color)
         elif type == 'Minimalistic':
-            custom_id = f'clanmini:{clan.tag}'
+            custom_id = f'clanmini:{clan.tag}:refresh'
             embed = await minimalistic_clan_board(bot=self.bot, clan=clan, server=ctx.guild, embed_color=embed_color)
 
         buttons = disnake.ui.ActionRow(
@@ -65,7 +65,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=custom_id,
+                custom_id= f'clandetailed:{clan.tag}:refresh',
             ),
             disnake.ui.Button(label='Open In-Game', url=clan.share_link, style=disnake.ButtonStyle.url),
         )
@@ -91,7 +91,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
 
         if type == 'Heroes & Pets':
-            custom_id = f'clanhero:{clan.tag}:{season}:{limit}'
+            custom_id = f'clanhero:{clan.tag}:{season}:{limit}:refresh'
             embeds = await clan_hero_progress(
                 bot=self.bot,
                 clan=clan,
@@ -101,7 +101,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
             )
 
         elif type == 'Troops, Spells, & Sieges':
-            custom_id = f'clantroops:{clan.tag}:{season}:{limit}'
+            custom_id = f'clantroops:{clan.tag}:{season}:{limit}:refresh'
             embeds = await troops_spell_siege_progress(
                 bot=self.bot,
                 clan=clan,
@@ -115,7 +115,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=custom_id,
+                custom_id = f'clandetailed:{clan.tag}:refresh',
             ),
         )
         await ctx.edit_original_message(embeds=embeds, components=[buttons])
@@ -152,7 +152,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'clansorted:{clan.tag}:{sort_by}:{limit}:{townhall}',
+                custom_id = f'clansorted:{clan.tag}:{sort_by}:{limit}:{townhall}:refresh',
             )
         )
 
@@ -186,7 +186,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'clandonos:{clan.tag}:{season}:{townhall}:{limit}:{sort_by}:{sort_order}',
+                custom_id = f'clandonos:{clan.tag}:{season}:{townhall}:{limit}:{sort_by}:{sort_order}:refresh',
             )
         )
         await ctx.edit_original_message(embed=embed, components=[buttons])
@@ -209,7 +209,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                     label='',
                     emoji=self.bot.emoji.refresh.partial_emoji,
                     style=disnake.ButtonStyle.grey,
-                    custom_id=f'clanwarlog:{clan.tag}:{limit}',
+                    custom_id = f'clanwarlog:{clan.tag}:{limit}:refresh',
                 )
             )
         elif option == 'CWL History':
@@ -219,7 +219,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                     label='',
                     emoji=self.bot.emoji.refresh.partial_emoji,
                     style=disnake.ButtonStyle.grey,
-                    custom_id=f'clancwlperf:{clan.tag}',
+                    custom_id = f'clancwlperf:{clan.tag}:refresh',
                 )
             )
 
@@ -253,7 +253,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'clangames:{clan.tag}:{season}:{sort_by.lower()}:{sort_order.lower()}:{limit}:{townhall}',
+                custom_id = f'clangames:{clan.tag}:{season}:{sort_by.lower()}:{sort_order.lower()}:{limit}:{townhall}:refresh',
             )
         )
         await ctx.edit_original_message(embed=embed, components=[buttons])
@@ -330,7 +330,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
             label='',
             emoji=self.bot.emoji.refresh.partial_emoji,
             style=disnake.ButtonStyle.grey,
-            custom_id=f"clanactivity:{clan.tag}:{season}:{townhall}:{limit}:{sort_by.lower().replace(' ', '')}:{sort_order}",
+            custom_id=f"clanactivity:{clan.tag}:{season}:{townhall}:{limit}:{sort_by.lower().replace(' ', '')}:{sort_order}:refresh",
         )
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
@@ -386,7 +386,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
             label='',
             emoji=self.bot.emoji.refresh.partial_emoji,
             style=disnake.ButtonStyle.grey,
-            custom_id=f'clansummary:{clan.tag}:{season}:{limit}',
+            custom_id=f'clansummary:{clan.tag}:{season}:{limit}:refresh',
         )
         await ctx.edit_original_message(embeds=embeds, components=[buttons])
 

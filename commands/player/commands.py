@@ -78,7 +78,7 @@ class PlayerCommands(commands.Cog, name='Player Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'playeraccounts:{discord_user.id}',
+                custom_id=f'playeraccounts:{discord_user.id}:refresh',
             )
         )
 

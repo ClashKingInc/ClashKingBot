@@ -1,8 +1,11 @@
 import inspect
 
 import disnake
-from disnake.ext import commands
+
 import time
+
+from disnake.ext import commands
+
 from classes.bot import CustomClient
 from utility.components import button_generator
 from utility.discord_utils import registered_functions
@@ -18,15 +21,27 @@ async def button_logic(
     ctx: disnake.MessageInteraction | None = None,
     autoboard: bool = False,
 ):
+    print(f"[DEBUG] button_data: {button_data}")
     split_data = button_data.split(':')
-    lookup_name = button_data.split(':')[0]
+    lookup_name = split_data[0]
 
-    function, parser, ephemeral, no_embed, pagination = registered_functions.get(lookup_name, (None, '', False, False, False))
+    function, parser, ephemeral, no_embed, pagination = registered_functions.get(
+        lookup_name, (None, '', False, False, False)
+    )
 
     if function is None:
-        return None, 0  # maybe change this
+        return None, 0
+
     if ctx:
         await ctx.response.defer(ephemeral=ephemeral)
+
+    if "refresh" in button_data and ctx:
+        print(f"[DEBUG] Refresh cooldown check hit by user {ctx.author.id}")
+        now = time.time()
+        cooldown = user_refresh_cooldowns.get(ctx.author.id, 0)
+        if now - cooldown < 2:
+            return None, 0
+        user_refresh_cooldowns[ctx.author.id] = now
 
     page = 0
     if pagination and 'page=' in split_data[-1]:
@@ -68,12 +83,11 @@ async def button_logic(
 
     embed_color = await bot.ck_client.get_server_embed_color(server_id=None if not guild else guild.id)
     hold_kwargs['embed_color'] = embed_color
-    # Ensure function signature respects wrapped functions
+
     signature = inspect.signature(function)
     valid_keys = list(signature.parameters.keys())
-
-    # Keep only valid keys
     hold_kwargs = {key: hold_kwargs[key] for key in valid_keys if key in hold_kwargs}
+
     embed = await function(**hold_kwargs)
 
     components = 0
@@ -87,6 +101,7 @@ async def button_logic(
     if no_embed:
         return None, 0
     return embed, components
+
 
 
 class ComponentHandler(commands.Cog):
@@ -105,35 +120,6 @@ class ComponentHandler(commands.Cog):
 
         if ':' not in button_data:
             return
-
-        try:
-            original_msg = await ctx.original_message()
-            refresh_emoji_id = str(self.bot.emoji.refresh.partial_emoji.id)
-
-            has_refresh_emoji = any(
-                isinstance(comp, disnake.ui.Button) and
-                comp.emoji and str(comp.emoji.id) == refresh_emoji_id
-                for row in original_msg.components
-                for comp in row.children
-            )
-
-            if has_refresh_emoji:
-                user_id = ctx.author.id
-                now = time.time()
-                last_used = user_refresh_cooldowns.get(user_id, 0)
-
-                if now - last_used < 2:
-                    if not ctx.response.is_done():
-                        await ctx.response.defer(ephemeral=False)
-                    await ctx.edit_original_message(
-                        embed=original_msg.embeds[0] if original_msg.embeds else None,
-                        components=original_msg.components
-                    )
-                    return
-
-                user_refresh_cooldowns[user_id] = now
-        except Exception:
-            pass
 
         locale = self.bot.get_locale(ctx=ctx)
         embed, components = await button_logic(
