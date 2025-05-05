@@ -450,12 +450,14 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
             await ctx.edit_original_response(
                 content=f"✅ Absence recorded for {player} from {start_date} to {end_date}\nReason: {reason}"
             )
-                
+            return None
+
         except Exception as e:
             print(f"Error verifying linked accounts: {e}")
             await ctx.edit_original_response(
                 content="❌ There was an error verifying your linked accounts. Please try again later."
             )
+            return None
 
 
 def setup(bot):
