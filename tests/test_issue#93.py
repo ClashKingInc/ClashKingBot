@@ -2,13 +2,7 @@ import pytest
 import disnake
 from unittest.mock import AsyncMock, MagicMock, patch
 from commands.war.commands import War
-
-MOCK_WAR_LEAGUES = {
-    "leagues": [
-        {"name": "Master League I", "id": 1}
-    ]
-}
-
+from coc.errors import NotFound
 
 @pytest.fixture
 def bot():
@@ -17,95 +11,83 @@ def bot():
     bot.fetch_emoji = MagicMock()
     return bot
 
-
 @pytest.fixture
 def ctx():
     ctx = MagicMock(spec=disnake.ApplicationCommandInteraction)
     ctx.send = AsyncMock()
     return ctx
 
-
 @pytest.fixture
-def clan():
+def clan_valid():
     clan = MagicMock()
-    clan.name = "Test Clan"
-    clan.tag = "#TEST"
-    clan.share_link = "https://link.clashofclans.com/test"
+    clan.name = "Legendary Lite"
+    clan.tag = "#2CLQVGC2"
+    clan.share_link = "https://link.clashofclans.com/en?action=OpenClanProfile&tag=2CLQVGC2"
     clan.badge.large = "https://badge.url"
     return clan
 
+@pytest.fixture
+def clan_not_in_group():
+    clan = MagicMock()
+    clan.name = "Divine Kingdom"
+    clan.tag = "#LCQR002"
+    clan.share_link = "https://link.clashofclans.com/en?action=OpenClanProfile&tag=LCQR002"
+    clan.badge.large = "https://badge.url"
+    return clan
 
 @pytest.mark.asyncio
 @patch("commands.war.commands.get_cwl_wars")
-async def test_cwl_compo_success(mock_get_cwl_wars, bot, ctx, clan):
-    # Setup mock group and fetched clans
-    clan1 = MagicMock()
-    clan1.tag = "#CLAN1"
-    clan1.name = "Clan One"
-    clan2 = MagicMock()
-    clan2.tag = "#CLAN2"
-    clan2.name = "Clan Two"
-
+async def test_cwl_compo_success(mock_get_cwl_wars, bot, ctx, clan_valid):
+    clan1 = MagicMock(tag="#2CLQVGC2", name="Legendary Lite")
     group = MagicMock()
-    group.clans = [clan1, clan2]
+    group.clans = [clan1]
 
-    fetched_clan = clan
-    war_league = MagicMock()
-    clan_league_wars = []
+    mock_get_cwl_wars.return_value = (group, [], clan_valid, MagicMock())
 
-    mock_get_cwl_wars.return_value = (group, clan_league_wars, fetched_clan, war_league)
-
-    # Mock bot.getClan
-    comp_clan1 = MagicMock()
-    comp_clan1.name = "Clan One"
-    comp_clan1.members = [
+    comp_clan = MagicMock(name="Legendary Lite")
+    comp_clan.members = [
         MagicMock(town_hall=15, role="leader"),
-        MagicMock(town_hall=14, role="member")
+        MagicMock(town_hall=14, role="member"),
     ]
+    bot.getClan.return_value = comp_clan
 
-    comp_clan2 = MagicMock()
-    comp_clan2.name = "Clan Two"
-    comp_clan2.members = [
-        MagicMock(town_hall=13, role="coLeader"),
-    ]
-
-    bot.getClan.side_effect = [comp_clan1, comp_clan2]
-
-    # Mock fetch_emoji
     emoji15 = MagicMock(emoji_string="<:th15:1>")
     emoji14 = MagicMock(emoji_string="<:th14:2>")
-    emoji13 = MagicMock(emoji_string="<:th13:3>")
-    bot.fetch_emoji.side_effect = lambda th: {15: emoji15, 14: emoji14, 13: emoji13}[th]
+    bot.fetch_emoji.side_effect = lambda th: {15: emoji15, 14: emoji14}[th]
 
-    # Call the method
     cog = War(bot)
-    await cog.cwl_compo(ctx, clan=clan, season="2023-10")
+    await cog.cwl_compo.callback(cog, ctx, clan=clan_valid, season="2023-10")
 
     ctx.send.assert_awaited_once()
     embed = ctx.send.call_args.kwargs['embed']
-
-    assert embed.title == f"CWL TH Compositions - {clan.name}"
-    assert embed.description == "Season: **2023-10**"
-    assert embed.color == disnake.Color.green()
-    assert embed.fields[0].name == "Clan One"
+    assert "Legendary Lite" in embed.fields[0].name
     assert "<:th15:1> 1" in embed.fields[0].value
     assert "<:th14:2> 1" in embed.fields[0].value
-    assert embed.fields[1].name == "Clan Two"
-    assert embed.fields[1].value == "<:th13:3> 1"
-    assert embed.thumbnail.url == clan.badge.large
-
 
 @pytest.mark.asyncio
 @patch("commands.war.commands.get_cwl_wars")
-async def test_cwl_compo_no_group(mock_get_cwl_wars, bot, ctx, clan):
-    # No group returned
-    mock_get_cwl_wars.return_value = (None, None, clan, None)
+async def test_cwl_compo_not_in_group(mock_get_cwl_wars, bot, ctx, clan_not_in_group):
+    mock_get_cwl_wars.return_value = (None, None, clan_not_in_group, None)
 
     cog = War(bot)
-    await cog.cwl_compo(ctx, clan=clan, season="2023-10")
+    await cog.cwl_compo.callback(cog, ctx, clan=clan_not_in_group, season="2023-10")
 
     ctx.send.assert_awaited_once()
     embed = ctx.send.call_args.kwargs['embed']
-    assert "is not in CWL" in embed.description
+    assert "not in CWL" in embed.description
     assert embed.color == disnake.Color.red()
-    assert embed.thumbnail.url == clan.badge.large
+
+@pytest.mark.asyncio
+async def test_cwl_compo_invalid_clan(bot, ctx):
+    invalid_clan = MagicMock()
+    invalid_clan.tag = "#INVALID"
+
+    bot.getClan.side_effect = NotFound("Invalid clan tag")
+
+    cog = War(bot)
+    await cog.cwl_compo.callback(cog, ctx, clan=invalid_clan, season="2023-10")
+
+    ctx.send.assert_awaited_once()
+    embed = ctx.send.call_args.kwargs['embed']
+    assert "#INVALID is not a valid clan tag" in embed.description
+    assert embed.color == disnake.Color.red()

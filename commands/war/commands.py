@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 
 import coc
 import disnake
@@ -515,6 +516,16 @@ class War(commands.Cog):
                 autocomplete=autocomplete.season,
             )
     ):
+        # verify valid clan tag
+        try:
+            await self.bot.getClan(clan.tag)
+        except coc.errors.NotFound:
+            embed = disnake.Embed(
+                description=f"{clan.tag} is not a valid clan tag",
+                color=disnake.Color.red()
+            )
+            return await ctx.send(embed=embed)
+
         (group, clan_league_wars, fetched_clan, war_league) = await get_cwl_wars(bot=self.bot, clan=clan, season=season)
 
         if not group:
