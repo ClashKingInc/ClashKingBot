@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 
 import coc
 import disnake
@@ -27,7 +28,7 @@ from .utils import (
     opp_roster_embed,
     page_manager,
     plan_text,
-    roster_embed,
+    roster_embed, war_th_comps,
 )
 
 
@@ -501,6 +502,68 @@ class War(commands.Cog):
 
         embed = await create_cwl_status(bot=self.bot, guild=ctx.guild, categories=categories)
         await ctx.edit_original_message(embed=embed, components=[buttons])
+
+    @cwl.sub_command(name='compo', description="Show townhall compositions of all clans in a CWL group")
+    async def cwl_compo(
+            self,
+            ctx: disnake.ApplicationCommandInteraction,
+            clan: coc.Clan = commands.Param(
+                converter=convert.clan, autocomplete=autocomplete.clan),
+            season: str = commands.Param(
+                default=None,
+                convert_defaults=True,
+                converter=convert.season,
+                autocomplete=autocomplete.season,
+            )
+    ):
+        # verify valid clan tag
+        try:
+            await self.bot.getClan(clan.tag)
+        except coc.errors.NotFound:
+            embed = disnake.Embed(
+                description=f"{clan.tag} is not a valid clan tag",
+                color=disnake.Color.red()
+            )
+            return await ctx.send(embed=embed)
+
+        (group, clan_league_wars, fetched_clan, war_league) = await get_cwl_wars(bot=self.bot, clan=clan, season=season)
+
+        if not group:
+            embed = disnake.Embed(
+                description=f"[**{clan.name}**]({clan.share_link}) is not in CWL or CWL data couldn't be retrieved.",
+                color=disnake.Color.red()
+            )
+            embed.set_thumbnail(url=clan.badge.large)
+            return await ctx.send(embed=embed)
+
+        clan_th_compositions = {}
+
+        for clan_entry in group.clans:
+            tag = clan_entry.tag
+            comp_clan = await self.bot.getClan(tag)
+            members = [member for member in comp_clan.members if
+                       member.role in ["coLeader", "admin", "leader", "member"]]
+            th_counts = {}
+
+            for member in members:
+                th_level = member.town_hall
+                th_counts[th_level] = th_counts.get(th_level, 0) + 1
+
+            sorted_th_counts = dict(sorted(th_counts.items(), reverse=True))
+            clan_th_compositions[comp_clan.name] = sorted_th_counts
+
+        embed = disnake.Embed(
+            title=f"CWL TH Compositions - {clan.name}",
+            description=f"Season: **{season or 'Current'}**",
+            color=disnake.Color.green()
+        )
+
+        for clan_name, th_counts in clan_th_compositions.items():
+            compo_str = ', '.join(f"{self.bot.fetch_emoji(th).emoji_string} {count}" for th, count in th_counts.items())
+            embed.add_field(name=clan_name, value=compo_str or "No data", inline=False)
+
+        embed.set_thumbnail(url=clan.badge.large)
+        await ctx.send(embed=embed)
 
     @commands.Cog.listener()
     async def on_button_click(self, ctx: disnake.MessageInteraction):
