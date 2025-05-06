@@ -1,6 +1,7 @@
+import coc
 from disnake.ext import commands
 
-from discord import autocomplete, options
+from discord import autocomplete, options, convert
 
 from datetime import datetime
 
@@ -392,30 +393,78 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
         )
         await ctx.edit_original_message(embeds=embeds, components=[buttons])
 
-    # @commands.slash_command(name='absence', description='Report an absence')
-    # async def absence(
-    #         self,
-    #         ctx: disnake.ApplicationCommandInteraction,
-    #
-    #         reason: str
-    # ):
-    #     await ctx.response.defer()
-    #
-    #     user_id = ctx.user.id
-    #     print(f"UserID = {user_id}")
-    #
-    #     player_tag = await  self.bot.link_client.get_link(user_id)
-    #     print(f"Linked tag = {player_tag}")
-    #
-    #     if not player_tag:
-    #         return await ctx.edit_original_message(content= "You must link your clash account")
-    #
-    #     print(f"Logging {player_tag} with reason:{reason}")
-    #
-    #     return await ctx.edit_original_message(content=f"Absence Recorded for {player_tag}: {reason}")
-    #
     @clan.sub_command(name='absence', description='Report an absence')
     async def absence(
+            self,
+            ctx: disnake.ApplicationCommandInteraction,
+            player: coc.Player = commands.Param(autocomplete=autocomplete.family_players, converter=convert.player),
+            start_date: str = commands.Param(description="Start date of absence (YYYY-MM-DD)"),
+            end_date: str = commands.Param(description="End date of absence (YYYY-MM-DD)"),
+            reason: str = commands.Param(description="Reason for absence")
+    ):
+        # First check if the user has any linked accounts
+        user_accounts = await self.bot.link_client.get_linked_players(discord_id=ctx.user.id)
+        if not user_accounts:
+            embed = disnake.Embed(
+                title="No Linked Accounts",
+                description="You don't have any Clash of Clans accounts linked to your Discord profile. Please use `/link` to link your accounts first.",
+                color=disnake.Color.red()
+            )
+            return await ctx.edit_original_message(embed=embed)
+
+        # Check if the specific player is linked to anyone
+        linked = await self.bot.link_client.get_link(player.tag)
+        if linked is None:
+            embed = disnake.Embed(
+                description=f"[{player.name}]({player.share_link}) is not linked to any Discord user. Accounts must be linked using `/link` before reporting absences.",
+                color=disnake.Color.red()
+            )
+            return await ctx.edit_original_message(embed=embed)
+
+        # Check if the player is linked to someone else
+        if linked != ctx.author.id:
+            embed = disnake.Embed(
+                description=f"You can only report absences for your own linked accounts. [{player.name}]({player.share_link}) is linked to another Discord user.",
+                color=disnake.Color.red()
+            )
+            return await ctx.edit_original_message(embed=embed)
+
+        # Validate dates
+        try:
+            start = datetime.strptime(start_date, "%Y-%m-%d")
+            end = datetime.strptime(end_date, "%Y-%m-%d")
+            if start > end:
+                raise ValueError("Start date cannot be after end date")
+        except ValueError as e:
+            embed = disnake.Embed(
+                title="Invalid Date Format",
+                description=str(e) if str(
+                    e) != "day is out of range for month" else "Please use valid dates in YYYY-MM-DD format",
+                color=disnake.Color.red()
+            )
+            return await ctx.response.send_message(embed=embed)
+
+        # If verification passes, print and record the absence
+        print(f"\nAbsence recorded:")
+        print(f"Player: {player}")
+        print(f"Start Date: {start_date}")
+        print(f"End Date: {end_date}")
+        print(f"Reason: {reason}\n")
+
+        embed = disnake.Embed(
+            title="✅ Absence Recorded",
+            description=f"Absence for **{player}**",
+            color=disnake.Color.green()
+        )
+        embed.add_field(name="Start Date", value=start_date, inline=True)
+        embed.add_field(name="End Date", value=end_date, inline=True)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.set_footer(text=f"Submitted by {ctx.user.display_name}", icon_url=ctx.user.display_avatar.url)
+
+        await ctx.edit_original_response(embed=embed)
+
+    @clan.sub_command(name='target_absence', description='how reporting an absence should be handled')
+    async def tar_absence(
             self,
             ctx: disnake.ApplicationCommandInteraction,
             player: str = commands.Param(autocomplete=autocomplete.family_players),
@@ -423,41 +472,22 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
             end_date: str = commands.Param(description="End date of absence (YYYY-MM-DD)"),
             reason: str = commands.Param(description="Reason for absence")
     ):
-        
-        user_id = ctx.user.id
-        
-        # Check if user has linked accounts
-        try:
-            linked_tags = await self.bot.link_client.get_linked_players(user_id)
-            if not linked_tags:
-                return await ctx.edit_original_response(
-                    content="❌ You don't have any Clash accounts linked to your Discord profile."
-                )
-            
-            # Check if the player tag is in user's linked accounts
-            if player not in linked_tags:
-                return await ctx.edit_original_response(
-                    content="❌ You can only report absences for your own linked accounts."
-                )
-                
-            # If verification passes, print and record the absence
-            print(f"\nAbsence recorded:")
-            print(f"Player: {player}")
-            print(f"Start Date: {start_date}")
-            print(f"End Date: {end_date}")
-            print(f"Reason: {reason}\n")
+        user =ctx.user.id
+        discord_user = ctx.guild.get_member(user)
 
-            await ctx.edit_original_response(
-                content=f"✅ Absence recorded for {player} from {start_date} to {end_date}\nReason: {reason}"
-            )
-            return None
+        print(f'a{user} |||||||||| {discord_user}  ')
 
-        except Exception as e:
-            print(f"Error verifying linked accounts: {e}")
-            await ctx.edit_original_response(
-                content="❌ There was an error verifying your linked accounts. Please try again later."
-            )
-            return None
+        embed = disnake.Embed(
+            title="✅ Absence Recorded",
+            description=f"Absence for **{player}**",
+            color=disnake.Color.green()
+        )
+        embed.add_field(name="Start Date", value=start_date, inline=True)
+        embed.add_field(name="End Date", value=end_date, inline=True)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.set_footer(text=f"Submitted by {ctx.user.display_name}", icon_url=ctx.user.display_avatar.url)
+
+        await ctx.edit_original_response(embed=embed)
 
 
 def setup(bot):
