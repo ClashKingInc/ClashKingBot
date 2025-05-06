@@ -20,7 +20,7 @@ async def test_strike_clear_strikes():
     mock_delete_result.deleted_count = 3
     cog.bot.strikelist.delete_many = AsyncMock(return_value=mock_delete_result)
 
-    await cog.strike_clear.callback(cog, mock_ctx, clan=mock_clan)
+    await cog.strike_clear_all.callback(cog, mock_ctx, clan=mock_clan)
 
     cog.bot.strikelist.delete_many.assert_awaited_once_with({
         "$and": [{"clan": "test313"}, {"server": 1234}]
@@ -45,7 +45,7 @@ async def test_strike_clear_deletes_strikes():
     mock_delete_result = MagicMock(deleted_count=5)
     cog.bot.strikelist.delete_many = AsyncMock(return_value=mock_delete_result)
 
-    await cog.strike_clear.callback(cog, mock_ctx, clan=mock_clan)
+    await cog.strike_clear_all.callback(cog, mock_ctx, clan=mock_clan)
 
     cog.bot.strikelist.delete_many.assert_awaited_once_with({
         "$and": [{"clan": "testy33"}, {"server": 1234}]
@@ -67,7 +67,7 @@ async def test_strike_clear_no_strikes():
     cog = Strikes(bot=MagicMock())
     cog.bot.strikelist.find_one = AsyncMock(return_value=None)
 
-    await cog.strike_clear.callback(cog, mock_ctx, clan=mock_clan)
+    await cog.strike_clear_all.callback(cog, mock_ctx, clan=mock_clan)
 
     cog.bot.strikelist.find_one.assert_awaited_once()
     cog.bot.strikelist.delete_many.assert_not_called()
@@ -90,7 +90,8 @@ async def test_strike_clear_db_error_handling():
     cog.bot.strikelist.find_one = AsyncMock(side_effect=Exception("DB failed"))
 
     with pytest.raises(Exception, match="DB failed"):
-        await cog.strike_clear.callback(cog, mock_ctx, clan=mock_clan)
+        await cog.strike_clear_all.callback(cog, mock_ctx, clan=mock_clan)
+
 
 @pytest.mark.asyncio
 async def test_strike_clear_deletes_zero():
@@ -106,7 +107,7 @@ async def test_strike_clear_deletes_zero():
     mock_result = MagicMock(deleted_count=0)
     cog.bot.strikelist.delete_many = AsyncMock(return_value=mock_result)
 
-    await cog.strike_clear.callback(cog, mock_ctx, clan=mock_clan)
+    await cog.strike_clear_all.callback(cog, mock_ctx, clan=mock_clan)
 
     embed = mock_ctx.send.call_args.kwargs.get("embed")
     assert "Cleared 0 strikes" in embed.description
