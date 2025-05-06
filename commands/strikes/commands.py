@@ -138,14 +138,46 @@ class Strikes(commands.Cog, name='Strikes'):
         embed = disnake.Embed(description=f'Strike {strike_id} removed.', color=disnake.Color.green())
         return await ctx.send(embed=embed)
 
-    @strike.sub_command(name='clear', description='Clear all strikes from a clan')
+    @strike.sub_command(name='clear', description='Remove all strikes from a clan')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def strike_clear(
             self,
             ctx: disnake.ApplicationCommandInteraction,
-            clan = commands.Param(default=None, converter=convert.clan, autocomplete=autocomplete.clan),
+            clan=commands.Param(default=None, converter=convert.clan, autocomplete=autocomplete.clan),
     ):
-        result_ = await self.bot.strikelist.find_one({'$and': [{'clan': clan}]})
+        clan_tag = clan.tag
+
+        result_ = await self.bot.strikelist.find_one({
+            '$and': [{'clan': clan_tag}, {'server': ctx.guild.id}]
+        })
+
+        if result_ is None:
+            embed = disnake.Embed(
+                description=f'All strikes in {clan} cleared.',
+                color=disnake.Color.red(),
+            )
+            return await ctx.send(embed=embed)
+
+        delete_result = await self.bot.strikelist.delete_many({
+            '$and': [{'clan': clan_tag}, {'server': ctx.guild.id}]
+        })
+
+        print(f"Deleted {delete_result.deleted_count} strikes.")
+
+        embed = disnake.Embed(
+            description=f'Cleared {delete_result.deleted_count} strikes from {clan_tag}.',
+            color=disnake.Color.orange()
+        )
+        return await ctx.send(embed=embed)
+
+    @strike.sub_command(name='date', description='Remove all clan strikes within a date range')
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def strike_clear_range(
+            self,
+            ctx: disnake.ApplicationCommandInteraction,
+            clan=commands.Param(default=None, converter=convert.clan, autocomplete=autocomplete.clan),
+    ):
+        result_ = await self.bot.strikelist.find_one({'$and': [{'clan': clan, 'server': ctx.guild.id}]})
         if result_ is None:
             embed = disnake.Embed(
                 description=f'{clan} does not exist.',
