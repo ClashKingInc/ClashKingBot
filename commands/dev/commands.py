@@ -22,7 +22,7 @@ class OwnerCommands(commands.Cog):
         self.count = 0
         self.model = None
 
-    @commands.command(name='reload_all', help='Reload all cogs automatically.', guild_ids=[923764211845312533, 1210616106448978001])
+    @commands.command(name='reload_all', help='Reload all cogs automatically.', guild_ids=[])
     @commands.is_owner()  # Restrict to the bot owner
     async def reload_all(self, ctx):
         """
@@ -63,7 +63,7 @@ class OwnerCommands(commands.Cog):
         )
         await ctx.send(embed=embed)
 
-    @commands.slash_command(name='dev', guild_ids=[923764211845312533, 1210616106448978001])
+    @commands.slash_command(name='dev')
     @commands.is_owner()
     async def dev(self, ctx: ApplicationCommandInteraction):
         pass

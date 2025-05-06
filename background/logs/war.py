@@ -27,7 +27,8 @@ class War_Log(commands.Cog):
             war = coc.ClanWar(
                 data=event['war'],
                 client=self.bot.coc_client,
-                league_group=coc.ClanWarLeagueGroup(data=cwl_group, client=self.bot.coc_client),
+                league_group=coc.ClanWarLeagueGroup(
+                    data=cwl_group, client=self.bot.coc_client),
                 clan_tag=event.get('clan_tag'),
             )
         else:
@@ -37,7 +38,8 @@ class War_Log(commands.Cog):
                 clan_tag=event.get('clan_tag'),
             )
 
-        attacks = [coc.WarAttack(data=a, client=self.bot.coc_client, war=war) for a in event.get('attacks', [])]
+        attacks = [coc.WarAttack(data=a, client=self.bot.coc_client, war=war)
+                   for a in event.get('attacks', [])]
 
         hit_text = ''
         for attack in attacks:
@@ -111,7 +113,8 @@ class War_Log(commands.Cog):
             new_war = coc.ClanWar(
                 data=event['new_war'],
                 client=self.bot.coc_client,
-                league_group=coc.ClanWarLeagueGroup(data=cwl_group, client=self.bot.coc_client),
+                league_group=coc.ClanWarLeagueGroup(
+                    data=cwl_group, client=self.bot.coc_client),
                 clan_tag=event.get('clan_tag'),
             )
         else:
@@ -144,11 +147,13 @@ class War_Log(commands.Cog):
                         f'Start Time: {self.bot.timestamper(unix_time=new_war.preparation_start_time.time.timestamp()).cal_date}\n'
                         f'War Size: ({new_war.team_size} v {new_war.team_size})\n'
                         f'Clans: [{new_war.clan.name}]({new_war.clan.share_link}) | [{new_war.opponent.name}]({new_war.opponent.share_link})',
-                        scheduled_start_time=pend.now(tz=pend.UTC).add(seconds=30),
+                        scheduled_start_time=pend.now(
+                            tz=pend.UTC).add(seconds=30),
                         scheduled_end_time=new_war.end_time.time,
                         image=image_bytes,
                         entity_type=disnake.GuildScheduledEventEntityType.external,
-                        entity_metadata=disnake.GuildScheduledEventMetadata(location=f'{new_war.clan.name} vs {new_war.opponent.name}'),
+                        entity_metadata=disnake.GuildScheduledEventMetadata(
+                            location=f'{new_war.clan.name} vs {new_war.opponent.name}'),
                     )
                 except disnake.Forbidden:
                     await db_clan.set_server_event_creation_status(type='war', status=False)
@@ -250,7 +255,8 @@ class War_Log(commands.Cog):
             war_data = await self.bot.clan_wars.find_one({'$and': [{'war_id': war_id}, {'data': {'$ne': None}}]})
             war = None
             if war_data is not None:
-                war = coc.ClanWar(data=war_data['data'], client=self.bot.coc_client, clan_tag=clan_tag)
+                war = coc.ClanWar(
+                    data=war_data['data'], client=self.bot.coc_client, clan_tag=clan_tag)
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
                 if war_id != f'{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}':
@@ -267,7 +273,8 @@ class War_Log(commands.Cog):
             war_data = await self.bot.clan_wars.find_one({'$and': [{'war_id': war_id}, {'data': {'$ne': None}}]})
             war = None
             if war_data is not None:
-                war = coc.ClanWar(data=war_data['data'], client=self.bot.coc_client, clan_tag=clan_tag)
+                war = coc.ClanWar(
+                    data=war_data['data'], client=self.bot.coc_client, clan_tag=clan_tag)
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
                 if war_id != f'{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}':
@@ -284,7 +291,8 @@ class War_Log(commands.Cog):
             war_data = await self.bot.clan_wars.find_one({'$and': [{'war_id': war_id}, {'data': {'$ne': None}}]})
             war = None
             if war_data is not None:
-                war = coc.ClanWar(data=war_data['data'], client=self.bot.coc_client, clan_tag=clan_tag)
+                war = coc.ClanWar(
+                    data=war_data['data'], client=self.bot.coc_client, clan_tag=clan_tag)
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
                 if war_id != f'{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}':
@@ -302,7 +310,8 @@ class War_Log(commands.Cog):
             war_data = await self.bot.clan_wars.find_one({'$and': [{'war_id': war_id}, {'data': {'$ne': None}}]})
             war = None
             if war_data is not None:
-                war = coc.ClanWar(data=war_data['data'], client=self.bot.coc_client, clan_tag=clan_tag)
+                war = coc.ClanWar(
+                    data=war_data['data'], client=self.bot.coc_client, clan_tag=clan_tag)
             if war is None:
                 war = await self.bot.get_clanwar(clanTag=clan_tag)
                 if war_id != f'{war.clan.tag}v{war.opponent.tag}-{int(war.preparation_start_time.time.timestamp())}':
