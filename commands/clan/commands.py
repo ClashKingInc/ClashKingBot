@@ -410,7 +410,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 description="You don't have any Clash of Clans accounts linked to your Discord profile. Please use `/link` to link your accounts first.",
                 color=disnake.Color.red()
             )
-            return await ctx.edit_original_message(embed=embed)
+            return await ctx.edit_original_response(embed=embed)
 
         # Check if the specific player is linked to anyone
         linked = await self.bot.link_client.get_link(player.tag)
@@ -419,7 +419,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 description=f"[{player.name}]({player.share_link}) is not linked to any Discord user. Accounts must be linked using `/link` before reporting absences.",
                 color=disnake.Color.red()
             )
-            return await ctx.edit_original_message(embed=embed)
+            return await ctx.edit_original_response(embed=embed)
 
         # Check if the player is linked to someone else
         if linked != ctx.author.id:
@@ -427,7 +427,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 description=f"You can only report absences for your own linked accounts. [{player.name}]({player.share_link}) is linked to another Discord user.",
                 color=disnake.Color.red()
             )
-            return await ctx.edit_original_message(embed=embed)
+            return await ctx.edit_original_response(embed=embed)
 
         # Validate dates
         try:
@@ -442,7 +442,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                     e) != "day is out of range for month" else "Please use valid dates in YYYY-MM-DD format",
                 color=disnake.Color.red()
             )
-            return await ctx.response.send_message(embed=embed)
+            await ctx.edit_original_response(embed=embed)
 
         # If verification passes, print and record the absence
         print(f"\nAbsence recorded:")
