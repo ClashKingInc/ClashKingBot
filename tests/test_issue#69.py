@@ -111,3 +111,64 @@ async def test_strike_clear_deletes_zero():
 
     embed = mock_ctx.send.call_args.kwargs.get("embed")
     assert "Cleared 0 strikes" in embed.description
+
+@pytest.mark.asyncio
+async def test_strike_clear_date_deletes_strikes():
+
+    mock_ctx = MagicMock(spec=disnake.ApplicationCommandInteraction)
+    mock_ctx.guild.id = 777
+    mock_ctx.send = AsyncMock()
+
+    mock_clan = MagicMock()
+    mock_clan.__str__.return_value = "TestClan"
+
+    cog = Strikes(bot=MagicMock())
+    cog.bot.strikelist.find_one = AsyncMock(return_value={"strike_id": "abc"})
+
+    delete_result = MagicMock(deleted_count=2)
+    cog.bot.strikelist.delete_many = AsyncMock(return_value=delete_result)
+
+    await cog.strike_clear_date.callback(cog, mock_ctx, clan=mock_clan, time_range="Last Week")
+
+    embed = mock_ctx.send.call_args.kwargs.get("embed")
+    assert isinstance(embed, disnake.Embed)
+    assert "Deleted 2 strikes from TestClan from the last week." in embed.description
+    assert embed.color == disnake.Color.green()
+
+@pytest.mark.asyncio
+async def test_strike_clear_date_no_strikes():
+    mock_ctx = MagicMock(spec=disnake.ApplicationCommandInteraction)
+    mock_ctx.guild.id = 888
+    mock_ctx.send = AsyncMock()
+
+    mock_clan = MagicMock()
+    mock_clan.__str__.return_value = "EmptyClan"
+
+    cog = Strikes(bot=MagicMock())
+    cog.bot.strikelist.find_one = AsyncMock(return_value=None)
+
+    await cog.strike_clear_date.callback(cog, mock_ctx, clan=mock_clan, time_range="Last 90 Days")
+
+    cog.bot.strikelist.delete_many.assert_not_called()
+
+    embed = mock_ctx.send.call_args.kwargs.get("embed")
+    assert "no strikes found" in embed.description.lower()
+    assert embed.color == disnake.Color.red()
+
+@pytest.mark.asyncio
+async def test_strike_clear_date_invalid_range():
+    mock_ctx = MagicMock(spec=disnake.ApplicationCommandInteraction)
+    mock_ctx.guild.id = 999
+    mock_ctx.send = AsyncMock()
+
+    mock_clan = MagicMock()
+    mock_clan.__str__.return_value = "EdgeClan"
+
+    cog = Strikes(bot=MagicMock())
+    cog.bot.strikelist.find_one = AsyncMock(return_value={"strike_id": "abc"})
+    cog.bot.strikelist.delete_many = AsyncMock(return_value=MagicMock(deleted_count=1))
+
+    await cog.strike_clear_date.callback(cog, mock_ctx, clan=mock_clan, time_range="invalid range")
+
+    embed = mock_ctx.send.call_args.kwargs.get("embed")
+    assert "Deleted 1 strikes from EdgeClan from the invalid range." in embed.description

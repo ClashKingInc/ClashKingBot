@@ -142,7 +142,7 @@ class Strikes(commands.Cog, name='Strikes'):
     @strike.sub_command_group(name="clear", description="Clear strikes from a clan")
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def clear(self, ctx: disnake.ApplicationCommandInteraction):
-        pass  # container only, never called directly
+        pass
 
     @clear.sub_command(name='all', description='Remove all strikes from a clan')
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
