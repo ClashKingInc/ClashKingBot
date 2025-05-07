@@ -88,7 +88,7 @@ def war_buttons(bot: CustomClient, new_war: coc.ClanWar):
                 label='',
                 emoji=bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'warpanelrefresh_{new_war.clan.tag}_{war_unique_id}',
+                custom_id=f'warpanel_{new_war.clan.tag}_{war_unique_id}_refresh',
             ),
             disnake.ui.Button(
                 label='',

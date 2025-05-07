@@ -58,7 +58,7 @@ class RosterCommands(commands.Cog, name='Rosters'):
                     label='',
                     emoji=self.bot.emoji.refresh.partial_emoji,
                     style=disnake.ButtonStyle.grey,
-                    custom_id=f'Refresh_{roster}',
+                    custom_id=f'Refresh_{roster}:refresh',
                 ),
                 disnake.ui.Button(
                     label='',
@@ -83,7 +83,7 @@ class RosterCommands(commands.Cog, name='Rosters'):
                     label='',
                     emoji=self.bot.emoji.refresh.partial_emoji,
                     style=disnake.ButtonStyle.grey,
-                    custom_id=f'Refresh_{roster}',
+                    custom_id=f'Refresh_{roster}:refresh',
                 ),
                 disnake.ui.Button(
                     label='',
