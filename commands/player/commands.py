@@ -170,6 +170,5 @@ class PlayerCommands(commands.Cog, name='Player Commands'):
         elif type == "CWL":
             return await player_embeds.cwl_stalk(bot=self.bot,ctx=ctx, member=member)'''
 
-
 def setup(bot: CustomClient):
     bot.add_cog(PlayerCommands(bot))
