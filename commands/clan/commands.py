@@ -397,76 +397,6 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
     async def absence(
             self,
             ctx: disnake.ApplicationCommandInteraction,
-            player: coc.Player = commands.Param(autocomplete=autocomplete.family_players, converter=convert.player),
-            start_date: str = commands.Param(description="Start date of absence (YYYY-MM-DD)"),
-            end_date: str = commands.Param(description="End date of absence (YYYY-MM-DD)"),
-            reason: str = commands.Param(description="Reason for absence")
-    ):
-        # First check if the user has any linked accounts
-        user_accounts = await self.bot.link_client.get_linked_players(discord_id=ctx.user.id)
-        if not user_accounts:
-            embed = disnake.Embed(
-                title="No Linked Accounts",
-                description="You don't have any Clash of Clans accounts linked to your Discord profile. Please use `/link` to link your accounts first.",
-                color=disnake.Color.red()
-            )
-            return await ctx.edit_original_response(embed=embed)
-
-        # Check if the specific player is linked to anyone
-        linked = await self.bot.link_client.get_link(player.tag)
-        if linked is None:
-            embed = disnake.Embed(
-                description=f"[{player.name}]({player.share_link}) is not linked to any Discord user. Accounts must be linked using `/link` before reporting absences.",
-                color=disnake.Color.red()
-            )
-            return await ctx.edit_original_response(embed=embed)
-
-        # Check if the player is linked to someone else
-        if linked != ctx.author.id:
-            embed = disnake.Embed(
-                description=f"You can only report absences for your own linked accounts. [{player.name}]({player.share_link}) is linked to another Discord user.",
-                color=disnake.Color.red()
-            )
-            return await ctx.edit_original_response(embed=embed)
-
-        # Validate dates
-        try:
-            start = datetime.strptime(start_date, "%Y-%m-%d")
-            end = datetime.strptime(end_date, "%Y-%m-%d")
-            if start > end:
-                raise ValueError("Start date cannot be after end date")
-        except ValueError as e:
-            embed = disnake.Embed(
-                title="Invalid Date Format",
-                description=str(e) if str(
-                    e) != "day is out of range for month" else "Please use valid dates in YYYY-MM-DD format",
-                color=disnake.Color.red()
-            )
-            await ctx.edit_original_response(embed=embed)
-
-        # If verification passes, print and record the absence
-        print(f"\nAbsence recorded:")
-        print(f"Player: {player}")
-        print(f"Start Date: {start_date}")
-        print(f"End Date: {end_date}")
-        print(f"Reason: {reason}\n")
-
-        embed = disnake.Embed(
-            title="✅ Absence Recorded",
-            description=f"Absence for **{player}**",
-            color=disnake.Color.green()
-        )
-        embed.add_field(name="Start Date", value=start_date, inline=True)
-        embed.add_field(name="End Date", value=end_date, inline=True)
-        embed.add_field(name="Reason", value=reason, inline=False)
-        embed.set_footer(text=f"Submitted by {ctx.user.display_name}", icon_url=ctx.user.display_avatar.url)
-
-        await ctx.edit_original_response(embed=embed)
-
-    @clan.sub_command(name='target_absence', description='how reporting an absence should be handled')
-    async def tar_absence(
-            self,
-            ctx: disnake.ApplicationCommandInteraction,
             player: str = commands.Param(autocomplete=autocomplete.family_players),
             start_date: str = commands.Param(description="Start date of absence (YYYY-MM-DD)"),
             end_date: str = commands.Param(description="End date of absence (YYYY-MM-DD)"),
@@ -474,6 +404,29 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
     ):
         user =ctx.user.id
         discord_user = ctx.guild.get_member(user)
+        try:
+            # Convert string dates to datetime objects
+            start = datetime.strptime(start_date, "%Y-%m-%d")
+            end = datetime.strptime(end_date, "%Y-%m-%d")
+            today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+            # Calculate one year from today
+            one_year_from_today = today.replace(year=today.year + 1)
+
+            # Validate dates
+            if start < today:
+                await ctx.edit_original_message("❌ Start date cannot be in the past!")
+                return
+
+            if end < start:
+                await ctx.edit_original_message("❌ End date cannot be before start date!")
+                return
+
+            if start > one_year_from_today or end > one_year_from_today:
+                await ctx.edit_original_message("❌ Dates cannot be more than one year in the future!")
+                return
+        except ValueError:
+            await ctx.edit_original_message("❌ Invalid date format! Please use YYYY-MM-DD format.")
 
         print(f'a{user} |||||||||| {discord_user}  ')
 
