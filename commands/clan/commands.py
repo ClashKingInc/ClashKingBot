@@ -1,6 +1,9 @@
+import coc
 from disnake.ext import commands
 
-from discord import autocomplete, options
+from discord import autocomplete, options, convert
+
+from datetime import datetime
 
 from .utils import *
 
@@ -389,6 +392,55 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
             custom_id=f'clansummary:{clan.tag}:{season}:{limit}:refresh',
         )
         await ctx.edit_original_message(embeds=embeds, components=[buttons])
+
+    @clan.sub_command(name='absence', description='Report an absence')
+    async def absence(
+            self,
+            ctx: disnake.ApplicationCommandInteraction,
+            player: str = commands.Param(autocomplete=autocomplete.family_players),
+            start_date: str = commands.Param(description="Start date of absence (YYYY-MM-DD)"),
+            end_date: str = commands.Param(description="End date of absence (YYYY-MM-DD)"),
+            reason: str = commands.Param(description="Reason for absence")
+    ):
+        user =ctx.user.id
+        discord_user = ctx.guild.get_member(user)
+        try:
+            # Convert string dates to datetime objects
+            start = datetime.strptime(start_date, "%Y-%m-%d")
+            end = datetime.strptime(end_date, "%Y-%m-%d")
+            today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+            # Calculate one year from today
+            one_year_from_today = today.replace(year=today.year + 1)
+
+            # Validate dates
+            if start < today:
+                await ctx.edit_original_message("❌ Start date cannot be in the past!")
+                return
+
+            if end < start:
+                await ctx.edit_original_message("❌ End date cannot be before start date!")
+                return
+
+            if start > one_year_from_today or end > one_year_from_today:
+                await ctx.edit_original_message("❌ Dates cannot be more than one year in the future!")
+                return
+        except ValueError:
+            await ctx.edit_original_message("❌ Invalid date format! Please use YYYY-MM-DD format.")
+
+        print(f'a{user} |||||||||| {discord_user}  ')
+
+        embed = disnake.Embed(
+            title="✅ Absence Recorded",
+            description=f"Absence for **{player}**",
+            color=disnake.Color.green()
+        )
+        embed.add_field(name="Start Date", value=start_date, inline=True)
+        embed.add_field(name="End Date", value=end_date, inline=True)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.set_footer(text=f"Submitted by {ctx.user.display_name}", icon_url=ctx.user.display_avatar.url)
+
+        await ctx.edit_original_response(embed=embed)
 
 
 def setup(bot):
