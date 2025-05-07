@@ -1,5 +1,6 @@
 import coc
 import disnake
+import pendulum as pend
 from disnake.ext import commands
 
 from classes.bot import CustomClient
@@ -136,6 +137,89 @@ class Strikes(commands.Cog, name='Strikes'):
             return await ctx.send(embed=embed)
         await self.bot.strikelist.delete_one({'$and': [{'strike_id': strike_id}, {'server': ctx.guild.id}]})
         embed = disnake.Embed(description=f'Strike {strike_id} removed.', color=disnake.Color.green())
+        return await ctx.send(embed=embed)
+
+    @strike.sub_command_group(name="clear", description="Clear strikes from a clan")
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def clear(self, ctx: disnake.ApplicationCommandInteraction):
+        pass
+
+    @clear.sub_command(name='all', description='Remove all strikes from a clan')
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def strike_clear_all(
+            self,
+            ctx: disnake.ApplicationCommandInteraction,
+            clan=commands.Param(default=None, converter=convert.clan, autocomplete=autocomplete.clan),
+    ):
+        clan_tag = clan.tag
+        result_ = await self.bot.strikelist.find_one({
+            '$and': [{'clan': clan_tag}, {'server': ctx.guild.id}]
+        })
+
+        if result_ is None:
+            embed = disnake.Embed(
+                description=f'All strikes in {clan} cleared.',
+                color=disnake.Color.red(),
+            )
+            return await ctx.send(embed=embed)
+
+        delete_result = await self.bot.strikelist.delete_many({
+            '$and': [{'clan': clan_tag}, {'server': ctx.guild.id}]
+        })
+
+        embed = disnake.Embed(
+            description=f'Cleared {delete_result.deleted_count} strikes from {clan_tag}.',
+            color=disnake.Color.orange()
+        )
+        return await ctx.send(embed=embed)
+
+    @clear.sub_command(name='date', description='Remove clan strikes in a date range')
+    @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
+    async def strike_clear_date(
+            self,
+            ctx: disnake.ApplicationCommandInteraction,
+            clan=commands.Param(default=None, converter=convert.clan, autocomplete=autocomplete.clan),
+            time_range: str = commands.Param(
+                choices=["Last Week", "Last Month", "Last 90 Days"],
+                default="Last Week"
+            ),
+    ):
+        now = pend.now("UTC")
+
+        if time_range == "Last Week":
+            cutoff = now.subtract(weeks=1)
+        elif time_range == "Last Month":
+            cutoff = now.subtract(months=1)
+        else:
+            cutoff = now.subtract(days=90)
+
+        cutoff_timestamp = cutoff.to_datetime_string()
+
+        result_ = await self.bot.strikelist.find_one({
+            "$and": [
+                {"clan": clan, "server": ctx.guild.id},
+                {"date_created": {"$gte": cutoff_timestamp}}
+            ]
+        })
+
+        if result_ is None:
+            embed = disnake.Embed(
+                description=f"No strikes found for {clan} in selected time range.",
+                color=disnake.Color.red()
+            )
+            return await ctx.send(embed=embed)
+
+        delete_result = await self.bot.strikelist.delete_many({
+            "$and": [
+                {"clan": clan, "server": ctx.guild.id},
+                {"date_created": {"$gte": cutoff_timestamp}}
+            ]
+        })
+
+        embed = disnake.Embed(
+            description=f"Deleted {delete_result.deleted_count} strikes from {clan} from the {time_range.lower()}.",
+            color=disnake.Color.green()
+        )
         return await ctx.send(embed=embed)
 
     """@commands.slash_command(name='autostrike', description='stuff')
