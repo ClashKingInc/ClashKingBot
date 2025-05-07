@@ -33,7 +33,7 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'familycompo:{server.id}:{type_}',
+                custom_id=f'familycompo:{server.id}:{type_}:refresh',
             )
         )
         await ctx.edit_original_response(embed=embed, components=[buttons])
@@ -84,7 +84,7 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=button_id,
+                custom_id=f"{button_id}:refresh"
             )
         )
         await ctx.edit_original_response(embed=embed, components=[buttons])
@@ -116,7 +116,7 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'familyoverview:{server.id}',
+                custom_id=f'familyoverview:{server.id}:refresh',
             )
         )
         await ctx.edit_original_response(embed=embed, components=[buttons])
@@ -137,7 +137,7 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'familywars:{server.id}',
+                custom_id=f'familywars:{server.id}:refresh',
             )
         )
         await ctx.edit_original_response(embed=embed, components=[buttons])
@@ -158,7 +158,7 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'familyraids:{server.id}:{None}',
+                custom_id=f'familyraids:{server.id}:{None}:refresh',
             )
         )
         await ctx.edit_original_response(embed=embed, components=[buttons])
@@ -199,7 +199,7 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=custom_id,
+                custom_id=f"{custom_id}:refresh",
             ),
         )
         await ctx.edit_original_message(embeds=embeds, components=[buttons])
@@ -227,7 +227,7 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
             label='',
             emoji=self.bot.emoji.refresh.partial_emoji,
             style=disnake.ButtonStyle.grey,
-            custom_id=f'familysummary:{server.id}:{season}:{limit}',
+            custom_id=f'familysummary:{server.id}:{season}:{limit}:refresh',
         )
         await ctx.edit_original_message(embeds=embeds, components=[buttons])
 
@@ -292,7 +292,7 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'familydonos:{server.id}:{season}:{townhall}:{limit}:{sort_by}:{sort_order}',
+                custom_id=f'familydonos:{server.id}:{season}:{townhall}:{limit}:{sort_by}:{sort_order}:refresh',
             )
         )
         await ctx.edit_original_message(embed=embed, components=[buttons])
@@ -324,7 +324,7 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'familygames:{server.id}:{season}:{sort_by.lower()}:{sort_order.lower()}:{limit}',
+                custom_id=f'familygames:{server.id}:{season}:{sort_by.lower()}:{sort_order.lower()}:{limit}:refresh',
             )
         )
         await ctx.edit_original_message(embed=embed, components=[buttons])
@@ -358,7 +358,7 @@ class FamilyCommands(commands.Cog, name='Family Commands'):
             label='',
             emoji=self.bot.emoji.refresh.partial_emoji,
             style=disnake.ButtonStyle.grey,
-            custom_id=f"familyactivity:{server.id}:{season}:{limit}:{sort_by.lower().replace(' ', '')}:{sort_order}",
+            custom_id=f"familyactivity:{server.id}:{season}:{limit}:{sort_by.lower().replace(' ', '')}:{sort_order}:refresh",
         )
         await ctx.edit_original_message(embed=embed, components=[buttons])
 

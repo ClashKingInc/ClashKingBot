@@ -1,12 +1,17 @@
 import inspect
 
 import disnake
+
+import time
+
 from disnake.ext import commands
 
 from classes.bot import CustomClient
 from utility.components import button_generator
 from utility.discord_utils import registered_functions
 import pendulum as pend
+
+user_refresh_cooldowns = {}
 
 async def button_logic(
     button_data: str,
@@ -16,15 +21,27 @@ async def button_logic(
     ctx: disnake.MessageInteraction | None = None,
     autoboard: bool = False,
 ):
+    print(f"[DEBUG] button_data: {button_data}")
     split_data = button_data.split(':')
-    lookup_name = button_data.split(':')[0]
+    lookup_name = split_data[0]
 
-    function, parser, ephemeral, no_embed, pagination = registered_functions.get(lookup_name, (None, '', False, False, False))
+    function, parser, ephemeral, no_embed, pagination = registered_functions.get(
+        lookup_name, (None, '', False, False, False)
+    )
 
     if function is None:
-        return None, 0  # maybe change this
+        return None, 0
+
     if ctx:
         await ctx.response.defer(ephemeral=ephemeral)
+
+    if "refresh" in button_data and ctx:
+        print(f"[DEBUG] Refresh cooldown check hit by user {ctx.author.id}")
+        now = time.time()
+        cooldown = user_refresh_cooldowns.get(ctx.author.id, 0)
+        if now - cooldown < 2:
+            return None, 0
+        user_refresh_cooldowns[ctx.author.id] = now
 
     page = 0
     if pagination and 'page=' in split_data[-1]:
@@ -66,12 +83,11 @@ async def button_logic(
 
     embed_color = await bot.ck_client.get_server_embed_color(server_id=None if not guild else guild.id)
     hold_kwargs['embed_color'] = embed_color
-    # Ensure function signature respects wrapped functions
+
     signature = inspect.signature(function)
     valid_keys = list(signature.parameters.keys())
-
-    # Keep only valid keys
     hold_kwargs = {key: hold_kwargs[key] for key in valid_keys if key in hold_kwargs}
+
     embed = await function(**hold_kwargs)
 
     components = 0
@@ -85,6 +101,7 @@ async def button_logic(
     if no_embed:
         return None, 0
     return embed, components
+
 
 
 class ComponentHandler(commands.Cog):

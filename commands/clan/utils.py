@@ -5,6 +5,7 @@ from typing import List
 
 import disnake
 import pendulum as pend
+
 from ballpark import ballpark as B
 from disnake import Embed
 from disnake.utils import get
@@ -20,6 +21,7 @@ from utility.general import create_superscript, response_to_line, smart_convert_
 from utility.imagegen.ClanCapitalResult import generate_raid_result_image
 
 from ..graphs.utils import daily_graph
+
 
 
 @register_button('clandetailed', parser='_:clan')

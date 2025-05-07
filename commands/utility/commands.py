@@ -140,7 +140,7 @@ class UtilityCommands(UtilityButtons, commands.Cog, name='Utility'):
                     label='',
                     emoji=self.bot.emoji.refresh.partial_emoji,
                     style=disnake.ButtonStyle.grey,
-                    custom_id=custom_id,
+                    custom_id=f"{custom_id}:refresh",
                 )
             )
             as_dict = {

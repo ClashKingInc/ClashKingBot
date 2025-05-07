@@ -78,7 +78,7 @@ class PlayerCommands(commands.Cog, name='Player Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'playeraccounts:{discord_user.id}',
+                custom_id=f'playeraccounts:{discord_user.id}:refresh',
             )
         )
 
@@ -169,7 +169,6 @@ class PlayerCommands(commands.Cog, name='Player Commands'):
             return await player_embeds.raid_stalk(bot=self.bot, ctx=ctx, member=member)
         elif type == "CWL":
             return await player_embeds.cwl_stalk(bot=self.bot,ctx=ctx, member=member)'''
-
 
 def setup(bot: CustomClient):
     bot.add_cog(PlayerCommands(bot))

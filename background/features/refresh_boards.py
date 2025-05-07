@@ -7,6 +7,7 @@ from commands.components.buttons import button_logic
 from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.discord_utils import get_webhook_for_channel
 
+# board_refresh_timestamps = {}
 
 class RefreshBoards(commands.Cog):
     def __init__(self, bot: CustomClient):
@@ -22,6 +23,7 @@ class RefreshBoards(commands.Cog):
     async def refresh(self):
         all_refresh_boards = await self.bot.autoboards.find({'$and': [{'webhook_id': {'$ne': None}}, {'type': 'refresh'}]}).to_list(length=None)
         for board in all_refresh_boards:
+
 
             webhook_id = board.get('webhook_id')
             thread_id = board.get('thread_id')

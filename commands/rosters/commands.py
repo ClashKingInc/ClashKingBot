@@ -2,6 +2,7 @@ import asyncio
 import base64
 import datetime
 import uuid
+from collections import defaultdict
 from typing import List
 
 import coc
@@ -57,7 +58,7 @@ class RosterCommands(commands.Cog, name='Rosters'):
                     label='',
                     emoji=self.bot.emoji.refresh.partial_emoji,
                     style=disnake.ButtonStyle.grey,
-                    custom_id=f'Refresh_{roster}',
+                    custom_id=f'Refresh_{roster}:refresh',
                 ),
                 disnake.ui.Button(
                     label='',
@@ -82,7 +83,7 @@ class RosterCommands(commands.Cog, name='Rosters'):
                     label='',
                     emoji=self.bot.emoji.refresh.partial_emoji,
                     style=disnake.ButtonStyle.grey,
-                    custom_id=f'Refresh_{roster}',
+                    custom_id=f'Refresh_{roster}:refresh',
                 ),
                 disnake.ui.Button(
                     label='',

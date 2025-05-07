@@ -84,7 +84,7 @@ async def discord_link_clan_choose(bot: CustomClient, ctx: disnake.MessageIntera
         label='',
         emoji=bot.emoji.refresh.partial_emoji,
         style=disnake.ButtonStyle.grey,
-        custom_id=f'discordlinks:{clan.tag}:{ctx.guild_id}',
+        custom_id=f'discordlinks:{clan.tag}:{ctx.guild_id}:refresh',
     )
     buttons.add_button(
         label='',

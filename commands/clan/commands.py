@@ -1,6 +1,9 @@
+import coc
 from disnake.ext import commands
 
-from discord import autocomplete, options
+from discord import autocomplete, options, convert
+
+from datetime import datetime
 
 from .utils import *
 
@@ -31,7 +34,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'clancompo:{clan.tag}:{type_}',
+                custom_id=f"clancompo:{clan.tag}:{type_}:refresh"
             )
         )
         await ctx.edit_original_response(embed=embed, components=[buttons])
@@ -51,13 +54,13 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
         """
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
         if type == 'Detailed':
-            custom_id = f'clandetailed:{clan.tag}'
+            custom_id = f'clandetailed:{clan.tag}:refresh'
             embed = await detailed_clan_board(bot=self.bot, clan=clan, server=ctx.guild, embed_color=embed_color)
         elif type == 'Basic':
-            custom_id = f'clanbasic:{clan.tag}'
+            custom_id = f'clanbasic:{clan.tag}:refresh'
             embed = await basic_clan_board(bot=self.bot, clan=clan, embed_color=embed_color)
         elif type == 'Minimalistic':
-            custom_id = f'clanmini:{clan.tag}'
+            custom_id = f'clanmini:{clan.tag}:refresh'
             embed = await minimalistic_clan_board(bot=self.bot, clan=clan, server=ctx.guild, embed_color=embed_color)
 
         buttons = disnake.ui.ActionRow(
@@ -65,7 +68,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=custom_id,
+                custom_id= f'clandetailed:{clan.tag}:refresh',
             ),
             disnake.ui.Button(label='Open In-Game', url=clan.share_link, style=disnake.ButtonStyle.url),
         )
@@ -91,7 +94,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
         embed_color = await self.bot.ck_client.get_server_embed_color(server_id=ctx.guild_id)
 
         if type == 'Heroes & Pets':
-            custom_id = f'clanhero:{clan.tag}:{season}:{limit}'
+            custom_id = f'clanhero:{clan.tag}:{season}:{limit}:refresh'
             embeds = await clan_hero_progress(
                 bot=self.bot,
                 clan=clan,
@@ -101,7 +104,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
             )
 
         elif type == 'Troops, Spells, & Sieges':
-            custom_id = f'clantroops:{clan.tag}:{season}:{limit}'
+            custom_id = f'clantroops:{clan.tag}:{season}:{limit}:refresh'
             embeds = await troops_spell_siege_progress(
                 bot=self.bot,
                 clan=clan,
@@ -115,7 +118,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=custom_id,
+                custom_id = f'clandetailed:{clan.tag}:refresh',
             ),
         )
         await ctx.edit_original_message(embeds=embeds, components=[buttons])
@@ -152,7 +155,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'clansorted:{clan.tag}:{sort_by}:{limit}:{townhall}',
+                custom_id = f'clansorted:{clan.tag}:{sort_by}:{limit}:{townhall}:refresh',
             )
         )
 
@@ -186,7 +189,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'clandonos:{clan.tag}:{season}:{townhall}:{limit}:{sort_by}:{sort_order}',
+                custom_id = f'clandonos:{clan.tag}:{season}:{townhall}:{limit}:{sort_by}:{sort_order}:refresh',
             )
         )
         await ctx.edit_original_message(embed=embed, components=[buttons])
@@ -209,7 +212,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                     label='',
                     emoji=self.bot.emoji.refresh.partial_emoji,
                     style=disnake.ButtonStyle.grey,
-                    custom_id=f'clanwarlog:{clan.tag}:{limit}',
+                    custom_id = f'clanwarlog:{clan.tag}:{limit}:refresh',
                 )
             )
         elif option == 'CWL History':
@@ -219,7 +222,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                     label='',
                     emoji=self.bot.emoji.refresh.partial_emoji,
                     style=disnake.ButtonStyle.grey,
-                    custom_id=f'clancwlperf:{clan.tag}',
+                    custom_id = f'clancwlperf:{clan.tag}:refresh',
                 )
             )
 
@@ -253,7 +256,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
                 label='',
                 emoji=self.bot.emoji.refresh.partial_emoji,
                 style=disnake.ButtonStyle.grey,
-                custom_id=f'clangames:{clan.tag}:{season}:{sort_by.lower()}:{sort_order.lower()}:{limit}:{townhall}',
+                custom_id = f'clangames:{clan.tag}:{season}:{sort_by.lower()}:{sort_order.lower()}:{limit}:{townhall}:refresh',
             )
         )
         await ctx.edit_original_message(embed=embed, components=[buttons])
@@ -330,7 +333,7 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
             label='',
             emoji=self.bot.emoji.refresh.partial_emoji,
             style=disnake.ButtonStyle.grey,
-            custom_id=f"clanactivity:{clan.tag}:{season}:{townhall}:{limit}:{sort_by.lower().replace(' ', '')}:{sort_order}",
+            custom_id=f"clanactivity:{clan.tag}:{season}:{townhall}:{limit}:{sort_by.lower().replace(' ', '')}:{sort_order}:refresh",
         )
         await ctx.edit_original_message(embed=embed, components=[buttons])
 
@@ -386,9 +389,58 @@ class ClanCommands(commands.Cog, name='Clan Commands'):
             label='',
             emoji=self.bot.emoji.refresh.partial_emoji,
             style=disnake.ButtonStyle.grey,
-            custom_id=f'clansummary:{clan.tag}:{season}:{limit}',
+            custom_id=f'clansummary:{clan.tag}:{season}:{limit}:refresh',
         )
         await ctx.edit_original_message(embeds=embeds, components=[buttons])
+
+    @clan.sub_command(name='absence', description='Report an absence')
+    async def absence(
+            self,
+            ctx: disnake.ApplicationCommandInteraction,
+            player: str = commands.Param(autocomplete=autocomplete.family_players),
+            start_date: str = commands.Param(description="Start date of absence (YYYY-MM-DD)"),
+            end_date: str = commands.Param(description="End date of absence (YYYY-MM-DD)"),
+            reason: str = commands.Param(description="Reason for absence")
+    ):
+        user =ctx.user.id
+        discord_user = ctx.guild.get_member(user)
+        try:
+            # Convert string dates to datetime objects
+            start = datetime.strptime(start_date, "%Y-%m-%d")
+            end = datetime.strptime(end_date, "%Y-%m-%d")
+            today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+            # Calculate one year from today
+            one_year_from_today = today.replace(year=today.year + 1)
+
+            # Validate dates
+            if start < today:
+                await ctx.edit_original_message("❌ Start date cannot be in the past!")
+                return
+
+            if end < start:
+                await ctx.edit_original_message("❌ End date cannot be before start date!")
+                return
+
+            if start > one_year_from_today or end > one_year_from_today:
+                await ctx.edit_original_message("❌ Dates cannot be more than one year in the future!")
+                return
+        except ValueError:
+            await ctx.edit_original_message("❌ Invalid date format! Please use YYYY-MM-DD format.")
+
+        print(f'a{user} |||||||||| {discord_user}  ')
+
+        embed = disnake.Embed(
+            title="✅ Absence Recorded",
+            description=f"Absence for **{player}**",
+            color=disnake.Color.green()
+        )
+        embed.add_field(name="Start Date", value=start_date, inline=True)
+        embed.add_field(name="End Date", value=end_date, inline=True)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.set_footer(text=f"Submitted by {ctx.user.display_name}", icon_url=ctx.user.display_avatar.url)
+
+        await ctx.edit_original_response(embed=embed)
 
 
 def setup(bot):
