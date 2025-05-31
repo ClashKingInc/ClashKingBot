@@ -1,1 +1,1 @@
-no-data-found-clan = No data found for this clan.
+no-data-found-clan = Bu klan için veri bulunamadı.
