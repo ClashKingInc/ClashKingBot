@@ -1,18 +1,13 @@
-
-from typing import TYPE_CHECKING, List, Union
-
-import coc
 import disnake
-from utility.constants import EMBED_COLOR
 
-from coc import utils
+from utility.constants import EMBED_GREY
 
 
-class ServerSettings():
+class ServerSettings:
     def __init__(self, data: dict):
         self._data = data
         self.server_id = data.get('server')
-        self.embed_color = disnake.Color(data.get('embed_color', EMBED_COLOR))
+        self.embed_color = disnake.Color(data.get('embed_color', EMBED_GREY))
 
 
 class ServerClanSettings:
@@ -22,11 +17,3 @@ class ServerClanSettings:
         self.server_id = data.get('server')
 
         self.category = data.get('category')
-
-
-
-
-
-
-
-

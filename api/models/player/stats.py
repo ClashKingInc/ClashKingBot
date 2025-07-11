@@ -10,7 +10,6 @@ from coc import utils
 from utility.clash.capital import gen_raid_weekend_datestrings
 from utility.constants import SHORT_PLAYER_LINK, SUPER_SCRIPTS
 
-
 if TYPE_CHECKING:
     from classes.bot import CustomClient
 else:
@@ -488,7 +487,7 @@ class StatsPlayer(coc.Player):
             hero = self.get_hero(name=hero_name)
             if hero is None:
                 hero: coc.Hero = self.bot.coc_client.get_hero(name=hero_name, townhall=self.town_hall, level=1)
-                if not hero.name in coc.enums.HOME_BASE_HERO_ORDER:
+                if hero.name not in coc.enums.HOME_BASE_HERO_ORDER:
                     continue
                 if hero.required_th_level > self.town_hall:
                     continue

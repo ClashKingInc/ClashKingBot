@@ -873,7 +873,7 @@ class Roster:
         if roster_page >= 1:
             edit_roster_options.append(
                 disnake.SelectOption(
-                    label=f'Previous 25 Rosters',
+                    label='Previous 25 Rosters',
                     emoji=self.bot.emoji.back.partial_emoji,
                     value=f'editrosters_{roster_page - 1}',
                 )
@@ -889,7 +889,7 @@ class Roster:
         if len(edit_rosters) == length and (len(other_rosters) > (length * roster_page) + length):
             edit_roster_options.append(
                 disnake.SelectOption(
-                    label=f'Next 25 Rosters',
+                    label='Next 25 Rosters',
                     emoji=self.bot.emoji.forward.partial_emoji,
                     value=f'editrosters_{roster_page + 1}',
                 )
@@ -930,7 +930,7 @@ class Roster:
         if player_page >= 1:
             player_options.append(
                 disnake.SelectOption(
-                    label=f'Previous 25 Players',
+                    label='Previous 25 Players',
                     emoji=self.bot.emoji.back.partial_emoji,
                     value=f'players_{player_page - 1}',
                 )
@@ -946,7 +946,7 @@ class Roster:
         if len(players) == length and (len(self.players) > (length * player_page) + length):
             player_options.append(
                 disnake.SelectOption(
-                    label=f'Next 25 Players',
+                    label='Next 25 Players',
                     emoji=self.bot.emoji.forward.partial_emoji,
                     value=f'players_{player_page + 1}',
                 )
@@ -972,7 +972,7 @@ class Roster:
             if other_roster_page >= 1:
                 move_roster_options.append(
                     disnake.SelectOption(
-                        label=f'Previous 25 Rosters',
+                        label='Previous 25 Rosters',
                         emoji=self.bot.emoji.back.partial_emoji,
                         value=f'moverosters_{other_roster_page - 1}',
                     )
@@ -988,7 +988,7 @@ class Roster:
             if len(move_rosters) == length and (len(other_rosters) > (length * other_roster_page) + length):
                 move_roster_options.append(
                     disnake.SelectOption(
-                        label=f'Next 25 Rosters',
+                        label='Next 25 Rosters',
                         emoji=self.bot.emoji.forward.partial_emoji,
                         value=f'moverosters_{other_roster_page + 1}',
                     )

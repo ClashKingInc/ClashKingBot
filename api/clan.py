@@ -1,3 +1,4 @@
+import coc
 
 
 class BaseClan:
@@ -23,3 +24,22 @@ class ClanTotals(BaseClan):
         self.activity_per_day: int = data['activity']['per_day']
         self.activity_last_48h: int = data['activity']['last_48h']
         self.activity_score: int = data['activity']['score']
+
+
+class ClanCompo:
+    def __init__(self, data: dict):
+        self._data = data
+        self.townhall: dict = data['townhall']
+        self.trophies: dict = data['trophies']
+        self.location: dict = data['location']
+        self.role: dict = data['role']
+        self.league: dict = data['league']
+        self.country_map: dict = data['country_map']
+        self.total_members: int = data['total_members']
+        self.clan_count: int = data['clan_count']
+
+    @property
+    def clan(self) -> coc.Clan | None:
+        if self._data.get('clan'):
+            return coc.Clan(data=self._data['clan'], client=None)
+        return None

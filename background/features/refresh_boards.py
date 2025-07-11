@@ -1,10 +1,10 @@
 import disnake
 import pendulum as pend
 from disnake.ext import commands
+from exceptions.CustomExceptions import MissingWebhookPerms
 
 from classes.bot import CustomClient
 from commands.components.buttons import button_logic
-from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.discord_utils import get_webhook_for_channel
 
 
@@ -35,7 +35,10 @@ class RefreshBoards(commands.Cog):
             if guild is None:
                 continue
             embed, components = await button_logic(
-                button_data=button_id, bot=self.bot, guild=guild, locale=disnake.Locale(board.get('locale'))
+                button_data=button_id,
+                bot=self.bot,
+                guild=guild,
+                locale=disnake.Locale(board.get('locale')),
             )
             if embed is None:
                 continue
@@ -115,7 +118,10 @@ class RefreshBoards(commands.Cog):
                 continue
 
             embed, components = await button_logic(
-                button_data=button_id, bot=self.bot, guild=guild, locale=disnake.Locale(board.get('locale'))
+                button_data=button_id,
+                bot=self.bot,
+                guild=guild,
+                locale=disnake.Locale(board.get('locale')),
             )
             if embed is None:
                 continue

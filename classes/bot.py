@@ -1,36 +1,29 @@
 import asyncio
-import calendar
 import functools
+import random
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from math import ceil
 from typing import Callable, Dict, List
 
 import aiohttp
 import coc
-import dateutil.relativedelta
 import disnake
-import threading
-
 import emoji
-import motor.motor_asyncio
-import pendulum as pend
 import ujson
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from coc.ext import discordlinks
 from disnake.ext import commands, fluent
 from expiring_dict import ExpiringDict
 from redis import asyncio as redis
-import random
 
-from classes.events import EventGateway
-from classes.clashofstats import COSPlayerHistory
-from classes.config import Config
-from classes.cocpy.client import CustomClashClient
-from classes.emoji import Emojis, EmojiType
-from utility.general import create_superscript, fetch
-from typing import Any
 from api.client import ClashKingAPIClient
+from classes.clashofstats import COSPlayerHistory
+from classes.cocpy.client import CustomClashClient
+from classes.config import Config
+from classes.emoji import Emojis, EmojiType
+from classes.events import EventGateway
+from utility.emojis import create_superscript, fetch
 
 
 class CustomClient(commands.AutoShardedBot):
@@ -75,7 +68,7 @@ class CustomClient(commands.AutoShardedBot):
 
         self.max_pool_size = 1 if config.is_custom else 100
 
-        self.mongo = ""
+        self.mongo = ''
 
         self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(
             discordlinks.login(self._config.link_api_username, self._config.link_api_password)
@@ -159,11 +152,15 @@ class CustomClient(commands.AutoShardedBot):
             if webhook is None:
                 if isinstance(channel, disnake.Thread):
                     webhook = await channel.parent.create_webhook(
-                        name=self.user.name, avatar=self.user.avatar, reason='Log Creation'
+                        name=self.user.name,
+                        avatar=self.user.avatar,
+                        reason='Log Creation',
                     )
                 else:
                     webhook = await channel.create_webhook(
-                        name=self.user.name, avatar=self.user.avatar, reason='Log Creation'
+                        name=self.user.name,
+                        avatar=self.user.avatar,
+                        reason='Log Creation',
                     )
             return webhook
         except Exception:
@@ -237,18 +234,6 @@ class CustomClient(commands.AutoShardedBot):
         emoji = emoji_string.split(':')
         animated = '<a:' in emoji_string
         return disnake.PartialEmoji(name=emoji[1], id=int(str(emoji[2])[:-1]), animated=animated)
-
-    def fetch_emoji(self, name: str | int):
-        if name == "CWL_Unranked":
-            name = "unranked"
-
-        if name == 'Unranked':
-            name = 'unranked'
-
-        emoji = self.loaded_emojis.get(name)
-        if emoji is None:
-            return None
-        return EmojiType(emoji_string=emoji)
 
     async def getch_channel(self, channel_id, raise_exception=False):
         if (channel := self.get_channel(channel_id)) is not None:

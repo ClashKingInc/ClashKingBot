@@ -1,7 +1,10 @@
-from datetime import datetime, timedelta
-import pendulum as pend
-import coc
 import calendar
+from datetime import datetime, timedelta
+
+import coc
+import pendulum as pend
+from babel.dates import get_month_names
+
 
 class DiscordTimeStamp:
     def __init__(self, date: pend.DateTime):
@@ -9,6 +12,7 @@ class DiscordTimeStamp:
         self.text_date = f'<t:{date.int_timestamp}:D>'
         self.time_only = f'<t:{date.int_timestamp}:t>'
         self.full_date = f'<t:{date.int_timestamp}:F>'
+        self.small_full_date = f'<t:{date.int_timestamp}:f>'
         self.relative = f'<t:{date.int_timestamp}:R>'
 
 
@@ -116,7 +120,7 @@ def gen_raid_date(num_weeks: int = 0) -> str | list[str]:
         """Finds the nearest Raid Weekend start date (Friday at 07:00 UTC)."""
         if date.weekday() > 0 and (date.weekday() < 4 or (date.weekday() == 4 and date.hour < 7)):
             date = date.subtract(weeks=1)
-        return date.start_of("week").add(days=4, hours=7).to_date_string()
+        return date.start_of('week').add(days=4, hours=7).to_date_string()
 
     now = pend.now()
 
@@ -174,13 +178,36 @@ def season_start_end(season: str, gold_pass_season: bool = False):
         prev_year = year - 1 if month == 1 else year
 
         season_start = pend.from_timestamp(
-            coc.utils.get_season_start(month=prev_month, year=prev_year).timestamp(), tz='UTC'
+            coc.utils.get_season_start(month=prev_month, year=prev_year).timestamp(),
+            tz='UTC',
         )
         season_end = pend.from_timestamp(
-            coc.utils.get_season_end(month=prev_month, year=prev_year).timestamp(), tz='UTC'
+            coc.utils.get_season_end(month=prev_month, year=prev_year).timestamp(),
+            tz='UTC',
         )
     else:
         season_start = pend.datetime(year, month, 1, tz='UTC')  # First day of the month
         season_end = season_start.add(months=1)  # First day of the next month
 
     return season_start, season_end
+
+
+def month_to_ym(localized: str, locale: str) -> str:
+    # split off the year (last token)
+    parts = localized.strip().rsplit(' ', 1)
+    if len(parts) != 2:
+        raise ValueError(f'Invalid format: {localized!r}')
+    month_str, year = parts
+
+    # build reverse lookup: name → month number
+    wide = get_month_names('wide', locale=locale)
+    abbr = get_month_names('abbreviated', locale=locale)
+    lookup = {name.lower(): num for num, name in wide.items()}
+    lookup.update({name.lower(): num for num, name in abbr.items()})
+
+    m = lookup.get(month_str.lower())
+    if not m:
+        raise ValueError(f'Unrecognized month {month_str!r} for locale {locale}')
+
+    dt = pend.datetime(int(year), m, 1)
+    return dt.format('YYYY-MM')

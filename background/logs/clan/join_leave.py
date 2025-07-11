@@ -1,12 +1,12 @@
+from functools import partial
+
 import disnake
 
-from classes.bot import CustomClient
 from api.models.settings import Join_Log
-from utility.clash.other import basic_heros, leagueAndTrophies
-
-from classes.events import log_event, ClanJoinLeaveEvent
 from background.logs.utils import get_available_logs, send_logs
-from functools import partial
+from classes.bot import CustomClient
+from classes.events import ClanJoinLeaveEvent, log_event
+from utility.clash.other import basic_heros, leagueAndTrophies
 
 
 @log_event(cls=ClanJoinLeaveEvent.join_leave)
@@ -46,7 +46,11 @@ async def clan_join_leave(bot: CustomClient, event: ClanJoinLeaveEvent):
 
             if bot._config.is_main:
                 await send_logs(
-                    bot=bot, available_logs=logs, attribute='join_log', embeds=embeds, components=components
+                    bot=bot,
+                    available_logs=logs,
+                    attribute='join_log',
+                    embeds=embeds,
+                    components=components,
                 )
 
     if event.members_left:
@@ -54,7 +58,10 @@ async def clan_join_leave(bot: CustomClient, event: ClanJoinLeaveEvent):
 
         if logs:
             player_map = await bot.get_players(
-                tags=[m.tag for m in event.members_left], use_cache=False, custom=False, as_mapping=True
+                tags=[m.tag for m in event.members_left],
+                use_cache=False,
+                custom=False,
+                as_mapping=True,
             )
 
             embeds, components = [], []
@@ -83,8 +90,13 @@ async def clan_join_leave(bot: CustomClient, event: ClanJoinLeaveEvent):
                 embeds.append(embed)
                 components.append(partial(leave_components, player_tag=player.tag))
 
-            await send_logs(bot=bot, available_logs=logs, attribute='leave_log', embeds=embeds, components=components)
-
+            await send_logs(
+                bot=bot,
+                available_logs=logs,
+                attribute='leave_log',
+                embeds=embeds,
+                components=components,
+            )
 
 
 def join_components(bot: CustomClient, log: Join_Log, player_tag: str) -> list:

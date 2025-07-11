@@ -1,18 +1,17 @@
 import asyncio
-from typing import TYPE_CHECKING, Dict, Tuple, Type
+from collections import defaultdict, deque
+from typing import TYPE_CHECKING
 
 import orjson
 import ujson
 import websockets
-from websockets.asyncio.client import connect
 from loguru import logger
+from websockets.asyncio.client import connect
+
 from .register import registered_logs
-from collections import deque, defaultdict
 
 if TYPE_CHECKING:
     from classes.bot import CustomClient
-
-from .event import BaseEvent, ClanEvent, PlayerEvent
 
 
 class EventGateway:
@@ -20,10 +19,14 @@ class EventGateway:
         self.background_tasks = set()
         self.clans = set()
         self.bot: 'CustomClient' = None
-        self.defaults = {'ping_timeout': None, 'ping_interval': None, 'open_timeout': None, 'max_queue': 500_000}
+        self.defaults = {
+            'ping_timeout': None,
+            'ping_interval': None,
+            'open_timeout': None,
+            'max_queue': 500_000,
+        }
         self.websocket: websockets.asyncio.client.Connection = None
         self.request_stats = defaultdict(lambda: deque(maxlen=10_000))
-
 
     @property
     def available_events(self) -> set:

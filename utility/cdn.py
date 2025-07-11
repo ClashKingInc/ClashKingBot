@@ -1,9 +1,19 @@
 import aiohttp
+import lightbulb
 
-#from main import config
+from classes.config import Config
+
+# from main import config
 
 
-async def upload_to_cdn(payload: bytes, folder: str, id: int | str, filetype: str):
+@lightbulb.di.with_di
+async def upload_to_cdn(
+    payload: bytes,
+    folder: str,
+    id: int | str,
+    filetype: str,
+    config: Config = lightbulb.di.INJECTED,
+) -> str:
     """
     Uploads a file to BunnyCDN storage.
 
@@ -11,6 +21,7 @@ async def upload_to_cdn(payload: bytes, folder: str, id: int | str, filetype: st
     :param folder: The directory where the file should be stored.
     :param id: The ID or name of the file.
     :param filetype: The file extension, e.g., "png", "jpeg", "html".
+    :param config: The injected configuration
     :return: The public URL of the uploaded file.
     :raises: aiohttp.ClientResponseError if the request fails.
     """
@@ -21,8 +32,8 @@ async def upload_to_cdn(payload: bytes, folder: str, id: int | str, filetype: st
     url = f'https://storage.bunnycdn.com/clashking-files/{folder}/{id}.{filetype}'
     async with aiohttp.ClientSession() as session:
         async with session.put(url, headers=headers, data=payload) as response:
-            if response.status == 200:
-                return f'https://cdn.clashking.xyz/{folder}/{id}/{filetype}'
+            if response.status == 201:
+                return f'https://cdn.clashking.xyz/{folder}/{id}.{filetype}'
             else:
                 error_text = await response.text()
                 raise aiohttp.ClientResponseError(

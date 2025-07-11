@@ -5,8 +5,8 @@ import disnake
 import pendulum as pend
 from disnake.ext import commands
 
-from classes.events.gateway import giveaway_ee
 from classes.bot import CustomClient
+from classes.events.gateway import giveaway_ee
 
 
 class GiveawayEvents(commands.Cog, name='Giveaway Events'):
@@ -90,7 +90,7 @@ class GiveawayEvents(commands.Cog, name='Giveaway Events'):
             color=disnake.Color.blurple(),
             timestamp=pend.parse(end_time, tz='UTC') if end_time else pend.now('UTC'),
         )
-        embed.set_footer(text=f'Ends')
+        embed.set_footer(text='Ends')
 
         # Add image if provided
         if image_url:
@@ -154,7 +154,7 @@ class GiveawayEvents(commands.Cog, name='Giveaway Events'):
             color=disnake.Color.blurple(),
             timestamp=pend.parse(giveaway.get('end_time'), tz='UTC') if giveaway.get('end_time') else pend.now('UTC'),
         )
-        embed.set_footer(text=f'Ends')
+        embed.set_footer(text='Ends')
 
         # Add image if provided
         if image_url:
@@ -314,7 +314,10 @@ class GiveawayEvents(commands.Cog, name='Giveaway Events'):
             if giveaway.get('coc_account_required'):
                 results = await self.bot.link_client.get_linked_players(ctx.user.id)
                 if not results:
-                    await ctx.send('You need a linked Clash account to enter this giveaway.', ephemeral=True)
+                    await ctx.send(
+                        'You need a linked Clash account to enter this giveaway.',
+                        ephemeral=True,
+                    )
                     return
 
             await self.bot.giveaways.update_one({'_id': giveaway_id}, {'$push': {'entries': str(ctx.user.id)}})

@@ -1,4 +1,3 @@
-
 from api.clan import BaseClan
 
 
@@ -11,12 +10,12 @@ class CWLRanking(BaseClan):
         self.name: str = data['name']
         self.stars: int = data['stars']
         self.destruction: float = round(data['destruction'], 2)
-        self.rounds_won: dict = data['rounds']["won"]
-        self.rounds_tied: dict = data['rounds']["tied"]
-        self.rounds_lost: dict = data['rounds']["lost"]
+        self.rounds_won: dict = data['rounds']['won']
+        self.rounds_tied: dict = data['rounds']['tied']
+        self.rounds_lost: dict = data['rounds']['lost']
 
 
-class CWLThreshold():
+class CWLThreshold:
     def __init__(self, data: dict):
         self.id: str = data['id']
         self.name: str = data['name']

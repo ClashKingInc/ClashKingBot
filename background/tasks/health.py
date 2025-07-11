@@ -1,5 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
+
 from classes.bot import CustomClient
 
 

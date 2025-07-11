@@ -1,9 +1,8 @@
 import disnake
-from classes.cocpy.clan import CustomClan
 from disnake.ext import commands
 
-from discord import autocomplete, convert
-
+from classes.cocpy.clan import CustomClan
+from discord import convert
 
 optional_clan = commands.Param(
     default=None,
@@ -38,13 +37,13 @@ optional_season = commands.Param(
     description=disnake.Localized(key='season-autocomplete-description'),
     default=None,
     converter=convert.season,
-    autocomplete=autocomplete.season
+    autocomplete=autocomplete.season,
 )
 season = commands.Param(
     name=disnake.Localized(key='season-autocomplete-name'),
     description=disnake.Localized(key='season-autocomplete-description'),
     converter=convert.season,
-    autocomplete=autocomplete.season
+    autocomplete=autocomplete.season,
 )
 
 optional_family = commands.Param(converter=convert.server, default=None, autocomplete=autocomplete.server)

@@ -1,5 +1,4 @@
-import json
-import disnake
+import hikari
 
 CLASH_ISO_FORMAT = 'YYYYMMDDTHHmmss.000[Z]'
 
@@ -31,8 +30,19 @@ SHORT_PLAYER_LINK = 'https://p.clashk.ing/'
 SHORT_CLAN_LINK = 'https://c.clashk.ing/'
 
 
-EMBED_COLOR = 2829617
-EMBED_COLOR_CLASS = disnake.Color(EMBED_COLOR)
+EMBED_GREY = '#2F3136'
+RED = '#D15454'
+ORANGE = '#FFAC1C'
+CK_RED = '#bf0000'
+
+EMBED_COLOR_CLASS = hikari.Color.from_hex_code(EMBED_GREY)
+
+RED_ACCENT = hikari.Color.from_hex_code(RED)
+CK_ACCENT = hikari.Color.from_hex_code(CK_RED)
+GREY_ACCENT = EMBED_COLOR_CLASS
+ORANGE_ACCENT = hikari.Color.from_hex_code(ORANGE)
+
+BUTTON_COLOR = hikari.ButtonStyle.SECONDARY
 
 
 POSTER_LIST = {
@@ -115,3 +125,5 @@ AUTOREFRESH_TRIGGERS = [
     'League Change',
     'Role Change',
 ]
+
+EMBED_ROW_LIMIT = 50

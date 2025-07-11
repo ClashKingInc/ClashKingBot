@@ -1,21 +1,38 @@
-import threading
-import traceback
-
-import asyncio
-import disnake
-import sentry_sdk
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-#from background.tasks.health import run_health_check_server
-from classes.bot import CustomClient
-from discord.startup import create_config, get_cluster_breakdown, load_cogs, sentry_filter
-from loguru import logger
-from pytz import utc
-
+# Import the libraries
 import coc
-from classes.cocpy.client import CustomClashClient
-asyncio.set_event_loop(asyncio.new_event_loop())
+import hikari
+import lightbulb
 
-coc_client: CustomClashClient = CustomClashClient(
+from api.client import ClashKingAPIClient
+from classes.cocpy.client import CustomClashClient
+from classes.config import Config
+from classes.mongo import MongoClient
+from commands.ext.hooks import auto_defer_command_response
+from discord.startup import create_config, load_cogs
+from utility.constants import EMBED_COLOR_CLASS
+from utility.emojis import fetch_emoji_dict
+from utility.translations import fluent_provider
+
+config = create_config()
+
+# Create a GatewayBot instance
+bot = hikari.GatewayBot(
+    token=config.bot_token,
+    auto_chunk_members=False,
+)
+
+client = lightbulb.client_from_app(
+    app=bot, localization_provider=fluent_provider(), hooks=[auto_defer_command_response]
+)
+
+registry = client.di.registry_for(lightbulb.di.Contexts.DEFAULT)
+
+registry.register_value(Config, config)
+registry.register_factory(
+    ClashKingAPIClient,
+    lambda: ClashKingAPIClient(api_token=config.clashking_api_token, timeout=30, cache_ttl=180),
+)
+clash_client = CustomClashClient(
     base_url='https://proxy.clashk.ing/v1',
     key_count=10,
     key_names='test',
@@ -25,55 +42,31 @@ coc_client: CustomClashClient = CustomClashClient(
     raw_attribute=True,
     stats_max_size=10_000,
 )
+registry.register_value(CustomClashClient, clash_client)
 
-logger.remove()
+mongo_client = MongoClient(uri=config.stats_mongodb, compressors=['snappy', 'zlib'])
+registry.register_value(hikari.GatewayBot, bot)
 
-logger.add(lambda msg: print(msg, end=''), level='INFO')  # Log to stdout
-
-scheduler = AsyncIOScheduler(timezone=utc)
-
-
-config = create_config()
-
-intents = disnake.Intents(guilds=True, members=True, emojis=True, messages=True, message_content=True)
-
-bot = CustomClient(
-    command_prefix='??',
-    help_command=None,
-    intents=intents,
-    scheduler=scheduler,
-    config=config,
-    chunk_guilds_at_startup=(not config.is_main),
-    coc_client=coc_client,
-    **get_cluster_breakdown(config=config),
-)
-
-initial_extensions = [
-    'discord.events',
-    'discord.autocomplete',
-    'discord.converters',
-    "commands.clan.commands",
-    "commands.bans.commands"
-]
+registry.register_value(MongoClient, mongo_client)
 
 
-if __name__ == '__main__':
-    bot.loop.run_until_complete(coc_client.login_with_tokens(''))
+async def color() -> hikari.Color:
+    return EMBED_COLOR_CLASS
 
-    sentry_sdk.init(
-        dsn=config.sentry_dsn,
-        traces_sample_rate=1.0,
-        profiles_sample_rate=1.0,
-        before_send=sentry_filter,
-    )
-    #initial_extensions += load_cogs(disallowed=set())
-    for count, extension in enumerate(initial_extensions):
-        try:
-            bot.load_extension(extension)
-        except Exception as extension:
-            traceback.print_exc()
-    bot.EXTENSION_LIST.extend(initial_extensions)
 
-    #threading.Thread(target=run_health_check_server, args=[bot], daemon=True).start()
-    #bot.loop.create_task(bot.event_gateway.run())
-    bot.run(config.bot_token)
+registry.register_factory(hikari.Color, color)
+
+
+@bot.listen(hikari.StartingEvent)
+async def on_starting(_: hikari.StartingEvent) -> None:
+    await fetch_emoji_dict(bot=bot, config=config)
+
+    # Load any extensions
+    print(load_cogs(disallowed=set()))
+    await client.load_extensions(*load_cogs(disallowed=set()))
+    # Start the bot - make sure commands are synced properly
+    await client.start()
+    await clash_client.login_with_tokens('')
+
+
+bot.run()

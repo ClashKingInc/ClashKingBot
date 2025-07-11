@@ -4,12 +4,12 @@ import disnake
 import msgspec
 import pendulum as pend
 from disnake.ext import commands
+from exceptions.CustomExceptions import MissingWebhookPerms
 from msgspec import Struct
 
-from classes.events.gateway import player_ee
 from classes.bot import CustomClient
 from classes.database.models.settings import DatabaseClan
-from exceptions.CustomExceptions import MissingWebhookPerms
+from classes.events.gateway import player_ee
 from utility.discord_utils import get_webhook_for_channel
 
 

@@ -1,8 +1,8 @@
 import coc
 from disnake.ext import commands
 
-from classes.events.gateway import clan_ee, player_ee
 from classes.bot import CustomClient
+from classes.events.gateway import clan_ee, player_ee
 from commands.eval.utils import logic
 from utility.constants import DEFAULT_EVAL_ROLE_TYPES
 

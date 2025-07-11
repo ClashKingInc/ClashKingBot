@@ -1,10 +1,10 @@
 import coc
 import disnake
+from exceptions.CustomExceptions import MissingWebhookPerms
 
 from classes.bot import CustomClient
 from classes.database.models.settings import DatabaseClan
 from commands.war.utils import main_war_page
-from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.discord_utils import get_webhook_for_channel
 
 
@@ -28,7 +28,7 @@ async def update_war_message(bot: CustomClient, war: coc.ClanWar, db_clan: Datab
             await webhook.edit_message(message_id, thread=thread, embed=embed)
         else:
             await webhook.edit_message(message_id, embed=embed)
-    except Exception as e:
+    except Exception:
         button = war_buttons(bot=bot, new_war=war)
         log = db_clan.war_panel
 
@@ -71,7 +71,7 @@ def war_start_embed(new_war: coc.ClanWar):
         color=disnake.Color.yellow(),
     )
     embed.add_field(
-        name=f'**War Started Against**',
+        name='**War Started Against**',
         value=f'[**{new_war.opponent.name}**]({new_war.opponent.share_link})\n­',
         inline=False,
     )

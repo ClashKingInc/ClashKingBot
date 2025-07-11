@@ -1,12 +1,13 @@
-from typing import Callable
-from classes.bot import CustomClient
-from classes.events import ClanEvent, PlayerEvent, CapitalEvent
-from classes.database.models.settings import DatabaseClan, ClanLog
-from utility.discord_utils import get_webhook_for_channel
-from exceptions.CustomExceptions import MissingWebhookPerms
-import disnake
-
 from collections import namedtuple
+from typing import Callable
+
+import disnake
+from exceptions.CustomExceptions import MissingWebhookPerms
+
+from classes.bot import CustomClient
+from classes.database.models.settings import ClanLog, DatabaseClan
+from classes.events import CapitalEvent, ClanEvent, PlayerEvent
+from utility.discord_utils import get_webhook_for_channel
 
 MapItem = namedtuple('MapItem', ['database', 'cls'])
 """
@@ -82,7 +83,10 @@ async def send_logs(
                     )
             else:
                 for count, embed in enumerate(embeds):
-                    await webhook.send(embed=embed, components=components[count](log=log) if components else None)
+                    await webhook.send(
+                        embed=embed,
+                        components=components[count](log=log) if components else None,
+                    )
         except (disnake.NotFound, disnake.Forbidden, MissingWebhookPerms):
             await log.set_thread(id=None)
             await log.set_webhook(id=None)

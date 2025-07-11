@@ -1,11 +1,11 @@
 import coc
 import disnake
 from disnake.ext import commands
+from exceptions.CustomExceptions import MissingWebhookPerms
 
-from classes.events.gateway import clan_ee
 from classes.bot import CustomClient
 from classes.database.models.settings import DatabaseClan
-from exceptions.CustomExceptions import MissingWebhookPerms
+from classes.events.gateway import clan_ee
 from utility.constants import SHORT_PLAYER_LINK
 from utility.discord_utils import get_webhook_for_channel
 
@@ -55,7 +55,7 @@ class Donations(commands.Cog, name='Donations'):
             return
 
         for cc in await self.bot.clan_db.find(
-            {'$and': [{'tag': clan.tag}, {f'logs.donation_log.webhook': {'$ne': None}}]}
+            {'$and': [{'tag': clan.tag}, {'logs.donation_log.webhook': {'$ne': None}}]}
         ).to_list(length=None):
             clan = DatabaseClan(bot=self.bot, data=cc)
             if clan.server_id not in self.bot.OUR_GUILDS:

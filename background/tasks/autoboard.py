@@ -1,5 +1,4 @@
 import math
-from typing import TYPE_CHECKING
 
 import coc
 import disnake
@@ -170,7 +169,7 @@ class board_loop(commands.Cog):
             embeds = []
             for text in texts:
                 embed = disnake.Embed(
-                    title=f'Leaderboard',
+                    title='Leaderboard',
                     description=text,
                     color=disnake.Color.dark_grey(),
                 )
@@ -179,7 +178,7 @@ class board_loop(commands.Cog):
 
     async def create_player_embed(self, guild, ranking):
         text = ''
-        initial = f"__**Erikuh's Legend Competition Leaderboard**__\n"
+        initial = "__**Erikuh's Legend Competition Leaderboard**__\n"
         embeds = []
         x = 0
         for player in ranking:
@@ -193,7 +192,7 @@ class board_loop(commands.Cog):
             x += 1
             if x == 25:
                 embed = disnake.Embed(
-                    title=f"**Erikuh's Legend Competition Leaderboard**",
+                    title="**Erikuh's Legend Competition Leaderboard**",
                     description=text,
                 )
                 if guild.icon is not None:
@@ -203,7 +202,7 @@ class board_loop(commands.Cog):
                 text = ''
 
         if text != '':
-            embed = disnake.Embed(title=f"**Erikuh's Legend Competition Leaderboard**", description=text)
+            embed = disnake.Embed(title="**Erikuh's Legend Competition Leaderboard**", description=text)
             if guild.icon is not None:
                 embed.set_thumbnail(url=guild.icon.url)
             embeds.append(embed)

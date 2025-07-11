@@ -1,4 +1,4 @@
-from typing import Any, Iterator, TypeVar, Generic
+from typing import Any, Generic, Iterator, TypeVar
 
 T = TypeVar('T')
 
@@ -54,5 +54,3 @@ class ObjectDictIterable(Generic[T]):
 
     def __len__(self) -> int:
         return len(self._list)
-
-

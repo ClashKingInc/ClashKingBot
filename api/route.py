@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional
 from urllib.parse import urlencode
 
+
 class Route:
     def __init__(
         self,
@@ -11,16 +12,17 @@ class Route:
         **kwargs,
     ):
 
-        if "#" in endpoint:
-            endpoint = endpoint.replace("#", "%23")
+        # (optional) percent-encode any stray # in the path
+        if '#' in endpoint:
+            endpoint = endpoint.replace('#', '%23')
 
-        if kwargs:
-            url_params = {}
-            for k, v in kwargs.items():
-                if v is None:
-                    continue
-                url_params[k] = v
-            self.endpoint = "{}?{}".format(endpoint, urlencode(url_params))
+        # build only the params that aren't None
+        params = {k: v for k, v in kwargs.items() if v is not None}
+
+        if params:
+            # doseq=True makes lists repeat the key
+            qs = urlencode(params, doseq=True)
+            self.endpoint = f'{endpoint}?{qs}'
         else:
             self.endpoint = endpoint
 

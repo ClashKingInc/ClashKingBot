@@ -1,22 +1,16 @@
-
 from typing import TYPE_CHECKING, List, Union
 
 import coc
 import disnake
+from coc import utils
 
 from utility.constants import AUTOREFRESH_TRIGGERS, ROLE_TREATMENT_TYPES
-
-
-
-from coc import utils
 
 if TYPE_CHECKING:
     from api.client import ClashKingAPIClient
 
 
-
-
-class ServerSettings():
+class ServerSettings:
     def __init__(self, client: 'ClashKingAPIClient', data: dict):
         self._data = data
 
@@ -165,7 +159,7 @@ class ServerSettings():
             {'server': self.server_id},
             {
                 '$addToSet': {
-                    f'achievement_roles': {
+                    'achievement_roles': {
                         'type': type,
                         'season': season,
                         'amount': amount,
@@ -465,25 +459,25 @@ class MemberCountWarning:
     async def set_channel(self, id: Union[int, None]):
         await self.parent.bot.clan_db.update_one(
             {'$and': [{'tag': self.parent.tag}, {'server': self.parent.server_id}]},
-            {'$set': {f'member_count_warning.channel': id}},
+            {'$set': {'member_count_warning.channel': id}},
         )
 
     async def set_above(self, num: Union[int, None]):
         await self.parent.bot.clan_db.update_one(
             {'$and': [{'tag': self.parent.tag}, {'server': self.parent.server_id}]},
-            {'$set': {f'member_count_warning.above': num}},
+            {'$set': {'member_count_warning.above': num}},
         )
 
     async def set_below(self, num: Union[int, None]):
         await self.parent.bot.clan_db.update_one(
             {'$and': [{'tag': self.parent.tag}, {'server': self.parent.server_id}]},
-            {'$set': {f'member_count_warning.below': num}},
+            {'$set': {'member_count_warning.below': num}},
         )
 
     async def set_role(self, id: Union[int, None]):
         await self.parent.bot.clan_db.update_one(
             {'$and': [{'tag': self.parent.tag}, {'server': self.parent.server_id}]},
-            {'$set': {f'member_count_warning.role': id}},
+            {'$set': {'member_count_warning.role': id}},
         )
 
 

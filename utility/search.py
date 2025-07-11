@@ -1,5 +1,5 @@
 from classes.bot import CustomClient
-from utility.general import create_superscript
+from utility.emojis import create_superscript
 
 
 async def search_results(bot: CustomClient, query, use_cache=True):

@@ -2,14 +2,14 @@ import disnake
 import pytz
 from disnake.ext import commands
 
-from utility.general import calculate_time
-
+from utility.emojis import calculate_time
 
 utc = pytz.utc
 
+from exceptions.CustomExceptions import MissingWebhookPerms
+
 from classes.bot import CustomClient
 from classes.database.models.settings import DatabaseClan
-from exceptions.CustomExceptions import MissingWebhookPerms
 
 
 class VoiceStatCron(commands.Cog):

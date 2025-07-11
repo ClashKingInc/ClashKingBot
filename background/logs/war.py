@@ -2,15 +2,15 @@ import coc
 import disnake
 import pendulum as pend
 from disnake.ext import commands
+from exceptions.CustomExceptions import MissingWebhookPerms
+from image_gen import WarEndResult as war_gen
 
-from classes.events.gateway import war_ee
 from classes.bot import CustomClient
 from classes.database.models.settings import DatabaseClan
+from classes.events.gateway import war_ee
 from commands.war.utils import attacks_embed, defenses_embed, main_war_page, missed_hits
-from exceptions.CustomExceptions import MissingWebhookPerms
 from utility.discord_utils import get_webhook_for_channel
-from utility.general import create_superscript
-from image_gen import WarEndResult as war_gen
+from utility.emojis import create_superscript
 from utility.war import update_war_message, war_start_embed
 
 

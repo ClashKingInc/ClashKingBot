@@ -1,13 +1,13 @@
-from typing import Type, Optional, List
+from typing import List, Optional, Type
 
-import calendar
-import pendulum as pend
 import coc
-from coc import Player, Clan, WarRound, ClanWar, Location
+import pendulum as pend
 from aiocache import SimpleMemoryCache, cached
+from coc import Clan, ClanWar, Location, Player, WarRound
 
-from .player import BasePlayer
 from .clan import CustomClan
+from .player import BasePlayer
+
 
 class CustomClashClient(coc.Client):
     def __init__(self, **kwargs):
@@ -22,7 +22,6 @@ class CustomClashClient(coc.Client):
         tag = tag.split('|')[-1]
 
         return await super().get_clan(tag, cls, **kwargs)
-
 
     async def get_current_war(
         self, clan_tag: str, cwl_round: WarRound = WarRound.current_war, cls: Type[ClanWar] = None, **kwargs

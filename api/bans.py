@@ -27,6 +27,7 @@ class BanListItem:
         self.edits: list[BanListEdit] = []
         self.rollover_date: None = data.get('rollover_date')
         self.notes: str = data['Notes']
+        self.image: str | None = data.get('image')
 
         if self._edits:
             move_user = self.added_by

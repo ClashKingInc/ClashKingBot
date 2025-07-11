@@ -1,12 +1,7 @@
-import re
 from collections import defaultdict
-from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
 import coc
-import emoji
-from pytz import utc
-
 
 if TYPE_CHECKING:
     from classes.bot import CustomClient
@@ -224,12 +219,6 @@ def profileSuperTroops(bot: 'CustomClient', player):
     else:
         boostedTroops = ''
     return boostedTroops
-
-
-
-
-
-
 
 
 def leagueAndTrophies(bot: 'CustomClient', player):

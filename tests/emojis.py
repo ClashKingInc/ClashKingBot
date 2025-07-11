@@ -1,4 +1,5 @@
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -36,7 +37,8 @@ async def fetch_emoji_dict():
         full_emoji_dict = full_emoji_dict | hold_dict
 
     current_emoji = discord_get(
-        f'https://discord.com/api/v10/applications/808566437199216691/emojis', bot_token=os.getenv('BOT_TOKEN')
+        'https://discord.com/api/v10/applications/808566437199216691/emojis',
+        bot_token=os.getenv('BOT_TOKEN'),
     ).get('items', [])
 
     combined_emojis = {}
@@ -54,7 +56,7 @@ async def fetch_emoji_dict():
 
         combined_emojis[real_name] = f'{start}{emoji["name"]}:{emoji["id"]}>'
 
-    class_code = f'class Emojis:\n'
+    class_code = 'class Emojis:\n'
     class_code += "    def __init__(self, bot: 'CustomClient'):\n"
 
     # Add each field dynamically

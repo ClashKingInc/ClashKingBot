@@ -1,13 +1,8 @@
 import disnake
 
+from background.logs.utils import get_available_logs
 from classes.bot import CustomClient
-from classes.database.models.settings import Join_Log
-from utility.clash.other import basic_heros, leagueAndTrophies
-
-from classes.events import log_event, CapitalAttacksEvent
-from background.logs.utils import get_available_logs, send_logs
-from functools import partial
-from utility.clash.capital import calc_raid_medals
+from classes.events import CapitalAttacksEvent, log_event
 
 
 @log_event(cls=CapitalAttacksEvent.attack_log)

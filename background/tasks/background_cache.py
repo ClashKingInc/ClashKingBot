@@ -25,7 +25,11 @@ class BackgroundCache(commands.Cog):
         await self.bot.bot_sync.update_one(
             {
                 '$and': [
-                    {'type': 'server_counts', 'bot_id': self.bot.user.id, 'cluster_id': self.bot._config.cluster_id}
+                    {
+                        'type': 'server_counts',
+                        'bot_id': self.bot.user.id,
+                        'cluster_id': self.bot._config.cluster_id,
+                    }
                 ]
             },
             {

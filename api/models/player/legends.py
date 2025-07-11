@@ -1,9 +1,8 @@
 from coc.utils import get_season_end, get_season_start
 
-from utility.clash.other import gen_legend_date, gen_season_date
-
 from classes.database.models.abc import NumChoice
 from classes.player.base import BasePlayer
+from utility.clash.other import gen_legend_date, gen_season_date
 
 
 class LegendPlayer(BasePlayer):

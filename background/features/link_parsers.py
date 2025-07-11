@@ -8,7 +8,7 @@ from classes.bot import CustomClient
 from commands.clan.embeds import basic_clan_board
 from commands.player.utils import basic_player_board
 from commands.utility.utils import army_embed
-from utility.general import safe_run
+from utility.emojis import safe_run
 
 
 class LinkParsing(commands.Cog):
@@ -40,13 +40,13 @@ class LinkParsing(commands.Cog):
                 embed = await basic_player_board(bot=self.bot, player=player, embed_color=server_settings.embed_color)
 
                 stat_buttons = [
-                    disnake.ui.Button(label=f'Open In-Game', url=player.share_link),
+                    disnake.ui.Button(label='Open In-Game', url=player.share_link),
                     disnake.ui.Button(
-                        label=f'Clash of Stats',
+                        label='Clash of Stats',
                         url=f"https://www.clashofstats.com/players/{player.tag.strip('#')}/summary",
                     ),
                     disnake.ui.Button(
-                        label=f'Clash Ninja',
+                        label='Clash Ninja',
                         url=f"https://www.clash.ninja/stats-tracker/player/{player.tag.strip('#')}",
                     ),
                 ]
@@ -66,9 +66,9 @@ class LinkParsing(commands.Cog):
                 embed = await basic_clan_board(bot=self.bot, clan=clan, embed_color=server_settings.embed_color)
 
                 stat_buttons = [
-                    disnake.ui.Button(label=f'Open In-Game', url=clan.share_link),
+                    disnake.ui.Button(label='Open In-Game', url=clan.share_link),
                     disnake.ui.Button(
-                        label=f'Clash of Stats',
+                        label='Clash of Stats',
                         url=f"https://www.clashofstats.com/clans/{clan.tag.strip('#')}/summary",
                     ),
                 ]
@@ -91,7 +91,7 @@ class LinkParsing(commands.Cog):
                 )
                 buttons = disnake.ui.ActionRow(
                     disnake.ui.Button(
-                        label=f'Copy Link',
+                        label='Copy Link',
                         emoji=self.bot.emoji.troop.partial_emoji,
                         url=message.content,
                     )

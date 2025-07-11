@@ -1,9 +1,7 @@
 import coc
-
 from exceptions.CustomExceptions import MessageException
 
 from .models.player import LegendPlayer
-from .client import BaseClient
 
 
 class PlayerClient:

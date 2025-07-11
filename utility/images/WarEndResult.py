@@ -5,14 +5,12 @@ import disnake
 import pytz
 from PIL import Image, ImageDraw, ImageFont
 
-
 utc = pytz.utc
 import asyncio
 import concurrent.futures
 from io import BytesIO
 
 import aiohttp
-
 
 th_to_xp = {
     1: 1,

@@ -1,15 +1,9 @@
+command-clan-description = Clan related commands and statistics
 
-clan-compo-description = Different views of clan composition
+
+
 
 clan-search-description = Board showing basic clan overviews
-
-townhall = Townhall
-trophies = Trophies
-location = Location
-league = League
-role = Role
-
-clan-compo-title = { $clan_name } { $type } Composition
 
 num-accounts = { $num } accounts
 

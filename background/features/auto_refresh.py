@@ -71,7 +71,7 @@ class AutoEvalBackground(commands.Cog):
                         await member.add_roles(*[role_to_add], reason='Tenure Roles')
                     if roles_to_remove:
                         await member.remove_roles(*roles_to_remove, reason='Tenure Roles')
-                except Exception as e:
+                except Exception:
                     continue
 
 

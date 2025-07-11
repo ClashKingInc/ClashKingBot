@@ -90,7 +90,9 @@ class CapitalEvent(BaseEvent):
     def __init__(self, data: dict):
         super().__init__(data)
         self.old_raid = CustomRaidLogEntry(
-            data=self._data['old_raid'], client=coc_client, clan_tag=self._data['clan_tag']
+            data=self._data['old_raid'],
+            client=coc_client,
+            clan_tag=self._data['clan_tag'],
         )
         self.new_raid = CustomRaidLogEntry(data=self._data['raid'], client=coc_client, clan_tag=self._data['clan_tag'])
         self.clan = coc.Clan(data=self._data.get('clan', {}), client=coc_client)

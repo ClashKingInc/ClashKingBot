@@ -1,6 +1,7 @@
 import math
-import coc
 from functools import cached_property
+
+import coc
 
 
 class CustomRaidLogEntry(coc.RaidLogEntry):

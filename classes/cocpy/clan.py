@@ -1,10 +1,10 @@
-
 import re
 
 import coc
 import emoji
 
 from utility.constants import SHORT_CLAN_LINK, SHORT_PLAYER_LINK
+
 
 class CustomClanMember(coc.ClanMember):
     def __init__(self, *, data, clan, client, **kwargs):
@@ -26,16 +26,15 @@ class CustomClan(coc.Clan):
         super().__init__(data=data, client=client, **kwargs)
         self.member_cls = CustomClanMember
 
-        print(f"After super(): {self.member_cls}")
+        print(f'After super(): {self.member_cls}')
         # ✅ Rebuild members_dict immediately after initialization
         self._iter_members = (
-            self.member_cls(data=mdata, client=self._client, clan=self) for mdata in data.get("memberList", [])
+            self.member_cls(data=mdata, client=self._client, clan=self) for mdata in data.get('memberList', [])
         )
 
         # ✅ Force clear and reset the cached properties
-        self.__dict__.pop("_cs_members_dict", None)
-        self.__dict__.pop("_cs_members", None)
-
+        self.__dict__.pop('_cs_members_dict', None)
+        self.__dict__.pop('_cs_members', None)
 
     @property
     def clear_name(self):

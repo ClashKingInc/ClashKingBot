@@ -13,7 +13,6 @@ from classes.bot import CustomClient
 from classes.exceptions import ButtonAlreadyExists, ButtonNotFound
 from utility.cdn import upload_to_cdn
 
-
 text_style_conversion = {
     'Blue': disnake.ButtonStyle.primary,
     'Grey': disnake.ButtonStyle.secondary,
@@ -148,14 +147,15 @@ class BaseTicket:
 
             buttons = disnake.ui.ActionRow()
             transcript = await chat_exporter.export(
-                ticket_channel, attachment_handler=MyAttachmentHandler(bunny_api_token=self.bot._config.bunny_api_token)
+                ticket_channel,
+                attachment_handler=MyAttachmentHandler(bunny_api_token=self.bot._config.bunny_api_token),
             )
             link = await upload_html_to_cdn(
                 config=self.bot._config,
                 bytes_=io.BytesIO(transcript.encode()),
                 id=f'transcript-{ticket_channel.id}',
             )
-            buttons.append_item(disnake.ui.Button(label=f'Channel', url=link))
+            buttons.append_item(disnake.ui.Button(label='Channel', url=link))
 
             if ticket.thread is not None:
                 thread_channel = await self.bot.getch_channel(channel_id=ticket.thread)
@@ -169,7 +169,7 @@ class BaseTicket:
                         bytes_=io.BytesIO(transcript.encode()),
                         id=f'transcript-{thread_channel.id}',
                     )
-                    buttons.append_item(disnake.ui.Button(label=f'Thread', url=link))
+                    buttons.append_item(disnake.ui.Button(label='Thread', url=link))
             components = [buttons]
 
         try:

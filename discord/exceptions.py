@@ -20,7 +20,9 @@ class ExceptionHandler(commands.Cog):
         await self.error_handler(ctx, error)
 
     async def error_handler(
-        self, ctx: disnake.ApplicationCommandInteraction | disnake.MessageCommandInteraction, error
+        self,
+        ctx: disnake.ApplicationCommandInteraction | disnake.MessageCommandInteraction,
+        error,
     ):
         if isinstance(error, disnake.ext.commands.ConversionError):
             error = error.original
@@ -38,7 +40,7 @@ class ExceptionHandler(commands.Cog):
 
         if isinstance(error, coc.errors.Maintenance):
             embed = disnake.Embed(
-                description=f'Game is currently in Maintenance.',
+                description='Game is currently in Maintenance.',
                 color=disnake.Color.red(),
             )
             return await ctx.send(embed=embed)
@@ -57,14 +59,15 @@ class ExceptionHandler(commands.Cog):
 
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.send(
-                f'This command is on cooldown. Try again in {error.retry_after:.1f} seconds.', ephemeral=True
+                f'This command is on cooldown. Try again in {error.retry_after:.1f} seconds.',
+                ephemeral=True,
             )
 
         if isinstance(error, APITokenRequired):
             embed = disnake.Embed(
                 title='**API Token is required for this server**',
-                description=f'- Reference below for help finding your api token.\n'
-                f'- Open Clash and navigate to Settings > More Settings [in-game link](https://link.clashofclans.com/?action=OpenMoreSettings)\n'
+                description='- Reference below for help finding your api token.\n'
+                '- Open Clash and navigate to Settings > More Settings [in-game link](https://link.clashofclans.com/?action=OpenMoreSettings)\n'
                 '- Scroll down to the bottom and copy the api token.\n'
                 '- View the picture below for reference.',
                 color=disnake.Color.red(),
@@ -78,8 +81,8 @@ class ExceptionHandler(commands.Cog):
         if isinstance(error, InvalidAPIToken):
             embed = disnake.Embed(
                 title='**Invalid API Token!**',
-                description=f'- Reference below for help finding your api token.\n'
-                f'- Open Clash and navigate to Settings > More Settings [in-game link](https://link.clashofclans.com/?action=OpenMoreSettings)\n'
+                description='- Reference below for help finding your api token.\n'
+                '- Open Clash and navigate to Settings > More Settings [in-game link](https://link.clashofclans.com/?action=OpenMoreSettings)\n'
                 '- Scroll down to the bottom and copy the api token.\n'
                 '- View the picture below for reference.',
                 color=disnake.Color.red(),
@@ -92,7 +95,7 @@ class ExceptionHandler(commands.Cog):
 
         if isinstance(error, NoLinkedAccounts):
             embed = disnake.Embed(
-                description=f'No Accounts Linked To This User',
+                description='No Accounts Linked To This User',
                 color=disnake.Color.red(),
             )
             if not ctx.response.is_done():
@@ -102,7 +105,7 @@ class ExceptionHandler(commands.Cog):
 
         if isinstance(error, coc.errors.PrivateWarLog):
             embed = disnake.Embed(
-                description=f'This Clan has a Private War Log :/',
+                description='This Clan has a Private War Log :/',
                 color=disnake.Color.red(),
             )
             if not ctx.response.is_done():
@@ -128,7 +131,7 @@ class ExceptionHandler(commands.Cog):
             return await ctx.send(embed=embed)
 
         if isinstance(error, PlayerNotInLegends):
-            embed = disnake.Embed(description=f'Player is not in legends.', color=disnake.Color.red())
+            embed = disnake.Embed(description='Player is not in legends.', color=disnake.Color.red())
             return await ctx.send(embed=embed)
 
         if isinstance(error, ThingNotFound):
@@ -140,7 +143,7 @@ class ExceptionHandler(commands.Cog):
 
         if isinstance(error, MissingWebhookPerms):
             embed = disnake.Embed(
-                description=f'Missing Permissions to Create or Edit Webhooks',
+                description='Missing Permissions to Create or Edit Webhooks',
                 color=disnake.Color.red(),
             )
             if not ctx.response.is_done():
@@ -150,69 +153,69 @@ class ExceptionHandler(commands.Cog):
 
         if isinstance(error, ExportTemplateAlreadyExists):
             embed = disnake.Embed(
-                description=f'Export Template with this name already exists.',
+                description='Export Template with this name already exists.',
                 color=disnake.Color.red(),
             )
             return await ctx.send(embed=embed, ephemeral=False)
 
         if isinstance(error, RosterAliasAlreadyExists):
             embed = disnake.Embed(
-                description=f'Roster with this alias already exists.',
+                description='Roster with this alias already exists.',
                 color=disnake.Color.red(),
             )
             return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, RosterDoesNotExist):
             embed = disnake.Embed(
-                description=f'Roster with this alias does not exist. Use `/roster create`',
+                description='Roster with this alias does not exist. Use `/roster create`',
                 color=disnake.Color.red(),
             )
             return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, PlayerAlreadyInRoster):
             embed = disnake.Embed(
-                description=f'Player has already been added to this roster.',
+                description='Player has already been added to this roster.',
                 color=disnake.Color.red(),
             )
             return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, PlayerNotInRoster):
             embed = disnake.Embed(
-                description=f'Player not found in this roster.',
+                description='Player not found in this roster.',
                 color=disnake.Color.red(),
             )
             return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, RosterSizeLimit):
-            embed = disnake.Embed(description=f'Roster has hit max size limit', color=disnake.Color.red())
+            embed = disnake.Embed(description='Roster has hit max size limit', color=disnake.Color.red())
             return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, PanelNotFound):
-            embed = disnake.Embed(description=f'Panel not found!', color=disnake.Color.red())
+            embed = disnake.Embed(description='Panel not found!', color=disnake.Color.red())
             return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, ButtonNotFound):
-            embed = disnake.Embed(description=f'Button not found!', color=disnake.Color.red())
+            embed = disnake.Embed(description='Button not found!', color=disnake.Color.red())
             return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, PanelAlreadyExists):
             embed = disnake.Embed(
-                description=f'Panel of this name already exists!',
+                description='Panel of this name already exists!',
                 color=disnake.Color.red(),
             )
             return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, ButtonAlreadyExists):
             embed = disnake.Embed(
-                description=f'Button of this name already exists!',
+                description='Button of this name already exists!',
                 color=disnake.Color.red(),
             )
             return await ctx.send(embed=embed, ephemeral=True)
 
         if isinstance(error, FaultyJson):
             embed = disnake.Embed(
-                description=f'Custom Embed Code is Faulty - > be sure to use this site -> https://autocode.com/tools/discord/embed-builder/ , '
-                f'create your embed, then click `copy code`',
+                description='Custom Embed Code is Faulty - > be sure to use this site -> https://autocode.com/tools/discord/embed-builder/ , '
+                'create your embed, then click `copy code`',
                 color=disnake.Color.red(),
             )
             return await ctx.send(embed=embed, ephemeral=True)
@@ -225,7 +228,7 @@ class ExceptionHandler(commands.Cog):
 
         event_id = sentry_sdk.capture_exception(error)
         embed = disnake.Embed(
-            description=f'An internal error occurred, it has been reported to the developer. You can follow updates & bug fixes in the [support server](https://discord.gg/clashking)',
+            description='An internal error occurred, it has been reported to the developer. You can follow updates & bug fixes in the [support server](https://discord.gg/clashking)',
             color=disnake.Color.red(),
         )
 

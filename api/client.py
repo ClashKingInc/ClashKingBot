@@ -1,35 +1,36 @@
-import aiohttp
 import re
-import coc
+from functools import wraps
 from typing import Any
+
+import aiohttp
+import coc
 from expiring_dict import ExpiringDict
 
-from api.route import Route
-
 from api.bans import BanListItem, BanResponse
-from api.clan import ClanTotals, BasicClan
+from api.clan import BasicClan, ClanCompo, ClanTotals
 from api.errors import APIUnavailableError, AuthenticationError, NotFoundError
 from api.location import ClanRanking
 from api.other import ObjectDictIterable
-from api.player import LocationPlayer, DonationPlayer, SortedPlayer, Summary
-from api.search import ClanSearchResult
-from api.server import ServerSettings, ServerClanSettings
+from api.player import DonationPlayer, LocationPlayer, Player, SortedPlayer, Summary, WarStatsPlayer
+from api.route import Route
+from api.search import ClanSearchResult, Group
+from api.server import ServerClanSettings, ServerSettings
 from api.war import CWLRanking, CWLThreshold
 
-
-from functools import wraps
 
 def handle_silent(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
-        silent = kwargs.pop("silent", False)  # Extract 'silent' if provided, default to False
+        silent = kwargs.pop('silent', False)  # Extract 'silent' if provided, default to False
         try:
             return await func(*args, **kwargs)
         except NotFoundError:
             if silent:
                 return None
             raise
+
     return wrapper
+
 
 # fmt: off
 class ClashKingAPIClient:
@@ -59,7 +60,6 @@ class ClashKingAPIClient:
 
         headers = {'Authorization': f'Bearer {self.api_token}', 'Accept-Encoding': 'gzip'}
 
-        print(url)
         async with aiohttp.ClientSession(headers=headers) as session:
             try:
                 async with session.request(
@@ -69,6 +69,7 @@ class ClashKingAPIClient:
                     json=route.json,
                     timeout=self.timeout,
                 ) as response:
+                    #print(await response.text())
                     if response.status == 403:
                         raise AuthenticationError('Invalid authentication token or missing authorization.')
 
@@ -97,7 +98,14 @@ class ClashKingAPIClient:
 
 
     # BANS
-    async def add_ban(self, server_id: int, player_tag: str, reason: str, added_by: int) -> BanResponse:
+    async def add_ban(
+            self,
+            server_id: int,
+            player_tag: str,
+            reason: str | None,
+            added_by: int,
+            image: str | None
+    ) -> BanResponse:
         """
         Adds a ban for a player on a specific server.
 
@@ -111,7 +119,7 @@ class ClashKingAPIClient:
             Route(
                 method='POST',
                 endpoint=f'/v2/ban/add/{server_id}/{player_tag}',
-                data={'reason': reason, 'added_by': added_by, 'rollover_days': None},
+                json={'reason': reason, 'added_by': added_by, "image": image},
             )
         )
         return BanResponse(data=response)
@@ -289,19 +297,45 @@ class ClashKingAPIClient:
         return ClanRanking(data=response)
 
 
-    async def get_clan_donations(self, clan_tag: str, season: str) -> ObjectDictIterable[DonationPlayer]:
-        """
-        :param clan_tag: tag for clan
-        :param season: season for clan donations, e.g., '2024-01'
-        """
+
+    async def get_clan_war_stats(
+            self,
+            clan_tags: list[str],
+            timestamp_start: int = 0,
+            timestamp_end: int = 9999999999,
+            war_types: int = 7,
+            townhall_filter: str = 'all',
+            limit: int = 1000,
+    ) -> list[WarStatsPlayer]:
         response = await self._request(
             Route(
                 method='GET',
-                endpoint=f'/v2/clan/{clan_tag}/donations/{season}',
+                endpoint='/v2/war/clan/stats',
+                clan_tags=clan_tags,
+                timestamp_start=timestamp_start,
+                timestamp_end=timestamp_end,
+                townhall_filter=townhall_filter,
+                war_types=war_types,
+                limit=limit,
             )
         )
         items = response['items']
-        return ObjectDictIterable(items=[DonationPlayer(data=item) for item in items], key='tag')
+        return [WarStatsPlayer(data=item) for item in items]
+
+
+    async def get_clan_compo(
+            self,
+            clan_tags: list[str],
+    ) -> ClanCompo:
+        response = await self._request(
+            Route(
+                method='GET',
+                endpoint='/v2/clan/compo',
+                clan_tags=clan_tags
+            )
+        )
+        return ClanCompo(data=response)
+
 
 
     #WAR ENDPOINTS
@@ -352,7 +386,7 @@ class ClashKingAPIClient:
         response = await self._request(
             Route(
                 method='GET',
-                endpoint=f'/v2/cwl/league-thresholds',
+                endpoint='/v2/cwl/league-thresholds',
             )
         )
         items = response['items']
@@ -371,7 +405,7 @@ class ClashKingAPIClient:
         response = await self._request(
             Route(
                 method='GET',
-                endpoint=f'/v2/search/clan',
+                endpoint='/v2/search/clan',
                 query=query,
                 user_id=user_id or 0,
                 guild_id=guild_id or 0,
@@ -380,13 +414,28 @@ class ClashKingAPIClient:
         items = response['items']
         return [ClanSearchResult(data=data) for data in items]
 
+    async def search_for_bans(
+            self,
+            query: str,
+            guild_id: int = 0,
+    ) -> list[Player]:
+        response = await self._request(
+            Route(
+                method='GET',
+                endpoint=f'/v2/search/{guild_id}/banned-players',
+                query=query,
+            )
+        )
+        items = response['items']
+        return [Player(data=data) for data in items]
+
 
     async def add_recent_search(
             self,
             tag: str,
             type: int,
             user_id: int,
-    ) -> list[ClanSearchResult]:
+    ) -> bool:
 
         await self._request(
             Route(
@@ -394,9 +443,104 @@ class ClashKingAPIClient:
                 endpoint=f'/v2/search/recent/{user_id}/{type}/{tag}',
             )
         )
+        return True
+
+    async def create_group(
+            self,
+            user_id: int,
+            name: str,
+            type: int,
+    ) -> bool:
+
+        await self._request(
+            Route(
+                method='POST',
+                endpoint=f'/v2/search/groups/{user_id}/{name}/{type}',
+            )
+        )
+        return True
+
+    async def group_add(
+            self,
+            group_id: int,
+            tag: str
+    ) -> bool:
+
+        await self._request(
+            Route(
+                method='POST',
+                endpoint=f'/v2/search/groups/{group_id}/add/{tag}',
+            )
+        )
+        return True
+
+    async def group_remove(
+            self,
+            group_id: int,
+            tag: str
+    ) -> bool:
+
+        await self._request(
+            Route(
+                method='POST',
+                endpoint=f'/v2/search/groups/{group_id}/remove/{tag}',
+            )
+        )
+        return True
+
+    async def get_group(
+            self,
+            group_id: str,
+    ) -> Group:
+
+        response = await self._request(
+            Route(
+                method='GET',
+                endpoint=f'/v2/search/groups/{group_id}',
+            )
+        )
+        return Group(data=response)
+
+    async def delete_group(
+            self,
+            group_id: int,
+    ) -> bool:
+
+        await self._request(
+            Route(
+                method='DELETE',
+                endpoint=f'/v2/search/groups/{group_id}',
+            )
+        )
+        return True
+
+    async def get_group_list(
+            self,
+            user_id: int,
+    ) -> list[Group]:
+
+        response = await self._request(
+            Route(
+                method='GET',
+                endpoint=f'/v2/search/groups/{user_id}/list',
+            )
+        )
+        items = response.get('items', [])
+        return [Group(data=d) for d in items]
 
 
-import asyncio
+
+
+
+
+
+
+
+
+
+
+
+'''import asyncio
 
 
 async def foo():
@@ -409,8 +553,10 @@ async def foo():
  "#90J9828JG", "#PR0J29P", "#282L8YR0Q", "#2YLPC28V", "#C0U0JJQR",
  "#8V9QGJGU", "#YYVV2QPP", "#YUVPLUU8P", "#YV9JCQYU0", "#UJQVGJPG",
  "#QJGYLJVL0", "#GPRJV8LGV", "#GQYRGYVJ8"]
-    response = await client.get_players_summary(season="2024-02", limit=3, player_tags=player_tags)
-    print(response)
+    """response = await client.get_clan_war_stats(clan_tag="#2PP",
+                                               timestamp_start=0,
+                                               timestamp_end=9999999999
+                                               )
+"""
 
-
-asyncio.run(foo())
+asyncio.run(foo())'''

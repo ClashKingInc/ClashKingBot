@@ -1,0 +1,1 @@
+from .compo import loader

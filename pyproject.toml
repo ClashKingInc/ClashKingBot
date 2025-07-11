@@ -1,13 +1,16 @@
-[tool.blue]
-# Blue uses Black's defaults, you can add additional configurations if needed
-line-length = 150
+[tool.ruff]
+line-length = 120
+target-version = "py312"  # or "py312" if you're using 3.12
+extend-select = [
+  "F",     # Pyflakes (includes unused imports)
+  "E",     # pycodestyle
+  "W",     # warnings
+  "I",     # isort rules
+]
+exclude = ["venv", ".venv", "build", "dist",  "old_commands"]
 
-[tool.isort]
-profile = "black"  # Blue uses Black's defaults, so this will ensure compatibility
-line_length = 150  # Ensure the line length matches Blue's default
-multi_line_output = 3  # Optional, to customize how multi-line imports are handled
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-ensure_newline_before_comments = true
-lines_after_imports = 2
+[tool.ruff.format]
+docstring-code-format = false  # don't auto-format code blocks in docstrings
+quote-style = "preserve"       # preserve your existing quote style
+indent-style = "space"
+skip-magic-trailing-comma = true  # disables trailing commas Blue doesn't insert

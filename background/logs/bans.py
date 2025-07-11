@@ -2,9 +2,9 @@ import coc
 import disnake
 from disnake.ext import commands
 
-from classes.events.gateway import clan_ee
 from classes.bot import CustomClient
 from classes.database.models.settings import DatabaseClan
+from classes.events.gateway import clan_ee
 
 
 class BanEvents(commands.Cog):
@@ -70,7 +70,8 @@ class BanEvents(commands.Cog):
 
                             try:
                                 channel = await self.bot.getch_channel(
-                                    channel_id=db_clan.ban_alert_channel or db_clan.clan_channel, raise_exception=True
+                                    channel_id=db_clan.ban_alert_channel or db_clan.clan_channel,
+                                    raise_exception=True,
                                 )
                                 await channel.send(content=role, embed=embed)
                             except (disnake.NotFound, disnake.Forbidden):

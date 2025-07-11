@@ -1,4 +1,5 @@
-from typing import Dict, Callable, Any, Type
+from typing import Any, Callable, Dict, Type
+
 from .event import EventType
 
 registered_logs: Dict[str, tuple[Callable[..., Any], Type]] = {}

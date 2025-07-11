@@ -7,9 +7,9 @@ from disnake.ext import commands
 from numerize import numerize
 from pytz import utc
 
-from classes.events.gateway import player_ee, raid_ee
 from classes.bot import CustomClient
 from classes.database.models.settings import DatabaseClan
+from classes.events.gateway import player_ee, raid_ee
 from utility.clash.capital import calc_raid_medals
 
 

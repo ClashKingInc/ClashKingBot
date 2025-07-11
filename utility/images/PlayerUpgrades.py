@@ -3,7 +3,6 @@ from io import BytesIO
 import requests
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
-
 # Configuration
 background_path = 'warbkpng.png'  # Path to your background image
 output_path = 'clash_image.png'
@@ -102,7 +101,17 @@ item_data = [
 # Draw items for the first section as an example
 x, y = padding + 10, start_y + section_height + padding + 10
 for item in item_data:
-    draw_item(draw, x, y, item['url'], item['name'], item['level'], item['state'], item['cost'], font)
+    draw_item(
+        draw,
+        x,
+        y,
+        item['url'],
+        item['name'],
+        item['level'],
+        item['state'],
+        item['cost'],
+        font,
+    )
     x += 120  # Adjust spacing as needed
 
 # Save the final image

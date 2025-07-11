@@ -3,15 +3,14 @@ import re
 import coc
 import disnake
 from disnake.ext import commands
+from exceptions.CustomExceptions import MissingWebhookPerms
 
-from classes.events.gateway import player_ee
 from classes.bot import CustomClient
 from classes.database.models.settings import DatabaseClan
-from exceptions.CustomExceptions import MissingWebhookPerms
+from classes.events.gateway import player_ee
 from utility.clash.other import league_emoji
 from utility.constants import ROLES
 from utility.discord_utils import get_webhook_for_channel
-
 
 # from BoardCommands.Utils.Player import upgrade_embed
 
@@ -40,7 +39,7 @@ class UpgradeEvent(commands.Cog):
             {
                 '$and': [
                     {'tag': new_player.clan.tag},
-                    {f'logs.league_change.webhook': {'$ne': None}},
+                    {'logs.league_change.webhook': {'$ne': None}},
                 ]
             }
         ).to_list(length=None):
@@ -78,7 +77,7 @@ class UpgradeEvent(commands.Cog):
             {
                 '$and': [
                     {'tag': new_player.clan.tag},
-                    {f'logs.name_change.webhook': {'$ne': None}},
+                    {'logs.name_change.webhook': {'$ne': None}},
                 ]
             }
         ).to_list(length=None):
@@ -121,7 +120,7 @@ class UpgradeEvent(commands.Cog):
             {
                 '$and': [
                     {'tag': new_player.clan.tag},
-                    {f'logs.role_change.webhook': {'$ne': None}},
+                    {'logs.role_change.webhook': {'$ne': None}},
                 ]
             }
         ).to_list(length=None):
@@ -167,7 +166,7 @@ class UpgradeEvent(commands.Cog):
             {
                 '$and': [
                     {'tag': new_player.clan.tag},
-                    {f'logs.th_upgrade.webhook': {'$ne': None}},
+                    {'logs.th_upgrade.webhook': {'$ne': None}},
                 ]
             }
         ).to_list(length=None):
@@ -215,7 +214,7 @@ class UpgradeEvent(commands.Cog):
             {
                 '$and': [
                     {'tag': new_player.clan.tag},
-                    {f'logs.troop_upgrade.webhook': {'$ne': None}},
+                    {'logs.troop_upgrade.webhook': {'$ne': None}},
                 ]
             }
         ).to_list(length=None):
@@ -287,7 +286,7 @@ class UpgradeEvent(commands.Cog):
             {
                 '$and': [
                     {'tag': new_player.clan.tag},
-                    {f'logs.hero_upgrade.webhook': {'$ne': None}},
+                    {'logs.hero_upgrade.webhook': {'$ne': None}},
                 ]
             }
         ).to_list(length=None):
@@ -341,7 +340,7 @@ class UpgradeEvent(commands.Cog):
             {
                 '$and': [
                     {'tag': new_player.clan.tag},
-                    {f'logs.hero_equipment_upgrade.webhook': {'$ne': None}},
+                    {'logs.hero_equipment_upgrade.webhook': {'$ne': None}},
                 ]
             }
         ).to_list(length=None):
@@ -395,7 +394,7 @@ class UpgradeEvent(commands.Cog):
             {
                 '$and': [
                     {'tag': new_player.clan.tag},
-                    {f'logs.spell_upgrade.webhook': {'$ne': None}},
+                    {'logs.spell_upgrade.webhook': {'$ne': None}},
                 ]
             }
         ).to_list(length=None):

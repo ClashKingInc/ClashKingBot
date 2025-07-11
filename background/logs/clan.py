@@ -2,9 +2,9 @@ import coc
 import disnake
 from disnake.ext import commands
 
-from classes.events.gateway import clan_ee
 from classes.bot import CustomClient
 from classes.database.models.settings import DatabaseClan
+from classes.events.gateway import clan_ee
 
 
 class clan_events(commands.Cog, name='Clan Events'):
@@ -21,7 +21,7 @@ class clan_events(commands.Cog, name='Clan Events'):
             {
                 '$and': [
                     {'tag': new_clan.tag},
-                    {f'member_count_warning.channel': {'$ne': None}},
+                    {'member_count_warning.channel': {'$ne': None}},
                 ]
             }
         ).to_list(length=None):

@@ -1,12 +1,10 @@
-import os
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Callable
 
 import disnake
-from disnake.ext import commands
 
 from classes.exceptions import *
 
-from classes.mongo import MongoClient as mongo_client
+# from classes.mongo import MongoClient as mongo_client
 
 
 def check_commands():
@@ -67,8 +65,8 @@ def check_commands():
 
 async def interaction_handler(
     bot,
-    ctx: Union[disnake.ApplicationCommandInteraction, disnake.MessageInteraction],
-    msg: disnake.Message = None,
+    ctx,
+    msg=None,
     function: Callable = None,
     no_defer=False,
     ephemeral=False,
@@ -110,35 +108,3 @@ async def interaction_handler(
         valid_value = await function(res=res)
 
     return valid_value
-
-
-# jesus what is this trash lmao, hmm maybe its smart
-def iter_embed_creation(base_embed: disnake.Embed, iter: List, scheme: str, brk: int = 50) -> List[disnake.Embed]:
-
-    embeds = []
-    text = ''
-    for count, x in enumerate(iter, 1):
-        text += scheme.format(**locals())
-        if count % brk == 0:
-            embed = base_embed
-            embed.description = text
-            embeds.append(embed)
-            text = ''
-    if text != '':
-        embed = base_embed
-        embed.description = text
-        embeds.append(embed)
-    return embeds
-
-
-registered_functions: Dict[str, Tuple[Callable[..., None] | None, str, bool, bool, bool]] = {}
-
-
-def register_button(
-    command_name: str, parser: str, ephemeral: bool = False, no_embed: bool = False, pagination: bool = False
-):
-    def decorator(func: Callable[..., None]) -> Callable[..., None]:
-        registered_functions[command_name] = (func, parser, ephemeral, no_embed, pagination)
-        return func
-
-    return decorator

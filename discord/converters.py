@@ -2,7 +2,6 @@ import calendar
 import re
 
 import coc
-import disnake
 from disnake.ext import commands
 
 from classes.bot import CustomClient

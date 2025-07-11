@@ -1,0 +1,1 @@
+from .donations import loader

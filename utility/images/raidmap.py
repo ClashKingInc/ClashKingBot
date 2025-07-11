@@ -18,7 +18,11 @@ async def raid_map(self, ctx: disnake.ApplicationCommandInteraction, clan: str):
         'Balloon Lagoon': (750, 920),
         "Builder's Workshop": (1250, 970),
     }
-    text_spot = {'Wizard Valley': (1128, 655), 'Balloon Lagoon': (845, 900), "Builder's Workshop": (1300, 920)}
+    text_spot = {
+        'Wizard Valley': (1128, 655),
+        'Balloon Lagoon': (845, 900),
+        "Builder's Workshop": (1300, 920),
+    }
     for spot, district in enumerate(current_clan.districts):
         name = 'District_Hall'
         if district.id == 70000000:
@@ -166,7 +170,11 @@ async def testthis(self, ctx: disnake.ApplicationCommandInteraction, clan: str):
         )
         size = 100, 100
         placement_img.thumbnail(size, Image.ANTIALIAS)
-        background.paste(placement_img, (30, 663 + (107 * count) + extra), placement_img.convert('RGBA'))
+        background.paste(
+            placement_img,
+            (30, 663 + (107 * count) + extra),
+            placement_img.convert('RGBA'),
+        )
 
         thcount = defaultdict(int)
 
@@ -194,7 +202,7 @@ async def testthis(self, ctx: disnake.ApplicationCommandInteraction, clan: str):
             if spot >= 7:
                 break
 
-        star_img = Image.open(f'ImageGen/league_badges/679_0.png')
+        star_img = Image.open('ImageGen/league_badges/679_0.png')
         size = 45, 45
         star_img.thumbnail(size, Image.ANTIALIAS)
         # if 2 <=count < 7:
