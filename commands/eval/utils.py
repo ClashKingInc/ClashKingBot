@@ -282,7 +282,7 @@ async def logic(
                             key=lambda l: (l.town_hall, l.trophies),
                             reverse=True,
                         )[0]
-                    else:
+                    elif len(member_accounts) >= 1:
                         main_account = sorted(
                             member_accounts,
                             key=lambda l: (l.town_hall, l.trophies),
