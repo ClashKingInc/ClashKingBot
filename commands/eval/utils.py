@@ -263,7 +263,7 @@ async def logic(
             FINAL_CLASH_ROLES.append(role)
 
         new_name = None
-        if db_server.change_nickname and 'nicknames' in eval_types:
+        if db_server.change_nickname and 'nicknames' in eval_types and (family_accounts or member_accounts):
             # if they have a family account or the server allows non family to change nickname, then change it
             if member.top_role > bot_member.top_role or guild.owner_id == member.id:
                 new_name = '`Cannot Change`'
