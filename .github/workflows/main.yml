@@ -41,4 +41,4 @@ jobs:
         run: |
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
-            "https://coolify.clashk.ing/api/v1/deploy?uuid=vc0wsswss44sw8gwcsc4kg88&force=false"
+            "https://coolify.clashk.ing/api/v1/deploy?uuid=vc0wsswss44sw8gwcsc4kg88&force=true"
