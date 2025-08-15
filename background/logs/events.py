@@ -36,7 +36,7 @@ async def kafka_events(bot: 'CustomClient'):
             await asyncio.sleep(1)
         try:
             async with websockets.connect(
-                f'ws://85.10.200.219:8001/events',
+                bot._config.websocket_url,
                 ping_timeout=None,
                 ping_interval=None,
                 open_timeout=None,

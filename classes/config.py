@@ -46,3 +46,4 @@ class Config:
         self.open_ai_key = remote_settings.get('open_ai_key')
 
         self.emoji_asset_version = remote_settings.get('emoji_version')
+        self.websocket_url = remote_settings.get('websocket_url')
