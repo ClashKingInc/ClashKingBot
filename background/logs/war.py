@@ -20,6 +20,7 @@ class War_Log(commands.Cog):
         self.war_ee = war_ee
         self.war_ee.on('new_attacks', self.war_attacks)
         self.war_ee.on('war_state', self.war_state_change)
+        self.war_ee.on('new_war', self.war_state_change)
 
     async def war_attacks(self, event):
         cwl_group = event.get('league_group')
