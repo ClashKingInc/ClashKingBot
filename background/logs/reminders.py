@@ -13,8 +13,7 @@ class RemindersLog(commands.Cog):
     def __init__(self, bot: CustomClient):
         self.bot = bot
         self.reminder_ee = reminder_ee
-        # self.reminder_ee.on('war', self.war_reminder_event)
-        self.reminder_ee.on('reminder', self.reminder_event)
+        self.reminder_ee.on('war', self.war_reminder_event)
 
         self.bot.scheduler.add_job(
             self.clan_capital_reminder_trigger, trigger='cron', args=['1 hr'], day_of_week='mon', hour=6, misfire_grace_time=None
@@ -56,11 +55,6 @@ class RemindersLog(commands.Cog):
 
         self.bot.scheduler.add_job(self.inactivity_reminder, trigger='interval', minutes=30, misfire_grace_time=None)
         self.bot.scheduler.add_job(self.roster_reminder, trigger='interval', minutes=2, misfire_grace_time=None)
-
-    async def reminder_event(self, event):
-        reminder_type = event.get('type')
-        if reminder_type == 'war':
-            await self.war_reminder_event(event)
 
     async def war_reminder_event(self, event):
         await war_reminder(bot=self.bot, event=event)
