@@ -35,7 +35,7 @@ def handle_silent(func):
 # fmt: off
 class ClashKingAPIClient:
     def __init__(self, api_token: str, timeout: int = 30, cache_ttl: int = 60):
-        # self.base_url = 'https://api.clashk.ing'
+        #self.base_url = 'https://dev.api.clashk.ing'
         self.base_url = 'http://localhost:8000'
         self.api_token: str = api_token
         self.timeout: int = timeout

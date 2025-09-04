@@ -1,9 +1,8 @@
+
 from pymongo import InsertOne
 
-from classes.bot import CustomClient
 
-
-async def migrate_clan_db_simple_schema(bot: CustomClient):
+async def migrate_clan_db_simple_schema(bot):
     our_clan_tags = await bot.clan_db.distinct('tag')
     our_clan_stats = await bot.clan_stats.find({'tag': {'$in': our_clan_tags}}, projection={'_id': 0}).to_list(
         length=None
@@ -55,7 +54,7 @@ async def migrate_clan_db_simple_schema(bot: CustomClient):
     print('done')
 
 
-async def migrate_legends(bot: CustomClient):
+async def migrate_legends(bot):
     print('starting')
 
     legend_stats_insertions = []
@@ -113,3 +112,6 @@ async def migrate_legends(bot: CustomClient):
     print(f'{len(legend_stats_insertions)} legend days to insert')
     if legend_stats_insertions:
         await bot.legends_stats.bulk_write(legend_stats_insertions, ordered=False)
+
+
+

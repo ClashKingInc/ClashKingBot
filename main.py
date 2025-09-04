@@ -1,4 +1,3 @@
-# Import the libraries
 import coc
 import hikari
 import lightbulb
@@ -63,7 +62,9 @@ async def on_starting(_: hikari.StartingEvent) -> None:
 
     # Load any extensions
     print(load_cogs(disallowed=set()))
-    await client.load_extensions(*load_cogs(disallowed=set()))
+    extensions = load_cogs(disallowed=set())
+    extensions = ["commands.compo", "commands.war"]
+    await client.load_extensions(*extensions)
     # Start the bot - make sure commands are synced properly
     await client.start()
     await clash_client.login_with_tokens('')

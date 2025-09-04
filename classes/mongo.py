@@ -6,3 +6,5 @@ class MongoClient(AsyncMongoClient):
         super().__init__(host=uri, **kwargs)
         self.__clashking = self.get_database('clashking')
         self.button_store = self.__clashking.get_collection('button_store')
+
+
