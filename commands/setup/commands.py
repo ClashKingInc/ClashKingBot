@@ -430,6 +430,7 @@ class SetupCommands(commands.Cog, name='Setup'):
     )
     @commands.check_any(commands.has_permissions(manage_guild=True), check_commands())
     async def family_category_order(self, ctx: disnake.ApplicationCommandInteraction):
+        await ctx.response.defer()
         categories = await self.bot.clan_db.distinct('category', filter={'server': ctx.guild.id})
         select_options = []
         for category in categories:
