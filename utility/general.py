@@ -377,13 +377,16 @@ def smart_convert_seconds(seconds, granularity=2):
     return ' '.join(result[:granularity])
 
 
-async def download_image(url: str):
+async def download_image(url: str, session: aiohttp.ClientSession = None):
     cached = IMAGE_CACHE.get(url)
     if cached is None:
-        async with aiohttp.ClientSession() as session:
+        if session:
             async with session.get(url) as response:
                 image_data = await response.read()
-            await session.close()
+        else:
+            async with aiohttp.ClientSession() as temp_session:
+                async with temp_session.get(url) as response:
+                    image_data = await response.read()
         image_bytes: bytes = image_data
         IMAGE_CACHE.ttl(url, image_bytes, 3600 * 4)
     else:

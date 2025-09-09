@@ -203,11 +203,14 @@ class CustomClient(commands.AutoShardedBot):
 
         self.feed_webhooks = {}
         self.clan_list = []
-        self.IMAGE_CACHE = ExpiringDict()
+        self.IMAGE_CACHE = ExpiringDict(max_len=2000, ttl=3600)
 
-        self.SETTINGS_CACHE = ExpiringDict()
+        self.SETTINGS_CACHE = ExpiringDict(max_len=1000, ttl=1800)
 
         self.OUR_GUILDS = set()
+
+        # Global aiohttp session to prevent memory leaks
+        self.aiohttp_session = None
 
         self.EXTENSION_LIST = []
         self.STARTED_CHUNK = set()
