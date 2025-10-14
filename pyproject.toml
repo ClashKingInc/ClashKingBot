@@ -1,16 +1,99 @@
-[tool.ruff]
-line-length = 120
-target-version = "py312"  # or "py312" if you're using 3.12
-extend-select = [
-  "F",     # Pyflakes (includes unused imports)
-  "E",     # pycodestyle
-  "W",     # warnings
-  "I",     # isort rules
+[project]
+name = "clashking-bot"
+version = "0.1.0"
+description = "Discord bot for ClashKing community management and Clash of Clans statistics"
+
+requires-python = "==3.13.7"
+dependencies = [
+    "aiocache",
+    "APScheduler",
+    "ballpark @ git+https://github.com/Mee6/python-ballpark.git",
+    "chat-exporter",
+    "coc-py @ git+https://github.com/mathsman5133/coc.py.git@march-update",
+    "disnake @ git+https://github.com/MagicTheDev/disnake.git",
+    "disnake-ext-fluent @ git+https://github.com/MagicTheDev/disnake-ext-fluent.git",
+    "dnspython",
+    "docker",
+    "emoji",
+    "expiring-dict",
+    "fastapi",
+    "fluent.runtime",
+    "hashids",
+    "imagehash",
+    "ipython",
+    "kaleido",
+    "loguru",
+    "matplotlib",
+    "meilisearch-python-sdk",
+    "motor",
+    "msgspec",
+    "numerize",
+    "numpy",
+    "openai",
+    "openpyxl",
+    "orjson",
+    "pandas",
+    "pendulum",
+    "plotly",
+    "pymitter",
+    "pymongo",
+    "python-dateutil",
+    "python-dotenv",
+    "python-snappy",
+    "pytz",
+    "redis",
+    "sentry-sdk",
+    "stringcase",
+    "ujson",
+    "uvicorn",
+    "Wand",
+    "websockets",
+    "XlsxWriter",
 ]
-exclude = ["venv", ".venv", "build", "dist",  "old_commands"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "isort",
+    "flake8",
+    "ruff",
+]
+
+[tool.uv]
+package = false
+
+[tool.blue]
+# Blue uses Black's defaults, you can add additional configurations if needed
+line-length = 150
+
+[tool.isort]
+profile = "black"  # Blue uses Black's defaults, so this will ensure compatibility
+line_length = 150  # Ensure the line length matches Blue's default
+multi_line_output = 3  # Optional, to customize how multi-line imports are handled
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+lines_after_imports = 2
+
+[tool.ruff]
+line-length    = 150
+target-version = "py313"
+exclude        = ["venv", ".venv", "build", "dist", "assets", "locales"]
+
+[tool.ruff.lint]
+extend-select = [
+  "F",  # Pyflakes (unused imports, etc.)
+  "E",  # pycodestyle errors
+  "W",  # pycodestyle warnings
+  "I",  # isort rules
+]
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false
 
 [tool.ruff.format]
-docstring-code-format = false  # don't auto-format code blocks in docstrings
-quote-style = "preserve"       # preserve your existing quote style
-indent-style = "space"
-skip-magic-trailing-comma = true  # disables trailing commas Blue doesn't insert
+docstring-code-format     = false
+quote-style               = "preserve"
+indent-style              = "space"
+skip-magic-trailing-comma = true
