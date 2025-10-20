@@ -1,6 +1,6 @@
-player-autocomplete-description = Search for a player by name or player tag
-player-autocomplete-name = player
-clan-autocomplete-description = Search for a clan by name or clan tag
-clan-autocomplete-name = clan
-season-autocomplete-description = Which season to retrieve results for
-season-autocomplete-name = season
+player-autocomplete-description = Bir oyuncuyu ismine veya oyuncu etiketine göre arayın
+player-autocomplete-name = oyuncu
+clan-autocomplete-description = Bir klanı isme veya klan etiketine göre arayın
+clan-autocomplete-name = klan
+season-autocomplete-description = Hangi sezon için sonuçlar alınacak
+season-autocomplete-name = sezon
