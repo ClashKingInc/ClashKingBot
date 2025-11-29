@@ -23,7 +23,7 @@ WORKDIR /app
 COPY pyproject.toml .
 
 # Install dependencies using uv
-RUN uv sync --frozen --no-dev \
+RUN uv sync --no-dev \
     && apt-get remove -y build-essential gcc python3-dev \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* /root/.cache
