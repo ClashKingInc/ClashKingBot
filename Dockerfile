@@ -31,6 +31,9 @@ RUN uv sync --no-dev \
 # Now copy the rest of the application code into the container
 COPY . .
 
+# Add virtual environment to PATH
+ENV PATH="/app/.venv/bin:$PATH"
+
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s CMD curl -f http://127.0.0.1:8027/health || exit 1
 
 # Command to run the application
