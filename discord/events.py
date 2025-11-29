@@ -46,6 +46,10 @@ class DiscordEvents(commands.Cog):
             return
 
         has_started = True
+        
+        # Initialize global aiohttp session
+        import aiohttp
+        self.bot.aiohttp_session = aiohttp.ClientSession()
 
         self.bot.scheduler.start()
         database_guilds = await self.bot.server_db.distinct('server')

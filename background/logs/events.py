@@ -30,6 +30,8 @@ async def kafka_events(bot: 'CustomClient'):
         return
 
     background_tasks = set()
+    MAX_BACKGROUND_TASKS = 1000  # Prevent memory leak from task accumulation
+    last_task_count_log = 0
     while True:
         clans = set()
         while not bot.OUR_CLANS:
@@ -46,6 +48,11 @@ async def kafka_events(bot: 'CustomClient'):
                     ujson.dumps({'client_id': f'{bot.user.id}-{bot._config.cluster_id}', 'clans': list(bot.OUR_CLANS)}).encode('utf-8')
                 )
                 async for message in websocket:
+                    # Log task count every 100 tasks to monitor performance
+                    current_task_count = len(background_tasks)
+                    if current_task_count > 0 and current_task_count % 100 == 0 and current_task_count != last_task_count_log:
+                        logger.info(f"Background tasks running: {current_task_count}/{MAX_BACKGROUND_TASKS}")
+                        last_task_count_log = current_task_count
                     if clans != bot.OUR_CLANS:
                         await websocket.send(
                             ujson.dumps({'client_id': f'{bot.application_id}-{bot._config.cluster_id}', 'clans': list(bot.OUR_CLANS)}).encode('utf-8')
@@ -84,11 +91,19 @@ async def kafka_events(bot: 'CustomClient'):
                                 elif topic == 'giveaway':
                                     awaitable = giveaway_ee.emit_async(field, value)
                                 if awaitable is not None:
-                                    task = asyncio.create_task(wrap_task(awaitable))
-                                    background_tasks.add(task)
-                                    task.add_done_callback(background_tasks.discard)
+                                    if len(background_tasks) < MAX_BACKGROUND_TASKS:
+                                        task = asyncio.create_task(wrap_task(awaitable))
+                                        background_tasks.add(task)
+                                        task.add_done_callback(background_tasks.discard)
+                                    else:
+                                        logger.warning(f"Task queue full! {len(background_tasks)} tasks running. Dropping {topic}:{field} event")
                         except Exception:
                             pass
         except Exception as e:
-            print(e)
+            print(f"Websocket error: {e}")
+            # Clean up tasks before reconnecting to prevent accumulation
+            for task in background_tasks.copy():
+                if task.done():
+                    background_tasks.discard(task)
+            await asyncio.sleep(5)  # Wait before reconnecting
             continue
