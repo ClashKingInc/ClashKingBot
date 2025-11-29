@@ -7,7 +7,6 @@ import pytz
 from coc.miscmodels import Timestamp
 from disnake.ext import commands
 from expiring_dict import ExpiringDict
-from setuptools.command.alias import alias
 
 from classes.bot import CustomClient
 from commands.help.utils import get_all_commands

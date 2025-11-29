@@ -41,14 +41,14 @@ async def army_embed(
             siege_machines += f'{emoji}`x {str(quantity)}` {troop.name}\n'
         else:
             troops += f'{emoji}`x {str(quantity)}` {troop.name}\n'
-        minimum_th = max(minimum_th, troop.required_th_level[1])
+        minimum_th = max(minimum_th, troop.required_townhall)
         if not troop.is_siege_machine:
             troop_space += troop.housing_space * quantity
 
     for spell, quantity in recipe.spells:   # type: coc.Spell, int
         emoji = bot.fetch_emoji(spell.name)
         spells += f'{emoji}`x {str(quantity)}` {spell.name}\n'
-        minimum_th = max(minimum_th, spell.required_th_level[1])
+        minimum_th = max(minimum_th, spell.required_townhall)
         spell_space += spell.housing_space * quantity
 
     for troop, quantity in recipe.clan_castle_troops:   # type: coc.Troop, int

@@ -47,6 +47,7 @@ class DiscordEvents(commands.Cog):
 
         has_started = True
 
+        self.bot.scheduler.start()
         database_guilds = await self.bot.server_db.distinct('server')
         database_guilds: set = set(database_guilds)
         missing_guilds = [guild.id for guild in self.bot.guilds if guild.id not in database_guilds]

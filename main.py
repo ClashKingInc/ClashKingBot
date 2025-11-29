@@ -14,7 +14,6 @@ from utility.startup import create_config, get_cluster_breakdown, load_cogs, sen
 
 
 scheduler = AsyncIOScheduler(timezone=utc)
-scheduler.start()
 
 config = create_config()
 
@@ -93,4 +92,5 @@ if __name__ == '__main__':
         except Exception as extension:
             traceback.print_exc()
     bot.EXTENSION_LIST.extend(initial_extensions)
+
     bot.run(config.bot_token)

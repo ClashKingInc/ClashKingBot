@@ -17,6 +17,7 @@ class LinkParsing(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: disnake.Message):
+
         # prevents webhooks from triggering the message parser
         if message.webhook_id is not None:
             return
@@ -24,7 +25,8 @@ class LinkParsing(commands.Cog):
         if message.guild is None:
             return
 
-        if message.guild.id in self.bot.OUR_GUILDS:
+        #if message.guild.id in self.bot.OUR_GUILDS:
+        if True:
 
             if 'https://link.clashofclans.com/' in message.content and 'action=OpenPlayerProfile&tag=' in message.content:
                 server_settings = await self.bot.ck_client.get_server_settings(server_id=message.guild.id)

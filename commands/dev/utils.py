@@ -28,6 +28,11 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
     response = requests.get(config.emoji_url).json()
     assets_url = 'https://assets.clashk.ing'
 
+    # Fetch stored hashes from MongoDB
+    hashes = await bot.emoji_hashes.find({"bot_id": bot.user.id}).to_list(length=None)
+    # Convert to dict: {emoji_name: hash}
+    stored_hashes = {doc['emoji_name']: doc['hash'] for doc in hashes}
+
     tokens = [config.bot_token]
     for bot_token in tokens:
         application_id = discord_get(
@@ -37,7 +42,7 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
         original_name_map = {}
         full_emoji_dict = {}
 
-        # Convert keys to a normalized form, just like your original code
+        # Convert keys to a normalized form and compute hashes for new format
         for emoji_type, emoji_dict in response.items():
             hold_dict = emoji_dict.copy()
             for key, value in emoji_dict.items():
@@ -46,7 +51,18 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
                 if prev_key.isnumeric():
                     prev_key = f'{prev_key}xx'
                 original_name_map[prev_key] = key
-                hold_dict[prev_key] = prev_value
+                
+                # Fetch and compute hash for the desired image
+                image_url = f'{assets_url}{prev_value}'
+                try:
+                    image_resp = requests.get(image_url)
+                    image_resp.raise_for_status()
+                    resized_data = resize_and_compress_image(image_resp.content)
+                    image_hash = compute_image_hash(resized_data)
+                    hold_dict[prev_key] = {'path': prev_value, 'hash': image_hash}
+                except requests.exceptions.RequestException as e:
+                    print(f'Failed to fetch/hash emoji {prev_key}: {e}')
+                    hold_dict[prev_key] = {'path': prev_value, 'hash': None}
             full_emoji_dict = full_emoji_dict | hold_dict
 
         # Fetch current emojis from Discord
@@ -55,25 +71,16 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
         current_emoji_names = [emoji['name'] for emoji in current_emoji if emoji['name']]
 
         # --------------------------------------------------------------------------------
-        # 1) Build a map of existing emojis {emoji_name -> (id, hash)} to detect changes
+        # 1) Build a map of existing emojis using stored hashes from MongoDB
         # --------------------------------------------------------------------------------
         existing_emoji_map = {}
         for emoji in current_emoji:
-            # Attempt to fetch the current image from Discord's CDN and hash it
             emoji_name = emoji['name']
             emoji_id = emoji['id']
-            # Discord CDN URL for the emoji image (PNG format)
-            cdn_url = f'https://cdn.discordapp.com/emojis/{emoji_id}.png?size=128&quality=lossless'
-
-            try:
-                cdn_resp = requests.get(cdn_url)
-                cdn_resp.raise_for_status()
-                existing_hash = compute_image_hash(cdn_resp.content)
-                existing_emoji_map[emoji_name] = {'id': emoji_id, 'hash': existing_hash}
-            except requests.exceptions.RequestException:
-                # If fetching fails, store None; we can decide how to handle it below
-                existing_emoji_map[emoji_name] = {'id': emoji_id, 'hash': None}
-        print('created hashmap')
+            # Use stored hash from MongoDB instead of downloading and computing
+            stored_hash = stored_hashes.get(emoji_name)
+            existing_emoji_map[emoji_name] = {'id': emoji_id, 'hash': stored_hash}
+        print('created hashmap from stored data')
         # --------------------------------------------------------------------------------
         # 2) Determine which emojis need to be deleted (unused in the new config)
         # --------------------------------------------------------------------------------
@@ -86,6 +93,9 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
                     f"https://discord.com/api/v10/applications/{application_id}/emojis/{emoji['id']}", bot_token=bot_token
                 )
                 print(f"Deleted emoji: {emoji['name']}")
+                
+                # Remove from MongoDB
+                await bot.emoji_hashes.delete_one({'bot_id': bot.user.id, 'emoji_name': emoji['name']})
             except requests.exceptions.RequestException as e:
                 print(f"Failed to delete emoji {emoji['name']}: {e}")
         print('deleted emojis, no longer existing')
@@ -97,21 +107,17 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
 
         # Add new emojis
         for name in emoji_to_be_added:
-            image_path = full_emoji_dict[name]
+            emoji_info = full_emoji_dict[name]
+            image_path = emoji_info['path']
+            emoji_hash = emoji_info['hash']
             image_url = f'{assets_url}{image_path}'
             try:
                 image_response = requests.get(image_url)
                 image_response.raise_for_status()
 
                 resized_image_data = resize_and_compress_image(image_response.content)
-                # Compute hash (not stored, but we could store it if needed for debugging)
-                _ = compute_image_hash(resized_image_data)
-
                 image_base64 = base64.b64encode(resized_image_data).decode('utf-8')
                 image_base64 = f'data:image/png;base64,{image_base64}'
-
-                # Print length for debugging
-                print(f'Base64 length: {len(image_base64)}')
 
                 # Post the new emoji
                 post_response = discord_post(
@@ -120,6 +126,13 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
                     bot_token=bot_token,
                 )
                 print(f'Added emoji: {name}')
+                
+                # Store hash in MongoDB
+                await bot.emoji_hashes.update_one(
+                    {'bot_id': bot.user.id, 'emoji_name': name},
+                    {'$set': {'hash': emoji_hash}},
+                    upsert=True
+                )
             except requests.exceptions.RequestException as e:
                 print(f'Failed to add emoji {name}: {e}')
                 if hasattr(e, 'response') and e.response is not None:
@@ -133,27 +146,27 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
 
         for name in emoji_to_be_checked:
             try:
-                # Desired image
-                image_path = full_emoji_dict[name]
-                image_url = f'{assets_url}{image_path}'
-                image_resp = requests.get(image_url)
-                image_resp.raise_for_status()
+                emoji_info = full_emoji_dict[name]
+                desired_hash = emoji_info['hash']
+                image_path = emoji_info['path']
 
-                desired_resized_data = resize_and_compress_image(image_resp.content)
-                desired_hash = compute_image_hash(desired_resized_data)
-
-                # Compare with existing hash
+                # Compare with existing hash from MongoDB
                 existing_info = existing_emoji_map.get(name)
                 if not existing_info:
-                    # If somehow not present, skip or add it
                     continue
 
                 current_hash = existing_info['hash']
                 emoji_id = existing_info['id']
 
-                # If hash is different (and we have a valid existing hash), update the emoji
-                if current_hash and desired_hash and current_hash != desired_hash:
+                # If hash is different or missing, update the emoji
+                if not current_hash or (desired_hash and current_hash != desired_hash):
                     print(f"Hash mismatch for emoji '{name}' -> Updating...")
+
+                    # Fetch the image
+                    image_url = f'{assets_url}{image_path}'
+                    image_resp = requests.get(image_url)
+                    image_resp.raise_for_status()
+                    desired_resized_data = resize_and_compress_image(image_resp.content)
 
                     # Delete the existing emoji
                     try:
@@ -161,7 +174,7 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
                         print(f'Deleted emoji for update: {name}')
                     except requests.exceptions.RequestException as e:
                         print(f'Failed to delete emoji {name} for update: {e}')
-                        continue  # Skip re-adding if we failed to delete
+                        continue
 
                     # Re-add the updated emoji
                     new_base64 = base64.b64encode(desired_resized_data).decode('utf-8')
@@ -174,11 +187,17 @@ async def fetch_emoji_dict(bot: 'CustomClient'):
                             bot_token=bot_token,
                         )
                         print(f'Updated emoji: {name}')
+                        
+                        # Update hash in MongoDB
+                        await bot.emoji_hashes.update_one(
+                            {'bot_id': bot.user.id, 'emoji_name': name},
+                            {'$set': {'hash': desired_hash}},
+                            upsert=True
+                        )
                     except requests.exceptions.RequestException as e:
                         print(f'Failed to add updated emoji {name}: {e}')
                 else:
-                    # Either hashes match or we couldn't fetch one of them
-                    print(f"Emoji '{name}' is up-to-date or unable to compare. No action needed.")
+                    print(f"Emoji '{name}' is up-to-date.")
 
             except requests.exceptions.RequestException as e:
                 print(f'Failed to check/update emoji {name}: {e}')

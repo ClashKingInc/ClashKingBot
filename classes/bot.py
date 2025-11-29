@@ -107,6 +107,8 @@ class CustomClient(commands.AutoShardedBot):
         self.tokens_db: collection_class = self.looper_db.clashking.tokens
         self.lineups: collection_class = self.looper_db.clashking.lineups
         self.bot_sync: collection_class = self.looper_db.clashking.bot_sync
+
+        self.emoji_hashes: collection_class = self.looper_db.clashking.emoji_hashes
         self.army_share: collection_class = self.looper_db.clashking.army_share
 
         self.link_client: coc.ext.discordlinks.DiscordLinkClient = asyncio.get_event_loop().run_until_complete(

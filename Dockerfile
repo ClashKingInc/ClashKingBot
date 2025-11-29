@@ -1,21 +1,32 @@
 # Use an updated Python image
-FROM python:3.11-bookworm
+FROM python:3.13.7-slim
 
 LABEL org.opencontainers.image.source=https://github.com/ClashKingInc/ClashKingBot
 LABEL org.opencontainers.image.description="Image for the ClashKing Discord Bot"
 LABEL org.opencontainers.image.licenses=MIT
 
-# Install dependencies
-RUN apt-get update && apt-get install -y libsnappy-dev
+# Install uv and system dependencies
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libsnappy-dev \
+    git \
+    curl \
+    build-essential \
+    gcc \
+    python3-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory in the container
 WORKDIR /app
 
-# First, copy only the requirements.txt file
-COPY requirements.txt .
+# Copy pyproject.toml first for better caching
+COPY pyproject.toml .
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies using uv
+RUN uv sync --frozen --no-dev \
+    && apt-get remove -y build-essential gcc python3-dev \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* /root/.cache
 
 # Now copy the rest of the application code into the container
 COPY . .

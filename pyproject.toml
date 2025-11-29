@@ -1,11 +1,62 @@
+[project]
+name = "clashking-bot"
+version = "1.0.0"
+description = "ClashKing Discord Bot"
+requires-python = ">=3.13"
+dependencies = [
+    "aiocache",
+    "apscheduler",
+    "ballpark @ git+https://github.com/Mee6/python-ballpark.git",
+    "chat-exporter",
+    "coc.py @ git+https://github.com/ClashKingInc/coc.py.git",
+    "disnake",
+    "disnake-ext-fluent @ git+https://github.com/MagicTheDev/disnake-ext-fluent.git",
+    "dnspython",
+    "emoji",
+    "expiring-dict",
+    "fastapi",
+    "fluent-runtime",
+    "hashids",
+    "imagehash",
+    "ipython",
+    "kaleido",
+    "loguru",
+    "matplotlib",
+    "meilisearch-python-sdk",
+    "motor",
+    "msgspec",
+    "numerize",
+    "numpy",
+    "openai",
+    "openpyxl",
+    "orjson",
+    "pandas",
+    "pendulum",
+    "plotly",
+    "pymitter",
+    "pymongo",
+    "python-dateutil",
+    "python-dotenv",
+    "python-snappy",
+    "pytz",
+    "redis",
+    "requests>=2.32.5",
+    "sentry-sdk",
+    "stringcase",
+    "ujson",
+    "uvicorn",
+    "wand",
+    "websockets",
+    "xlsxwriter",
+]
+
 [tool.blue]
-# Blue uses Black's defaults, you can add additional configurations if needed
 line-length = 150
 
 [tool.isort]
-profile = "black"  # Blue uses Black's defaults, so this will ensure compatibility
-line_length = 150  # Ensure the line length matches Blue's default
-multi_line_output = 3  # Optional, to customize how multi-line imports are handled
+profile = "black"
+line_length = 150
+multi_line_output = 3
 include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
