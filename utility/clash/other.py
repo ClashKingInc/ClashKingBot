@@ -86,7 +86,7 @@ def heros(bot: 'CustomClient', player: coc.Player):
 def basic_heros(bot, player: coc.Player):
     hero_string = ''
     for hero in player.heroes:
-        if not hero.is_home_base:
+        if hero.is_builder_base:
             continue
         hero_string += f'{bot.fetch_emoji(hero.name)}{hero.level}'
 
