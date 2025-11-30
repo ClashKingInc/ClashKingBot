@@ -225,19 +225,22 @@ class UpgradeEvent(commands.Cog):
             log = clan.troop_upgrade
 
             if text is None:
-                old_player = coc.Player(data=event['old_player'], client=self.bot.coc_client)
-                unlocked = []
-                leveled_up = []
-                boosted = []
-                for troop in new_player.troops:
-                    old_troop = old_player.get_troop(name=troop.name, is_home_troop=troop.is_home_base)
-                    if old_troop is None:
-                        if troop.is_super_troop:
-                            boosted.append(troop)
-                        else:
-                            unlocked.append(troop)
-                    elif troop.level > old_troop.level:
-                        leveled_up.append(troop)
+                try:
+                    old_player = coc.Player(data=event['old_player'], client=self.bot.coc_client)
+                    unlocked = []
+                    leveled_up = []
+                    boosted = []
+                    for troop in new_player.troops:
+                        old_troop = old_player.get_troop(name=troop.name, is_home_troop=troop.is_home_base)
+                        if old_troop is None:
+                            if troop.is_super_troop:
+                                boosted.append(troop)
+                            else:
+                                unlocked.append(troop)
+                        elif troop.level > old_troop.level:
+                            leveled_up.append(troop)
+                except:
+                    print(f"ERROR WITH STUFF: {event['old_player']}")
 
                 for pet in new_player.pets:
                     old_pet = coc.utils.get(old_player.pets, name=pet.name)
