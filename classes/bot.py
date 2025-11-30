@@ -431,7 +431,7 @@ class CustomClient(commands.AutoShardedBot):
             name = 'unranked'
         emoji = self.loaded_emojis.get(name)
         if emoji is None:
-            return None
+            emoji = self.loaded_emojis.get("blank")
         return EmojiType(emoji_string=emoji)
 
     async def getch_channel(self, channel_id, raise_exception=False):
