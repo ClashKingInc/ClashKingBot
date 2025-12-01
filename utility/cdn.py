@@ -19,7 +19,7 @@ async def upload_to_cdn(api_token: str, picture: disnake.Attachment, reason: str
             data=payload,
         ) as response:
             await session.close()
-    return f'https://cdn.clashking.xyz/{reason}/{picture.id}/{picture.filename}'
+    return f'https://cdn.clashk.ing/{reason}/{picture.id}/{picture.filename}'
 
 
 async def general_upload_to_cdn(config: Config, bytes_, id):
@@ -35,7 +35,7 @@ async def general_upload_to_cdn(config: Config, bytes_, id):
             data=payload,
         ) as response:
             await session.close()
-    return f'https://cdn.clashking.xyz/{id}.png?{int(datetime.now().timestamp())}'
+    return f'https://cdn.clashk.ing/{id}.png?{int(datetime.now().timestamp())}'
 
 
 async def upload_html_to_cdn(config: Config, bytes_, id):
@@ -52,4 +52,4 @@ async def upload_html_to_cdn(config: Config, bytes_, id):
             data=payload,
         ) as response:
             await session.close()
-    return f'https://cdn.clashking.xyz/{id}.html'
+    return f'https://cdn.clashk.ing/{id}.html'

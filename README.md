@@ -10,7 +10,7 @@ A Clash of Clans Discord bot focused on efficient clan management. It provides r
 [![Issues](https://img.shields.io/github/issues/ClashKingInc/ClashKingBot?style=for-the-badge)](https://github.com/ClashKingInc/ClashKingBot/issues)
 [![MIT License](https://img.shields.io/github/license/ClashKingInc/ClashKingBot?style=for-the-badge)](https://github.com/ClashKingInc/ClashKingBot/blob/master/LICENSE)
 
-[**Invite Bot**](https://discord.com/application-directory/824653933347209227) • [**Docs**](https://docs.clashking.xyz) • [**Demo (Discord)**](https://discord.gg/clashking)
+[**Invite Bot**](https://discord.com/application-directory/824653933347209227) • [**Docs**](https://docs.clashk.ing) • [**Demo (Discord)**](https://discord.gg/clashking)
 
 </div>
 
@@ -92,7 +92,7 @@ Additional dependencies can be found in [requirements.txt](https://github.com/Cl
 ## Getting Started
 
 1. [Invite ClashKingBot](https://discord.com/application-directory/824653933347209227) to your server.
-2. Review the [Quick Start Guide](https://docs.clashking.xyz/quick-start) for initial setup.
+2. Review the [Quick Start Guide](https://docs.clashk.ing/quick-start) for initial setup.
 3. Adjust settings and commands as needed.
 
 <p align="right"><a href="#top">Back to Top ↑</a></p>

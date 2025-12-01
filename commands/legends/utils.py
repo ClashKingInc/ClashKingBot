@@ -68,7 +68,7 @@ async def legend_day_overview(
         value=f'- {bot.emoji.earth} {global_ranking_text}\n'
         f'- {player.ranking.flag} {player.ranking.local_ranking}\n'
         f"- {_('country')}: {player.ranking.country}\n"
-        f'[*Stats seem wrong? FAQ*](https://docs.clashking.xyz/faq#the-legend-stats-are-wrong)',
+        f'[*Stats seem wrong? FAQ*](https://docs.clashk.ing/faq#the-legend-stats-are-wrong)',
         inline=False,
     )
 

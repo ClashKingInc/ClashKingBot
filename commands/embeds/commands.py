@@ -132,7 +132,7 @@ class Embeds(commands.Cog):
 
     @embed.sub_command(name='help', description='Help creating an embed')
     async def embed_help(self, ctx: disnake.ApplicationCommandInteraction):
-        await ctx.send('https://docs.clashking.xyz/utility/embeds')
+        await ctx.send('https://docs.clashk.ing/utility/embeds')
 
 
 def setup(bot: CustomClient):

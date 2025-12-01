@@ -567,7 +567,7 @@ class SetupCommands(commands.Cog, name='Setup'):
         channel_text = '' if mode == 'Remove' else f'in {channel.mention}'
         embed = disnake.Embed(
             description=f'Choose the logs that you would like to {mode.lower()} for {clan.name} {channel_text}\n'
-            f'Visit https://docs.clashking.xyz/clan-setups/log-setup for more info',
+            f'Visit https://docs.clashk.ing/clan-setups/log-setup for more info',
             color=disnake.Color.green(),
         )
         await ctx.edit_original_message(embed=embed, components=dropdown)

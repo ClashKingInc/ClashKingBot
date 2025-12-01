@@ -161,7 +161,7 @@ class HelpCommands(commands.Cog, name='Help'):
 
         # Extract page URLs
         gitbook_urls = []
-        base_url = 'https://docs.clashking.xyz'
+        base_url = 'https://docs.clashk.ing'
 
         def recurse_pages(pages):
             for page in pages:
@@ -181,7 +181,7 @@ class HelpCommands(commands.Cog, name='Help'):
 
             # Send reply
             embed = disnake.Embed(
-                description='This info is pulled from our [docs](https://docs.clashking.xyz), to try to help assist you.',
+                description='This info is pulled from our [docs](https://docs.clashk.ing), to try to help assist you.',
                 color=disnake.Color.orange(),
             )
             if answer.get('answer', {}).get('text') is None:
