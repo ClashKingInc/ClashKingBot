@@ -37,10 +37,10 @@ BOARD_TYPES = [
     'War Log',
     'CWL History',
 ]
-TOWNHALL_LEVELS = [x for x in range(1, 18)]
+TOWNHALL_LEVELS = [x for x in range(1, 19)]
 TOP_TOWNHALL = TOWNHALL_LEVELS[-1]
 
-MAX_ARMY_CAMP = 320
+MAX_ARMY_CAMP = 340
 MAX_NUM_SPELLS = 11
 
 MAX_NUM_SUPERS = 2
