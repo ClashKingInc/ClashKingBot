@@ -37,7 +37,7 @@ async def ask_questions(bot: CustomClient, ctx: disnake.MessageInteraction, ques
     modal_inter: disnake.ModalInteraction = await bot.wait_for(
         'modal_submit',
         check=check,
-        timeout=300,
+        timeout=60 * 15,
     )
     await modal_inter.response.defer(ephemeral=True)
     message = await modal_inter.followup.send(content='Answers Submitted!')
