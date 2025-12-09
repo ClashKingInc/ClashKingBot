@@ -8,7 +8,7 @@ dependencies = [
     "apscheduler",
     "ballpark @ git+https://github.com/Mee6/python-ballpark.git",
     "chat-exporter",
-    "coc.py @ git+https://github.com/ClashKingInc/coc.py.git",
+    "clashy-py",
     "disnake",
     "disnake-ext-fluent @ git+https://github.com/MagicTheDev/disnake-ext-fluent.git",
     "dnspython",

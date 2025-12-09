@@ -3,7 +3,6 @@ from collections import deque
 
 import disnake
 
-
 # EVAL CONSTANTS
 DEFAULT_EVAL_ROLE_TYPES = [
     'family',

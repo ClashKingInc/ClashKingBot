@@ -331,6 +331,7 @@ class eval(commands.Cog, name='Refresh'):
         th15: disnake.Role = None,
         th16: disnake.Role = None,
         th17: disnake.Role = None,
+        th18: disnake.Role = None,
     ):
 
         if (
@@ -349,13 +350,14 @@ class eval(commands.Cog, name='Refresh'):
             and th15 is None
             and th16 is None
             and th17 is None
+            and th18 is None
         ):
             raise MessageException('Please provide a role for at least 1 townhall level.')
 
         roles_updated = ''
 
-        spot_to_text = ['th3', 'th4', 'th5', 'th6', 'th7', 'th8', 'th9', 'th10', 'th11', 'th12', 'th13', 'th14', 'th15', 'th16', 'th17']
-        list_roles = [th3, th4, th5, th6, th7, th8, th9, th10, th11, th12, th13, th14, th15, th16, th17]
+        spot_to_text = ['th3', 'th4', 'th5', 'th6', 'th7', 'th8', 'th9', 'th10', 'th11', 'th12', 'th13', 'th14', 'th15', 'th16', 'th17', 'th18']
+        list_roles = [th3, th4, th5, th6, th7, th8, th9, th10, th11, th12, th13, th14, th15, th16, th17, th18]
 
         for count, role in enumerate(list_roles):
             if role is None:
