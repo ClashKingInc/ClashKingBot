@@ -1,0 +1,3 @@
+package utility
+
+func DoSomething() {}
