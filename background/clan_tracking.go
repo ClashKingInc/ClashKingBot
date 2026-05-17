@@ -628,8 +628,8 @@ func (c *ClanTracking) start() {
 	}
 }
 
-func main() {
-
+// StartClanTracking starts the clan tracking background service.
+func StartClanTracking() {
 	tracking := ClanTracking{
 		statsMongoClient:  createMongoClient(os.Getenv("STATS_MONGODB_URI")),
 		staticMongoClient: createMongoClient(os.Getenv("STATIC_MONGODB_URI")),
@@ -658,4 +658,8 @@ func main() {
 	tracking.startAPIHealthMonitor()
 
 	tracking.start()
+}
+
+func main() {
+	StartClanTracking()
 }
