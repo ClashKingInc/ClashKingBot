@@ -8,6 +8,7 @@ import (
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
+	"github.com/disgoorg/omit"
 	"github.com/disgoorg/snowflake/v2"
 )
 
@@ -16,8 +17,9 @@ type EmbedCommands struct{}
 func (e *EmbedCommands) Commands() []discord.ApplicationCommandCreate {
 	return []discord.ApplicationCommandCreate{
 		discord.SlashCommandCreate{
-			Name:        "embed",
-			Description: "Manage and post embeds",
+			Name:                     "embed",
+			Description:              "Manage and post embeds",
+			DefaultMemberPermissions: omit.NewPtr(discord.PermissionManageMessages),
 			Options: []discord.ApplicationCommandOption{
 				discord.ApplicationCommandOptionSubCommand{
 					Name:        "post",
@@ -177,40 +179,46 @@ func normalizeComponents(components []any) []any {
 			result = append(result, raw)
 			continue
 		}
-
-		cType, _ := c["type"].(float64)
-
-		// Remove file components with external URLs.
-		if int(cType) == 13 {
-			continue
+		if c := normalizeComponent(c); c != nil {
+			result = append(result, c)
 		}
-
-		// Recurse into nested components (action rows, containers).
-		if nested, ok := c["components"].([]any); ok {
-			c["components"] = normalizeComponents(nested)
-		}
-
-		// Fix buttons missing a label.
-		if int(cType) == 2 {
-			if _, hasLabel := c["label"]; !hasLabel {
-				c["label"] = "\u200b"
-			}
-		}
-
-		// Fix button accessories inside sections (type 9).
-		if int(cType) == 9 {
-			if acc, ok := c["accessory"].(map[string]any); ok {
-				accType, _ := acc["type"].(float64)
-				if int(accType) == 2 {
-					if _, hasLabel := acc["label"]; !hasLabel {
-						acc["label"] = "\u200b"
-					}
-				}
-			}
-		}
-
-		result = append(result, c)
 	}
 	return result
 }
 
+func normalizeComponent(c map[string]any) map[string]any {
+	cType, _ := c["type"].(float64)
+
+	if int(cType) == 13 {
+		return nil
+	}
+	if nested, ok := c["components"].([]any); ok {
+		c["components"] = normalizeComponents(nested)
+	}
+	if int(cType) == 2 {
+		addMissingButtonLabel(c)
+	}
+	if int(cType) == 9 {
+		normalizeSectionAccessory(c)
+	}
+	return c
+}
+
+// addMissingButtonLabel ensures a button has a label (Discord requires one).
+func addMissingButtonLabel(c map[string]any) {
+	if _, hasLabel := c["label"]; !hasLabel {
+		c["label"] = "\u200b"
+	}
+}
+
+// normalizeSectionAccessory fixes a button accessory inside a section component (type 9).
+func normalizeSectionAccessory(c map[string]any) {
+	acc, ok := c["accessory"].(map[string]any)
+	if !ok {
+		return
+	}
+	accType, _ := acc["type"].(float64)
+	if int(accType) == 2 {
+		addMissingButtonLabel(acc)
+	}
+}

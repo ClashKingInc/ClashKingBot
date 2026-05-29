@@ -38,7 +38,7 @@ func (c *apiClient) GetServerEmbeds(guildID snowflake.ID) ([]ServerEmbed, error)
 		return nil, err
 	}
 
-	slog.Info("GetServerEmbeds response", slog.Int("status", resp.StatusCode), slog.String("body", string(body)))
+	slog.Info("GetServerEmbeds response", slog.Int("status", resp.StatusCode))
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
