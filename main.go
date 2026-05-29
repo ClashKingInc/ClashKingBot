@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -16,38 +15,48 @@ import (
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/joho/godotenv"
 
-	"clashking/background"
 	"clashking/commands"
 	"clashking/utility"
 )
 
-var (
-	token       string
-	newCommands []discord.ApplicationCommandCreate
-	guildID, _  = snowflake.Parse("1315502785831374848")
-)
-
 func main() {
-	background.StartClanTracking()
-
-}
-func rest() {
-
 	if err := godotenv.Load(); err != nil {
 		slog.Warn("no .env file loaded", slog.Any("err", err))
 	}
-	token = os.Getenv("BOT_TOKEN")
-	slog.Info("starting example...")
-	slog.Info("disgo version", slog.String("version", disgo.Version))
+	token := os.Getenv("BOT_TOKEN")
+	if token == "" {
+		slog.Error("BOT_TOKEN is not set")
+		os.Exit(1)
+	}
 
-	clanCommands := commands.ClanCommands{}
+	slog.Info("starting ClashKing Go bot", slog.String("disgo_version", disgo.Version))
+
+	clanCmds := &commands.ClanCommands{}
+	playerCmds := &commands.PlayerCommands{}
+
 	r := handler.New()
 	r.Use(middleware.Logger)
-	r.Group(func(r handler.Router) {
-		r.Use(middleware.Print("group2")) //command logs
-		r.SlashCommand("/clan", clanCommands.Handle)
-		r.Component("/button1/{data}", clanCommands.Components)
-	})
+
+	// /clan subcommands
+	r.SlashCommand("/clan/overview", clanCmds.HandleOverview)
+	r.SlashCommand("/clan/compo", clanCmds.HandleCompo)
+	r.SlashCommand("/clan/members", clanCmds.HandleMembers)
+	r.SlashCommand("/clan/donations", clanCmds.HandleDonations)
+	r.SlashCommand("/clan/war-history", clanCmds.HandleWarHistory)
+	r.SlashCommand("/clan/games", clanCmds.HandleGames)
+	r.SlashCommand("/clan/capital", clanCmds.HandleCapital)
+	r.SlashCommand("/clan/progress", clanCmds.HandleProgress)
+	r.SlashCommand("/clan/war-opt", clanCmds.HandleWarOpt)
+	r.SlashCommand("/clan/activity", clanCmds.HandleActivity)
+	r.SlashCommand("/clan/summary", clanCmds.HandleSummary)
+
+	// /player subcommands
+	r.SlashCommand("/player/lookup", playerCmds.HandleLookup)
+	r.SlashCommand("/player/accounts", playerCmds.HandleAccounts)
+	r.SlashCommand("/player/todo", playerCmds.HandleTodo)
+	r.SlashCommand("/player/war-stats", playerCmds.HandleWarStats)
+	r.SlashCommand("/player/stats", playerCmds.HandleStats)
+
 	r.NotFound(commands.CommandUtils.HandleNotFound)
 
 	client, err := disgo.New(token,
@@ -55,27 +64,45 @@ func rest() {
 		bot.WithEventListeners(r),
 	)
 	if err != nil {
-		slog.Error("error while building bot", slog.Any("err", err))
-		return
+		slog.Error("error creating bot client", slog.Any("err", err))
+		os.Exit(1)
 	}
 
-	newCommands = append(newCommands, clanCommands.Commands()...)
+	utility.LoadEmojiConfig(client)
 
-	emojis := utility.LoadEmojiConfig(client)
-	fmt.Println(emojis)
-	if err = handler.SyncCommands(client, newCommands, []snowflake.ID{}); err != nil {
-		slog.Error("error while syncing commands", slog.Any("err", err))
-		return
+	var allCommands []discord.ApplicationCommandCreate
+	allCommands = append(allCommands, clanCmds.Commands()...)
+	allCommands = append(allCommands, playerCmds.Commands()...)
+
+	guildIDs := guildIDsFromEnv()
+	if err = handler.SyncCommands(client, allCommands, guildIDs); err != nil {
+		slog.Error("error syncing commands", slog.Any("err", err))
 	}
 
 	defer client.Close(context.TODO())
 
 	if err = client.OpenGateway(context.TODO()); err != nil {
-		slog.Error("error while connecting to gateway", slog.Any("err", err))
+		slog.Error("error connecting to gateway", slog.Any("err", err))
+		os.Exit(1)
 	}
 
-	slog.Info("example is now running. Press CTRL-C to exit.")
+	slog.Info("bot is running — press CTRL-C to stop")
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-s
+}
+
+// guildIDsFromEnv returns a slice of guild IDs from the GUILD_ID env var (comma-separated).
+// Returns an empty slice (global commands) if the var is not set.
+func guildIDsFromEnv() []snowflake.ID {
+	raw := os.Getenv("GUILD_ID")
+	if raw == "" {
+		return nil
+	}
+	id, err := snowflake.Parse(raw)
+	if err != nil {
+		slog.Warn("invalid GUILD_ID", slog.String("value", raw))
+		return nil
+	}
+	return []snowflake.ID{id}
 }
