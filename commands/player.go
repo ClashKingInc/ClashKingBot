@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"clashking/api"
 	"clashking/utility"
@@ -95,9 +94,7 @@ func (p *PlayerCommands) HandleLookup(data discord.SlashCommandInteractionData, 
 		_, err = event.CreateFollowupMessage(errMsg("Player not found", "Could not find a player with tag `"+tag+"`."))
 		return err
 	}
-	_, err = event.CreateFollowupMessage(discord.MessageCreate{
-		Embeds: []discord.Embed{playerLookupEmbed(player)},
-	})
+	_, err = event.CreateFollowupMessage(playerLookupMsg(player))
 	return err
 }
 
@@ -123,86 +120,100 @@ func (p *PlayerCommands) HandleStats(data discord.SlashCommandInteractionData, e
 		_, err = event.CreateFollowupMessage(errMsg("Player not found", "Could not find a player with tag `"+tag+"`."))
 		return err
 	}
-	_, err = event.CreateFollowupMessage(discord.MessageCreate{
-		Embeds: []discord.Embed{playerStatsEmbed(player)},
-	})
+	_, err = event.CreateFollowupMessage(playerStatsMsg(player))
 	return err
 }
 
-// ─── Embed builders ───────────────────────────────────────────────────────────
+// ─── Message builders ─────────────────────────────────────────────────────────
 
-func playerLookupEmbed(player *api.PlayerExtended) discord.Embed {
+func playerLookupMsg(player *api.PlayerExtended) discord.MessageCreate {
 	e := utility.Emojis.IconEmojis
 
-	thEm := thEmoji(player.TownHallLevel)
-	leagueEm := ""
-	if em, ok := utility.Emojis.LeagueEmojis[player.League.Name]; ok {
-		leagueEm = em.Mention() + " "
+	leagueName := player.League.Name
+	if leagueName == "" {
+		leagueName = "Unranked"
 	}
+	leagueEm := leagueEmoji(leagueName)
 
-	clanName := "—"
-	clanTag := ""
+	clanLine := "—"
 	if player.Clan != nil {
-		clanName = player.Clan.Name
-		clanTag = player.Clan.Tag
+		clanLine = fmt.Sprintf("%s `%s`", player.Clan.Name, player.Clan.Tag)
 	}
 
-	roleStr := roleLabel(player.Role)
 	warPref := "—"
-	if player.WarPreference == "in" {
+	switch player.WarPreference {
+	case "in":
 		warPref = e.OptIn.Mention() + " Opted In"
-	} else if player.WarPreference == "out" {
+	case "out":
 		warPref = e.OptOut.Mention() + " Opted Out"
 	}
 
-	lastOnlineStr := "—"
-	if player.LastOnline != nil {
-		t := time.Unix(*player.LastOnline, 0)
-		lastOnlineStr = "<t:" + fmt.Sprint(*player.LastOnline) + ":R>"
-		_ = t
-	}
+	header := fmt.Sprintf("### %s %s | XP %d\n%s %s  ·  %s %s",
+		thEmoji(player.TownHallLevel), player.Name, player.ExpLevel,
+		leagueEm, leagueName,
+		e.Trophy.Mention(), formatNum(player.Trophies),
+	)
+	row1 := fmt.Sprintf("%s **Clan:** %s  ·  %s **Role:** %s  ·  %s **War Pref:** %s",
+		e.ClanCastle.Mention(), clanLine,
+		e.People.Mention(), roleLabel(player.Role),
+		e.ClashSword.Mention(), warPref,
+	)
+	row2 := fmt.Sprintf("%s **War Stars:** %s  ·  %s **Attack Wins:** %s  ·  %s **Defense Wins:** %s",
+		e.WarStar.Mention(), formatNum(player.WarStars),
+		e.BrokenSword.Mention(), formatNum(player.AttackWins),
+		e.ClashSword.Mention(), formatNum(player.DefenseWins),
+	)
+	row3 := fmt.Sprintf("%s **Donations:** %s given  ·  %s **Received:** %s",
+		e.HandCoins.Mention(), formatNum(player.Donations),
+		e.Troop.Mention(), formatNum(player.DonationsReceived),
+	)
 
-	activityStr := "—"
-	if player.Activity != nil {
-		activityStr = fmt.Sprintf("%d days active", *player.Activity)
-	}
-
-	b := discord.NewEmbedBuilder().
-		SetTitle(fmt.Sprintf("%s %s | XP %d", thEm, player.Name, player.ExpLevel)).
-		SetDescription(fmt.Sprintf("%s**%s**\n%s `%s`",
-			leagueEm, player.League.Name,
-			e.Trophy.Mention(), fmt.Sprint(player.Trophies),
-		)).
-		SetColor(playerEmbedColor).
-		AddField(e.ClanCastle.Mention()+" Clan", fmt.Sprintf("%s\n`%s`", clanName, clanTag), true).
-		AddField(e.People.Mention()+" Role", roleStr, true).
-		AddField(e.ClashSword.Mention()+" War Preference", warPref, true).
-		AddField(e.Trophy.Mention()+" Trophies", formatNum(player.Trophies), true).
-		AddField(e.WarStar.Mention()+" War Stars", formatNum(player.WarStars), true).
-		AddField(e.BrokenSword.Mention()+" Attack Wins", formatNum(player.AttackWins), true).
-		AddField(e.HandCoins.Mention()+" Donations", formatNum(player.Donations), true).
-		AddField(e.Troop.Mention()+" Received", formatNum(player.DonationsReceived), true)
-
-	if player.Activity != nil || player.LastOnline != nil {
-		b.AddField(e.Clock.Mention()+" Last Seen", lastOnlineStr, true).
-			AddField(e.Calendar.Mention()+" Activity", activityStr, true)
+	comps := []discord.ContainerSubComponent{
+		discord.NewSection(
+			discord.NewTextDisplay(header),
+		).WithAccessory(discord.NewThumbnail(player.League.IconURLs.Medium)),
+		discord.NewSmallSeparator(),
+		discord.NewTextDisplay(row1),
+		discord.NewTextDisplay(row2),
+		discord.NewTextDisplay(row3),
 	}
 
 	if player.BuilderBaseTrophies != nil {
-		b.AddField(e.VersusTrophy.Mention()+" Builder Trophies", formatNum(*player.BuilderBaseTrophies), true)
+		comps = append(comps, discord.NewTextDisplay(fmt.Sprintf(
+			"%s **Builder Trophies:** %s",
+			e.VersusTrophy.Mention(), formatNum(*player.BuilderBaseTrophies),
+		)))
 	}
 
-	b.SetFooter(player.Tag, "")
-	return b.Build()
+	if player.Activity != nil || player.LastOnline != nil {
+		lastSeen := "—"
+		if player.LastOnline != nil {
+			lastSeen = fmt.Sprintf("<t:%d:R>", *player.LastOnline)
+		}
+		activity := "—"
+		if player.Activity != nil {
+			activity = fmt.Sprintf("%d days active", *player.Activity)
+		}
+		comps = append(comps, discord.NewTextDisplay(fmt.Sprintf(
+			"%s **Last Seen:** %s  ·  %s **Activity:** %s",
+			e.Clock.Mention(), lastSeen,
+			e.Calendar.Mention(), activity,
+		)))
+	}
+
+	comps = append(comps, discord.NewSmallSeparator(), discord.NewTextDisplay("-# "+player.Tag))
+
+	return discord.NewMessageCreateV2(
+		discord.NewContainer(comps...).WithAccentColor(playerEmbedColor),
+	)
 }
 
-func playerStatsEmbed(player *api.PlayerExtended) discord.Embed {
+func playerStatsMsg(player *api.PlayerExtended) discord.MessageCreate {
 	e := utility.Emojis.IconEmojis
-	thEm := thEmoji(player.TownHallLevel)
 
 	var lines []string
 	lines = append(lines, fmt.Sprintf("%s **TH%d** | XP %d | %s %d 🏆",
-		thEm, player.TownHallLevel, player.ExpLevel,
+		thEmoji(player.TownHallLevel), player.TownHallLevel, player.ExpLevel,
 		e.Trophy.Mention(), player.Trophies,
 	))
 	lines = append(lines, "")
@@ -233,12 +244,15 @@ func playerStatsEmbed(player *api.PlayerExtended) discord.Embed {
 		))
 	}
 
-	return discord.NewEmbedBuilder().
-		SetTitle(fmt.Sprintf("%s — Stats", player.Name)).
-		SetDescription(strings.Join(lines, "\n")).
-		SetColor(playerEmbedColor).
-		SetFooter(player.Tag, "").
-		Build()
+	return discord.NewMessageCreateV2(
+		discord.NewContainer(
+			discord.NewTextDisplay(fmt.Sprintf("**%s** — Stats", player.Name)),
+			discord.NewSmallSeparator(),
+			discord.NewTextDisplay(strings.Join(lines, "\n")),
+			discord.NewSmallSeparator(),
+			discord.NewTextDisplay("-# "+player.Tag),
+		).WithAccentColor(playerEmbedColor),
+	)
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

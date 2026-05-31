@@ -213,9 +213,7 @@ func (c *ClanCommands) HandleOverview(data discord.SlashCommandInteractionData, 
 		_, err = event.CreateFollowupMessage(errMsg("Clan not found", "Could not find a clan with tag `"+tag+"`."))
 		return err
 	}
-	_, err = event.CreateFollowupMessage(discord.MessageCreate{
-		Embeds: []discord.Embed{clanOverviewEmbed(clan)},
-	})
+	_, err = event.CreateFollowupMessage(clanOverviewMsg(clan))
 	return err
 }
 
@@ -233,9 +231,7 @@ func (c *ClanCommands) HandleCompo(data discord.SlashCommandInteractionData, eve
 		_, err = event.CreateFollowupMessage(errMsg("Clan not found", "Could not find a clan with tag `"+tag+"`."))
 		return err
 	}
-	_, err = event.CreateFollowupMessage(discord.MessageCreate{
-		Embeds: []discord.Embed{clanCompoEmbed(clan, compoType)},
-	})
+	_, err = event.CreateFollowupMessage(clanCompoMsg(clan, compoType))
 	return err
 }
 
@@ -257,9 +253,7 @@ func (c *ClanCommands) HandleMembers(data discord.SlashCommandInteractionData, e
 		_, err = event.CreateFollowupMessage(errMsg("Clan not found", "Could not find a clan with tag `"+tag+"`."))
 		return err
 	}
-	_, err = event.CreateFollowupMessage(discord.MessageCreate{
-		Embeds: []discord.Embed{clanMembersEmbed(clan, sortBy, limit)},
-	})
+	_, err = event.CreateFollowupMessage(clanMembersMsg(clan, sortBy, limit))
 	return err
 }
 
@@ -282,9 +276,7 @@ func (c *ClanCommands) HandleDonations(data discord.SlashCommandInteractionData,
 		_, err = event.CreateFollowupMessage(errMsg("No data", "No donation data found for this clan and season."))
 		return err
 	}
-	_, err = event.CreateFollowupMessage(discord.MessageCreate{
-		Embeds: []discord.Embed{clanDonationsEmbed(clan, donations, season)},
-	})
+	_, err = event.CreateFollowupMessage(clanDonationsMsg(clan, donations, season))
 	return err
 }
 
@@ -310,9 +302,7 @@ func (c *ClanCommands) HandleWarHistory(data discord.SlashCommandInteractionData
 	if clan, err2 := api.ClashKingClient.GetClanDetails(tag); err2 == nil {
 		clanName = clan.Name
 	}
-	_, err = event.CreateFollowupMessage(discord.MessageCreate{
-		Embeds: []discord.Embed{clanWarHistoryEmbed(clanName, api.FormatTag(tag), wars)},
-	})
+	_, err = event.CreateFollowupMessage(clanWarHistoryMsg(clanName, api.FormatTag(tag), wars))
 	return err
 }
 
@@ -342,17 +332,15 @@ func (c *ClanCommands) HandleSummary(data discord.SlashCommandInteractionData, e
 	return event.CreateMessage(comingSoonMsg("/clan summary"))
 }
 
-// ─── Embed builders ───────────────────────────────────────────────────────────
+// ─── Message builders ─────────────────────────────────────────────────────────
 
-func clanOverviewEmbed(clan *api.ClanDetails) discord.Embed {
+func clanOverviewMsg(clan *api.ClanDetails) discord.MessageCreate {
 	e := utility.Emojis.IconEmojis
 
-	typeStr := clanTypeStr(clan.Type)
 	warRecord := "Private"
 	if clan.IsWarLogPublic {
 		wins := clan.WarWins
-		losses := 0
-		ties := 0
+		losses, ties := 0, 0
 		if clan.WarLosses != nil {
 			losses = *clan.WarLosses
 		}
@@ -365,54 +353,67 @@ func clanOverviewEmbed(clan *api.ClanDetails) discord.Embed {
 		}
 	}
 
-	location := clan.Location.Name
-	if location == "" {
-		location = "—"
+	desc := clan.Description
+	if desc == "" {
+		desc = "*No description*"
 	}
-	description := clan.Description
-	if description == "" {
-		description = "*No description*"
+	header := fmt.Sprintf("### %s | Level %d\n%s", clan.Name, clan.ClanLevel, desc)
+
+	row1 := fmt.Sprintf(
+		"%s **Members:** %d/50  ·  %s **Trophies:** %s  ·  %s **Location:** %s",
+		e.People.Mention(), clan.Members,
+		e.Trophy.Mention(), formatNum(clan.ClanPoints),
+		e.Earth.Mention(), orDash(clan.Location.Name),
+	)
+	row2 := fmt.Sprintf(
+		"%s **Req. TH:** TH%d  ·  %s **War League:** %s  ·  %s **Capital League:** %s",
+		e.ClanCastle.Mention(), clan.RequiredTownhallLevel,
+		e.CWLMedal.Mention(), orDash(clan.WarLeague.Name),
+		e.CapitalTrophy.Mention(), orDash(clan.CapitalLeague.Name),
+	)
+	row3 := fmt.Sprintf(
+		"%s **War Record:** %s  ·  %s **Capital Points:** %s  ·  %s **Type:** %s",
+		e.ClashSword.Mention(), warRecord,
+		e.CapitalGold.Mention(), formatNum(clan.ClanCapitalPoints),
+		e.GreenCircle.Mention(), clanTypeStr(clan.Type),
+	)
+
+	comps := []discord.ContainerSubComponent{
+		discord.NewSection(
+			discord.NewTextDisplay(header),
+		).WithAccessory(discord.NewThumbnail(clan.BadgeURLs.Large)),
+		discord.NewSmallSeparator(),
+		discord.NewTextDisplay(row1),
+		discord.NewTextDisplay(row2),
+		discord.NewTextDisplay(row3),
 	}
-
-	b := discord.NewEmbedBuilder().
-		SetTitle(fmt.Sprintf("%s | Level %d", clan.Name, clan.ClanLevel)).
-		SetThumbnail(clan.BadgeURLs.Large).
-		SetDescription(description).
-		SetColor(clanEmbedColor).
-		AddField(e.People.Mention()+" Members", fmt.Sprintf("%d/50", clan.Members), true).
-		AddField(e.Trophy.Mention()+" Trophies", formatNum(clan.ClanPoints), true).
-		AddField(e.Earth.Mention()+" Location", location, true).
-		AddField(e.ClanCastle.Mention()+" Required TH", fmt.Sprintf("TH %d", clan.RequiredTownhallLevel), true).
-		AddField(e.CWLMedal.Mention()+" War League", orDash(clan.WarLeague.Name), true).
-		AddField(e.CapitalTrophy.Mention()+" Capital League", orDash(clan.CapitalLeague.Name), true).
-		AddField(e.ClashSword.Mention()+" War Record", warRecord, true).
-		AddField(e.CapitalGold.Mention()+" Capital Points", formatNum(clan.ClanCapitalPoints), true).
-		AddField(e.GreenCircle.Mention()+" Type", typeStr, true).
-		SetFooter(clan.Tag, "")
-
 	if clan.ClanCapital.CapitalHallLevel > 0 {
-		b.AddField(e.ThickCapitalSword.Mention()+" Capital Hall", fmt.Sprintf("Level %d", clan.ClanCapital.CapitalHallLevel), true)
+		comps = append(comps, discord.NewTextDisplay(fmt.Sprintf(
+			"%s **Capital Hall:** Level %d",
+			e.ThickCapitalSword.Mention(), clan.ClanCapital.CapitalHallLevel,
+		)))
 	}
+	comps = append(comps, discord.NewSmallSeparator(), discord.NewTextDisplay("-# "+clan.Tag))
 
-	return b.Build()
+	return discord.NewMessageCreateV2(
+		discord.NewContainer(comps...).WithAccentColor(clanEmbedColor),
+	)
 }
 
-func clanCompoEmbed(clan *api.ClanDetails, compoType string) discord.Embed {
+func clanCompoMsg(clan *api.ClanDetails, compoType string) discord.MessageCreate {
 	var title, body string
 
 	switch compoType {
 	case "Role":
-		title = fmt.Sprintf("%s — Role Composition", clan.Name)
+		title = fmt.Sprintf("**%s** — Role Composition", clan.Name)
 		counts := map[string]int{}
 		for _, m := range clan.MemberList {
 			counts[m.Role]++
 		}
 		roleOrder := []string{"leader", "coLeader", "elder", "member"}
 		roleLabels := map[string]string{
-			"leader":   "👑 Leader",
-			"coLeader": "🔱 Co-Leader",
-			"elder":    "⚜️ Elder",
-			"member":   "👤 Member",
+			"leader": "👑 Leader", "coLeader": "🔱 Co-Leader",
+			"elder": "⚜️ Elder", "member": "👤 Member",
 		}
 		var lines []string
 		for _, r := range roleOrder {
@@ -423,7 +424,7 @@ func clanCompoEmbed(clan *api.ClanDetails, compoType string) discord.Embed {
 		body = strings.Join(lines, "\n")
 
 	case "League":
-		title = fmt.Sprintf("%s — League Composition", clan.Name)
+		title = fmt.Sprintf("**%s** — League Composition", clan.Name)
 		counts := map[string]int{}
 		for _, m := range clan.MemberList {
 			name := m.League.Name
@@ -449,7 +450,7 @@ func clanCompoEmbed(clan *api.ClanDetails, compoType string) discord.Embed {
 		body = strings.Join(lines, "\n")
 
 	default: // Townhall
-		title = fmt.Sprintf("%s — TH Composition", clan.Name)
+		title = fmt.Sprintf("**%s** — TH Composition", clan.Name)
 		counts := map[int]int{}
 		for _, m := range clan.MemberList {
 			counts[m.TownHallLevel]++
@@ -467,23 +468,26 @@ func clanCompoEmbed(clan *api.ClanDetails, compoType string) discord.Embed {
 			if total > 0 {
 				pct = n * 100 / total
 			}
-			em := thEmoji(lvl)
 			bar := progressBar(n, total, 10)
-			lines = append(lines, fmt.Sprintf("%s TH%-2d  %s `%d` (%d%%)", em, lvl, bar, n, pct))
+			lines = append(lines, fmt.Sprintf("%s TH%-2d  %s `%d` (%d%%)", thEmoji(lvl), lvl, bar, n, pct))
 		}
 		body = strings.Join(lines, "\n")
 	}
 
-	return discord.NewEmbedBuilder().
-		SetTitle(title).
-		SetThumbnail(clan.BadgeURLs.Large).
-		SetDescription(body).
-		SetColor(clanEmbedColor).
-		SetFooter(clan.Tag, "").
-		Build()
+	return discord.NewMessageCreateV2(
+		discord.NewContainer(
+			discord.NewSection(
+				discord.NewTextDisplay(title),
+			).WithAccessory(discord.NewThumbnail(clan.BadgeURLs.Large)),
+			discord.NewSmallSeparator(),
+			discord.NewTextDisplay(body),
+			discord.NewSmallSeparator(),
+			discord.NewTextDisplay("-# "+clan.Tag),
+		).WithAccentColor(clanEmbedColor),
+	)
 }
 
-func clanMembersEmbed(clan *api.ClanDetails, sortBy string, limit int) discord.Embed {
+func clanMembersMsg(clan *api.ClanDetails, sortBy string, limit int) discord.MessageCreate {
 	members := make([]api.ClanMember, len(clan.MemberList))
 	copy(members, clan.MemberList)
 
@@ -535,16 +539,20 @@ func clanMembersEmbed(clan *api.ClanDetails, sortBy string, limit int) discord.E
 		lines = append(lines, fmt.Sprintf("`%2d.` %s %-22s %s", i+1, em, truncate(m.Name, 20), value))
 	}
 
-	return discord.NewEmbedBuilder().
-		SetTitle(fmt.Sprintf("%s — Members by %s", clan.Name, sortLabel)).
-		SetThumbnail(clan.BadgeURLs.Large).
-		SetDescription(strings.Join(lines, "\n")).
-		SetColor(clanEmbedColor).
-		SetFooter(fmt.Sprintf("%s • %d/%d members shown", clan.Tag, limit, clan.Members), "").
-		Build()
+	return discord.NewMessageCreateV2(
+		discord.NewContainer(
+			discord.NewSection(
+				discord.NewTextDisplay(fmt.Sprintf("**%s** — Members by %s", clan.Name, sortLabel)),
+			).WithAccessory(discord.NewThumbnail(clan.BadgeURLs.Large)),
+			discord.NewSmallSeparator(),
+			discord.NewTextDisplay(strings.Join(lines, "\n")),
+			discord.NewSmallSeparator(),
+			discord.NewTextDisplay(fmt.Sprintf("-# %s · %d/%d members shown", clan.Tag, limit, clan.Members)),
+		).WithAccentColor(clanEmbedColor),
+	)
 }
 
-func clanDonationsEmbed(clan *api.ClanDetails, donations *api.DonationResponse, season string) discord.Embed {
+func clanDonationsMsg(clan *api.ClanDetails, donations *api.DonationResponse, season string) discord.MessageCreate {
 	names := map[string]string{}
 	for _, m := range clan.MemberList {
 		names[m.Tag] = m.Name
@@ -572,7 +580,7 @@ func clanDonationsEmbed(clan *api.ClanDetails, donations *api.DonationResponse, 
 	sort.Slice(entries, func(i, j int) bool { return entries[i].donated > entries[j].donated })
 
 	if len(entries) == 0 {
-		return errEmbed("No donation data", "No donations tracked for season "+season+".")
+		return errMsg("No donation data", "No donations tracked for season "+season+".")
 	}
 
 	limit := 20
@@ -591,20 +599,24 @@ func clanDonationsEmbed(clan *api.ClanDetails, donations *api.DonationResponse, 
 		))
 	}
 
-	return discord.NewEmbedBuilder().
-		SetTitle(fmt.Sprintf("%s — Donations (%s)", clan.Name, season)).
-		SetThumbnail(clan.BadgeURLs.Large).
-		SetDescription(strings.Join(lines, "\n")).
-		SetColor(clanEmbedColor).
-		SetFooter(fmt.Sprintf("%s • top %d of %d donors", clan.Tag, limit, len(entries)), "").
-		Build()
+	return discord.NewMessageCreateV2(
+		discord.NewContainer(
+			discord.NewSection(
+				discord.NewTextDisplay(fmt.Sprintf("**%s** — Donations (%s)", clan.Name, season)),
+			).WithAccessory(discord.NewThumbnail(clan.BadgeURLs.Large)),
+			discord.NewSmallSeparator(),
+			discord.NewTextDisplay(strings.Join(lines, "\n")),
+			discord.NewSmallSeparator(),
+			discord.NewTextDisplay(fmt.Sprintf("-# %s · top %d of %d donors", clan.Tag, limit, len(entries))),
+		).WithAccentColor(clanEmbedColor),
+	)
 }
 
-func clanWarHistoryEmbed(clanName, clanTag string, wars *api.WarPreviousResponse) discord.Embed {
+func clanWarHistoryMsg(clanName, clanTag string, wars *api.WarPreviousResponse) discord.MessageCreate {
 	normalTag := strings.ReplaceAll(clanTag, "%23", "#")
 
 	if len(wars.Items) == 0 {
-		return errEmbed("No wars found", "No war history available, or the war log is private.")
+		return errMsg("No wars found", "No war history available, or the war log is private.")
 	}
 
 	e := utility.Emojis.IconEmojis
@@ -635,12 +647,15 @@ func clanWarHistoryEmbed(clanName, clanTag string, wars *api.WarPreviousResponse
 		shown++
 	}
 
-	return discord.NewEmbedBuilder().
-		SetTitle(fmt.Sprintf("%s — War History", clanName)).
-		SetDescription(strings.Join(lines, "\n\n")).
-		SetColor(clanEmbedColor).
-		SetFooter(fmt.Sprintf("%s • %d wars shown of %d", normalTag, shown, len(wars.Items)), "").
-		Build()
+	return discord.NewMessageCreateV2(
+		discord.NewContainer(
+			discord.NewTextDisplay(fmt.Sprintf("**%s** — War History", clanName)),
+			discord.NewSmallSeparator(),
+			discord.NewTextDisplay(strings.Join(lines, "\n\n")),
+			discord.NewSmallSeparator(),
+			discord.NewTextDisplay(fmt.Sprintf("-# %s · %d wars shown of %d", normalTag, shown, len(wars.Items))),
+		).WithAccentColor(clanEmbedColor),
+	)
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -755,22 +770,19 @@ func leagueEmoji(name string) string {
 }
 
 func errMsg(title, desc string) discord.MessageCreate {
-	return discord.MessageCreate{Embeds: []discord.Embed{errEmbed(title, desc)}}
-}
-
-func errEmbed(title, desc string) discord.Embed {
-	return discord.NewEmbedBuilder().
-		SetTitle("❌ " + title).
-		SetDescription(desc).
-		SetColor(0xE74C3C).
-		Build()
+	return discord.NewMessageCreateV2(
+		discord.NewContainer(
+			discord.NewTextDisplay("❌ **"+title+"**"),
+			discord.NewTextDisplay(desc),
+		).WithAccentColor(0xE74C3C),
+	)
 }
 
 func comingSoonMsg(cmd string) discord.MessageCreate {
-	embed := discord.NewEmbedBuilder().
-		SetTitle("🚧 Coming Soon").
-		SetDescription(fmt.Sprintf("`%s` is not yet available in the Go bot. Stay tuned!", cmd)).
-		SetColor(0xF39C12).
-		Build()
-	return discord.MessageCreate{Embeds: []discord.Embed{embed}}
+	return discord.NewMessageCreateV2(
+		discord.NewContainer(
+			discord.NewTextDisplay("🚧 **Coming Soon**"),
+			discord.NewTextDisplay(fmt.Sprintf("`%s` is not yet available in the Go bot. Stay tuned!", cmd)),
+		).WithAccentColor(0xF39C12),
+	)
 }
