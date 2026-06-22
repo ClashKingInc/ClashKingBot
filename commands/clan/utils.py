@@ -87,7 +87,7 @@ async def detailed_clan_board(bot: CustomClient, clan: coc.Clan, server: disnake
 
     clan_type_converter = {
         'open': 'Anyone Can Join',
-        'inviteOnly': 'Invite Only',
+        'invite_only': 'Invite Only',
         'closed': 'Closed',
     }
     embed = Embed(
