@@ -111,10 +111,7 @@ class ExportCreator(commands.Cog):
                     # or we could switch all generators to give back datetimes which would allow us to create whatever we want with them...hindsight is 20/20 lol
                     month = list(calendar.month_name).index(season_for_sheet.split(' ')[0])
                     year = int(season_for_sheet.split(' ')[1])
-                    if month == 1:
-                        month = 13
-                        year -= 1
-                    end_date = coc.utils.get_season_end(month=int(month - 1), year=year)
+                    end_date = coc.utils.get_season_end(month=int(month), year=year)
                     month = end_date.month
                     if month <= 9:
                         month = f'0{month}'
@@ -184,8 +181,8 @@ class ExportCreator(commands.Cog):
         advanced_player_Stats_page = workbook.create_sheet(sheet_name)
         year = season[:4]
         month = season[-2:]
-        SEASON_START = utils.get_season_start(month=int(month) - 1, year=int(year))
-        SEASON_END = utils.get_season_end(month=int(month) - 1, year=int(year))
+        SEASON_START = utils.get_season_start(month=int(month), year=int(year))
+        SEASON_END = utils.get_season_end(month=int(month), year=int(year))
         weeks = []
         SEASON_START = SEASON_START - timedelta(3)
         for i in range(0, 7):
@@ -346,8 +343,8 @@ class ExportCreator(commands.Cog):
         activity_page = workbook.create_sheet(sheet_name)
         year = season[:4]
         month = season[-2:]
-        SEASON_START = utils.get_season_start(month=int(month) - 1, year=int(year)).timestamp()
-        SEASON_END = utils.get_season_end(month=int(month) - 1, year=int(year)).timestamp()
+        SEASON_START = utils.get_season_start(month=int(month), year=int(year)).timestamp()
+        SEASON_END = utils.get_season_end(month=int(month), year=int(year)).timestamp()
         pipeline = [
             {
                 '$match': {
@@ -494,8 +491,8 @@ class ExportCreator(commands.Cog):
         warhit_stat_page = workbook.create_sheet(sheet_name)
         year = season[:4]
         month = season[-2:]
-        SEASON_START = utils.get_season_start(month=int(month) - 1, year=int(year)).timestamp()
-        SEASON_END = utils.get_season_end(month=int(month) - 1, year=int(year)).timestamp()
+        SEASON_START = utils.get_season_start(month=int(month), year=int(year)).timestamp()
+        SEASON_END = utils.get_season_end(month=int(month), year=int(year)).timestamp()
         attacks = await self.bot.warhits.find(
             {
                 '$and': [

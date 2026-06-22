@@ -101,8 +101,8 @@ class StatsPlayer(coc.Player):
             season = self.bot.gen_season_date()
         year = season[:4]
         month = season[-2:]
-        season_start = utils.get_season_start(month=int(month) - 1, year=int(year))
-        season_end = utils.get_season_end(month=int(month) - 1, year=int(year))
+        season_start = utils.get_season_start(month=int(month), year=int(year))
+        season_end = utils.get_season_end(month=int(month), year=int(year))
         delta = season_end - season_start
         days = [season_start + timedelta(days=i) for i in range(delta.days)]
         days = [day.strftime('%Y-%m-%d') for day in days]

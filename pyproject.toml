@@ -2,13 +2,13 @@
 name = "clashking-bot"
 version = "1.0.0"
 description = "ClashKing Discord Bot"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = [
     "aiocache",
     "apscheduler",
     "ballpark @ git+https://github.com/Mee6/python-ballpark.git",
     "chat-exporter",
-    "clashy-py",
+    "clashy-py==26.6.0",
     "disnake",
     "disnake-ext-fluent @ git+https://github.com/MagicTheDev/disnake-ext-fluent.git",
     "dnspython",

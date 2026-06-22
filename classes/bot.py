@@ -28,7 +28,6 @@ from classes.config import Config
 from classes.DatabaseClient.familyclient import FamilyClient
 from classes.emoji import Emojis, EmojiType
 from classes.player.stats import CustomClanClass, StatsPlayer
-from utility.clash.other import is_cwl
 from utility.constants import BADGE_GUILDS, locations
 from utility.general import create_superscript, fetch
 from utility.login import coc_login
@@ -215,9 +214,25 @@ class CustomClient(commands.AutoShardedBot):
         self.aiohttp_session = None
 
         self.EXTENSION_LIST = []
-        self.STARTED_CHUNK = set()
+        self.STARTED_CHUNK = {}
 
         self.BADGE_GUILDS = BADGE_GUILDS
+
+    async def ensure_guild_chunked(self, guild: disnake.Guild):
+        if guild.chunked:
+            return
+        existing_task = self.STARTED_CHUNK.get(guild.id)
+        if existing_task is not None:
+            await existing_task
+            return
+
+        task = asyncio.create_task(guild.chunk(cache=True))
+        self.STARTED_CHUNK[guild.id] = task
+        try:
+            await task
+        finally:
+            if self.STARTED_CHUNK.get(guild.id) is task:
+                self.STARTED_CHUNK.pop(guild.id, None)
 
     def clean_string(self, text: str):
         text = emoji.replace_emoji(text)
@@ -650,7 +665,7 @@ class CustomClient(commands.AutoShardedBot):
         if not next_war:
             try:
                 war = await self.coc_client.get_current_war(clanTag)
-                if war is None and is_cwl():
+                if war is None:
                     war = await self.coc_client.get_current_war(clanTag, cwl_round=coc.WarRound.current_preparation)
                 if not war or war.state == 'notInWar':
                     return None
