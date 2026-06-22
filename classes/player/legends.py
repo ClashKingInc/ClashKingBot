@@ -30,8 +30,8 @@ class LegendPlayer(BasePlayer):
         season = season or gen_season_date()
         year, month = season.split('-')
 
-        season_start = get_season_start(month=int(month) - 1, year=int(year))
-        season_end = get_season_end(month=int(month) - 1, year=int(year))
+        season_start = get_season_start(month=int(month), year=int(year))
+        season_end = get_season_end(month=int(month), year=int(year))
         delta = season_end - season_start
         days = [season_start + timedelta(days=i) for i in range(delta.days)]
         days = [day.strftime('%Y-%m-%d') for day in days]

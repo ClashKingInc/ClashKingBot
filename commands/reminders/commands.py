@@ -168,7 +168,9 @@ class ReminderCommands(commands.Cog, name='Reminders'):
         channel = channel or ctx.channel
 
         if type == 'War & CWL':
-            war = await self.bot.coc_client.get_current_war(clan_tag=clan.tag)
+            war = await self.bot.get_clanwar(clanTag=clan.tag)
+            if war is None:
+                raise MessageException('No active war found for this clan.')
             event = {
                 'time': time_difference(
                     start=pend.now(tz=pend.UTC),

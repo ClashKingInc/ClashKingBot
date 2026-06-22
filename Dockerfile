@@ -1,5 +1,5 @@
 # Use an updated Python image
-FROM python:3.13.7-slim
+FROM python:3.14-slim
 
 LABEL org.opencontainers.image.source=https://github.com/ClashKingInc/ClashKingBot
 LABEL org.opencontainers.image.description="Image for the ClashKing Discord Bot"

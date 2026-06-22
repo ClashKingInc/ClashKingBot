@@ -1,5 +1,5 @@
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Awaitable
 
 import orjson
 import ujson
@@ -22,15 +22,29 @@ giveaway_ee = EventEmitter()
 
 
 async def kafka_events(bot: 'CustomClient'):
-    async def wrap_task(f: callable):
+    MAX_BACKGROUND_TASKS = 250
+    TASK_TIMEOUT_SECONDS = 10
+    WEBSOCKET_MAX_QUEUE = 5_000
+
+    async def wrap_task(awaitable: Awaitable):
         await asyncio.sleep(0)
-        await f
+        await asyncio.wait_for(awaitable, timeout=TASK_TIMEOUT_SECONDS)
+
+    def discard_task(task: asyncio.Task):
+        background_tasks.discard(task)
+        if task.cancelled():
+            return
+        try:
+            task.result()
+        except asyncio.TimeoutError:
+            logger.warning(f"Background event task exceeded {TASK_TIMEOUT_SECONDS}s and was cancelled")
+        except Exception:
+            logger.exception("Background event task failed")
 
     if bot._config.is_beta:
         return
 
     background_tasks = set()
-    MAX_BACKGROUND_TASKS = 1000  # Prevent memory leak from task accumulation
     last_task_count_log = 0
     while True:
         clans = set()
@@ -42,7 +56,7 @@ async def kafka_events(bot: 'CustomClient'):
                 ping_timeout=None,
                 ping_interval=None,
                 open_timeout=None,
-                max_queue=500_000,
+                max_queue=WEBSOCKET_MAX_QUEUE,
             ) as websocket:
                 await websocket.send(
                     ujson.dumps({'client_id': f'{bot.user.id}-{bot._config.cluster_id}', 'clans': list(bot.OUR_CLANS)}).encode('utf-8')
@@ -94,7 +108,7 @@ async def kafka_events(bot: 'CustomClient'):
                                     if len(background_tasks) < MAX_BACKGROUND_TASKS:
                                         task = asyncio.create_task(wrap_task(awaitable))
                                         background_tasks.add(task)
-                                        task.add_done_callback(background_tasks.discard)
+                                        task.add_done_callback(discard_task)
                                     else:
                                         logger.warning(f"Task queue full! {len(background_tasks)} tasks running. Dropping {topic}:{field} event")
                         except Exception:

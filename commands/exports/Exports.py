@@ -34,7 +34,7 @@ class ExportCommands(cog_class):
         if season is not None:
             month = list(calendar.month_name).index(season.split(" ")[0])
             year = season.split(" ")[1]
-            end_date = coc.utils.get_season_end(month=int(month - 1), year=int(year))
+            end_date = coc.utils.get_season_end(month=int(month), year=int(year))
             month = end_date.month
             if month <= 9:
                 month = f"0{month}"

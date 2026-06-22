@@ -171,8 +171,8 @@ def calc_raid_medals(attack_log: List[RaidClan]):
 def get_season_raid_weeks(season: str):
     year = season[:4]
     month = season[-2:]
-    SEASON_START = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
-    SEASON_END = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
+    SEASON_START = coc.utils.get_season_start(month=int(month), year=int(year))
+    SEASON_END = coc.utils.get_season_end(month=int(month), year=int(year))
     weeks = []
     SEASON_START = SEASON_START - timedelta(3)
     for i in range(0, 7):

@@ -23,11 +23,7 @@ class AutoEvalBackground(commands.Cog):
             if guild is None:
                 continue
 
-            if not guild.chunked:
-                if guild.id not in self.bot.STARTED_CHUNK:
-                    await guild.chunk(cache=True)
-                else:
-                    self.bot.STARTED_CHUNK.add(guild.id)
+            await self.bot.ensure_guild_chunked(guild)
 
             status_roles.sort(key=lambda role: role['months'], reverse=True)
             status_roles_map: dict[int, tuple[dict, disnake.Role]] = {

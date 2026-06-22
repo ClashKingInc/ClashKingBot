@@ -28,7 +28,7 @@ bot = CustomClient(
     intents=intents,
     scheduler=scheduler,
     config=config,
-    chunk_guilds_at_startup=(not config.is_main),
+    chunk_guilds_at_startup=False,
     **cluster_kwargs,
 )
 

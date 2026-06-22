@@ -24,11 +24,7 @@ async def logic(
     **kwargs,
 ):
     time_start = time.time()
-    if not guild.chunked:
-        if guild.id not in bot.STARTED_CHUNK:
-            await guild.chunk(cache=True)
-        else:
-            bot.STARTED_CHUNK.add(guild.id)
+    await bot.ensure_guild_chunked(guild)
 
     IS_AUTOEVAL = kwargs.pop('auto_eval', False)
     auto_eval_tag = kwargs.pop('auto_eval_tag', None)

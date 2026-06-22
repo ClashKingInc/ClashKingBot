@@ -17,7 +17,7 @@ from utility.clash.other import league_to_emoji
 from utility.constants import SUPER_SCRIPTS, placeholders, war_leagues
 
 
-IMAGE_CACHE = ExpiringDict()
+IMAGE_CACHE = ExpiringDict(max_len=2_000, ttl=3600 * 4)
 
 
 async def fetch(url, session, **kwargs):

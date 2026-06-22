@@ -333,8 +333,8 @@ async def clan_hero_progress(
 
     year = season[:4]
     month = season[-2:]
-    season_start = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
-    season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
+    season_start = coc.utils.get_season_start(month=int(month), year=int(year))
+    season_end = coc.utils.get_season_end(month=int(month), year=int(year))
 
     pipeline = [
         {
@@ -465,8 +465,8 @@ async def troops_spell_siege_progress(
 
     year = season[:4]
     month = season[-2:]
-    season_start = coc.utils.get_season_start(month=int(month) - 1, year=int(year))
-    season_end = coc.utils.get_season_end(month=int(month) - 1, year=int(year))
+    season_start = coc.utils.get_season_start(month=int(month), year=int(year))
+    season_end = coc.utils.get_season_end(month=int(month), year=int(year))
 
     pipeline = [
         {
