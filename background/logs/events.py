@@ -1,5 +1,5 @@
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Awaitable
 
 import orjson
 import ujson
@@ -26,9 +26,9 @@ async def kafka_events(bot: 'CustomClient'):
     TASK_TIMEOUT_SECONDS = 10
     WEBSOCKET_MAX_QUEUE = 5_000
 
-    async def wrap_task(f: callable):
+    async def wrap_task(awaitable: Awaitable):
         await asyncio.sleep(0)
-        await asyncio.wait_for(f, timeout=TASK_TIMEOUT_SECONDS)
+        await asyncio.wait_for(awaitable, timeout=TASK_TIMEOUT_SECONDS)
 
     def discard_task(task: asyncio.Task):
         background_tasks.discard(task)
