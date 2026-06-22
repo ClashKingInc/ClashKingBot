@@ -7,3 +7,5 @@ venv
 .idea
 *.iml
 *.xml
+.DS_Store
+.python-version
