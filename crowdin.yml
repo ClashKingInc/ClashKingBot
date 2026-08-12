@@ -1,6 +1,10 @@
+preserve_hierarchy: true
+
 files:
-  - source: locales/en-US/*.ftl
+  - source: /locales/en-US/*.ftl
+    dest: /bot/%file_name%.ftl
     translation: /locales/%locale%/%file_name%.ftl
+    update_option: update_as_unapproved
 
     languages_mapping:
       locale:
@@ -35,3 +39,5 @@ files:
         ro: ro
         fi: fi
         sv-SE: sv-SE
+
+commit_message: "chore(l10n): new Crowdin translations"
