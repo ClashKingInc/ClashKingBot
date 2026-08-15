@@ -8,7 +8,7 @@ history-name = history
 history-description = View legend history of an account
 today = 今天
 legend-overview = Legend Day Overview
-profile = Profile
+profile = 资料
 start = Start:
 now = Now:
 attacks-for-trophies =
@@ -35,7 +35,7 @@ equipment-used = Hero Equipment Used
 attacks-won = Attacks Won
 defenses-won = Def Won
 legend-day-headings = Day Off  Def  Trophy
-day = Day
+day = 白昼
 no-previous-days = No Previous Days Tracked
 season-legends-overview = Season Legends Overview
 # month is a string, like December, year is integer like 2024
