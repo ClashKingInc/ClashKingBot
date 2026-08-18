@@ -1,5 +1,5 @@
 ban-name = ban
-ban-description = Ban gerelateerde commando's
+ban-description = Ban gerelateerde opdrachten
 add-name = toevoegen
 add-description = Speler toevoegen aan de banlijst van de server
 reason-option = reden
