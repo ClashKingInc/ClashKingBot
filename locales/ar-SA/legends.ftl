@@ -1,16 +1,16 @@
-legends-name = legends
-legends-description = Legend League Commands & Stats
-search-name = search
-search-description = View legend stats for a player or discord user
-clan-name = clan
-clan-description = View a clan's legend day results
-history-name = history
-history-description = View legend history of an account
+legends-name = الأسطورة
+legends-description = أوامر وإحصائيات دوري الأسطورة
+search-name = البحـث
+search-description = عرض إحصائيات الأسطورة للاعب أو مستخدم Discord
+clan-name = عشيرة
+clan-description = عرض نتائج يوم الأسطورة للقبيلة
+history-name = السجل
+history-description = عرض سجل الأسطورة للحساب
 today = اليوم
 legend-overview = Legend Day Overview
-profile = الملف الشخصي
-start = Start:
-now = Now:
+profile = ألملف الشخصي
+start = ابدأ:
+now = الآن:
 attacks-for-trophies =
     { $num_attacks ->
         [one] { $num_attacks } attack for +{ $attack_sum } trophies
