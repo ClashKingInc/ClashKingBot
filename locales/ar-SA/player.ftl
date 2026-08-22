@@ -1,16 +1,14 @@
-player-name =
-    اللاعب
-    لاعب - إكمال تلقائي - اسم
-player-description = Commands for player accounts & stats
-lookup-name = lookup
-player-lookup-description = Lookup a player or discord user.
-upgrades-name = upgrades
-player-upgrades-description = Show upgrades left for an account.
+player-name = اللاعب
+player-description = أوامر حسابات اللاعبين والإحصائيات
+lookup-name = استعلام
+player-lookup-description = البحث عن لاعب أو مستخدم الخادم.
+upgrades-name = التطويرات
+player-upgrades-description = عرض التطويرات المتبقية للحساب.
 accounts-name = الحسابات
-player-accounts-description = List of accounts a user has & combined stats.
-to-do-name = to-do
-player-to-do-description = Get a list of things to be done (war attack, legends hits, capital raids etc).
-war-stats-name = war-stats
-player-war-stats-description = War stats of a player or discord user.
-stats-name = stats
-player-stats-description = Get stats for different areas of a player.
+player-accounts-description = قائمة بالحسابات التي يملكها المستخدم والإحصائيات الإجمالية.
+to-do-name = المهام
+player-to-do-description = الحصول على قائمة بالمهام المتبقية (هجمات الحرب، ضربات الدوري الأسطوري، هجمات عاصمة القبيلة، وغيرها).
+war-stats-name = إحصائيات الحرب
+player-war-stats-description = إحصائيات الحرب للاعب أو مستخدم الخادم.
+stats-name = الإحصائيات
+player-stats-description = الحصول على إحصائيات لمختلف جوانب اللاعب.
