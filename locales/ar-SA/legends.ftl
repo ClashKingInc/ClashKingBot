@@ -21,8 +21,8 @@ defenses-for-trophies = [one] دفاع { $num_defenses} مقابل-{ $defense_su
     }
 net-trophies = صافي: { $net_gain } الجوائز
 streak = الصافي: { $triple_streak } كؤوس
-top-ranking = (أفضل { $perc_of_total }%)
-rankings = التصنيفات
+top-ranking = (أفضل {$perc_of_total}%)
+rankings = تصنيف
 country = دولة
 no-attacks = لم تتم أي هجمات بعد
 no-defenses = لا دفاعات بعد
