@@ -1,6 +1,6 @@
 ban-name = الحظر
 ban-description = حظر الأوامر ذات الصلة
-add-name = toevoegen
+add-name = إضافة
 add-description = إضافة لاعب لقائمة حظر الخادم
 reason-option = السبب
 reason-description = سبب حظر هذا اللاعب
