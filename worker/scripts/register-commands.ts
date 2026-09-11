@@ -28,8 +28,7 @@ if (!response.ok) {
   throw new Error(`Discord command registration failed with HTTP ${response.status}`);
 }
 
-const registered = (await response.json()) as unknown[];
-console.log(`Registered ${registered.length} global ${environment} commands`);
+console.log(`Registered global ${environment} commands`);
 
 function required(name: string): string {
   const value = process.env[name];
