@@ -33,7 +33,7 @@ export async function dispatchInteraction(
     return executeCommand(context, waitUntil);
   }
   if (interaction.type === InteractionType.MessageComponent || interaction.type === InteractionType.ModalSubmit) {
-    return executePersistentHandler(context);
+    return executePersistentHandler(context, waitUntil);
   }
   return unknownInteraction(context.locale);
 }
@@ -74,15 +74,49 @@ async function executeCommand(
   };
 }
 
-async function executePersistentHandler(context: CommandContext): Promise<DiscordInteractionResponse> {
-  const segments = context.interaction.data?.custom_id?.split(":") ?? [];
-  if (segments.shift() !== "ck" || segments.length < 2) {
-    return unknownInteraction(context.locale);
+async function executePersistentHandler(
+  context: CommandContext,
+  waitUntil?: (promise: Promise<unknown>) => void,
+): Promise<DiscordInteractionResponse> {
+  const customId = context.interaction.data?.custom_id ?? "";
+  if (customId === "link" || customId === "who") {
+    const handler = componentHandlers.get("base:legacy");
+    if (!handler) return unknownInteraction(context.locale);
+    return waitUntil ? deferPersistentHandler(context, handler, [customId], waitUntil) : handler(context, [customId]);
   }
-  const domain = segments.shift();
+  const segments = customId.split(":");
+  const prefix = segments.shift();
+  const domain = prefix === "ck" ? segments.shift() : prefix;
   const action = segments.shift();
+  if (!domain || !action || (prefix === "ck" ? domain !== "link" : domain !== "base")) return unknownInteraction(context.locale);
+  if (domain === "base" && segments.length !== 1) return unknownInteraction(context.locale);
   const handler = domain && action ? componentHandlers.get(`${domain}:${action}`) : undefined;
-  return handler ? handler(context, segments) : unknownInteraction(context.locale);
+  if (!handler) return unknownInteraction(context.locale);
+  return domain === "base" && waitUntil
+    ? deferPersistentHandler(context, handler, segments, waitUntil)
+    : handler(context, segments);
+}
+
+function deferPersistentHandler(
+  context: CommandContext,
+  handler: ComponentHandler,
+  segments: string[],
+  waitUntil: (promise: Promise<unknown>) => void,
+): DiscordInteractionResponse {
+  waitUntil(completeDeferredInteraction(context, handler(context, segments)));
+  return { data: { flags: MessageFlags.Ephemeral }, type: InteractionResponseType.DeferredChannelMessageWithSource };
+}
+
+async function completeDeferredInteraction(context: CommandContext, pending: Promise<DiscordInteractionResponse>): Promise<void> {
+  try {
+    const response = await pending;
+    await context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, response.data ?? {});
+  } catch (error) {
+    await context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, {
+      content: error instanceof CommandInputError ? error.message : translate("error.generic", context.locale),
+      flags: MessageFlags.Ephemeral,
+    });
+  }
 }
 
 function unknownInteraction(locale: string): DiscordInteractionResponse {

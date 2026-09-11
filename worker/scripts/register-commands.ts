@@ -25,7 +25,7 @@ const response = await fetch(`https://discord.com/api/v10${route}`, {
 });
 
 if (!response.ok) {
-  throw new Error(`Discord command registration failed with ${response.status}: ${await response.text()}`);
+  throw new Error(`Discord command registration failed with HTTP ${response.status}`);
 }
 
 const registered = (await response.json()) as unknown[];

@@ -28,7 +28,7 @@ export function translate(
   _locale = DEFAULT_LOCALE,
   variables: LocaleVariables = {},
 ): string {
-  return english[key].replace(/\{([A-Za-z][A-Za-z0-9_]*)\}/g, (match, name: string) => {
+  return english[key].replace(/\{([A-Za-z]\w*)\}/g, (match, name: string) => {
     const value = variables[name];
     return value === undefined ? match : String(value);
   });

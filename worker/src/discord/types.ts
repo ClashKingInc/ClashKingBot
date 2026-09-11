@@ -21,8 +21,6 @@ export const MessageFlags = {
   IsComponentsV2: 1 << 15,
 } as const;
 
-export type Snowflake = string;
-
 export interface InteractionOption {
   focused?: boolean;
   name: string;
@@ -37,10 +35,10 @@ export interface InteractionData {
   name?: string;
   options?: InteractionOption[];
   resolved?: {
-    attachments?: Record<Snowflake, DiscordAttachment>;
-    channels?: Record<Snowflake, DiscordChannel>;
-    members?: Record<Snowflake, DiscordMember>;
-    users?: Record<Snowflake, DiscordUser>;
+    attachments?: Record<string, DiscordAttachment>;
+    channels?: Record<string, DiscordChannel>;
+    members?: Record<string, DiscordMember>;
+    users?: Record<string, DiscordUser>;
   };
   values?: string[];
 }
@@ -48,7 +46,7 @@ export interface InteractionData {
 export interface DiscordAttachment {
   content_type?: string;
   filename: string;
-  id: Snowflake;
+  id: string;
   proxy_url: string;
   size: number;
   url: string;
@@ -65,7 +63,7 @@ export interface DiscordUser {
   avatar?: string | null;
   discriminator?: string;
   global_name?: string | null;
-  id: Snowflake;
+  id: string;
   username: string;
   [key: string]: unknown;
 }
@@ -74,40 +72,40 @@ export interface DiscordMember {
   joined_at?: string;
   nick?: string | null;
   permissions?: string;
-  roles: Snowflake[];
+  roles: string[];
   user?: DiscordUser;
   [key: string]: unknown;
 }
 
 export interface DiscordGuild {
-  id: Snowflake;
+  id: string;
   name: string;
   [key: string]: unknown;
 }
 
 export interface DiscordChannel {
-  guild_id?: Snowflake;
-  id: Snowflake;
+  guild_id?: string;
+  id: string;
   name?: string;
   type: number;
   [key: string]: unknown;
 }
 
 export interface DiscordRole {
-  id: Snowflake;
+  id: string;
   name: string;
   [key: string]: unknown;
 }
 
 export interface DiscordInteraction {
-  application_id: Snowflake;
-  channel_id?: Snowflake;
+  application_id: string;
+  channel_id?: string;
   data?: InteractionData;
-  guild_id?: Snowflake;
+  guild_id?: string;
   guild_locale?: string;
-  id: Snowflake;
+  id: string;
   locale?: string;
-  message?: { id: Snowflake; [key: string]: unknown };
+  message?: DiscordMessage;
   member?: DiscordMember;
   token: string;
   type: number;
@@ -123,7 +121,16 @@ export interface DiscordInteractionResponse {
 export interface DiscordApplicationEmoji {
   animated?: boolean;
   available?: boolean;
-  id: Snowflake;
+  id: string;
   managed?: boolean;
   name: string;
+}
+
+export interface DiscordMessage {
+  attachments?: DiscordAttachment[];
+  channel_id?: string;
+  content?: string;
+  embeds?: Array<{ description?: string; [key: string]: unknown }>;
+  id: string;
+  [key: string]: unknown;
 }

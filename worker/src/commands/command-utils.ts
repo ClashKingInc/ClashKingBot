@@ -42,7 +42,7 @@ export function requireGuildId(context: CommandContext): string {
 }
 
 export function normalizeTag(value: string): string {
-  const compact = value.trim().toUpperCase().replace(/^#/, "").replace(/O/g, "0");
+  const compact = value.trim().toUpperCase().replaceAll(/^#/g, "").replaceAll("O", "0");
   if (!/^[0289PYLQGRJCUV]+$/.test(compact)) throw new CommandInputError("That is not a valid Clash tag.");
   return `#${compact}`;
 }

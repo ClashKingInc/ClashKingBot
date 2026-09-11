@@ -7,15 +7,15 @@ const namespaces = ["commands", "common", "responses"] as const;
 const localeNames = (await readdir(localeRoot, { withFileTypes: true }))
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
-  .sort();
+  .sort(compareText);
 
 const english = await readLocale("en-US");
-const englishKeys = Object.keys(english).sort();
+const englishKeys = Object.keys(english).sort(compareText);
 const errors: string[] = [];
 
 for (const locale of localeNames) {
   const catalog = await readLocale(locale);
-  const keys = Object.keys(catalog).sort();
+  const keys = Object.keys(catalog).sort(compareText);
   for (const missing of englishKeys.filter((key) => !keys.includes(key))) {
     errors.push(`${locale}: missing ${missing}`);
   }
@@ -42,7 +42,7 @@ async function readLocale(locale: string): Promise<Record<string, string>> {
     const parsed = JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
     for (const [key, value] of Object.entries(parsed)) {
       if (typeof value !== "string") {
-        throw new Error(`${locale}/${namespace}.json: ${key} must be a string`);
+        throw new TypeError(`${locale}/${namespace}.json: ${key} must be a string`);
       }
       const namespacedKey = `${namespace}:${key}`;
       result[namespacedKey] = value;
@@ -52,7 +52,11 @@ async function readLocale(locale: string): Promise<Record<string, string>> {
 }
 
 function placeholders(value: string): string {
-  return Array.from(value.matchAll(/\{([A-Za-z][A-Za-z0-9_]*)\}/g), (match) => match[1])
-    .sort()
+  return Array.from(value.matchAll(/\{([A-Za-z]\w*)\}/g), (match) => match[1])
+    .sort(compareText)
     .join(",");
+}
+
+function compareText(left: string, right: string): number {
+  return left.localeCompare(right, "en");
 }
