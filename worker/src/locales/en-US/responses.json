@@ -1,0 +1,8 @@
+{
+  "dashboard.body": "Server settings and setup now live in the ClashKing dashboard.",
+  "dashboard.title": "ClashKing dashboard",
+  "error.generic": "Something went wrong while handling that command.",
+  "error.unknownCommand": "That command is not available yet.",
+  "help.body": "Use Discord for quick views and actions. Open the dashboard for setup, settings, and detailed management.",
+  "help.title": "ClashKing"
+}

@@ -1,0 +1,4 @@
+DISCORD_APPLICATION_ID=development-application-id
+DISCORD_PUBLIC_KEY=development-application-public-key
+DISCORD_BOT_TOKEN=development-bot-token
+CLASHKING_API_TOKEN=development-api-token

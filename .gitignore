@@ -9,3 +9,9 @@ venv
 *.xml
 .DS_Store
 .python-version
+worker/.dev.vars
+worker/.env.dev
+worker/.env.prod
+worker/node_modules/
+worker/.wrangler/
+worker/coverage/

@@ -1,0 +1,38 @@
+{
+  "name": "@clashking/discord-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "wrangler deploy --dry-run --env= --outdir=.wrangler/dry-run",
+    "check": "npm run check:locales && npm run check:commands && npm run lint && npm run typecheck && npm run test && npm run build",
+    "check:commands": "tsx scripts/validate-commands.ts",
+    "check:locales": "node scripts/validate-locales.ts",
+    "deploy:dev": "wrangler deploy",
+    "deploy:prod": "wrangler deploy --env prod",
+    "dev": "wrangler dev --config wrangler.local.jsonc",
+    "dev:cloud": "wrangler dev",
+    "register:dev": "tsx --env-file=.env.dev scripts/register-commands.ts dev",
+    "register:prod": "tsx --env-file=.env.prod scripts/register-commands.ts prod",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "oxlint --deny-warnings src scripts test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "effect": "3.22.2"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.1.6",
+    "@cloudflare/workers-types": "5.20260910.1",
+    "@types/node": "24.3.0",
+    "oxlint": "1.82.0",
+    "tsx": "4.20.5",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10",
+    "wrangler": "4.130.0"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}
