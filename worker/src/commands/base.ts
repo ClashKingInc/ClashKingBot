@@ -184,8 +184,8 @@ function legacyDescription(message: DiscordMessage): string {
 
 function trustedLegacyBaseLink(value: string): boolean {
   try {
-    const parsed = new URL(value);
-    return parsed.protocol === "https:" && parsed.hostname === "link.clashofclans.com";
+    validBaseLink(value);
+    return true;
   } catch {
     return false;
   }

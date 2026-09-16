@@ -73,6 +73,20 @@ describe("legacy base first-click conversion", () => {
     expect(fixture.bound).toBe(false);
   });
 
+  it.each([
+    "https://link.clashofclans.com/en?action=CopyArmy&id=TH17%3Atest",
+    "https://link.clashofclans.com/en?action=OpenLayout&id=TH17%3Atest&extra=value",
+    "https://link.clashofclans.com/not-en?action=OpenLayout&id=TH17%3Atest",
+  ])("rejects a legacy row whose URL is not a canonical layout link: %s", async (invalidBaseLink) => {
+    const fixture = legacyFixture({ baseLink: invalidBaseLink });
+    await expect(dispatchInteraction(legacyInteraction("link", "Description"), env, fixture.services))
+      .rejects.toEqual(expect.objectContaining<Partial<CommandInputError>>({ message: expect.stringContaining("invalid Clash of Clans layout link") }));
+
+    expect(fixture.editChannelMessage).not.toHaveBeenCalled();
+    expect(fixture.finalizeBodies).toHaveLength(0);
+    expect(fixture.downloaders.size).toBe(0);
+  });
+
   it("finishes finalization from a new button after the post-edit finalize call fails", async () => {
     const fixture = legacyFixture({ failedFinalizes: 1 });
     await expect(dispatchInteraction(legacyInteraction("link", "Description"), env, fixture.services))
@@ -107,7 +121,7 @@ function legacyInteraction(customId: string, content: string, embedDescription?:
   };
 }
 
-function legacyFixture(options: { downloaders?: string[]; failedEdits?: number; failedFinalizes?: number; failedStages?: number } = {}) {
+function legacyFixture(options: { baseLink?: string; downloaders?: string[]; failedEdits?: number; failedFinalizes?: number; failedStages?: number } = {}) {
   const events: string[] = [];
   const staged = new Map<number, string>();
   const downloaders = new Set(options.downloaders ?? []);
@@ -124,10 +138,10 @@ function legacyFixture(options: { downloaders?: string[]; failedEdits?: number; 
   const get = vi.fn(async (path: string) => {
     if (path === `/v2/bases/legacy/${messageId}`) {
       events.push("resolve");
-      return { baseLink, channelId: bound ? channelId : null, description, id: "42", images: [...staged.values()], messageId, serverId: bound ? guildId : null };
+      return { baseLink: options.baseLink ?? baseLink, channelId: bound ? channelId : null, description, id: "42", images: [...staged.values()], messageId, serverId: bound ? guildId : null };
     }
     events.push("get");
-    return { baseLink, channelId, createdAt: "2026-09-11T00:00:00Z", description, discordMessageUrl: "https://discord.com/channels/1/2/3",
+    return { baseLink: options.baseLink ?? baseLink, channelId, createdAt: "2026-09-11T00:00:00Z", description, discordMessageUrl: "https://discord.com/channels/1/2/3",
       downloadCount: downloaders.size, downloaders: [...downloaders], downvotes: 0, id: "42", images: [...staged.values()], messageId, serverId: guildId, upvotes: 0 };
   });
   const post = vi.fn(async (path: string, body: Record<string, unknown>) => {

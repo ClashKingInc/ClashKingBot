@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "build": "wrangler deploy --dry-run --env= --outdir=.wrangler/dry-run",
-    "check": "npm run check:locales && npm run check:commands && npm run lint && npm run typecheck && npm run test && npm run build",
+    "check": "npm run check:locales && npm run check:commands && npm run check:types && npm run lint && npm run typecheck && npm run test && npm run build",
     "check:commands": "tsx scripts/validate-commands.ts",
     "check:locales": "node scripts/validate-locales.ts",
+    "check:types": "wrangler types --env-file .dev.vars.example --include-runtime=false --check",
     "deploy:dev": "wrangler deploy",
     "deploy:prod": "wrangler deploy --env prod",
     "dev": "wrangler dev --config wrangler.local.jsonc",
@@ -24,7 +25,7 @@
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.1.6",
-    "@cloudflare/workers-types": "5.20260910.1",
+    "@cloudflare/workers-types": "5.20260916.1",
     "@types/node": "24.3.0",
     "oxlint": "1.82.0",
     "tsx": "4.20.5",
