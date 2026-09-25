@@ -1,0 +1,10 @@
+{
+  "link.description": "Bekræft og tilknyt en Clash of Clans-konto til dig selv",
+  "unlink.description": "Fjern tilknytningen til din Clash of Clans-konto",
+  "base.description": "Del en base med billeder og følg downloads",
+  "player.description": "Spillertag fra spillet",
+  "link.name": "tilknyt",
+  "unlink.name": "fjern-tilknytning",
+  "base.name": "base",
+  "player.name": "spiller"
+}

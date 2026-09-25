@@ -1,27 +1,52 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { baseCommand, baseComponentHandlers } from "../src/commands/base";
+import { submitBase, baseComponentHandlers } from "../src/commands/base";
 import type { CommandContext, CommandServices } from "../src/commands/types";
 import type { Env } from "../src/env";
 
 describe("base command family", () => {
+  it.each(["/", "/es", "/fr/", "/jp", "/pt-BR"])("normalizes official locale path %s and strips tracking data", async (path) => {
+    const post = vi.fn(async () => ({ discordMessageUrl: "https://discord.com/channels/1/2/3" }));
+    const ctx = context({ api: { post, postForm: vi.fn(async () => ({ url: "https://api.clashk.ing/v2/media/base.png" })) },
+      discordRest: { download: vi.fn(async () => new Blob(["image"])) } });
+    ctx.options = new Map(ctx.options).set("base_link", { name: "base_link", type: 3,
+      value: ` https://link.clashofclans.com${path}?action=OpenLayout&id=TH16:test&utm_source=discord#preview ` });
+    await submit(ctx);
+    expect(post).toHaveBeenCalledWith("/v2/server/1/bases", expect.objectContaining({
+      baseLink: "https://link.clashofclans.com/en?action=OpenLayout&id=TH16%3Atest",
+    }));
+  });
+
+  it.each([
+    "http://link.clashofclans.com/en?action=OpenLayout&id=test",
+    "https://link.clashofclans.com.evil.test/en?action=OpenLayout&id=test",
+    "https://user@link.clashofclans.com/en?action=OpenLayout&id=test",
+    "https://link.clashofclans.com/en?action=OpenLayout&id=test&ID=other",
+    "https://link.clashofclans.com/en?action=OpenLayout&id=test%2Fother",
+  ])("rejects unsafe or ambiguous layout links: %s", async (value) => {
+    const post = vi.fn();
+    const ctx = context({ api: { post } });
+    ctx.options = new Map(ctx.options).set("base_link", { name: "base_link", type: 3, value });
+    await expect(submit(ctx)).rejects.toThrow("Not a Valid Base Link");
+    expect(post).not.toHaveBeenCalled();
+  });
   it("uploads the attachment, creates the base, and installs durable buttons", async () => {
     const postForm = vi.fn(async () => ({ filename: "base.png", url: "https://api.clashk.ing/v2/media/base.png" }));
     const post = vi.fn(async () => ({ baseLink: layoutLink, discordMessageUrl: "https://discord.com/channels/1/2/3", downloadCount: 0, downvotes: 0, id: "42", messageId: "3", upvotes: 0 }));
-    const response = await baseCommand.execute(context({
+    const response = await submit(context({
       api: { post, postForm },
       discordRest: { download: vi.fn(async () => new Blob(["image"], { type: "image/png" })) },
     }));
 
     expect(postForm).toHaveBeenCalledOnce();
-    expect(post).toHaveBeenCalledWith("/v2/server/1/bases", expect.objectContaining({ channelId: "2", images: ["https://api.clashk.ing/v2/media/base.png"] }));
+    expect(post).toHaveBeenCalledWith("/v2/server/1/bases", expect.objectContaining({ channelId: "2", description: "one\ntwo && three", images: ["https://api.clashk.ing/v2/media/base.png"] }));
     expect(response.data?.content).toContain("discord.com/channels/1/2/3");
   });
 
   it("preserves the order of all four supported images", async () => {
     const postForm = vi.fn(async (_path: string, form: FormData) => ({ filename: String(form.get("file")), url: `https://api.clashk.ing/v2/media/${postForm.mock.calls.length}.png` }));
     const post = vi.fn(async () => ({ baseLink: layoutLink, discordMessageUrl: "https://discord.com/channels/1/2/3", downloadCount: 0, downvotes: 0, id: "42", messageId: "3", upvotes: 0 }));
-    await baseCommand.execute(context({ api: { post, postForm }, discordRest: {
+    await submit(context({ api: { post, postForm }, discordRest: {
       download: vi.fn(async () => new Blob(["image"], { type: "image/png" })),
     } }, true));
     expect(postForm).toHaveBeenCalledTimes(4);
@@ -94,9 +119,19 @@ function context(partial: Record<string, unknown>, fourImages = false): CommandC
     locale: "en-US",
     options: new Map([
       ["base_link", { name: "base_link", type: 3, value: layoutLink }],
-      ["description", { name: "description", type: 3, value: "one&&two" }],
+      ["description", { name: "description", type: 3, value: "one\ntwo && three" }],
       ...imageOptions,
     ]),
     path: [], services: partial as unknown as CommandServices,
   };
+}
+
+async function submit(ctx: CommandContext) {
+  ctx.interaction.type = 5;
+  ctx.interaction.data = { ...ctx.interaction.data, custom_id: "base:submit", components: [
+    { type: 18, component: { type: 4, custom_id: "base_link", value: String(ctx.options.get("base_link")?.value ?? "") } },
+    { type: 18, component: { type: 4, custom_id: "description", value: String(ctx.options.get("description")?.value ?? "") } },
+    { type: 18, component: { type: 19, custom_id: "screenshots", values: [...ctx.options.values()].filter(o => o.type === 11).map(o => String(o.value)) } },
+  ] };
+  return submitBase(ctx, []);
 }

@@ -15,6 +15,8 @@ for (const command of commandDefinitions) {
   names.add(command.name);
   validateName(command.name, command.name);
   validateDescription(command.name, command.description);
+  for (const [locale, name] of Object.entries(command.name_localizations ?? {})) validateName(`${command.name}/${locale}`, name);
+  for (const [locale, description] of Object.entries(command.description_localizations ?? {})) validateDescription(`${command.name}/${locale}`, description);
   validateOptions(command.name, command.options ?? []);
 }
 
@@ -33,6 +35,8 @@ function validateOptions(parent: string, options: ApplicationCommandOption[]): v
     const path = `${parent} ${option.name}`;
     validateName(path, option.name);
     validateDescription(path, option.description);
+    for (const [locale, name] of Object.entries(option.name_localizations ?? {})) validateName(`${path}/${locale}`, name);
+    for (const [locale, description] of Object.entries(option.description_localizations ?? {})) validateDescription(`${path}/${locale}`, description);
     if (option.required === false || option.required === undefined) {
       optionalSeen = true;
     } else if (optionalSeen) {
@@ -45,7 +49,7 @@ function validateOptions(parent: string, options: ApplicationCommandOption[]): v
 }
 
 function validateName(path: string, name: string): void {
-  if (!/^[a-z0-9_-]{1,32}$/.test(name)) {
+  if ([...name].length > 32 || !/^[-_\p{L}\p{M}\p{N}]+$/u.test(name) || name !== name.toLowerCase()) {
     errors.push(`${path} has invalid name ${JSON.stringify(name)}`);
   }
 }

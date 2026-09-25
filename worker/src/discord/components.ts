@@ -146,6 +146,7 @@ export interface ContainerComponent {
 export type V2Component = ContainerComponent | ContainerChild;
 
 export interface LegacyEmbed {
+  image?: { url: string };
   color?: number;
   description?: string;
   footer?: { icon_url?: string; text: string };
@@ -185,6 +186,7 @@ export function componentsV2(
 
 export function legacyMessage(
   data: {
+    allowed_mentions?: { parse: string[] };
     components?: ActionRowComponent[];
     content?: string;
     embeds?: LegacyEmbed[];

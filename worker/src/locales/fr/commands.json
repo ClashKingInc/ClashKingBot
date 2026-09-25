@@ -1,0 +1,10 @@
+{
+  "link.description": "Vérifie et associe un compte Clash of Clans à ton profil",
+  "unlink.description": "Dissocie un compte Clash of Clans de ton profil",
+  "base.description": "Publie un village avec des captures et suis les téléchargements",
+  "player.description": "Identifiant de joueur affiché dans le jeu",
+  "link.name": "associer",
+  "unlink.name": "dissocier",
+  "base.name": "village",
+  "player.name": "joueur"
+}

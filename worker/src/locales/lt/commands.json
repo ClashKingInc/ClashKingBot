@@ -1,0 +1,10 @@
+{
+  "link.description": "Patvirtink ir susiek Clash of Clans paskyrą su savimi",
+  "unlink.description": "Atsiek Clash of Clans paskyrą nuo savo profilio",
+  "base.description": "Paskelbk bazę su vaizdais ir stebėk atsisiuntimus",
+  "player.description": "Žaidime rodoma žaidėjo žyma",
+  "link.name": "susieti",
+  "unlink.name": "atsieti",
+  "base.name": "bazė",
+  "player.name": "žaidėjas"
+}

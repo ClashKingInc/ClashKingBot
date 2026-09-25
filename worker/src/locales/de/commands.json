@@ -1,0 +1,10 @@
+{
+  "link.description": "Verifiziere und verknüpfe ein Clash-of-Clans-Konto mit dir",
+  "unlink.description": "Trenne ein Clash-of-Clans-Konto von deinem Profil",
+  "base.description": "Teile ein Dorf mit Bildern und verfolge Downloads",
+  "player.description": "Spielerkürzel aus dem Spiel",
+  "link.name": "verknüpfen",
+  "unlink.name": "trennen",
+  "base.name": "dorf",
+  "player.name": "spieler"
+}

@@ -1,0 +1,10 @@
+{
+  "link.description": "Verifieer en koppel een Clash of Clans-account aan jezelf",
+  "unlink.description": "Ontkoppel een Clash of Clans-account van jezelf",
+  "base.description": "Deel een dorp met afbeeldingen en volg downloads",
+  "player.description": "Spelerstag zoals weergegeven in het spel",
+  "link.name": "koppelen",
+  "unlink.name": "ontkoppelen",
+  "base.name": "dorp",
+  "player.name": "speler"
+}

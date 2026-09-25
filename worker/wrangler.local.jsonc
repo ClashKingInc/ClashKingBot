@@ -4,11 +4,14 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-02",
   "compatibility_flags": ["nodejs_compat"],
+  "dev": { "ip": "127.0.0.1", "port": 8788 },
   "observability": {
     "enabled": true
   },
   "vars": {
     "APP_ENV": "dev",
-    "CLASHKING_API_BASE_URL": "https://api.clashk.ing"
+    "DASHBOARD_BASE_URL": "https://local-dash.clashk.ing",
+    "CLASHKING_API_BASE_URL": "http://127.0.0.1:8787",
+    "LOCAL_TEST_USER_ID": ""
   }
 }

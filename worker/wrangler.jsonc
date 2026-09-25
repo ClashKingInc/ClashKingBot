@@ -9,14 +9,18 @@
   },
   "vars": {
     "APP_ENV": "dev",
-    "CLASHKING_API_BASE_URL": "https://api.clashk.ing"
+    "DASHBOARD_BASE_URL": "https://dash.clashk.ing",
+    "CLASHKING_API_BASE_URL": "https://api.clashk.ing",
+    "LOCAL_TEST_USER_ID": ""
   },
   "env": {
     "prod": {
       "name": "clashking-discord",
       "vars": {
         "APP_ENV": "prod",
-        "CLASHKING_API_BASE_URL": "https://api.clashk.ing"
+        "DASHBOARD_BASE_URL": "https://dash.clashk.ing",
+        "CLASHKING_API_BASE_URL": "https://api.clashk.ing",
+        "LOCAL_TEST_USER_ID": ""
       }
     }
   }

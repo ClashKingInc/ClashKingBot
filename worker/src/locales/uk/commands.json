@@ -1,0 +1,10 @@
+{
+  "link.description": "Підтвердьте й прив’яжіть обліковий запис Clash of Clans до себе",
+  "unlink.description": "Відв’яжіть обліковий запис Clash of Clans від свого профілю",
+  "base.description": "Опублікуйте базу зі знімками й відстежуйте завантаження",
+  "player.description": "Тег гравця з гри",
+  "link.name": "привязати",
+  "unlink.name": "відвязати",
+  "base.name": "база",
+  "player.name": "гравець"
+}

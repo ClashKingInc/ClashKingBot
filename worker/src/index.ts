@@ -9,7 +9,7 @@ import {
   type DiscordInteractionResponse,
 } from "./discord/types";
 import type { Env } from "./env";
-import { translate } from "./localization/catalog";
+import { resolveLocale, translate } from "./localization/catalog";
 import { Services, runWithServices } from "./runtime";
 
 const JSON_HEADERS = {
@@ -17,7 +17,7 @@ const JSON_HEADERS = {
 } as const;
 
 export default {
-  async fetch(request, env, executionContext): Promise<Response> {
+  async fetch(request: Request, env: Env, executionContext: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     if (request.method === "GET" && url.pathname === "/health") {
@@ -53,6 +53,17 @@ export default {
       return json({ type: InteractionResponseType.Pong });
     }
 
+    // No command, modal or component can reach services in a misconfigured local instance.
+    const restrictedUser = env.LOCAL_TEST_USER_ID;
+    if (restrictedUser) {
+      const actor = interaction.member?.user?.id ?? interaction.user?.id;
+      if (actor !== restrictedUser) return new Response(null, { status: 204 });
+      const api = new URL(env.CLASHKING_API_BASE_URL);
+      if (api.protocol !== "http:" || !["127.0.0.1", "localhost", "[::1]"].includes(api.hostname)) {
+        return new Response("Local testing requires a loopback API", { status: 503 });
+      }
+    }
+
     try {
       const response = await runWithServices(env, Effect.gen(function* () {
         const services = yield* Services;
@@ -66,12 +77,12 @@ export default {
       console.error("Interaction handler failed", {
         command: interaction.data?.name,
         environment: env.APP_ENV,
-        error,
+        errorType: error instanceof Error ? error.name : "UnknownError",
         type: interaction.type,
       });
       return json({
         data: {
-          content: error instanceof CommandInputError ? error.message : translate("error.generic"),
+          content: error instanceof CommandInputError ? error.message : translate("error.generic", resolveLocale(interaction.locale, interaction.guild_locale)),
           flags: 1 << 6,
         },
         type: InteractionResponseType.ChannelMessageWithSource,

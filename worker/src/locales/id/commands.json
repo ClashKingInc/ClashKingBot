@@ -1,0 +1,10 @@
+{
+  "link.description": "Verifikasi dan tautkan akun Clash of Clans ke dirimu",
+  "unlink.description": "Lepaskan tautan akun Clash of Clans dari profilmu",
+  "base.description": "Bagikan tata letak dengan gambar dan pantau unduhan",
+  "player.description": "Tag pemain yang ditampilkan di dalam game",
+  "link.name": "tautkan",
+  "unlink.name": "lepaskan",
+  "base.name": "tata-letak",
+  "player.name": "pemain"
+}

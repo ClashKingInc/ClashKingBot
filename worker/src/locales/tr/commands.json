@@ -1,0 +1,10 @@
+{
+  "link.description": "Clash of Clans hesabını doğrula ve kendine bağla",
+  "unlink.description": "Clash of Clans hesabının profilinle bağlantısını kaldır",
+  "base.description": "Görsellerle bir düzen paylaş ve indirmeleri takip et",
+  "player.description": "Oyunda görünen oyuncu etiketi",
+  "link.name": "bağla",
+  "unlink.name": "bağlantıyı-kaldır",
+  "base.name": "düzen",
+  "player.name": "oyuncu"
+}

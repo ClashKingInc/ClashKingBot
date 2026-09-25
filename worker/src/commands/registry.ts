@@ -11,9 +11,10 @@ import { resolveLocale, translate } from "../localization/catalog";
 import { baseCommand, baseComponentHandlers } from "./base";
 import { CommandInputError } from "./command-utils";
 import { linkCommand, linkComponentHandlers, unlinkCommand } from "./link";
+import { dispatchRoster, rosterCommand } from "./roster";
 import type { Command, CommandContext, CommandServices, ComponentHandler } from "./types";
 
-const commands: readonly Command[] = [baseCommand, linkCommand, unlinkCommand];
+const commands: readonly Command[] = [baseCommand, linkCommand, unlinkCommand, rosterCommand];
 const commandByName = new Map(commands.map((command) => [command.definition.name, command]));
 const componentHandlers = new Map<string, ComponentHandler>([
   ...baseComponentHandlers,
@@ -29,6 +30,15 @@ export async function dispatchInteraction(
   waitUntil?: (promise: Promise<unknown>) => void,
 ): Promise<DiscordInteractionResponse> {
   const context = createContext(interaction, env, services);
+  if (interaction.type === InteractionType.ApplicationCommandAutocomplete) {
+    const command = commandByName.get(interaction.data?.name ?? "");
+    try {
+      return { type: InteractionResponseType.ApplicationCommandAutocompleteResult,
+        data: { choices: command?.autocomplete ? await command.autocomplete(context) : [] } };
+    } catch {
+      return { type: InteractionResponseType.ApplicationCommandAutocompleteResult, data: { choices: [] } };
+    }
+  }
   if (interaction.type === InteractionType.ApplicationCommand) {
     return executeCommand(context, waitUntil);
   }
@@ -79,6 +89,7 @@ async function executePersistentHandler(
   waitUntil?: (promise: Promise<unknown>) => void,
 ): Promise<DiscordInteractionResponse> {
   const customId = context.interaction.data?.custom_id ?? "";
+  if (customId.startsWith("ck:roster:")) return dispatchRoster(context, waitUntil);
   if (customId === "link" || customId === "who") {
     const handler = componentHandlers.get("base:legacy");
     if (!handler) return unknownInteraction(context.locale);
@@ -89,10 +100,13 @@ async function executePersistentHandler(
   const domain = prefix === "ck" ? segments.shift() : prefix;
   const action = segments.shift();
   if (!domain || !action || (prefix === "ck" ? domain !== "link" : domain !== "base")) return unknownInteraction(context.locale);
-  if (domain === "base" && segments.length !== 1) return unknownInteraction(context.locale);
+  if (domain === "base" && segments.length !== (action === "submit" ? 0 : 1)) return unknownInteraction(context.locale);
+  if (domain === "link" && segments.length !== 0) return unknownInteraction(context.locale);
+  const isSubmit = action === "submit";
+  if (isSubmit !== (context.interaction.type === InteractionType.ModalSubmit)) return unknownInteraction(context.locale);
   const handler = domain && action ? componentHandlers.get(`${domain}:${action}`) : undefined;
   if (!handler) return unknownInteraction(context.locale);
-  return domain === "base" && waitUntil
+  return (domain === "base" || isSubmit) && waitUntil
     ? deferPersistentHandler(context, handler, segments, waitUntil)
     : handler(context, segments);
 }

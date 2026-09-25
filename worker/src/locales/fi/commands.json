@@ -1,0 +1,10 @@
+{
+  "link.description": "Vahvista ja liitä Clash of Clans -tili itsellesi",
+  "unlink.description": "Irrota Clash of Clans -tili profiilistasi",
+  "base.description": "Jaa tukikohta kuvineen ja seuraa latauksia",
+  "player.description": "Pelissä näkyvä pelaajatunniste",
+  "link.name": "liitä",
+  "unlink.name": "irrota",
+  "base.name": "tukikohta",
+  "player.name": "pelaaja"
+}

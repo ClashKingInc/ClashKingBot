@@ -1,0 +1,10 @@
+{
+  "link.description": "ยืนยันและเชื่อมบัญชี Clash of Clans กับตัวคุณเอง",
+  "unlink.description": "ยกเลิกการเชื่อมบัญชี Clash of Clans ของคุณ",
+  "base.description": "แชร์ผังฐานพร้อมภาพและติดตามการดาวน์โหลด",
+  "player.description": "แท็กผู้เล่นที่แสดงในเกม",
+  "link.name": "เชื่อมบัญชี",
+  "unlink.name": "ยกเลิกการเชื่อม",
+  "base.name": "ผังฐาน",
+  "player.name": "ผู้เล่น"
+}

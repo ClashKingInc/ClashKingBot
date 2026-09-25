@@ -21,18 +21,18 @@ export class ClashKingApiClient {
 
   constructor(options: ClashKingApiClientOptions) {
     this.#baseUrl = stripTrailingSlash(options.baseUrl);
-    this.#fetch = options.fetch ?? fetch;
+    this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
     this.#token = options.token;
   }
 
-  get<T>(path: string, query: Record<string, string | number | boolean | undefined> = {}): Promise<T> {
+  get<T>(path: string, query: Record<string, string | number | boolean | undefined> = {}, signal?: AbortSignal): Promise<T> {
     const url = new URL(`${this.#baseUrl}${normalizePath(path)}`);
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined) {
         url.searchParams.set(key, String(value));
       }
     }
-    return this.#request<T>(url, { method: "GET" });
+    return this.#request<T>(url, { method: "GET", ...(signal ? { signal } : {}) });
   }
 
   post<T>(path: string, body: unknown): Promise<T> {

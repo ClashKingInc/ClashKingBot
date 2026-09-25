@@ -1,0 +1,10 @@
+{
+  "link.description": "Igazolj és kapcsolj magadhoz egy Clash of Clans-fiókot",
+  "unlink.description": "Válassz le egy Clash of Clans-fiókot a profilodról",
+  "base.description": "Ossz meg egy bázist képekkel és kövesd a letöltéseket",
+  "player.description": "A játékban látható játékosazonosító",
+  "link.name": "összekapcsolás",
+  "unlink.name": "leválasztás",
+  "base.name": "bázis",
+  "player.name": "játékos"
+}

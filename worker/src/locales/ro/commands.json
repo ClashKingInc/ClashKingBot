@@ -1,0 +1,10 @@
+{
+  "link.description": "Verifică și asociază un cont Clash of Clans profilului tău",
+  "unlink.description": "Dezasociază un cont Clash of Clans de profilul tău",
+  "base.description": "Publică o bază cu imagini și urmărește descărcările",
+  "player.description": "Eticheta jucătorului afișată în joc",
+  "link.name": "asociază",
+  "unlink.name": "dezasociază",
+  "base.name": "bază",
+  "player.name": "jucător"
+}

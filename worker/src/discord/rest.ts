@@ -26,7 +26,7 @@ export class DiscordRestClient {
 
   constructor(options: { applicationId: string; fetch?: typeof fetch; token: string }) {
     this.#applicationId = options.applicationId;
-    this.#fetch = options.fetch ?? fetch;
+    this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
     this.#token = options.token;
   }
 
@@ -50,9 +50,10 @@ export class DiscordRestClient {
     return this.get(`/guilds/${guildId}/roles`);
   }
 
-  async listApplicationEmojis(): Promise<DiscordApplicationEmoji[]> {
-    const result = await this.get<{ items: DiscordApplicationEmoji[] }>(
+  async listApplicationEmojis(signal?: AbortSignal): Promise<DiscordApplicationEmoji[]> {
+    const result = await this.request<{ items: DiscordApplicationEmoji[] }>(
       `/applications/${this.#applicationId}/emojis`,
+      { method: "GET", ...(signal ? { signal } : {}) },
     );
     return result.items;
   }
@@ -91,6 +92,12 @@ export class DiscordRestClient {
     );
   }
 
+  async createInteractionFollowup(interactionToken: string, data: NonNullable<DiscordInteractionResponse["data"]>): Promise<void> {
+    await this.request<unknown>(`/webhooks/${this.#applicationId}/${interactionToken}`, {
+      body: JSON.stringify(data), method: "POST",
+    }, false);
+  }
+
   async editChannelMessage(
     channelId: string,
     messageId: string,
@@ -102,12 +109,35 @@ export class DiscordRestClient {
     });
   }
 
-  async download(url: string): Promise<Blob> {
-    const response = await this.#fetch(url);
+  async download(url: string, maxBytes = 25 * 1024 * 1024): Promise<Blob> {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" || !["cdn.discordapp.com", "media.discordapp.net"].includes(parsed.hostname)
+      || parsed.username || parsed.password || parsed.port) throw new Error("Untrusted attachment URL");
+    const response = await this.#fetch(url, { redirect: "manual" });
     if (!response.ok) {
       throw new DiscordRestError(response.status, await response.text());
     }
-    return response.blob();
+    if (Number(response.headers.get("content-length")) > maxBytes) {
+      await response.body?.cancel();
+      throw new Error("Attachment exceeds size limit");
+    }
+    if (!response.body) throw new Error("Attachment has no body");
+    const reader = response.body.getReader();
+    const chunks: Uint8Array<ArrayBuffer>[] = [];
+    let bytes = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        bytes += value.byteLength;
+        if (bytes > maxBytes) {
+          await reader.cancel();
+          throw new Error("Attachment exceeds size limit");
+        }
+        chunks.push(new Uint8Array(value));
+      }
+    } finally { reader.releaseLock(); }
+    return new Blob(chunks, { type: response.headers.get("content-type") ?? "application/octet-stream" });
   }
 
   get<T>(path: string): Promise<T> {

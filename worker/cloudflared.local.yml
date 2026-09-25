@@ -1,0 +1,19 @@
+# Local development only. Secrets remain in ~/.cloudflared, never in this repository.
+tunnel: 2ccfa550-fab6-4145-9a25-075cc1ada4ef
+credentials-file: /Users/matthewanderson/.cloudflared/2ccfa550-fab6-4145-9a25-075cc1ada4ef.json
+
+ingress:
+  - hostname: local-bot.clashk.ing
+    path: ^/(interactions|health)$
+    service: http://127.0.0.1:8788
+  - hostname: local-api.clashk.ing
+    path: ^/v2/.*$
+    service: http://127.0.0.1:8787
+  # Keep Vite's filesystem/editor endpoints off the public hostname.
+  - hostname: local-dash.clashk.ing
+    path: ^/(@fs(/|$)|__open-in-editor(/|$)|__debug(/|$)|\.git(/|$)|\.env([./]|$))
+    service: http_status:404
+  - hostname: local-dash.clashk.ing
+    service: http://127.0.0.1:3002
+  # Includes Wrangler /cdn-cgi/local/*, inspector paths, and every unknown host.
+  - service: http_status:404

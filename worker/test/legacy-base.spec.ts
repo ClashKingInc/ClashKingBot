@@ -23,9 +23,9 @@ describe("legacy base first-click conversion", () => {
     await pending[0];
     expect(fixture.events).toEqual(["resolve", "stage:1", "edit", "finalize", "download", "callback"]);
     expect(fixture.editChannelMessage).toHaveBeenCalledWith(channelId, messageId, { components: [{ components: [
-      { custom_id: "base:link:42", label: "Open Layout", style: 1, type: 2 },
-      { custom_id: "base:upvote:42", label: "Upvote", style: 2, type: 2 },
-      { custom_id: "base:downvote:42", label: "Downvote", style: 2, type: 2 },
+      { custom_id: "base:link:42", label: "Get Link", emoji: { name: "🔗" }, style: 1, type: 2 },
+      { custom_id: "base:upvote:42", emoji: { name: "👍" }, style: 2, type: 2 },
+      { custom_id: "base:downvote:42", emoji: { name: "👎" }, style: 2, type: 2 },
     ], type: 1 }] });
     expect(fixture.finalizeBodies).toEqual([{ channelId, description: "Message description", serverId: guildId }]);
     expect(fixture.callbackBodies[0]).toMatchObject({ content: expect.stringContaining("action=OpenLayout"), flags: 64 });
@@ -75,7 +75,7 @@ describe("legacy base first-click conversion", () => {
 
   it.each([
     "https://link.clashofclans.com/en?action=CopyArmy&id=TH17%3Atest",
-    "https://link.clashofclans.com/en?action=OpenLayout&id=TH17%3Atest&extra=value",
+    "https://link.clashofclans.com/en?action=OpenLayout&id=TH17%3Atest&id=other",
     "https://link.clashofclans.com/not-en?action=OpenLayout&id=TH17%3Atest",
   ])("rejects a legacy row whose URL is not a canonical layout link: %s", async (invalidBaseLink) => {
     const fixture = legacyFixture({ baseLink: invalidBaseLink });

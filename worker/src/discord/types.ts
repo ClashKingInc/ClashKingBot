@@ -53,10 +53,12 @@ export interface DiscordAttachment {
 }
 
 export interface ModalComponent {
+  component?: ModalComponent;
   components?: ModalComponent[];
   custom_id?: string;
   type: number;
   value?: string;
+  values?: string[];
 }
 
 export interface DiscordUser {

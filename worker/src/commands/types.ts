@@ -4,6 +4,7 @@ import type { DiscordInteraction, DiscordInteractionResponse, InteractionOption 
 import type { Env } from "../env";
 
 export interface ApplicationCommandDefinition {
+  default_member_permissions?: string;
   contexts?: Array<0 | 1 | 2>;
   description: string;
   description_localizations?: Record<string, string>;
@@ -15,8 +16,10 @@ export interface ApplicationCommandDefinition {
 }
 
 export interface ApplicationCommandOption {
+  description_localizations?: Record<string, string>;
+  name_localizations?: Record<string, string>;
   autocomplete?: boolean;
-  choices?: Array<{ name: string; value: string | number }>;
+  choices?: Array<{ name: string; name_localizations?: Record<string, string>; value: string | number }>;
   description: string;
   max_length?: number;
   max_value?: number;
