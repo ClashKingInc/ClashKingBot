@@ -1,0 +1,10 @@
+{
+  "link.description": "Потвърди и свържи Clash of Clans акаунт със себе си",
+  "unlink.description": "Прекъсни връзката на Clash of Clans акаунт с профила си",
+  "base.description": "Публикувай база със снимки и следи изтеглянията",
+  "player.description": "Тагът на играча, показан в играта",
+  "link.name": "свържи",
+  "unlink.name": "откачи",
+  "base.name": "база",
+  "player.name": "играч"
+}

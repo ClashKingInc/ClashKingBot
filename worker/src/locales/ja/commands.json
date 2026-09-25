@@ -1,0 +1,10 @@
+{
+  "link.description": "クラッシュ・オブ・クランのアカウントを認証して自分に連携します",
+  "unlink.description": "自分のクラッシュ・オブ・クランのアカウント連携を解除します",
+  "base.description": "画像付きで配置を共有し、ダウンロードを記録します",
+  "player.description": "ゲーム内に表示されるプレイヤータグ",
+  "link.name": "連携",
+  "unlink.name": "連携解除",
+  "base.name": "配置",
+  "player.name": "プレイヤー"
+}

@@ -1,0 +1,10 @@
+{
+  "link.description": "Verifiera och koppla ett Clash of Clans-konto till dig själv",
+  "unlink.description": "Koppla bort ett Clash of Clans-konto från dig själv",
+  "base.description": "Dela en bas med bilder och följ nedladdningar",
+  "player.description": "Spelartagg från spelet",
+  "link.name": "koppla",
+  "unlink.name": "koppla-bort",
+  "base.name": "bas",
+  "player.name": "spelare"
+}

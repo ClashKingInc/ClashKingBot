@@ -1,0 +1,10 @@
+{
+  "link.description": "Verifica e collega un account Clash of Clans al tuo profilo",
+  "unlink.description": "Scollega un account Clash of Clans dal tuo profilo",
+  "base.description": "Pubblica un villaggio con immagini e monitora i download",
+  "player.description": "Tag del giocatore mostrato nel gioco",
+  "link.name": "collega",
+  "unlink.name": "scollega",
+  "base.name": "villaggio",
+  "player.name": "giocatore"
+}

@@ -1,0 +1,10 @@
+{
+  "link.description": "驗證並將部落衝突帳號連結至你自己",
+  "unlink.description": "解除與你連結的部落衝突帳號",
+  "base.description": "分享陣型及截圖並統計下載",
+  "player.description": "遊戲內顯示的玩家標籤",
+  "link.name": "連結",
+  "unlink.name": "解除連結",
+  "base.name": "陣型",
+  "player.name": "玩家"
+}

@@ -1,0 +1,10 @@
+{
+  "link.description": "Bekreft og koble en Clash of Clans-konto til deg selv",
+  "unlink.description": "Koble en Clash of Clans-konto fra deg selv",
+  "base.description": "Del en base med bilder og følg nedlastinger",
+  "player.description": "Spillertagg fra spillet",
+  "link.name": "koble",
+  "unlink.name": "koble-fra",
+  "base.name": "base",
+  "player.name": "spiller"
+}

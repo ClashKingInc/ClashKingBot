@@ -1,0 +1,10 @@
+{
+  "link.description": "Ověř a propoj účet Clash of Clans se svým profilem",
+  "unlink.description": "Odpoj účet Clash of Clans od svého profilu",
+  "base.description": "Sdílej základnu s obrázky a sleduj stažení",
+  "player.description": "Hráčský tag zobrazený ve hře",
+  "link.name": "propojit",
+  "unlink.name": "odpojit",
+  "base.name": "základna",
+  "player.name": "hráč"
+}

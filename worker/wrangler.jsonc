@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "clashking-discord-dev",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "APP_ENV": "dev",
+    "DASHBOARD_BASE_URL": "https://dash.clashk.ing",
+    "CLASHKING_API_BASE_URL": "https://api.clashk.ing",
+    "LOCAL_TEST_USER_ID": ""
+  },
+  "env": {
+    "prod": {
+      "name": "clashking-discord",
+      "vars": {
+        "APP_ENV": "prod",
+        "DASHBOARD_BASE_URL": "https://dash.clashk.ing",
+        "CLASHKING_API_BASE_URL": "https://api.clashk.ing",
+        "LOCAL_TEST_USER_ID": ""
+      }
+    }
+  }
+}

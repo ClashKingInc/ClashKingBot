@@ -1,0 +1,10 @@
+{
+  "link.description": "클래시 오브 클랜 계정을 인증하고 내 계정에 연결합니다",
+  "unlink.description": "내 클래시 오브 클랜 계정 연결을 해제합니다",
+  "base.description": "이미지와 함께 배치를 공유하고 다운로드를 기록합니다",
+  "player.description": "게임에 표시되는 플레이어 태그",
+  "link.name": "연결",
+  "unlink.name": "연결해제",
+  "base.name": "배치",
+  "player.name": "플레이어"
+}

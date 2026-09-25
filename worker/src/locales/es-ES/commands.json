@@ -1,0 +1,10 @@
+{
+  "link.description": "Verifica y vincula una cuenta de Clash of Clans a tu perfil",
+  "unlink.description": "Desvincula una cuenta de Clash of Clans de tu perfil",
+  "base.description": "Publica una aldea con capturas y registra sus descargas",
+  "player.description": "Etiqueta de jugador que aparece en el juego",
+  "link.name": "vincular",
+  "unlink.name": "desvincular",
+  "base.name": "aldea",
+  "player.name": "jugador"
+}

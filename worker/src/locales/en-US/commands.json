@@ -1,0 +1,10 @@
+{
+  "link.description": "Verify and link a Clash of Clans account to yourself",
+  "unlink.description": "Unlink a Clash of Clans account from yourself",
+  "base.description": "Post a base with screenshots and track downloads",
+  "player.description": "Player tag as found in game",
+  "link.name": "link",
+  "unlink.name": "unlink",
+  "base.name": "base",
+  "player.name": "player"
+}

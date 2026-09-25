@@ -1,0 +1,10 @@
+{
+  "link.description": "Potvrdi i poveži Clash of Clans račun sa svojim profilom",
+  "unlink.description": "Odvoji Clash of Clans račun od svojeg profila",
+  "base.description": "Objavi bazu sa slikama i prati preuzimanja",
+  "player.description": "Oznaka igrača prikazana u igri",
+  "link.name": "poveži",
+  "unlink.name": "odvoji",
+  "base.name": "baza",
+  "player.name": "igrač"
+}
