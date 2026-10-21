@@ -11,7 +11,7 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2024",
-    "types": ["@cloudflare/workers-types"]
+    "types": ["@cloudflare/workers-types", "node"]
   },
-  "include": ["worker-configuration.d.ts", "src/**/*.ts", "scripts/**/*.ts", "test/**/*.ts", "vitest.config.ts"]
+  "include": ["worker-configuration.d.ts", "src/**/*.ts", "scripts/**/*.ts"]
 }

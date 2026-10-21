@@ -7,7 +7,7 @@ import { modalFields, textField } from "./modals";
 import type { Command, CommandContext, ComponentHandler } from "./types";
 
 interface LinkResponse { account: { is_verified: boolean; tag: string } }
-interface LinksResponse { items: Array<{ player_tag: string; is_verified: boolean }> }
+interface LinksResponse { items: Array<{ player_tag: string; is_verified: boolean; player_name?: string; town_hall?: number }> }
 
 export const linkCommand: Command = {
   ephemeral: true,
@@ -94,9 +94,17 @@ export const unlinkCommand: Command = {
     contexts: [0], integration_types: [0], name: "unlink", type: 1,
     name_localizations: localizations("unlink.name"),
     description: translate("unlink.description"), description_localizations: localizations("unlink.description"),
-    options: [{ name: "player", type: OptionType.String, required: true,
+    options: [{ name: "player", type: OptionType.String, required: true, autocomplete: true,
       name_localizations: localizations("player.name"),
       description: translate("player.description"), description_localizations: localizations("player.description") }],
+  },
+  async autocomplete(context) {
+    requireGuildId(context);
+    const query = String(context.options.get("player")?.value ?? "").trim().toLocaleLowerCase();
+    const { items } = await context.services.api.get<LinksResponse>(`/v2/links/${invokingUserId(context)}`);
+    return [...items].sort((a,b) => (b.town_hall ?? 0) - (a.town_hall ?? 0))
+      .map(account => ({ name: `${account.player_name ?? "Unknown player"} | ${account.player_tag}`.slice(0,100), value: account.player_tag }))
+      .filter(choice => choice.name.toLocaleLowerCase().includes(query)).slice(0,25);
   },
   async execute(context) {
     requireGuildId(context);

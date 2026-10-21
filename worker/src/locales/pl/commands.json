@@ -6,5 +6,9 @@
   "link.name": "połącz",
   "unlink.name": "odłącz",
   "base.name": "baza",
-  "player.name": "gracz"
+  "player.name": "gracz",
+  "refresh.name": "refresh",
+  "refresh.description": "Refresh your roles and nickname, or refresh a member or role",
+  "mainAccount.name": "main-account",
+  "mainAccount.description": "Choose your main Clash account for this server's nickname"
 }

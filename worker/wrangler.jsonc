@@ -4,6 +4,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-02",
   "compatibility_flags": ["nodejs_compat"],
+  "rules": [{ "type": "Data", "globs": ["**/*.ttf", "**/*.png"], "fallthrough": true }],
   "observability": {
     "enabled": true
   },
@@ -16,6 +17,7 @@
   "env": {
     "prod": {
       "name": "clashking-discord",
+      "triggers": { "crons": ["* * * * *"] },
       "vars": {
         "APP_ENV": "prod",
         "DASHBOARD_BASE_URL": "https://dash.clashk.ing",

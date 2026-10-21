@@ -6,5 +6,9 @@
   "link.name": "关联",
   "unlink.name": "解除关联",
   "base.name": "阵型",
-  "player.name": "玩家"
+  "player.name": "玩家",
+  "refresh.name": "refresh",
+  "refresh.description": "Refresh your roles and nickname, or refresh a member or role",
+  "mainAccount.name": "main-account",
+  "mainAccount.description": "Choose your main Clash account for this server's nickname"
 }

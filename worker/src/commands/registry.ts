@@ -9,12 +9,25 @@ import {
 import type { Env } from "../env";
 import { resolveLocale, translate } from "../localization/catalog";
 import { baseCommand, baseComponentHandlers } from "./base";
-import { CommandInputError } from "./command-utils";
+import { CommandInputError, invokingUserId } from "./command-utils";
 import { linkCommand, linkComponentHandlers, unlinkCommand } from "./link";
 import { dispatchRoster, rosterCommand } from "./roster";
+import { refreshCommand, mainAccountCommand, dispatchRefresh } from "./refresh";
+import { remindersCommand } from "./reminders";
+import { dashboardCommand } from "./dashboard";
+import { tournamentCommand } from "./tournament";
+import { ticketCommand } from "./ticket";
+import { warPanelComponentHandler } from "./war-panel";
+import { playerCommand } from "./player";
+import { rankedCommand } from "./ranked";
+import { legendsCommand } from "./legends";
+import { leaderboardCommand } from "./leaderboard";
+import { armyCommand } from "./army";
+import { clanCommand } from "./clan";
+import { dispatchGamePage } from "./game-pages";
 import type { Command, CommandContext, CommandServices, ComponentHandler } from "./types";
 
-const commands: readonly Command[] = [baseCommand, linkCommand, unlinkCommand, rosterCommand];
+const commands: readonly Command[] = [baseCommand, linkCommand, unlinkCommand, rosterCommand, refreshCommand, mainAccountCommand, remindersCommand, dashboardCommand, tournamentCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand];
 const commandByName = new Map(commands.map((command) => [command.definition.name, command]));
 const componentHandlers = new Map<string, ComponentHandler>([
   ...baseComponentHandlers,
@@ -72,7 +85,14 @@ async function executeCommand(
     return command.execute(context);
   }
   waitUntil(command.execute(context).then(
-    (response) => context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, response.data ?? {}),
+    async (response) => {
+      // Discord fixes visibility at acknowledgement time. A private result
+      // after a public defer needs its own follow-up, not an ignored flag edit.
+      if(!command.ephemeral&&typeof response.data?.flags==="number"&&(response.data.flags&MessageFlags.Ephemeral)){
+        await context.services.discordRest.createInteractionFollowup(context.interaction.token,response.data??{});
+        await context.services.discordRest.deleteOriginalInteractionResponse(context.interaction.token);
+      }else await context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, response.data ?? {});
+    },
     (error: unknown) => context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, {
       content: error instanceof CommandInputError ? error.message : translate("error.generic", context.locale),
       flags: MessageFlags.Ephemeral,
@@ -89,7 +109,22 @@ async function executePersistentHandler(
   waitUntil?: (promise: Promise<unknown>) => void,
 ): Promise<DiscordInteractionResponse> {
   const customId = context.interaction.data?.custom_id ?? "";
+  // Old Legend History buttons still exist on Discord messages. Route them
+  // through the same renderer as /legends history instead of maintaining a
+  // second presentation or invalidating otherwise usable historical messages.
+  if (/^legendhistory:#[0289PYLQGRJCUV]+$/u.test(customId)) {
+    const tag = customId.slice("legendhistory:".length);
+    return dispatchGamePage({ ...context, interaction: { ...context.interaction,
+      data: { ...context.interaction.data, custom_id: `ck:page:lh:${invokingUserId(context)}:${tag}:0` },
+    } }, waitUntil);
+  }
+  if(customId.startsWith("ck:page:"))return dispatchGamePage(context,waitUntil);
+  if (customId.startsWith("ck:refresh:")) return dispatchRefresh(context, waitUntil);
   if (customId.startsWith("ck:roster:")) return dispatchRoster(context, waitUntil);
+  if (customId.startsWith("ck:war:")) {
+    const segments = customId.split(":").slice(2);
+    return warPanelComponentHandler(context, segments);
+  }
   if (customId === "link" || customId === "who") {
     const handler = componentHandlers.get("base:legacy");
     if (!handler) return unknownInteraction(context.locale);

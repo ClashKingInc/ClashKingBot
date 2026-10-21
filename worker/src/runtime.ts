@@ -4,7 +4,7 @@ import type { CommandServices } from "./commands/types";
 import type { Env } from "./env";
 import { createServices } from "./services";
 
-export class Services extends Context.Tag("@clashking/bot/Services")<Services, CommandServices>() {}
+export class Services extends Context.Service<Services, CommandServices>()("@clashking/bot/Services") {}
 
 export function servicesLayer(env: Env): Layer.Layer<Services> {
   return Layer.succeed(Services, createServices(env));

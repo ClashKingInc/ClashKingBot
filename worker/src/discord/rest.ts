@@ -30,6 +30,10 @@ export class DiscordRestClient {
     this.#token = options.token;
   }
 
+  get applicationId(): string {
+    return this.#applicationId;
+  }
+
   getGuild(id: string): Promise<DiscordGuild> {
     return this.get(`/guilds/${id}`);
   }
@@ -82,10 +86,21 @@ export class DiscordRestClient {
     interactionToken: string,
     data: NonNullable<DiscordInteractionResponse["data"]>,
   ): Promise<void> {
+    const { __files, ...payload } = data;
+    let body: BodyInit = JSON.stringify(payload);
+    if (Array.isArray(__files) && __files.length) {
+      // Files are internal command output, never Discord JSON fields. Replace
+      // attachments on each page update so old graphs do not accumulate.
+      const form = new FormData();
+      const files = __files as Array<{ name: string; bytes: Uint8Array }>;
+      form.set("payload_json", JSON.stringify({ ...payload, attachments: files.map((file,index)=>({id:index,filename:file.name})) }));
+      files.forEach((file,index)=>form.set(`files[${index}]`,new Blob([new Uint8Array(file.bytes)],{type:"image/png"}),file.name));
+      body = form;
+    }
     await this.request<unknown>(
       `/webhooks/${this.#applicationId}/${interactionToken}/messages/@original`,
       {
-        body: JSON.stringify(data),
+        body,
         method: "PATCH",
       },
       false,
@@ -96,6 +111,10 @@ export class DiscordRestClient {
     await this.request<unknown>(`/webhooks/${this.#applicationId}/${interactionToken}`, {
       body: JSON.stringify(data), method: "POST",
     }, false);
+  }
+
+  async deleteOriginalInteractionResponse(interactionToken:string):Promise<void>{
+    await this.request<undefined>(`/webhooks/${this.#applicationId}/${interactionToken}/messages/@original`,{method:"DELETE"},false);
   }
 
   async editChannelMessage(
@@ -147,9 +166,10 @@ export class DiscordRestClient {
   async request<T>(path: string, init: RequestInit, authenticated = true): Promise<T> {
     const response = await this.#fetch(`${DISCORD_API_BASE_URL}${path}`, {
       ...init,
+      signal: init.signal ?? AbortSignal.timeout(10_000),
       headers: {
         ...(authenticated ? { Authorization: `Bot ${this.#token}` } : {}),
-        "Content-Type": "application/json",
+        ...(init.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       },
     });
     if (!response.ok) {

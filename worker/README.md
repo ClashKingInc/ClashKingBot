@@ -12,8 +12,10 @@ This package is the active ClashKing Bot runtime. `POST /interactions` verifies 
 - `ck:link:start`, `ck:link:submit`, and `ck:link:help` provide isolate-safe link button/modal/help routing.
 
 - `/roster` opens a private roster picker, with creation and signup modals and standalone snapshot posts. See [roster implementation and review log](docs/ROSTERS_IMPLEMENTATION.md) for exact scope and unfinished API/Dashboard work.
+- `/ticket panel-post` publishes a saved Dashboard panel in the invoking channel (Manage Server or Administrator required). Panel buttons and single-choice menus bind to saved ticket actions. Applications use the roster-style modal: the linked-account selector is the first field when enabled, followed by text, yes/no or dropdown questions. Opening messages support a full Classic/components-v1 or Components-v2 payload; the API snapshots it before submission and sends it separately from the application summary and staff controls. Optional private staff threads retain the application copy. `/ticket status` opens, sleeps or closes a ticket; `/ticket add` adds a member. Application controls support closing, clan assignment, shared message templates and account viewing. The Bot forwards the original signed interaction; the API authorizes staff actions and journals Discord effects for replay-safe delivery through its ticket Durable Object.
+- Ticket deletion/transcript export and reply notifications are not enabled. Those unfinished controls are not advertised. Applicants without linked accounts use the existing `/link` flow before retrying the panel button.
 
-The registry exposes four command definitions. Updating the local registry does not change Discord until registration is explicitly run. The bulk registration script replaces the application's global command list; review that scope before running it. Other reviewed experiment modules remain unregistered until their own compatibility slice is implemented and tested.
+The registry exposes eight command definitions. Updating the local registry does not change Discord until registration is explicitly run. The bulk registration script replaces the application's global command list; review that scope before running it. Other reviewed experiment modules remain unregistered until their own compatibility slice is implemented and tested.
 
 ## Localization and permissions
 
@@ -33,7 +35,7 @@ Use Node 24. Copy `.dev.vars.example` to `.dev.vars` and replace placeholders lo
 npm ci
 npm run lint
 npm run typecheck
-npm test
+npm run check:commands
 npm run build
 ```
 
@@ -45,18 +47,30 @@ npm run build
 
 `LOCAL_TEST_USER_ID` is empty, so local beta testing is open to other Discord users under normal command permissions. It can optionally restrict signed interactions to one user; that opt-in mode also rejects non-loopback API URLs. Local development uses the beta Discord application and loopback API.
 
-Discord supports one Interactions Endpoint URL per application, so this test temporarily routes all production application interactions to the local Worker. Perform the endpoint switch only with explicit execution approval and use this order:
+Discord supports one Interactions Endpoint URL per application. Local verification uses the dedicated Beta application, never a production endpoint switch. Use this order:
 
 1. Run `npm run check`, start `npm run dev`, and verify `curl http://127.0.0.1:8788/health` before changing Discord.
-2. Expose `http://127.0.0.1:8788/interactions` through an HTTPS tunnel and record the production application's current Interactions Endpoint URL for restoration.
+2. Use the existing managed Beta tunnel for `http://127.0.0.1:8788/interactions`. Any Beta endpoint change requires explicit approval.
 3. Confirm the archived Python bot and any other duplicate Discord gateway session are stopped. The Worker receives HTTP interactions and must not be paired with a second bot process during this test.
-4. After explicit approval, switch the application's Interactions Endpoint URL to the tunnel and run bounded cases. Database writes target the local API, but Discord messages are real external writes. Confirm any other upstream API/OAuth dependencies separately.
-5. Restore the recorded production endpoint immediately after the test, or before any troubleshooting if the local Worker or tunnel fails. Verify the restored endpoint before stopping the tunnel and local Worker.
+4. Run bounded cases only after confirming the Beta application and local API target. Discord messages are real external writes and need an authorized destination. Confirm any other upstream API/OAuth dependencies separately.
+5. If a temporary Beta endpoint change was approved, restore that Beta endpoint when finished. Do not modify production.
 
-A separate development Discord application is the safer optional alternative because its endpoint switch does not redirect production traffic, but it is not required for the chosen procedure. Command registration and deployment are separate external changes: do not run `register:dev`, `register:prod`, `deploy:dev`, or `deploy:prod` as part of this test.
+Command registration and deployment are separate external changes: do not run `register:dev`, `register:prod`, `deploy:dev`, or `deploy:prod` without explicit approval. Retained actual-service checks are documented in `../tooling/e2e/README.md`; unit and isolated-helper suites are not retained.
 
 Wrangler's top level is development and `--env prod` is production. Secrets (`DISCORD_APPLICATION_ID`, `DISCORD_PUBLIC_KEY`, `DISCORD_BOT_TOKEN`, and `CLASHKING_API_TOKEN`) must be configured separately for each environment. Never commit `.dev.vars`, `.env.dev`, `.env.prod`, Wrangler state, or generated build output.
 
 ## Runtime boundary
 
 The Worker calls the ClashKing API for every link and base mutation. It does not read the application database directly. Discord REST is used for interaction callbacks, bounded attachment downloads, localized base controls, and legacy message conversion. The API owns publication, ownership transfers, and image storage. Bot-only token enforcement is not a global API-policy change: other API clients retain their existing contracts. The archived Python tree is reference material and is outside the active Worker TypeScript, lint, test, and Wrangler inputs.
+
+## Role refresh
+
+`/refresh` reconciles configured roles across all visible linked accounts and applies the server nickname rule. It defaults to the invoking member; staff can target a member or Discord role. `test` previews changes and `advanced_mode` selects categories without changing other configured categories. `/main-account` chooses a visible linked account for this server's nickname; every visible account still contributes roles.
+
+Roles & Nicknames in the Dashboard combines family, leadership, player roles and nickname configuration. Role rules always reconcile eligibility; the obsolete stored add/remove mode and family-settings access grants are updated by the consolidated schema extension 022.
+
+Automatic refresh runs whenever tracked account data is ingested, with clan events also queued through the durable API queue. There are no configurable triggers. Clan-leave grace is an integer 5–60 minutes, default 5, measured from the observed leave event. Other events preserve that grace; joining a family clan ends the grace and queues an immediate evaluation. Current account data is fetched when work runs. Polling, the one-minute production consumer and backlog can add latency. Missing player data stops changes rather than treating an account as ineligible.
+
+Per-member leases serialize automatic and manual changes. The consumer handles two members concurrently and changes individual Discord roles, preserving unrelated roles. Completed request records expire after seven days with bounded cleanup. Apply the consolidated schema extension 022 before running updated API, Tracking, Bot and Dashboard; production deployment and Discord command registration are separate steps. Local testing does not enable the production cron.
+
+Refresh command metadata has English fallback entries in every locale; the new refresh replies are currently English.

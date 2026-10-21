@@ -15,5 +15,8 @@ ingress:
     service: http_status:404
   - hostname: local-dash.clashk.ing
     service: http://127.0.0.1:3002
+  - hostname: local-ai.clashk.ing
+    path: ^/(chat|health)$
+    service: http://127.0.0.1:8789
   # Includes Wrangler /cdn-cgi/local/*, inspector paths, and every unknown host.
   - service: http_status:404

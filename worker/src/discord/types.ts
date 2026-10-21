@@ -30,11 +30,13 @@ export interface InteractionOption {
 }
 
 export interface InteractionData {
+  component_type?: number;
   custom_id?: string;
   components?: ModalComponent[];
   name?: string;
   options?: InteractionOption[];
   resolved?: {
+    roles?: Record<string, DiscordRole>;
     attachments?: Record<string, DiscordAttachment>;
     channels?: Record<string, DiscordChannel>;
     members?: Record<string, DiscordMember>;

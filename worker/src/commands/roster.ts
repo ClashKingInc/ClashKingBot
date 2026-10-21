@@ -1,4 +1,5 @@
 import { ClashKingApiError } from "../api/client";
+import { ApplicationEmojis } from "../discord/emojis";
 import { actionRow, legacyMessage, type ButtonComponent } from "../discord/components";
 import { InteractionResponseType, InteractionType, type DiscordInteractionResponse } from "../discord/types";
 import { localizations, resolveLocale, translate } from "../localization/catalog";
@@ -173,7 +174,7 @@ async function joinModal(ctx: CommandContext, id: string, page?: number, removin
   return { type: 9, data: { custom_id: removing ? `ck:roster:withdraw:${id}` : `ck:roster:submit:${id}:${await formVersion(questions)}`, title: t(ctx, removing ? "roster.leave" : "roster.join"), components: [
     { type: 18, label: t(ctx, "roster.accounts"), component: { type: 3, custom_id: "player", min_values: 1, max_values: maxAccounts,
       options: selected.map(a => {
-        const emoji = emojis.find(e => e.name === `th${a.townhall}`);
+        const emoji = new ApplicationEmojis(emojis).component(a.townhall);
         return { label: `${a.name} (${a.tag})`.slice(0, 100), value: a.tag,
           ...(emoji ? { emoji: { id: emoji.id, name: emoji.name, animated: emoji.animated ?? false } } : {}) };
       }) } },

@@ -4,6 +4,7 @@ import { localizations, translate, resolveLocale } from "../localization/catalog
 import { CommandInputError, invokingUserId, requireGuildId } from "./command-utils";
 import { modalFields, textField } from "./modals";
 import type { Command, CommandContext, ComponentHandler } from "./types";
+import { serverEmbedColor } from "./embed-color";
 
 interface BaseRecord {
   baseLink: string;
@@ -192,7 +193,7 @@ async function showLegacyDownloaders(context: CommandContext, baseId: string) {
   const base = await context.services.api.get<BaseRecord>(`/v2/server/${guildId}/bases/${baseId}`);
   const empty = base.downloaders.length === 0;
   return legacyMessage({ embeds: [{
-    color: empty ? 0xed4245 : 0x57f287,
+    color: await serverEmbedColor(context),
     description: empty ? translate("base.noDownloads", context.locale) : base.downloaders.map((id) => `➼ <@${id}>`).join("\n"),
     ...(empty ? {} : { title: translate("base.downloads", context.locale) }),
   }] }, { ephemeral: true });

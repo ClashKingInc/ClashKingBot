@@ -1,5 +1,10 @@
+import { createServices } from "./services";
+import { drainRefreshJobs } from "./refresh/runtime";
 import { Effect } from "effect";
 import { dispatchInteraction } from "./commands/registry";
+import { giveawayEntry } from "./commands/giveaway";
+import { ticketInteraction } from "./commands/ticket";
+import { armyInteraction } from "./commands/army";
 import { CommandInputError } from "./commands/command-utils";
 import { verifyDiscordRequest } from "./discord/signature";
 import {
@@ -17,6 +22,16 @@ const JSON_HEADERS = {
 } as const;
 
 export default {
+  async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    if (env.LOCAL_TEST_USER_ID) return;
+    const services = createServices(env);
+    ctx.waitUntil((async () => {
+      const started = Date.now();
+      for (let batch = 0; batch < 10 && Date.now() - started < 45_000; batch++) {
+        if (await drainRefreshJobs(services) === 0) break;
+      }
+    })());
+  },
   async fetch(request: Request, env: Env, executionContext: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
@@ -67,6 +82,26 @@ export default {
     try {
       const response = await runWithServices(env, Effect.gen(function* () {
         const services = yield* Services;
+        if (interaction.type !== InteractionType.ApplicationCommandAutocomplete &&
+          (interaction.data?.name === "army" || interaction.data?.custom_id?.startsWith("ck:army:"))) {
+          return yield* Effect.tryPromise({try:() => armyInteraction(interaction, { rawBody: body,
+            timestamp: request.headers.get("X-Signature-Timestamp")!, signature: request.headers.get("X-Signature-Ed25519")! }, services,
+            promise => executionContext.waitUntil(promise),env),catch:cause=>cause});
+        }
+        if (interaction.type !== InteractionType.ApplicationCommandAutocomplete &&
+          (interaction.data?.name === "ticket" || interaction.data?.custom_id?.startsWith("ck:ticket:") || /^.{1,75}_(?:0|\d{10})$/u.test(interaction.data?.custom_id ?? ""))) {
+          return yield* Effect.tryPromise({
+            try: () => ticketInteraction(interaction, { rawBody: body,
+              timestamp: request.headers.get("X-Signature-Timestamp")!, signature: request.headers.get("X-Signature-Ed25519")! }, services,
+              promise => executionContext.waitUntil(promise)),
+            catch: cause => cause,
+          });
+        }
+        if (interaction.data?.custom_id?.startsWith("ck:giveaway:")) {
+          return giveawayEntry(interaction, { rawBody: body,
+            timestamp: request.headers.get("X-Signature-Timestamp")!, signature: request.headers.get("X-Signature-Ed25519")! },
+            services, (promise) => executionContext.waitUntil(promise));
+        }
         return yield* Effect.tryPromise({
           catch: (cause) => cause,
           try: () => dispatchInteraction(interaction, env, services, (promise) => executionContext.waitUntil(promise)),

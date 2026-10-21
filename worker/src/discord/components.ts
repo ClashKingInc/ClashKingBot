@@ -146,7 +146,10 @@ export interface ContainerComponent {
 export type V2Component = ContainerComponent | ContainerChild;
 
 export interface LegacyEmbed {
+  author?: { name: string; icon_url?: string; url?: string };
+  fields?: Array<{ name: string; value: string; inline?: boolean }>;
   image?: { url: string };
+  thumbnail?: { url: string };
   color?: number;
   description?: string;
   footer?: { icon_url?: string; text: string };

@@ -6,5 +6,9 @@
   "link.name": "liên-kết",
   "unlink.name": "gỡ-liên-kết",
   "base.name": "bố-cục",
-  "player.name": "người-chơi"
+  "player.name": "người-chơi",
+  "refresh.name": "refresh",
+  "refresh.description": "Refresh your roles and nickname, or refresh a member or role",
+  "mainAccount.name": "main-account",
+  "mainAccount.description": "Choose your main Clash account for this server's nickname"
 }
