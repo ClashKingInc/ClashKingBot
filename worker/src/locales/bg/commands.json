@@ -1,0 +1,14 @@
+{
+  "link.description": "Потвърди и свържи Clash of Clans акаунт със себе си",
+  "unlink.description": "Прекъсни връзката на Clash of Clans акаунт с профила си",
+  "base.description": "Публикувай база със снимки и следи изтеглянията",
+  "player.description": "Тагът на играча, показан в играта",
+  "link.name": "свържи",
+  "unlink.name": "откачи",
+  "base.name": "база",
+  "player.name": "играч",
+  "refresh.name": "refresh",
+  "refresh.description": "Refresh your roles and nickname, or refresh a member or role",
+  "mainAccount.name": "main-account",
+  "mainAccount.description": "Choose your main Clash account for this server's nickname"
+}

@@ -1,0 +1,84 @@
+import { InteractionResponseType, MessageFlags, type InteractionOption } from "../discord/types";
+import { CommandInputError, OptionType } from "./command-utils";
+import { playerCommand } from "./player";
+import { rankedCommand } from "./ranked";
+import { legendsCommand } from "./legends";
+import { leaderboardCommand } from "./leaderboard";
+import { clanCommand } from "./clan";
+import type { Command, CommandContext } from "./types";
+
+export async function dispatchGamePage(ctx: CommandContext, waitUntil?: (promise: Promise<unknown>)=>void) {
+  const [prefix,domain,kind,owner,...parts]=(ctx.interaction.data?.custom_id??"").split(":");
+  // These controls only navigate public game data. The embedded actor remains
+  // in existing message IDs for compatibility, not as an ownership lock. Keep
+  // using the actual clicker's context so visibility checks are never borrowed
+  // from the original command author. Private/mutating controls use other handlers.
+  if(prefix!=="ck"||domain!=="page"||!owner||!/^\d{15,22}$/u.test(owner))throw new CommandInputError("Invalid page control.");
+  const rawPage=parts.pop();
+  if(!rawPage||!/^\d{1,6}$/u.test(rawPage))throw new CommandInputError("Invalid page.");
+  let command:Command,action:string,options:InteractionOption[];
+  const string=(name:string,value:string):InteractionOption=>({name,type:OptionType.String,value});
+  const tag=(value:string|undefined)=>{if(!value||!/^#[0289PYLQGRJCUV]+$/u.test(value))throw new CommandInputError("Invalid player tag.");return value;};
+  if(kind==="cl"&&parts.length===9&&["o","d","O","D","vo","vd"].includes(parts[1]!)&&["m","a"].includes(parts[7]!)&&["d","b","m"].includes(parts[8]!)){
+    command=clanCommand;action=parts[1]!.toLowerCase().endsWith("d")?"donations":"search";
+    options=[string("clan",tag(parts[0])),string("sort_by",parts[5]!),string("sort_order",parts[6]!),{name:"townhall",type:OptionType.Integer,value:Number(parts[3])},{name:"limit",type:OptionType.Integer,value:Number(parts[4])}];
+    options.push(string("__members_only",String(parts[7]==="m")));
+    options.push(string("type",parts[8]!));
+    if(parts[2]!=="current")options.push(string("season",parts[2]!));
+  }else if((kind==="ac"||kind==="pt")&&parts.length===1&&/^\d{15,22}$/u.test(parts[0]!)){
+    command=playerCommand;action=kind==="ac"?"accounts":"to-do";options=[string("discord_user",parts[0]!)];
+  }else if((kind==="rh"||kind==="rg")&&parts.length===(kind==="rh"?1:2)){
+    command=rankedCommand;action=kind==="rh"?"history":"group";options=[string("player",tag(parts[0]))];
+    if(kind==="rg"&&parts[1]!=="current"){
+      if(!/^[1-9][0-9]{0,15}$/u.test(parts[1]!))throw new CommandInputError("Invalid season.");
+      options.push(string("season",parts[1]!));
+    }
+  }else if(kind==="pp"&&(parts.length===2||parts.length===3)){
+    const accountSelect=parts[1]==="account";
+    const selected=accountSelect?"overview":parts[1]==="select"?ctx.interaction.data?.values?.[0]:parts[1];
+    if(!selected||!["overview","troops","upgrades","history","history-cos"].includes(selected))throw new CommandInputError("Invalid player page.");
+    command=playerCommand;action="lookup";options=[string("player",tag(accountSelect?ctx.interaction.data?.values?.[0]:parts[0])),string("__view",selected)];
+    if(parts[2]&&parts[2]!=="none"){
+      if(!/^\d{15,22}$/u.test(parts[2]))throw new CommandInputError("Invalid account picker.");
+      options.push(string("__accounts_user",parts[2]));
+    }
+  }else if(kind==="rp"&&parts.length===3&&["overview","group"].includes(parts[2]!)){
+    command=rankedCommand;action="player";options=[string("player",tag(parts[0])),string("__view",parts[2]!)];
+    if(parts[1]!=="current"){
+      if(!/^[1-9][0-9]{0,15}$/u.test(parts[1]!))throw new CommandInputError("Invalid season.");
+      options.push(string("season",parts[1]!));
+    }
+  }else if(kind==="ls"&&parts.length===3&&["day","season"].includes(parts[1]!)&&/^\d{4}-\d{2}-\d{2}$/u.test(parts[2]!)){
+    command=legendsCommand;action="player";options=[string("player",tag(parts[0])),string("__view",parts[1]!),string("__day",parts[2]!)];
+  }else if(kind==="lg"&&parts.length===2&&["cutoffs","buckets","winners","daily"].includes(parts[0]!)&&/^[1-9][0-9]?$/u.test(parts[1]!)&&Number(parts[1])<=50){
+    command=legendsCommand;action="stats";options=[string("type",parts[0]!),{name:"limit",type:OptionType.Integer,value:Number(parts[1])}];
+  }else if((kind==="lh"&&(parts.length===1||parts.length===2))||(kind==="lc"&&parts.length===1)){
+    command=legendsCommand;action=kind==="lh"?"history":"clan";options=[string(kind==="lh"?"player":"clan",tag(parts[0]))];
+    // Keep the requested history window when navigating a long result.
+    if(parts.length===2){
+      if(!/^[1-9][0-9]{0,2}$/u.test(parts[1]!)||Number(parts[1])>240)throw new CommandInputError("Invalid history limit.");
+      options.push({name:"limit",type:OptionType.Integer,value:Number(parts[1])});
+    }
+  }else if(kind==="bl"&&parts.length===3&&/^(global|\d{1,12})$/u.test(parts[0]!)&&["home","builder"].includes(parts[1]!)){
+    command=leaderboardCommand;action="location";options=[string("location",parts[0]!),string("village",parts[1]!),{name:"limit",type:OptionType.Integer,value:Number(parts[2])}];
+  }else if(kind==="bf"&&parts.length===2&&["donations","legends","clan-games"].includes(parts[0]!)){
+    command=leaderboardCommand;action="family";options=[string("type",parts[0]!),{name:"limit",type:OptionType.Integer,value:Number(parts[1])}];
+  }else throw new CommandInputError("Invalid page control.");
+  options.push({name:"__page",type:OptionType.Integer,value:Number(rawPage)});
+  const context:CommandContext={...ctx,options:new Map([[action,{name:action,type:OptionType.Subcommand,options}]])};
+  const run=async()=>command.execute(context);
+  if(!waitUntil){const result=await run();return typeof result.data?.flags==="number"&&(result.data.flags&MessageFlags.Ephemeral)?result:{...result,type:InteractionResponseType.UpdateMessage};}
+  waitUntil(run().then(result=>typeof result.data?.flags==="number"&&(result.data.flags&MessageFlags.Ephemeral)
+    ?ctx.services.discordRest.createInteractionFollowup(ctx.interaction.token,result.data)
+    :ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token,result.data??{}))
+    .catch(error=>{
+      // Keep interaction tokens and full payloads out of logs, but preserve the
+      // failure stage/status so a failed Discord edit is not mistaken for bad data.
+      let code: unknown;
+      let validation: unknown;
+      if(typeof error?.body==="string")try{const body=JSON.parse(error.body);code=body?.code;validation=body?.errors;}catch{}
+      console.warn("game_page_failed",{kind,error:error?.name,status:error?.status,code,validation,message:error instanceof Error?error.message:"Unknown error"});
+      return ctx.services.discordRest.createInteractionFollowup(ctx.interaction.token,{content:error instanceof CommandInputError?error.message:"Couldn't load this page. Try again.",flags:MessageFlags.Ephemeral});
+    }));
+  return {type:InteractionResponseType.DeferredUpdateMessage};
+}
