@@ -1,3 +1,4 @@
+import { privacyCommand } from "./privacy";
 import { autoRefreshCommand } from "./autorefresh";
 import { fankitCommand, dispatchFankit } from "./fankit";
 import { pepeCommand } from "./pepe";
@@ -42,7 +43,7 @@ import { clanCommand } from "./clan";
 import { dispatchGamePage } from "./game-pages";
 import type { Command, CommandContext, CommandServices, ComponentHandler } from "./types";
 
-const commands: readonly Command[] = [autoRefreshCommand,fankitCommand,pepeCommand,buttonsCommand,botInfoCommand,giveawayCommand,rolesCommand,graphCommand,roleUsersCommand,boostsCommand,statsCommand,helpCommand,baseCommand, linkCommand, rosterCommand, refreshCommand, mainAccountCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, banCommand, strikeCommand, warCommand, cwlCommand];
+const commands: readonly Command[] = [privacyCommand,autoRefreshCommand,fankitCommand,pepeCommand,buttonsCommand,botInfoCommand,giveawayCommand,rolesCommand,graphCommand,roleUsersCommand,boostsCommand,statsCommand,helpCommand,baseCommand, linkCommand, rosterCommand, refreshCommand, mainAccountCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, banCommand, strikeCommand, warCommand, cwlCommand];
 const commandByName = new Map(commands.map((command) => [command.definition.name, command]));
 // Retain cached legacy invocations without registering a separate slash root.
 commandByName.set("unlink", unlinkCommand);
@@ -98,7 +99,7 @@ async function executeCommand(
   if (!command) {
     return unknownInteraction(context.locale);
   }
-  const ephemeral = typeof command.ephemeral === "function" ? command.ephemeral(context) : command.ephemeral;
+  const ephemeral = typeof command.ephemeral === "function" ? await command.ephemeral(context) : command.ephemeral;
   const deferred = typeof command.deferred === "function" ? command.deferred(context) : command.deferred;
   if (!deferred || !waitUntil) {
     return command.execute(context);

@@ -1,3 +1,4 @@
+import { statsPrivateMode } from "./privacy";
 import { actionRow, legacyMessage } from "../discord/components";
 import { CommandInputError, invokingUserId, normalizeTag, OptionType, requireGuildId, stringOption } from "./command-utils";
 import { emojis, escapeMarkdown, subcommand } from "./game-common";
@@ -11,6 +12,7 @@ interface Report{start:string;end:string;season:string|null;selectedWars:number;
 const clean=(text:string)=>escapeMarkdown(text.replace(/[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu,"")).slice(0,55);
 export const statsCommand:Command={
  deferred:true,
+ ephemeral:statsPrivateMode,
  definition:{name:"stats",description:"Recorded clan and family statistics",type:1,integration_types:[0,1],contexts:[0,1,2],options:[{name:"war",description:"Completed-war hit rates, defense rates and attack information",type:OptionType.Subcommand,options:[
   {name:"type",description:"Statistic to show",type:OptionType.String,choices:Object.entries(views).map(([value,name])=>({name,value}))},
   {name:"clan",description:"Clan tag or name (default this server's family)",type:OptionType.String,autocomplete:true},

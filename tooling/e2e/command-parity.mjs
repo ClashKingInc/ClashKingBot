@@ -46,6 +46,7 @@ const warPanelMode=process.argv.includes("--war-panel-only");
 const roleUsersMode=process.argv.includes("--role-users-only");
 const boostsMode=process.argv.includes("--boosts-only");let boostFailure=false;
 const warStatsMode=process.argv.includes("--war-statistics-only");
+const privacyAcks=[];let privacyUnavailable=false;
 const botInfoMode=process.argv.includes("--bot-info-only");let botInfoFailure=false;
 const handoffMode=process.argv.includes("--roster-handoff-only");
 const verificationMode=process.argv.includes("--clan-verification-only")||handoffMode;let verificationDescription="";
@@ -219,6 +220,7 @@ try{
    const headers=new Headers(request.headers);headers.delete('content-length');
    return fetch(request.url,{method:'POST',headers,body:JSON.stringify(body)});
   }
+  if(warStatsMode&&privacyUnavailable&&url.pathname.endsWith('/preferences'))return Response.json({message:'Unavailable'},{status:503});
   if(botInfoMode&&botInfoFailure&&url.pathname==="/v2/bot/status")return Response.json({message:"Unavailable"},{status:503});
   if(graphMode&&dailyGraphFailure&&url.pathname==='/v2/bot/clans/daily-stats')return Response.json({message:'Unavailable'},{status:503});
   if(graphMode&&graphGap&&decodeURIComponent(url.pathname).includes(group+'/season-stats')&&url.searchParams.get('season')==='2024-12')return Response.json({message:'Unavailable'},{status:503});
@@ -228,7 +230,7 @@ try{
   throw Error('External request blocked by local integration harness');
  }}]}));
  const origin=new URL('/interactions',String(await bot.ready)).href;
- async function interact(data,who=actor,permissions='0'){const token=String(counter++);const rawBody=JSON.stringify({id:token,application_id:app,guild_id:'999999999999996510',channel_id:'999999999999996511',member:{user:{id:who,username:'Local'},roles:[],permissions},version:1,token,...data});const timestamp=String(Math.floor(Date.now()/1000));const response=await fetch(origin,{method:'POST',headers:{'Content-Type':'application/json','X-Signature-Timestamp':timestamp,'X-Signature-Ed25519':sign(null,Buffer.from(timestamp+rawBody),privateKey).toString('hex')},body:rawBody});const initial=await response.json();if(pepeMode)pepeAcks.push(initial);if(response.status!==200)throw Error(`Bot HTTP ${response.status}`);const result=[5,6].includes(initial.type)?await wait(()=>replies.get(token),'deferred reply'):initial.data;return result;}
+ async function interact(data,who=actor,permissions='0'){const token=String(counter++);const rawBody=JSON.stringify({id:token,application_id:app,guild_id:'999999999999996510',channel_id:'999999999999996511',member:{user:{id:who,username:'Local'},roles:[],permissions},version:1,token,...data});const timestamp=String(Math.floor(Date.now()/1000));const response=await fetch(origin,{method:'POST',headers:{'Content-Type':'application/json','X-Signature-Timestamp':timestamp,'X-Signature-Ed25519':sign(null,Buffer.from(timestamp+rawBody),privateKey).toString('hex')},body:rawBody});const initial=await response.json();if(pepeMode)pepeAcks.push(initial);if(warStatsMode)privacyAcks.push(initial);if(response.status!==200)throw Error(`Bot HTTP ${response.status}`);const result=[5,6].includes(initial.type)?await wait(()=>replies.get(token),'deferred reply'):initial.data;return result;}
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
@@ -480,6 +482,7 @@ try{
   const server='999999999999996510',ids=[];
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic war stats scope exists');
   const query=async(extra={})=>{const response=await fetch(`http://127.0.0.1:${port}/v2/bot/war-statistics`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({clans:[group],season:'2026-10',warTypes:['random'],...extra})});const value=await response.json();if(!response.ok)throw Error('War stats API '+response.status+' '+JSON.stringify(value));return value;};
+  if((await db.query('SELECT 1 FROM user_settings WHERE user_id=ANY($1::text[])',[[actor,other]])).rowCount)throw Error('Synthetic privacy settings exist');
   await db.query("INSERT INTO servers(id,name) VALUES($1,'War stats')",[server]);
   try{
    await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'First Clan',true,0,2,'',0,0),('#PYLQGRJJ','Second Clan',true,0,2,'',0,0)",[group]);
@@ -503,6 +506,21 @@ try{
    const cwl=await query({warTypes:['cwl']});if(cwl.selectedWars!==1||cwl.items.find(x=>x.tag===tag).attempts!==1)throw Error('CWL filter mismatch');
    const options=[{name:'clan',type:3,value:group},{name:'season',type:3,value:'2026-10'},{name:'war_types',type:3,value:'r'},{name:'min_attacks',type:4,value:1}];
    const board=await interact(command('stats','war',options));if(!text(board).includes('50.0%')||!text(board).includes('First'))throw Error('War stats command missing values: '+text(board));
+   if(privacyAcks.at(-1).data?.flags===64)throw Error('Default stats unexpectedly private');
+   await db.query("INSERT INTO user_settings(user_id,app,data) VALUES($1,$2,$3)",[actor,JSON.stringify({private_mode:true,main_account:tag}),JSON.stringify({preserve:'yes'})]);
+   await interact(command('stats','war',options));if(privacyAcks.at(-1).data?.flags!==64)throw Error('Imported private mode ignored at acknowledgement');
+   const prefUrl=`http://127.0.0.1:${port}/v2/bot/users/${actor}/preferences`;
+   if((await fetch(prefUrl)).status!==401)throw Error('Preferences available without bot auth');
+   const bad=await fetch(prefUrl,{method:'PATCH',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({privateMode:'false'})});if(bad.status!==400)throw Error('Nonboolean privacy accepted');
+   const privateReply=await interact({type:2,data:{name:'privacy',options:[{name:'private_stats',type:5,value:false}]}});
+   if(privacyAcks.at(-1).data?.flags!==64||!text(privateReply).includes('public'))throw Error('Private settings acknowledgement/change failed');
+   const saved=(await db.query('SELECT app,data FROM user_settings WHERE user_id=$1',[actor])).rows[0];
+   if(saved.app.private_mode!==false||saved.app.main_account!==tag||saved.data.preserve!=='yes')throw Error('Privacy update lost existing settings');
+   await interact(command('stats','war',options));if(privacyAcks.at(-1).data?.flags===64)throw Error('Explicit public preference ignored');
+   await interact({type:2,data:{name:'privacy',options:[{name:'private_stats',type:5,value:true}]}},other);
+   if((await db.query('SELECT app FROM user_settings WHERE user_id=$1',[actor])).rows[0].app.private_mode!==false)throw Error('Other actor changed preference');
+   privacyUnavailable=true;await interact(command('stats','war',options));privacyUnavailable=false;
+   if(privacyAcks.at(-1).data?.flags!==64)throw Error('Unavailable preference failed open');
    const defensive=await interact(command('stats','war',[...options,{name:'type',type:3,value:'d'}]));if(!text(defensive).includes('Lower conceded rate is better')||text(defensive).indexOf('Second')>text(defensive).indexOf('First'))throw Error('Defense ranking/order failed');
    const info=await interact(command('stats','war',[...options,{name:'type',type:3,value:'a'}]));if(!text(info).includes('2.00'))throw Error('Attack information averages failed');
    const latest=await query({season:undefined,warCount:1,warTypes:['cwl']});if(latest.selectedWars!==1||latest.items.find(x=>x.tag===tag)?.attempts!==1)throw Error('Latest matching-war window failed');
@@ -512,8 +530,8 @@ try{
    await db.query('DELETE FROM war_archive_pending WHERE war_id=$1',[ids[0]]);
    const missing=await query();if(missing.complete||missing.items.length)throw Error('Incomplete archive produced a ranking');
    const message=await interact(command('stats','war',options));if(!text(message).includes('No leaderboard was calculated'))throw Error('Archive gap hidden by command');
-   console.log(JSON.stringify({warStatistics:'passed',checks:['real bot/API/SQL/archive path','attack and defense orientation','CWL and equal-TH filters','family deduplication','season boundary','public refresh','window validation','missing archive suppresses leaderboard'],externalDiscordWrites:0}));
-  }finally{await db.query('DELETE FROM war_archive_pending WHERE war_id=ANY($1::int[])',[ids]);await db.query('DELETE FROM wars WHERE war_id=ANY($1::int[])',[ids]);await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']]);}
+   console.log(JSON.stringify({warStatistics:'passed',checks:['imported private preference','private and public acknowledgement','self-only preference changes','preserved app settings','bot authentication','invalid preference rejected','unavailable preference fails private','real bot/API/SQL/archive path','attack and defense orientation','CWL and equal-TH filters','family deduplication','season boundary','public refresh','window validation','missing archive suppresses leaderboard'],externalDiscordWrites:0}));
+  }finally{await db.query('DELETE FROM user_settings WHERE user_id=ANY($1::text[])',[[actor,other]]);await db.query('DELETE FROM war_archive_pending WHERE war_id=ANY($1::int[])',[ids]);await db.query('DELETE FROM wars WHERE war_id=ANY($1::int[])',[ids]);await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']]);}
  }else if(verificationMode){
   const server='999999999999996510',second='999999999999996512';
   if((await db.query('SELECT 1 FROM servers WHERE id=ANY($1::text[])',[[server,second]])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=$1',[group])).rowCount)throw Error('Synthetic verification fixture exists');
