@@ -98,9 +98,10 @@ const provider=createServer(async(req,res)=>{
  if(p===`/v1/clans/${group}/currentwar/leaguegroup`||p==='/v1/clans/#PYLQGRJJ/currentwar/leaguegroup')return res.end(JSON.stringify({state:reminderCwl?'inWar':'notInWar',season:new Date().toISOString().slice(0,7),clans:[{tag:group,name:own.name},{tag:opponent.tag,name:opponent.name}],rounds:reminderCwl?[...(cwlGap?[{warTags:['#0']}]:[]),{warTags:['#PYLQGRJQ']}]:[]}));
  if(p==='/v1/clanwarleagues/wars/#PYLQGRJQ')return res.end(JSON.stringify({...warBody,attacksPerMember:1,clan:opponent,opponent:own}));
  if(p==='/v1/clans/#PYLQGRJJ')return res.end(JSON.stringify({tag:opponent.tag,name:opponent.name,warLeague:{id:48000019,name:'Champion League I'},memberList:[]}));
+ if(roleMode&&p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Role Clan',description:'',clanLevel:10,members:1,isWarLogPublic:true,warWins:1,warWinStreak:0,clanPoints:1000,badgeUrls:{},memberList:[{tag,name:'Current Player',townHallLevel:16,donations:0,donationsReceived:0}]}));
  if(p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Reminder Clan',description:verificationDescription,warLeague:{id:48000019,name:'Champion League I'},memberList:[{tag,name:'Missing Player',townHallLevel:16},{tag:tags[1],name:'Finished Player',townHallLevel:16}]}));
  if(p===`/v1/clans/${group}/capitalraidseasons`)return res.end(JSON.stringify({items:reminderRaidActive?[{state:'ongoing',endTime,members:[{tag:tags[1],attacks:6,attackLimit:5,bonusAttackLimit:1}]}]:[]}));
- if(url.pathname.startsWith('/v1/players/')){if((warPreferenceFailure||rosterProfileFailure)&&decodeURIComponent(url.pathname).endsWith(tags[1])){res.statusCode=503;return res.end('{}');}const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:memberMode&&playerTag===tags[1]?18:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,...(warPreferenceMode?{warPreference:playerTag===tag?'in':'out'}:{}),...(rosterReadMode?{troops:[],spells:[],heroes:[]}:{}),leagueTier:{id:todoMode&&playerTag===tags[0]?105000036:tier,name:'Current League'},...(todoMode?{clan:{tag:group,name:'Reminder Clan'}}:{}),
+ if(url.pathname.startsWith('/v1/players/')){if((warPreferenceFailure||rosterProfileFailure)&&decodeURIComponent(url.pathname).endsWith(tags[1])){res.statusCode=503;return res.end('{}');}const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:memberMode&&playerTag===tags[1]?18:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,...(warPreferenceMode?{warPreference:playerTag===tag?'in':'out'}:{}),...(rosterReadMode?{troops:[],spells:[],heroes:[]}:{}),leagueTier:{id:todoMode&&playerTag===tags[0]?105000036:tier,name:'Current League'},...((todoMode||roleMode)?{clan:{tag:group,name:'Reminder Clan'}}:{}),
  // Deliberately synthetic name input exercises the normal lookup renderer; this is not real player data.
  ...(betaInventory?{heroes:[{name:'P.E.K.K.A.',level:15}]}:{})}));}
  if(url.pathname===`/v1/leaguegroup/${encodeURIComponent(group)}/${currentSeason}`||decodeURIComponent(url.pathname)===`/v1/leaguegroup/${group}/${currentSeason}`){
@@ -629,6 +630,7 @@ try{
   }finally{await db.query('DELETE FROM servers WHERE id=$1',[familyServer]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']]);}
   console.log(JSON.stringify({warCommands:'passed',checks:['regular overview','roster and attacks','public refresh','private exact opponent discovery','stale opponent rejected','CWL despite private regular war','CWL win bonus and round selection','family CWL rankings/status and refresh','shared group fetched once','missing CWL round preserves numbering','stored war and autocomplete','explicit historical CWL never falls back to current'],externalDiscordWrites:0}));
  }else if(roleMode){
+  if((await db.query('SELECT 1 FROM basic_clan WHERE tag=$1',[group])).rowCount)throw Error('Synthetic role clan exists');
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[roleServer])).rowCount)throw Error('Synthetic role server exists');
   if((await db.query('SELECT 1 FROM discord_cache.gateway_shards WHERE application_id=$1',[app])).rowCount)throw Error('Synthetic role application exists');
   await db.query("INSERT INTO servers(id,name) VALUES($1,'Role refresh integration')",[roleServer]);
@@ -701,9 +703,51 @@ try{
    await flushRuleChange();if(memberRoles.has(oldRole)||!memberRoles.has(newRole)||!memberRoles.has(unmanagedRole))throw Error('Updated rule did not reconcile or affected unrelated roles');
    await ruleRequest('DELETE','/'+created.role.id);
    await flushRuleChange();if(!memberRoles.has(newRole)||!memberRoles.has(unmanagedRole))throw Error('Deleted rule affected unrelated roles');
-   console.log(JSON.stringify({roleRefresh:'passed',checks:['actual signed command/API/SQL flow','null nickname defaults','preview performs no Discord edits','role add/remove preserves unmanaged role','repeat no-op','role hierarchy protection','settings enable enqueues human members','unchanged settings no-op','leave grace retained','disabled settings do not enqueue','scheduled automatic job completion','completed job reopened','new nickname applied automatically','cosmetic settings do not enqueue','created and updated rule application','unchanged rule no-op','deleted rule reconciliation'],externalDiscordWrites:0,localProviderWrites:roleWrites.length}));
+   const configRequest=async(method,path,body)=>{
+    const response=await fetch(`http://127.0.0.1:${port}/v2/server/${roleServer}${path}`,{method,headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});
+    const value=await response.json();if(!response.ok)throw Error('Clan configuration failed: '+response.status+' '+JSON.stringify(value));return value;
+   };
+   const jobRevision=async()=>Number((await db.query('SELECT revision FROM role_refresh_jobs WHERE id=$1',[jobId])).rows[0].revision);
+   const familyRule=await ruleRequest('POST','',{type:'family',option:'family',role_id:oldRole});
+   await flushRuleChange();
+   if(memberRoles.has(oldRole))throw Error('Player was unexpectedly in configured family');
+   await configRequest('POST','/clans',{tag:group});
+   await flushRuleChange();if(!memberRoles.has(oldRole))throw Error('Adding a clan did not reconcile family role');
+   let beforeConfig=await jobRevision();
+   await configRequest('POST','/clans',{tag:group});
+   if(await jobRevision()!==beforeConfig)throw Error('Duplicate clan add requeued roles');
+   await settings({nickname_rule:'{player_name} {clan_abbr}'});await flushRuleChange();
+   await configRequest('PATCH',`/clan/${encodeURIComponent(group)}/settings`,{abbreviation:'CK',category:'Main'});
+   await flushRuleChange();if(!nickname.endsWith('CK'))throw Error('Clan abbreviation did not refresh nickname');
+   beforeConfig=await jobRevision();
+   await configRequest('PATCH',`/clan/${encodeURIComponent(group)}/settings`,{abbreviation:'CK',category:'Main'});
+   if(await jobRevision()!==beforeConfig)throw Error('Identical clan settings requeued roles');
+   const category=(await configRequest('GET','/clan-categories')).items.find(row=>row.name==='Main');
+   await ruleRequest('POST','',{type:'clan_category',option:'Main',role_id:oldRole});await flushRuleChange();
+   // Remove the overlapping rule through the API to isolate category matching.
+   await ruleRequest('DELETE','/'+familyRule.role.id);await flushRuleChange();
+   await configRequest('PATCH','/clan-categories/'+category.id,{name:'Other'});await flushRuleChange();
+   if(memberRoles.has(oldRole))throw Error('Renamed category left stale role');
+   beforeConfig=await jobRevision();
+   await configRequest('PATCH','/clan-categories/'+category.id,{name:'Other'});
+   if(await jobRevision()!==beforeConfig)throw Error('Unchanged category rename requeued roles');
+   await ruleRequest('POST','',{type:'clan_category',option:'Other',role_id:oldRole});await flushRuleChange();
+   if(!memberRoles.has(oldRole))throw Error('Category role was not applied');
+   await db.query("UPDATE role_refresh_jobs SET grace_until=now()+interval '10 minutes',due_at=now()+interval '10 minutes',completed_at=NULL WHERE id=$1",[jobId]);
+   await configRequest('DELETE','/clan-categories/'+category.id);
+   const grace=(await db.query('SELECT grace_until,due_at FROM role_refresh_jobs WHERE id=$1',[jobId])).rows[0];
+   if(!grace.grace_until||+grace.grace_until!==+grace.due_at)throw Error('Category change bypassed leave grace');
+   await db.query('UPDATE role_refresh_jobs SET grace_until=NULL,due_at=now() WHERE id=$1',[jobId]);await flushRuleChange();
+   if(memberRoles.has(oldRole))throw Error('Deleted category left stale role');
+   await ruleRequest('POST','',{type:'family',option:'family',role_id:oldRole});await flushRuleChange();
+   await configRequest('DELETE','/clans/'+encodeURIComponent(group));await flushRuleChange();
+   if(memberRoles.has(oldRole))throw Error('Removed clan left stale family role');
+   beforeConfig=await jobRevision();await configRequest('DELETE','/clans/'+encodeURIComponent(group));
+   if(await jobRevision()!==beforeConfig)throw Error('Missing clan removal requeued roles');
+   console.log(JSON.stringify({roleRefresh:'passed',checks:['actual signed command/API/SQL flow','null nickname defaults','preview performs no Discord edits','role add/remove preserves unmanaged role','repeat no-op','role hierarchy protection','settings enable enqueues human members','unchanged settings no-op','leave grace retained','disabled settings do not enqueue','scheduled automatic job completion','completed job reopened','new nickname applied automatically','cosmetic settings do not enqueue','created and updated rule application','unchanged rule no-op','deleted rule reconciliation','clan add/remove family role reconciliation','clan abbreviation nickname refresh','category rename/delete reconciliation','unchanged clan/category no-op','category mutation preserves leave grace'],externalDiscordWrites:0,localProviderWrites:roleWrites.length}));
   }finally{
    await db.query('DELETE FROM servers WHERE id=$1',[roleServer]);
+   await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);
    await db.query('DELETE FROM discord_cache.members WHERE guild_id=$1',[roleServer]);
    await db.query('DELETE FROM discord_cache.guilds WHERE id=$1',[roleServer]);
    await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);
