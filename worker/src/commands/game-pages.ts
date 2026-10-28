@@ -1,3 +1,4 @@
+import { statsCommand } from "./stats";
 import { helpCommand } from "./help";
 import { InteractionResponseType, MessageFlags, type InteractionOption } from "../discord/types";
 import { CommandInputError, OptionType } from "./command-utils";
@@ -21,7 +22,14 @@ export async function dispatchGamePage(ctx: CommandContext, waitUntil?: (promise
   let command:Command,action:string,options:InteractionOption[];
   const string=(name:string,value:string):InteractionOption=>({name,type:OptionType.String,value});
   const tag=(value:string|undefined)=>{if(!value||!/^#[0289PYLQGRJCUV]+$/u.test(value))throw new CommandInputError("Invalid player tag.");return value;};
-  if(kind==="hp"&&parts.length===1){
+  if(kind==="ws"&&parts.length===10){
+    command=statsCommand;action="war";
+    const [target,view,war,th,stars,period,min,limit,sort,order]=parts;
+    if(!/^[0-3]+$/u.test(stars!)||! /^(?:s-current|s\d{4}-\d{2}|[dw]\d+)$/u.test(period!))throw new CommandInputError("Invalid war statistics control.");
+    options=[string("type",view!),string("war_types",war!),string("th_filter",th!),string("star_filter",stars!.split("").join(",")),{name:"min_attacks",type:OptionType.Integer,value:Number(min)},{name:"limit",type:OptionType.Integer,value:Number(limit)},string("sort_by",sort!),string("sort_order",order!)];
+    if(target!=="-")options.push(string("clan",tag(target)));
+    if(period!=="s-current")options.push(period!.startsWith("s")?string("season",period!.slice(1)):{name:period!.startsWith("d")?"num_days":"num_wars",type:OptionType.Integer,value:Number(period!.slice(1))});
+  }else if(kind==="hp"&&parts.length===1){
     command=helpCommand;action="";options=parts[0]==="-"?[]:[string("command",parts[0]!.replaceAll("~"," "))];
   }else if(kind==="wp"&&parts.length===4){
     command=clanCommand;action="war-preference";

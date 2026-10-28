@@ -38,6 +38,7 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+const warStatsMode=process.argv.includes("--war-statistics-only");
 const verificationMode=process.argv.includes("--clan-verification-only");let verificationDescription="";
 const rosterReadMode=process.argv.includes("--roster-commands-only");let rosterProfileFailure=false;
 const helpMode=process.argv.includes("--help-only");
@@ -184,7 +185,45 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(verificationMode){
+ if(warStatsMode){
+  const server='999999999999996510',ids=[];
+  if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic war stats scope exists');
+  const query=async(extra={})=>{const response=await fetch(`http://127.0.0.1:${port}/v2/bot/war-statistics`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({clans:[group],season:'2026-10',warTypes:['random'],...extra})});const value=await response.json();if(!response.ok)throw Error('War stats API '+response.status+' '+JSON.stringify(value));return value;};
+  await db.query("INSERT INTO servers(id,name) VALUES($1,'War stats')",[server]);
+  try{
+   await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'First Clan',true,0,2,'',0,0),('#PYLQGRJJ','Second Clan',true,0,2,'',0,0)",[group]);
+   await db.query("INSERT INTO server_clans(tag,server_id) VALUES($1,$2),('#PYLQGRJJ',$2)",[group,server]);
+   const window=await query(),start=new Date(window.start),end=new Date(window.end);
+   const hit=(defenderTag,stars,order)=>({defenderTag,stars,destructionPercentage:stars===3?100:50,duration:90,order});
+   for(const [n,type] of ['random','cwl','friendly'].entries()){
+    const prep=new Date(+start+86400000+n*1000),finish=new Date(+prep+2*86400000);
+    const id=(await db.query("INSERT INTO wars(clan_tag,opponent_tag,prep_time,start_time,end_time,size,war_type,state) VALUES($1,'#PYLQGRJJ',$2,$2,$3,2,$4,'warEnded') RETURNING war_id",[group,prep,finish,type])).rows[0].war_id;ids.push(id);
+    const member=(tag,name,th,attacks,position)=>({tag,name,townhallLevel:th,mapPosition:position,attacks});
+    const side=(tag,name,members)=>({tag,name,badgeToken:'',clanLevel:1,attacks:3,stars:4,destructionPercentage:100,members});
+    const payload={state:'warEnded',teamSize:2,attacksPerMember:type==='cwl'?1:2,preparationStartTime:prep.toISOString(),startTime:prep.toISOString(),endTime:finish.toISOString(),battleModifier:'none',clan:side(group,'First Clan',[member(tag,'First',16,type==='cwl'?[hit('#PYLR',3,1)]:[hit('#PYLR',3,1),hit('#PYLY',1,2)],1),member(tags[1],'Second',15,[hit('#PYLR',2,3)],2)]),opponent:side('#PYLQGRJJ','Second Clan',[member('#PYLR','Enemy One',16,[hit(tag,3,4)],1),member('#PYLY','Enemy Two',15,[hit(tags[1],0,5)],2)])};
+    await db.query('INSERT INTO war_archive_pending(war_id,end_time,payload) VALUES($1,$2,$3)',[id,finish,JSON.stringify(payload)]);
+   }
+   // An exact end-boundary preparation time is outside the selected season.
+   ids.push((await db.query("INSERT INTO wars(clan_tag,opponent_tag,prep_time,start_time,end_time,size,war_type,state) VALUES($1,'#PYLQGRJJ',$2,$2,$2,2,'random','warEnded') RETURNING war_id",[group,end])).rows[0].war_id);
+   const attack=await query();if(!attack.complete||attack.selectedWars!==1||attack.items.find(x=>x.tag===tag)?.attempts!==2||attack.items.find(x=>x.tag===tag)?.matching!==1)throw Error('Attack aggregate mismatch: '+JSON.stringify(attack));
+   const defense=await query({view:'defense'});if(defense.items.find(x=>x.tag===tag)?.attempts!==1||defense.items.find(x=>x.tag===tags[1])?.matching!==0)throw Error('Defense orientation mismatch');
+   const equal=await query({thFilter:'equal'});if(equal.items.length!==1||equal.items[0].attempts!==1)throw Error('Equal TH filter mismatch');
+   const family=await query({clans:[group,'#PYLQGRJJ',group]});if(family.selectedWars!==1||family.items.reduce((n,x)=>n+x.attempts,0)!==5)throw Error('Family war/attack double counting');
+   const cwl=await query({warTypes:['cwl']});if(cwl.selectedWars!==1||cwl.items.find(x=>x.tag===tag).attempts!==1)throw Error('CWL filter mismatch');
+   const options=[{name:'clan',type:3,value:group},{name:'season',type:3,value:'2026-10'},{name:'war_types',type:3,value:'r'},{name:'min_attacks',type:4,value:1}];
+   const board=await interact(command('stats','war',options));if(!text(board).includes('50.0%')||!text(board).includes('First'))throw Error('War stats command missing values: '+text(board));
+   const defensive=await interact(command('stats','war',[...options,{name:'type',type:3,value:'d'}]));if(!text(defensive).includes('Lower conceded rate is better')||text(defensive).indexOf('Second')>text(defensive).indexOf('First'))throw Error('Defense ranking/order failed');
+   const info=await interact(command('stats','war',[...options,{name:'type',type:3,value:'a'}]));if(!text(info).includes('2.00'))throw Error('Attack information averages failed');
+   const latest=await query({season:undefined,warCount:1,warTypes:['cwl']});if(latest.selectedWars!==1||latest.items.find(x=>x.tag===tag)?.attempts!==1)throw Error('Latest matching-war window failed');
+   const refresh=board.components[0].components[0].custom_id;if(refresh.length>100)throw Error('Control exceeds Discord limit');
+   if(!text(await interact({type:3,data:{custom_id:refresh,component_type:2}},other)).includes('50.0%'))throw Error('Stats refresh lost options');
+   const invalid=await fetch(`http://127.0.0.1:${port}/v2/bot/war-statistics`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({clans:[group],season:'2026-10',days:30})});if(invalid.status!==400)throw Error('Ambiguous windows accepted');
+   await db.query('DELETE FROM war_archive_pending WHERE war_id=$1',[ids[0]]);
+   const missing=await query();if(missing.complete||missing.items.length)throw Error('Incomplete archive produced a ranking');
+   const message=await interact(command('stats','war',options));if(!text(message).includes('No leaderboard was calculated'))throw Error('Archive gap hidden by command');
+   console.log(JSON.stringify({warStatistics:'passed',checks:['real bot/API/SQL/archive path','attack and defense orientation','CWL and equal-TH filters','family deduplication','season boundary','public refresh','window validation','missing archive suppresses leaderboard'],externalDiscordWrites:0}));
+  }finally{await db.query('DELETE FROM war_archive_pending WHERE war_id=ANY($1::int[])',[ids]);await db.query('DELETE FROM wars WHERE war_id=ANY($1::int[])',[ids]);await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']]);}
+ }else if(verificationMode){
   const server='999999999999996510',second='999999999999996512';
   if((await db.query('SELECT 1 FROM servers WHERE id=ANY($1::text[])',[[server,second]])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=$1',[group])).rowCount)throw Error('Synthetic verification fixture exists');
   await db.query("INSERT INTO servers(id,name) VALUES($1,'Verification'),($2,'Other verification')",[server,second]);
