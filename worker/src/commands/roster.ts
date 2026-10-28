@@ -89,7 +89,7 @@ export const rosterCommand: Command = {
     if (sub?.name === "create") return createModal(ctx);
     requireManager(ctx);
     const options = new Map(sub?.options?.map(option => [option.name, option.value]));
-    if (sub?.name === "groups" || sub?.name === "group-player") return rosterLabels(ctx,sub.name,options);
+    if (sub?.name === "groups" || sub?.name === "group-player" || sub?.name === "role" || sub?.name === "role-refresh") return rosterLabels(ctx,sub.name,options);
     if (sub?.name === "list") return list(ctx,0);
     if (sub?.name === "search") {
       if (options.has("player") && options.has("user")) throw new CommandInputError("Choose either a player or a Discord user.");

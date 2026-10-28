@@ -1,4 +1,4 @@
-export const refreshCategories = ["family", "clan", "leadership", "townhall", "builderhall", "league", "builder_league", "category", "nicknames", "tenure"] as const;
+export const refreshCategories = ["family", "clan", "leadership", "townhall", "builderhall", "league", "builder_league", "category", "nicknames", "tenure", "roster"] as const;
 export type RefreshCategory = typeof refreshCategories[number];
 export interface RefreshRule { type: string; option: string; role_id: string; clan_tag?: string | null }
 export interface RefreshPlayer {
@@ -7,6 +7,8 @@ export interface RefreshPlayer {
   clan?: { tag: string; name: string }; league?: { name: string }; leagueTier?: { name: string }; builderBaseLeague?: { name: string };
 }
 export interface RefreshData {
+  roster?: { managedRoleIds: string[]; desiredRoleIds: string[]; fingerprint: string };
+  retiredRosterRoleIds?: string[];
   rules: RefreshRule[];
   clans: Array<{ tag: string; category?: string | null; abbreviation: string }>;
   accounts: RefreshPlayer[];
@@ -38,8 +40,10 @@ export function planRefresh(data: RefreshData, currentRoles: readonly string[], 
     return anniversary<=now;
   }).sort((a,b)=>Number(b.option)-Number(a.option)||a.role_id.localeCompare(b.role_id));
   const earnedTenure=eligibleTenure[0]?.role_id;
-  const desired = new Set<string>();
-  const managed = new Set<string>();
+  const desired = new Set<string>(data.roster?.desiredRoleIds ?? []);
+  // Evaluate roster ownership even for a clan-only refresh: a shared role must
+  // survive while any roster still grants it. Former roles are job inputs only.
+  const managed = new Set<string>(categories.includes("roster") ? [...(data.roster?.managedRoleIds ?? []),...(data.retiredRosterRoleIds ?? [])] : []);
   for (const rule of data.rules) {
     const category = ruleCategory(rule);
     // Only numeric status rules are Discord tenure milestones. Unknown status

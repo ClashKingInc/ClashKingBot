@@ -6,7 +6,7 @@ import { refreshCategories, type RefreshCategory } from "../refresh/plan";
 import { CommandInputError, invokingUserId, OptionType, requireGuildId, stringOption } from "./command-utils";
 import type { Command, CommandContext } from "./types";
 
-const labels: Record<RefreshCategory, string> = { tenure: "Discord tenure", family: "Family membership", clan: "Clan membership", leadership: "Clan leadership",
+const labels: Record<RefreshCategory, string> = { roster: "Roster membership", tenure: "Discord tenure", family: "Family membership", clan: "Clan membership", leadership: "Clan leadership",
   townhall: "Town Hall", builderhall: "Builder Hall", league: "Home Village league", builder_league: "Builder Base league", category: "Clan category", nicknames: "Nickname" };
 const bool = (ctx: CommandContext, name: string) => ctx.options.get(name)?.value === true;
 export const refreshCommand: Command = {

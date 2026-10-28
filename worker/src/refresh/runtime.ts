@@ -5,7 +5,7 @@ import { planRefresh, type RefreshCategory, type RefreshData } from "./plan";
 
 export interface RefreshJob {
   id: string; server_id: string; user_id: string; request_id: string | null;
-  token: string; expires_at: string; preview: boolean; categories: RefreshCategory[];
+  token: string; expires_at: string; preview: boolean; categories: RefreshCategory[]; roster_role_ids?: string[];
 }
 interface GuildState { roles: DiscordRole[]; bot: DiscordMember; owner: string }
 const permissions = (state: GuildState) => state.roles.filter(role => role.id === state.bot.user?.id || state.bot.roles.includes(role.id)
@@ -25,7 +25,8 @@ export async function processRefreshJob(services: CommandServices, job: RefreshJ
   }
   if (member.user?.bot) return { skipped: "Bot member", add: [], remove: [], blocked: [] };
   const data = await services.api.get<RefreshData>(`/v2/bot/role-refresh/${job.server_id}/data`, { userId: job.user_id });
-  if (!job.request_id && !data.settings.autoeval_enabled && !job.categories.every(category=>category==="tenure")) return { skipped: "Automatic refresh disabled", add: [], remove: [], blocked: [] };
+  if (!job.request_id && !data.settings.autoeval_enabled && !job.categories.every(category=>["tenure","roster"].includes(category))) return { skipped: "Automatic refresh disabled", add: [], remove: [], blocked: [] };
+  data.retiredRosterRoleIds=job.roster_role_ids??[];
   const plan = planRefresh(data, member.roles, job.categories, {
     username: member.user?.global_name ?? member.user?.username ?? "",
     joinedAt: member.joined_at,
@@ -50,7 +51,7 @@ export async function processRefreshJob(services: CommandServices, job: RefreshJ
   }
   if (!job.preview) {
     const valid = await services.api.post<{ valid: boolean }>("/v2/bot/role-refresh/validate", {
-      id: job.id, token: job.token, accountTags: data.accounts.map(account => account.tag),
+      id: job.id, token: job.token, accountTags: data.accounts.map(account => account.tag), rosterFingerprint: data.roster?.fingerprint,
     });
     if (!valid.valid) throw new Error("Refresh inputs changed; retry with current accounts");
     // Individual role endpoints preserve unrelated/concurrent role assignments.
@@ -65,7 +66,7 @@ export async function processRefreshJob(services: CommandServices, job: RefreshJ
 
 export async function drainRefreshJobs(services: CommandServices, requestId?: string, serverId?: string) {
   const { jobs } = await services.api.post<{ jobs: RefreshJob[] }>("/v2/bot/role-refresh/claim", {
-    ...(requestId ? { requestId } : { includeTenure: true }), ...(serverId ? { serverId } : {}),
+    includeRoster: true, ...(requestId ? { requestId } : { includeTenure: true }), ...(serverId ? { serverId } : {}),
   });
   const states = new Map<string, Promise<GuildState>>();
   let botId: Promise<string> | undefined;

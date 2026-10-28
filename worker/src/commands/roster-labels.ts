@@ -1,3 +1,4 @@
+import { drainRefreshJobs } from "../refresh/runtime";
 import { CommandInputError, normalizeTag, requireGuildId } from "./command-utils";
 import { legacyMessage } from "../discord/components";
 import type { ApplicationCommandOption, CommandContext } from "./types";
@@ -5,6 +6,8 @@ interface Label { id: string; name: string; position: number }
 const groupOption: ApplicationCommandOption = { name: "group", type: 3, description: "Roster player label", autocomplete: true };
 export function rosterLabelOptions(roster: ApplicationCommandOption): ApplicationCommandOption[] {
  return [
+  {name:"role",type:1,description:"Set or clear the role granted by roster membership",options:[roster,{name:"role",type:8,description:"Role to grant; omit to clear"},groupOption]},
+  {name:"role-refresh",type:1,description:"Reconcile roster roles and former holders",options:[roster]},
   { name: "groups", type: 1, description: "Manage server labels for players inside rosters", options: [
    { name: "action", type: 3, description: "Action (default list)", choices: ["list", "add", "rename", "delete"].map(value => ({name:value,value})) },
    groupOption, { name: "name", type: 3, description: "New label name", max_length: 49 },
@@ -24,6 +27,19 @@ export async function rosterLabels(ctx: CommandContext, action: string, options:
  const api=ctx.services.api, base=path(ctx);
  const reply=(content:string)=>legacyMessage({content,allowed_mentions:{parse:[]}},{ephemeral:true});
  const id=String(options.get("group")??"");
+ if(action==="role"||action==="role-refresh"){
+  const rosterId=String(options.get("roster")??"");
+  if(!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/iu.test(rosterId))throw new CommandInputError("Choose a roster.");
+  const path=`/v2/server/${requireGuildId(ctx)}/rosters/${rosterId}`;
+  if(action==="role"){
+   await api.put(path+"/role",{roleId:options.get("role")??null,memberGroupId:id||null});
+   return reply("Roster role saved. The existing role worker will reconcile affected members.");
+  }
+  const result=await api.post<{queued:number}>(path+"/role-refresh",{});
+  await drainRefreshJobs(ctx.services,undefined,requireGuildId(ctx));
+  return reply(`Queued ${result.queued} affected member(s). The role worker processed a batch; remaining work continues automatically.`);
+ }
+
  if(id&&!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/iu.test(id))throw new CommandInputError("Choose a label from autocomplete.");
  if(action==="group-player") {
   const roster=String(options.get("roster")??"");
