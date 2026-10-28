@@ -1119,8 +1119,10 @@ try{
    const supported=(await claim(true)).jobs;
    if(supported.length!==1||supported[0].role_treatment!=='add')throw Error('Policy-aware consumer did not receive persisted treatment');
    await db.query('DELETE FROM role_refresh_jobs WHERE request_id=$1',[pendingId]);
-   const invalid=await fetch(`http://127.0.0.1:${port}/v2/bot/role-refresh/${roleServer}/enqueue`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({actorId:actor,requestId:String(counter++),roleTreatment:'invalid'})});
-   if(invalid.status!==400)throw Error('Invalid treatment accepted');
+   for(const roleTreatment of ['invalid',null,{},7]){
+    const invalid=await fetch(`http://127.0.0.1:${port}/v2/bot/role-refresh/${roleServer}/enqueue`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({actorId:actor,requestId:String(counter++),roleTreatment})});
+    if(invalid.status!==400)throw Error('Invalid treatment accepted');
+   }
    console.log(JSON.stringify({roleTreatment:'passed',checks:['add-only','remove-only','nickname independence','persisted policy','advanced menu','legacy menu','legacy consumer gate','invalid value rejected']}));
    resetRoles();
    const applied=await interact({type:2,data:{name:'refresh'}});
