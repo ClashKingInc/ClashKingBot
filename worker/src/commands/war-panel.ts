@@ -88,6 +88,16 @@ export async function warPanelComponentHandler(context: CommandContext, segments
   const description = lines.join("\n");
   const embeds = (description.match(/[\s\S]{1,3500}/gu) ?? ["No attacks yet."]).map((value, index) => ({ title: index ? `${title} (continued)` : title, description: value, color,
     thumbnail: own.badgeUrls?.large ? { url: own.badgeUrls.large } : undefined }));
-  if (missing.length) embeds.push({ title: "No attacks done", description: missing.join("\n").slice(0, 3500), color, thumbnail: undefined });
+  if (missing.length) embeds.push({ title: action === "attacks" ? "No attacks done" : "No defenses taken", description: missing.join("\n").slice(0, 3500), color, thumbnail: undefined });
   return ephemeral({ embeds: embeds.slice(0, 10) });
+}
+
+export async function dispatchWarPanel(context: CommandContext, waitUntil?: (promise: Promise<unknown>) => void) {
+  const run = () => warPanelComponentHandler(context, (context.interaction.data?.custom_id ?? "").split(":").slice(2));
+  if (!waitUntil) return run();
+  waitUntil(run().then(response => response.type === InteractionResponseType.UpdateMessage
+    ? context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, response.data ?? {})
+    : context.services.discordRest.createInteractionFollowup(context.interaction.token, response.data ?? {}))
+    .catch(() => context.services.discordRest.createInteractionFollowup(context.interaction.token, { content: "Could not load this war panel. Try again.", flags: MessageFlags.Ephemeral })));
+  return { type: InteractionResponseType.DeferredUpdateMessage };
 }

@@ -21,7 +21,7 @@ import { refreshCommand, mainAccountCommand, dispatchRefresh } from "./refresh";
 import { remindersCommand } from "./reminders";
 import { dashboardCommand } from "./dashboard";
 import { ticketCommand } from "./ticket";
-import { warPanelComponentHandler } from "./war-panel";
+import { dispatchWarPanel } from "./war-panel";
 import { playerCommand } from "./player";
 import { rankedCommand } from "./ranked";
 import { legendsCommand } from "./legends";
@@ -129,15 +129,14 @@ async function executePersistentHandler(
     } }, waitUntil);
   }
   if(customId.startsWith("ck:members:"))return dispatchMemberReport(context,waitUntil);
+  // Automated panels use colon-separated IDs; command reports use pipes.
+  // Route the panel format first so the report parser cannot swallow it.
+  if(/^ck:war:(?:refresh|attacks|defenses|opponent):/u.test(customId))return dispatchWarPanel(context,waitUntil);
   if(customId.startsWith("ck:war:"))return dispatchWar(context,waitUntil);
   if(customId.startsWith("ck:moderation:"))return dispatchModeration(context,waitUntil);
   if(customId.startsWith("ck:page:"))return dispatchGamePage(context,waitUntil);
   if (customId.startsWith("ck:refresh:")) return dispatchRefresh(context, waitUntil);
   if (customId.startsWith("ck:roster:")) return dispatchRoster(context, waitUntil);
-  if (customId.startsWith("ck:war:")) {
-    const segments = customId.split(":").slice(2);
-    return warPanelComponentHandler(context, segments);
-  }
   if (customId === "link" || customId === "who") {
     const handler = componentHandlers.get("base:legacy");
     if (!handler) return unknownInteraction(context.locale);

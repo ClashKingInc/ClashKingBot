@@ -38,6 +38,7 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+const warPanelMode=process.argv.includes("--war-panel-only");
 const roleUsersMode=process.argv.includes("--role-users-only");
 const boostsMode=process.argv.includes("--boosts-only");let boostFailure=false;
 const warStatsMode=process.argv.includes("--war-statistics-only");
@@ -194,7 +195,26 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(roleUsersMode){
+ if(warPanelMode){
+  const server='999999999999996510',message='999999999999996599',prep=String(Math.floor(Date.parse(fixturePrep)/1000));
+  if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=$1',[group])).rowCount)throw Error('Synthetic panel scope exists');
+  await db.query("INSERT INTO servers(id,name) VALUES($1,'Panel fixture')",[server]);
+  try{
+   await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'Panel Clan',true,0,2,'',0,0)",[group]);
+   await db.query("INSERT INTO server_clans(tag,server_id) VALUES($1,$2)",[group,server]);
+   await db.query("INSERT INTO server_logs(server_id,clan_tag,type,webhook_id,message_id,active_war_id) VALUES($1,$2,'war_panel','999999999999996588',$3,$4)",[server,group,message,`${group}v#PYLQGRJJ-${prep}`]);
+   const clickPanel=(action,who=actor,extra={})=>interact({type:3,message:{id:message},data:{custom_id:`ck:war:${action}:${group.slice(1)}:${prep}`},...extra},who);
+   const refresh=await clickPanel('refresh');if(!text(refresh).includes('War Stats')||text(refresh).includes('Invalid war'))throw Error('Panel refresh swallowed '+text(refresh));
+   const attack=await clickPanel('attacks',other);if(!text(attack).includes('Finished Player'))throw Error('Panel attacks failed '+text(attack));
+   const defense=await clickPanel('defenses');if(!text(defense).includes('Defenses Taken')||!text(defense).includes('No defenses taken'))throw Error('Panel defenses failed '+text(defense));
+   const stale=await clickPanel('refresh',actor,{data:{custom_id:`ck:war:refresh:${group.slice(1)}:${Number(prep)+1}`}});if(stale.flags!==64||!text(stale).includes('different war'))throw Error('Stale panel identity accepted '+text(stale));
+   const opponent=await clickPanel('opponent');if(opponent.flags!==64||!text(opponent).includes('Opponent Link'))throw Error('Panel opponent details not private '+text(opponent));
+   const foreign=await clickPanel('refresh',actor,{guild_id:'999999999999997000'});if(foreign.flags!==64||!text(foreign).includes('no longer active'))throw Error('Panel crossed server boundary '+text(foreign));
+   await db.query("UPDATE server_logs SET disabled=true WHERE server_id=$1 AND type='war_panel'",[server]);
+   const disabled=await clickPanel('refresh');if(disabled.flags!==64||!text(disabled).includes('no longer active'))throw Error('Disabled panel still updates '+text(disabled));
+   console.log(JSON.stringify({warPanel:'passed',checks:['colon-format refresh routing','attacks and defenses','another viewer','private opponent followup','foreign guild rejected','disabled panel rejected'],externalDiscordWrites:0}));
+  }finally{await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);}
+ }else if(roleUsersMode){
   const server='999999999999996510',role='999999999999996580',generation=randomBytes(16).toString('hex');
   if((await db.query('SELECT 1 FROM discord_cache.guilds WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM discord_cache.gateway_shards WHERE application_id=$1',[app])).rowCount)throw Error('Synthetic role users scope exists');
   try{
