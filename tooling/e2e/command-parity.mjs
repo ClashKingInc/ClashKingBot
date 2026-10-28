@@ -49,9 +49,10 @@ const warStatsMode=process.argv.includes("--war-statistics-only");
 const botInfoMode=process.argv.includes("--bot-info-only");let botInfoFailure=false;
 const handoffMode=process.argv.includes("--roster-handoff-only");
 const verificationMode=process.argv.includes("--clan-verification-only")||handoffMode;let verificationDescription="";
+const warEventMode=process.argv.includes("--war-events-only");
 const memberWarningMode=process.argv.includes("--member-warning-only");
 const quickPanelMode=process.argv.includes("--quick-panel-only");
-const rosterReadMode=process.argv.includes("--roster-commands-only")||quickPanelMode||memberWarningMode;let rosterProfileFailure=false;
+const rosterReadMode=process.argv.includes("--roster-commands-only")||quickPanelMode||memberWarningMode||warEventMode;let rosterProfileFailure=false;
 const helpMode=process.argv.includes("--help-only");
 const warPreferenceMode=process.argv.includes("--war-preference-only");let warPreferenceFailure=false;
 const activityMode=process.argv.includes("--activity-only");
@@ -537,6 +538,19 @@ try{
    await db.query('INSERT INTO server_clans(server_id,tag) VALUES($1,$3),($2,$3)',[server,elsewhere,group]);
    const created=await request('/v2/roster?server_id='+server,{alias:'Visible roster',roster_type:'family',members:[{tag:tags[1],name:'Stored member',townhall:15,trophies:1}]});
    const foreignRoster=await request('/v2/roster?server_id='+elsewhere,{alias:'Other server secret',roster_type:'family',members:[{tag:tags[1],name:'Stored member',townhall:15}]});
+   if(warEventMode){
+    const run=action=>interact(command('clan','war-events',[{name:'clan',type:3,value:group},{name:'action',type:3,value:action}]),actor,'32');
+    const blocked=await interact(command('clan','war-events',[{name:'clan',type:3,value:group},{name:'action',type:3,value:'enable'}]),actor,'0');
+    if(!text(blocked).includes('Manage Server'))throw Error('War events permission bypass');
+    if(!text(await run('view')).includes('Disabled'))throw Error('War events default not off');
+    if(!text(await run('enable')).includes('Enabled'))throw Error('War events not enabled');
+    if(!(await db.query('SELECT war_events_enabled FROM server_clans WHERE tag=$1 AND server_id=$2',[group,server])).rows[0]?.war_events_enabled)throw Error('War event setting not persisted');
+    if(!text(await run('disable')).includes('Disabled'))throw Error('War events not disabled');
+    const base=`http://127.0.0.1:${port}/v2/server/${server}/clan/`;
+    const put=(tag,body,auth=true)=>fetch(base+encodeURIComponent(tag)+'/war-events',{method:'PUT',headers:{'Content-Type':'application/json',...(auth?{Authorization:`Bearer ${keys.API_BOT_TOKEN}`}:{})},body:JSON.stringify(body)});
+    if((await put(group,{enabled:true},false)).status!==401||(await put(group,{enabled:'yes'})).status!==400||(await put('#QQQQ',{enabled:true})).status!==404)throw Error('War event validation or linked-clan scope failed');
+    console.log(JSON.stringify({warEventsSettings:'passed',checks:['manager only','default off','enable persistence','view','disable','auth','invalid boolean','unlinked clan'],externalDiscordWrites:0}));
+   }
    if(memberWarningMode){
     const base=[{name:'clan',type:3,value:group}];
     const cmd=(action,extra=[])=>command('clan','member-warning',[...base,{name:'action',type:3,value:action},...extra]);
