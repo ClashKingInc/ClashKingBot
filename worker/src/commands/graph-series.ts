@@ -11,6 +11,7 @@ export async function graphSeries(ctx:CommandContext){
  if(!Object.hasOwn(graphMetrics,metric)||!Number.isInteger(count)||count<2||count>12||!Number.isInteger(limit)||limit<1||limit>10)throw new CommandInputError("Choose 2–12 seasons and 1–10 clans.");
  const refs=raw?[...new Set(raw.split(/[\s,]+/u).filter(Boolean).map(tag=>normalizeTag(tag,ctx.locale)))].map(tag=>({tag,name:tag})):await ctx.services.api.get<Array<{tag:string;name:string}>>(`/v2/server/${requireGuildId(ctx)}/clans-basic`);
  if(!refs.length||refs.length>50)throw new CommandInputError("Choose 1–50 clans.");
+ if(metric==="capitalTrophies")return (await import("./graph-capital-weekly")).graphCapitalWeekly(ctx,refs,requested,count,limit,!!raw);
  let season=requested;
  if(season==="current"){
   try{season=(await Promise.any(refs.slice(0,5).map(ref=>ctx.services.api.get<Stats>(`/v2/bot/clans/${encodeURIComponent(ref.tag)}/season-stats`,{},AbortSignal.timeout(8000))))).season;}
