@@ -46,6 +46,7 @@ const warPanelMode=process.argv.includes("--war-panel-only");
 const roleUsersMode=process.argv.includes("--role-users-only");
 const boostsMode=process.argv.includes("--boosts-only");let boostFailure=false;
 const warStatsMode=process.argv.includes("--war-statistics-only");
+const botInfoMode=process.argv.includes("--bot-info-only");let botInfoFailure=false;
 const handoffMode=process.argv.includes("--roster-handoff-only");
 const verificationMode=process.argv.includes("--clan-verification-only")||handoffMode;let verificationDescription="";
 const rosterReadMode=process.argv.includes("--roster-commands-only");let rosterProfileFailure=false;
@@ -197,6 +198,7 @@ try{
    const headers=new Headers(request.headers);headers.delete('content-length');
    return fetch(request.url,{method:'POST',headers,body:JSON.stringify(body)});
   }
+  if(botInfoMode&&botInfoFailure&&url.pathname==="/v2/bot/status")return Response.json({message:"Unavailable"},{status:503});
   if(graphMode&&dailyGraphFailure&&url.pathname==='/v2/bot/clans/daily-stats')return Response.json({message:'Unavailable'},{status:503});
   if(graphMode&&graphGap&&decodeURIComponent(url.pathname).includes(group+'/season-stats')&&url.searchParams.get('season')==='2024-12')return Response.json({message:'Unavailable'},{status:503});
   if(graphMode&&graphFailure&&decodeURIComponent(url.pathname).includes('#PYLQGRJJ/season-stats'))return Response.json({message:'Unavailable'},{status:503});
@@ -209,7 +211,29 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(giveawayMode){
+ if(botInfoMode){
+  const servers=['999999999999996510','999999999999996512','999999999999996513'],clans=[group,'#PYLQGRJJ'];
+  if((await db.query('SELECT 1 FROM servers WHERE id=ANY($1::text[])',[servers])).rowCount||(await db.query('SELECT 1 FROM discord_cache.gateway_shards WHERE application_id=$1',[app])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[clans])).rowCount)throw Error('Bot status fixture exists');
+  const get=()=>fetch(`http://127.0.0.1:${port}/v2/bot/status`,{headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`}}).then(response=>response.json());
+  const before=await get();const generation=randomBytes(16).toString('hex'),wrong=randomBytes(16).toString('hex');
+  try{
+   await db.query("INSERT INTO servers(id,name,left_at) VALUES($1,'Status A',NULL),($2,'Status B',NULL),($3,'Left server',now())",servers);
+   for(const clan of clans)await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'Status clan',true,0,0,'',0,0)",[clan]);
+   await db.query('INSERT INTO server_clans(server_id,tag) VALUES($1,$4),($2,$4),($3,$5)',[...servers,...clans]);
+   await db.query('INSERT INTO discord_cache.gateway_shards(application_id,shard_id,shard_count,generation,healthy,heartbeat_at) VALUES($1,0,2,$2,true,now()),($1,1,2,$2,true,now())',[app,generation]);
+   await db.query("INSERT INTO discord_cache.guilds(id,data,application_id,shard_id,generation,available,metadata_complete,members_complete) VALUES($1,'{}',$3,0,$4,true,true,true),($2,'{}',$3,1,$5,true,true,true)",[servers[0],servers[1],app,generation,wrong]);
+   const current=await get();if(current.configuredServers!==before.configuredServers+2||current.familyClans!==before.familyClans+1||current.healthyShards!==2||current.readyGuilds!==1||current.cachedGuilds!==2||current.expectedShards!==2)throw Error('Status aggregation or generation fencing incorrect '+JSON.stringify(current));
+   if(!Number.isFinite(Date.parse(current.countsRefreshedAt)))throw Error('Stored counts missing snapshot age');
+   await db.query('UPDATE discord_cache.guilds SET generation=$2 WHERE id=$1',[servers[1],generation]);if((await get()).readyGuilds!==2)throw Error('Matching guild not ready');
+   await db.query("UPDATE discord_cache.gateway_shards SET heartbeat_at=now()-interval '1 hour' WHERE application_id=$1 AND shard_id=1",[app]);
+   const stale=await get();if(stale.healthyShards!==1||stale.readyGuilds!==1)throw Error('Stale gateway reported ready');
+   const first=await interact({type:2,data:{name:'bot'}});if(!text(first).includes('ClashKing statistics')||!text(first).includes('1/2 healthy')||text(first).includes('http://'))throw Error('Bot statistics response incorrect '+text(first));
+   const refresh=await interact({type:3,data:{custom_id:first.components[0].components[0].custom_id,component_type:2}},other);if(!text(refresh).includes('ClashKing statistics'))throw Error('Bot info refresh failed');
+   if((await fetch(`http://127.0.0.1:${port}/v2/bot/status`)).status!==401)throw Error('Bot status missing authentication');
+   botInfoFailure=true;const failed=await interact({type:2,data:{name:'bot'}});if(!text(failed).includes('temporarily unavailable')||failed.embeds?.length)throw Error('Failed stats shown as zero');
+   console.log(JSON.stringify({botInfo:'passed',checks:['configured servers exclude left servers','family clans deduplicated','gateway generation fencing','heartbeat freshness','data timestamp','public refresh','API authentication','unavailable state'],externalDiscordWrites:0}));
+  }finally{await db.query('DELETE FROM discord_cache.guilds WHERE id=ANY($1::text[])',[servers]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[servers]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[clans]);}
+ }else if(giveawayMode){
   const server='999999999999996510',foreign='999999999999996512',id='local-reroll-fixture',outsider='local-reroll-foreign';
   const eligible='999999999999996504',zero='999999999999996505';
   if((await db.query('SELECT 1 FROM servers WHERE id=ANY($1::text[])',[[server,foreign]])).rowCount)throw Error('Giveaway test scope exists');
