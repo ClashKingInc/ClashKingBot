@@ -38,6 +38,7 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+const rosterReadMode=process.argv.includes("--roster-commands-only");let rosterProfileFailure=false;
 const helpMode=process.argv.includes("--help-only");
 const warPreferenceMode=process.argv.includes("--war-preference-only");let warPreferenceFailure=false;
 const summaryMode=process.argv.includes("--summary-only");
@@ -97,7 +98,7 @@ const provider=createServer(async(req,res)=>{
  if(p==='/v1/clans/#PYLQGRJJ')return res.end(JSON.stringify({tag:opponent.tag,name:opponent.name,warLeague:{id:48000019,name:'Champion League I'},memberList:[]}));
  if(p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Reminder Clan',warLeague:{id:48000019,name:'Champion League I'},memberList:[{tag,name:'Missing Player',townHallLevel:16},{tag:tags[1],name:'Finished Player',townHallLevel:16}]}));
  if(p===`/v1/clans/${group}/capitalraidseasons`)return res.end(JSON.stringify({items:reminderRaidActive?[{state:'ongoing',endTime,members:[{tag:tags[1],attacks:6,attackLimit:5,bonusAttackLimit:1}]}]:[]}));
- if(url.pathname.startsWith('/v1/players/')){if(warPreferenceFailure&&decodeURIComponent(url.pathname).endsWith(tags[1])){res.statusCode=503;return res.end('{}');}const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:memberMode&&playerTag===tags[1]?18:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,...(warPreferenceMode?{warPreference:playerTag===tag?'in':'out'}:{}),leagueTier:{id:todoMode&&playerTag===tags[0]?105000036:tier,name:'Current League'},...(todoMode?{clan:{tag:group,name:'Reminder Clan'}}:{}),
+ if(url.pathname.startsWith('/v1/players/')){if((warPreferenceFailure||rosterProfileFailure)&&decodeURIComponent(url.pathname).endsWith(tags[1])){res.statusCode=503;return res.end('{}');}const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:memberMode&&playerTag===tags[1]?18:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,...(warPreferenceMode?{warPreference:playerTag===tag?'in':'out'}:{}),...(rosterReadMode?{troops:[],spells:[],heroes:[]}:{}),leagueTier:{id:todoMode&&playerTag===tags[0]?105000036:tier,name:'Current League'},...(todoMode?{clan:{tag:group,name:'Reminder Clan'}}:{}),
  // Deliberately synthetic name input exercises the normal lookup renderer; this is not real player data.
  ...(betaInventory?{heroes:[{name:'P.E.K.K.A.',level:15}]}:{})}));}
  if(url.pathname===`/v1/leaguegroup/${encodeURIComponent(group)}/${currentSeason}`||decodeURIComponent(url.pathname)===`/v1/leaguegroup/${group}/${currentSeason}`){
@@ -182,7 +183,35 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(helpMode){
+ if(rosterReadMode){
+  const server='999999999999996510',elsewhere='999999999999996512';
+  if((await db.query('SELECT 1 FROM servers WHERE id=ANY($1::text[])',[[server,elsewhere]])).rowCount)throw Error('Synthetic roster server exists');
+  if((await db.query('SELECT 1 FROM basic_clan WHERE tag=$1',[group])).rowCount)throw Error('Synthetic roster clan exists');
+  await db.query("INSERT INTO servers(id,name) VALUES($1,'Roster server'),($2,'Other roster server')",[server,elsewhere]);
+  const request=async(path,body)=>{const response=await fetch(`http://127.0.0.1:${port}`+path,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw Error('Roster API '+response.status+' '+JSON.stringify(data));return data;};
+  try{
+   await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'Roster clan',true,0,2,'',0,0)",[group]);
+   await db.query('INSERT INTO server_clans(server_id,tag) VALUES($1,$3),($2,$3)',[server,elsewhere,group]);
+   const created=await request('/v2/roster?server_id='+server,{alias:'Visible roster',roster_type:'family',members:[{tag:tags[1],name:'Stored member',townhall:15,trophies:1}]});
+   await request('/v2/roster?server_id='+elsewhere,{alias:'Other server secret',roster_type:'family',members:[{tag:tags[1],name:'Stored member',townhall:15}]});
+   const list=await interact(command('roster','list'),actor,'32');if(!text(list).includes('Visible roster')||text(list).includes('Other server secret'))throw Error('Roster list scope failed: '+text(list));
+   const selection=await interact({type:3,data:{custom_id:'ck:roster:select',component_type:3,values:[created.roster_id]}},actor,'32');if(!text(selection).includes('Stored member'))throw Error('Roster selection failed');
+   const view=await interact(command('roster','view',[{name:'roster',type:3,value:created.roster_id}]),actor,'32');if(!text(view).includes('Stored member'))throw Error('Roster view failed');
+   const search=await interact(command('roster','search',[{name:'player',type:3,value:tags[1]}]),actor,'32');
+   if(!text(search).includes('Visible roster')||text(search).includes('Other server secret'))throw Error('Roster search scope failed: '+text(search));
+   const own=await interact(command('roster','search'),actor,'32');if(!text(own).includes('Visible roster'))throw Error('Self roster search failed: '+text(own));
+   const refreshed=await interact({type:3,data:{custom_id:search.components[0].components[0].custom_id,component_type:2}},actor,'32');if(!text(refreshed).includes('Visible roster'))throw Error('Search refresh failed');
+   const denied=await interact(command('roster','refresh',[{name:'roster',type:3,value:created.roster_id}]),actor,'0');if(!text(denied).includes('Manage'))throw Error('Roster refresh permission bypass');
+   rosterProfileFailure=true;
+   const failed=await interact(command('roster','refresh',[{name:'roster',type:3,value:created.roster_id}]),actor,'32');if(!text(failed).includes('1 unavailable player(s) kept unchanged'))throw Error('Refresh hid upstream failure');
+   if((await db.query('SELECT trophies FROM roster_members WHERE roster_id=$1 AND tag=$2',[created.roster_id,tags[1]])).rows[0]?.trophies!==1)throw Error('Failed refresh changed old profile');
+   rosterProfileFailure=false;await db.query('UPDATE rosters SET last_refreshed_at=NULL WHERE id=$1',[created.roster_id]);
+   const refresh=await interact(command('roster','refresh',[{name:'roster',type:3,value:created.roster_id}]),actor,'32');if(!text(refresh).includes('Roster data refreshed: 1'))throw Error('Data refresh failed: '+text(refresh));
+   const row=(await db.query('SELECT townhall,trophies FROM roster_members WHERE roster_id=$1 AND tag=$2',[created.roster_id,tags[1]])).rows[0];if(row.townhall!==16||row.trophies!==5500)throw Error('Data refresh did not persist profile');
+   const reused=await interact(command('roster','refresh',[{name:'roster',type:3,value:created.roster_id}]),actor,'32');if(!text(reused).includes('Recent roster data reused'))throw Error('Cooldown incorrectly reported new refresh');
+   console.log(JSON.stringify({rosterReads:'passed',checks:['actual API-created rosters','server-scoped list and selection','direct view','player and self search','search refresh','permission gate','failed profile retained','actual stored profile update','cooldown reuse'],externalDiscordWrites:0}));
+  }finally{await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,elsewhere]]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);}
+ }else if(helpMode){
   const list=await interact({type:2,data:{name:'help'}});
   if(!text(list).includes('/clan')||!text(list).includes('/link')||!text(list).includes('/help'))throw Error('Help missing current command roots');
   const detail=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'clan war-preference'}]}});

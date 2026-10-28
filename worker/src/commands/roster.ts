@@ -4,6 +4,8 @@ import { actionRow, legacyMessage, type ButtonComponent } from "../discord/compo
 import { InteractionResponseType, InteractionType, type DiscordInteractionResponse } from "../discord/types";
 import { localizations, resolveLocale, translate } from "../localization/catalog";
 import { CommandInputError, invokingUserId, normalizeTag, requireGuildId } from "./command-utils";
+import { playerAutocomplete } from "./game-common";
+import { serverEmbedColor } from "./embed-color";
 import { modalFields } from "./modals";
 import type { Command, CommandContext } from "./types";
 import { previewRosterPing, confirmRosterPing } from "./roster-ping";
@@ -48,6 +50,13 @@ export const rosterCommand: Command = {
   definition: { name: "roster", type: 1, contexts: [0], integration_types: [0], default_member_permissions: "32",
     name_localizations: localizations("roster.name"), description: translate("roster.title"),
     description_localizations: localizations("roster.title"), options: [
+      { name: "list", type: 1, description: "Browse this server's rosters" },
+      { name: "view", type: 1, description: "View a roster's members", options: [rosterOption] },
+      { name: "search", type: 1, description: "Find this server's rosters for a player or Discord user", options: [
+        { name: "player", type: 3, description: "Player tag to find", autocomplete: true },
+        { name: "user", type: 6, description: "Linked Discord user (default you)" },
+      ] },
+      { name: "refresh", type: 1, description: "Refresh a roster's player data", options: [rosterOption] },
       { name: "post", type: 1, description: translate("roster.post"), description_localizations: localizations("roster.post"), options: [rosterOption,
         { name: "type", type: 3, description: translate("roster.post"), required: true, choices: [
           choice("signup", "roster.signupMode"), choice("post", "roster.title"), choice("static", "roster.staticMode"),
@@ -62,6 +71,7 @@ export const rosterCommand: Command = {
     requireGuildId(ctx);
     const options = ctx.interaction.data?.options?.[0]?.options ?? [];
     const focused = options.find(option => option.focused);
+    if (focused?.name === "player") return playerAutocomplete({...ctx,options:new Map(options.map(option=>[option.name,option]))});
     if (focused?.name !== "roster") return [];
     const query = String(focused.value ?? "").toLocaleLowerCase();
     const { items } = await ctx.services.api.get<{ items: Roster[] }>(endpoint(ctx), {}, AbortSignal.timeout(1500));
@@ -74,9 +84,21 @@ export const rosterCommand: Command = {
     if (sub?.name === "create") return createModal(ctx);
     requireManager(ctx);
     const options = new Map(sub?.options?.map(option => [option.name, option.value]));
+    if (sub?.name === "list") return list(ctx,0);
+    if (sub?.name === "search") {
+      if (options.has("player") && options.has("user")) throw new CommandInputError("Choose either a player or a Discord user.");
+      return searchRosters(ctx,options.has("player")?`p~${normalizeTag(String(options.get("player")),ctx.locale)}`:`u~${String(options.get("user")??invokingUserId(ctx))}`);
+    }
     const id = String(options.get("roster") ?? "");
     const mode = String(options.get("type") ?? "");
     if (!uuid.test(id)) throw new CommandInputError(t(ctx, "error.invalidInteraction"));
+    if (sub?.name === "view") return view(ctx,id);
+    if (sub?.name === "refresh") {
+      await load(ctx,id);
+      const result=await ctx.services.api.post<{status:string;refreshedPlayers:number;failedPlayers:number;refreshedAt:string;reused:boolean}>(endpoint(ctx,id)+"/refresh",{scope:"data"});
+      if(result.reused)return reply("Recent roster data reused. Try again after the refresh cooldown.");
+      return reply(`Roster data refreshed: ${result.refreshedPlayers} player(s)${result.failedPlayers?`; ${result.failedPlayers} unavailable player(s) kept unchanged`:""}.`);
+    }
     if (sub?.name === "post" && ["signup", "post", "static"].includes(mode)) return post(ctx, id, mode);
     if (sub?.name === "ping" && ["missing", "outside", "all"].includes(mode)) {
       return previewRosterPing(ctx, await load(ctx, id), mode, String(options.get("message") ?? ""));
@@ -93,15 +115,36 @@ async function guarded(ctx: CommandContext, run: () => Promise<DiscordInteractio
     return reply(t(ctx, "roster.failed"));
   }
 }
+async function searchRosters(ctx:CommandContext,target:string):Promise<DiscordInteractionResponse>{
+  requireManager(ctx);
+  if(!/^(?:p~#[0289PYLQGRJCUV]{1,15}|u~[0-9]{15,20})$/u.test(target))throw new CommandInputError("Choose a valid player or Discord user.");
+  const serverId=requireGuildId(ctx);
+  const tags=target.startsWith("p~")?[target.slice(2)]:(await ctx.services.api.get<{items:Array<{player_tag:string;hidden?:boolean}>}>(`/v2/links/${target.slice(2)}`)).items.filter(row=>!row.hidden).map(row=>row.player_tag);
+  const wanted=new Set(tags);
+  const {items}=await ctx.services.api.get<{items:Roster[]}>(endpoint(ctx));
+  const rosters=items.filter(row=>row.serverId===serverId&&uuid.test(row.id));
+  if(rosters.length>100)throw new CommandInputError("This search supports up to 100 server rosters.");
+  const names=new Map(rosters.map(row=>[row.id,row.alias]));
+  const found:Array<{rosterId:string;playerTag:string;playerName?:string;townhall?:number;clanName?:string|null}>=[];
+  // Query only display fields, never signup answers or private activity. Scope
+  // every batch to the invoking server; self-search must not leak other servers.
+  if(wanted.size)for(let offset=0;offset<rosters.length;offset+=25){
+    const result=await ctx.services.api.post<{rows:typeof found}>("/v2/roster/members/query",{serverId,rosterIds:rosters.slice(offset,offset+25).map(row=>row.id),fields:["playerName","townhall","clanName"]});
+    found.push(...result.rows.filter(row=>wanted.has(row.playerTag)&&names.has(row.rosterId)));
+  }
+  found.sort((a,b)=>(a.playerName??a.playerTag).localeCompare(b.playerName??b.playerTag)||(names.get(a.rosterId)??"").localeCompare(names.get(b.rosterId)??""));
+  let description="",shown=0;for(const row of found){const line=`**${clean(row.playerName??row.playerTag,50)}** (${clean(row.playerTag,16)}) · ${clean(names.get(row.rosterId)??"Roster",60)}${row.clanName?` · ${clean(row.clanName,40)}`:""}`;if(description.length+line.length+1>3400)break;description+=(description?"\n":"")+line;shown++;}
+  return legacyMessage({allowed_mentions:{parse:[]},embeds:[{title:"Roster search · this server",color:await serverEmbedColor(ctx),description:description||"No matching roster entries in this server.",footer:{text:`${shown}/${found.length} matching entries · ${rosters.length} rosters searched`}}],components:[actionRow({type:2,style:2,label:"Refresh",custom_id:`ck:roster:search:${target}`})]},{ephemeral:true});
+}
 async function list(ctx: CommandContext, page: number): Promise<DiscordInteractionResponse> {
   const { items } = await ctx.services.api.get<{ items: Roster[] }>(endpoint(ctx), {}, AbortSignal.timeout(8000));
-  const sorted = [...items].sort((a, b) => a.alias.localeCompare(b.alias) || a.id.localeCompare(b.id));
+  const sorted = items.filter(row=>row.serverId===requireGuildId(ctx)&&uuid.test(row.id)).sort((a, b) => a.alias.localeCompare(b.alias) || a.id.localeCompare(b.id));
   const last = Math.max(0, Math.ceil(sorted.length / PAGE_SIZE) - 1);
   page = Math.min(page, last);
   const rows = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const components = rows.length ? [actionRow({ type: 3, custom_id: "ck:roster:select", placeholder: t(ctx, "roster.view"),
     options: rows.map(r => ({ label: r.alias.slice(0, 100) || r.id, value: r.id, description: `👥 ${r.memberCount}` })) })] : [];
-  const controls: ButtonComponent[] = [];
+  const controls: ButtonComponent[] = [{type:2,style:2,label:"Refresh",custom_id:`ck:roster:list:${page}`}];
   if (page > 0) controls.push({ type: 2, style: 2, label: "←", custom_id: `ck:roster:list:${page - 1}` });
   if (page < last) controls.push({ type: 2, style: 2, label: "→", custom_id: `ck:roster:list:${page + 1}` });
   if (manager(ctx)) controls.push(button(ctx, "create", "roster.create"));
@@ -118,7 +161,7 @@ async function view(ctx: CommandContext, id: string, page = 0) {
   const roster = await load(ctx, id);
   const last = Math.max(0, Math.ceil(roster.members.length / PAGE_SIZE) - 1);
   page = Math.min(page, last);
-  const controls = [button(ctx, "join", "roster.join", id)];
+  const controls = [button(ctx, "join", "roster.join", id),{type:2 as const,style:2 as const,label:"Refresh",custom_id:`ck:roster:view:${id}:${page}`}];
   if (manager(ctx)) controls.push(button(ctx, "post", "roster.post", id));
   if (page > 0) controls.push({ type: 2, style: 2, label: "←", custom_id: `ck:roster:view:${id}:${page - 1}` });
   if (page < last) controls.push({ type: 2, style: 2, label: "→", custom_id: `ck:roster:view:${id}:${page + 1}` });
@@ -249,7 +292,8 @@ export async function dispatchRoster(ctx: CommandContext, waitUntil?: (promise: 
   });
   const [, , action, id, extra] = parts;
   const modal = ctx.interaction.type === InteractionType.ModalSubmit;
-  const valid = parts.length <= 5 && ((action === "create" || action === "select") && parts.length === 3
+  const valid = parts.length <= 5 && (action === "search" && parts.length === 4 && /^(?:p~#[0289PYLQGRJCUV]{1,15}|u~[0-9]{15,20})$/u.test(id ?? "")
+    || (action === "create" || action === "select") && parts.length === 3
     || action === "list" && parts.length === 4 && /^\d{1,6}$/.test(id ?? "")
     || ["view", "join", "leave", "join-page", "leave-page", "withdraw", "post", "submit", "refresh"].includes(action ?? "") && uuid.test(id ?? "")
       && (action === "submit" ? parts.length === 5 && /^[a-f0-9]{16}$/.test(extra ?? "")
@@ -257,6 +301,7 @@ export async function dispatchRoster(ctx: CommandContext, waitUntil?: (promise: 
   if (!valid || modal !== ["submit", "withdraw"].includes(action ?? "")) return reply(t(ctx, "error.invalidInteraction"));
   const run = () => guarded(ctx, async () => {
     switch (action) {
+      case "search": return searchRosters(ctx,id!);
       case "create": return createModal(ctx);
       case "list": return list(ctx, Number(id));
       case "select": {
