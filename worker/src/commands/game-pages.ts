@@ -1,3 +1,4 @@
+import { boostsCommand } from "./boosts";
 import { statsCommand } from "./stats";
 import { helpCommand } from "./help";
 import { InteractionResponseType, MessageFlags, type InteractionOption } from "../discord/types";
@@ -22,7 +23,12 @@ export async function dispatchGamePage(ctx: CommandContext, waitUntil?: (promise
   let command:Command,action:string,options:InteractionOption[];
   const string=(name:string,value:string):InteractionOption=>({name,type:OptionType.String,value});
   const tag=(value:string|undefined)=>{if(!value||!/^#[0289PYLQGRJCUV]+$/u.test(value))throw new CommandInputError("Invalid player tag.");return value;};
-  if(kind==="ws"&&parts.length===10){
+  if(kind==="bs"&&parts.length===4){
+    command=boostsCommand;action="";
+    options=[{name:"limit",type:OptionType.Integer,value:Number(parts[2])},string("sort_order",parts[3]!)];
+    if(parts[0]!=="-")options.push(string("clan",tag(parts[0])));
+    if(parts[1]!=="-")options.push(string("super_troop",parts[1]!.replaceAll("~"," ")));
+  }else if(kind==="ws"&&parts.length===10){
     command=statsCommand;action="war";
     const [target,view,war,th,stars,period,min,limit,sort,order]=parts;
     if(!/^[0-3]+$/u.test(stars!)||! /^(?:s-current|s\d{4}-\d{2}|[dw]\d+)$/u.test(period!))throw new CommandInputError("Invalid war statistics control.");
@@ -122,7 +128,7 @@ export async function dispatchGamePage(ctx: CommandContext, waitUntil?: (promise
     command=leaderboardCommand;action="family";options=[string("type",parts[0]!),{name:"limit",type:OptionType.Integer,value:Number(parts[1])}];
   }else throw new CommandInputError("Invalid page control.");
   options.push({name:"__page",type:OptionType.Integer,value:Number(rawPage)});
-  const context:CommandContext={...ctx,options:kind==="hp"?new Map(options.map(option=>[option.name,option])):new Map([[action,{name:action,type:OptionType.Subcommand,options}]])};
+  const context:CommandContext={...ctx,options:["hp","bs"].includes(kind??"")?new Map(options.map(option=>[option.name,option])):new Map([[action,{name:action,type:OptionType.Subcommand,options}]])};
   const run=async()=>command.execute(context);
   if(!waitUntil){const result=await run();return typeof result.data?.flags==="number"&&(result.data.flags&MessageFlags.Ephemeral)?result:{...result,type:InteractionResponseType.UpdateMessage};}
   waitUntil(run().then(result=>typeof result.data?.flags==="number"&&(result.data.flags&MessageFlags.Ephemeral)

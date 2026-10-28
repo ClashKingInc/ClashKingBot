@@ -38,6 +38,7 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+const boostsMode=process.argv.includes("--boosts-only");let boostFailure=false;
 const warStatsMode=process.argv.includes("--war-statistics-only");
 const verificationMode=process.argv.includes("--clan-verification-only");let verificationDescription="";
 const rosterReadMode=process.argv.includes("--roster-commands-only");let rosterProfileFailure=false;
@@ -70,6 +71,12 @@ const provider=createServer(async(req,res)=>{
  const url=new URL(req.url,'http://provider');live.push(url.pathname+url.search);res.setHeader('Content-Type','application/json');
  if(roleMode&&url.pathname===`/api/v10/guilds/${roleServer}`)return res.end(JSON.stringify({id:roleServer,owner_id:other}));
  const p=decodeURIComponent(url.pathname),endTime=fixtureEnd;
+ if(boostsMode&&p.startsWith('/v1/clans/'))return res.end(JSON.stringify({tag:p.split('/').at(-1),name:'Boost Clan',memberList:[{tag,name:'First',townHallLevel:16},{tag:tags[1],name:'Second',townHallLevel:16},{tag:tags[2],name:'Moved',townHallLevel:16}]}));
+ if(boostsMode&&p.startsWith('/v1/players/')){
+  const who=p.split('/').at(-1);
+  if(boostFailure&&who===tags[1]){res.statusCode=503;return res.end('{}');}
+  return res.end(JSON.stringify({tag:who,name:who===tag?'Alpha':'Zulu',townHallLevel:16,trophies:1000,clan:{tag:who===tags[2]?'#QQQQ':group,name:'Boost Clan'},troops:[{name:'Super Barbarian',level:10,superTroopIsActive:true},{name:'Sneaky Goblin',level:8,superTroopIsActive:who===tag},{name:'Super Archer',level:10,superTroopIsActive:false}]}));
+ }
  if((memberMode||progressMode||summaryMode)&&(p===`/v1/clans/${group}`||p==='/v1/clans/#PYLQGRJJ'))return res.end(JSON.stringify({tag:p.split('/').at(-1),name:'Report Clan',memberList:[{tag,name:'Member Sixteen',townHallLevel:16,trophies:6000,role:'leader',leagueTier:{name:'Legend I'}},...(p.endsWith(group)?[{tag:tags[1],name:'Member Eighteen',townHallLevel:18,trophies:5000,role:'member',leagueTier:{name:'Legend II'}}]:[])]}));
 
  if(summaryMode&&p.endsWith('/capitalraidseasons')){
@@ -186,7 +193,34 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(warStatsMode){
+ if(boostsMode){
+  const server='999999999999996510';
+  if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic boosts scope exists');
+  await db.query("INSERT INTO servers(id,name) VALUES($1,'Boosts')",[server]);
+  try{
+   await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'Boost Clan',true,0,3,'',0,0),('#PYLQGRJJ','Second Clan',true,0,3,'',0,0)",[group]);
+   await db.query("INSERT INTO server_clans(tag,server_id) VALUES($1,$2),('#PYLQGRJJ',$2)",[group,server]);
+   const run=options=>interact({type:2,data:{name:'boosts',options}});
+   const base=await run([]);
+   if(!text(base).includes('2/2 boosted players')||!text(base).includes('3/3 profiles checked')||text(base).includes('Super Archer')||text(base).includes('Moved'))throw Error('Boost membership/active/dedup failed '+text(base));
+   const sorted=await run([{name:'limit',type:4,value:1},{name:'sort_order',type:3,value:'desc'}]);
+   if(!text(sorted).includes('Zulu')||text(sorted).includes('Alpha')||!text(sorted).includes('1/2 boosted players'))throw Error('Boost sort/limit failed '+text(sorted));
+   const empty=await run([{name:'super_troop',type:3,value:'Super Archer'}]);
+   if(!text(empty).includes('No active boosts found.')||text(empty).includes('Coverage is incomplete'))throw Error('Inactive troop reported active '+text(empty));
+   const filtered=await run([{name:'clan',type:3,value:group},{name:'super_troop',type:3,value:'Sneaky Goblin'},{name:'limit',type:4,value:1},{name:'sort_order',type:3,value:'desc'}]);
+   if(!text(filtered).includes('1/1 boosted players')||!text(filtered).includes('Alpha')||text(filtered).includes('Zulu'))throw Error('Boost filter failed '+text(filtered));
+   const control=filtered.components[0].components[0].custom_id;
+   if(control.length>100)throw Error('Boost refresh ID exceeds Discord limit');
+   const refreshed=await interact({type:3,data:{custom_id:control}},other);
+   if(!text(refreshed).includes('Sneaky Goblin')||!text(refreshed).includes('1/1 boosted players'))throw Error('Public boost refresh lost filters '+text(refreshed));
+   const automatic=await interact({type:4,data:{name:'boosts',options:[{name:'super_troop',type:3,value:'Sneaky',focused:true}]}});
+   if(!text(automatic).includes('Sneaky Goblin'))throw Error('Canonical troop autocomplete missing');
+   boostFailure=true;
+   const incomplete=await run([]);
+   if(!text(incomplete).includes('1 unavailable')||!text(incomplete).includes('1/1 boosted players'))throw Error('Missing boost profile not reported '+text(incomplete));
+   console.log(JSON.stringify({boosts:'passed',checks:['current active troop flags','family member deduplication','transferred profile excluded','troop filter','limit and ordering','public refresh preserves filters','canonical autocomplete','partial failures explicit'],externalDiscordWrites:0}));
+  }finally{await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']]);}
+ }else if(warStatsMode){
   const server='999999999999996510',ids=[];
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic war stats scope exists');
   const query=async(extra={})=>{const response=await fetch(`http://127.0.0.1:${port}/v2/bot/war-statistics`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({clans:[group],season:'2026-10',warTypes:['random'],...extra})});const value=await response.json();if(!response.ok)throw Error('War stats API '+response.status+' '+JSON.stringify(value));return value;};
