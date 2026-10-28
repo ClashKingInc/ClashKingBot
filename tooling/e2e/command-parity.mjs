@@ -51,9 +51,8 @@ const botInfoMode=process.argv.includes("--bot-info-only");let botInfoFailure=fa
 const handoffMode=process.argv.includes("--roster-handoff-only");
 const verificationMode=process.argv.includes("--clan-verification-only")||handoffMode;let verificationDescription="";
 const warEventMode=process.argv.includes("--war-events-only");
-const memberWarningMode=process.argv.includes("--member-warning-only");
 const quickPanelMode=process.argv.includes("--quick-panel-only");
-const rosterReadMode=process.argv.includes("--roster-commands-only")||quickPanelMode||memberWarningMode||warEventMode;let rosterProfileFailure=false;
+const rosterReadMode=process.argv.includes("--roster-commands-only")||quickPanelMode||warEventMode;let rosterProfileFailure=false;
 const helpMode=process.argv.includes("--help-only");
 const warPreferenceMode=process.argv.includes("--war-preference-only");let warPreferenceFailure=false;
 const activityMode=process.argv.includes("--activity-only");
@@ -84,9 +83,8 @@ const roleDefinitions=[{id:roleServer,name:'@everyone',position:0,permissions:'0
 const provider=createServer(async(req,res)=>{
  let text='';for await(const chunk of req)text+=chunk;
  const url=new URL(req.url,'http://provider');live.push(url.pathname+url.search);res.setHeader('Content-Type','application/json');
- if((roleMode||memberWarningMode)&&url.pathname===`/api/v10/guilds/${roleServer}/roles`)return res.end(JSON.stringify(roleDefinitions.map(role=>({...role,managed:role.id===botRole}))));
+ if((roleMode)&&url.pathname===`/api/v10/guilds/${roleServer}/roles`)return res.end(JSON.stringify(roleDefinitions.map(role=>({...role,managed:role.id===botRole}))));
  if(roleMode&&url.pathname===`/api/v10/guilds/${roleServer}`)return res.end(JSON.stringify({id:roleServer,owner_id:other}));
- if(memberWarningMode&&url.pathname.startsWith('/api/v10/channels/'))return res.end(JSON.stringify({id:url.pathname.split('/').at(-1),guild_id:url.pathname.endsWith('/999999999999996599')?'999999999999996512':roleServer,type:0}));
  const p=decodeURIComponent(url.pathname),endTime=fixtureEnd;
  if(giveawayDeliveryMode&&url.pathname==='/webhooks/999999999999996588'&&req.method==='GET')return res.end(JSON.stringify({id:'999999999999996588',type:1,guild_id:'999999999999996510',channel_id:'999999999999996511',token:'local-only'}));
  if(giveawayDeliveryMode&&url.pathname==='/webhooks/999999999999996588/local-only'&&req.method==='POST'){
@@ -613,20 +611,6 @@ try{
     if((await put(group,{enabled:true},false)).status!==401||(await put(group,{enabled:'yes'})).status!==400||(await put('#QQQQ',{enabled:true})).status!==404)throw Error('War event validation or linked-clan scope failed');
     console.log(JSON.stringify({warEventsSettings:'passed',checks:['manager only','default off','enable persistence','view','disable','auth','invalid boolean','unlinked clan'],externalDiscordWrites:0}));
    }
-   if(memberWarningMode){
-    const base=[{name:'clan',type:3,value:group}];
-    const cmd=(action,extra=[])=>command('clan','member-warning',[...base,{name:'action',type:3,value:action},...extra]);
-    const values=[{name:'channel',type:7,value:'999999999999996511'},{name:'below',type:4,value:10},{name:'above',type:4,value:45},{name:'role',type:8,value:newRole}];
-    const denied=await interact(cmd('set',values),actor,'0');if(!text(denied).includes('Manage Server'))throw Error('Warning permission bypass');
-    const created=await interact(cmd('set',values),actor,'32');if(!text(created).includes('Saved warnings'))throw Error('Warning save failed '+text(created));
-    const saved=(await db.query('SELECT below_count,above_count,role_id FROM server_clan_member_warnings WHERE server_id=$1 AND clan_tag=$2',[server,group])).rows[0];if(saved?.below_count!==10||saved?.above_count!==45||saved?.role_id!==newRole)throw Error('Warning configuration missing');
-    if(!text(await interact(cmd('view'),actor,'32')).includes('Above 45'))throw Error('Warning view failed');
-    const invalid=await interact(cmd('set',values.map(v=>v.name==='below'?{...v,value:49}:v)),actor,'32');if(text(invalid).includes('Saved warnings'))throw Error('Overlapping warning thresholds accepted');
-    const foreign=await interact(cmd('set',values.map(v=>v.name==='channel'?{...v,value:'999999999999996599'}:v)),actor,'32');if(text(foreign).includes('Saved warnings'))throw Error('Foreign warning channel accepted');
-    const broad=await interact(cmd('set',values.map(v=>v.name==='role'?{...v,value:server}:v)),actor,'32');if(text(broad).includes('Saved warnings'))throw Error('Everyone warning role accepted');
-    const disabled=await interact(cmd('disable'),actor,'32');if(!text(disabled).includes('disabled')||(await db.query('SELECT 1 FROM server_clan_member_warnings WHERE server_id=$1',[server])).rowCount)throw Error('Warning disable failed');
-    console.log(JSON.stringify({memberWarningConfiguration:'passed',checks:['manager-only command','actual API and SQL persistence','view','invalid thresholds','foreign channel','everyone role rejected','disable']}));
-   }
    if(quickPanelMode){
     if((await db.query('SELECT 1 FROM discord_cache.gateway_shards WHERE application_id=$1',[app])).rowCount)throw Error('Synthetic panel gateway exists');
     const generation=randomBytes(16).toString('hex');
@@ -720,6 +704,11 @@ try{
   if(!text(await interact({type:3,data:{custom_id:refresh,component_type:2}},other)).includes('/clan war-preference'))throw Error('Help refresh lost command');
   const root=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'clan'}]}});
   if(!text(root).includes('/clan summary')||!text(root).includes('/clan war-preference'))throw Error('Help group missing subcommands');
+  if(text(root).includes('member-warning'))throw Error('Removed warning command remains registered');
+  const retired=await interact(command('clan','member-warning',[{name:'clan',type:3,value:group}]));
+  if(!text(retired).includes('no longer available'))throw Error('Cached warning command fell through to another report');
+  const removed=await fetch(`http://127.0.0.1:${port}/v2/server/999999999999996510/clan/${encodeURIComponent(group)}/member-warning`,{headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`}});
+  if(removed.status!==404)throw Error('Removed warning endpoint remains active');
   const complete=await interact({type:4,data:{name:'help',options:[{name:'command',type:3,value:'war',focused:true}]}});
   if(!complete.choices?.some(choice=>choice.value==='clan war-preference'))throw Error('Help autocomplete missing leaf');
   const bad=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'not-real'}]}});
