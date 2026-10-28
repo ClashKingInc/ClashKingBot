@@ -20,7 +20,13 @@ export async function dispatchGamePage(ctx: CommandContext, waitUntil?: (promise
   let command:Command,action:string,options:InteractionOption[];
   const string=(name:string,value:string):InteractionOption=>({name,type:OptionType.String,value});
   const tag=(value:string|undefined)=>{if(!value||!/^#[0289PYLQGRJCUV]+$/u.test(value))throw new CommandInputError("Invalid player tag.");return value;};
-  if(kind==="cr"&&parts.length===7&&["capital","war-log"].includes(parts[1]!)&&["members","all"].includes(parts[6]!)){
+  if((kind==="uc"&&parts.length===7)||(kind==="up"&&parts.length===6)){
+    command=kind==="uc"?clanCommand:familyCommand;action="progress";
+    const values=kind==="uc"?parts.slice(1):parts;
+    options=[string("type",values[0]!),{name:"limit",type:OptionType.Integer,value:Number(values[2])},string("sort_order",values[3]!),string("sort_by",values[4]!),{name:"townhall",type:OptionType.Integer,value:Number(values[5])}];
+    if(kind==="uc")options.push(string("clan",tag(parts[0])));
+    if(values[1]!=="current")options.push(string("season",values[1]!));
+  }else if(kind==="cr"&&parts.length===7&&["capital","war-log"].includes(parts[1]!)&&["members","all"].includes(parts[6]!)){
     command=clanCommand;action=parts[1]!;
     options=[string("clan",tag(parts[0])),string("view",parts[2]!),{name:"limit",type:OptionType.Integer,value:Number(parts[4])},string("sort_order",parts[5]!),{name:"current_members",type:OptionType.Boolean,value:parts[6]==="members"}];
     if(parts[3]!=="current")options.push(string("weekend",parts[3]!));

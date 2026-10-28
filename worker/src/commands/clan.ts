@@ -1,3 +1,4 @@
+import { upgradeProgress, upgradeProgressOptions } from "./upgrade-progress";
 import { clanReports, capitalOptions, warLogOptions } from "./clan-reports";
 import { memberReport, memberReportOptions } from "./member-reports";
 import { contributionOptions, contributionReport } from "./contribution-report";
@@ -19,6 +20,7 @@ const clanOption={name:"clan",description:"Clan tag or name",type:OptionType.Str
 export const clanCommand:Command={
  deferred:true,
  definition:{name:"clan",description:"Clan overview and season donations",type:1,integration_types:[0,1],contexts:[0,1,2],options:[
+  {name:"progress",description:"Observed unit upgrade changes and levels gained",type:OptionType.Subcommand,options:[clanOption,...upgradeProgressOptions]},
   {name:"capital",description:"Capital raid and recorded donation reports",type:OptionType.Subcommand,options:[clanOption,...capitalOptions]},
   {name:"war-log",description:"Official/stored wars and CWL season history",type:OptionType.Subcommand,options:[clanOption,...warLogOptions]},
   {name:"compo",description:"Group clan members by Town Hall, role, league and more",type:OptionType.Subcommand,options:[clanOption,...memberReportOptions("compo")]},
@@ -46,6 +48,7 @@ export const clanCommand:Command={
  },
  async execute(context){
   const ctx=subcommand(context);
+  if(ctx.path[0]==="progress")return upgradeProgress(ctx,"clan");
   if(["capital","war-log"].includes(ctx.path[0]??""))return clanReports(ctx);
   if(["compo","sorted"].includes(ctx.path[0]??""))return memberReport(ctx,"clan");
   const raw=stringOption(ctx,"clan");if(!raw)throw new CommandInputError("Choose a clan or enter its tag.");

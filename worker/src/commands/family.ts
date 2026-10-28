@@ -1,3 +1,4 @@
+import { upgradeProgress, upgradeProgressOptions } from "./upgrade-progress";
 import { familyDirectory, familyDirectoryOptions } from "./family-directory";
 import { familyOperations, familyRaidOptions, familyWarOptions } from "./family-operations";
 import { memberReport, memberReportOptions } from "./member-reports";
@@ -8,6 +9,7 @@ import type { Command } from "./types";
 export const familyCommand:Command={
  deferred:true,
  definition:{name:"family",description:"Linked family clan contribution reports",type:1,integration_types:[0],contexts:[0],options:[
+  {name:"progress",description:"Observed unit upgrade changes and levels gained",type:OptionType.Subcommand,options:[...upgradeProgressOptions]},
   {name:"clans",description:"Browse family clans by category, league or location",type:OptionType.Subcommand,options:familyDirectoryOptions(false)},
   {name:"stats",description:"Rank linked clans by contributions or clan statistics",type:OptionType.Subcommand,options:familyDirectoryOptions(true)},
   {name:"wars",description:"Current family wars, including available CWL matchups",type:OptionType.Subcommand,options:familyWarOptions},
@@ -23,6 +25,7 @@ export const familyCommand:Command={
  ]},
  async execute(context){
   const ctx=subcommand(context);
+  if(ctx.path[0]==="progress")return upgradeProgress(ctx,"family");
   if(["clans","stats"].includes(ctx.path[0]??""))return familyDirectory(ctx);
   if(["wars","raids"].includes(ctx.path[0]??""))return familyOperations(ctx);
   if(["compo","sorted"].includes(ctx.path[0]??""))return memberReport(ctx,"family");

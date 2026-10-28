@@ -38,6 +38,7 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+const progressMode=process.argv.includes("--progress-only");
 const clanReportMode=process.argv.includes("--clan-reports-only");
 const familyOpsMode=process.argv.includes("--family-ops-only");
 let raidSkip=false,raidFailure=false;
@@ -62,7 +63,7 @@ const provider=createServer(async(req,res)=>{
  const url=new URL(req.url,'http://provider');live.push(url.pathname+url.search);res.setHeader('Content-Type','application/json');
  if(roleMode&&url.pathname===`/api/v10/guilds/${roleServer}`)return res.end(JSON.stringify({id:roleServer,owner_id:other}));
  const p=decodeURIComponent(url.pathname),endTime=fixtureEnd;
- if(memberMode&&(p===`/v1/clans/${group}`||p==='/v1/clans/#PYLQGRJJ'))return res.end(JSON.stringify({tag:p.split('/').at(-1),name:'Report Clan',memberList:[{tag,name:'Member Sixteen',townHallLevel:16,trophies:6000,role:'leader',leagueTier:{name:'Legend I'}},...(p.endsWith(group)?[{tag:tags[1],name:'Member Eighteen',townHallLevel:18,trophies:5000,role:'member',leagueTier:{name:'Legend II'}}]:[])]}));
+ if((memberMode||progressMode)&&(p===`/v1/clans/${group}`||p==='/v1/clans/#PYLQGRJJ'))return res.end(JSON.stringify({tag:p.split('/').at(-1),name:'Report Clan',memberList:[{tag,name:'Member Sixteen',townHallLevel:16,trophies:6000,role:'leader',leagueTier:{name:'Legend I'}},...(p.endsWith(group)?[{tag:tags[1],name:'Member Eighteen',townHallLevel:18,trophies:5000,role:'member',leagueTier:{name:'Legend II'}}]:[])]}));
 
  if((familyOpsMode||clanReportMode)&&p.endsWith('/capitalraidseasons')){
   if(raidFailure&&p.includes('#PYLQGRJJ')){res.statusCode=503;return res.end('{}');}
@@ -172,7 +173,39 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(clanReportMode){
+ if(progressMode){
+  const server='999999999999996510';
+  if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM player_change_history WHERE player_tag=ANY($1::text[])',[[tag,tags[1]]])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic progress data exists');
+  await db.query("INSERT INTO servers(id,name) VALUES($1,'Progress')",[server]);
+  const requestProgress=async(body,auth=true)=>fetch(`http://127.0.0.1:${port}/v2/bot/players/upgrade-progress`,{method:'POST',headers:{'Content-Type':'application/json',...(auth?{Authorization:`Bearer ${keys.API_BOT_TOKEN}`}:{})},body:JSON.stringify(body)});
+  try{
+   await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'Progress Clan',true,0,2,'',0,0),('#PYLQGRJJ','Second Clan',true,0,1,'',0,0)",[group]);
+   await db.query("INSERT INTO server_clans(tag,server_id) VALUES($1,$2),('#PYLQGRJJ',$2)",[group,server]);
+   const body={tags:[tag,tags[1]],type:'all',season:'2026-10'},response=await requestProgress(body),window=await response.json();
+   if(!response.ok||!window.start||!window.end)throw Error('Progress window unavailable '+JSON.stringify(window));
+   const start=new Date(window.start),end=new Date(window.end);
+   const row=async(player,type,item,previous,current,time)=>db.query('INSERT INTO player_change_history(event_time,player_tag,change_type,item_id,townhall_level,previous_value,current_value) VALUES($1,$2,$3,$4,16,$5,$6)',[time,player,type,item,String(previous),String(current)]);
+   await row(tag,3,0,10,15,start);await row(tag,5,0,1,2,new Date(+start+1000));
+   await row(tag,1,0,10,11,new Date(+start+2000));await row(tag,4,0,1,2,new Date(+start+3000));await row(tag,6,0,1,2,new Date(+start+4000));
+   await row(tag,2,0,0,1,new Date(+start+5000));await row(tag,3,0,15,14,new Date(+start+6000));await row(tag,3,0,15,15,new Date(+start+7000));
+   await row(tag,3,0,1,50,new Date(+start-1));await row(tag,3,0,1,60,end);
+   await row(tags[1],3,0,1,20,new Date(+start+8000));
+   const computed=await (await requestProgress(body)).json();
+   const units=computed.items.find(item=>item.tag===tag).units;
+   if(units.reduce((sum,item)=>sum+item.levels,0)!==9||units.reduce((sum,item)=>sum+item.changes,0)!==5||units.some(item=>item.type===2)||units.some(item=>item.name.startsWith('Unknown')))throw Error('Upgrade boundaries or categories failed '+JSON.stringify(computed));
+   const clanOpt={name:'clan',type:3,value:group},typeOpt={name:'type',type:3,value:'heroes'},seasonOpt={name:'season',type:3,value:'2026-10'};
+   const clan=await interact(command('clan','progress',[clanOpt,typeOpt,seasonOpt]));
+   if(!text(clan).includes('2 changes')||!text(clan).includes('+6 levels'))throw Error('Heroes/pets progress mismatch '+text(clan));
+   const family=await interact(command('family','progress',[typeOpt,seasonOpt,{name:'sort_by',type:3,value:'levels'},{name:'limit',type:4,value:1}]));
+   if(!JSON.stringify(family.embeds[0]).includes('Member Eighteen')||JSON.stringify(family.embeds[0]).includes('Member Sixteen')||!text(family).includes('+25 levels'))throw Error('Family deduplication/sort totals failed '+text(family));
+   const filtered=await interact(command('clan','progress',[clanOpt,typeOpt,seasonOpt,{name:'townhall',type:4,value:18}]));
+   if(JSON.stringify(filtered.embeds[0]).includes('Member Sixteen'))throw Error('Town Hall filter ignored');
+   const refresh=family.components[0].components[0].custom_id;
+   if(!refresh.includes('2026-10')||!text(await interact({type:3,data:{custom_id:refresh,component_type:2}},other)).includes('+25 levels'))throw Error('Progress refresh lost filters');
+   if((await requestProgress(body,false)).status!==401||(await requestProgress({...body,tags:Array(101).fill(tag)})).status!==400)throw Error('Progress request guards failed');
+   console.log(JSON.stringify({upgradeProgress:'passed',checks:['real game-season boundaries','boost/decrease/no-change excluded','events versus levels','canonical unit metadata','heroes and pets','family deduplication','sorting and limit','Town Hall filter','refresh','bot auth and batch cap'],externalDiscordWrites:0}));
+  }finally{await db.query('DELETE FROM player_change_history WHERE player_tag=ANY($1::text[])',[[tag,tags[1]]]);await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']]);}
+ }else if(clanReportMode){
   const clanOption={name:'clan',type:3,value:group},cwlId='E2Eclan00001';
   if((await db.query('SELECT 1 FROM cwl_groups WHERE cwl_id=$1',[cwlId])).rowCount)throw Error('Synthetic CWL group exists');
   if((await db.query('SELECT 1 FROM player_stat_changes WHERE player_tag=$1',[tag])).rowCount)throw Error('Synthetic contributions exist');
