@@ -3,6 +3,7 @@ import { ApplicationEmojis } from "../discord/emojis";
 import { ClashKingApiError } from "../api/client";
 import { InteractionResponseType, InteractionType, MessageFlags, type DiscordInteraction, type DiscordInteractionResponse } from "../discord/types";
 import { CommandInputError, requireGuildId } from "./command-utils";
+import { subcommand } from "./game-common";
 import type { Command, CommandServices } from "./types";
 
 const uuid = "[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
@@ -56,7 +57,8 @@ export const ticketCommand: Command = {
     if ((permissions & (8n | 32n)) === 0n) return [];
     const guild = requireGuildId(context);
     const result = await context.services.api.get<{ items: { id: string; name: string }[] }>(`/v2/bot/server/${guild}/ticket-panels`);
-    const query = context.options.get("panel-id")?.value;
+    // Slash options live inside panel-post, not at the command root.
+    const query = subcommand(context).options.get("panel-id")?.value;
     return result.items.filter(panel => panel.name.toLowerCase().includes(typeof query === "string" ? query.toLowerCase() : ""))
       .slice(0, 25).map(panel => ({ name: panel.name.slice(0, 100), value: panel.id }));
   },

@@ -19,6 +19,11 @@ export interface Player {
   currentLeagueGroupTag?: string | null;
   currentLeagueSeasonId?: number | null;
 }
+/** Only Legend I has eight daily attacks. Lower Legend tiers use weekly Ranked
+ * groups. Prefer the numeric tier over localized names and legacy league data. */
+export function isDailyLegend(player: { leagueTier?: { id?: number }; league?: { id?: number } }): boolean {
+  return player.leagueTier?.id ? player.leagueTier.id === 105000036 : player.league?.id === 29000022;
+}
 export interface PlayerUnit { name:string; level:number; maxLevel?:number; village?:string; superTroopIsActive?:boolean }
 export interface LinkedAccount { player_tag: string; player_name?: string; town_hall?: number; is_verified: boolean; hidden?:boolean }
 export const playerOption: ApplicationCommandOption = {
@@ -83,7 +88,7 @@ export async function personalPlayerAutocomplete(context: CommandContext, option
       const player=deadline.aborted?undefined:await ctx.services.api.get<Player>(`/v2/bot/clash/players/${encodeURIComponent(account.player_tag)}`,{},deadline).catch(()=>undefined);
       // Static league tier IDs identify current Legend membership even when
       // display names are localized. A failed lookup cannot prove eligibility.
-      if(options.legendsOnly&&![105000034,105000035,105000036].includes(player?.leagueTier?.id??0)&&player?.league?.id!==29000022)continue;
+      if(options.legendsOnly&&(!player||!isDailyLegend(player)))continue;
       resolved.push({name:player?.name??account.player_name??account.player_tag,tag:account.player_tag,townHall:player?.townHallLevel??account.town_hall??0});
     }
   }));

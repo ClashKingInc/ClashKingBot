@@ -1,6 +1,7 @@
 import { ClashKingApiError } from "../api/client";
 import { invokingUserId, OptionType, stringOption } from "./command-utils";
-import { emojis, fetchPlayer, gameReply, pagedGameReply, legendDay, linkedAccounts, playerAutocomplete, playerLabel, playerOption, resolvePlayerTag, subcommand, userOption } from "./game-common";
+import { emojis, isDailyLegend, fetchPlayer, gameReply, pagedGameReply, legendDay, linkedAccounts, playerAutocomplete, playerLabel, playerOption, resolvePlayerTag, subcommand, userOption } from "./game-common";
+import { rankedBattleLimit } from "./ranked";
 import type { Command, CommandContext } from "./types";
 import { playerAccountsReply } from "./player-profile";
 import { playerProfileReply } from "./player-profile-pages";
@@ -47,8 +48,12 @@ async function todo(ctx: CommandContext, tags: string[]) {
   }
   const clanWars = new Map<string, Promise<War | undefined>>(), clanRaids = new Map<string, Promise<Raids>>();
   async function war(clanTag: string): Promise<War | undefined> {
-    const current = await ctx.services.api.get<War>(`/v2/bot/clash/clans/${encodeURIComponent(clanTag)}/currentwar`);
-    if (current.state === "inWar") return current;
+    // A private regular-war log must not prevent an independent CWL lookup.
+    const current = await ctx.services.api.get<War>(`/v2/bot/clash/clans/${encodeURIComponent(clanTag)}/currentwar`).catch(error => {
+      if(error instanceof ClashKingApiError && [403,404].includes(error.status)) return undefined;
+      throw error;
+    });
+    if (current?.state === "inWar") return current;
     try {
       const group = await ctx.services.api.get<{ rounds?: Array<{ warTags: string[] }> }>(`/v2/bot/clash/clans/${encodeURIComponent(clanTag)}/currentwar/leaguegroup`);
       for (const round of [...(group.rounds ?? [])].reverse()) {
@@ -66,7 +71,18 @@ async function todo(ctx: CommandContext, tags: string[]) {
       try {
         const player = await fetchPlayer(ctx,tag), chores: string[] = [];
         const summary = days.items.find(item => item.tag === tag);
-        if (player.leagueTier?.name.toLowerCase().includes("legend")) chores.push(`${Math.max(0,8-(summary?.attacks ?? 0))}/8 Legend attacks left`);
+        if (isDailyLegend(player)) chores.push(`${Math.max(0,8-(summary?.attacks ?? 0))}/8 Legend attacks left`);
+        else if(player.currentLeagueGroupTag&&player.currentLeagueSeasonId){
+          try{
+            const [group,limit]=await Promise.all([
+              ctx.services.api.get<{members:Array<{playerTag:string;attackWinCount:number;attackLoseCount:number}>}>(`/v2/bot/clash/leaguegroup/${encodeURIComponent(player.currentLeagueGroupTag)}/${player.currentLeagueSeasonId}`,{playerTag:tag}),
+              rankedBattleLimit(player.leagueTier?.id??0),
+            ]);
+            const member=group.members.find(item=>item.playerTag===tag);
+            if(member&&limit!==undefined)chores.push(`${Math.max(0,limit-member.attackWinCount-member.attackLoseCount)}/${limit} Ranked attacks left`);
+            else chores.push("Ranked attacks unavailable");
+          }catch{chores.push("Ranked attacks unavailable");}
+        }
         if (player.clan) {
           const clanTag = player.clan.tag;
           if (!clanWars.has(clanTag)) clanWars.set(clanTag,war(clanTag));

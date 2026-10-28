@@ -1,5 +1,5 @@
 import { CommandInputError, OptionType, normalizeTag, stringOption } from "./command-utils";
-import { emojis, escapeMarkdown, fetchPlayer, pagedGameReply, legendDay, personalPlayerAutocomplete, playerOption, resolvePlayerTag, subcommand } from "./game-common";
+import { emojis, isDailyLegend, escapeMarkdown, fetchPlayer, pagedGameReply, legendDay, personalPlayerAutocomplete, playerOption, resolvePlayerTag, subcommand } from "./game-common";
 import type { Command } from "./types";
 import { legendHistoryReply, type LegendFinish } from "./legend-history";
 import { legendSeasonReply, type LegendSeasonSummary, type LegendSeasonDay, type LegendDayDetails } from "./legend-season";
@@ -33,10 +33,9 @@ export const legendsCommand: Command = {
       const ranks=await ctx.services.api.post<{items:Rank[]}>("/v2/legends/ranks",{tags:clan.memberList.map(member=>member.tag)});
       const rankMap=new Map(ranks.items.map(item=>[item.tag,item]));
       const members=clan.memberList.filter(member=>{
-        const league=member.leagueTier??member.league;
-        return league?league.id===29000022||((league.id??0)>=105000034&&(league.id??0)<=105000036)||/^Legend(?: League)?(?: |$)/iu.test(league.name):rankMap.has(member.tag);
+        return member.leagueTier || member.league ? isDailyLegend(member) : rankMap.has(member.tag);
       }).sort((a,b)=>b.trophies-a.trophies);
-      const summaries=await ctx.services.api.post<{items:Array<{tag:string;attacks:number;defenses:number;attackTrophies:number;defenseTrophies:number;netTrophies:number}>}>("/v2/legends/days",{day,tags:members.map(member=>member.tag)});
+      const summaries=members.length?await ctx.services.api.post<{items:Array<{tag:string;attacks:number;defenses:number;attackTrophies:number;defenseTrophies:number;netTrophies:number}>}>("/v2/legends/days",{day,tags:members.map(member=>member.tag)}):{items:[]};
       const byTag=new Map(summaries.items.map(item=>[item.tag,item]));
       const signed=(value:number)=>`${value>=0?"+":""}${value.toLocaleString("en")}`;
       const entries=members.map(member=>{

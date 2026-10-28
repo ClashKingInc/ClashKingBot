@@ -19,6 +19,7 @@ export const clanCommand:Command={
   {name:"search",description:"View a clan overview",type:OptionType.Subcommand,options:[clanOption,{name:"type",description:"Overview style (default Detailed)",type:OptionType.String,choices:[{name:"Detailed",value:"d"},{name:"Basic",value:"b"},{name:"Minimalistic",value:"m"}]}]},
   {name:"donations",description:"View current or historical clan donations",type:OptionType.Subcommand,options:[clanOption,
    {name:"season",description:"Season YYYY-MM (defaults to current)",type:OptionType.String},
+   {name:"current_members",description:"Only include current clan members (default false)",type:OptionType.Boolean},
    {name:"townhall",description:"Only show this Town Hall",type:OptionType.Integer,min_value:1,max_value:18},
    {name:"limit",description:"Number of players (default 50)",type:OptionType.Integer,min_value:1,max_value:50},
    {name:"sort_by",description:"Sort players by (default Donations)",type:OptionType.String,choices:[{name:"Donations",value:"donated"},{name:"Received",value:"received"},{name:"Name",value:"name"},{name:"Town Hall",value:"townHallLevel"}]},
@@ -38,7 +39,7 @@ export const clanCommand:Command={
  async execute(context){
   const ctx=subcommand(context),raw=stringOption(ctx,"clan");if(!raw)throw new CommandInputError("Choose a clan or enter its tag.");
   const tag=normalizeTag(raw,ctx.locale),view=ctx.path[0]==="donations"?"d":"o";
-  const membersOnly=stringOption(ctx,"__members_only")==="true";
+  const membersOnly=ctx.options.get("current_members")?.value===true||stringOption(ctx,"__members_only")==="true";
   const style=stringOption(ctx,"type")??"d";
   if(!["d","b","m"].includes(style))throw new CommandInputError("Choose a valid overview style.");
   const season=stringOption(ctx,"season")??"current",hall=Number(ctx.options.get("townhall")?.value??0),limit=Number(ctx.options.get("limit")?.value??50),sort=stringOption(ctx,"sort_by")??"donated",order=stringOption(ctx,"sort_order")??"desc";
@@ -88,7 +89,7 @@ export const clanCommand:Command={
    }
   }else{
    const currentTags=new Set(clan.memberList.map(member=>member.tag));
-   const filtered=all.filter(row=>(!hall||row.townHallLevel===hall)&&(!membersOnly||!stats.current||currentTags.has(row.tag)));
+   const filtered=all.filter(row=>(!hall||row.townHallLevel===hall)&&(!membersOnly||currentTags.has(row.tag)));
    filtered.sort((a,b)=>{const cmp=sort==="name"?a.name.localeCompare(b.name):Number(a[sort as "donated"|"received"|"townHallLevel"])-Number(b[sort as "donated"|"received"|"townHallLevel"]);return (order==="asc"?cmp:-cmp)||a.tag.localeCompare(b.tag);});
    const selected=filtered.slice(0,limit);displayed=selected.length;
    // Keep the Town Hall column before the name, using normal monospace digits.
@@ -103,7 +104,6 @@ export const clanCommand:Command={
   const components=[actionRow(
    {type:2,style:2,...(refresh?{emoji:{id:refresh.id,name:refresh.name}}:{label:"Refresh"}),custom_id:id(view.toUpperCase(),0)},
    ...(view==="o"?[{type:2 as const,style:5 as const,label:"Open In-Game",url:clanUrl(tag)}]:[]),
-   ...(view==="d"&&stats.current?[{type:2 as const,style:2 as const,label:membersOnly?"Include former members":"Current members only",custom_id:id(view,0,!membersOnly)}]:[]),
   )];
   return legacyMessage({allowed_mentions:{parse:[]},embeds:[{...(view==="o"?{title:clan.name}:{author:{name:`${clan.name} Top ${displayed} Donators`,...(clan.badgeUrls?.small?{icon_url:clan.badgeUrls.small}:{})}}),...(view==="o"&&clan.badgeUrls?.large?{thumbnail:{url:clan.badgeUrls.large}}:{}),color,description,...(fields.length?{fields}:{}),footer:{text:footer}}],components});
  },

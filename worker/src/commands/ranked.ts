@@ -62,8 +62,9 @@ export const rankedCommand:Command={
    if(rules){
     maxBattles=rules.battle_count;
     // These are live group boundary scores, not a prediction of the final
-    // result. Use actual group size; never apply today's rules to old seasons.
-    const promoted=Math.floor(sorted.length*rules.promote_percentage/100),demoted=Math.floor(sorted.length*rules.demote_percentage/100);
+    // result. Round the actual membership, as the game does (94 × 15% = 14).
+    // Never calculate against capacity or apply today's rules to old seasons.
+    const promoted=Math.round(sorted.length*rules.promote_percentage/100),demoted=Math.round(sorted.length*rules.demote_percentage/100);
     cutoffs={promotion:promoted>0?sorted[promoted-1]?.leagueTrophies:undefined,demotion:demoted>0?sorted[sorted.length-demoted]?.leagueTrophies:undefined};
    }
    attackLogs=group.attackLogs??[];defenseLogs=group.defenseLogs??[];
