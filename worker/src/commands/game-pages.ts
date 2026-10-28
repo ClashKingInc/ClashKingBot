@@ -53,6 +53,11 @@ export async function dispatchGamePage(ctx: CommandContext, waitUntil?: (promise
   }else if(kind==="wp"&&parts.length===4){
     command=clanCommand;action="war-preference";
     options=[string("clan",tag(parts[0])),string("view",parts[1]!),string("status",parts[2]!),{name:"townhall",type:OptionType.Integer,value:Number(parts[3])}];
+  }else if((kind==="ca"&&parts.length===6)||(kind==="fa"&&parts.length===5)){
+    command=kind==="ca"?clanCommand:familyCommand;action="activity";
+    const values=kind==="ca"?parts.slice(1):parts;
+    options=[string("season",values[0]!),{name:"townhall",type:OptionType.Integer,value:Number(values[1])},{name:"limit",type:OptionType.Integer,value:Number(values[2])},string("sort_by",values[3]!),string("sort_order",values[4]!)];
+    if(kind==="ca")options.push(string("clan",tag(parts[0])));
   }else if((kind==="sc"&&parts.length===5)||(kind==="sf"&&parts.length===4)){
     command=kind==="sc"?clanCommand:familyCommand;action="summary";
     const values=kind==="sc"?parts.slice(1):parts;

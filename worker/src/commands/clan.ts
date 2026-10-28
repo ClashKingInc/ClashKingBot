@@ -1,3 +1,4 @@
+import { activityOptions, activityReport } from "./activity";
 import { memberWarning, memberWarningOptions } from "./member-warning";
 import { warPreference, warPreferenceOptions } from "./war-preference";
 import { seasonSummary, seasonSummaryOptions } from "./season-summary";
@@ -23,6 +24,7 @@ const clanOption={name:"clan",description:"Clan tag or name",type:OptionType.Str
 export const clanCommand:Command={
  deferred:true,
  definition:{name:"clan",description:"Clan overview and season donations",type:1,integration_types:[0,1],contexts:[0,1,2],options:[
+  {name:"activity",description:"Recorded activity and current-season last online",type:OptionType.Subcommand,options:[clanOption,...activityOptions]},
   {name:"member-warning",description:"Configure clan member-count threshold alerts",type:OptionType.Subcommand,options:[clanOption,...memberWarningOptions]},
   {name:"war-preference",description:"Current war preferences and recorded history/timers",type:OptionType.Subcommand,options:[clanOption,...warPreferenceOptions]},
   {name:"summary",description:"Season summary for current members",type:OptionType.Subcommand,options:[clanOption,...seasonSummaryOptions]},
@@ -54,6 +56,7 @@ export const clanCommand:Command={
  },
  async execute(context){
   const ctx=subcommand(context);
+  if(ctx.path[0]==="activity")return activityReport(ctx,"clan");
   if(ctx.path[0]==="member-warning")return memberWarning(ctx);
   if(ctx.path[0]==="war-preference")return warPreference(ctx);
   if(ctx.path[0]==="summary")return seasonSummary(ctx,"clan");

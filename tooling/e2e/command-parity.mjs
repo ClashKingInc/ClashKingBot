@@ -54,6 +54,7 @@ const quickPanelMode=process.argv.includes("--quick-panel-only");
 const rosterReadMode=process.argv.includes("--roster-commands-only")||quickPanelMode||memberWarningMode;let rosterProfileFailure=false;
 const helpMode=process.argv.includes("--help-only");
 const warPreferenceMode=process.argv.includes("--war-preference-only");let warPreferenceFailure=false;
+const activityMode=process.argv.includes("--activity-only");
 const summaryMode=process.argv.includes("--summary-only");
 let summaryRaidStart=new Date();
 const progressMode=process.argv.includes("--progress-only");
@@ -684,6 +685,42 @@ try{
    await db.query('DELETE FROM player_war_history WHERE player_tag=ANY($1::text[])',[selected]);
    await db.query('DELETE FROM wars WHERE war_id=ANY($1::int[])',[ids]);
   }
+ }else if(activityMode){
+  const server='999999999999996510',clans=[group,'#PYLQGRJJ'],players=['#VQQQQY','#VQQQQU'];
+  if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[clans])).rowCount||(await db.query('SELECT 1 FROM basic_player WHERE tag=ANY($1::text[])',[players])).rowCount||(await db.query('SELECT 1 FROM player_online_events WHERE tag=ANY($1::text[])',[players])).rowCount)throw Error('Activity fixture exists');
+  const requestActivity=(body,auth=true)=>fetch(`http://127.0.0.1:${port}/v2/bot/clans/activity`,{method:'POST',headers:{'Content-Type':'application/json',...(auth?{Authorization:`Bearer ${keys.API_BOT_TOKEN}`}:{})},body:JSON.stringify(body)});
+  try{
+   await db.query("INSERT INTO servers(id,name) VALUES($1,'Activity')",[server]);
+   for(const [i,clan] of clans.entries()){await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,$2,true,0,0,'',0,0)",[clan,'Activity Clan '+i]);await db.query('INSERT INTO server_clans(tag,server_id) VALUES($1,$2)',[clan,server]);}
+   await db.query("INSERT INTO basic_player(tag,name,clan_tag,townhall_level) VALUES($1,'Active Alpha','#QQQQ',16),($2,'Quiet Zulu','#QQQQ',18)",players);
+   const window=await (await fetch(`http://127.0.0.1:${port}/v2/bot/clans/${encodeURIComponent(group)}/season-stats`,{headers:{Authorization:`Bearer ${keys.API_BOT_TOKEN}`}})).json();
+   if(!window.current)throw Error('Expected current activity season');
+   const start=new Date(window.start),end=new Date(window.end),recent=new Date(Date.now()-3600000),older=new Date(Date.now()-7200000);
+   await db.query("INSERT INTO player_online_events(tag,clan_tag,seen_at) VALUES($1,$3,$5),($1,$4,$6),($2,$3,$6),($1,$3,$7),($1,$3,$8),($1,'#QQQQ',$9)",[...players,...clans,older,recent,new Date(+start-1000),end,new Date(Date.now()-60000)]);
+   const response=await requestActivity({clanTags:[...clans,group]}),data=await response.json();
+   if(!response.ok||data.items.length!==2||data.items.find(row=>row.tag===players[0]).activity!==2||data.clanTotals.find(row=>row.tag===group).activity!==2||data.clanTotals.find(row=>row.tag===clans[1]).activity!==1)throw Error('Activity attribution/deduplication failed '+JSON.stringify(data));
+   if(Date.parse(data.items.find(row=>row.tag===players[0]).lastObservedAt)<+recent)throw Error('Latest activity outside family not retained');
+   const family=await interact(command('family','activity'));
+   if(family.embeds.length!==2||!text(family).includes('Active Alpha')||!text(family).includes('Clan activity totals')||text(family).includes('No recorded activity'))throw Error('Family activity missing '+text(family));
+   if(family.embeds[0].description.match(/Active Alpha/g)?.length!==1||family.embeds[0].description.indexOf('Active Alpha')>family.embeds[0].description.indexOf('Quiet Zulu'))throw Error('Player not deduplicated or activity sort wrong');
+   const refresh=await interact({type:3,data:{custom_id:family.components[0].components[0].custom_id,component_type:2}},other);
+   if(!text(refresh).includes('Clan activity totals'))throw Error('Public activity refresh failed');
+   const filtered=await interact(command('clan','activity',[{name:'clan',type:3,value:group},{name:'townhall',type:4,value:18},{name:'sort_by',type:3,value:'online'}]));
+   if(!text(filtered).includes('Quiet Zulu')||text(filtered).includes('Active Alpha'))throw Error('Activity townhall filter failed');
+   const ascending=await interact(command('family','activity',[{name:'sort_order',type:3,value:'asc'},{name:'limit',type:4,value:1}]));
+   if(!ascending.embeds[0].description.includes('Quiet Zulu')||ascending.embeds[0].description.includes('Active Alpha'))throw Error('Ascending order or limit failed');
+   const oldWindow=await (await fetch(`http://127.0.0.1:${port}/v2/bot/clans/${encodeURIComponent(group)}/season-stats?season=2024-01`,{headers:{Authorization:`Bearer ${keys.API_BOT_TOKEN}`}})).json();
+   await db.query('INSERT INTO player_online_events(tag,clan_tag,seen_at) VALUES($1,$2,$3),($1,$2,$4)',[players[0],group,new Date(oldWindow.start),new Date(oldWindow.end)]);
+   const historical=await (await requestActivity({clanTags:clans,season:'2024-01'})).json();
+   if(historical.current||historical.items.length!==1||historical.items[0].activity!==1||historical.items.some(row=>row.lastObservedAt!==null))throw Error('Historical online or season boundary leakage');
+   const pastMessage=await interact(command('family','activity',[{name:'season',type:3,value:'2024-01'}]));
+   if(!pastMessage.embeds[0].description.includes('Active Alpha')||pastMessage.embeds[0].description.includes(' LO '))throw Error('Historical display omitted count or showed online');
+   const badSort=await interact(command('family','activity',[{name:'season',type:3,value:'2024-01'},{name:'sort_by',type:3,value:'online'}]));
+   if(!text(badSort).includes('current season'))throw Error('Historical online sort accepted');
+   if((await requestActivity({clanTags:clans},false)).status!==401||(await requestActivity({clanTags:[]})).status!==400||(await requestActivity({clanTags:Array(201).fill(group)})).status!==400||(await requestActivity({clanTags:clans,season:'2099-01'})).status!==400)throw Error('Activity auth/bounds failed');
+   for(const message of [family,filtered,refresh])if(message.embeds.reduce((n,e)=>n+(e.title?.length??0)+(e.description?.length??0)+(e.footer?.text?.length??0),0)>6000)throw Error('Activity Discord size limit');
+   console.log(JSON.stringify({activity:'passed',checks:['real Bot/API/SQL','former members included','family moves deduplicated','event clan attribution','exclusive season boundaries','current last observed anywhere','historical online hidden','Town Hall filter','sort and public refresh','clan totals','authentication and bounds','Discord size'],externalDiscordWrites:0}));
+  }finally{await db.query('DELETE FROM player_online_events WHERE tag=ANY($1::text[])',[players]);await db.query('DELETE FROM basic_player WHERE tag=ANY($1::text[])',[players]);await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[clans]);}
  }else if(summaryMode){
   const server='999999999999996510',summaryTags=[tag,tags[1]],warRows=[];
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM player_war_history WHERE player_tag=ANY($1::text[])',[summaryTags])).rowCount||(await db.query('SELECT 1 FROM battles_farming WHERE player_tag=ANY($1::text[])',[summaryTags])).rowCount||(await db.query('SELECT 1 FROM battles_ranked WHERE player_tag=ANY($1::text[])',[summaryTags])).rowCount||(await db.query('SELECT 1 FROM player_stat_changes WHERE player_tag=ANY($1::text[])',[summaryTags])).rowCount||(await db.query('SELECT 1 FROM leaderboard_history_player_home WHERE player_tag=ANY($1::text[])',[summaryTags])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic summary data exists');

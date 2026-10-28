@@ -1,3 +1,4 @@
+import { activityOptions, activityReport } from "./activity";
 import { seasonSummary, seasonSummaryOptions } from "./season-summary";
 import { upgradeProgress, upgradeProgressOptions } from "./upgrade-progress";
 import { familyDirectory, familyDirectoryOptions } from "./family-directory";
@@ -10,6 +11,7 @@ import type { Command } from "./types";
 export const familyCommand:Command={
  deferred:true,
  definition:{name:"family",description:"Linked family clan contribution reports",type:1,integration_types:[0],contexts:[0],options:[
+  {name:"activity",description:"Recorded activity and current-season last online",type:OptionType.Subcommand,options:activityOptions},
   {name:"summary",description:"Season summary for current members",type:OptionType.Subcommand,options:[...seasonSummaryOptions]},
   {name:"progress",description:"Observed unit upgrade changes and levels gained",type:OptionType.Subcommand,options:[...upgradeProgressOptions]},
   {name:"clans",description:"Browse family clans by category, league or location",type:OptionType.Subcommand,options:familyDirectoryOptions(false)},
@@ -27,6 +29,7 @@ export const familyCommand:Command={
  ]},
  async execute(context){
   const ctx=subcommand(context);
+  if(ctx.path[0]==="activity")return activityReport(ctx,"family");
   if(ctx.path[0]==="summary")return seasonSummary(ctx,"family");
   if(ctx.path[0]==="progress")return upgradeProgress(ctx,"family");
   if(["clans","stats"].includes(ctx.path[0]??""))return familyDirectory(ctx);
