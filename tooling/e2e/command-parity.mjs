@@ -37,9 +37,19 @@ const tier=codes.find(row=>row.name!=='Unranked')?._id??105000001;
 const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const sentReminders=[];
+const roleMode=process.argv.includes('--roles-only'),roleServer='999999999999996510';
+const botRole='999999999999996520',newRole='999999999999996521',oldRole='999999999999996522',unmanagedRole='999999999999996523';
+const memberRoles=new Set([oldRole,unmanagedRole]),roleWrites=[];
+let nickname='Original nickname';
+const roleDefinitions=[{id:roleServer,name:'@everyone',position:0,permissions:'0'},
+ {id:botRole,name:'Bot',position:10,permissions:String((1<<28)+(1<<27))},
+ {id:newRole,name:'TH16',position:2,permissions:'0'},
+ {id:oldRole,name:'TH15',position:1,permissions:'0'},
+ {id:unmanagedRole,name:'Unmanaged',position:3,permissions:'0'}];
 const provider=createServer(async(req,res)=>{
  let text='';for await(const chunk of req)text+=chunk;
  const url=new URL(req.url,'http://provider');live.push(url.pathname+url.search);res.setHeader('Content-Type','application/json');
+ if(roleMode&&url.pathname===`/api/v10/guilds/${roleServer}`)return res.end(JSON.stringify({id:roleServer,owner_id:other}));
  const p=decodeURIComponent(url.pathname),endTime=new Date(Date.now()+3600000).toISOString();
  const startTime=new Date(Date.now()+1800000).toISOString(),warState=reminderPreparation?'preparation':'inWar';
  const own={tag:group,name:'Reminder Clan',stars:5,members:[{tag,name:'Missing Player',townhallLevel:16,attacks:[]},{tag:tags[1],name:'Finished Player',townhallLevel:16,attacks:[{},{}]}]};
@@ -75,12 +85,18 @@ try{
  if(armies.length<30)throw Error('Thirty existing local compositions required');
  for(const army of armies)await db.query('INSERT INTO user_saved_armies(user_id,share_code) VALUES($1,$2)',[actor,army.share_code]);
  for(const season of historySeasons)await db.query(`INSERT INTO ranked_league_group_members(season_id,group_tag,league_tier_id,player_tag,player_name,placement,league_trophies,attack_win_count,attack_loss_count,defense_win_count,defense_loss_count,town_hall,maximum_battle_count) VALUES($1,$2,$3,$4,'Historical Player',1,5000,8,1,4,5,16,10)`,[season,group,tier,tag]);
- const env={PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR,CLASHKING_PERSISTENT_LOCAL_API:'1',CLASHKING_LOCAL_DATABASE_URL:database,CLASHKING_LOCAL_API_PORT:String(port),CLASHKING_LOCAL_DISCORD_CLIENT_ID:app,CLASHKING_LOCAL_DISCORD_CLIENT_SECRET:'local-only',CLASHKING_LOCAL_DISCORD_PUBLIC_KEY:publicHex,CLASHKING_LOCAL_ARCHIVE_BRIDGE:'0',CLASHKING_LOCAL_CLASH_PROXY_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_STATIC_ASSETS_ROOT:join(assetsRepo,'assets/static_data'),CLASHKING_LOCAL_STORAGE_ROOT:join(directory,'storage'),...Object.fromEntries(Object.entries(keys).map(([key,value])=>[`CLASHKING_LOCAL_${key}`,value]))};
+ const env={PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR,CLASHKING_PERSISTENT_LOCAL_API:'1',CLASHKING_LOCAL_DATABASE_URL:database,CLASHKING_LOCAL_API_PORT:String(port),CLASHKING_LOCAL_DISCORD_CLIENT_ID:app,CLASHKING_LOCAL_DISCORD_TEST_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_DISCORD_CLIENT_SECRET:'local-only',CLASHKING_LOCAL_DISCORD_PUBLIC_KEY:publicHex,CLASHKING_LOCAL_ARCHIVE_BRIDGE:'0',CLASHKING_LOCAL_CLASH_PROXY_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_STATIC_ASSETS_ROOT:join(assetsRepo,'assets/static_data'),CLASHKING_LOCAL_STORAGE_ROOT:join(directory,'storage'),...Object.fromEntries(Object.entries(keys).map(([key,value])=>[`CLASHKING_LOCAL_${key}`,value]))};
  api=spawn(process.execPath,['scripts/start-local-rewrite-api.mjs'],{cwd:apiRepo,env,stdio:['ignore','pipe','pipe']});api.stdout.on('data',data=>logs+=data);api.stderr.on('data',data=>logs+=data);
  // Health can become ready before static metadata is seeded. Army previews
  // exercise that metadata, so do not race the real launcher's second phase.
  await wait(async()=>{try{return logs.includes('local_static_assets_seeded')&&(await fetch(`http://127.0.0.1:${port}/v2/health`)).ok;}catch{return false;}},'API and static assets startup');
  const bundle=await bundleWorker();
+ if(roleMode){
+  const entry=bundle.modules[0],name=/([a-zA-Z0-9_]+) as default/.exec(entry.contents)?.[1];
+  if(!name)throw Error('Cannot identify compiled worker export');
+  entry.contents+=`\nconst originalScheduled = ${name}.scheduled; ${name}.scheduled = async (controller, env, context) => { try { return await originalScheduled(controller, env, { waitUntil(promise) { context.waitUntil(promise.catch(error => { console.error("scheduled_test_error",error.name,error.message); throw error; })); } }); } catch(error) { console.error("scheduled_test_error",error.name,error.message); throw error; } };`;
+ }
+
  bot=new Miniflare(convertV4MiniflareOptions({host:'127.0.0.1',port:0,workers:[{name:'command-e2e',...bundle,compatibilityDate:'2026-08-22',compatibilityFlags:['nodejs_compat'],
  bindings:{APP_ENV:'dev',LOCAL_TEST_USER_ID:'',DASHBOARD_BASE_URL:'https://dash.clashk.ing',CLASHKING_API_BASE_URL:`http://127.0.0.1:${port}`,CLASHKING_API_TOKEN:keys.API_BOT_TOKEN,DISCORD_APPLICATION_ID:app,DISCORD_BOT_TOKEN:`${Buffer.from(app).toString('base64')}.local.token`,DISCORD_PUBLIC_KEY:publicHex},
  outboundService:async request=>{
@@ -88,10 +104,29 @@ try{
   if(url.hostname==='cdn.discordapp.com'&&url.pathname==='/attachments/local/evidence.png')return new Response(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXZkAAAAASUVORK5CYII=','base64'),{headers:{'Content-Type':'image/png'}});
   if(url.hostname==='assets.clashk.ing'&&/^\/static_data\/(troops|spells|heroes|pets|equipment|buildings)\.json$/u.test(url.pathname))return new Response(readFileSync(join(assetsRepo,'assets',url.pathname)),{headers:{'Content-Type':'application/json'}});
   if(url.hostname==='discord.com'){
+   if(roleMode){
+    if(url.pathname==='/api/v10/users/@me')return Response.json({id:app});
+    if(url.pathname===`/api/v10/guilds/${roleServer}`)return Response.json({id:roleServer,owner_id:other});
+    if(url.pathname===`/api/v10/guilds/${roleServer}/roles`)return Response.json(roleDefinitions);
+    if(url.pathname===`/api/v10/guilds/${roleServer}/members/${app}`)return Response.json({user:{id:app,bot:true},roles:[botRole]});
+    if(url.pathname===`/api/v10/guilds/${roleServer}/members/${actor}`){
+     if(request.method==='GET')return Response.json({user:{id:actor,username:'Local'},nick:nickname,roles:[...memberRoles]});
+     if(request.method==='PATCH'){nickname=(await request.json()).nick;roleWrites.push({kind:'nickname',value:nickname});return Response.json({});}
+    }
+    const change=new RegExp(`/guilds/${roleServer}/members/${actor}/roles/([0-9]+)$`).exec(url.pathname);
+    if(change){if(request.method==='PUT')memberRoles.add(change[1]);else if(request.method==='DELETE')memberRoles.delete(change[1]);else throw Error('Unexpected role method');roleWrites.push({kind:request.method,role:change[1]});return new Response(null,{status:204});}
+   }
    if(request.method==='GET'&&url.pathname.endsWith('/emojis')){emojiInventoryRequests++;return Response.json({items:emojiItems});}
    if(request.method==='GET'&&url.pathname.includes('/channels/'))return Response.json({id:url.pathname.split('/').at(-1),guild_id:'999999999999996510',type:0});
    if(request.method==='POST'&&url.pathname.endsWith('/messages')){if(reminderSendFails)return Response.json({message:'Missing permissions'},{status:403});sentReminders.push(await request.json());return Response.json({id:'999999999999996999'});}
    const token=url.pathname.split('/')[5];const data=await request.json();replies.set(token,data);return Response.json({id:'999999999999996999'});
+  }
+  // Keep the actual cron consumer from claiming other development users' jobs.
+  // Only the local harness adds this existing API filter; production code is unchanged.
+  if(roleMode&&url.hostname==='127.0.0.1'&&url.pathname==='/v2/bot/role-refresh/claim'){
+   const body=await request.json();body.serverId=roleServer;
+   const headers=new Headers(request.headers);headers.delete('content-length');
+   return fetch(request.url,{method:'POST',headers,body:JSON.stringify(body)});
   }
   if(url.hostname==='127.0.0.1'&&url.port===String(port))return fetch(request.url,{method:request.method,headers:Object.fromEntries(request.headers),body:['GET','HEAD'].includes(request.method)?undefined:await request.arrayBuffer()});
   throw Error('External request blocked by local integration harness');
@@ -101,7 +136,44 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(process.argv.includes('--moderation-only')){
+ if(roleMode){
+  if((await db.query('SELECT 1 FROM servers WHERE id=$1',[roleServer])).rowCount)throw Error('Synthetic role server exists');
+  if((await db.query('SELECT 1 FROM discord_cache.gateway_shards WHERE application_id=$1',[app])).rowCount)throw Error('Synthetic role application exists');
+  await db.query("INSERT INTO servers(id,name) VALUES($1,'Role refresh integration')",[roleServer]);
+  try{
+   const generation=randomBytes(16).toString('hex');
+   await db.query('INSERT INTO discord_cache.gateway_shards(application_id,shard_id,shard_count,generation,healthy,heartbeat_at) VALUES($1,0,1,$2,true,now())',[app,generation]);
+   await db.query('INSERT INTO discord_cache.guilds(id,data,application_id,shard_id,generation,available,metadata_complete,members_complete) VALUES($1,$2,$3,0,$4,true,true,true)',[roleServer,JSON.stringify({owner_id:other}),app,generation]);
+   await db.query('INSERT INTO discord_cache.members(guild_id,user_id,data) VALUES($1,$2,$3)',[roleServer,actor,JSON.stringify({user:{id:actor},roles:[]})]);
+   await db.query("INSERT INTO server_roles(server_id,type,option,role_id) VALUES($1,'townhall','16',$2),($1,'townhall','15',$3)",[roleServer,newRole,oldRole]);
+   const preview=await interact({type:2,data:{name:'refresh',options:[{name:'test',type:5,value:true}]}});
+   if(!text(preview).includes('1/1 refreshes completed')||roleWrites.length)throw Error('Refresh preview failed: '+text(preview));
+   const applied=await interact({type:2,data:{name:'refresh'}});
+   if(!text(applied).includes('1/1 refreshes completed')||!memberRoles.has(newRole)||memberRoles.has(oldRole)||!memberRoles.has(unmanagedRole)||nickname==='Original nickname')throw Error('Role/nickname application failed: '+text(applied));
+   const before=roleWrites.length;
+   const again=await interact({type:2,data:{name:'refresh'}});
+   if(!text(again).includes('1/1 refreshes completed')||roleWrites.length!==before)throw Error('Repeated refresh changed unchanged roles');
+   // A stale configured role above the bot is reported, never applied.
+   roleDefinitions.find(role=>role.id===newRole).position=12;memberRoles.delete(newRole);
+   const blocked=await interact({type:2,data:{name:'refresh'}});
+   if(!text(blocked).includes('blocked change')||memberRoles.has(newRole))throw Error('Role hierarchy was bypassed');
+   roleDefinitions.find(role=>role.id===newRole).position=2;
+   memberRoles.add(oldRole);
+   await db.query('UPDATE servers SET autoeval_enabled=true,auto_eval_nickname=false WHERE id=$1',[roleServer]);
+   const jobId=`auto:${roleServer}:${actor}`;
+   await db.query('INSERT INTO role_refresh_jobs(id,server_id,user_id) VALUES($1,$2,$3)',[jobId,roleServer,actor]);
+   const scheduled=await (await bot.getWorker()).scheduled({cron:'* * * * *'});
+   console.log('Scheduled response',scheduled);
+   await wait(async()=>Boolean((await db.query('SELECT completed_at FROM role_refresh_jobs WHERE id=$1',[jobId])).rows[0]?.completed_at),'automatic refresh completion').catch(async error=>{console.log('Synthetic job status',(await db.query('SELECT attempts,completed_at,result,due_at FROM role_refresh_jobs WHERE id=$1',[jobId])).rows);throw error;});
+   if(!memberRoles.has(newRole)||memberRoles.has(oldRole)||scheduled.outcome!=='ok')throw Error('Scheduled role refresh failed');
+   console.log(JSON.stringify({roleRefresh:'passed',checks:['actual signed command/API/SQL flow','null nickname defaults','preview performs no Discord edits','role add/remove preserves unmanaged role','repeat no-op','role hierarchy protection','scheduled automatic job completion'],externalDiscordWrites:0,localProviderWrites:roleWrites.length}));
+  }finally{
+   await db.query('DELETE FROM servers WHERE id=$1',[roleServer]);
+   await db.query('DELETE FROM discord_cache.members WHERE guild_id=$1',[roleServer]);
+   await db.query('DELETE FROM discord_cache.guilds WHERE id=$1',[roleServer]);
+   await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);
+  }
+ }else if(process.argv.includes('--moderation-only')){
   const server='999999999999996510';
   if((await db.query('SELECT player_tag FROM server_bans WHERE server_id=$1 UNION ALL SELECT tag FROM strikes WHERE server_id=$1',[server])).rowCount)throw Error('Synthetic moderation server already has records');
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount)throw Error('Synthetic moderation server already exists');
