@@ -38,6 +38,8 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+const summaryMode=process.argv.includes("--summary-only");
+let summaryRaidStart=new Date();
 const progressMode=process.argv.includes("--progress-only");
 const clanReportMode=process.argv.includes("--clan-reports-only");
 const familyOpsMode=process.argv.includes("--family-ops-only");
@@ -63,8 +65,13 @@ const provider=createServer(async(req,res)=>{
  const url=new URL(req.url,'http://provider');live.push(url.pathname+url.search);res.setHeader('Content-Type','application/json');
  if(roleMode&&url.pathname===`/api/v10/guilds/${roleServer}`)return res.end(JSON.stringify({id:roleServer,owner_id:other}));
  const p=decodeURIComponent(url.pathname),endTime=fixtureEnd;
- if((memberMode||progressMode)&&(p===`/v1/clans/${group}`||p==='/v1/clans/#PYLQGRJJ'))return res.end(JSON.stringify({tag:p.split('/').at(-1),name:'Report Clan',memberList:[{tag,name:'Member Sixteen',townHallLevel:16,trophies:6000,role:'leader',leagueTier:{name:'Legend I'}},...(p.endsWith(group)?[{tag:tags[1],name:'Member Eighteen',townHallLevel:18,trophies:5000,role:'member',leagueTier:{name:'Legend II'}}]:[])]}));
+ if((memberMode||progressMode||summaryMode)&&(p===`/v1/clans/${group}`||p==='/v1/clans/#PYLQGRJJ'))return res.end(JSON.stringify({tag:p.split('/').at(-1),name:'Report Clan',memberList:[{tag,name:'Member Sixteen',townHallLevel:16,trophies:6000,role:'leader',leagueTier:{name:'Legend I'}},...(p.endsWith(group)?[{tag:tags[1],name:'Member Eighteen',townHallLevel:18,trophies:5000,role:'member',leagueTier:{name:'Legend II'}}]:[])]}));
 
+ if(summaryMode&&p.endsWith('/capitalraidseasons')){
+  if(raidFailure&&p.includes('#PYLQGRJJ')){res.statusCode=503;return res.end('{}');}
+  const summaryMembers=p.includes('#PYLQGRJJ')?[{tag,name:'First',capitalResourcesLooted:33},{tag:tags[1],name:'Second',capitalResourcesLooted:222}]:[{tag,name:'First',capitalResourcesLooted:111}];
+  return res.end(JSON.stringify({items:[{state:'ended',startTime:summaryRaidStart.toISOString(),endTime:new Date(+summaryRaidStart+3*86400000).toISOString(),capitalTotalLoot:333,totalAttacks:6,raidsCompleted:1,enemyDistrictsDestroyed:2,offensiveReward:1,defensiveReward:1,members:summaryMembers.map(m=>({...m,attacks:3,attackLimit:5,bonusAttackLimit:1}))}]}));
+ }
  if((familyOpsMode||clanReportMode)&&p.endsWith('/capitalraidseasons')){
   if(raidFailure&&p.includes('#PYLQGRJJ')){res.statusCode=503;return res.end('{}');}
   const raid=(start,loot)=>({state:'ended',startTime:start.toISOString(),endTime:new Date(+start+3*86400000).toISOString(),capitalTotalLoot:loot,totalAttacks:6,raidsCompleted:2,enemyDistrictsDestroyed:4,offensiveReward:100,defensiveReward:20,members:[{tag, name:'Raider',attacks:6,attackLimit:5,bonusAttackLimit:1,capitalResourcesLooted:loot}]});
@@ -173,7 +180,49 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(progressMode){
+ if(summaryMode){
+  const server='999999999999996510',summaryTags=[tag,tags[1]],warRows=[];
+  if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM player_war_history WHERE player_tag=ANY($1::text[])',[summaryTags])).rowCount||(await db.query('SELECT 1 FROM battles_farming WHERE player_tag=ANY($1::text[])',[summaryTags])).rowCount||(await db.query('SELECT 1 FROM battles_ranked WHERE player_tag=ANY($1::text[])',[summaryTags])).rowCount||(await db.query('SELECT 1 FROM player_stat_changes WHERE player_tag=ANY($1::text[])',[summaryTags])).rowCount||(await db.query('SELECT 1 FROM leaderboard_history_player_home WHERE player_tag=ANY($1::text[])',[summaryTags])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic summary data exists');
+  const getSummary=async()=>{const response=await fetch(`http://127.0.0.1:${port}/v2/bot/players/season-summary`,{method:'POST',headers:{Authorization:`Bearer ${keys.API_BOT_TOKEN}`,'Content-Type':'application/json'},body:JSON.stringify({tags:summaryTags,season:'2026-10'})});if(!response.ok)throw Error('Summary API '+response.status+' '+await response.text());return response.json();};
+  await db.query("INSERT INTO servers(id,name) VALUES($1,'Summary')",[server]);
+  try{
+   await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'Summary Clan',true,0,2,'',0,0),('#PYLQGRJJ','Second Clan',true,0,1,'',0,0)",[group]);
+   await db.query("INSERT INTO server_clans(tag,server_id) VALUES($1,$2),('#PYLQGRJJ',$2)",[group,server]);
+   const window=await getSummary(),start=new Date(window.start),end=new Date(window.end);
+   summaryRaidStart=new Date(+start+4*86400000);summaryRaidStart.setUTCHours(7,0,0,0);
+   await db.query("INSERT INTO battles_farming(player_tag,battle_time,stars,destruction_percentage,duration_seconds,looted_resources) VALUES($1,$2,3,100,90,'{\"gold\":100,\"elixir\":200,\"darkElixir\":10}'),($1,$3,3,100,90,'{\"gold\":9999}')",[tag,new Date(+start+1000),end]);
+   await db.query("INSERT INTO battles_ranked(player_tag,opponent_tag,battle_time,direction,battle_mode,player_town_hall,opponent_town_hall,stars,destruction_percentage,duration_seconds,looted_resources) VALUES($1,'#PYLR',$2,1,1,16,16,2,80,90,'{\"gold\":50,\"elixir\":20,\"darkElixir\":1}'),($1,'#PYLR',$3,2,1,16,16,3,100,90,NULL)",[tag,new Date(+start+2000),new Date(+start+3000)]);
+   await db.query("INSERT INTO player_stat_changes(player_tag,clan_tag,event_time,stat_type,previous_value,current_value,delta) VALUES($1,$2,$3,'donated',0,321,321),($1,$2,$4,'capital_gold_donated',0,444,444),($5,$2,$3,'received',0,222,222)",[tag,group,new Date(+start+5000),new Date(+start+6000),tags[1]]);
+   await db.query("INSERT INTO leaderboard_history_player_home(location_id,date,player_tag,player_name,exp_level,trophies,attack_wins,defense_wins,rank) VALUES('global',$1,$2,'Snapshot Player',200,1234,4,2,1)",[new Date(+start+2*86400000).toISOString().slice(0,10),tag]);
+   const prep=new Date(+start+86400000).toISOString(),battleStart=new Date(+start+2*86400000).toISOString(),warEnd=new Date(+start+3*86400000).toISOString();
+   const side=(sideTag,name,members)=>({tag:sideTag,name,badgeToken:'',clanLevel:1,attacks:2,stars:5,destructionPercentage:100,members});
+   const archived={state:'warEnded',teamSize:2,attacksPerMember:2,preparationStartTime:prep,startTime:battleStart,endTime:warEnd,battleModifier:'none',clan:side(group,'Summary Clan',[{tag,name:'First',townhallLevel:16,mapPosition:1,attacks:[{defenderTag:'#PYLR',stars:3,destructionPercentage:100,duration:90,order:1},{defenderTag:'#PYLQ',stars:2,destructionPercentage:80,duration:90,order:2}]}]),opponent:side('#PYLQGRJJ','Second Clan',[])};
+   for(const type of ['random','friendly']){const row=(await db.query("INSERT INTO wars(clan_tag,opponent_tag,prep_time,start_time,end_time,size,war_type,state) VALUES($1,'#PYLQGRJJ',$2,$3,$4,2,$5,'warEnded') RETURNING war_id",[group,prep,battleStart,new Date(Date.parse(warEnd)+(type==='friendly'?1000:0)),type])).rows[0];warRows.push({...row,endTime:new Date(Date.parse(warEnd)+(type==='friendly'?1000:0))});if(type==='random')await db.query('INSERT INTO war_archive_pending(war_id,end_time,payload) VALUES($1,$2,$3)',[row.war_id,warRows[0].endTime,JSON.stringify(archived)]);}
+   await db.query('INSERT INTO player_war_history(player_tag,war_ids) VALUES($1,$2)',[tag,warRows.map(row=>row.war_id)]);
+   const data=await getSummary(),first=data.items.find(row=>row.tag===tag),second=data.items.find(row=>row.tag===tags[1]);
+   if(first.gold!==150||first.elixir!==220||first.darkElixir!==11||first.attacks!==2||first.wins!==2||first.donated!==321||first.capitalDonated!==444||first.warStars!==5||first.trophies!==1234||second.gold!==null||!data.warCoverageComplete)throw Error('Recorded summary mismatch '+JSON.stringify(data));
+   const opts=[{name:'season',type:3,value:'2026-10'}],clan=await interact(command('clan','summary',[{name:'clan',type:3,value:group},...opts]));
+   if(!text(clan).includes('150')||!text(clan).includes('1.2K'))throw Error('Clan summary missing totals '+text(clan));
+   const family=await interact(command('family','summary',opts));
+   if(!text(family).includes('144')||!text(family).includes('222')||!text(family).includes('2 current members'))throw Error('Family raid aggregation or member deduplication failed '+text(family));
+   const refresh=family.components[0].components[0].custom_id;
+   if(!refresh.includes('2026-10')||!text(await interact({type:3,data:{custom_id:refresh,component_type:2}},other)).includes('144'))throw Error('Summary refresh lost season');
+   raidFailure=true;
+   const partialRaid=await interact(command('family','summary',[...opts,{name:'view',type:3,value:'capital'}]));
+   const lootField=partialRaid.embeds.flatMap(embed=>embed.fields??[]).find(field=>field.name.includes('looted'));
+   if(!text(partialRaid).includes('raid histories incomplete')||!lootField?.value.includes('No recorded observations')||!text(partialRaid).includes('444'))throw Error('Partial raid history presented as complete');
+   raidFailure=false;
+   const countText=embeds=>embeds.reduce((sum,embed)=>sum+(embed.title?.length??0)+(embed.description?.length??0)+(embed.footer?.text?.length??0)+(embed.fields??[]).reduce((n,field)=>n+field.name.length+field.value.length,0),0);
+   if(countText(family.embeds)>6000||family.embeds.some(embed=>(embed.fields??[]).some(field=>field.value.length>1024)))throw Error('Summary exceeds Discord limits');
+   await db.query('DELETE FROM war_archive_pending WHERE war_id=$1 AND end_time=$2',[warRows[0].war_id,warRows[0].endTime]);
+   const missing=await getSummary();if(missing.warCoverageComplete||missing.items.find(row=>row.tag===tag).warStars!==null||missing.items.find(row=>row.tag===tag).gold!==150)throw Error('Missing archive corrupted independent totals');
+   const unauthorized=await fetch(`http://127.0.0.1:${port}/v2/bot/players/season-summary`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tags:summaryTags})});if(unauthorized.status!==401)throw Error('Summary auth missing');
+   console.log(JSON.stringify({seasonSummary:'passed',checks:['farming plus ranked loot','defense excluded','exclusive season end','missing data stays null','donations and snapshot','completed non-friendly war stars','missing archive isolates metric','family deduplication','raid aggregation and partial failure','Discord message limits','refresh and authentication'],externalDiscordWrites:0}));
+  }finally{
+   await db.query('DELETE FROM player_war_history WHERE player_tag=ANY($1::text[])',[summaryTags]);for(const row of warRows)await db.query('DELETE FROM wars WHERE war_id=$1 AND end_time=$2',[row.war_id,row.endTime]);
+   await db.query('DELETE FROM leaderboard_history_player_home WHERE player_tag=ANY($1::text[])',[summaryTags]);await db.query('DELETE FROM player_stat_changes WHERE player_tag=ANY($1::text[])',[summaryTags]);await db.query('DELETE FROM battles_farming WHERE player_tag=ANY($1::text[])',[summaryTags]);await db.query('DELETE FROM battles_ranked WHERE player_tag=ANY($1::text[])',[summaryTags]);await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']]);
+  }
+ }else if(progressMode){
   const server='999999999999996510';
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM player_change_history WHERE player_tag=ANY($1::text[])',[[tag,tags[1]]])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic progress data exists');
   await db.query("INSERT INTO servers(id,name) VALUES($1,'Progress')",[server]);

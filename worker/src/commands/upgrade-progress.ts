@@ -1,5 +1,6 @@
+import { currentReportMembers } from "./report-members";
 import { actionRow, legacyMessage } from "../discord/components";
-import { CommandInputError, OptionType, invokingUserId, normalizeTag, requireGuildId, stringOption } from "./command-utils";
+import { CommandInputError, OptionType, invokingUserId, stringOption } from "./command-utils";
 import { emojis, escapeMarkdown } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
 import type { ApplicationCommandOption, CommandContext } from "./types";
@@ -12,8 +13,6 @@ export const upgradeProgressOptions:ApplicationCommandOption[]=[
  {name:"sort_order",description:"Ranking direction",type:OptionType.String,choices:[{name:"Highest first",value:"desc"},{name:"Lowest first",value:"asc"}]},
  {name:"townhall",description:"Filter by current Town Hall",type:OptionType.Integer,min_value:1,max_value:30},
 ];
-interface Member{tag:string;name:string;townHallLevel?:number}
-interface Clan{tag:string;name:string;memberList:Member[]}
 interface Unit{type:number;itemId:number;name:string;changes:number;levels:number}
 interface Result{season:string;start:string;end:string;items:Array<{tag:string;units:Unit[]}>}
 const clean=(name:string)=>escapeMarkdown(name.replace(/[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu,"")).slice(0,80);
@@ -21,13 +20,7 @@ const packed=(lines:string[],max:number)=>{let text="",count=0;for(const line of
 export async function upgradeProgress(ctx:CommandContext,scope:"clan"|"family"){
  const type=stringOption(ctx,"type")??"heroes",season=stringOption(ctx,"season")??"current",sort=stringOption(ctx,"sort_by")??"changes",order=stringOption(ctx,"sort_order")??"desc",limit=Number(ctx.options.get("limit")?.value??30),hall=Number(ctx.options.get("townhall")?.value??0);
  if(!Object.hasOwn(categories,type)||season!=="current"&&!/^\d{4}-(0[1-9]|1[0-2])$/u.test(season)||!["changes","levels"].includes(sort)||!["asc","desc"].includes(order)||!Number.isInteger(limit)||limit<1||limit>50||!Number.isInteger(hall)||hall<0||hall>30)throw new CommandInputError("Choose valid upgrade progress options.");
- const target=scope==="clan"?normalizeTag(stringOption(ctx,"clan")??"",ctx.locale):requireGuildId(ctx);
- const refs=scope==="clan"?[{tag:target}]:await ctx.services.api.get<Array<{tag:string}>>(`/v2/server/${target}/clans-basic`);
- if(!refs.length)throw new CommandInputError("No family clans are linked to this server.");
- if(refs.length>200)throw new CommandInputError("This report supports up to 200 linked clans.");
- const clans:Clan[]=[];let failedClans=0,failedPlayers=0;
- for(let i=0;i<refs.length;i+=5){const results=await Promise.allSettled(refs.slice(i,i+5).map(ref=>ctx.services.api.get<Clan>(`/v2/bot/clash/clans/${encodeURIComponent(ref.tag)}`)));for(const result of results)if(result.status==="fulfilled")clans.push(result.value);else failedClans++;}
- const members=[...new Map(clans.flatMap(clan=>clan.memberList).map(member=>[member.tag,member])).values()].filter(member=>!hall||member.townHallLevel===hall);
+ const {target,clans,members,failedClans}=await currentReportMembers(ctx,scope,hall);let failedPlayers=0;
  const byTag=new Map<string,Unit[]>();let window:Result|undefined;
  // Families can span multiple snapshots. Deduplicate first, then use bounded
  // batches so a member contributes once even when two clans still list them.
