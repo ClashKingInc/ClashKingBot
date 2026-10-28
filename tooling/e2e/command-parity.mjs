@@ -60,9 +60,10 @@ const provider=createServer(async(req,res)=>{
  if(p===`/v1/clans/${group}/currentwar`&&privateWar){res.statusCode=403;return res.end('{}');}
  if(p==='/v1/clans/#PYLQGRJJ/currentwar')return res.end(JSON.stringify({...warBody,endTime:opponentNextWar?new Date(fixtureNow+7200000).toISOString():endTime}));
  if(p===`/v1/clans/${group}/currentwar`)return res.end(JSON.stringify(reminderWarActive&&!reminderCwl?warBody:{state:'notInWar'}));
- if(p===`/v1/clans/${group}/currentwar/leaguegroup`)return res.end(JSON.stringify({state:reminderCwl?'inWar':'notInWar',season:new Date().toISOString().slice(0,7),clans:[{tag:group,name:own.name},{tag:opponent.tag,name:opponent.name}],rounds:reminderCwl?[...(cwlGap?[{warTags:['#0']}]:[]),{warTags:['#PYLQGRJQ']}]:[]}));
+ if(p===`/v1/clans/${group}/currentwar/leaguegroup`||p==='/v1/clans/#PYLQGRJJ/currentwar/leaguegroup')return res.end(JSON.stringify({state:reminderCwl?'inWar':'notInWar',season:new Date().toISOString().slice(0,7),clans:[{tag:group,name:own.name},{tag:opponent.tag,name:opponent.name}],rounds:reminderCwl?[...(cwlGap?[{warTags:['#0']}]:[]),{warTags:['#PYLQGRJQ']}]:[]}));
  if(p==='/v1/clanwarleagues/wars/#PYLQGRJQ')return res.end(JSON.stringify({...warBody,attacksPerMember:1,clan:opponent,opponent:own}));
- if(p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Reminder Clan',memberList:[{tag,name:'Missing Player',townHallLevel:16},{tag:tags[1],name:'Finished Player',townHallLevel:16}]}));
+ if(p==='/v1/clans/#PYLQGRJJ')return res.end(JSON.stringify({tag:opponent.tag,name:opponent.name,warLeague:{id:48000019,name:'Champion League I'},memberList:[]}));
+ if(p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Reminder Clan',warLeague:{id:48000019,name:'Champion League I'},memberList:[{tag,name:'Missing Player',townHallLevel:16},{tag:tags[1],name:'Finished Player',townHallLevel:16}]}));
  if(p===`/v1/clans/${group}/capitalraidseasons`)return res.end(JSON.stringify({items:reminderRaidActive?[{state:'ongoing',endTime,members:[{tag:tags[1],attacks:6,attackLimit:5,bonusAttackLimit:1}]}]:[]}));
  if(url.pathname.startsWith('/v1/players/')){const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,leagueTier:{id:tier,name:'Current League'},
  // Deliberately synthetic name input exercises the normal lookup renderer; this is not real player data.
@@ -179,7 +180,25 @@ try{
    const missingSeason=await search('cwl',[{name:'season',type:3,value:'2000-01'}]);
    if(!text(missingSeason).includes('No Clan War League group'))throw Error('Historical CWL silently selected current season');
   }finally{await db.query('DELETE FROM wars WHERE war_id=$1 AND end_time=$2',[row.war_id,oldEnd]);}
-  console.log(JSON.stringify({warCommands:'passed',checks:['regular overview','roster and attacks','public refresh','private exact opponent discovery','stale opponent rejected','CWL despite private regular war','CWL win bonus and round selection','missing CWL round preserves numbering','stored war and autocomplete','explicit historical CWL never falls back to current'],externalDiscordWrites:0}));
+  const familyServer='999999999999996510';
+  if((await db.query('SELECT 1 FROM servers WHERE id=$1',[familyServer])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic family records exist');
+  await db.query("INSERT INTO servers(id,name) VALUES($1,'CWL family test')",[familyServer]);
+  try{
+   await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'Reminder Clan',false,0,0,'',0,0),('#PYLQGRJJ','Other Clan',true,0,0,'',0,0)",[group]);
+   await db.query("INSERT INTO server_clans(tag,server_id) VALUES($1,$2),('#PYLQGRJJ',$2)",[group,familyServer]);
+   cwlGap=false;
+   const countWars=()=>live.filter(path=>path.includes('/clanwarleagues/wars/')).length;
+   const before=countWars();
+   const familyRanks=await interact(command('cwl','rankings'));
+   if(!text(familyRanks).includes('Group rank #1')||!text(familyRanks).includes('Group rank #2')||!text(familyRanks).includes('2/2 clans'))throw Error('Family CWL rankings failed '+text(familyRanks));
+   if(countWars()-before!==1)throw Error('Family clans duplicated shared CWL war fetches');
+   const beforeStatus=countWars(),status=await interact(command('cwl','status'));
+   if(!text(status).includes('In war')||countWars()!==beforeStatus)throw Error('Family status fetched unnecessary wars');
+   const control=status.components[0].components[0].custom_id;
+   const reloaded=await interact({type:3,data:{custom_id:control,component_type:2}},other);
+   if(!text(reloaded).includes('Family CWL status'))throw Error('Family CWL refresh failed');
+  }finally{await db.query('DELETE FROM servers WHERE id=$1',[familyServer]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']]);}
+  console.log(JSON.stringify({warCommands:'passed',checks:['regular overview','roster and attacks','public refresh','private exact opponent discovery','stale opponent rejected','CWL despite private regular war','CWL win bonus and round selection','family CWL rankings/status and refresh','shared group fetched once','missing CWL round preserves numbering','stored war and autocomplete','explicit historical CWL never falls back to current'],externalDiscordWrites:0}));
  }else if(roleMode){
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[roleServer])).rowCount)throw Error('Synthetic role server exists');
   if((await db.query('SELECT 1 FROM discord_cache.gateway_shards WHERE application_id=$1',[app])).rowCount)throw Error('Synthetic role application exists');

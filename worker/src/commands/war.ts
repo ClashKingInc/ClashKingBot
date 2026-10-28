@@ -6,11 +6,13 @@ import {
   normalizeTag,
   stringOption,
 } from "./command-utils";
+import { familyCwl, familyCwlOptions } from "./cwl-family";
 import { clanCommand } from "./clan";
 import { emojis, escapeMarkdown, subcommand } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
 import {
   clanRounds,
+  cwlRanking,
   compactWarTime,
   isWar,
   latestWar,
@@ -157,6 +159,25 @@ export const cwlCommand: Command = {
     contexts: [0, 1, 2],
     options: [
       {
+        name: "rankings",
+        description: "CWL standings across linked family clans",
+        type: OptionType.Subcommand,
+        options: [
+          ...familyCwlOptions,
+          {
+            name: "season",
+            description: "Season YYYY-MM (defaults to current)",
+            type: OptionType.String,
+          },
+        ],
+      },
+      {
+        name: "status",
+        description: "CWL group status across linked family clans",
+        type: OptionType.Subcommand,
+        options: familyCwlOptions,
+      },
+      {
         name: "search",
         description: "Show current or recorded Clan War League rounds",
         type: OptionType.Subcommand,
@@ -182,8 +203,10 @@ export const cwlCommand: Command = {
   },
   autocomplete: (context) => clanCommand.autocomplete!(context),
   async execute(context) {
-    const ctx = subcommand(context),
-      tag = normalizeTag(stringOption(ctx, "clan") ?? "", ctx.locale),
+    const ctx = subcommand(context);
+    if (["rankings", "status"].includes(ctx.path[0] ?? ""))
+      return familyCwl(ctx);
+    const tag = normalizeTag(stringOption(ctx, "clan") ?? "", ctx.locale),
       season = stringOption(ctx, "season") ?? "current",
       settings = readSettings(ctx),
       round = Number(ctx.options.get("round")?.value ?? 0);
@@ -212,49 +235,12 @@ export const cwlCommand: Command = {
         );
       return warReply(ctx, tag, war, true, season, settings, "cwl", round);
     }
-    const scores = new Map(
-      result.group.clans.map((clan) => [
-        clan.tag,
-        { name: clan.name, stars: 0, destruction: 0, wars: 0 },
-      ]),
-    );
-    for (const war of result.wars) {
-      if (!["inWar", "warEnded"].includes(war.state)) continue;
-      for (const side of [war.clan, war.opponent]) {
-        const score = scores.get(side.tag);
-        if (!score) continue;
-        score.stars += side.stars;
-        score.destruction += side.destructionPercentage;
-        score.wars++;
-      }
-      if (war.state === "warEnded") {
-        const winner =
-          war.clan.stars !== war.opponent.stars
-            ? war.clan.stars > war.opponent.stars
-              ? war.clan
-              : war.opponent
-            : war.clan.destructionPercentage !==
-                war.opponent.destructionPercentage
-              ? war.clan.destructionPercentage >
-                war.opponent.destructionPercentage
-                ? war.clan
-                : war.opponent
-              : null;
-        if (winner && scores.has(winner.tag))
-          scores.get(winner.tag)!.stars += 10;
-      }
-    }
-    const ranked = [...scores].sort(
-      (a, b) =>
-        b[1].stars - a[1].stars ||
-        b[1].destruction - a[1].destruction ||
-        a[0].localeCompare(b[0]),
-    );
+    const ranked = cwlRanking(result.group, result.wars);
     const emoji = await emojis(ctx),
       standing = ranked
         .map(
-          ([clan, score], i) =>
-            `**${i + 1}. ${escapeMarkdown(score.name)}${clan === tag ? " ←" : ""}** · ${emoji.get("war_star")} ${score.stars}`,
+          ([clan, score]) =>
+            `**${score.rank}. ${escapeMarkdown(score.name)}${clan === tag ? " ←" : ""}** · ${emoji.get("war_star")} ${score.stars}`,
         )
         .join("\n");
     const rounds =
@@ -405,6 +391,48 @@ export async function dispatchWar(
     .slice("ck:war:".length)
     .split("|");
   const [kind, clan, period, view, limit, round] = parts;
+  if (parts.length === 6 && kind === "family") {
+    if (
+      clan !== ctx.interaction.guild_id ||
+      !["rankings", "status"].includes(period ?? "")
+    )
+      throw new CommandInputError("This report belongs to a different server.");
+    const run = familyCwl({
+      ...ctx,
+      path: [period!],
+      options: new Map([
+        ["season", { name: "season", type: OptionType.String, value: view }],
+        [
+          "limit",
+          { name: "limit", type: OptionType.Integer, value: Number(limit) },
+        ],
+        [
+          "sort_order",
+          { name: "sort_order", type: OptionType.String, value: round },
+        ],
+      ]),
+    });
+    if (!waitUntil) return run;
+    waitUntil(
+      run
+        .then((reply) =>
+          ctx.services.discordRest.editOriginalInteractionResponse(
+            ctx.interaction.token,
+            reply.data ?? {},
+          ),
+        )
+        .catch(() =>
+          ctx.services.discordRest.createInteractionFollowup(
+            ctx.interaction.token,
+            {
+              content: "Could not refresh this family report. Try again.",
+              flags: 64,
+            },
+          ),
+        ),
+    );
+    return { type: InteractionResponseType.DeferredUpdateMessage };
+  }
   if (
     parts.length !== 6 ||
     !["war", "cwl"].includes(kind ?? "") ||

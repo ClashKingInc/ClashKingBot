@@ -46,7 +46,7 @@ export interface CwlGroup {
   season: string;
   clans: Array<{ tag: string; name: string }>;
   rounds: Array<{ warTags: Array<string | War | { tag: string }> }>;
-  warLeague?: { name: string } | null;
+  warLeague?: { id?: number; name: string } | null;
 }
 export const warTime = (value: string) =>
   Date.parse(
@@ -87,6 +87,7 @@ export async function loadCwl(
   ctx: CommandContext,
   tag: string,
   season?: string,
+  warCache = new Map<string, Promise<War[]>>(),
 ): Promise<{ group: CwlGroup; wars: War[] } | null> {
   const encoded = encodeURIComponent(tag),
     current = new Date().toISOString().slice(0, 7);
@@ -122,20 +123,29 @@ export async function loadCwl(
       ),
     ];
     if (tags.length > 64) throw new Error("Unexpected CWL group size");
-    const wars: War[] = [];
-    for (let i = 0; i < tags.length; i += 4) {
-      for (const war of await Promise.all(
-        tags
-          .slice(i, i + 4)
-          .map((warTag) =>
-            optional<War>(
-              ctx,
-              `/v2/bot/clash/clanwarleagues/wars/${encodeURIComponent(warTag)}`,
-            ).then((war) => (war ? { ...war, tag: warTag } : null)),
-          ),
-      ))
-        if (isWar(war)) wars.push(war);
+    const key = `${current}:${[...tags].sort().join(",")}`;
+    let pending = warCache.get(key);
+    if (!pending) {
+      pending = (async () => {
+        const wars: War[] = [];
+        for (let i = 0; i < tags.length; i += 4) {
+          for (const war of await Promise.all(
+            tags
+              .slice(i, i + 4)
+              .map((warTag) =>
+                optional<War>(
+                  ctx,
+                  `/v2/bot/clash/clanwarleagues/wars/${encodeURIComponent(warTag)}`,
+                ).then((war) => (war ? { ...war, tag: warTag } : null)),
+              ),
+          ))
+            if (isWar(war)) wars.push(war);
+        }
+        return wars;
+      })();
+      warCache.set(key, pending);
     }
+    const wars = await pending;
     return { group: live, wars };
   }
   const stored = await optional<CwlGroup>(ctx, `/v2/cwl/${encoded}/group`, {
@@ -233,4 +243,54 @@ export function clanRounds(
       )
       .find((war) => isWar(war, tag)),
   );
+}
+
+export async function cwlStatus(ctx: CommandContext, tag: string) {
+  const group = await optional<CwlGroup>(
+    ctx,
+    `/v2/bot/clash/clans/${encodeURIComponent(tag)}/currentwar/leaguegroup`,
+  );
+  const current = new Date().toISOString().slice(0, 7);
+  return group?.season === current ? group.state : "unavailable";
+}
+export function cwlRanking(group: CwlGroup, wars: War[]) {
+  const scores = new Map(
+    group.clans.map((clan) => [
+      clan.tag,
+      { name: clan.name, stars: 0, destruction: 0, rank: 0 },
+    ]),
+  );
+  for (const war of wars) {
+    if (!["inWar", "warEnded"].includes(war.state)) continue;
+    for (const side of [war.clan, war.opponent]) {
+      const score = scores.get(side.tag);
+      if (score) {
+        score.stars += side.stars;
+        score.destruction += side.destructionPercentage;
+      }
+    }
+    if (war.state === "warEnded") {
+      const result =
+        war.clan.stars - war.opponent.stars ||
+        war.clan.destructionPercentage - war.opponent.destructionPercentage;
+      const winner = result > 0 ? war.clan : result < 0 ? war.opponent : null;
+      if (winner && scores.has(winner.tag)) scores.get(winner.tag)!.stars += 10;
+    }
+  }
+  const ranked = [...scores].sort(
+    (a, b) =>
+      b[1].stars - a[1].stars ||
+      b[1].destruction - a[1].destruction ||
+      a[0].localeCompare(b[0]),
+  );
+  ranked.forEach((item, index) => {
+    const previous = ranked[index - 1];
+    item[1].rank =
+      previous &&
+      previous[1].stars === item[1].stars &&
+      previous[1].destruction === item[1].destruction
+        ? previous[1].rank
+        : index + 1;
+  });
+  return ranked;
 }
