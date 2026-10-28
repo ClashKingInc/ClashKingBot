@@ -1,3 +1,4 @@
+import { buttonsCommand, quickMemberAction } from "./buttons";
 import { botInfoCommand } from "./bot-info";
 import { giveawayCommand } from "./giveaway";
 import { rolesCommand } from "./roles";
@@ -38,7 +39,7 @@ import { clanCommand } from "./clan";
 import { dispatchGamePage } from "./game-pages";
 import type { Command, CommandContext, CommandServices, ComponentHandler } from "./types";
 
-const commands: readonly Command[] = [botInfoCommand,giveawayCommand,rolesCommand,graphCommand,roleUsersCommand,boostsCommand,statsCommand,helpCommand,baseCommand, linkCommand, rosterCommand, refreshCommand, mainAccountCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, banCommand, strikeCommand, warCommand, cwlCommand];
+const commands: readonly Command[] = [buttonsCommand,botInfoCommand,giveawayCommand,rolesCommand,graphCommand,roleUsersCommand,boostsCommand,statsCommand,helpCommand,baseCommand, linkCommand, rosterCommand, refreshCommand, mainAccountCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, banCommand, strikeCommand, warCommand, cwlCommand];
 const commandByName = new Map(commands.map((command) => [command.definition.name, command]));
 // Retain cached legacy invocations without registering a separate slash root.
 commandByName.set("unlink", unlinkCommand);
@@ -131,6 +132,18 @@ async function executePersistentHandler(
     return dispatchGamePage({ ...context, interaction: { ...context.interaction,
       data: { ...context.interaction.data, custom_id: `ck:page:lh:${invokingUserId(context)}:${tag}:0` },
     } }, waitUntil);
+  }
+  const legacyQuick:Record<string,string>={"Start Link":"link","Link Help":"help","Refresh Roles":"refresh",MyToDoList:"todo",MyRosters:"rosters"};
+  if(legacyQuick[customId]&&context.interaction.guild_id)return executePersistentHandler({...context,interaction:{...context.interaction,data:{...context.interaction.data,custom_id:`ck:quick:${context.interaction.guild_id}:${legacyQuick[customId]}`}}},waitUntil);
+  if(customId.startsWith("ck:quick:")){
+    const match=/^ck:quick:([0-9]{15,20}):(link|help|refresh|todo|rosters)$/u.exec(customId);
+    if(!match||match[1]!==context.interaction.guild_id)throw new CommandInputError("This panel belongs to another server.");
+    if(match[2]==="link"||match[2]==="help"){
+      const action=match[2]==="link"?"start":"help";
+      return componentHandlers.get(`link:${action}`)!(context,[]);
+    }
+    const handler:ComponentHandler=async ctx=>{const response=await quickMemberAction(ctx,match[2]!);return {...response,data:{...response.data,flags:Number(response.data?.flags??0)|MessageFlags.Ephemeral}};};
+    return waitUntil?deferPersistentHandler(context,handler,[],waitUntil):handler(context,[]);
   }
   if(customId.startsWith("ck:members:"))return dispatchMemberReport(context,waitUntil);
   // Automated panels use colon-separated IDs; command reports use pipes.

@@ -49,7 +49,8 @@ const warStatsMode=process.argv.includes("--war-statistics-only");
 const botInfoMode=process.argv.includes("--bot-info-only");let botInfoFailure=false;
 const handoffMode=process.argv.includes("--roster-handoff-only");
 const verificationMode=process.argv.includes("--clan-verification-only")||handoffMode;let verificationDescription="";
-const rosterReadMode=process.argv.includes("--roster-commands-only");let rosterProfileFailure=false;
+const quickPanelMode=process.argv.includes("--quick-panel-only");
+const rosterReadMode=process.argv.includes("--roster-commands-only")||quickPanelMode;let rosterProfileFailure=false;
 const helpMode=process.argv.includes("--help-only");
 const warPreferenceMode=process.argv.includes("--war-preference-only");let warPreferenceFailure=false;
 const summaryMode=process.argv.includes("--summary-only");
@@ -167,7 +168,7 @@ try{
   if(url.hostname==='cdn.discordapp.com'&&url.pathname==='/attachments/local/evidence.png')return new Response(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXZkAAAAASUVORK5CYII=','base64'),{headers:{'Content-Type':'image/png'}});
   if(url.hostname==='assets.clashk.ing'&&/^\/static_data\/(troops|spells|heroes|pets|equipment|buildings|league_tiers)\.json$/u.test(url.pathname))return new Response(readFileSync(join(assetsRepo,'assets',url.pathname)),{headers:{'Content-Type':'application/json'}});
   if(url.hostname==='discord.com'){
-   if(roleMode){
+   if(roleMode||quickPanelMode){
     if(url.pathname==='/api/v10/users/@me')return Response.json({id:app});
     if(url.pathname===`/api/v10/guilds/${roleServer}`)return Response.json({id:roleServer,owner_id:other});
     if(url.pathname===`/api/v10/guilds/${roleServer}/roles`)return Response.json(roleDefinitions);
@@ -180,7 +181,7 @@ try{
     if(change){if(request.method==='PUT')memberRoles.add(change[1]);else if(request.method==='DELETE')memberRoles.delete(change[1]);else throw Error('Unexpected role method');roleWrites.push({kind:request.method,role:change[1]});return new Response(null,{status:204});}
    }
    if(request.method==='GET'&&url.pathname.endsWith('/emojis')){emojiInventoryRequests++;return Response.json({items:emojiItems});}
-   if(request.method==='GET'&&url.pathname.includes('/channels/'))return Response.json({id:url.pathname.split('/').at(-1),guild_id:'999999999999996510',type:0});
+   if(request.method==='GET'&&url.pathname.includes('/channels/'))return Response.json({id:url.pathname.split('/').at(-1),guild_id:quickPanelMode&&url.pathname.endsWith('/999999999999996599')?'999999999999996512':'999999999999996510',type:0});
    if(request.method==='POST'&&url.pathname.endsWith('/messages')){if(reminderSendFails)return Response.json({message:'Missing permissions'},{status:403});sentReminders.push(await request.json());return Response.json({id:'999999999999996999'});}
    const token=url.pathname.split('/')[5];let data;
    if(request.headers.get('content-type')?.startsWith('multipart/form-data')){
@@ -507,6 +508,30 @@ try{
    await db.query('INSERT INTO server_clans(server_id,tag) VALUES($1,$3),($2,$3)',[server,elsewhere,group]);
    const created=await request('/v2/roster?server_id='+server,{alias:'Visible roster',roster_type:'family',members:[{tag:tags[1],name:'Stored member',townhall:15,trophies:1}]});
    const foreignRoster=await request('/v2/roster?server_id='+elsewhere,{alias:'Other server secret',roster_type:'family',members:[{tag:tags[1],name:'Stored member',townhall:15}]});
+   if(quickPanelMode){
+    if((await db.query('SELECT 1 FROM discord_cache.gateway_shards WHERE application_id=$1',[app])).rowCount)throw Error('Synthetic panel gateway exists');
+    const generation=randomBytes(16).toString('hex');
+    await db.query('INSERT INTO discord_cache.gateway_shards(application_id,shard_id,shard_count,generation,healthy,heartbeat_at) VALUES($1,0,1,$2,true,now())',[app,generation]);
+    await db.query('INSERT INTO discord_cache.guilds(id,data,application_id,shard_id,generation,available,metadata_complete,members_complete) VALUES($1,$2,$3,0,$4,true,true,true)',[server,JSON.stringify({owner_id:other}),app,generation]);
+    await db.query('INSERT INTO discord_cache.members(guild_id,user_id,data) VALUES($1,$2,$3)',[server,actor,JSON.stringify({user:{id:actor},roles:[]})]);
+    const post=options=>interact({type:2,data:{name:'buttons',options}},actor,'32');
+    const denied=await interact({type:2,data:{name:'buttons'}},actor,'0');if(!text(denied).includes('Manage Server'))throw Error('Panel post permission bypass');
+    const posted=await post([{name:'help',type:5,value:true}]);if(!text(posted).includes('Panel posted')||sentReminders.length!==1)throw Error('Panel was not posted');
+    const payload=sentReminders[0];if(payload.components[0].components.length!==5||payload.allowed_mentions.parse.length)throw Error('Panel controls/mentions invalid');
+    const click=async(action,who=actor,legacy=false)=>interact({type:3,data:{component_type:2,custom_id:legacy?action:`ck:quick:${server}:${action}`}},who);
+    const link=await click('link');if(link.custom_id!=='ck:link:submit')throw Error('Panel link did not open existing modal');
+    const help=await click('help');if(help.flags!==64||!help.embeds?.length)throw Error('Panel help not private');
+    const own=await click('rosters');if(own.flags!==64||!text(own).includes('Visible roster')||text(own).includes('Other server secret'))throw Error('Own roster panel scope failed');
+    const stranger=await click('rosters',other);if(text(stranger).includes('Stored member'))throw Error('Panel reused creator identity');
+    await db.query('UPDATE player_links SET hidden=true,is_verified=true WHERE tag=$1',[tags[1]]);if(text(await click('rosters')).includes('Stored member'))throw Error('Hidden link exposed');await db.query('UPDATE player_links SET hidden=false,is_verified=false WHERE tag=$1',[tags[1]]);
+    if(!text(await click('MyRosters',actor,true)).includes('Visible roster'))throw Error('Legacy roster button broken');
+    const refresh=await click('refresh');if(refresh.flags!==64||!text(refresh).includes('refreshes completed'))throw Error('Panel refresh failed '+text(refresh));
+    const todo=await click('todo');if(todo.flags!==64||!todo.embeds?.length)throw Error('Panel to-do failed '+text(todo));
+    const cross=await interact({type:3,data:{component_type:2,custom_id:`ck:quick:${elsewhere}:rosters`}});if(!text(cross).includes('another server'))throw Error('Foreign panel accepted');
+    const badChannel=await post([{name:'channel',type:7,value:'999999999999996599'}]);if(text(badChannel).includes('Panel posted')||sentReminders.length!==1)throw Error('Panel posted to foreign channel');
+    const empty=await post(['link','help','refresh','todo','rosters'].map(name=>({name,type:5,value:false})));if(!text(empty).includes('at least one'))throw Error('Empty panel accepted');
+    console.log(JSON.stringify({quickPanel:'passed',checks:['manager-only post','five controls','link modal','private help/tasks/refresh','clicker identity','own roster scope','hidden links excluded','legacy IDs','cross-server rejection','empty panel rejected'],externalDiscordWrites:0,localPanelPosts:sentReminders.length}));
+   }
    const list=await interact(command('roster','list'),actor,'32');if(!text(list).includes('Visible roster')||text(list).includes('Other server secret'))throw Error('Roster list scope failed: '+text(list));
    const selection=await interact({type:3,data:{custom_id:'ck:roster:select',component_type:3,values:[created.roster_id]}},actor,'32');if(!text(selection).includes('Stored member'))throw Error('Roster selection failed');
    const view=await interact(command('roster','view',[{name:'roster',type:3,value:created.roster_id}]),actor,'32');if(!text(view).includes('Stored member'))throw Error('Roster view failed');
@@ -566,7 +591,7 @@ try{
    rosterProfileFailure=false;
    const deleted=await interact(command('roster','delete',[copyOption,{name:'type',type:3,value:'roster'},{name:'confirm',type:5,value:true}]),actor,'32');if(!text(deleted).includes('Deleted roster')||(await db.query('SELECT 1 FROM rosters WHERE id=$1',[copy.id])).rowCount)throw Error('Delete failed '+text(deleted));
    console.log(JSON.stringify({rosterReads:'passed',checks:['label create/rename/assign/display','foreign label rejected','in-use deletion rejected','Main and unused label deletion','actual API-created rosters','server-scoped list and selection','direct view','player and self search','search refresh','permission gate','failed profile retained','actual stored profile update','cooldown reuse','permission-checked add','hydrated profile','atomic move','foreign server move rejected','copy members','remove members','clear and delete confirmation'],externalDiscordWrites:0}));
-  }finally{await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,elsewhere]]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);}
+  }finally{if(quickPanelMode){await db.query('DELETE FROM discord_cache.guilds WHERE id=$1',[server]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);}await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,elsewhere]]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);}
  }else if(helpMode){
   const list=await interact({type:2,data:{name:'help'}});
   if(!text(list).includes('/clan')||!text(list).includes('/link')||!text(list).includes('/help'))throw Error('Help missing current command roots');
