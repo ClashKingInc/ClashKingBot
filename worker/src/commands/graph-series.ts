@@ -1,6 +1,6 @@
 import { actionRow, legacyMessage } from "../discord/components";
 import { CommandInputError, invokingUserId, normalizeTag, requireGuildId, stringOption } from "./command-utils";
-import { graphMetrics, graphTotal, graphBasis } from "./graph-data";
+import { graphMetrics, graphTotal, graphBasis, validGraphValue } from "./graph-data";
 import type { CommandContext } from "./types";
 type Metric=keyof typeof graphMetrics;
 interface Stats{season:string;truncated:boolean;items:Array<Record<Metric,number>>}
@@ -28,7 +28,7 @@ export async function graphSeries(ctx:CommandContext){
   while(next<jobs.length&&!deadline.aborted){const job=jobs[next++]!;try{
    const data=await graphTotal(ctx,job.row.tag,job.value,metric,deadline);
    const sum=data.value;
-   if(data.season===job.value&&sum!==null&&Number.isSafeInteger(sum)&&sum>=0){job.row.values[job.index]=sum;missing--;}
+   if(data.season===job.value&&sum!==null&&validGraphValue(metric,sum)){job.row.values[job.index]=sum;missing--;}
   }catch{/* The chart marks this observation unavailable. */}}
  }));
  const selected=rows.filter(row=>row.values[count-1]!==null).sort((a,b)=>b.values[count-1]!-a.values[count-1]!||a.tag.localeCompare(b.tag)).slice(0,limit);

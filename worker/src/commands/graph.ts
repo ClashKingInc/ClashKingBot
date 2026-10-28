@@ -1,4 +1,4 @@
-import { graphMetrics, graphTotal, graphBasis } from "./graph-data";
+import { graphMetrics, graphTotal, graphBasis, validGraphValue } from "./graph-data";
 export { graphMetrics } from "./graph-data";
 import { dailyMetrics, graphDaily } from "./graph-daily";
 import { actionRow, legacyMessage } from "../discord/components";
@@ -33,7 +33,7 @@ export const graphCommand:Command={
     if(result.status==="rejected"||result.value.value===null){unavailable++;rows.push({...ref,value:null});continue;}
     if(resolved!=="current"&&resolved!==result.value.season)throw new CommandInputError("The season changed during this chart. Refresh it.");resolved=result.value.season;
     const sum=result.value.value;
-    if(!Number.isSafeInteger(sum)||sum<0){unavailable++;rows.push({...ref,value:null});continue;}
+    if(!validGraphValue(attribute,sum)){unavailable++;rows.push({...ref,value:null});continue;}
     rows.push({...ref,value:sum});
    }
   }
