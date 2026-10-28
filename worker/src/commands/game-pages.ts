@@ -1,3 +1,4 @@
+import { helpCommand } from "./help";
 import { InteractionResponseType, MessageFlags, type InteractionOption } from "../discord/types";
 import { CommandInputError, OptionType } from "./command-utils";
 import { playerCommand } from "./player";
@@ -20,7 +21,9 @@ export async function dispatchGamePage(ctx: CommandContext, waitUntil?: (promise
   let command:Command,action:string,options:InteractionOption[];
   const string=(name:string,value:string):InteractionOption=>({name,type:OptionType.String,value});
   const tag=(value:string|undefined)=>{if(!value||!/^#[0289PYLQGRJCUV]+$/u.test(value))throw new CommandInputError("Invalid player tag.");return value;};
-  if(kind==="wp"&&parts.length===4){
+  if(kind==="hp"&&parts.length===1){
+    command=helpCommand;action="";options=parts[0]==="-"?[]:[string("command",parts[0]!.replaceAll("~"," "))];
+  }else if(kind==="wp"&&parts.length===4){
     command=clanCommand;action="war-preference";
     options=[string("clan",tag(parts[0])),string("view",parts[1]!),string("status",parts[2]!),{name:"townhall",type:OptionType.Integer,value:Number(parts[3])}];
   }else if((kind==="sc"&&parts.length===5)||(kind==="sf"&&parts.length===4)){
@@ -111,7 +114,7 @@ export async function dispatchGamePage(ctx: CommandContext, waitUntil?: (promise
     command=leaderboardCommand;action="family";options=[string("type",parts[0]!),{name:"limit",type:OptionType.Integer,value:Number(parts[1])}];
   }else throw new CommandInputError("Invalid page control.");
   options.push({name:"__page",type:OptionType.Integer,value:Number(rawPage)});
-  const context:CommandContext={...ctx,options:new Map([[action,{name:action,type:OptionType.Subcommand,options}]])};
+  const context:CommandContext={...ctx,options:kind==="hp"?new Map(options.map(option=>[option.name,option])):new Map([[action,{name:action,type:OptionType.Subcommand,options}]])};
   const run=async()=>command.execute(context);
   if(!waitUntil){const result=await run();return typeof result.data?.flags==="number"&&(result.data.flags&MessageFlags.Ephemeral)?result:{...result,type:InteractionResponseType.UpdateMessage};}
   waitUntil(run().then(result=>typeof result.data?.flags==="number"&&(result.data.flags&MessageFlags.Ephemeral)

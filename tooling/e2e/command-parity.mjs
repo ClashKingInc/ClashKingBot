@@ -38,6 +38,7 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+const helpMode=process.argv.includes("--help-only");
 const warPreferenceMode=process.argv.includes("--war-preference-only");let warPreferenceFailure=false;
 const summaryMode=process.argv.includes("--summary-only");
 let summaryRaidStart=new Date();
@@ -181,7 +182,21 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(warPreferenceMode){
+ if(helpMode){
+  const list=await interact({type:2,data:{name:'help'}});
+  if(!text(list).includes('/clan')||!text(list).includes('/link')||!text(list).includes('/help'))throw Error('Help missing current command roots');
+  const detail=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'clan war-preference'}]}});
+  if(!text(detail).includes('Required')||!text(detail).includes('townhall')||!text(detail).includes('Last preference change'))throw Error('Help detail missing real options');
+  const refresh=detail.components[0].components[0].custom_id;
+  if(!text(await interact({type:3,data:{custom_id:refresh,component_type:2}},other)).includes('/clan war-preference'))throw Error('Help refresh lost command');
+  const root=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'clan'}]}});
+  if(!text(root).includes('/clan summary')||!text(root).includes('/clan war-preference'))throw Error('Help group missing subcommands');
+  const complete=await interact({type:4,data:{name:'help',options:[{name:'command',type:3,value:'war',focused:true}]}});
+  if(!complete.choices?.some(choice=>choice.value==='clan war-preference'))throw Error('Help autocomplete missing leaf');
+  const bad=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'not-real'}]}});
+  if(!text(bad).includes('Choose a current command'))throw Error('Unknown help command accepted');
+  console.log(JSON.stringify({help:'passed',checks:['current registry roots','generated required/options/choices','group children','autocomplete','public refresh retains selection','unknown command rejected'],externalDiscordWrites:0}));
+ }else if(warPreferenceMode){
   const ids=[],selected=[tag,tags[1]],key='test-war-preference';
   for(const table of ['player_change_history','player_war_history','player_timers'])if((await db.query(`SELECT 1 FROM ${table} WHERE player_tag=ANY($1::text[])`,[selected])).rowCount)throw Error('Synthetic war-preference data exists');
   const endpoint=`http://127.0.0.1:${port}/v2/bot/players/war-status`;
